@@ -9,7 +9,6 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { Model } from "@antelopejs/interface-database-decorators";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import { AuthOwnerOnly, AuthUser } from "../auth";
-import type { User } from "../auth/db";
 // Import from the defining leaf, not the dms-base barrel: the barrel pulls in
 // table-view, which imports the page interface back — entering through the
 // barrel would then call DefaultLayout() while the barrel is still
@@ -82,6 +81,7 @@ import {
   type PageInfo,
   type PageLayout,
   type PageLayoutHandler,
+  type PageLayoutRequest,
 } from "./types";
 import {
   PageRegistration,
@@ -94,16 +94,6 @@ import {
   RequestRouteParametersProperty,
   RequestTenantIdProperty,
 } from "./internal/metadata-helpers";
-
-/** How one request asks for a page layout, besides its caller. */
-interface PageLayoutRequest {
-  /** Assert the tenant access gate: the by-slug entry has no guard of its own. */
-  enforceTenantAccessGate?: boolean;
-  /** The query of the page URL, for header-button availability. */
-  query?: Readonly<Record<string, string>>;
-  /** The route parameters of the page URL, for header-button availability. */
-  params?: Readonly<Record<string, string>>;
-}
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 
@@ -534,37 +524,25 @@ export class PageMetadata {
 
   private registerLayoutRoute(pageInfo: PageInfo): void {
     const apimeta = GetMetadata(this.target, ControllerMeta);
-    const resolvePageLayout = (
-      route: RouteCallbackContext,
-    ): Promise<PageLayout> =>
-      this.resolvePageLayout(
-        route.user,
-        route.memberModel,
-        route.roleModel,
-        route.tenantId,
-        { query: route.pageQuery, params: route.pageParams },
-      );
-
+    const resolvePageLayout = (request: PageLayoutRequest) =>
+      this.resolvePageLayout(request);
     // The by-slug entry carries no guard of its own, so it asks the resolver
     // to assert the gate; the route below is already guarded.
-    const handler: PageLayoutHandler = (
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-      ...[query, params]
-    ) =>
-      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
-        enforceTenantAccessGate: true,
-        query,
-        params,
-      });
+    const handler: PageLayoutHandler = (request) =>
+      this.resolvePageLayout(request, { enforceTenantAccessGate: true });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
 
     const routeId = RegisterRoute({
       location: pageInfo.layoutUrl,
       callback: async function (this: RouteCallbackContext) {
-        return resolvePageLayout(this);
+        return resolvePageLayout({
+          user: this.user,
+          memberModel: this.memberModel,
+          roleModel: this.roleModel,
+          tenantId: this.tenantId,
+          query: this.pageQuery,
+          params: this.pageParams,
+        });
       },
       method: "GET",
       mode: "handler",
@@ -586,11 +564,16 @@ export class PageMetadata {
   }
 
   private async resolvePageLayout(
-    user: User | undefined,
-    memberModel: TenantMemberModel,
-    roleModel: RoleModel,
-    tenantId: string,
-    { enforceTenantAccessGate = false, query, params }: PageLayoutRequest = {},
+    {
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      query,
+      params,
+    }: PageLayoutRequest,
+    // Only for the by-slug entry, which has no guard of its own.
+    { enforceTenantAccessGate = false } = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
     if (!layout) {

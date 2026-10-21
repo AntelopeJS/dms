@@ -91,13 +91,13 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
   async function serve(query?: Record<string, string>) {
     const handler = GetPageLayoutBySlug(slug);
     if (!handler) throw new Error(`no layout handler for ${slug}`);
-    const layout = await handler(
-      MEMBER,
-      models.memberModel,
-      models.roleModel,
-      TENANT,
+    const layout = await handler({
+      user: MEMBER,
+      memberModel: models.memberModel,
+      roleModel: models.roleModel,
+      tenantId: TENANT,
       query,
-    );
+    });
     return layout.layout?.options as ServedOptions;
   }
 

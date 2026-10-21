@@ -903,13 +903,13 @@ export class DMSController extends Controller("/dms") {
     const handler = GetPageLayoutBySlug(normalizedSlug);
     assert(handler, 404, "error.page_not_found");
 
-    return handler(
+    return handler({
       user,
       memberModel,
       roleModel,
-      getRequestTenantId(requestContext),
-      pageQueryOf(requestContext),
-    );
+      tenantId: getRequestTenantId(requestContext),
+      query: pageQueryOf(requestContext),
+    });
   }
 
   @Get("/page")
@@ -1130,14 +1130,15 @@ export async function buildPagePayload(
   const [layout, navBadges] = await Promise.all([
     // Header buttons resolve against the page URL's query, as `/pagelayout`
     // does: the layout then matches the one the browser would read again.
-    handler(
+    handler({
       user,
       memberModel,
       roleModel,
       tenantId,
-      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
-      pageParamsOf(registeredSlug, normalizedSlug),
-    ),
+      query:
+        requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+      params: pageParamsOf(registeredSlug, normalizedSlug),
+    }),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
@@ -1368,12 +1369,12 @@ async function findPreviewHeaderActions(
   const previewUser: User = Object.assign(Object.create(request.user), {
     owner: false,
   });
-  const previewLayout = await handler(
-    previewUser,
+  const previewLayout = await handler({
+    user: previewUser,
     memberModel,
     roleModel,
-    request.tenantId,
-  );
+    tenantId: request.tenantId,
+  });
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,
     quickActions: quickActions.real,
@@ -1405,7 +1406,7 @@ function readViewerLayout(
   const known = layouts.get(route.fullId);
   if (known) return known;
   const { user, memberModel, roleModel, tenantId } = request;
-  const layout = handler(user, memberModel, roleModel, tenantId);
+  const layout = handler({ user, memberModel, roleModel, tenantId });
   layouts.set(route.fullId, layout);
   layout.catch(() => layouts.delete(route.fullId));
   return layout;

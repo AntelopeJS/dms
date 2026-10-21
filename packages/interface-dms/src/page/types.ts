@@ -473,15 +473,18 @@ export interface PageLayout<T = unknown> {
   allComponentsHidden?: true;
 }
 
+/** What a page layout is asked for: its caller, and the page URL it is drawn at. */
+export interface PageLayoutRequest {
+  user: User | undefined;
+  memberModel: TenantMemberModel;
+  roleModel: RoleModel;
+  tenantId: string;
+  /** The query of the page URL, handed to header-button availability. */
+  query?: Readonly<Record<string, string>>;
+  /** The route parameters (`:id`) of the page URL, handed along with it. */
+  params?: Readonly<Record<string, string>>;
+}
+
 export type PageLayoutHandler = (
-  user: User | undefined,
-  memberModel: TenantMemberModel,
-  roleModel: RoleModel,
-  tenantId: string,
-  // `query`: the query of the page URL, handed to header-button availability;
-  // `params`: its route parameters (`:id`), handed along with it.
-  ...page: [
-    query?: Readonly<Record<string, string>>,
-    params?: Readonly<Record<string, string>>,
-  ]
+  request: PageLayoutRequest,
 ) => Promise<PageLayout>;
