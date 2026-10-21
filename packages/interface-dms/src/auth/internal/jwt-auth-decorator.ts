@@ -31,7 +31,8 @@ function isVerifiedUser(value: unknown): value is { _id: string } {
  * verified user and tenant to the request: `getRequestTenantId` then answers
  * the tenant of a checked credential, never one read from an unverified token.
  * Applies to a parameter, a property or a class, like `CreateAuthDecorator`;
- * a validator passed to the decorator replaces the configured one.
+ * a validator passed to the decorator replaces the configured one, and then
+ * binds nothing.
  *
  * @internal
  */
@@ -45,7 +46,9 @@ export function CreateJwtAuthDecorator<
       const provider = async (ctx: RequestContext): Promise<R> => {
         const data = await callbacks.authenticator(bearerToken(ctx));
         const result = await validate(data);
-        if (data && isVerifiedUser(result)) {
+        // A replacement validator may skip the signature check: only the
+        // configured one, which verifies the token, binds its tenant.
+        if (!validator && data && isVerifiedUser(result)) {
           bindVerifiedRequestPrincipal(ctx, {
             userId: result._id,
             tenantId: data.tenantId || DEFAULT_TENANT_ID,
