@@ -357,6 +357,7 @@ describe("GithubStarPrompt", () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     const drawer = document.createElement("div");
     drawer.setAttribute("role", "dialog");
+    drawer.setAttribute("data-dismissable-layer", "");
     drawer.dataset.state = "open";
     document.body.append(drawer);
     await mount();
@@ -381,6 +382,7 @@ describe("GithubStarPrompt", () => {
     wrapper.setAttribute("data-reka-popper-content-wrapper", "");
     const popover = document.createElement("div");
     popover.setAttribute("role", "dialog");
+    popover.setAttribute("data-dismissable-layer", "");
     popover.dataset.state = "open";
     wrapper.append(popover);
     document.body.append(wrapper);

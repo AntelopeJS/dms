@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useOpenDialog } from "#dms-ui/app/build/composables/containers/closingLayers";
 import { isFloatingSaveBarShown } from "#dms-ui/app/build/composables/form/floatingSaveBars";
 import { useGithubStarPrompt } from "../../composables/general/useGithubStarPrompt";
-import { useOpenDialog } from "../../composables/general/useOpenDialog";
 import { useActiveSidePanel } from "../../composables/layout/sidePanelState";
 import { useSidebarState } from "./sidebarState";
 
