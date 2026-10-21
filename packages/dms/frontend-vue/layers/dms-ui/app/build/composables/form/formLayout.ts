@@ -46,25 +46,6 @@ export const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
   },
 };
 
-// A form in a drawer or a modal: the same rows on a tighter rhythm, the
-// container's width being scarcer than a page's. A row with one line of
-// value is 57px beside its label; stacked (a phone, a narrow drawer) the
-// label sits 6px above its control. Read-only details and editable forms
-// share the rows, so both read alike.
-export const CONTAINER_LAYOUT_CLASSES: Record<
-  FormOrientation,
-  FormLayoutClasses
-> = {
-  horizontal: {
-    rows: "flex flex-col",
-    row: { layout: "form", inset: false, spacing: "dense" },
-  },
-  vertical: {
-    rows: "flex flex-col gap-3 py-3",
-    row: { layout: "stack", inset: false, spacing: "list" },
-  },
-};
-
 // A card form draws its own head band and sticky footer band; inside a
 // modal or drawer the container is the surface and already pads the body.
 // The footer sticks to the bottom of the scroll area while the form runs
