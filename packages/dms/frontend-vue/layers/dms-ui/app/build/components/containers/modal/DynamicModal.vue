@@ -92,11 +92,6 @@ const modalUi = computed(() => ({
 const { executeGuards, clearGuards } = useLeaveGuard();
 
 const isOpen = defineModel<boolean>("open", { default: true });
-// Reka keeps the page's `pointer-events: none` on the body until the modal
-// has scaled out: released as soon as the close starts, a click lands.
-const contentProps = computed(() => ({
-  disableOutsidePointerEvents: isOpen.value,
-}));
 const isContentLoading = ref(true);
 let closePromise: Promise<void> | null = null;
 
@@ -158,7 +153,6 @@ const { t } = useI18n();
     :title="title"
     :dismissible="false"
     :ui="modalUi"
-    :content="contentProps"
     @close:prevent="tryClose"
   >
     <template #header>
