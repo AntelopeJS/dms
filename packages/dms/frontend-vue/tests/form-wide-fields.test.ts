@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  CONTAINER_LAYOUT_CLASSES,
   FORM_LAYOUT_CLASSES,
   SECTION_LAYOUT_CLASSES,
   entryFields,
@@ -75,6 +76,14 @@ describe("entryRowLayout", () => {
     expect(
       entryRowLayout(SECTION_LAYOUT_CLASSES.row, [field("dms-key-value")]),
     ).toEqual({ ...SECTION_LAYOUT_CLASSES.row, layout: "stack" });
+  });
+
+  it("stacks a wide field in a drawer's dense rows too", () => {
+    const row = CONTAINER_LAYOUT_CLASSES.horizontal.row;
+    expect(entryRowLayout(row, [field("dms-repeater")])).toEqual({
+      ...row,
+      layout: "stack",
+    });
   });
 
   it("keeps a narrow field in the form's columns", () => {
