@@ -16,12 +16,3 @@ export const CONTAINER_SKELETON_CLASS = "grid gap-4 @min-[560px]:grid-cols-2";
  */
 export const CLOSING_OVERLAY_CLASS =
   "data-[state=closed]:pointer-events-none! data-[state=closed]:[animation-duration:100ms]! motion-reduce:data-[state=closed]:[animation:none]!";
-
-/**
- * The panel of a drawer, modal or slideover a closing dialog uncovered (see
- * `UNCOVERED_ATTRIBUTE` in `closingLayers.ts`): it takes clicks again while
- * the one above animates out. Important: reka keeps `pointer-events: none`
- * inline on it until the one above has unmounted.
- */
-export const UNCOVERED_PANEL_CLASS =
-  "data-[dms-uncovered]:pointer-events-auto!";

@@ -9,10 +9,7 @@
  */
 
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
-import {
-  CLOSING_OVERLAY_CLASS,
-  UNCOVERED_PANEL_CLASS,
-} from "#dms-ui/app/build/components/containers/constants";
+import { CLOSING_OVERLAY_CLASS } from "#dms-ui/app/build/components/containers/constants";
 
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =
@@ -26,11 +23,10 @@ const OVERLAY_SURFACE =
  * Every modal, slideover and drawer, the DMS's or a module's: its backdrop
  * lets clicks through as soon as it starts closing and fades out quickly,
  * and the panel animating out no longer catches them either (reka keeps
- * `pointer-events: auto` inline on both). The panel a closing dialog
- * uncovered (a drawer under a confirm) takes clicks again at once.
+ * `pointer-events: auto` inline on both).
  */
 const BACKDROP = `bg-(--dms-overlay) backdrop-blur-[2px] ${CLOSING_OVERLAY_CLASS}`;
-const CLOSING_PANEL = `data-[state=closed]:pointer-events-none! ${UNCOVERED_PANEL_CLASS}`;
+const CLOSING_PANEL = "data-[state=closed]:pointer-events-none!";
 
 const cardTheme = {
   slots: {
