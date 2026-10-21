@@ -27,6 +27,8 @@ import {
   waitForPageBlocksRefresh,
 } from "../layers/dms-ui/app/utils/blockRefresh";
 import { PRESET_SHORT_LABELS } from "../layers/dms-ui/app/build/composables/period/periodShortLabels";
+import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
+import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 import { PERIOD_PRESETS } from "@antelopejs/interface-dms/base/period-selector";
 import {
   PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES,
@@ -45,6 +47,8 @@ const t = (key: string, params?: { count?: number }) =>
 interface ToolbarSetup {
   toolbar?: Record<string, unknown>;
   toggle?: Record<string, unknown> | false;
+  /** Drawn by hand in a component, without block ids. */
+  isBare?: boolean;
 }
 
 async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
@@ -58,24 +62,20 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
     // A module's leading chip, sized by usePageToolbarSize().
     import("../../playground/frontend-vue/app/components/ToolbarScopeChip.vue"),
   ]);
-  const block = { pageId: "api.logs" };
+  const ids = (componentId: string) =>
+    setup.isBare ? {} : { componentId, pageId: "api.logs" };
   app = createApp({
     render: () =>
-      h(
-        PageToolbarBlock,
-        { componentId: "toolbar", ...block, ...setup.toolbar },
-        () => [
-          h(ScopeChip, { label: "scope", class: "scope" }),
-          setup.toggle === false
-            ? null
-            : h(LiveToggleBlock, {
-                componentId: "toolbar.live",
-                variant: "pill",
-                ...block,
-                ...setup.toggle,
-              }),
-        ],
-      ),
+      h(PageToolbarBlock, { ...ids("toolbar"), ...setup.toolbar }, () => [
+        h(ScopeChip, { label: "scope", class: "scope" }),
+        setup.toggle === false
+          ? null
+          : h(LiveToggleBlock, {
+              ...ids("toolbar.live"),
+              variant: "pill",
+              ...setup.toggle,
+            }),
+      ]),
   });
   app.component("UIcon", () => h("i"));
   app.component(
@@ -184,6 +184,18 @@ describe("on a page without live", () => {
 });
 
 describe("on a live page", () => {
+  it("takes no ids when a component draws it by hand", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    installLive();
+    await mountToolbar({ isBare: true });
+    expect(host.querySelector(".dms-live-toggle")).not.toBeNull();
+    const warnings = warn.mock.calls.map((call) => String(call[0]));
+    expect(warnings.filter((text) => text.includes("required prop"))).toEqual(
+      [],
+    );
+    warn.mockRestore();
+  });
+
   it("leaves the updated label to its live toggle", async () => {
     installLive();
     await mountToolbar();
@@ -292,4 +304,22 @@ it("gives every preset but custom a short code", () => {
   );
   expect(missing).toEqual([]);
   expect(PRESET_SHORT_LABELS.all).toBe("ALL");
+});
+
+it("translates every short code in every locale", () => {
+  const presets = Object.keys(PRESET_SHORT_LABELS).sort();
+  for (const locale of [coreEnGB, coreFrFR]) {
+    expect(Object.keys(locale.dms.period.short_presets).sort()).toEqual(
+      presets,
+    );
+  }
+});
+
+it("writes no short code as a bare letter, which reads as nothing", () => {
+  for (const locale of [coreEnGB, coreFrFR]) {
+    const bare = Object.values(locale.dms.period.short_presets).filter((code) =>
+      /^\p{L}$/u.test(code),
+    );
+    expect(bare).toEqual([]);
+  }
 });

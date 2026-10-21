@@ -1,10 +1,12 @@
 import type { PeriodPreset } from "#dms-core/app/composables/period/types";
 
 /**
- * Short mono codes, as trails in the preset list and segmented labels, the
- * same in every language: every preset has one, so a row of segments stays
- * as narrow with `all` as without it, where the full label ("All time")
- * widened it. Custom has none: it shows its range.
+ * Short mono codes, as trails in the preset list and segmented labels: every
+ * preset has one, so a row of segments stays as narrow with `all` as without
+ * it, where the full label ("All time") widened it. Custom has none: it shows
+ * its range. Each is translated under `dms.period.short_presets.<preset>`
+ * ("24 h", "7 j" in French); these English codes are the fallback for a
+ * locale that lacks one, and the list of presets that have a code.
  *
  * @internal
  */

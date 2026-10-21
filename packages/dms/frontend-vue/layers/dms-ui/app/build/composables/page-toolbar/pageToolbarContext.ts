@@ -8,9 +8,9 @@ import {
   provide,
   ref,
 } from "vue";
+import type { PageToolbarSize } from "../../../types/page-toolbar";
 
-/** The sizes a `PageToolbar` draws its controls at. */
-export type PageToolbarSize = "xs" | "sm" | "md";
+export type { PageToolbarSize };
 
 /**
  * What a `PageToolbar` gives the blocks it holds.

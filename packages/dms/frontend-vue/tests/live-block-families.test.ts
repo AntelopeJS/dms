@@ -10,7 +10,7 @@
  * suites (table-live-hold, page-data-refresh), `usePageLiveRefresh` too
  * (page-live-refresh).
  */
-import { createApp, defineComponent, h, reactive, ref } from "vue";
+import { type App, createApp, defineComponent, h, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
@@ -31,6 +31,7 @@ vi.stubGlobal("useAuthFetch", () => ({
   },
 }));
 vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
+vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
 
 vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
   useWatch: () => ({ state: ref({}) }),
@@ -45,15 +46,17 @@ vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
   },
 }));
 
-const { useChartFetch } = await import(
-  "../layers/dms-ui/app/composables/chart/useChartFetch"
-);
-const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
-);
-const { useApiData } = await import(
-  "../layers/dms-core/app/composables/auth/useApiData"
-);
+const { useChartFetch } =
+  await import("../layers/dms-ui/app/composables/chart/useChartFetch");
+const { useBlockItems } =
+  await import("../layers/dms-ui/app/build/composables/blocks/useBlockItems");
+const { useApiData } =
+  await import("../layers/dms-core/app/composables/auth/useApiData");
+// The app's pause source, as the DMS registers it.
+const { default: livePauseSourcePlugin } =
+  (await import("../layers/dms-ui/app/plugins/live-pause-source")) as unknown as {
+    default: (context: { vueApp: App }) => void;
+  };
 
 const TOPIC = "orders:events";
 const CARD_URL = "/api/orders/kpi";
@@ -91,6 +94,7 @@ function mount(setup: () => void): void {
       },
     }),
   );
+  livePauseSourcePlugin({ vueApp: app });
   app.mount(document.createElement("div"));
   mounted.push(app);
 }
@@ -232,6 +236,25 @@ describe("a component polling with refreshInterval on a live page", () => {
     live.resume();
     await settle(POLL_MS);
     expect(sentTo(POLLED_URL)).toBe(1);
+  });
+
+  it("keeps polling in an app without a pause source", async () => {
+    installLive().pause();
+    const app = createApp(
+      defineComponent({
+        setup() {
+          useApiData(POLLED_URL, {
+            refreshInterval: POLL_MS,
+            refreshOnPageRefresh: false,
+          });
+          return () => h("div");
+        },
+      }),
+    );
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await settle(POLL_MS * 4);
+    expect(sentTo(POLLED_URL)).toBeGreaterThan(2);
   });
 
   it("keeps polling on a page without live", async () => {

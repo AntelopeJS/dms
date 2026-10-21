@@ -515,7 +515,7 @@
       },
       "livetoggle": {
         "l": {
-          "description": "Switch the page between Direct and Pause"
+          "description": "Switch the page between Live and Pause"
         }
       }
     },

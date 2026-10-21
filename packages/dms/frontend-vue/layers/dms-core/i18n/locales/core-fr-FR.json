@@ -464,6 +464,22 @@
         "all": "Toute la période",
         "custom": "Personnalisé"
       },
+      "short_presets": {
+        "last-hour": "1 h",
+        "last-24h": "24 h",
+        "today": "Auj.",
+        "yesterday": "Hier",
+        "last-7-days": "7 j",
+        "last-30-days": "30 j",
+        "last-90-days": "90 j",
+        "this-month": "Mois",
+        "last-month": "M-1",
+        "this-quarter": "Trim.",
+        "last-quarter": "T-1",
+        "ytd": "Année",
+        "last-year": "A-1",
+        "all": "Tout"
+      },
       "comparisons": {
         "none": "Sans comparaison",
         "previous-period": "vs période précédente",

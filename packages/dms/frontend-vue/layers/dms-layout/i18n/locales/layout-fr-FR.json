@@ -651,6 +651,10 @@
           "tab": {
             "title": "Onglets",
             "description": "Pages découpées en onglets."
+          },
+          "livetoggle": {
+            "title": "Direct / Pause",
+            "description": "Pages avec un bouton Direct / Pause."
           }
         }
       },

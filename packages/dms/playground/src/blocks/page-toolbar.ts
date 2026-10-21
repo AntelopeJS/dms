@@ -25,7 +25,7 @@ export class PageToolbarLive extends PageController(
     category: blocksCategory,
     order: 81,
     description:
-      'The context bar of a live page, built by pageToolbar(): a scope chip on the left, then "Updated 2 s ago", Live / Pause and the period, in one order and at one size. Below it, the same toolbar with live data only, at size xs.',
+      'The context bar of a live page, built by pageToolbar(): a scope chip on the left, then "Updated 2 s ago", Live / Pause, the period and its "vs …" comparison menu, on one line at 1440 px, in one order and at one size. Below it, the same toolbar with live data only, at size xs.',
     live: { maxRate: MAX_RATE_SECONDS, rememberKey: PLAYGROUND_LIVE_KEY },
   },
   DefaultLayout({
@@ -44,14 +44,15 @@ export class PageToolbarLive extends PageController(
     ],
   }),
 ) {
-  // Live, period and a leading child.
+  // Live, period, a comparison menu and a leading child: the widest toolbar
+  // a module draws.
   static toolbar = pageToolbar({
     leading: { scope: scopeChip("All sites") },
     live: { missedLabel: "$demo.blocks.live.new_requests" },
     period: {
       id: TOOLBAR_SCOPE,
       presets: ["last-hour", "last-24h", "last-7-days", "last-30-days", "all"],
-      comparisons: ["previous-period"],
+      comparisons: ["previous-period", "previous-year", "none"],
     },
   });
 
