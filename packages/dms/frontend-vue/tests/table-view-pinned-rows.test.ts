@@ -8,11 +8,7 @@ import {
   processSourceRows,
   useTableRows,
 } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
-import {
-  pinRows,
-  pinRowsBySpan,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/pinnedRows";
-import { rowLocator } from "../layers/dms-ui/app/build/composables/table-view/utils/locateRow";
+import { pinRows } from "../layers/dms-ui/app/build/composables/table-view/utils/pinnedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 interface LanguageRow extends Record<string, unknown> {
@@ -128,78 +124,5 @@ describe("rows a route sorts", () => {
     ]);
     pinned = undefined;
     expect(ids((await rows.list({}))!.results)).toEqual(ids(LANGUAGES));
-  });
-});
-
-describe("the rows a paging table shows, pinned page by page", () => {
-  const PAGE_SIZE = 4;
-  const VIP = { field: "isVip", equals: true };
-  // In the order the route sorts them; a1, a3, a6 and a7 are pinned.
-  const ANSWERED = Array.from({ length: 10 }, (_, index) => ({
-    _id: `a${index}`,
-    isVip: [1, 3, 6, 7].includes(index),
-  }));
-  // Each page of 4 leads with its own pinned rows.
-  const SHOWN = ["a1", "a3", "a0", "a2", "a6", "a7", "a4", "a5", "a8", "a9"];
-  const idsOf = (rows: Record<string, unknown>[]) => rows.map((row) => row._id);
-
-  function controllerRows() {
-    const api = vi.fn(
-      async (_url: string, { query }: { query: Record<string, number> }) => ({
-        results: ANSWERED.slice(query.offset, query.offset + query.limit),
-        total: ANSWERED.length,
-        offset: query.offset,
-        limit: query.limit,
-      }),
-    );
-    const rows = useTableRows({
-      api: api as unknown as Api,
-      location: "/api/customers",
-      columns: COLUMNS,
-      pinnedRows: () => VIP,
-    });
-    return { api, rows };
-  }
-
-  it("pins each span on its own", () => {
-    expect(idsOf(pinRowsBySpan(ANSWERED, PAGE_SIZE, VIP))).toEqual(SHOWN);
-    expect(pinRowsBySpan(ANSWERED, PAGE_SIZE, undefined)).toBe(ANSWERED);
-  });
-
-  it("reads any rows in the order the pages show them", async () => {
-    const { api, rows } = controllerRows();
-    const window = await rows.listAsShown({ offset: 3, limit: 4 }, PAGE_SIZE);
-    expect(idsOf(window!.results)).toEqual(SHOWN.slice(3, 7));
-    expect(window!.total).toBe(10);
-    // The pages the rows fall in, read whole.
-    expect(api).toHaveBeenCalledWith("/api/customers/list", {
-      query: { offset: 0, limit: 8 },
-      signal: undefined,
-    });
-  });
-
-  it("places a row and its neighbours as the table shows them, from a click or a link", async () => {
-    const { rows } = controllerRows();
-    const locate = rowLocator({
-      list: async (offset, limit) =>
-        rows.listAsShown({ offset, limit }, PAGE_SIZE),
-      rowIdKey: "_id",
-    });
-    // a4 is the third row of page 2: 7th of the table, not the 5th
-    // the pinned rows of the whole result would make it.
-    const expected = {
-      index: 6,
-      total: 10,
-      prev: { _id: "a7", isVip: true },
-      next: { _id: "a5", isVip: false },
-    };
-    expect(await locate("a4")).toEqual(expected);
-    expect(await locate("a4", 6)).toEqual(expected);
-    // Across a page's edge: a6 leads page 2, after a2 ends page 1.
-    expect(await locate("a6")).toMatchObject({
-      index: 4,
-      prev: { _id: "a2" },
-      next: { _id: "a7" },
-    });
   });
 });

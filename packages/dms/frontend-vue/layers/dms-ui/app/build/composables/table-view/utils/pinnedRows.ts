@@ -27,20 +27,3 @@ export function pinRows<T extends Record<string, unknown>>(
   );
   return pinned.length === 0 ? rows : [...pinned, ...rest];
 }
-
-/**
- * `rows` as a table reading `span` of them at a time shows them: the pinned
- * rows lead each read, not the whole list. `rows` starts at a read's first.
- */
-export function pinRowsBySpan<T extends Record<string, unknown>>(
-  rows: T[],
-  span: number,
-  pinnedRows: RowActionRule | undefined,
-): T[] {
-  if (!pinnedRows || span <= 0) return pinRows(rows, pinnedRows);
-  const spans: T[][] = [];
-  for (let start = 0; start < rows.length; start += span) {
-    spans.push(pinRows(rows.slice(start, start + span), pinnedRows));
-  }
-  return spans.flat();
-}

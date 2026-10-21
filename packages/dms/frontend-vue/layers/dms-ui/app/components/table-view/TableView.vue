@@ -1140,21 +1140,17 @@ const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
 };
 // A row past the rows loaded (a deep link, a row live rows pushed out) is
 // found in the table's whole result, under the query the list reads: its
-// position, and its neighbours for the steps. Its rows read in the order
-// the table shows them: pinned rows lead each page it reads, not the result.
+// position, and its neighbours for the steps.
 const locateRow = rowLocator({
   list: async (offset, limit) => {
     if (!listsServerPages.value) return null;
-    const page = await tableRows.listAsShown(
-      {
-        ...queryRequest.value,
-        ...archiveQuery.value,
-        ...liveHold.heldQuery(),
-        offset,
-        limit,
-      },
-      requestedPagination.value.pageSize,
-    );
+    const page = await tableRows.list({
+      ...queryRequest.value,
+      ...archiveQuery.value,
+      ...liveHold.heldQuery(),
+      offset,
+      limit,
+    });
     return page && { results: page.results as Data[], total: page.total };
   },
   rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
