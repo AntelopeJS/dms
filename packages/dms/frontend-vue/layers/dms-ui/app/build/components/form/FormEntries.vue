@@ -32,12 +32,6 @@ function isGroupVisible(group: FieldGroup): boolean {
   return group.fields.some((field) => !context.isFieldHidden(field));
 }
 
-// A description tells how to fill the field ("Left empty, the default rate
-// applies"): a form where nothing can be changed shows only the values.
-function descriptionOf(entry: FormFieldOrGroup): string | undefined {
-  return context.isReadOnly.value ? undefined : entry.description;
-}
-
 function isGroupRequired(group: FieldGroup): boolean {
   return group.fields.some(context.isFieldRequired);
 }
@@ -59,7 +53,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
           v-if="isGroupVisible(entry)"
           v-bind="classes.row"
           :label="entry.label || ''"
-          :description="descriptionOf(entry)"
+          :description="entry.description"
           :required="isGroupRequired(entry)"
         >
           <template v-if="saveStateOf(entry) !== 'idle'" #details>
@@ -87,7 +81,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
         v-bind="classes.row"
         :label="entry.label || ''"
         :label-for="entry.id"
-        :description="descriptionOf(entry)"
+        :description="entry.description"
         :required="context.isFieldRequired(entry)"
       >
         <template v-if="saveStateOf(entry) !== 'idle'" #details>

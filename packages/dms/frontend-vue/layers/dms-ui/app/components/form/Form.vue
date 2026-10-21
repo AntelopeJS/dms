@@ -713,7 +713,6 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
-  isReadOnly: computed(() => !hasChangeableFields.value),
   // A new row has no earlier value to compare with: "Changed · was empty"
   // on every field it fills would say nothing.
   showsChanges: !isInstant && !isActionForm && !createsRecord,

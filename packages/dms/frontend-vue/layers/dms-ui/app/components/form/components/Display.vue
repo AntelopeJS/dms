@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { isVNode } from "vue";
-import { NUMERIC_TYPE_IDS } from "../../../build/composables/data-types/useColumnValueRenderer";
 
 interface DisplayProps {
   modelValue?: unknown;
   type?: string;
   loading?: boolean;
-  /** The field's label, which names the value where it is not text (an image). */
-  label?: string;
-  /** The record the value belongs to, read as a grid cell reads its row. */
-  row?: Record<string, unknown>;
 }
 
 const props = defineProps<DisplayProps>();
@@ -38,16 +33,10 @@ const formattedValue = computed(() => {
   if (isEmptyValue(props.modelValue)) return EMPTY_FALLBACK;
   const formatter = dataType.value?.formatter?.default;
   if (!formatter) return String(props.modelValue);
-  const formatterOptions = props.label
-    ? { ...options, fieldLabel: props.label }
-    : options;
-  return formatter(props.modelValue, locale.value, formatterOptions, props.row);
+  return formatter(props.modelValue, locale.value, options);
 });
 
 const isVNodeValue = computed(() => isVNode(formattedValue.value));
-// Amounts read in tabular figures, so a read-only list's amounts and the
-// totals under it line up in one font.
-const isNumeric = computed(() => NUMERIC_TYPE_IDS.has(props.type ?? ""));
 </script>
 
 <template>
@@ -67,7 +56,6 @@ const isNumeric = computed(() => NUMERIC_TYPE_IDS.has(props.type ?? ""));
   <div
     v-else
     class="text-default flex min-h-9 items-center py-1.5 text-sm"
-    :class="isNumeric && 'tabular-nums'"
     :title="typeof formattedValue === 'string' ? formattedValue : undefined"
   >
     <component :is="formattedValue" v-if="isVNodeValue" />

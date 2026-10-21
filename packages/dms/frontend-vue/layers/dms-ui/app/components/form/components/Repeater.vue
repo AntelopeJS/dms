@@ -6,7 +6,6 @@ import {
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
-import DmsRepeaterTable from "./RepeaterTable.vue";
 
 /** A field of the rows: one column. */
 interface RepeaterColumn {
@@ -182,14 +181,7 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
 </script>
 
 <template>
-  <!-- Read-only, the rows are values to read, not controls: a table. -->
-  <DmsRepeaterTable
-    v-if="props.disabled"
-    :id="props.id"
-    :columns="props.columns"
-    :rows="rows"
-  />
-  <div v-else :id="props.id" class="grid gap-1.5" role="group">
+  <div :id="props.id" class="grid gap-1.5" role="group">
     <div
       v-if="hasHeaders && rows.length"
       :class="[EYEBROW_CLASS, 'text-dimmed grid items-end gap-2']"

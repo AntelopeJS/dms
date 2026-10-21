@@ -20,14 +20,12 @@ export interface RenderableColumn {
 }
 
 // v2 cell anatomy: amounts are right-aligned mono figures in the ink color,
-// dates 12px muted mono. Where a record is read (the detail surface), amounts
-// keep the form's own font with tabular figures, as its read-only values do. A data type can give cells a shorter rendering
+// dates 12px muted mono. A data type can give cells a shorter rendering
 // through a `cell` formatter (the date type does); others use `default`.
 export const NUMERIC_TYPE_IDS = new Set(["number", "price", "percentage"]);
 const DATE_TYPE_IDS = new Set(["date"]);
 const NUMERIC_CELL_CLASS =
   "block text-right font-mono tabular-nums text-highlighted";
-const DETAIL_NUMERIC_CELL_CLASS = "block text-right tabular-nums";
 const NUMERIC_EMPTY_CELL_CLASS = "block text-right text-dimmed";
 const DATE_CELL_CLASS = "font-mono text-xs text-muted tabular-nums";
 const DEFAULT_FALLBACK = "-";
@@ -103,9 +101,7 @@ export function useColumnValueRenderer() {
       return formatted as VNodeChild;
     }
     if (isNumeric) {
-      const numericClass =
-        surface === "detail" ? DETAIL_NUMERIC_CELL_CLASS : NUMERIC_CELL_CLASS;
-      return h("span", { class: numericClass }, String(formatted));
+      return h("span", { class: NUMERIC_CELL_CLASS }, String(formatted));
     }
     if (!column.display && typeId && DATE_TYPE_IDS.has(typeId)) {
       return h("span", { class: DATE_CELL_CLASS }, String(formatted));

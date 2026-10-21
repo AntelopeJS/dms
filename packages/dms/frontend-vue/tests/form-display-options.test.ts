@@ -62,30 +62,3 @@ it("words a read-only status with the labels its column sets", () => {
   pending.app.unmount();
   expired.app.unmount();
 });
-
-it("hands the formatter the field's label and its record", () => {
-  const seen: unknown[][] = [];
-  vi.stubGlobal("useDataTypes", () => ({
-    getDataType: () => ({
-      id: "url",
-      formatter: {
-        default: (...args: unknown[]) => {
-          seen.push(args);
-          return "photo";
-        },
-      },
-    }),
-  }));
-  const record = { name: "Jane Doe" };
-
-  const { app } = mountDisplay("https://example.com/jane.png", {
-    preview: "avatar",
-    label: "Photo",
-    row: record,
-  });
-
-  const [[, , options, row]] = seen as [unknown[]];
-  expect(options).toEqual({ preview: "avatar", fieldLabel: "Photo" });
-  expect(row).toBe(record);
-  app.unmount();
-});
