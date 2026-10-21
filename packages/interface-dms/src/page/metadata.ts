@@ -82,6 +82,7 @@ import {
   type PageInfo,
   type PageLayout,
   type PageLayoutHandler,
+  type PageLayoutRead,
 } from "./types";
 import {
   PageRegistration,
@@ -95,11 +96,9 @@ import {
 } from "./internal/metadata-helpers";
 
 /** How one request asks for a page layout, besides its caller. */
-interface PageLayoutRequest {
+interface PageLayoutRequest extends PageLayoutRead {
   /** Assert the tenant access gate: the by-slug entry has no guard of its own. */
   enforceTenantAccessGate?: boolean;
-  /** The query of the page URL, for header-button availability. */
-  query?: Readonly<Record<string, string>>;
 }
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
@@ -547,11 +546,11 @@ export class PageMetadata {
       memberModel,
       roleModel,
       tenantId,
-      query,
+      read,
     ) =>
       this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
+        ...read,
         enforceTenantAccessGate: true,
-        query,
       });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
 
@@ -590,7 +589,11 @@ export class PageMetadata {
     memberModel: TenantMemberModel,
     roleModel: RoleModel,
     tenantId: string,
-    { enforceTenantAccessGate = false, query }: PageLayoutRequest = {},
+    {
+      enforceTenantAccessGate = false,
+      query,
+      resolverContext,
+    }: PageLayoutRequest = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
     if (!layout) {
@@ -630,7 +633,13 @@ export class PageMetadata {
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+      return GetEffectiveUserPermissions(
+        user,
+        tenantId,
+        roleIds,
+        roleModel,
+        resolverContext,
+      );
     };
 
     // Header actions declaring a permission are filtered on every page, even

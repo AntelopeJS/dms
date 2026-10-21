@@ -279,6 +279,7 @@ async function previewRole(
 ): Promise<RolePreviewResult> {
   const actor = await resolveActor(ctx, user);
   const preview = await resolvePreviewPermissions(
+    user._id,
     actor.tenantId,
     sanitizePreviewPermissions(rolePermissions),
   );

@@ -27,7 +27,7 @@ export async function ApplyPermissionsResolvers(
   userId: string,
   tenantId: string,
   basePermissions: Set<string>,
-  context: PermissionsResolverContext = {},
+  context: PermissionsResolverContext,
 ): Promise<Set<string>> {
   let current = basePermissions;
   for (const resolver of resolvers) {

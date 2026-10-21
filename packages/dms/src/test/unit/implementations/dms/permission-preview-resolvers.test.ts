@@ -54,24 +54,16 @@ function setPlan(...ids: string[]): void {
   planPermissions = new Set(withPermissionAncestors(ids));
 }
 
-type OwnerCheck = (
-  userId: string,
-  context?: PermissionsResolverContext,
-) => boolean;
-
-// Whether a resolver counts the user as a workspace owner: one reading the
-// preview flag never takes a preview for an owner's set; one ignoring it
-// relies on the preview's user id, which belongs to no workspace.
-function ownerCheck(readsPreview: boolean): OwnerCheck {
-  return (userId, context) =>
-    !(readsPreview && context?.preview) && TENANT_OWNER_IDS.has(userId);
+// Whether a resolver counts the user as a workspace owner: never in a role
+// preview, whose set is the role's whoever previews it.
+function isOwner(userId: string, context: PermissionsResolverContext): boolean {
+  return !context.preview && TENANT_OWNER_IDS.has(userId);
 }
 
 // Like a subscription plan: an owner is handed all the plan grants, any
 // other member keeps the plan's share of their roles. Then the screens kept
 // for owners, withheld from everyone else.
-function fakeResolvers(readsPreview: boolean): PermissionsResolverInfo[] {
-  const isOwner = ownerCheck(readsPreview);
+function fakeResolvers(): PermissionsResolverInfo[] {
   return [
     {
       id: "prr.plan",
@@ -97,10 +89,7 @@ function fakeResolvers(readsPreview: boolean): PermissionsResolverInfo[] {
   ];
 }
 
-const RESOLVER_VARIANTS = [
-  { name: "ignoring the preview flag", resolvers: fakeResolvers(false) },
-  { name: "reading the preview flag", resolvers: fakeResolvers(true) },
-];
+const RESOLVERS = fakeResolvers();
 
 interface Viewer {
   name: string;
@@ -141,6 +130,7 @@ async function preview(
     roleModel,
     tenantId,
     previewPermissions: await resolvePreviewPermissions(
+      viewer.user._id,
       tenantId,
       sanitizePreviewPermissions(rolePermissions),
     ),
@@ -169,7 +159,7 @@ function unregisterResolvers(resolvers: PermissionsResolverInfo[]): void {
 /** One resolver call: whom it ran for and what it was told. */
 interface ResolverCall {
   userId: string;
-  context?: PermissionsResolverContext;
+  context: PermissionsResolverContext;
 }
 
 async function recordResolverCalls(
@@ -243,9 +233,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
   });
 
   afterEach(() => {
-    for (const variant of RESOLVER_VARIANTS) {
-      unregisterResolvers(variant.resolvers);
-    }
+    unregisterResolvers(RESOLVERS);
     planPermissions = new Set();
   });
 
@@ -256,6 +244,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
   describe("without any resolver", () => {
     it("previews the role's set as is", async () => {
       const resolved = await resolvePreviewPermissions(
+        PLATFORM_OWNER._id,
         PLAN_TENANT,
         new Set([HOME]),
       );
@@ -284,19 +273,18 @@ describe("[unit] implementations/dms/page — role preview through permission re
   });
 
   describe("the resolver context", () => {
-    it("tells the resolvers a preview, with the role's set, for no owner", async () => {
+    it("tells the resolvers a preview, with the role's set, for the viewer", async () => {
       const role = sanitizePreviewPermissions([HOME, INVOICES]);
       const calls = await recordResolverCalls(() =>
         preview(VIEWERS[1], PLAN_TENANT, [HOME, INVOICES]),
       );
-      const previews = calls.filter((call) => call.context?.preview);
+      const previews = calls.filter((call) => call.context.preview);
       // The previewed set, then the set of the preview's header layout.
       expect(previews).to.have.length.of.at.least(2);
       for (const call of previews) {
-        expect(TENANT_OWNER_IDS.has(call.userId)).to.equal(false);
-        expect(call.userId).to.not.equal(ROLE_MANAGER._id);
+        expect(call.userId).to.equal(TENANT_OWNER._id);
         expect([
-          ...(call.context?.preview?.rolePermissions ?? []),
+          ...(call.context.preview?.rolePermissions ?? []),
         ]).to.have.members([...role]);
       }
     });
@@ -305,94 +293,86 @@ describe("[unit] implementations/dms/page — role preview through permission re
       const calls = await recordResolverCalls(() =>
         preview(VIEWERS[1], PLAN_TENANT, [HOME]),
       );
-      const own = calls.filter((call) => call.userId === TENANT_OWNER._id);
+      const own = calls.filter((call) => !call.context.preview);
       expect(own).to.not.be.empty;
       for (const call of own) expect(call.context).to.deep.equal({});
     });
   });
 
-  for (const variant of RESOLVER_VARIANTS) {
-    describe(`with a plan and owner-only screens, resolvers ${variant.name}`, () => {
-      beforeEach(() => registerResolvers(variant.resolvers));
+  describe("with a plan and owner-only screens", () => {
+    beforeEach(() => registerResolvers(RESOLVERS));
 
-      for (const viewer of VIEWERS) {
-        describe(`previewed by ${viewer.name}`, () => {
-          it("hides what the role lacks in a workspace without a plan", async () => {
-            const outcome = await preview(viewer, FREE_TENANT, [HOME]);
-            expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
-            expect(outcome.pageHidden).to.equal(true);
-          });
-
-          it("keeps the role's share of a plan granting more", async () => {
-            setPlan(...EVERY_GRANT);
-            const outcome = await preview(viewer, PLAN_TENANT, [HOME]);
-            expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
-            expect(outcome.hiddenEntries).to.not.include(HOME);
-            expect(outcome.pageHidden).to.equal(true);
-          });
-
-          it("hides the header action the role lacks on a page it opens", async () => {
-            setPlan(...EVERY_GRANT);
-            const outcome = await preview(viewer, PLAN_TENANT, [
-              HOME,
-              INVOICES,
-            ]);
-            expect(outcome.pageHidden).to.equal(false);
-            expect(outcome.hiddenHeaderActions).to.deep.equal(["export"]);
-          });
-
-          it("hides nothing for a role holding the wildcard", async () => {
-            setPlan(...EVERY_GRANT);
-            const outcome = await preview(viewer, PLAN_TENANT, ["*"]);
-            expect(outcome.hiddenEntries).to.be.empty;
-            expect(outcome.pageHidden).to.equal(false);
-            expect(outcome.hiddenHeaderActions).to.be.empty;
-          });
+    for (const viewer of VIEWERS) {
+      describe(`previewed by ${viewer.name}`, () => {
+        it("hides what the role lacks in a workspace without a plan", async () => {
+          const outcome = await preview(viewer, FREE_TENANT, [HOME]);
+          expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
+          expect(outcome.pageHidden).to.equal(true);
         });
-      }
 
-      // Only a platform owner reaches a page the plan refuses: anyone else is
-      // refused it too, and a preview never shows beyond the viewer's access.
-      it("withholds what the plan refuses, though the role grants it", async () => {
-        setPlan(HOME, ROLES, BILLING);
-        const outcome = await preview(VIEWERS[0], PLAN_TENANT, [
-          HOME,
-          INVOICES,
-        ]);
-        expect(outcome.hiddenEntries).to.include(INVOICES);
-        expect(outcome.hiddenEntries).to.not.include(HOME);
-        expect(outcome.pageHidden).to.equal(true);
-      });
+        it("keeps the role's share of a plan granting more", async () => {
+          setPlan(...EVERY_GRANT);
+          const outcome = await preview(viewer, PLAN_TENANT, [HOME]);
+          expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
+          expect(outcome.hiddenEntries).to.not.include(HOME);
+          expect(outcome.pageHidden).to.equal(true);
+        });
 
-      it("hides the owners' screen from a role granting it", async () => {
-        setPlan(...EVERY_GRANT);
-        for (const viewer of VIEWERS.slice(0, 2)) {
-          const outcome = await preview(viewer, PLAN_TENANT, EVERY_GRANT);
-          expect(outcome.hiddenEntries).to.deep.equal([BILLING]);
+        it("hides the header action the role lacks on a page it opens", async () => {
+          setPlan(...EVERY_GRANT);
+          const outcome = await preview(viewer, PLAN_TENANT, [HOME, INVOICES]);
+          expect(outcome.pageHidden).to.equal(false);
+          expect(outcome.hiddenHeaderActions).to.deep.equal(["export"]);
+        });
+
+        it("hides nothing for a role holding the wildcard", async () => {
+          setPlan(...EVERY_GRANT);
+          const outcome = await preview(viewer, PLAN_TENANT, ["*"]);
+          expect(outcome.hiddenEntries).to.be.empty;
           expect(outcome.pageHidden).to.equal(false);
           expect(outcome.hiddenHeaderActions).to.be.empty;
-        }
+        });
       });
+    }
 
-      it("gives every viewer the same answer for the same role", async () => {
-        setPlan(HOME, INVOICES, ROLES, BILLING);
-        const outcomes = await Promise.all(
-          VIEWERS.map((viewer) =>
-            preview(viewer, PLAN_TENANT, [HOME], "/prr-home"),
-          ),
-        );
-        // The member managing roles never reaches the owners' screen, so it
-        // cannot lose it; everything else reads the same.
-        const comparable = outcomes.map((outcome) =>
-          outcome.hiddenEntries.filter((id) => id !== BILLING).sort(),
-        );
-        expect(comparable[1]).to.deep.equal(comparable[0]);
-        expect(comparable[2]).to.deep.equal(comparable[0]);
-        expect(comparable[0]).to.deep.equal([INVOICES, ROLES]);
-        expect(
-          outcomes.every((outcome) => outcome.pageHidden === false),
-        ).to.equal(true);
-      });
+    // Only a platform owner reaches a page the plan refuses: anyone else is
+    // refused it too, and a preview never shows beyond the viewer's access.
+    it("withholds what the plan refuses, though the role grants it", async () => {
+      setPlan(HOME, ROLES, BILLING);
+      const outcome = await preview(VIEWERS[0], PLAN_TENANT, [HOME, INVOICES]);
+      expect(outcome.hiddenEntries).to.include(INVOICES);
+      expect(outcome.hiddenEntries).to.not.include(HOME);
+      expect(outcome.pageHidden).to.equal(true);
     });
-  }
+
+    it("hides the owners' screen from a role granting it", async () => {
+      setPlan(...EVERY_GRANT);
+      for (const viewer of VIEWERS.slice(0, 2)) {
+        const outcome = await preview(viewer, PLAN_TENANT, EVERY_GRANT);
+        expect(outcome.hiddenEntries).to.deep.equal([BILLING]);
+        expect(outcome.pageHidden).to.equal(false);
+        expect(outcome.hiddenHeaderActions).to.be.empty;
+      }
+    });
+
+    it("gives every viewer the same answer for the same role", async () => {
+      setPlan(HOME, INVOICES, ROLES, BILLING);
+      const outcomes = await Promise.all(
+        VIEWERS.map((viewer) =>
+          preview(viewer, PLAN_TENANT, [HOME], "/prr-home"),
+        ),
+      );
+      // The member managing roles never reaches the owners' screen, so it
+      // cannot lose it; everything else reads the same.
+      const comparable = outcomes.map((outcome) =>
+        outcome.hiddenEntries.filter((id) => id !== BILLING).sort(),
+      );
+      expect(comparable[1]).to.deep.equal(comparable[0]);
+      expect(comparable[2]).to.deep.equal(comparable[0]);
+      expect(comparable[0]).to.deep.equal([INVOICES, ROLES]);
+      expect(
+        outcomes.every((outcome) => outcome.pageHidden === false),
+      ).to.equal(true);
+    });
+  });
 });

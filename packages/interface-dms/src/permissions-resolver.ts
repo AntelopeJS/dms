@@ -15,23 +15,23 @@ export interface PermissionsResolverPreview {
 /** What a resolver call is for, besides the user and the tenant. */
 export interface PermissionsResolverContext {
   /**
-   * Set when the call previews a role. Its `userId` is then a synthetic
-   * member of no workspace, never the viewer: a resolver keyed on the user
-   * (an owner handed more, a screen kept for owners) must shape the set as
-   * for an ordinary member holding only that role.
+   * Set when the call previews a role. `userId` is then the viewer's, but the
+   * set is the previewed role's: a resolver keyed on the user (an owner
+   * handed more, a screen kept for owners) must shape it as for an ordinary
+   * member holding only that role, never from the viewer's own standing.
    */
   preview?: PermissionsResolverPreview;
 }
 
 /**
- * Reshape a user's permission set for a tenant. `context` is optional: a
- * runtime older than the field passes none, so read it as `context?.preview`.
+ * Reshape a user's permission set for a tenant. `context` says what the set is
+ * computed for: always passed, `{}` for a real member.
  */
 export type PermissionsResolverFn = (
   userId: string,
   tenantId: string,
   currentPermissions: Set<string>,
-  context?: PermissionsResolverContext,
+  context: PermissionsResolverContext,
 ) => Promise<Set<string>> | Set<string>;
 
 export interface PermissionsResolverInfo {
@@ -75,7 +75,7 @@ export function RegisterPermissionsResolver(
  * Run the registered resolvers over a base permission set and return the
  * effective set. Prefer `GetEffectiveUserPermissions` from `dms/permissions`,
  * which composes the base set computation with this pipeline. `context` is
- * handed to every resolver, `{}` when omitted.
+ * handed to every resolver as is.
  */
 export const ApplyPermissionsResolvers =
   InterfaceFunction<
@@ -83,6 +83,6 @@ export const ApplyPermissionsResolvers =
       userId: string,
       tenantId: string,
       basePermissions: Set<string>,
-      context?: PermissionsResolverContext,
+      context: PermissionsResolverContext,
     ) => Promise<Set<string>>
   >();

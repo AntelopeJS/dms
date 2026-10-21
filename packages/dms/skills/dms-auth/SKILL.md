@@ -86,9 +86,9 @@ Then gate with `@AuthUserWithPermission(...)` or the page/component permission o
 check imperatively, use `dms/permissions`: `GetEffectiveUserPermissions`, `HasPermission`,
 `GetPermission` / `GetPermissions` (`GetUserPermissions` for the base set). Two extension
 points reshape the model: `RegisterPermissionsResolver` (`dms/permissions-resolver`) rewrites
-a user's effective set (the role preview also runs it, with `context?.preview` set on the
-resolver's optional fourth argument and a synthetic user id of no workspace: shape the set as
-for an ordinary member there, never as an owner's), and `RegisterTenantAccessGate` (`dms/tenant-access`, checked via
+a user's effective set (the role preview also runs it, with `context.preview` set on the
+resolver's fourth argument and the viewer's user id: shape the set as for an ordinary
+member there, never from the viewer's standing), and `RegisterTenantAccessGate` (`dms/tenant-access`, checked via
 `CheckTenantAccess` / `AssertTenantAccess`) can block a whole tenant. The `dms/guards`
 decorators also run the tenant access gate; routes that must stay reachable for a denied
 tenant (billing, recovery) opt out with `@AuthTenantOwner({ bypassTenantAccessGate: true })`.

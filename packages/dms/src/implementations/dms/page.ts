@@ -50,11 +50,10 @@ import {
   HasPermission,
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
-import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
 import {
-  PERMISSION_PREVIEW_MEMBER_ID,
-  permissionsResolverContextFor,
-} from "@antelopejs/interface-dms/internal/permission-preview";
+  ApplyPermissionsResolvers,
+  type PermissionsResolverContext,
+} from "@antelopejs/interface-dms/permissions-resolver";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -913,7 +912,7 @@ export class DMSController extends Controller("/dms") {
       memberModel,
       roleModel,
       getRequestTenantId(requestContext),
-      pageQueryOf(requestContext),
+      { query: pageQueryOf(requestContext) },
     );
   }
 
@@ -1112,13 +1111,10 @@ export async function buildPagePayload(
   const [layout, navBadges] = await Promise.all([
     // Header buttons resolve against the page URL's query, as `/pagelayout`
     // does: the layout then matches the one the browser would read again.
-    handler(
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
-    ),
+    handler(user, memberModel, roleModel, tenantId, {
+      query:
+        requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+    }),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
@@ -1333,25 +1329,30 @@ const PREVIEW_PAGE_CONCURRENCY = 4;
 
 const PREVIEW_ROLE_ID = "dms-permission-preview";
 
+/** What the resolvers are told when they shape a previewed role's set. */
+function previewResolverContext(
+  rolePermissions: ReadonlySet<string>,
+): PermissionsResolverContext {
+  return { preview: { rolePermissions } };
+}
+
 /**
- * The effective permissions of a member holding only `rolePermissions`: the
- * registered resolvers run over the set told it is a preview, on behalf of a
- * synthetic member of no workspace — never the viewer, whose own standing
- * would otherwise widen the previewed set, even for a resolver ignoring the
- * preview flag. Without any resolver, the set as given.
+ * The effective permissions of a member holding only `rolePermissions`, as
+ * `viewerId` previews them: the registered resolvers run over the set with
+ * the preview context, which tells them to shape it as for an ordinary
+ * member, never from the viewer's standing. Without any resolver, the set as
+ * given.
  */
 export function resolvePreviewPermissions(
+  viewerId: string,
   tenantId: string,
   rolePermissions: Set<string>,
 ): Promise<Set<string>> {
   return ApplyPermissionsResolvers(
-    PERMISSION_PREVIEW_MEMBER_ID,
+    viewerId,
     tenantId,
     rolePermissions,
-    permissionsResolverContextFor(
-      PERMISSION_PREVIEW_MEMBER_ID,
-      rolePermissions,
-    ),
+    previewResolverContext(rolePermissions),
   );
 }
 
@@ -1366,13 +1367,11 @@ async function findPreviewHeaderActions(
   const { memberModel, roleModel } = previewMemberModels(
     request.previewPermissions,
   );
-  // Never an owner: the previewed set is the role's, without the wildcard.
-  // Nor the viewer: the layout runs the resolvers again for its user, and the
-  // preview member's id tells them it is a preview, where the viewer's would
-  // hand them the viewer's standing. The viewer stays the prototype, so
-  // everything else reads through.
+  // Never an owner: the previewed set is the role's. The layout runs the
+  // resolvers again for the viewer, told it is a preview, so a resolver
+  // shapes the role's set rather than the viewer's standing. The viewer stays
+  // the prototype, so everything else reads through.
   const previewUser: User = Object.assign(Object.create(request.user), {
-    _id: PERMISSION_PREVIEW_MEMBER_ID,
     owner: false,
   });
   const previewLayout = await handler(
@@ -1380,6 +1379,7 @@ async function findPreviewHeaderActions(
     memberModel,
     roleModel,
     request.tenantId,
+    { resolverContext: previewResolverContext(request.previewPermissions) },
   );
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,

@@ -94,7 +94,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
       models.memberModel,
       models.roleModel,
       TENANT,
-      query,
+      { query },
     );
     return layout.layout?.options as ServedOptions;
   }

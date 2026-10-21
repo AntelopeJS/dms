@@ -4,8 +4,10 @@ import {
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
 import { permissionIdAncestors } from "./internal/permission-ids";
-import { ApplyPermissionsResolvers } from "./permissions-resolver";
-import { permissionsResolverContextFor } from "./internal/permission-preview";
+import {
+  ApplyPermissionsResolvers,
+  type PermissionsResolverContext,
+} from "./permissions-resolver";
 
 export interface Permission {
   id: string;
@@ -105,19 +107,23 @@ export async function GetUserPermissions(
  * (`ApplyPermissionsResolvers`): the dms module wires it in `construct()`.
  * In standalone contexts (unit tests, thin consumers) connect it manually
  * with `ImplementInterface`, otherwise the call queues until wired.
+ *
+ * `context` is handed to the resolvers: `{}` for the user's own set, `preview`
+ * when the set is a role previewed by that user.
  */
 export async function GetEffectiveUserPermissions(
   user: { _id: string; owner?: boolean },
   tenantId: string,
   roleIds: string[],
   roleModel: RoleModel,
+  context: PermissionsResolverContext = {},
 ): Promise<Set<string>> {
   const basePermissions = await GetUserPermissions(user, roleIds, roleModel);
   return ApplyPermissionsResolvers(
     user._id,
     tenantId,
     basePermissions,
-    permissionsResolverContextFor(user._id, basePermissions),
+    context,
   );
 }
 

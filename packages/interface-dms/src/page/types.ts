@@ -9,6 +9,7 @@ import type {
 } from "../component";
 import type { RoleModel, TenantMemberModel } from "../db";
 import type { Permission } from "../permissions";
+import type { PermissionsResolverContext } from "../permissions-resolver";
 import type { Tone } from "../base/types/tone";
 import type { MaybePromise } from "../types";
 
@@ -458,6 +459,16 @@ export type PageLayoutHandler = (
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
-  /** The query of the page URL, handed to header-button availability. */
-  query?: Readonly<Record<string, string>>,
+  read?: PageLayoutRead,
 ) => Promise<PageLayout>;
+
+/** How a {@link PageLayoutHandler} reads its layout, besides who asks. */
+export interface PageLayoutRead {
+  /** The query of the page URL, handed to header-button availability. */
+  query?: Readonly<Record<string, string>>;
+  /**
+   * What the permission resolvers are told about this read: `preview` when
+   * the layout is served for a role previewed by `user`.
+   */
+  resolverContext?: PermissionsResolverContext;
+}

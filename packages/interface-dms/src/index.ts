@@ -97,6 +97,7 @@ export {
   PageInfo,
   PageLayout,
   PageLayoutHandler,
+  PageLayoutRead,
   PageMetadata,
   PageSetupCleanup,
   PageSetupContext,
