@@ -189,6 +189,47 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(PAGE_TOOLBAR_LIVE_CHILD_ID).to.equal("live");
   });
 
+  it("runs a child's transformOptions each time the page registers, over the defaults", async () => {
+    // A module's setting, known only once it is configured.
+    let comparisons: Array<"previous-period" | "previous-year" | "none"> = [
+      "previous-period",
+      "none",
+    ];
+    const toolbar = pageToolbar({
+      live: {
+        childId: "toggle",
+        transformOptions: (options) => options && { ...options, size: "xs" },
+      },
+      period: {
+        id: "runs",
+        comparisons,
+        transformOptions: (options) => options && { ...options, comparisons },
+      },
+    });
+
+    comparisons = ["previous-period", "previous-year", "none"];
+    const first = await toolbar.serialize();
+    expect(childOf(first, "period")?.options).to.deep.include({
+      id: "runs",
+      comparisons: ["previous-period", "previous-year", "none"],
+      variant: PAGE_TOOLBAR_PERIOD_DEFAULTS.variant,
+    });
+    expect(childOf(first, "period")?.options).to.not.have.any.keys(
+      "transformOptions",
+    );
+    expect(childOf(first, "toggle")?.options).to.include({
+      size: "xs",
+      variant: "pill",
+    });
+
+    // A second registration reads the setting again.
+    comparisons = ["none"];
+    const second = await toolbar.serialize();
+    expect(childOf(second, "period")?.options).to.deep.include({
+      comparisons: ["none"],
+    });
+  });
+
   it("lists the children pageToolbar() places in the catalog, for an editor", () => {
     const initial = GetBlockType("PageToolbar")?.initialChildren;
     expect(initial?.map((child) => [child.id, child.type])).to.deep.equal([

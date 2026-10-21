@@ -4,6 +4,7 @@ import {
   ComponentBuilder,
   type ComponentMetadata,
 } from "../component";
+import type { MaybePromise } from "../types";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { LiveToggle, type LiveToggleProps } from "./live-toggle";
 import {
@@ -76,7 +77,7 @@ export function PageToolbar(
  * `PeriodSelector`), besides the control's options: the child id roles and
  * permissions name it by, and the metadata the roles editor shows for it.
  */
-export interface PageToolbarChildOptions {
+export interface PageToolbarChildOptions<P = Record<string, unknown>> {
   /**
    * The child id under the toolbar. Defaults to `live` for the toggle and
    * `period` for the selector; set it to keep an id roles already grant
@@ -85,14 +86,24 @@ export interface PageToolbarChildOptions {
   childId?: string;
   /** The child's name, description and icon in the roles editor. */
   meta?: Partial<ComponentMetadata>;
+  /**
+   * Changes the control's options each time the page is registered, as
+   * `ComponentBuilder.transformOptions` does: for what is only known once
+   * the module is configured (a retention read in `construct()`, after the
+   * page class was built). It receives the options over the defaults and
+   * returns new ones, without mutating them. The comparison control the
+   * helper derived from `comparisons` at build time is not derived again.
+   */
+  transformOptions?: (options: P | undefined) => MaybePromise<P | undefined>;
 }
 
 /** The `live` entry of {@link PageToolbarOptions}. */
-export type PageToolbarLiveOptions = LiveToggleProps & PageToolbarChildOptions;
+export type PageToolbarLiveOptions = LiveToggleProps &
+  PageToolbarChildOptions<LiveToggleProps>;
 
 /** The `period` entry of {@link PageToolbarOptions}. */
 export type PageToolbarPeriodOptions = PeriodSelectorProps &
-  PageToolbarChildOptions;
+  PageToolbarChildOptions<PeriodSelectorProps>;
 
 /** What `pageToolbar()` puts in the toolbar. */
 export interface PageToolbarOptions extends PageToolbarProps {
@@ -181,12 +192,15 @@ export const PAGE_TOOLBAR_LIVE_CHILD_ID = "live";
 /** The child id of the toolbar's `PeriodSelector` unless `period.childId` says otherwise. */
 export const PAGE_TOOLBAR_PERIOD_CHILD_ID = "period";
 
-// A control built over its defaults, carrying the metadata it was given.
+// A control built over its defaults, carrying the metadata and the options
+// transform it was given.
 function placed<P>(
   builder: ComponentBuilder<P>,
-  meta: Partial<ComponentMetadata> | undefined,
+  { meta, transformOptions }: PageToolbarChildOptions<P>,
 ): ComponentBuilder<P> {
-  return meta ? builder.meta(meta) : builder;
+  if (meta) builder.meta(meta);
+  if (transformOptions) builder.transformOptions(transformOptions);
+  return builder;
 }
 
 /**
@@ -224,14 +238,17 @@ export function pageToolbar(
     toolbar.child(id, component);
   }
   if (live !== false) {
-    const { childId, meta, ...liveProps } = live ?? {};
+    const { childId, meta, transformOptions, ...liveProps } = live ?? {};
     toolbar.child(
       childId ?? PAGE_TOOLBAR_LIVE_CHILD_ID,
-      placed(LiveToggle({ ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...liveProps }), meta),
+      placed(LiveToggle({ ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...liveProps }), {
+        meta,
+        transformOptions,
+      }),
     );
   }
   if (period !== false) {
-    const { childId, meta, ...periodProps } = period ?? {};
+    const { childId, meta, transformOptions, ...periodProps } = period ?? {};
     toolbar.child(
       childId ?? PAGE_TOOLBAR_PERIOD_CHILD_ID,
       placed(
@@ -240,7 +257,7 @@ export function pageToolbar(
           ...toolbarComparisonSetup(periodProps),
           ...periodProps,
         }),
-        meta,
+        { meta, transformOptions },
       ),
     );
   }
