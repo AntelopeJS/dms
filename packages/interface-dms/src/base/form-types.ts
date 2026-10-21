@@ -230,9 +230,7 @@ export interface FormProps extends BaseComponentProps {
    * substitution as `submitUrl` (`{{params.X}}`, `{{query.X}}`) plus
    * `{{response.X}}` which resolves against the JSON response body of the
    * submit request — useful for redirecting to the detail page of a freshly
-   * created entity (e.g. `/items/{{response.id}}/edit`). A submit answering
-   * the list of keys it wrote, as a DataController's `new` does, names its one
-   * key with `{{response._id}}`, `{{response.id}}` or `{{response.0}}`.
+   * created entity (e.g. `/items/{{response.id}}/edit`).
    */
   redirectOnSuccess?: string;
   /**
