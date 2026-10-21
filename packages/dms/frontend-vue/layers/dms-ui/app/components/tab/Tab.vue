@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type { TabProps } from "../../composables/tab/types";
 import { type TabBadges, TabVariant } from "../../composables/tab/types/props";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
@@ -42,7 +41,7 @@ const { data: fetchedBadges } = useChartFetch<TabBadges>({
   watchSource: () => JSON.stringify(watchState.value),
 });
 const { locale } = useI18n();
-const countFormat = computed(() => readableNumberFormat(locale.value));
+const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 
 // Shown like a table view's tab counts: a mono counter, tinted on the
 // active tab.

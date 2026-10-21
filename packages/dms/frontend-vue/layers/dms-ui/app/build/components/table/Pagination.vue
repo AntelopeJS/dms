@@ -1,5 +1,4 @@
 <script setup lang="ts" generic="T extends Data">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
@@ -52,7 +51,7 @@ const tableSharedDataRef =
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
 const { t, locale } = useI18n();
-const numberFormat = computed(() => readableNumberFormat(locale.value));
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
 
 const rowCount = computed(() => tableSharedData.value?.rowCount ?? 0);
 const firstPageLoading = computed(

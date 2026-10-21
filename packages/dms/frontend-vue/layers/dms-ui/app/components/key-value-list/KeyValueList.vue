@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
@@ -106,13 +105,13 @@ type ValueFormatter = (item: KeyValueItem, value: string | number) => string;
 
 function formatNumber(_item: KeyValueItem, value: string | number): string {
   if (typeof value !== "number") return value;
-  return readableNumberFormat(locale.value).format(value);
+  return new Intl.NumberFormat(locale.value).format(value);
 }
 
 function formatMoney(item: KeyValueItem, value: string | number): string {
   if (typeof value !== "number") return value;
   try {
-    return readableNumberFormat(locale.value, {
+    return new Intl.NumberFormat(locale.value, {
       style: "currency",
       currency: item.currency ?? props.currency,
     }).format(value);

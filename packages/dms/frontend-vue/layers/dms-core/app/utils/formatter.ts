@@ -229,56 +229,9 @@ export function formatDateTime(
   });
 }
 
-// The narrow no-break space French (and a few other locales) groups digits
-// with: the interface's font draws it a fraction of a digit wide, so "1 234"
-// read as "1234" beside a column's "12 345". Groups take a full no-break space.
-const NARROW_GROUP_SEPARATOR = " ";
-const GROUP_SEPARATOR = " ";
-
-/** `Intl.NumberFormat`, its digit groups always shown and visible. */
-export interface ReadableNumberFormat {
-  format(value: number): string;
-  formatToParts(value: number): Intl.NumberFormatPart[];
-  resolvedOptions(): Intl.ResolvedNumberFormatOptions;
-}
-
-function readablePart(part: Intl.NumberFormatPart): Intl.NumberFormatPart {
-  return part.type === "group" && part.value === NARROW_GROUP_SEPARATOR
-    ? { ...part, value: GROUP_SEPARATOR }
-    : part;
-}
-
 /**
- * `new Intl.NumberFormat(locale, options)` the way the interface writes a
- * figure: a four-digit one grouped like a longer one ("1 234" next to
- * "12 345", where Spanish or Polish would leave "1234" by default), with a
- * group separator wide enough to see. `options.useGrouping` still decides.
- * Throws as `Intl.NumberFormat` does on options it refuses.
- */
-export function readableNumberFormat(
-  locale?: string,
-  options?: Intl.NumberFormatOptions,
-): ReadableNumberFormat {
-  const format = new Intl.NumberFormat(locale, {
-    useGrouping: true,
-    ...options,
-  });
-  const formatToParts = (value: number) =>
-    format.formatToParts(value).map(readablePart);
-  return {
-    format: (value) =>
-      formatToParts(value)
-        .map((part) => part.value)
-        .join(""),
-    formatToParts,
-    resolvedOptions: () => format.resolvedOptions(),
-  };
-}
-
-/**
- * A number written for `locale` (see {@link readableNumberFormat}); a value
- * that is not a number is returned as is. Options Intl refuses (an unknown
- * currency) write the bare number.
+ * A number written for `locale`; a value that is not a number is returned as
+ * is. Options Intl refuses (an unknown currency) write the bare number.
  */
 export function formatNumber(
   value: number,
@@ -297,7 +250,7 @@ export function formatNumber(
 ): unknown {
   if (!isNumber(value)) return value;
   try {
-    return readableNumberFormat(locale, options).format(value);
+    return new Intl.NumberFormat(locale, options).format(value);
   } catch {
     return String(value);
   }
@@ -359,19 +312,16 @@ const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
   w: "w",
   d: "d",
   h: "h",
-  min: "m",
   m: "m",
   s: "s",
   ms: "ms",
 };
 
-// `01:30`, `8:15`, `26:00:30`: hours, then minutes and seconds under 60.
+// `01:30`, `26:00:30`: hours, then minutes and seconds under 60.
 const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
-// `8h15`, `8 h 05`: hours, then bare minutes, the way a time is often written.
-const HOUR_MINUTE_SPAN = /^(\d+)\s*h\s*([0-5]?\d)$/i;
-// `1h30m`, `1h 30m`, `7 h 30 min`, `1h:30m` (older displays), `1.5h`.
-const UNIT_SPAN = /^(?:\d+(?:[.,]\d+)?\s*(?:ms|mo|min|[Mmwydhs])[\s:]*)+$/;
-const UNIT_SPAN_PART = /(\d+(?:[.,]\d+)?)\s*(ms|mo|min|[Mmwydhs])/g;
+// `1h30m`, `1h 30m`, `1h:30m` (what `formatTimeSpan` writes), `1.5h`.
+const UNIT_SPAN = /^(?:\d+(?:\.\d+)?(?:ms|mo|[Mmwydhs])[\s:]*)+$/;
+const UNIT_SPAN_PART = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
 
 function readClockSpan(text: string): number | undefined {
   const match = CLOCK_SPAN.exec(text);
@@ -384,33 +334,24 @@ function readClockSpan(text: string): number | undefined {
   );
 }
 
-function readHourMinuteSpan(text: string): number | undefined {
-  const match = HOUR_MINUTE_SPAN.exec(text);
-  if (!match) return undefined;
-  const [, hours, minutes] = match;
-  return Number(hours) * TIME_UNITS.h + Number(minutes) * TIME_UNITS.m;
-}
-
 function readUnitSpan(text: string): number | undefined {
   if (!UNIT_SPAN.test(text)) return undefined;
   let total = 0;
   for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
-    const value = Number.parseFloat(amount!.replace(",", "."));
-    total += value * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+    total += Number.parseFloat(amount!) * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
   }
   return total;
 }
 
 /**
- * A duration typed in, in milliseconds: a clock duration (`01:30`, `8:15`,
- * `26:00:30`), hours then minutes (`8h15`, `8h`) or units (`1h30m`,
- * `1h 30m`, `7 h 30 min`, `1.5h`), or `undefined` for a text that is
- * neither.
+ * A duration typed in, in milliseconds: a clock duration (`01:30`,
+ * `26:00:30`) or units (`1h30m`, `1h 30m`, `1.5h`), or `undefined` for a
+ * text that is neither.
  */
 export function readTimeSpan(value: string): number | undefined {
   const text = value.trim();
   if (!text) return undefined;
-  return readClockSpan(text) ?? readHourMinuteSpan(text) ?? readUnitSpan(text);
+  return readClockSpan(text) ?? readUnitSpan(text);
 }
 
 export function parseTimeSpan(value: string | number): number {
@@ -418,8 +359,7 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-// Units apart, so the text reads (and reads back) as `7h 30m`.
-const DEFAULT_SEPARATOR = " ";
+const DEFAULT_SEPARATOR = ":";
 const ZERO_MS = "0ms";
 
 export function formatTimeSpan(

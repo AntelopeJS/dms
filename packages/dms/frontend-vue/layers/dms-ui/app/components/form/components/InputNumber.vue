@@ -28,18 +28,12 @@ interface InputNumberFieldProps extends InputNumberProps {
    * it as the field's error, instead of clamping it into range on blur.
    */
   clamp?: boolean;
-  /**
-   * `true` puts a typed value on the nearest `step` when the field is left.
-   * Off by default: `step` only drives the steppers and the arrow keys, and
-   * a value is never rewritten (9,692 kept as 9,692 with steps of 100).
-   */
-  stepSnapping?: boolean;
 }
 
 interface InputNumberAdjustEmits {
   /**
    * The field kept another value than the one typed, on leaving it or on
-   * Enter: clamped to `min` / `max`, or put on its `step` (`stepSnapping`).
+   * Enter: clamped to `min` / `max`, or put on its `step`.
    */
   adjust: [adjustment: InputNumberAdjustment];
 }
@@ -48,7 +42,6 @@ type InputNumberFieldEmits = InputNumberEmits & InputNumberAdjustEmits;
 
 const props = withDefaults(defineProps<InputNumberFieldProps>(), {
   clamp: true,
-  stepSnapping: false,
 });
 const emits = defineEmits<InputNumberFieldEmits>();
 defineSlots<InputNumberSlots>();

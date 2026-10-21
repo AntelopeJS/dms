@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
 
@@ -177,7 +176,7 @@ const legendEntries = computed(() =>
 );
 
 const formatNumber = (amount: number): string =>
-  readableNumberFormat(locale.value).format(amount);
+  new Intl.NumberFormat(locale.value).format(amount);
 
 const valueText = computed(() => {
   if (props.valueLabel) return props.valueLabel;

@@ -1,4 +1,3 @@
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type { ValueFormat, ValuePrecision } from "./types";
 
 const PERCENT_DIVISOR = 100;
@@ -82,7 +81,7 @@ export function formatValue(
   precision?: ValuePrecision,
 ): string {
   const config = resolveConfig(format);
-  return readableNumberFormat(
+  return new Intl.NumberFormat(
     locale,
     precisionOptions(config.options(currency), precision),
   ).format(config.transform(value));
@@ -99,7 +98,7 @@ export function formatDeltaPercent(
   delta: number,
   locale = DEFAULT_LOCALE,
 ): string {
-  return readableNumberFormat(locale, {
+  return new Intl.NumberFormat(locale, {
     style: "percent",
     minimumFractionDigits: PERCENT_FRACTION_DIGITS,
     maximumFractionDigits: PERCENT_FRACTION_DIGITS,
@@ -145,7 +144,7 @@ export function formatValueParts(
     };
   }
 
-  const parts = readableNumberFormat(
+  const parts = new Intl.NumberFormat(
     locale,
     precisionOptions(config.options(currency), precision),
   ).formatToParts(config.transform(value));

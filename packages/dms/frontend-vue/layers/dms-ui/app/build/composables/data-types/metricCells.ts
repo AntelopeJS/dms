@@ -1,4 +1,3 @@
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { defineAsyncComponent, h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
@@ -189,12 +188,15 @@ const withSymbol = (
   symbol: string,
   maximumFractionDigits = 0,
 ): string =>
-  `${readableNumberFormat(locale, { maximumFractionDigits }).format(value)} ${symbol}`;
+  `${new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value)} ${symbol}`;
 
 /** A duration always in milliseconds, its digits grouped: "2,149 ms". */
 export function formatMilliseconds(ms: number, locale: string): string {
-  const figure = readableNumberFormat(locale, {
+  const figure = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 0,
+    // `true` groups a four-digit figure too, where a locale's default (es,
+    // pl) would leave "2149" against "12.149" further down the column.
+    useGrouping: true,
   }).format(ms);
   return `${figure} ms`;
 }

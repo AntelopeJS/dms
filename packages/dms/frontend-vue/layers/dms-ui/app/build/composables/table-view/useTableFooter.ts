@@ -1,4 +1,3 @@
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type { ComputedRef } from "vue";
 import type {
   TableViewColumn,
@@ -70,7 +69,7 @@ export function useTableFooter(options: TableFooterOptions) {
   ) => {
     if (value === undefined) return undefined;
     if (summary.format) {
-      return readableNumberFormat(locale.value, summary.format).format(value);
+      return new Intl.NumberFormat(locale.value, summary.format).format(value);
     }
     const column =
       summary.op === "sum"
@@ -78,7 +77,7 @@ export function useTableFooter(options: TableFooterOptions) {
         : undefined;
     return column
       ? renderValue(column, value, undefined)
-      : readableNumberFormat(locale.value).format(value);
+      : new Intl.NumberFormat(locale.value).format(value);
   };
 
   const legendColumn = columns.find(

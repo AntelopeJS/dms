@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { MONO_CHIP_CLASS } from "../../utils/monoChip";
 import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
@@ -144,7 +143,7 @@ const fadeStyle = computed(() => {
 });
 
 const { locale, t } = useI18n();
-const countFormat = computed(() => readableNumberFormat(locale.value));
+const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 </script>
 
 <template>
