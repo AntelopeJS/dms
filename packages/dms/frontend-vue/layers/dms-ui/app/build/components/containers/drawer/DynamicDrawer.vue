@@ -19,7 +19,6 @@ import {
 } from "../../../composables/containers/useResizableSize";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
-  CLOSING_OVERLAY_CLASS,
   CONTAINER_SKELETON_CLASS,
   CONTAINER_SKELETON_FIELDS,
 } from "../constants";
@@ -212,7 +211,6 @@ const DRAWER_BODY_CLASS =
 
 const drawerUi = computed(() => ({
   ...(contentClass.value && { content: contentClass.value }),
-  overlay: CLOSING_OVERLAY_CLASS,
   handle: DESKTOP_HIDDEN_GRIP,
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
   container: DRAWER_CONTAINER_CLASS,
