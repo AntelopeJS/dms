@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
  * A short single-line input sizes itself for its value instead of filling
- * the row when its data type asks for it with `width: "compact"`. Nothing
- * else makes it compact: a field's bounds (`max`, `maxLength`) leave
- * existing forms as they were. The width applies from `sm` up, so a phone
- * keeps the full row.
+ * the row: asked for with `width: "compact"`, or by itself when its bounds
+ * keep the value short (a number whose `max` fits in 6 digits, a text whose
+ * `maxLength` is 16 or less). The width applies from `sm` up, so a phone
+ * keeps the full row, and `width: "full"` opts out.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -15,6 +15,10 @@ import {
   h,
   nextTick,
 } from "vue";
+import {
+  isCompactNumberInput,
+  isCompactTextInput,
+} from "../layers/dms-ui/app/build/utils/inputWidth";
 
 const COMPACT_CLASS = "sm:max-w-44";
 
@@ -67,6 +71,38 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("isCompactNumberInput", () => {
+  it("follows the width asked for", () => {
+    expect(isCompactNumberInput({ width: "compact" })).toBe(true);
+    expect(isCompactNumberInput({ width: "full", max: 10 })).toBe(false);
+  });
+
+  it("is compact by itself when the bounds fit in 6 digits", () => {
+    expect(isCompactNumberInput({ min: 0, max: 100 })).toBe(true);
+    expect(isCompactNumberInput({ max: 999_999.5 })).toBe(true);
+    expect(isCompactNumberInput({ min: -50, max: 50 })).toBe(true);
+    expect(isCompactNumberInput({ max: 1_000_000 })).toBe(false);
+    expect(isCompactNumberInput({ min: -10_000_000, max: 0 })).toBe(false);
+  });
+
+  it("fills the row when nothing bounds the value", () => {
+    expect(isCompactNumberInput({})).toBe(false);
+    expect(isCompactNumberInput({ min: 0 })).toBe(false);
+    expect(isCompactNumberInput({ max: Infinity })).toBe(false);
+  });
+});
+
+describe("isCompactTextInput", () => {
+  it("is compact for a short maxLength or when asked", () => {
+    expect(isCompactTextInput({ maxLength: 3 })).toBe(true);
+    expect(isCompactTextInput({ maxLength: 16 })).toBe(true);
+    expect(isCompactTextInput({ maxLength: 17 })).toBe(false);
+    expect(isCompactTextInput({})).toBe(false);
+    expect(isCompactTextInput({ width: "compact" })).toBe(true);
+    expect(isCompactTextInput({ width: "full", maxLength: 3 })).toBe(false);
+  });
+});
+
 describe("a number field's width", () => {
   it("is compact when asked, and keeps the row's width below sm", async () => {
     await mount(await load("InputNumber"), {
@@ -89,37 +125,37 @@ describe("a number field's width", () => {
     expect(control().classList).toContain("flex-1");
   });
 
-  it("stays full however short its bounds", async () => {
+  it("is compact by itself for a small max, full otherwise", async () => {
     await mount(await load("InputNumber"), { modelValue: 3, max: 100 });
+    expect(control().classList).toContain(COMPACT_CLASS);
+    app!.unmount();
+    host.replaceChildren();
+    await mount(await load("InputNumber"), { modelValue: 3, min: 0 });
     expect(control().classList).not.toContain(COMPACT_CLASS);
   });
 
-  it("is compact for a percentage only when asked", async () => {
+  it("is compact for a percentage, unless asked to fill the row", async () => {
     await mount(await load("InputPercentage"), { modelValue: 0.2 });
-    expect(host.firstElementChild!.classList).not.toContain(COMPACT_CLASS);
+    expect(host.firstElementChild!.classList).toContain(COMPACT_CLASS);
     app!.unmount();
     host.replaceChildren();
     await mount(await load("InputPercentage"), {
       modelValue: 0.2,
-      width: "compact",
+      width: "full",
     });
-    expect(host.firstElementChild!.classList).toContain(COMPACT_CLASS);
+    expect(host.firstElementChild!.classList).not.toContain(COMPACT_CLASS);
     expect(host.querySelector("input")!.hasAttribute("width")).toBe(false);
   });
 });
 
 describe("a text field's width", () => {
-  it("is compact when asked, never for a short maxLength alone", async () => {
-    await mount(await load("InputText"), {
-      modelValue: "EUR",
-      maxLength: 3,
-      width: "compact",
-    });
+  it("is compact for a short maxLength, full otherwise", async () => {
+    await mount(await load("InputText"), { modelValue: "EUR", maxLength: 3 });
     expect(control().classList).toContain(COMPACT_CLASS);
     expect(host.querySelector("input")!.hasAttribute("width")).toBe(false);
     app!.unmount();
     host.replaceChildren();
-    await mount(await load("InputText"), { modelValue: "EUR", maxLength: 3 });
+    await mount(await load("InputText"), { modelValue: "Acme", maxLength: 60 });
     expect(control().classList).not.toContain(COMPACT_CLASS);
   });
 });

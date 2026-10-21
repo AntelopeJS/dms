@@ -7,7 +7,10 @@ import type {
 import { computed } from "vue";
 import { useForwardPropsEmits } from "reka-ui";
 import { characterCountText } from "../../../build/utils/characterCount";
-import type { InputWidth } from "../../../build/utils/inputWidth";
+import {
+  type InputWidth,
+  isCompactTextInput,
+} from "../../../build/utils/inputWidth";
 
 interface InputTextProps extends InputProps {
   /** Longest value accepted; the counter reads against it. */
@@ -15,8 +18,8 @@ interface InputTextProps extends InputProps {
   /** Shows the characters typed at the end of the field ("4 / 60"). */
   showCount?: boolean;
   /**
-   * `"compact"` sizes the field for a short text from `sm` up; `"full"`
-   * (the default) fills the row.
+   * `"compact"` sizes the field for a short text from `sm` up, `"full"`
+   * fills the row; left out, a `maxLength` of 16 or less makes it compact.
    */
   width?: InputWidth;
 }
@@ -30,7 +33,7 @@ const inputProps = computed(() => {
   const { showCount: _showCount, width: _width, ...rest } = forwarded.value;
   return rest;
 });
-const isCompact = computed(() => props.width === "compact");
+const isCompact = computed(() => isCompactTextInput(props));
 const countText = computed(() =>
   characterCountText(props.modelValue, props.maxLength),
 );

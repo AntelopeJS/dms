@@ -16,7 +16,10 @@ import {
   numberAdjustment,
   parseTypedNumber,
 } from "../../../build/utils/numberAdjustment";
-import type { InputWidth } from "../../../build/utils/inputWidth";
+import {
+  type InputWidth,
+  isCompactNumberInput,
+} from "../../../build/utils/inputWidth";
 import type { InputNumberAdjustment } from "../../../types/input-number";
 
 defineOptions({ inheritAttrs: false });
@@ -30,8 +33,8 @@ interface InputNumberFieldProps extends InputNumberProps {
    */
   clamp?: boolean;
   /**
-   * `"compact"` sizes the field for a short number from `sm` up; `"full"`
-   * (the default) fills the row.
+   * `"compact"` sizes the field for a short number from `sm` up, `"full"`
+   * fills the row; left out, a `max` of a few digits makes it compact.
    */
   width?: InputWidth;
 }
@@ -71,7 +74,7 @@ const inputProps = computed(() => {
     ...numberStepperState(props.modelValue, bounds.value),
   };
 });
-const isCompact = computed(() => props.width === "compact");
+const isCompact = computed(() => isCompactNumberInput(props));
 const { processI18n } = useTranslation();
 const { locale } = useI18n();
 
