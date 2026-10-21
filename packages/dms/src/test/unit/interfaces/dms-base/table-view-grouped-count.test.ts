@@ -15,10 +15,9 @@ import {
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { validateGroupedOptions } from "@antelopejs/interface-dms/base/table-view/internal/validation";
-import { captureWarnings } from "../../../helpers/logging";
 
 // A counted group is read with `filter_<column>`, which the count route
-// ignores on a column without a filter: registration says so.
+// ignores on a column without a filter: registration refuses it.
 
 @RegisterTable("grouped-count-rows", CORE_SCHEMA_NAME)
 class Row extends Table {
@@ -44,27 +43,21 @@ class GroupedCountAPI extends DataController(
   declare stage: string;
 }
 
-function warningsFor(groupByField: string, count: boolean): string[] {
-  const captured = captureWarnings();
-  try {
-    validateGroupedOptions(
-      "GroupedCountAPI",
-      GetMetadata(GroupedCountAPI, TableViewMeta),
-      { groupByField, count },
-    );
-  } finally {
-    captured.restore();
-  }
-  return captured.messages.filter((message) => message.includes("filterable"));
+function validate(groupByField: string, count: boolean): void {
+  validateGroupedOptions(
+    "GroupedCountAPI",
+    GetMetadata(GroupedCountAPI, TableViewMeta),
+    { groupByField, count },
+  );
 }
 
 describe("[unit] interfaces/dms-base/table-view — counted groups", () => {
-  it("warns when the counted column is not filterable", () => {
-    expect(warningsFor("stage", true)).to.have.length(1);
+  it("throws when the counted column is not filterable", () => {
+    expect(() => validate("stage", true)).to.throw(/not filterable/);
   });
 
-  it("stays silent for a filterable column, or groups not counted", () => {
-    expect(warningsFor("status", true)).to.deep.equal([]);
-    expect(warningsFor("stage", false)).to.deep.equal([]);
+  it("accepts a filterable column, or groups not counted", () => {
+    expect(() => validate("status", true)).to.not.throw();
+    expect(() => validate("stage", false)).to.not.throw();
   });
 });
