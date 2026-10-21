@@ -368,7 +368,8 @@ export interface TableViewQuickFilter {
   allLabel?: string;
   /**
    * Compare mode of the filter. Defaults to `array_contains_string` for a
-   * multiple relation or select and for tags, `is` otherwise.
+   * multiple relation or select and for a type whose default compare mode it
+   * is (tags), `is` otherwise.
    */
   mode?: TableViewQuickFilterMode;
 }
