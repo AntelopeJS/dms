@@ -987,15 +987,6 @@ export interface TableViewOptions<
    */
   archiveMode?: boolean;
   /**
-   * The count the caption shows while the archived rows are listed, naming
-   * them: an i18n key with `$` receiving `{ count }` and pluralized on it
-   * ("13 factures archivées"), or a text with `{count}`. Defaults to
-   * "Archived: {count}" ("Archives : {count}" in French), which agrees with
-   * no noun.
-   * @example "$invoices.archived_count"
-   */
-  archivedCountLabel?: string;
-  /**
    * Default filters to apply when the table view is opened
    */
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;

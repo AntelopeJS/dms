@@ -200,7 +200,6 @@ export function TableView<T extends ControllerClass>(
       labelKey: options.labelKey,
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
-      archivedCountLabel: options.archivedCountLabel,
       defaultSort: options.defaultSort,
       pinnedRows: options.pinnedRows as RowActionRule | undefined,
       queryParamFilters: options.queryParamFilters,
