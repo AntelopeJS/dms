@@ -2,17 +2,15 @@
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
-import { cardHeaderColumn } from "../layers/dms-ui/app/build/composables/table-view/useCardFields";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type {
   TableViewCardConfig,
   TableViewDisplayContext,
 } from "../layers/dms-ui/app/composables/table-view/types/display";
 
-// The built-in cards draw their header through the label column's display
-// (an identity avatar and secondary line) or the card's own image and
-// subtitle fields, never the raw row id; and their fields through each
-// column's display, like grid cells.
+// The built-in cards draw their fields through each column's display, like
+// grid cells. (Their header, read from the label column's identity display,
+// is #344's.)
 
 vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
   default: { render: () => null },
@@ -87,34 +85,6 @@ afterEach(() => {
 });
 
 describe("the cards display", () => {
-  it("never prints the row id under the title", () => {
-    const container = mountCards([column("name", "string")], { fields: [] });
-    const header = container.querySelector("header")!;
-    expect(header.textContent).toContain("Platform");
-    expect(header.textContent).not.toContain("team-05");
-  });
-
-  it("draws the header through the label column's display", () => {
-    const identity = { type: "identity", options: { avatarField: "lead" } };
-    const container = mountCards([column("name", "string", identity)], {
-      fields: [],
-    });
-    expect(container.querySelector("header")!.textContent).toContain(
-      'identity(Platform|{"avatarField":"lead"',
-    );
-  });
-
-  it("draws the card's own image and subtitle fields as an identity", () => {
-    const container = mountCards([column("name", "string")], {
-      fields: [],
-      imageField: "lead",
-      subtitleField: "code",
-    });
-    expect(container.querySelector("header")!.textContent).toContain(
-      'identity(Platform|{"avatarField":"lead","subtitleField":"code","columnType":"string"}|team-05)',
-    );
-  });
-
   it("draws a field through its column's display, handed the row", () => {
     const progress = {
       type: "progress",
@@ -127,32 +97,5 @@ describe("the cards display", () => {
     expect(container.querySelector("dd")!.textContent).toBe(
       "progress-empty(team-05)",
     );
-  });
-});
-
-describe("the card header column", () => {
-  const name = column("name", "string", {
-    type: "identity",
-    options: { avatarField: "photo", subtitleField: "email", selfField: "id" },
-  });
-
-  it("keeps the label column's identity options under the card's own fields", () => {
-    expect(
-      cardHeaderColumn([name], "name", { imageField: "logo" })?.display,
-    ).toEqual({
-      type: "identity",
-      options: {
-        avatarField: "logo",
-        subtitleField: "email",
-        selfField: "id",
-      },
-    });
-  });
-
-  it("is the label column with a display, else none", () => {
-    expect(cardHeaderColumn([name], "name", undefined)).toBe(name);
-    expect(
-      cardHeaderColumn([column("name", "string")], "name", undefined),
-    ).toBe(undefined);
   });
 });

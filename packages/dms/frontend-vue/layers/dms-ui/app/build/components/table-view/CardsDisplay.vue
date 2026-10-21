@@ -17,10 +17,7 @@ import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
 } from "../../composables/table-view/useReorderHandles";
-import {
-  cardHeaderColumn,
-  useCardFields,
-} from "../../composables/table-view/useCardFields";
+import { useCardFields } from "../../composables/table-view/useCardFields";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -31,7 +28,7 @@ const props = defineProps<CardsDisplayProps>();
 const INITIALS_LENGTH = 2;
 
 const { processI18n } = useTranslation();
-const { renderField, renderColumnValue } = useCardFields();
+const { renderField } = useCardFields();
 
 const rowId = (item: T): string =>
   String(get(item, props.context.rowIdKey) ?? "");
@@ -70,15 +67,6 @@ const fieldColumns = computed<TableViewColumn[]>(() =>
     rowIdKey: props.context.rowIdKey,
   }),
 );
-
-// The header draws the title through the label column's display (an
-// `identity` avatar and secondary line), or as the card sets it
-// (`card.imageField`, `card.subtitleField`); else beside its initials.
-const headerColumn = computed(() =>
-  cardHeaderColumn(props.context.columns, props.context.labelKey, card.value),
-);
-const HeaderTitle = (titleProps: { item: T }) =>
-  renderColumnValue(headerColumn.value!, titleProps.item);
 
 // A field renders the same way a table cell does: through its column's
 // display, else its data type (status pills, links, dates…).
@@ -167,22 +155,22 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
             >
               <UIcon name="i-ph-dots-six-vertical" />
             </button>
-            <div v-if="headerColumn" class="min-w-0 flex-1">
-              <HeaderTitle :item="item" />
-            </div>
-            <template v-else>
-              <span
-                class="bg-accented text-default grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
-              >
-                {{ initialsOf(item) }}
-              </span>
+            <span
+              class="bg-accented text-default grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
+            >
+              {{ initialsOf(item) }}
+            </span>
+            <div class="min-w-0 flex-1">
               <div
-                class="text-highlighted min-w-0 flex-1 truncate text-[13px] font-semibold"
+                class="text-highlighted truncate text-[13px] font-semibold"
                 :title="titleOf(item)"
               >
                 {{ titleOf(item) }}
               </div>
-            </template>
+              <div class="text-dimmed truncate font-mono text-[11px]">
+                {{ rowId(item) }}
+              </div>
+            </div>
             <UCheckbox
               :model-value="props.context.selection.isSelected(rowId(item))"
               :aria-label="titleOf(item)"

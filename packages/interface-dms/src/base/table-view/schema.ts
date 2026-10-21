@@ -232,16 +232,14 @@ const kanbanSchema = z.object({
   columnMaxHeight: z.string().default(DEFAULT_KANBAN_COLUMN_MAX_HEIGHT),
 }) satisfies BlockOptionsFor<KanbanOptions>;
 
-// Resolved against the table's listable columns; an unlisted field renders as
-// nothing at all rather than reporting anything.
-const ROW_FIELD = { widget: "field", fieldAspect: "listable" } as const;
 const cardSchema = z.object({
   fields: ui(z.array(z.string()).optional(), {
     label: "Card fields",
-    ...ROW_FIELD,
+    widget: "field",
+    // Resolved against the table's listable columns; an unlisted field renders
+    // as nothing at all rather than reporting anything.
+    fieldAspect: "listable",
   }),
-  imageField: ui(z.string().optional(), { label: "Image", ...ROW_FIELD }),
-  subtitleField: ui(z.string().optional(), { label: "Subtitle", ...ROW_FIELD }),
   component: ui(opaqueOption<TableViewCardOptions["component"]>().optional(), {
     label: "Card component",
     hidden: true,

@@ -13509,24 +13509,6 @@
                 "fieldAspect": "listable"
               }
             },
-            "imageField": {
-              "type": "string",
-              "optional": true,
-              "ui": {
-                "label": "Image",
-                "widget": "field",
-                "fieldAspect": "listable"
-              }
-            },
-            "subtitleField": {
-              "type": "string",
-              "optional": true,
-              "ui": {
-                "label": "Subtitle",
-                "widget": "field",
-                "fieldAspect": "listable"
-              }
-            },
             "component": {
               "type": "unknown",
               "optional": true,

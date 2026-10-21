@@ -149,10 +149,6 @@ export interface TableViewCardReorder {
  */
 export interface TableViewCardConfig {
   fields?: string[];
-  /** Row field holding the card's image (an image value or a URL). */
-  imageField?: string;
-  /** Row field drawn under the card's title. */
-  subtitleField?: string;
   component?: ComponentInfo;
 }
 
