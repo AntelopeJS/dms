@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { VNodeChild } from "vue";
+import { useId, type VNodeChild } from "vue";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
   relationRowValue,
@@ -36,6 +36,9 @@ const props = defineProps<RepeaterTableProps>();
 const { renderValue } = useColumnValueRenderer();
 const { getDataType } = useDataTypes();
 const { readRelationRows } = useRelationRows();
+// Each column of each list reads its own ids: a key shared by two columns or
+// two lists naming the same route would hand one of them the other's rows.
+const instanceId = useId();
 
 /**
  * The related rows of a relation column, by the value its cells hold: read
@@ -49,7 +52,7 @@ function useColumnRelationRows(columnId: string, source: RelationLabelSource) {
     ),
   );
   const { data } = useDmsAsyncData(
-    `repeater-table-relation-${source.searchUrl}`,
+    `repeater-table-relation-${instanceId}-${columnId}`,
     () => readRelationRows(source, ids.value),
     // Names for the cells, not the page's data.
     { lazy: true, refreshOnPageRefresh: false, watch: [ids] },

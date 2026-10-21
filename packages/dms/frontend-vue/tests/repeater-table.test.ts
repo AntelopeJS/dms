@@ -150,7 +150,20 @@ describe("a read-only list's rows", () => {
       "€319",
     ]);
     // One request per relation column, shared by its cells.
-    expect(requested).toEqual(["repeater-table-relation-/products/select"]);
+    expect(requested).toHaveLength(1);
+  });
+
+  it("read each relation column's own ids, two columns naming the same route", async () => {
+    const REPLACES = { ...PRODUCT, id: "replaces", label: "Replaces" };
+    const { requested, fetched } = await mountTable(
+      [{ product: "p1", replaces: "p9" }],
+      [PRODUCT, REPLACES],
+    );
+    expect(new Set(requested).size).toBe(2);
+    expect(fetched.map((read) => read.params)).toEqual([
+      { ids: ["p1"], idKey: "_id", limit: 1 },
+      { ids: ["p9"], idKey: "_id", limit: 1 },
+    ]);
   });
 
   it("read a relation's names for the ids its rows hold, not a page of the route", async () => {
