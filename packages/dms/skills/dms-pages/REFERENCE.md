@@ -95,8 +95,14 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (24 / 28 / 32 px, with live or not). `live: false` or `period: false` drops a control; without
   `live` it shows the last read and a refresh button. A module's leading chip takes the toolbar's
   height from `usePageToolbarSize().heightClass`. More than one comparison offered
-  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a "vs … ▾" menu; a single one
+  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a menu naming the compared window ("vs 16 – 17 Oct ▾", the range label then
+  without its "vs …"); a single one
   stays on without a control. A `custom` preset shows as a calendar icon, named in full.
+  `live` / `period` also take `childId` (keep an id roles already grant, `live` / `period` by
+  default) and `meta` (roles-editor name), so a page never builds the toolbar by hand for that;
+  an editor reads the default children from the block type's `initialChildren`.
+  A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
+  of its own: neither needs a `componentId` or `pageId` there.
 - `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
   rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
@@ -126,8 +132,6 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
-- A route that must word a text reads the request's `x-content-language` header (the language on
-  screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
   `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`) or
   `null` for no banner.

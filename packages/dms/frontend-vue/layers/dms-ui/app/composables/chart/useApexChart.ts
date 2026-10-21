@@ -4,6 +4,7 @@ import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
 import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
 import { heatmapRangeColors, isDarkSurface } from "./heatmapColors";
+import { thinnedCategoryFormatter } from "./apexCategoryLabels";
 import {
   bucketAxisFormatter,
   bucketTooltipFormatter,
@@ -326,11 +327,35 @@ function buildYAxis(
   return yaxis;
 }
 
+/**
+ * Charts whose category labels ApexCharts never thins, whatever
+ * `hideOverlappingLabels` says: the chart thins them itself.
+ */
+const SELF_THINNED_XAXIS_TYPES: ChartType[] = ["heatmap"];
+
+function thinsOwnXLabels(input: UseApexChartInput): boolean {
+  const settings = input.xAxis;
+  return (
+    SELF_THINNED_XAXIS_TYPES.includes(input.type) &&
+    (input.xaxisType ?? "category") === "category" &&
+    settings?.hideOverlappingLabels !== false &&
+    settings?.tickAmount === undefined &&
+    !settings?.rotate
+  );
+}
+
+function xLabelFormatter(input: UseApexChartInput): unknown {
+  if (thinsOwnXLabels(input))
+    return thinnedCategoryFormatter(input.xAxisFormatter);
+  return input.xAxisFormatter;
+}
+
 function buildXAxis(
   input: UseApexChartInput,
   theme: ApexThemeColors,
 ): Record<string, unknown> {
   const settings = input.xAxis;
+  const formatter = xLabelFormatter(input);
   const xaxis: Record<string, unknown> = {
     type: input.xaxisType ?? "category",
     axisBorder: { show: false },
@@ -348,7 +373,7 @@ function buildXAxis(
       settings?.datetimeFormat !== undefined
         ? { format: settings.datetimeFormat }
         : {}),
-      ...(input.xAxisFormatter ? { formatter: input.xAxisFormatter } : {}),
+      ...(formatter ? { formatter } : {}),
     },
     crosshairs: {
       stroke: { color: readThemeBorderAccented(), dashArray: CROSSHAIR_DASH },

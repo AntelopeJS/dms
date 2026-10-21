@@ -1,8 +1,6 @@
 import { computed, type ComputedRef } from "vue";
-import {
-  type PageToolbarSize,
-  usePageToolbar,
-} from "../../build/composables/page-toolbar/pageToolbarContext";
+import { usePageToolbar } from "../../build/composables/page-toolbar/pageToolbarContext";
+import type { PageToolbarSize } from "../../types/page-toolbar";
 import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 
 const DEFAULT_SIZE: PageToolbarSize = "sm";

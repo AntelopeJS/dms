@@ -1,7 +1,9 @@
 import { expect } from "chai";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import {
+  PAGE_TOOLBAR_LIVE_CHILD_ID,
   PAGE_TOOLBAR_LIVE_DEFAULTS,
+  PAGE_TOOLBAR_PERIOD_CHILD_ID,
   PAGE_TOOLBAR_PERIOD_DEFAULTS,
   PageToolbar,
   pageToolbar,
@@ -141,5 +143,64 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
         comparisonControl: "toggle",
       }),
     ).to.deep.include({ comparisonControl: "toggle" });
+  });
+
+  it("places each control under the id and roles-editor metadata a page gives it", () => {
+    const toolbar = pageToolbar({
+      live: {
+        childId: "toggle",
+        meta: { name: "$my.permissions.live.name", icon: "i-ph-broadcast" },
+        missedLabel: "$my.new",
+      },
+      period: {
+        id: "my-scope",
+        meta: { name: "$my.permissions.period.name" },
+      },
+    });
+    const serialized = toolbar.serializeSync();
+    expect(serialized.children?.map((child) => child.id)).to.deep.equal([
+      "toggle",
+      PAGE_TOOLBAR_PERIOD_CHILD_ID,
+    ]);
+    // `childId` and `meta` place the child: they are not the control's options.
+    const live = childOf(serialized, "toggle")?.options as Record<
+      string,
+      unknown
+    >;
+    expect(live).to.not.have.any.keys("childId", "meta");
+    expect(live).to.include({ missedLabel: "$my.new", variant: "pill" });
+    const period = childOf(serialized, PAGE_TOOLBAR_PERIOD_CHILD_ID)
+      ?.options as Record<string, unknown>;
+    expect(period).to.include({ id: "my-scope" });
+    expect(period).to.not.have.any.keys("childId", "meta");
+
+    const children = (
+      toolbar as unknown as {
+        _children: Array<{ id: string; component: { metadata: unknown } }>;
+      }
+    )._children;
+    expect(children[0]?.component.metadata).to.deep.include({
+      name: "$my.permissions.live.name",
+      icon: "i-ph-broadcast",
+    });
+    expect(children[1]?.component.metadata).to.deep.include({
+      name: "$my.permissions.period.name",
+    });
+    expect(PAGE_TOOLBAR_LIVE_CHILD_ID).to.equal("live");
+  });
+
+  it("lists the children pageToolbar() places in the catalog, for an editor", () => {
+    const initial = GetBlockType("PageToolbar")?.initialChildren;
+    expect(initial?.map((child) => [child.id, child.type])).to.deep.equal([
+      ["live", "LiveToggle"],
+      ["period", "PeriodSelector"],
+    ]);
+    const serialized = pageToolbar().serializeSync();
+    expect(initial?.[0]?.options).to.deep.equal(
+      childOf(serialized, "live")?.options,
+    );
+    const { id: _scope, ...periodOptions } = (childOf(serialized, "period")
+      ?.options ?? {}) as Record<string, unknown>;
+    expect(initial?.[1]?.options).to.deep.equal(periodOptions);
   });
 });

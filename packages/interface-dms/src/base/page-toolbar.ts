@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { type Component, ComponentBuilder } from "../component";
+import {
+  type Component,
+  ComponentBuilder,
+  type ComponentMetadata,
+} from "../component";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { LiveToggle, type LiveToggleProps } from "./live-toggle";
 import {
@@ -67,6 +71,29 @@ export function PageToolbar(
     .meta({ name: "PageToolbar", icon: "i-ph-sliders-horizontal" });
 }
 
+/**
+ * How `pageToolbar()` places one of its own children (the `LiveToggle`, the
+ * `PeriodSelector`), besides the control's options: the child id roles and
+ * permissions name it by, and the metadata the roles editor shows for it.
+ */
+export interface PageToolbarChildOptions {
+  /**
+   * The child id under the toolbar. Defaults to `live` for the toggle and
+   * `period` for the selector; set it to keep an id roles already grant
+   * (a page that had its toggle under `toggle`).
+   */
+  childId?: string;
+  /** The child's name, description and icon in the roles editor. */
+  meta?: Partial<ComponentMetadata>;
+}
+
+/** The `live` entry of {@link PageToolbarOptions}. */
+export type PageToolbarLiveOptions = LiveToggleProps & PageToolbarChildOptions;
+
+/** The `period` entry of {@link PageToolbarOptions}. */
+export type PageToolbarPeriodOptions = PeriodSelectorProps &
+  PageToolbarChildOptions;
+
 /** What `pageToolbar()` puts in the toolbar. */
 export interface PageToolbarOptions extends PageToolbarProps {
   /**
@@ -77,15 +104,17 @@ export interface PageToolbarOptions extends PageToolbarProps {
   /**
    * The `LiveToggle` (child id `live`), over the defaults of
    * {@link PAGE_TOOLBAR_LIVE_DEFAULTS}; `false` leaves it out. Kept by
-   * default: it draws nothing on a page without `live`.
+   * default: it draws nothing on a page without `live`. `childId` and `meta`
+   * place the child (see {@link PageToolbarChildOptions}).
    */
-  live?: LiveToggleProps | false;
+  live?: PageToolbarLiveOptions | false;
   /**
    * The `PeriodSelector` (child id `period`), over the defaults of
    * {@link PAGE_TOOLBAR_PERIOD_DEFAULTS}; `false` leaves it out, for a page
-   * without a period.
+   * without a period. `childId` and `meta` place the child (see
+   * {@link PageToolbarChildOptions}); `id` stays the period scope's id.
    */
-  period?: PeriodSelectorProps | false;
+  period?: PageToolbarPeriodOptions | false;
 }
 
 /** The `LiveToggle` of `pageToolbar()` unless its `live` says otherwise. */
@@ -105,10 +134,10 @@ const TOOLBAR_PRESETS: PeriodPreset[] = [
  * The `PeriodSelector` of `pageToolbar()` unless its `period` says otherwise:
  * the start of the window from now ("since yesterday 11:29"), then the
  * 1H / 24H / 7D / 30D presets, on the last 24 hours by default. Its
- * comparison control depends on what the period offers: a menu
- * ("vs previous period ▾") for more than one choice, `none` included, on its
- * first comparison besides `none`; none for a single comparison, which then
- * stays on and reads "vs …" beside the window.
+ * comparison control depends on what the period offers: a menu naming the
+ * compared window ("vs 16 – 17 Oct ▾") for more than one choice, `none`
+ * included, on its first comparison besides `none`; none for a single
+ * comparison, which then stays on and reads "vs …" beside the window.
  */
 export const PAGE_TOOLBAR_PERIOD_DEFAULTS: PeriodSelectorProps = {
   variant: "segmented",
@@ -147,8 +176,18 @@ function toolbarComparisonSetup(
     : { comparisonControl: "menu" };
 }
 
-const LIVE_CHILD_ID = "live";
-const PERIOD_CHILD_ID = "period";
+/** The child id of the toolbar's `LiveToggle` unless `live.childId` says otherwise. */
+export const PAGE_TOOLBAR_LIVE_CHILD_ID = "live";
+/** The child id of the toolbar's `PeriodSelector` unless `period.childId` says otherwise. */
+export const PAGE_TOOLBAR_PERIOD_CHILD_ID = "period";
+
+// A control built over its defaults, carrying the metadata it was given.
+function placed<P>(
+  builder: ComponentBuilder<P>,
+  meta: Partial<ComponentMetadata> | undefined,
+): ComponentBuilder<P> {
+  return meta ? builder.meta(meta) : builder;
+}
 
 /**
  * A `PageToolbar` with its usual children: `leading` on the left, then the
@@ -166,6 +205,15 @@ const PERIOD_CHILD_ID = "period";
  *   },
  * });
  * ```
+ *
+ * Each control keeps the id and the roles-editor metadata a page gives it:
+ *
+ * ```ts
+ * static toolbar = pageToolbar({
+ *   live: { childId: "toggle", meta: { name: "$my.permissions.live.name" } },
+ *   period: { id: "my-scope", meta: { name: "$my.permissions.period.name" } },
+ * }).meta({ name: "$my.permissions.toolbar.name" });
+ * ```
  */
 export function pageToolbar(
   options: PageToolbarOptions = {},
@@ -176,19 +224,24 @@ export function pageToolbar(
     toolbar.child(id, component);
   }
   if (live !== false) {
+    const { childId, meta, ...liveProps } = live ?? {};
     toolbar.child(
-      LIVE_CHILD_ID,
-      LiveToggle({ ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...live }),
+      childId ?? PAGE_TOOLBAR_LIVE_CHILD_ID,
+      placed(LiveToggle({ ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...liveProps }), meta),
     );
   }
   if (period !== false) {
+    const { childId, meta, ...periodProps } = period ?? {};
     toolbar.child(
-      PERIOD_CHILD_ID,
-      PeriodSelector({
-        ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
-        ...toolbarComparisonSetup(period ?? {}),
-        ...period,
-      }),
+      childId ?? PAGE_TOOLBAR_PERIOD_CHILD_ID,
+      placed(
+        PeriodSelector({
+          ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+          ...toolbarComparisonSetup(periodProps),
+          ...periodProps,
+        }),
+        meta,
+      ),
     );
   }
   return toolbar;
@@ -233,4 +286,20 @@ RegisterBlockType({
       "Context bar of a page: its scope, the last update, live mode and period.",
     group: "data",
   },
+  // What `pageToolbar()` places, for an editor building a toolbar.
+  initialChildren: [
+    {
+      id: PAGE_TOOLBAR_LIVE_CHILD_ID,
+      type: "LiveToggle",
+      options: { ...PAGE_TOOLBAR_LIVE_DEFAULTS },
+    },
+    {
+      id: PAGE_TOOLBAR_PERIOD_CHILD_ID,
+      type: "PeriodSelector",
+      options: {
+        ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+        ...toolbarComparisonSetup({}),
+      },
+    },
+  ],
 });

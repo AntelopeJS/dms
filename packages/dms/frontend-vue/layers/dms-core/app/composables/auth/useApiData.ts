@@ -7,7 +7,7 @@ import type {
   UseFetchOptions,
 } from "#dms/frontend-module";
 import { getCurrentInstance, toValue, watch, type MaybeRefOrGetter } from "vue";
-import { isPageLivePaused } from "../../build/composables/live/pageLivePause";
+import { useLivePauseSource } from "../live/livePauseSource";
 
 /** The authenticated fetch `useAuthFetch` returns. */
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -116,7 +116,8 @@ interface PolledReadOptions {
 
 // A component's polling is one more read nobody asked for: on a live page it
 // stops while the page is paused, as the blocks' refetches do. A plugin's
-// polling (the shell's, outside any page) keeps running.
+// polling (the shell's, outside any page) keeps running. The pause is read
+// through the app's `LIVE_PAUSE_SOURCE`, which the UI layer provides.
 function isGatedPolling(
   options: PolledReadOptions | undefined,
 ): options is PolledReadOptions {
@@ -129,9 +130,10 @@ function gateLivePolling<O extends PolledReadOptions>(
 ): O | undefined {
   if (!isGatedPolling(options)) return options;
   const interval = options.refreshInterval;
+  const isPaused = useLivePauseSource();
   return {
     ...options,
-    refreshInterval: () => (isPageLivePaused() ? null : toValue(interval)),
+    refreshInterval: () => (isPaused() ? null : toValue(interval)),
   };
 }
 
@@ -145,7 +147,7 @@ function followLivePause<
 >(result: R, options: PolledReadOptions | undefined): R {
   if (typeof window === "undefined" || !isGatedPolling(options)) return result;
   let pausedAt = 0;
-  watch(isPageLivePaused, (isPaused) => {
+  watch(useLivePauseSource(), (isPaused) => {
     if (isPaused) {
       pausedAt = Date.now();
       return;
