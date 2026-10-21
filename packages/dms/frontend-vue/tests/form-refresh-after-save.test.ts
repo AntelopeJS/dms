@@ -5,8 +5,9 @@ import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 
 /**
  * A save the server normalizes (a VAT number stripped of its spaces, the
- * empty rows of a list dropped): the form shows what was stored, not what
- * was typed, and stays saved.
+ * empty rows of a list dropped): the form shows what the edit route answered
+ * it stored, not what was typed, and stays saved, without reading the record
+ * again.
  */
 const GET_URL = "/api/settings/get";
 const EDIT_URL = "/api/settings/edit";
@@ -30,7 +31,7 @@ const STORED = {
 
 const authFetch = vi.fn();
 let scope: EffectScope;
-let stored: () => unknown;
+let answer: () => unknown;
 
 function setupForm(
   props: Record<string, unknown> = {},
@@ -61,9 +62,9 @@ const reads = () => authFetch.mock.calls.filter(([url]) => url === GET_URL);
 
 beforeEach(() => {
   scope = effectScope();
-  stored = () => structuredClone(STORED);
+  answer = () => structuredClone(STORED);
   authFetch.mockImplementation(async (url: string) =>
-    url === GET_URL ? stored() : { success: true },
+    url === EDIT_URL ? answer() : structuredClone(LOADED),
   );
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
@@ -102,55 +103,56 @@ afterEach(() => {
 });
 
 describe("DMS form after a save", () => {
-  it("shows the values the server stored, and stays saved", async () => {
+  it("shows the values the route stored, and stays saved", async () => {
     const onSaved = vi.fn();
     const form = setupForm({}, onSaved);
 
     await saveTyped(form);
 
-    expect(reads()).toHaveLength(1);
+    expect(reads()).toHaveLength(0);
     expect(form.state.value).toMatchObject(STORED);
     expect(form.initialValues.value).toMatchObject(STORED);
     expect(form.submitSucceeded.value).toBe(true);
-    // Saved once accepted, then again from what it read back.
+    // Saved once accepted, then again with what the route stored.
     expect(onSaved).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps an edit made while the record is read back", async () => {
+  it("takes only the form's fields from the answer", async () => {
+    answer = () => ({ ...structuredClone(STORED), _id: "s-1", success: true });
     const form = setupForm();
-    stored = () => {
-      form.state.value.vatNumber = "BE0782533345";
-      return structuredClone(STORED);
-    };
-    await saveTyped(form);
-    // Let the state watcher see the edit before the read resolves.
-    await Promise.resolve();
-
-    expect(form.state.value.vatNumber).toBe("BE0782533345");
-  });
-
-  it("keeps the values sent when the read fails", async () => {
-    const form = setupForm();
-    stored = () => {
-      throw new Error("offline");
-    };
 
     await saveTyped(form);
 
-    expect(form.state.value).toMatchObject(TYPED);
-    expect(form.submitSucceeded.value).toBe(true);
+    expect(form.state.value).not.toHaveProperty("_id");
+    expect(form.state.value).not.toHaveProperty("success");
+    expect(form.state.value.vatNumber).toBe(STORED.vatNumber);
   });
 
-  it("reads nothing back for a new row, an action or a redirect", async () => {
+  it("keeps the values sent when the route answers no record", async () => {
+    for (const body of [{ success: true }, undefined, ["s-1"]]) {
+      answer = () => body;
+      const form = setupForm();
+
+      await saveTyped(form);
+
+      expect(form.state.value).toMatchObject(TYPED);
+      expect(form.submitSucceeded.value).toBe(true);
+    }
+  });
+
+  it("applies nothing for a new row, an action or a redirect", async () => {
+    answer = () => ({ vatNumber: "as stored" });
     for (const props of [
-      { submitUrlMethod: HttpMethod.post },
+      { submitUrlMethod: HttpMethod.post, kind: "create" },
       { kind: "action" },
       { redirectOnSuccess: "/settings" },
       { fetchUrl: undefined },
     ]) {
-      await saveTyped(setupForm(props));
+      const form = setupForm(props);
+      await saveTyped(form);
+      expect(form.state.value.vatNumber, JSON.stringify(props)).not.toBe(
+        "as stored",
+      );
     }
-
-    expect(reads()).toHaveLength(0);
   });
 });
