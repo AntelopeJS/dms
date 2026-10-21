@@ -13,6 +13,10 @@ const ANY_FREE_PORT = 0;
 const UNUSED_PUBLIC_BASE_URL = "https://api.test.example.com";
 const API_LOCAL_BASE_URL = "${@api.API_LOCAL_BASE_URL}";
 const JWT_SECRET = "test-jwt-secret";
+// The runner starts modules outside development mode, where the DMS refuses
+// to start without a client origin and a render secret.
+const CLIENT_BASE_URL = "http://localhost:3001";
+const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
@@ -57,8 +61,12 @@ export default defineConfig({
         installCommand: LOCAL_INSTALL_COMMAND,
       },
       config: {
+        clientBaseUrl: CLIENT_BASE_URL,
         auth: {
           jwtSecret: JWT_SECRET,
+        },
+        htmlRender: {
+          serviceSecret: HTML_RENDER_SECRET,
         },
         frontend: {
           bootstrapSecret: BOOTSTRAP_SECRET,

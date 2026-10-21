@@ -75,6 +75,11 @@ import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
 import { setSchemasRegistered } from "./routes/startup-gate";
 import {
+  assertProductionSecrets,
+  resolveClientBaseUrl,
+} from "./startup-config";
+import { allowClientOrigin } from "./client-origin-cors";
+import {
   ensureDefaultTenantExists,
   registerExistingTenantInstances,
 } from "./utils";
@@ -87,10 +92,17 @@ let cronTasks: ScheduledTask[] = [];
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
 export async function construct(config: Config): Promise<void> {
-  applyConfig(config);
+  const { dev } = await GetRuntimeInfo();
+  // Checked here rather than when the project configuration is evaluated: a
+  // production build evaluates it without the deployment's secrets.
+  applyConfig({
+    ...config,
+    clientBaseUrl: resolveClientBaseUrl(config.clientBaseUrl, dev),
+  });
+  if (!dev) assertProductionSecrets();
   globalRealtimeConfig = config.realtime;
 
-  await setupFrontendBootstrap();
+  await setupFrontendBootstrap(dev);
 
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
@@ -106,14 +118,12 @@ export async function construct(config: Config): Promise<void> {
   await implementInterfaces();
   await registerDmsFrontend();
 
-  const { dev } = await GetRuntimeInfo();
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
 }
 
-async function setupFrontendBootstrap(): Promise<void> {
-  const { dev } = await GetRuntimeInfo();
+async function setupFrontendBootstrap(dev: boolean): Promise<void> {
   initFrontendBootstrapSecret(dev);
 
   if (dev) {
@@ -281,6 +291,7 @@ export function destroy(): void {
 }
 
 export async function start(): Promise<void> {
+  await allowClientOrigin();
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
