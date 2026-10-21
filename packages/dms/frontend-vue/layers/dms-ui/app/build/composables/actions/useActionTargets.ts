@@ -28,11 +28,11 @@ import {
 } from "./bulkSelection";
 import {
   listenRowSteps,
-  type RowNavigation,
   type RowNavigationSource,
   type ShowRow,
   trackRowNavigation,
 } from "./rowNavigation";
+import type { RowNavigation } from "../../../types/row-navigation";
 import {
   clearWrittenRecord,
   hasMissingRowState,

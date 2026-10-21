@@ -401,3 +401,30 @@ describe("a drawer's heading", () => {
     expect(headings()).toEqual(["Order"]);
   });
 });
+
+// jsdom lays nothing out: what is checked is the chain a growing body
+// component relies on to fill the drawer and push its footer down.
+describe("a drawer's body", () => {
+  it("is a flex column a growing body component and its footer fill", async () => {
+    const { default: ContainerFooter } = await import(
+      "../layers/dms-ui/app/components/container-footer/ContainerFooter.vue"
+    );
+    await mountDrawer({
+      direction: "right",
+      component: () =>
+        h("div", { class: "flex flex-1 flex-col", "data-body": "" }, [
+          h(ContainerFooter, { justify: "between" }, () => h("button")),
+        ]),
+    });
+    await nextTick();
+    expect(rendered.ui?.body).toContain("flex");
+    expect(rendered.ui?.body).toContain("flex-col");
+    const wrapper = host.querySelector("[data-body]")!.parentElement!;
+    expect(wrapper.className).toContain("flex-1");
+    expect(wrapper.className).toContain("flex-col");
+    const footer = host.querySelector("footer")!;
+    expect(footer.className).toContain("mt-auto");
+    expect(footer.className).toContain("sticky");
+    expect(footer.className).toContain("justify-between");
+  });
+});

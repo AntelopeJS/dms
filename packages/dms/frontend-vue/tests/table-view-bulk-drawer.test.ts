@@ -10,9 +10,9 @@ import {
 } from "../layers/dms-ui/app/build/composables/actions/bulkSelection";
 import {
   listenRowSteps,
-  type RowNavigation,
   trackRowNavigation,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import {
   deepLinkOutcome,
   readRecordId,

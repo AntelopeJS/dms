@@ -16,9 +16,9 @@ import DmsRowNotFound from "#dms-ui/app/build/components/containers/row/RowNotFo
 import {
   listenRowPanelClose,
   listenRowSteps,
-  type RowNavigation,
   trackRowNavigation,
 } from "#dms-ui/app/build/composables/actions/rowNavigation";
+import type { RowNavigation } from "#dms-ui/app/types/row-navigation";
 import {
   closeRowSidePanel,
   useRowSidePanelContent,

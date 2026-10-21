@@ -193,9 +193,14 @@ const DESKTOP_HIDDEN_GRIP = "lg:hidden!";
 // close) stays in view. The body reaches over the container's side padding
 // so its scrollbar sits on the drawer's edge, and carries the bottom padding
 // a form's sticky footer reaches over to sit flush with it (see Form.vue).
+// The body is a flex column: a body component whose root grows (`flex-1`)
+// fills the drawer's height while its content is short, so a
+// `<DmsContainerFooter>` at its end sits at the bottom, and it scrolls past
+// it while long.
 const DRAWER_CONTAINER_CLASS =
   "[--dms-form-foot-pb:1rem] min-h-0 overflow-y-hidden pb-0";
-const DRAWER_BODY_CLASS = "min-h-0 overflow-y-auto -mx-4 px-4 pb-4";
+const DRAWER_BODY_CLASS =
+  "flex min-h-0 flex-col overflow-y-auto -mx-4 px-4 pb-4";
 
 const drawerUi = computed(() => ({
   ...(contentClass.value && { content: contentClass.value }),
@@ -360,7 +365,10 @@ const { t } = useI18n();
     <template #body>
       <!-- A size container: what the body lays out by width (a form's
         columns, a list's) follows the drawer as it is resized. -->
-      <UContainer class="@container" :class="containerClass">
+      <UContainer
+        class="@container flex flex-1 flex-col"
+        :class="containerClass"
+      >
         <Suspense @pending="onContentPending" @resolve="onContentResolve">
           <component
             :is="component"

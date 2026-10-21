@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
-import type { RowNavigation } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 
 const Editor = defineComponent({ name: "KeyEditor", render: () => null });
 

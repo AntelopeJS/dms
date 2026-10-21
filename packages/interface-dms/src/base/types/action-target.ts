@@ -79,8 +79,8 @@ export interface DrawerTargetOptions extends Omit<
 > {
   /**
    * Width a `left` or `right` drawer opens at from `lg`, before the user
-   * resizes it: a modal's width at that size (`sm` 384px … `5xl` 1024px).
-   * Without one it opens at 600px. Capped to the window; below `lg` an
+   * resizes it: a modal's width at that size (`sm` 384px … `5xl` 1024px),
+   * `full` the whole window. Without one it opens at 600px. Capped to the window; below `lg` an
    * unsized one is 440px wide, and on a phone every side drawer, sized or
    * not, leaves a 2rem strip of backdrop (only `full` fills the screen).
    * A `top` or `bottom` drawer ignores it.

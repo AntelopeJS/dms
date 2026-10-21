@@ -7,7 +7,7 @@
  * onto two lines before it is cut (a ticket subject, a site name on a phone).
  */
 import { computed } from "vue";
-import type { RowNavigation } from "../../../composables/actions/rowNavigation";
+import type { RowNavigation } from "../../../../types/row-navigation";
 
 interface RowHeaderProps {
   heading?: string;

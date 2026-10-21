@@ -1,6 +1,6 @@
 import type { Component } from "vue";
 import type { ModalSize } from "../../types/modal";
-import type { RowNavigation } from "../../build/composables/actions/rowNavigation";
+import type { RowNavigation } from "../../types/row-navigation";
 
 /**
  * Side from which a {@link DrawerOptions} drawer slides in.

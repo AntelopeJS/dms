@@ -19,9 +19,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
 import type {
   RowLocation,
-  RowNavigation,
   RowNavigationSource,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
 import RowNotFound from "../layers/dms-ui/app/build/components/containers/row/RowNotFound.vue";
 import {
