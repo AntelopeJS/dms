@@ -187,18 +187,13 @@ const isSessionOf = (
   info.user?._id === requester.userId && info.tenantId === requester.tenantId;
 
 /**
- * Ends one session. A stream of its own is closed; a session on a shared
- * connection is ended alone, the other tabs' sessions riding on it stay, and
- * its tab is told so, to open a new one.
+ * Ends one session alone: the other tabs' sessions riding on its connection
+ * stay, and its tab is told so, to open a new one.
  */
 const endSession = async (
   sessionId: string,
   info: SessionInfo,
 ): Promise<void> => {
-  if (!info.connectionId) {
-    await info.close();
-    return;
-  }
   info.send(SESSION_ENDED_EVENT, { sessionId });
   await cleanupSession(sessionId);
 };

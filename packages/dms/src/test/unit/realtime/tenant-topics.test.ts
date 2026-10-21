@@ -60,110 +60,6 @@ const createFakeStream = (tenantId: string): FakeStream => {
   return { ctx, frames, isEnded: () => isEnded };
 };
 
-const readSessionId = (stream: FakeStream): string => {
-  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
-  const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return (JSON.parse(data) as { sessionId: string }).sessionId;
-};
-
-const topicFrames = (stream: FakeStream): string[] =>
-  stream.frames.filter((frame) => frame.startsWith(`event: ${TOPIC}\n`));
-
-/** Opens a stream in `tenantId` and puts its session on the page. */
-const openOnPage = async (tenantId: string): Promise<FakeStream> => {
-  const stream = createFakeStream(tenantId);
-  await RealtimeController.prototype.userStream.call(
-    undefined,
-    stream.ctx,
-    USER as unknown as User,
-  );
-  const isOnPage = await ensureSessionOnPage(readSessionId(stream), PAGE_ID, {
-    userId: USER._id,
-    tenantId,
-  });
-  expect(isOnPage).to.equal(true);
-  return stream;
-};
-
-describe("[unit] realtime — tenant-scoped page topics", () => {
-  beforeEach(() => {
-    setRealtimeBroker(new InMemoryBroker());
-    registerPageTopic(PAGE_ID, TOPIC);
-  });
-
-  afterEach(async () => {
-    await stopRealtime();
-    clearPageTopics(PAGE_ID);
-    setRealtimeBroker(new InMemoryBroker());
-  });
-
-  it("delivers a message published for a tenant to that tenant's sessions only", async () => {
-    const streamA = await openOnPage(TENANT_A);
-    const streamB = await openOnPage(TENANT_B);
-
-    await PublishMessage(TOPIC, EVENT_TYPE, {
-      payload: { count: 1 },
-      tenantId: TENANT_A,
-    });
-
-    expect(topicFrames(streamA)).to.have.length(1);
-    expect(topicFrames(streamB)).to.have.length(0);
-  });
-
-  it("still delivers a message published without a tenant to every session", async () => {
-    const streamA = await openOnPage(TENANT_A);
-    const streamB = await openOnPage(TENANT_B);
-
-    await PublishMessage(TOPIC, EVENT_TYPE);
-
-    expect(topicFrames(streamA)).to.have.length(1);
-    expect(topicFrames(streamB)).to.have.length(1);
-  });
-
-  it("ends a stream whose page request comes from another workspace", async () => {
-    const stream = await openOnPage(TENANT_A);
-    const sessionId = readSessionId(stream);
-
-    // The browser switched to tenant B; the stream still belongs to tenant A.
-    const isOnPage = await ensureSessionOnPage(sessionId, PAGE_ID, {
-      userId: USER._id,
-      tenantId: TENANT_B,
-    });
-
-    expect(isOnPage).to.equal(false);
-    expect(stream.isEnded()).to.equal(true);
-    expect(getSessionInfo(sessionId)).to.equal(undefined);
-  });
-
-  it("ends a stream whose page request comes from another account", async () => {
-    const stream = await openOnPage(TENANT_A);
-    const sessionId = readSessionId(stream);
-
-    const isOnPage = await ensureSessionOnPage(sessionId, PAGE_ID, {
-      userId: "another-user",
-      tenantId: TENANT_A,
-    });
-
-    expect(isOnPage).to.equal(false);
-    expect(stream.isEnded()).to.equal(true);
-  });
-
-  it("reaches the new workspace once the client reconnects after a switch", async () => {
-    const stale = await openOnPage(TENANT_A);
-    await ensureSessionOnPage(readSessionId(stale), PAGE_ID, {
-      userId: USER._id,
-      tenantId: TENANT_B,
-    });
-    const current = await openOnPage(TENANT_B);
-
-    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_A });
-    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_B });
-
-    expect(topicFrames(stale)).to.have.length(0);
-    expect(topicFrames(current)).to.have.length(1);
-  });
-});
-
 interface SharedFrame {
   sessionId: string;
   event: string;
@@ -197,13 +93,115 @@ const openTabOnPage = async (
   const greeting = await RealtimeController.prototype.openSession.call(
     undefined,
     createFakeStream(tenantId).ctx,
-    { connectionId },
+    connectionId,
     USER as unknown as User,
   );
   const sessionId = greeting.sessionId!;
-  await ensureSessionOnPage(sessionId, PAGE_ID, { userId: USER._id, tenantId });
+  const isOnPage = await ensureSessionOnPage(sessionId, PAGE_ID, {
+    userId: USER._id,
+    tenantId,
+  });
+  expect(isOnPage).to.equal(true);
   return sessionId;
 };
+
+/** A browser in `tenantId`: its connection, and a tab's session on the page. */
+interface BrowserTab {
+  stream: FakeStream;
+  sessionId: string;
+}
+
+const openOnPage = async (tenantId: string): Promise<BrowserTab> => {
+  const stream = createFakeStream(tenantId);
+  const connectionId = await openSharedConnection(stream);
+  return { stream, sessionId: await openTabOnPage(connectionId, tenantId) };
+};
+
+/** The topic frames a browser's connection carried for its sessions. */
+const topicFrames = (tab: BrowserTab): SharedFrame[] =>
+  sharedFrames(tab.stream).filter((frame) => frame.event === TOPIC);
+
+const sessionEndedFrames = (tab: BrowserTab): SharedFrame[] =>
+  sharedFrames(tab.stream).filter((frame) => frame.event === "session-ended");
+
+describe("[unit] realtime — tenant-scoped page topics", () => {
+  beforeEach(() => {
+    setRealtimeBroker(new InMemoryBroker());
+    registerPageTopic(PAGE_ID, TOPIC);
+  });
+
+  afterEach(async () => {
+    await stopRealtime();
+    clearPageTopics(PAGE_ID);
+    setRealtimeBroker(new InMemoryBroker());
+  });
+
+  it("delivers a message published for a tenant to that tenant's sessions only", async () => {
+    const browserA = await openOnPage(TENANT_A);
+    const browserB = await openOnPage(TENANT_B);
+
+    await PublishMessage(TOPIC, EVENT_TYPE, {
+      payload: { count: 1 },
+      tenantId: TENANT_A,
+    });
+
+    expect(topicFrames(browserA)).to.have.length(1);
+    expect(topicFrames(browserB)).to.have.length(0);
+  });
+
+  it("still delivers a message published without a tenant to every session", async () => {
+    const browserA = await openOnPage(TENANT_A);
+    const browserB = await openOnPage(TENANT_B);
+
+    await PublishMessage(TOPIC, EVENT_TYPE);
+
+    expect(topicFrames(browserA)).to.have.length(1);
+    expect(topicFrames(browserB)).to.have.length(1);
+  });
+
+  it("ends a session whose page request comes from another workspace", async () => {
+    const browser = await openOnPage(TENANT_A);
+
+    // The browser switched to tenant B; the session still belongs to tenant A.
+    const isOnPage = await ensureSessionOnPage(browser.sessionId, PAGE_ID, {
+      userId: USER._id,
+      tenantId: TENANT_B,
+    });
+
+    expect(isOnPage).to.equal(false);
+    expect(getSessionInfo(browser.sessionId)).to.equal(undefined);
+    expect(sessionEndedFrames(browser)).to.have.length(1);
+    expect(browser.stream.isEnded()).to.equal(false);
+  });
+
+  it("ends a session whose page request comes from another account", async () => {
+    const browser = await openOnPage(TENANT_A);
+
+    const isOnPage = await ensureSessionOnPage(browser.sessionId, PAGE_ID, {
+      userId: "another-user",
+      tenantId: TENANT_A,
+    });
+
+    expect(isOnPage).to.equal(false);
+    expect(getSessionInfo(browser.sessionId)).to.equal(undefined);
+    expect(sessionEndedFrames(browser)).to.have.length(1);
+  });
+
+  it("reaches the new workspace once the tab opens a new session after a switch", async () => {
+    const stale = await openOnPage(TENANT_A);
+    await ensureSessionOnPage(stale.sessionId, PAGE_ID, {
+      userId: USER._id,
+      tenantId: TENANT_B,
+    });
+    const current = await openOnPage(TENANT_B);
+
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_A });
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_B });
+
+    expect(topicFrames(stale)).to.have.length(0);
+    expect(topicFrames(current)).to.have.length(1);
+  });
+});
 
 describe("[unit] realtime — tenant scoping on a connection shared by tabs", () => {
   beforeEach(() => {
