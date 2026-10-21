@@ -13,6 +13,7 @@ import type {
   FrontendModuleOptions,
   FrontendModuleValue,
 } from "@antelopejs/interface-dms/page";
+import { FrontendModulesChanged } from "@antelopejs/interface-dms/page";
 import archiver from "archiver";
 import ignore from "ignore";
 import { coerce, major } from "semver";
@@ -280,6 +281,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     backendProxies,
   };
   scheduleBroadcast();
+  FrontendModulesChanged.emit();
 }
 
 function isInsideFolder(candidate: string, folder: string): boolean {
@@ -312,6 +314,7 @@ export function removeFrontendModulesUnder(folder: string): string[] {
   if (removed.length > 0) {
     cachedModulesArchives.clear();
     scheduleBroadcast();
+    FrontendModulesChanged.emit();
   }
   return removed.map(([, module]) => module.name);
 }
