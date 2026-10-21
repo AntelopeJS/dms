@@ -12,6 +12,7 @@ const REALTIME_SESSION_CLOSE_PATH = "/api/realtime/session/close";
 const REALTIME_SUBSCRIBE_PATH_PREFIX = "/api/realtime/subscribe/";
 const REALTIME_UNSUBSCRIBE_PATH = "/api/realtime/unsubscribe";
 const SESSION_HEADER = "x-realtime-session";
+const CONNECTION_HEADER = "x-realtime-connection";
 const CONNECTION_NAME_PREFIX = "dms-realtime";
 const SESSION_STATE_KEY = "dms.realtime.sessionId";
 const MENU_TOPICS_STATE_KEY = "dms.realtime.menuTopics";
@@ -62,12 +63,12 @@ export interface UserRealtimeApi {
    */
   pageTopics: Ref<string[]>;
   /**
-   * Whether the open stream carries the backend's development reload signal
-   * (topic `dms:dev-reload`), as its greeting said: the tab then needs no
-   * reload stream of its own. False while no stream is open, and in
+   * The topic the open connection carries the backend's development reload
+   * signal under, as the session's greeting named it: the tab then needs no
+   * reload stream of its own. Unset while no session is open, and in
    * production.
    */
-  carriesDevReload: Ref<boolean>;
+  devReloadTopic: Ref<string | undefined>;
 }
 
 interface UserRealtimeState {
@@ -75,7 +76,7 @@ interface UserRealtimeState {
   pageId: Ref<string | undefined>;
   menuTopics: Ref<string[]>;
   pageTopics: Ref<string[]>;
-  carriesDevReload: Ref<boolean>;
+  devReloadTopic: Ref<string | undefined>;
   appliedPageId: Ref<string | null>;
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
@@ -152,8 +153,9 @@ const handleHello = (state: UserRealtimeState, data: unknown): void => {
   if (!data || typeof data !== "object" || !("sessionId" in data)) return;
   state.sessionId.value = String((data as { sessionId: unknown }).sessionId);
   state.menuTopics.value = readMenuTopics(data);
-  state.carriesDevReload.value =
-    (data as { devReload?: unknown }).devReload === true;
+  const { devReloadTopic } = data as { devReloadTopic?: unknown };
+  state.devReloadTopic.value =
+    typeof devReloadTopic === "string" ? devReloadTopic : undefined;
 };
 
 const handleEvent =
@@ -258,10 +260,8 @@ const connectTab = (
     try {
       response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
         method: "POST",
-        // In the body, not a header of its own: the renderer's backend proxy
-        // relays only the headers it knows.
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ connectionId: forConnection }),
+        // The dashboard's backend proxy relays every `x-realtime-*` header.
+        headers: { [CONNECTION_HEADER]: forConnection },
         credentials: "include",
       });
     } catch (error) {
@@ -422,7 +422,7 @@ const resetSession = (state: UserRealtimeState): void => {
   state.sessionId.value = undefined;
   state.appliedPageId.value = null;
   state.pageTopics.value = [];
-  state.carriesDevReload.value = false;
+  state.devReloadTopic.value = undefined;
   state.snapshots.clear();
 };
 
@@ -435,13 +435,13 @@ const buildApi = (): UserRealtimeApi => {
   const appliedPageId = ref<string | null>(null);
   const pageId = ref<string | undefined>(undefined);
   const pageTopics = ref<string[]>([]);
-  const carriesDevReload = ref(false);
+  const devReloadTopic = ref<string | undefined>(undefined);
   const state: UserRealtimeState = {
     sessionId,
     pageId,
     menuTopics,
     pageTopics,
-    carriesDevReload,
+    devReloadTopic,
     appliedPageId,
     handlers: new Map(),
     snapshots: new Map(),
@@ -519,7 +519,7 @@ const buildApi = (): UserRealtimeApi => {
     pageId,
     menuTopics,
     pageTopics,
-    carriesDevReload,
+    devReloadTopic,
   };
 };
 

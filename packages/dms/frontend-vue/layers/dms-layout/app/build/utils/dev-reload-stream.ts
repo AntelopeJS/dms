@@ -111,21 +111,21 @@ export function openSharedDevReloadStream(
   return { close: leave };
 }
 
-/** The topic the user's realtime stream carries the reload signal under. */
-export const DEV_RELOAD_TOPIC = "dms:dev-reload";
-
-/** The user's realtime stream, as far as the reload signal goes. */
+/** The user's realtime connection, as far as the reload signal goes. */
 export interface DevReloadCarrier {
-  /** Whether the open stream carries the reload signal. */
-  carriesDevReload: Ref<boolean>;
+  /**
+   * The topic the open connection carries the reload signal under, as the
+   * backend named it; unset while it carries none.
+   */
+  devReloadTopic: Ref<string | undefined>;
   subscribe: (topic: string, handler: () => void) => () => void;
 }
 
 /**
- * Follows the backend's reloads over the user's realtime stream while it is
- * open and carries them, and over the reload stream the browser's tabs share
- * only while it does not (signed out, reconnecting): a tab adds no long-lived
- * connection of its own to the six HTTP/1.1 allows per host.
+ * Follows the backend's reloads over the user's realtime connection while it
+ * is open and carries them, and over the reload stream the browser's tabs
+ * share only while it does not (signed out, reconnecting): a tab adds no
+ * long-lived connection of its own to the six HTTP/1.1 allows per host.
  */
 export function followDevReload(
   options: DevReloadStreamOptions,
@@ -133,13 +133,14 @@ export function followDevReload(
   environment?: CrossTabEnvironment,
 ): DevReloadStream {
   let stream: DevReloadStream | undefined;
-  const unsubscribe = carrier.subscribe(DEV_RELOAD_TOPIC, () =>
-    options.onReload(),
-  );
+  let unsubscribe: (() => void) | undefined;
   const stopWatching = watch(
-    carrier.carriesDevReload,
-    (isCarried) => {
-      if (isCarried) {
+    carrier.devReloadTopic,
+    (topic) => {
+      unsubscribe?.();
+      unsubscribe = undefined;
+      if (topic) {
+        unsubscribe = carrier.subscribe(topic, () => options.onReload());
         stream?.close();
         stream = undefined;
         return;
@@ -151,7 +152,8 @@ export function followDevReload(
   return {
     close: () => {
       stopWatching();
-      unsubscribe();
+      unsubscribe?.();
+      unsubscribe = undefined;
       stream?.close();
       stream = undefined;
     },

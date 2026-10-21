@@ -13,12 +13,14 @@ const SESSION_CLOSE_URL = `${BASE_URL}/api/realtime/session/close`;
 const SUBSCRIBE_URL_PREFIX = `${BASE_URL}/api/realtime/subscribe/`;
 const UNSUBSCRIBE_URL = `${BASE_URL}/api/realtime/unsubscribe`;
 const SESSION_HEADER = "x-realtime-session";
+const CONNECTION_HEADER = "x-realtime-connection";
 /**
  * The request headers the DMS renderer's backend proxy relays
- * (`backendHeaders`, @antelopejs/dms-frontend `templates/vue/server.mjs`):
- * any other header the browser sends never reaches the backend.
+ * (@antelopejs/dms-frontend, `CLIENT_HEADERS` in
+ * `templates/vue/server/auth/backend.mjs`, plus the request's own): any other
+ * header the browser sends never reaches the backend.
  */
-export const RELAYED_HEADERS: ReadonlySet<string> = new Set([
+const RELAYED_HEADERS: ReadonlySet<string> = new Set([
   "accept",
   "content-type",
   "if-match",
@@ -26,8 +28,9 @@ export const RELAYED_HEADERS: ReadonlySet<string> = new Set([
   "referer",
   "user-agent",
   "x-content-language",
-  "x-realtime-session",
+  "x-time-zone",
 ]);
+const RELAYED_HEADER_PREFIX = "x-realtime-";
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;
 
@@ -60,8 +63,8 @@ export interface FakeRealtimeServer {
   maxOpenConnections: number;
   /** Refuses the stream as a server that is down. */
   isDown: boolean;
-  /** The session greeting says the connection carries the dev reload signal. */
-  carriesDevReload?: boolean;
+  /** The topic the session greeting says the dev reload signal comes under. */
+  devReloadTopic?: string;
   /** Answers each session request with this status instead, while set. */
   sessionStatus?: number;
   /** Runs once a session exists, before its answer leaves. */
@@ -147,7 +150,7 @@ const openSession = (
     ok: true,
     sessionId: session.id,
     menuTopics: [],
-    devReload: server.carriesDevReload,
+    devReloadTopic: server.devReloadTopic,
   });
 };
 
@@ -200,7 +203,10 @@ const relayHeaders = (
   for (const [name, value] of Object.entries(
     (init?.headers ?? {}) as Record<string, string>,
   )) {
-    if (RELAYED_HEADERS.has(name.toLowerCase())) relayed[name] = value;
+    const key = name.toLowerCase();
+    const isRelayed =
+      RELAYED_HEADERS.has(key) || key.startsWith(RELAYED_HEADER_PREFIX);
+    if (isRelayed) relayed[key] = value;
     else server.droppedHeaders.push(name);
   }
   return relayed;
@@ -219,13 +225,18 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       return openConnection(server, init!.signal!);
     }
     if (url === SESSION_URL) {
-      const body = JSON.parse(String(init?.body ?? "{}")) as {
-        connectionId?: string;
-      };
-      return openSession(server, body.connectionId ?? "");
+      return openSession(server, headers[CONNECTION_HEADER] ?? "");
     }
     if (url === SESSION_CLOSE_URL) {
-      server.closedSessions.push(headers[SESSION_HEADER]!);
+      const sessionId = headers[SESSION_HEADER];
+      const session = server.sessions.find(
+        (candidate) => candidate.id === sessionId,
+      );
+      // As the backend: only a session on the connection named is ended.
+      if (!session || session.connectionId !== headers[CONNECTION_HEADER]) {
+        return json({ ok: false });
+      }
+      server.closedSessions.push(session.id);
       return json({ ok: true });
     }
     if (url.startsWith(SUBSCRIBE_URL_PREFIX) || url === UNSUBSCRIBE_URL) {
