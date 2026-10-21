@@ -70,25 +70,6 @@ const { locale } = useI18n();
 // v2 number fields keep the value left-aligned with a compact caret stepper.
 const DEFAULT_ORIENTATION = "vertical";
 
-// The unit sits inside the box, before the stepper, so a field with a unit
-// is as wide as the fields around it: the value's end padding makes room for
-// the stepper (2rem, `end-8` below), a gap and the unit, sized in
-// characters (`ch` slightly overestimates a short unit, never clips it).
-const SUFFIX_BASE_CLASS = "pe-[calc(var(--dms-field-suffix-width)+2.375rem)]";
-const suffixText = computed(() =>
-  props.suffix ? processI18n(props.suffix) : "",
-);
-const suffixStyle = computed(() =>
-  suffixText.value
-    ? { "--dms-field-suffix-width": `${suffixText.value.length}ch` }
-    : undefined,
-);
-const fieldUi = computed(() =>
-  suffixText.value
-    ? { ...props.ui, base: [props.ui?.base, SUFFIX_BASE_CLASS] }
-    : props.ui,
-);
-
 // A minus typed or pasted where no negative number is allowed is refused
 // by the field before it shows: it says why, rather than leaving an emptied
 // field to read as never filled.
@@ -153,9 +134,10 @@ async function settle(event: Event): Promise<void> {
 </script>
 
 <template>
+  <!-- The unit sits after the field rather than inside it, where the
+    stepper already takes the end of the box. -->
   <div
-    :class="suffixText ? 'relative flex items-center' : 'contents'"
-    :style="suffixStyle"
+    :class="props.suffix ? 'flex items-center gap-2' : 'contents'"
     @beforeinput.capture="onIncomingText"
     @input="onTyped"
     @keydown.enter="settle"
@@ -164,18 +146,17 @@ async function settle(event: Event): Promise<void> {
       v-bind="{ ...inputProps, ...$attrs }"
       @blur="settle"
       @update:model-value="onSettledValue"
-      :class="suffixText && 'min-w-0 flex-1'"
-      :ui="fieldUi"
+      :class="props.suffix && 'min-w-0 flex-1'"
       :orientation="props.orientation ?? DEFAULT_ORIENTATION"
       :increment="{ color: 'neutral' }"
       :decrement="{ color: 'neutral' }"
     />
     <span
-      v-if="suffixText"
-      class="text-muted pointer-events-none absolute inset-y-0 end-8 flex items-center text-[13px] whitespace-nowrap"
+      v-if="props.suffix"
+      class="text-muted shrink-0 text-[13px]"
       data-field-suffix
     >
-      {{ suffixText }}
+      {{ processI18n(props.suffix) }}
     </span>
   </div>
 </template>
