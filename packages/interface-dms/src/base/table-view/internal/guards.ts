@@ -12,7 +12,7 @@ import {
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { AfterWrite, GuardFn } from "../../types/guards";
-import { fetchRowForGuard, getTableViewRow } from "../data-functions";
+import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { normalizeToArray } from "./row-rules";
@@ -122,31 +122,15 @@ const getGuardForAction = (
   return meta.controllerGuards?.[actionName] as GuardFn<any> | undefined;
 };
 
-const getGuard: DefaultRoutes.GetGuard = async function (ctx, current, params) {
-  await getGuardForAction(this, "get")?.call(this, ctx, {
-    id: params.id,
-    current,
-  });
-};
-
-/**
- * The `get` route of `DefaultRoutes`, its guard included, reading the row the
- * way the list does: a relation is resolved after the computed fields, which
- * may read its key, and is never lost to them.
- *
- * @internal
- */
-export const guardedGetRoute: DataControllerCallback<Parameters.GetParameters> =
-  {
-    ...DefaultRoutes.Get,
-    func: function (
-      this: unknown,
-      ctx: RequestContext,
-      params: Parameters.GetParameters,
-    ) {
-      return getTableViewRow(this, ctx, params, getGuard);
-    },
-  };
+/** @internal */
+export const guardedGetRoute = DefaultRoutes.WithGetGuard(
+  async function (ctx, current, params) {
+    await getGuardForAction(this, "get")?.call(this, ctx, {
+      id: params.id,
+      current,
+    });
+  },
+);
 
 const getIdField = (controller: unknown): string => {
   const meta = GetMetadata(
@@ -219,9 +203,9 @@ export const createGuardedRoute = (
             getIdField(this),
           )
         : undefined;
-      // The data API parses the raw body it is handed.
+      // The data API writes a parsed body as it is handed.
       const writtenArgs = writtenBody
-        ? [Buffer.from(JSON.stringify(writtenBody)), ...routeArgs.slice(1)]
+        ? [writtenBody, ...routeArgs.slice(1)]
         : routeArgs;
       const result = await baseRoute.func.call(
         this,

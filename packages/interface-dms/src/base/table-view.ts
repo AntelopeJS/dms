@@ -32,7 +32,6 @@ export {
   downloadExport,
   fetchRowForGuard,
   getExportStatus,
-  getTableViewRow,
   listWithSearch,
   restoreRows,
   startExport,

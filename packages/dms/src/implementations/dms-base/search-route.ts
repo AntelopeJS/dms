@@ -288,34 +288,6 @@ export async function buildFilteredQuery(
   };
 }
 
-/**
- * The `@Computed` fields a page of rows still has to compute: the listed
- * ones the query has not merged already. `Query.List` merges a computed field
- * only when a filter or the sort reads it, so a field shown and nothing more
- * is computed here, after the slice, for the rows returned alone -- as the
- * data API's own list does.
- */
-// @internal
-export function displayOnlyComputedFields(
-  meta: DataAPIMeta,
-  filters: Parameters.ListParameters["filters"],
-  sortKey: string | undefined,
-  pluck: Set<string> | undefined,
-): Set<string> {
-  const merged = new Set(
-    Object.keys(filters ?? {}).filter((name) => name in meta.filters),
-  );
-  if (sortKey) merged.add(sortKey);
-  return new Set(
-    Object.entries(meta.fields)
-      .filter(
-        ([name, field]) =>
-          field.computed && !merged.has(name) && (!pluck || pluck.has(name)),
-      )
-      .map(([name]) => name),
-  );
-}
-
 export async function countWithSearch(
   thisObj: any,
   reqCtx: RequestContext,
@@ -363,49 +335,15 @@ export async function listWithSearch(
 
   const offset = params.offset || 0;
   const limit = params.limit || 10;
-  let queryPaged = built.query.slice(offset, limit);
-
-  const joinedFields = new Set(
-    [...deferredJoined].filter((field) => params.noPluck || pluck?.has(field)),
-  );
-  if (joinedFields.size > 0) {
-    queryPaged = Query.Joined(
-      model.database,
-      meta,
-      queryPaged as any,
-      joinedFields,
-    );
-  }
-
-  const displayComputed = displayOnlyComputedFields(
-    meta,
+  const queryPaged = Query.ListPage(model.database, meta, built.query, {
+    offset,
+    limit,
     filters,
-    params.sortKey,
-    params.noPluck ? undefined : pluck,
-  );
-  if (displayComputed.size > 0) {
-    queryPaged = Query.Computed(
-      model.database,
-      meta,
-      queryPaged,
-      displayComputed,
-    );
-  }
-
-  // Last: a relation's lookup replaces its key with the related row, which a
-  // computed expression reading that key would no longer find.
-  if (!params.noForeign) {
-    queryPaged = Query.Foreign(
-      model.database,
-      meta,
-      queryPaged as any,
-      params.noPluck ? undefined : pluck,
-    );
-  }
-
-  if (!params.noPluck && pluck) {
-    queryPaged = queryPaged.pluck("_internal", ...pluck);
-  }
+    sortKey: params.sortKey,
+    pluck: params.noPluck ? undefined : pluck,
+    noForeign: params.noForeign,
+    deferredJoined,
+  });
 
   const [dbResult, dbTotal] = await Promise.all([queryPaged, queryTotal]);
 
