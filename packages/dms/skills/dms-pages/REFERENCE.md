@@ -79,6 +79,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
 - `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each
   `PublishMessage`.
+- `TableView({ ignoreOwnRealtimeEvents: true })` skips its own tab's row events and the
+  messages published with `{ originSessionId }` (read from `REALTIME_SESSION_HEADER`).
 
 ### Live pages
 
