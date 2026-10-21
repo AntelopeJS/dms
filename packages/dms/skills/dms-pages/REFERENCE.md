@@ -161,4 +161,5 @@ catalog (19 built in, `@antelopejs/interface-dms/base/data-types`): `String`, `N
 `File`, `Image` (each as `<Name>Type`), plus `StatusType` via the `data-types` barrel. The
 same types drive TableView columns and filters — options per type are in
 `docs/04.components/10.data-types.md`. Custom types: subclass `DataType`, decorate with
-`@RegisterDataType("id")` (frontend side: `docs/05.extending-the-dashboard/04.custom-data-types.md`).
+`@RegisterDataType("id")` (frontend side: `docs/05.extending-the-dashboard/04.custom-data-types.md`);
+override `exportValue()` / `exportHeader()` to word it in a readable table export.

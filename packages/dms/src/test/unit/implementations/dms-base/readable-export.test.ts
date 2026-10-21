@@ -6,6 +6,8 @@ import {
   type ColumnOptions,
   DefaultDisplays,
 } from "@antelopejs/interface-dms/base/table-view";
+import { ImplementInterface } from "@antelopejs/interface-core";
+import { GetLocaleMessages } from "@antelopejs/interface-dms/html-render";
 import { expect } from "chai";
 import {
   type ExportLocale,
@@ -13,6 +15,7 @@ import {
   exportTimeZone,
   formatExportCell,
   readableColumns,
+  resolveExportLocale,
   translateText,
 } from "../../../../implementations/dms-base/readable-export";
 
@@ -109,6 +112,26 @@ describe("[unit] implementations/dms-base/readable-export — texts", () => {
     expect(exportTimeZone(ctx, {} as User)).to.equal("America/New_York");
     expect(exportTimeZone(unknownZone, undefined)).to.equal("UTC");
     expect(exportTimeZone(undefined, undefined)).to.equal("UTC");
+  });
+
+  it("writes keys rather than failing when the texts cannot be read", async () => {
+    ImplementInterface(
+      { GetLocaleMessages },
+      {
+        GetLocaleMessages: async () => {
+          throw new Error("frontend unreachable");
+        },
+      },
+    );
+    try {
+      const locale = await resolveExportLocale(undefined, undefined);
+      expect(translateText("$deals.title", locale)).to.equal("deals.title");
+    } finally {
+      ImplementInterface(
+        { GetLocaleMessages },
+        { GetLocaleMessages: async () => ({ messages: {}, fallback: {} }) },
+      );
+    }
   });
 });
 

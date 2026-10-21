@@ -502,7 +502,7 @@ export namespace DefaultDataTypes {
       if (
         typeof value === "object" &&
         value !== null &&
-        !(value instanceof Date)
+        ("start" in value || "end" in value)
       ) {
         const range = value as { start?: unknown; end?: unknown };
         return [range.start, range.end]
@@ -983,7 +983,9 @@ export namespace DefaultDataTypes {
     override exportValue(value: unknown, context: DataTypeExportContext) {
       return formatExportRelation(
         value,
-        this.options.keyMapping?.label as string | undefined,
+        typeof this.options.keyMapping?.label === "string"
+          ? this.options.keyMapping.label
+          : undefined,
         context,
       );
     }
@@ -1097,7 +1099,9 @@ export namespace DefaultDataTypes {
     override exportValue(value: unknown, context: DataTypeExportContext) {
       return formatExportRelation(
         value,
-        this.options.keyMapping?.label as string | undefined,
+        typeof this.options.keyMapping?.label === "string"
+          ? this.options.keyMapping.label
+          : undefined,
         context,
       );
     }

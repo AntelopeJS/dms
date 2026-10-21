@@ -52,7 +52,9 @@ export function formatExportDate(
 ): string {
   const date = asDate(value);
   if (!date) {
-    return typeof value === "string" || typeof value === "number"
+    return typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
       ? String(value)
       : "";
   }

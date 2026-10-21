@@ -10,6 +10,7 @@ import type {
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { getColumnDisplayId } from "@antelopejs/interface-dms/base/table-view/internal/column-display";
+import { Logging } from "@antelopejs/interface-core/logging";
 import { GetLocaleMessages } from "@antelopejs/interface-dms/html-render";
 
 /** A catalog of texts: nested message objects, strings at the leaves. */
@@ -214,6 +215,22 @@ export function exportTimeZone(
   );
 }
 
+const NO_CATALOGS = { messages: {}, fallback: {} };
+
+// An export never fails for its texts: without the frontend's catalogs, a
+// text is written as its key, as for a text no catalog has.
+async function readCatalogs(language: string) {
+  try {
+    return await GetLocaleMessages(language);
+  } catch (error) {
+    Logging.Warn(
+      `Readable export: the texts in "${language}" could not be read; keys are written instead.`,
+      error,
+    );
+    return NO_CATALOGS;
+  }
+}
+
 /**
  * The locale of the user who asked for an export, its catalogs read once from
  * the frontend that renders the pages (`GetLocaleMessages`).
@@ -223,7 +240,7 @@ export async function resolveExportLocale(
   user: User | undefined,
 ): Promise<ExportLocale> {
   const language = exportLanguage(ctx, user);
-  const catalogs = await GetLocaleMessages(language);
+  const catalogs = await readCatalogs(language);
   const hourCycle = user?.timeFormat;
   return {
     messages: catalogs.messages,

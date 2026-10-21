@@ -106,7 +106,9 @@ column's translated `name` as its header, a relation's `keyMapping.label`, a sel
 label, a localized date, Yes / No, a percentage with its sign; numbers and prices stay
 numeric. Give every exported field a `@Column` with a `$`-key `name`, and set
 `exportValues: "raw"` on the `TableView` only when another program reads the file back
-(stored values under the field keys).
+(stored values under the field keys). Each cell is worded by its column's DataType
+(`exportValue()`, header by `exportHeader()`): a custom type overrides them to export like
+its cell. Dates use the user's saved zone, else the browser's (`x-time-zone`, sent by `$authFetch`).
 
 ## DataTypes
 
