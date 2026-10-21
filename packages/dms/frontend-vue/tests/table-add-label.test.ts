@@ -38,7 +38,11 @@ const ButtonStub = defineComponent({
 
 let app: App | undefined;
 
-function mount(root: () => ReturnType<typeof h>, addLabel?: string) {
+function mount(
+  root: () => ReturnType<typeof h>,
+  addLabel?: string,
+  addIcon?: string,
+) {
   const Host = defineComponent({
     setup() {
       provide(
@@ -65,6 +69,7 @@ function mount(root: () => ReturnType<typeof h>, addLabel?: string) {
           showArchivedState: ref(false),
           emits: () => undefined,
           addLabel,
+          addIcon,
         }),
       );
       return root;
@@ -86,15 +91,23 @@ function mount(root: () => ReturnType<typeof h>, addLabel?: string) {
   return container;
 }
 
-const mountActions = (addLabel?: string) =>
+const mountActions = (addLabel?: string, addIcon?: string) =>
   mount(
     () =>
       h(TableActions, {
         canAddRow: true,
         addLabel,
+        addIcon,
         chrome: { ...FULL_TABLE_CHROME, refresh: false, menu: false },
       }),
     addLabel,
+    addIcon,
+  );
+
+// The icon a button is given (a fallthrough attribute of the stub).
+const buttonIcons = (container: HTMLElement) =>
+  [...container.querySelectorAll("button")].map((button) =>
+    button.getAttribute("icon"),
   );
 
 const buttonTexts = (container: HTMLElement) =>
@@ -154,6 +167,28 @@ describe("the table's add button", () => {
     const fallback = mount(() => h(TableEmpty, { canAddRow: true }));
     expect(fallback.querySelector("button")?.textContent).toBe(
       "dms.table.new_row",
+    );
+  });
+
+  it("draws the configured icon on the toolbar and the empty state", () => {
+    expect(
+      buttonIcons(mountActions("New project", "i-ph-folder-plus")),
+    ).toEqual(["i-ph-folder-plus", "i-ph-folder-plus"]);
+    app?.unmount();
+    expect(buttonIcons(mountActions())).toEqual(["plus", "plus"]);
+    app?.unmount();
+    const configured = mount(
+      () => h(TableEmpty, { canAddRow: true }),
+      undefined,
+      "i-ph-folder-plus",
+    );
+    expect(configured.querySelector("button")?.getAttribute("icon")).toBe(
+      "i-ph-folder-plus",
+    );
+    app?.unmount();
+    const fallback = mount(() => h(TableEmpty, { canAddRow: true }));
+    expect(fallback.querySelector("button")?.getAttribute("icon")).toBe(
+      "i-ph-plus",
     );
   });
 });
