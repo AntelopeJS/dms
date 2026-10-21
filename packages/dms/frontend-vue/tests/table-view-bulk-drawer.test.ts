@@ -350,7 +350,7 @@ describe("action targets on a selection and on a listed row", () => {
       expect(api.mock.calls[0]?.[0]).toBe("/api/runs/run");
     });
 
-    it("hands a drawer its row, not ids", () => {
+    it("hands a drawer its row and the selection of that row", () => {
       const targets = mountTargets();
       targets.handleCustomRowAction(
         {
@@ -365,7 +365,7 @@ describe("action targets on a selection and on a listed row", () => {
         unknown
       >;
       expect(options.rowData).toEqual({ _id: "r1" });
-      expect(options.selection).toBeUndefined();
+      expect(options.selection).toEqual({ ids: ["r1"], count: 1 });
     });
   });
 

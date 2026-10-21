@@ -287,6 +287,17 @@ describe("sidePanel action target", () => {
     expect(useRowSidePanelContent().value?.rowKey).toBe("r1");
   });
 
+  it("hands a bulk panel run from a row the row and the selection of that row", async () => {
+    const { targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction({}, { bulk: true }), rows[0]);
+    await settle();
+    const content = useRowSidePanelContent().value;
+    expect(content?.rowKey).toBe("r1");
+    expect(content?.componentOptions).toMatchObject({
+      selection: { ids: ["r1"], count: 1 },
+    });
+  });
+
   it("words the position with the action's own label", async () => {
     const { host, targets } = mountPanel();
     targets.handleCustomRowAction(
