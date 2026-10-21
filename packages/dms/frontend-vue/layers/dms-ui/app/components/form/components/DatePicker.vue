@@ -176,21 +176,7 @@ function trackRangePick(value: unknown): void {
   if (!isHalfPicked) report(undefined);
 }
 
-const isPickerOpen = ref(false);
-
-/**
- * Whether a pick completes the field: a day, or a range's end. A multiple
- * picker stays open for the next day, a range for its end.
- */
-function isPickComplete(value: unknown): boolean {
-  if (!value || props.multiple) return false;
-  if (!props.range) return true;
-  const ends = value as Partial<StrictDateRange>;
-  return !!ends.start && !!ends.end;
-}
-
 function onPickerToggle(open: boolean): void {
-  isPickerOpen.value = open;
   if (open) return;
   if (props.range && isHalfPicked) report(RANGE_INCOMPLETE);
   emitFormBlur();
@@ -228,10 +214,6 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   if (event === "update:modelValue" && props.range) trackRangePick(value);
   // After the update: the field re-validates its new value.
   if (event === "update:modelValue") emitFormChange();
-  // The day picked, the calendar closes, as it does when left.
-  if (event === "update:modelValue" && isPickComplete(value)) {
-    onPickerToggle(false);
-  }
 };
 
 function forwardEmit(event: EmitEvent, value: EmitValue): void {
@@ -304,7 +286,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UPopover :open="isPickerOpen" @update:open="onPickerToggle">
+  <UPopover @update:open="onPickerToggle">
     <UButton
       :id="props.id"
       :label="label ?? t('dms.form.select_date')"

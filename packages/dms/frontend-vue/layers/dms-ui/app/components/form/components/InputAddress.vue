@@ -3,10 +3,6 @@ import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import type { SelectMenuItem } from "@nuxt/ui";
 import { refDebounced } from "@vueuse/core";
 import {
-  rankAddressSuggestions,
-  suggestionPoolSize,
-} from "../../../build/utils/addressSuggestions";
-import {
   formErrorsInjectionKey,
   formInputsInjectionKey,
   useFormField,
@@ -52,12 +48,6 @@ interface AddressProps {
     label?: string;
     value?: string;
   };
-  /**
-   * ISO 3166-1 alpha-2 code ("BE") the country shows while the address has
-   * none, written with the first part typed, and the country whose places
-   * the street suggestions list first.
-   */
-  defaultCountry?: string;
 }
 
 const props = defineProps<AddressProps>();
@@ -78,18 +68,7 @@ const defaultAddress: AddressValue = {
   countryCode: "",
 };
 
-const defaultCountryCode = computed(
-  () => props.defaultCountry?.trim().toUpperCase() ?? "",
-);
-
-// An address with no country shows the default one; it is written with the
-// first part typed, so an address left empty stays empty.
-const safeModelValue = computed<AddressValue>(() => {
-  const value = modelValue.value ?? defaultAddress;
-  return value.countryCode || !defaultCountryCode.value
-    ? value
-    : { ...value, countryCode: defaultCountryCode.value };
-});
+const safeModelValue = computed(() => modelValue.value ?? defaultAddress);
 
 /* -------------------------------------------------------------------------- */
 /* Field state: which parts show the field's error                            */
@@ -329,7 +308,6 @@ interface PhotonResponse {
 interface AddressSuggestion {
   id: string;
   label: string;
-  countryCode?: string;
   patch: Partial<AddressValue>;
 }
 
@@ -351,9 +329,6 @@ const streetQueryDebounced = refDebounced(streetQuery, SEARCH_DEBOUNCE_MS);
 const suggestions = ref<AddressSuggestion[]>([]);
 const isSearching = ref(false);
 const showSuggestions = ref(false);
-// Suggestions only open under the street field while it has the focus: an
-// answer arriving once the user left it must not cover the next fields.
-const isStreetFocused = ref(false);
 
 // Photon/OSM exposes a single `housenumber`. We only pull a box/unit out when it
 // is *explicitly* marked (BE "bte", NL "bus", "box", or a "/" separator). A bare
@@ -428,31 +403,22 @@ watch(streetQueryDebounced, async (query) => {
       params: {
         q: query,
         lang: photonLang.value,
-        // A wider pool, so the places of the address's country can come
-        // first and the duplicates can go.
-        limit: suggestionPoolSize(photonLimit.value),
+        limit: photonLimit.value,
       },
     });
 
     if (seq !== searchSeq) return;
 
-    const found = (response.features ?? [])
+    suggestions.value = (response.features ?? [])
       .filter(
         (feature) => feature.properties?.street || feature.properties?.name,
       )
       .map((feature, index) => ({
         id: String(index),
         label: formatPhotonLabel(feature.properties),
-        countryCode: feature.properties.countrycode?.toUpperCase(),
         patch: mapPhotonFeature(feature.properties),
       }));
-    suggestions.value = rankAddressSuggestions(
-      found,
-      safeModelValue.value.countryCode,
-      photonLimit.value,
-    );
-    showSuggestions.value =
-      isStreetFocused.value && suggestions.value.length > 0;
+    showSuggestions.value = suggestions.value.length > 0;
   } catch {
     if (seq === searchSeq) suggestions.value = [];
   } finally {
@@ -472,9 +438,7 @@ const streetModel = computed({
 });
 
 const applySuggestion = (suggestion: AddressSuggestion) => {
-  // A place the geocoder gives no country keeps the one shown.
-  const { countryCode, ...located } = suggestion.patch;
-  patchFields(countryCode ? suggestion.patch : located);
+  patchFields(suggestion.patch);
   // Bump the sequence so any still-in-flight request is discarded and cannot
   // repopulate the list / reopen the dropdown after the user picked a result.
   searchSeq++;
@@ -485,25 +449,15 @@ const applySuggestion = (suggestion: AddressSuggestion) => {
 let blurTimer: ReturnType<typeof setTimeout> | undefined;
 
 const onStreetFocus = () => {
-  isStreetFocused.value = true;
   if (autocompleteEnabled.value && suggestions.value.length > 0) {
     showSuggestions.value = true;
   }
 };
 
 const onStreetBlur = () => {
-  isStreetFocused.value = false;
   blurTimer = setTimeout(() => {
     showSuggestions.value = false;
   }, BLUR_CLOSE_DELAY_MS);
-};
-
-/** Escape closes the suggestions, as it would any list; typing reopens it. */
-const onStreetEscape = (event: KeyboardEvent) => {
-  if (!showSuggestions.value) return;
-  // Only the list closes, not the drawer or modal around the form.
-  event.stopPropagation();
-  showSuggestions.value = false;
 };
 
 onBeforeUnmount(() => {
@@ -578,7 +532,6 @@ const streetPlaceholder = computed(() => {
         autocomplete="off"
         @focus="onStreetFocus"
         @blur="onStreetBlur"
-        @keydown.esc="onStreetEscape"
       />
       <div
         v-if="autocompleteEnabled && showSuggestions && suggestions.length"
