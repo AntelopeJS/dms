@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Component } from "vue";
+import { getCurrentInstance, type Component } from "vue";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import { useWindowSize } from "@vueuse/core";
 import type {
@@ -45,6 +45,11 @@ interface DynamicDrawerProps {
   sizeKey?: string;
   icon?: string;
   color?: ContainerColor;
+  /**
+   * What the component that opened the drawer provides (`useDrawer` passes
+   * it): the drawer and its body inject it as if rendered in its tree.
+   */
+  callerProvides?: object;
 }
 
 interface DynamicDrawerEmits {
@@ -61,8 +66,18 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
   sizeKey: undefined,
   icon: undefined,
   color: "primary",
+  callerProvides: undefined,
 });
 const emit = defineEmits<DynamicDrawerEmits>();
+
+// Mounted by the overlay provider, the drawer would only see the app's
+// provides: its own start from the caller's instead, before it provides
+// anything (Vue's `provide` then writes into them). What the drawer provides
+// itself (its container, the form surface) still wins over the caller's.
+const drawerInstance = getCurrentInstance() as { provides: object } | null;
+if (drawerInstance && props.callerProvides) {
+  drawerInstance.provides = Object.create(props.callerProvides);
+}
 
 // Below `lg` a side drawer is a sheet as wide as a side panel (see
 // `useAppSidePanels`), or a modal's width at its size, never wider than the

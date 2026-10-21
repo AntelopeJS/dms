@@ -9,12 +9,15 @@ import {
   createApp,
   defineComponent,
   h,
+  inject,
   nextTick,
   provide,
+  shallowRef,
   reactive,
   ref,
   watch,
   type App,
+  type Component,
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -428,3 +431,82 @@ describe("a drawer's body", () => {
     expect(footer.className).toContain("justify-between");
   });
 });
+
+// The overlay provider mounts the drawer outside the caller's tree: the body
+// still reads what the caller provides, and the drawer's own provides win.
+describe("a drawer opened through useDrawer, and its caller's provides", () => {
+  it("lets the body inject what the caller provides, the drawer's own container first", async () => {
+    const { default: DynamicDrawer } = await import(
+      "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    );
+    const { DMS_CONTAINER_KEY } = await import(
+      "../layers/dms-ui/app/build/composables/containers/context"
+    );
+    const EXPLORER_KEY = Symbol("explorer");
+    const opened = shallowRef<Record<string, unknown>>();
+    vi.stubGlobal("markRaw", <T>(value: T) => value);
+    vi.stubGlobal("useOverlay", () => ({
+      create: (_component: unknown, { props }: { props: object }) => {
+        opened.value = props as Record<string, unknown>;
+        return {
+          open: () => new Promise(() => {}),
+          close: vi.fn(),
+          patch: vi.fn(),
+        };
+      },
+    }));
+    const { useDrawer } = await import(
+      "../layers/dms-ui/app/composables/containers/useDrawer"
+    );
+    const injected: Record<string, unknown> = {};
+    const Body: Component = {
+      setup() {
+        injected.explorer = inject(EXPLORER_KEY, null);
+        injected.containerId = inject<{ id: string } | null>(
+          DMS_CONTAINER_KEY,
+          null,
+        )?.id;
+        return () => null;
+      },
+    };
+    const Caller: Component = {
+      setup() {
+        const drawer = useDrawer();
+        // Provided after useDrawer() is called, and inside another
+        // container whose key the drawer's must override.
+        provide(EXPLORER_KEY, "library-1");
+        provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
+        drawer.open({
+          title: "Details",
+          component: Body,
+          containerId: "inner",
+        });
+        return () => null;
+      },
+    };
+    // The overlay provider, a sibling of the caller under the app root.
+    const Host: Component = {
+      setup: () => () => (opened.value ? h(DynamicDrawer, opened.value) : null),
+    };
+    app?.unmount();
+    host.replaceChildren();
+    const Root: Component = { setup: () => () => [h(Caller), h(Host)] };
+    app = createApp(Root);
+    app.component("UDrawer", DrawerStub);
+    app.component("UContainer", PassThrough);
+    app.component("UButton", () => h("button"));
+    app.component("USkeleton", () => h("span"));
+    app.mount(host);
+    await nextTick();
+    await nextTick();
+    expect(injected).toEqual({ explorer: "library-1", containerId: "inner" });
+  });
+});
+
+// A container that draws its slot (Nuxt UI's UContainer).
+const PassThrough: Component = {
+  setup:
+    (_props: unknown, { slots }: { slots: { default?: () => unknown } }) =>
+    () =>
+      h("div", slots.default?.() as never),
+};
