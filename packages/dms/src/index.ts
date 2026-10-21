@@ -76,6 +76,7 @@ import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
 import { setSchemasRegistered } from "./routes/startup-gate";
 import {
   ensureDefaultTenantExists,
+  recheckTenantInstanceWaiters,
   registerExistingTenantInstances,
 } from "./utils";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
@@ -210,6 +211,10 @@ async function implementInterfaces(): Promise<void> {
     await import("@antelopejs/interface-dms/client-ip"),
     await import("./implementations/dms/client-ip"),
   );
+  void ImplementInterface(
+    await import("@antelopejs/interface-dms/tenant-instances"),
+    await import("./implementations/dms/tenant-instances"),
+  );
 
   void ImplementInterface(
     await import("@antelopejs/interface-dms/auth"),
@@ -285,6 +290,7 @@ export async function start(): Promise<void> {
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   setSchemasRegistered(true);
+  await recheckTenantInstanceWaiters();
   await SettleHook(Hook.DATABASE_INITIALIZED);
   await runSweepStaleExports();
   cronTasks = registerDmsCrons();

@@ -85,6 +85,7 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/types` | `MaybePromise`, the one shared type alias | [Core](/docs/interfaces/core/pages-and-modules) |
 | `/api-base-url`, `/client-base-url` | `GetApiBaseUrl`, `GetClientBaseUrl`: the public origins of the API and the dashboard | [Core](/docs/interfaces/core/pages-and-modules#public-urls) |
 | `/client-ip` | `getClientIp`, `ResolveClientIp`: a request's client address behind the trusted proxies | [Core](/docs/interfaces/core/pages-and-modules#client-address) |
+| `/tenant-instances` | `WaitForTenantInstance`: resolves once a tenant's instance of the tenant schema is registered | [Core](/docs/interfaces/core/tenancy#wait-for-a-tenants-instance) |
 | `/auth` | Authentication decorators, tokens, sessions, external identities, account mail | [Auth](/docs/interfaces/auth/introduction) |
 | `/auth/db`, `/auth/db/models`, `/auth/db/tables` | The `User`, `Session` and `UserExternalIdentity` tables and models | [Auth](/docs/interfaces/auth/users) |
 | `/base` | The component barrel: forms, tables, charts, cards, layout, trees | [Base](/docs/interfaces/base/introduction) |
