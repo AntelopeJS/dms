@@ -10,7 +10,20 @@ export interface RowNavigationSource {
    * container's `showRow` falls back to for a row the table does not list.
    */
   getRow?: (id: string) => Promise<Data | undefined>;
+  /** The table's count of rows, past the ones loaded; `rows` without it. */
+  total?: () => number | undefined;
+  /** Position of the first row loaded among all the rows (a page's start). */
+  offset?: () => number;
+  /**
+   * Moves the table to its next (`1`) or previous (`-1`) page, or grows a
+   * feed by one, and resolves once the rows are loaded; `false` when there is
+   * no such page or it could not be read.
+   */
+  loadAdjacent?: (step: RowStep) => Promise<boolean>;
 }
+
+/** A step through the rows: `1` to the next, `-1` to the previous. */
+export type RowStep = 1 | -1;
 
 /**
  * What a drawer, modal or side panel opened on a row receives to show
@@ -24,9 +37,35 @@ export type ShowRow = (row: Data | string) => Promise<void>;
 const rowIdOf = (row: Data, rowIdKey: string): string =>
   String(get(row, rowIdKey));
 
+interface RowPosition {
+  /** Among the rows loaded. */
+  local: number;
+  /** Among all the rows the table lists. */
+  global: number;
+  total: number;
+}
+
+function rowPosition(
+  source: RowNavigationSource,
+  rows: Data[],
+  row: Data,
+): RowPosition | undefined {
+  const id = rowIdOf(row, source.rowIdKey);
+  const local = rows.findIndex(
+    (candidate) => rowIdOf(candidate, source.rowIdKey) === id,
+  );
+  if (local < 0) return undefined;
+  const global = (source.offset?.() ?? 0) + local;
+  // The count can lag behind the rows (a row created since): never less.
+  const total = Math.max(source.total?.() ?? rows.length, global + 1);
+  return { local, global, total };
+}
+
 /**
- * The navigation of `row` among the rows shown; `go` opens another row in
- * its place. Undefined when the row is not among them (opened from a link).
+ * The navigation of `row` among the rows of the table; `go` opens another
+ * row in its place. Undefined when the row is not among the rows loaded
+ * (opened from a link). A step past the rows loaded loads the adjacent page
+ * (`loadAdjacent`) first.
  */
 export function rowNavigation(
   source: RowNavigationSource,
@@ -34,22 +73,28 @@ export function rowNavigation(
   go: (row: Data) => void,
 ): RowNavigation | undefined {
   const rows = source.rows();
-  const id = rowIdOf(row, source.rowIdKey);
-  const index = rows.findIndex(
-    (candidate) => rowIdOf(candidate, source.rowIdKey) === id,
-  );
-  if (index < 0) return undefined;
-  const at = (position: number) => () => {
-    const target = rows[position];
-    if (target) go(target);
+  const position = rowPosition(source, rows, row);
+  if (!position) return undefined;
+  const { local, global, total } = position;
+  const step = (direction: RowStep) => async () => {
+    const target = rows[local + direction];
+    if (target) return go(target);
+    if (!source.loadAdjacent || !(await source.loadAdjacent(direction))) return;
+    // The row at the next position among all, wherever the load put it: a
+    // page's start moves with it, a feed grows in place.
+    const offset = source.offset?.() ?? 0;
+    const landed = source.rows()[global + direction - offset];
+    if (landed) go(landed);
   };
+  // Without a loader, the rows loaded are as far as the steps reach.
+  const canLoad = !!source.loadAdjacent;
   return {
-    index,
-    total: rows.length,
-    hasPrev: index > 0,
-    hasNext: index < rows.length - 1,
-    prev: at(index - 1),
-    next: at(index + 1),
+    index: global,
+    total,
+    hasPrev: local > 0 || (canLoad && global > 0),
+    hasNext: local < rows.length - 1 || (canLoad && global < total - 1),
+    prev: step(-1),
+    next: step(1),
   };
 }
 

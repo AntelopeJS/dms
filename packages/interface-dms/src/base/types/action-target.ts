@@ -43,10 +43,11 @@ export interface SidePanelTargetOptions {
    */
   rowTitle?: string;
   /**
-   * Position of the open row among the rows the table shows, drawn under the
-   * title: an i18n key (`$`-prefixed) receiving `{ index }` (from 1) and
-   * `{ total }`, e.g. `"$api.request.position"` for "Request {index} of
-   * {total} shown". Defaults to the DMS's generic "{index} of {total}".
+   * Position of the open row among all the rows the table lists (its count,
+   * not the page loaded), drawn under the title: an i18n key (`$`-prefixed)
+   * receiving `{ index }` (from 1) and `{ total }`, e.g.
+   * `"$api.request.position"` for "Request {index} of {total}". Defaults to
+   * the DMS's generic "{index} of {total}".
    */
   positionLabel?: string;
   /**
@@ -155,8 +156,9 @@ export type ActionTarget =
        * which stays usable. Meant for global, page-independent panels (an
        * assistant dock): a detail or record panel opens in a `drawer`, which
        * takes the same row options. The DMS draws its header: the title, the row's
-       * position among the rows shown ("3 of 20"), previous and next buttons
-       * (J and K too) and a close button (Esc too). Its component receives the
+       * position among all the rows the table lists ("3 of 87", past the
+       * page loaded), previous and next buttons (J and K too, turning the
+       * table's page past it) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
        * anew on each row. One panel is open at a time: opening it closes a
        * module's side panel, and the other way round.
@@ -260,8 +262,9 @@ export type ActionTargetSerialized =
        * which stays usable. Meant for global, page-independent panels (an
        * assistant dock): a detail or record panel opens in a `drawer`, which
        * takes the same row options. The DMS draws its header: the title, the row's
-       * position among the rows shown ("3 of 20"), previous and next buttons
-       * (J and K too) and a close button (Esc too). Its component receives the
+       * position among all the rows the table lists ("3 of 87", past the
+       * page loaded), previous and next buttons (J and K too, turning the
+       * table's page past it) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
        * anew on each row. One panel is open at a time: opening it closes a
        * module's side panel, and the other way round.
