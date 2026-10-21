@@ -111,8 +111,8 @@ export namespace DefaultDataTypes {
      */
     suffix?: string;
     /**
-     * How wide the form field sits in its row (`"compact"` / `"full"`); left
-     * out, it is compact when `min` / `max` fit in 6 digits. See
+     * How wide the form field sits in its row (`"compact"` / `"full"`, the
+     * default). See
      * {@link FormComponents.InputWidth}.
      */
     width?: FormComponents.InputWidth;
@@ -137,7 +137,7 @@ export namespace DefaultDataTypes {
     copyable?: boolean;
     /**
      * How wide a single-line form field sits in its row (`"compact"` /
-     * `"full"`); left out, it is compact when `maxLength` is 16 or less. See
+     * `"full"`, the default). See
      * {@link FormComponents.InputWidth}.
      */
     width?: FormComponents.InputWidth;

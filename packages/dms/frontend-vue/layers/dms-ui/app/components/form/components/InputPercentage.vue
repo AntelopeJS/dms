@@ -5,13 +5,10 @@ import type {
   InputNumberSlots,
 } from "@nuxt/ui";
 import { computed } from "vue";
-import {
-  type InputWidth,
-  isCompactNumberInput,
-} from "../../../build/utils/inputWidth";
+import type { InputWidth } from "../../../build/utils/inputWidth";
 
 interface InputPercentageProps extends InputNumberProps {
-  /** As on `InputNumber`; left out, the 0-100 bounds make it compact. */
+  /** As on `InputNumber`. */
   width?: InputWidth;
 }
 
@@ -39,9 +36,7 @@ const bounds = computed(() => ({
   min: props.min ?? 0,
   max: props.max ?? PERCENTAGE_MULTIPLIER,
 }));
-const isCompact = computed(() =>
-  isCompactNumberInput({ width: props.width, ...bounds.value }),
-);
+const isCompact = computed(() => props.width === "compact");
 
 const forwardedProps = computed(() => {
   const { width: _width, ...rest } = props;

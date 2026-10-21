@@ -136,9 +136,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
 - A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
-  `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
-  `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
-  full row.
+  `NumberType` / `StringType` rather than filling the row (never inferred from its bounds).
+  Phones keep the full row.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

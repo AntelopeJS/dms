@@ -204,10 +204,8 @@ export namespace FormComponents {
   /**
    * How wide a single-line input sits in its row. `"compact"` sizes it for a
    * short value (a count, a code: 11rem) from the `sm` breakpoint up, while a
-   * phone keeps the full row; `"full"` fills the row. Left out, the input is
-   * compact when its bounds keep the value short -- a number whose `min` /
-   * `max` fit in 6 digits, a text whose `maxLength` is 16 or less -- and
-   * fills the row otherwise.
+   * phone keeps the full row; `"full"` (the default) fills the row. Never
+   * inferred from the input's bounds (`min`, `max`, `maxLength`).
    */
   export type InputWidth = "compact" | "full";
 
@@ -352,7 +350,7 @@ export namespace FormComponents {
      * blocks the submit; the steppers still stop at the bounds.
      */
     clamp?: boolean;
-    /** See {@link InputWidth}: `"compact"` for a short number with no `max`. */
+    /** See {@link InputWidth}. */
     width?: InputWidth;
   }
 
