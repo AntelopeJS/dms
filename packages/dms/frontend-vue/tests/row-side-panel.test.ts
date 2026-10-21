@@ -134,6 +134,7 @@ function installRuntime(): void {
     resolveDmsComponent: (name: string) =>
       name === PANEL_COMPONENT ? RunPanel : undefined,
     useI18n: () => ({
+      locale: ref("fr-FR"),
       t: (key: string, params?: Record<string, unknown>) =>
         params ? `${key}(${params.index}/${params.total})` : key,
     }),
