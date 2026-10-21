@@ -8,9 +8,7 @@
  * the Nuxt UI component with reka's real dialog (the copy Nuxt UI pins, which
  * vaul and UModal run on), its content force-mounted as it is while the
  * panel slides or scales away, and a backdrop that holds the page as reka's
- * scroll lock does from 2.11 on. The page is given back by the observer the
- * DMS installs on every page, whoever renders the dialog: a plain reka dialog
- * stands for UModal, USlideover and the confirm dialogs.
+ * scroll lock does from 2.11 on.
  */
 import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -29,10 +27,8 @@ import {
   watch,
   type App,
   type Component,
-  type Ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { watchClosingLayers } from "../layers/dms-ui/app/build/composables/containers/closingLayers";
 
 // The layer's own reka copy only draws the titles here.
 vi.mock("reka-ui", () => {
@@ -71,7 +67,6 @@ let app: App | undefined;
 let host: HTMLDivElement;
 let outside: HTMLButtonElement;
 let closeRequests: number;
-let stopReleasing: () => void;
 
 // UDrawer / UModal as Nuxt UI draws them when not dismissible: reka's dialog,
 // its `content` props bound on the content, a press outside asking to close.
@@ -167,7 +162,6 @@ beforeEach(() => {
   document.body.append(host, outside);
   document.body.style.pointerEvents = "";
   closeRequests = 0;
-  stopReleasing = watchClosingLayers(document);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("watch", watch);
@@ -182,7 +176,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  stopReleasing();
   app?.unmount();
   app = undefined;
   host.remove();
@@ -282,131 +275,5 @@ describe("a drawer resized by its handle", () => {
   it("is not closed by the resize itself", async () => {
     await resize();
     expect(closeRequests).toBe(0);
-  });
-});
-
-// UModal or USlideover used directly, a confirm dialog: reka's dialog with
-// its defaults, the content holding the page until it has scaled out (kept
-// mounted here, as through its exit animation).
-describe("closing any other dialog", () => {
-  function mountDialog(isOpen: Ref<boolean>, target: HTMLElement): App {
-    const dialog = createApp(() =>
-      h(DialogRoot, { open: isOpen.value }, () => [
-        h(BackdropStub),
-        h(DialogContent, { forceMount: true }, () => "Save the view"),
-      ]),
-    );
-    dialog.mount(target);
-    return dialog;
-  }
-
-  it("gives the page its clicks back as soon as it starts closing", async () => {
-    const isOpen = ref(true);
-    app = mountDialog(isOpen, host);
-    await nextTick();
-    expect(bodyPointerEvents()).toBe("none");
-    isOpen.value = false;
-    await vi.advanceTimersByTimeAsync(0);
-    expect(host.querySelector("[role='dialog']")).not.toBeNull();
-    expect(bodyPointerEvents()).toBe("");
-  });
-
-  it("keeps the page blocked while a dialog below stays open", async () => {
-    const below = document.createElement("div");
-    document.body.append(below);
-    const belowApp = mountDialog(ref(true), below);
-    try {
-      const isOpen = ref(true);
-      app = mountDialog(isOpen, host);
-      await nextTick();
-      isOpen.value = false;
-      await vi.advanceTimersByTimeAsync(0);
-      expect(bodyPointerEvents()).toBe("none");
-    } finally {
-      belowApp.unmount();
-      below.remove();
-    }
-  });
-
-  it("leaves the page blocked without the observer, as reka alone does", async () => {
-    stopReleasing();
-    const isOpen = ref(true);
-    app = mountDialog(isOpen, host);
-    await nextTick();
-    isOpen.value = false;
-    await vi.advanceTimersByTimeAsync(0);
-    expect(bodyPointerEvents()).toBe("none");
-  });
-});
-
-// A click on the page while a dialog closes may open another one: the one
-// closing gives the focus back to its trigger only when nothing opened since.
-describe("a dialog unmounting after its close", () => {
-  let trigger: HTMLButtonElement;
-  const mounted: Array<[App, HTMLElement]> = [];
-
-  function mountDialog(isOpen: Ref<boolean>): App {
-    const target = document.createElement("div");
-    document.body.append(target);
-    const dialog = createApp(() =>
-      h(DialogRoot, { open: isOpen.value }, () => [
-        h(DialogContent, { forceMount: true }, () => h("button", "Cancel")),
-      ]),
-    );
-    dialog.mount(target);
-    mounted.push([dialog, target]);
-    return dialog;
-  }
-
-  // Closes the first dialog, runs `meanwhile`, then lets it finish unmounting.
-  async function closeThenUnmount(meanwhile: () => void): Promise<void> {
-    const isOpen = ref(true);
-    const dialog = mountDialog(isOpen);
-    await vi.advanceTimersByTimeAsync(0);
-    isOpen.value = false;
-    await vi.advanceTimersByTimeAsync(0);
-    meanwhile();
-    await vi.advanceTimersByTimeAsync(0);
-    dialog.unmount();
-    await vi.advanceTimersByTimeAsync(0);
-  }
-
-  beforeEach(() => {
-    trigger = document.createElement("button");
-    trigger.textContent = "Save current view";
-    document.body.append(trigger);
-    trigger.focus();
-  });
-
-  afterEach(() => {
-    for (const [dialog, target] of mounted.splice(0)) {
-      dialog.unmount();
-      target.remove();
-    }
-    trigger.remove();
-  });
-
-  it("gives the focus back to its trigger when nothing opened since", async () => {
-    await closeThenUnmount(() => {});
-    expect(document.activeElement).toBe(trigger);
-  });
-
-  it("leaves it alone once a click on the page opened another one", async () => {
-    // Focus landing on the trigger is outside the new drawer or modal, which
-    // Nuxt UI then asks to close when it is not dismissible.
-    const triggerFocus = vi.fn();
-    trigger.addEventListener("focus", triggerFocus);
-    await closeThenUnmount(() => mountDialog(ref(true)));
-    expect(triggerFocus).not.toHaveBeenCalled();
-  });
-
-  it("gives it back when closing over one that stays open", async () => {
-    // A confirm opened from a button in a drawer that stays open.
-    mountDialog(ref(true));
-    await vi.advanceTimersByTimeAsync(0);
-    const inDrawer = mounted[0]![1].querySelector("button")!;
-    inDrawer.focus();
-    await closeThenUnmount(() => {});
-    expect(document.activeElement).toBe(inDrawer);
   });
 });

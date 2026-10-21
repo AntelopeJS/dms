@@ -24,6 +24,7 @@ import {
   CONTAINER_SKELETON_FIELDS,
 } from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
+import { useReleasePagePointerEvents } from "../../../composables/containers/releasePagePointerEvents";
 
 interface DynamicDrawerProps {
   title: string;
@@ -232,6 +233,7 @@ provide("dmsFormContainer", true);
 const { executeGuards, clearGuards } = useLeaveGuard();
 
 const isOpen = defineModel<boolean>("open", { default: true });
+useReleasePagePointerEvents(isOpen);
 const isContentLoading = ref(true);
 let closePromise: Promise<void> | null = null;
 

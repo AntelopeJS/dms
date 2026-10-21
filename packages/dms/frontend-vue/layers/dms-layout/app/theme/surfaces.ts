@@ -9,7 +9,6 @@
  */
 
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
-import { CLOSING_OVERLAY_CLASS } from "#dms-ui/app/build/components/containers/constants";
 
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =
@@ -19,14 +18,7 @@ const FLOATING_SURFACE =
 const OVERLAY_SURFACE =
   "bg-default ring-(--dms-border-top) shadow-(--dms-shadow-modal)";
 
-/**
- * Every modal, slideover and drawer, the DMS's or a module's: its backdrop
- * lets clicks through as soon as it starts closing and fades out quickly,
- * and the panel animating out no longer catches them either (reka keeps
- * `pointer-events: auto` inline on both).
- */
-const BACKDROP = `bg-(--dms-overlay) backdrop-blur-[2px] ${CLOSING_OVERLAY_CLASS}`;
-const CLOSING_PANEL = "data-[state=closed]:pointer-events-none!";
+const BACKDROP = "bg-(--dms-overlay) backdrop-blur-[2px]";
 
 const cardTheme = {
   slots: {
@@ -98,7 +90,7 @@ const tooltipTheme = {
 
 const modalTheme = {
   slots: {
-    content: `bg-default divide-y-0 ${CLOSING_PANEL}`,
+    content: "bg-default divide-y-0",
     header: "items-start gap-3 min-h-0 px-5 pt-[18px] pb-0 sm:px-5",
     title: "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]",
     description: "mt-1 text-[13px]",
@@ -124,7 +116,7 @@ const modalTheme = {
 const slideoverTheme = {
   slots: {
     overlay: BACKDROP,
-    content: `${OVERLAY_SURFACE} sm:shadow-(--dms-shadow-modal) ${CLOSING_PANEL}`,
+    content: `${OVERLAY_SURFACE} sm:shadow-(--dms-shadow-modal)`,
     header: "px-5 sm:px-5",
     title: "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]",
     description: "text-[13px]",
@@ -146,7 +138,7 @@ const DRAWER_EDGE_COMPOUNDS = [
 const drawerTheme = {
   slots: {
     overlay: BACKDROP,
-    content: `${OVERLAY_SURFACE} ${CLOSING_PANEL}`,
+    content: OVERLAY_SURFACE,
   },
   compoundVariants: DRAWER_EDGE_COMPOUNDS,
 };
