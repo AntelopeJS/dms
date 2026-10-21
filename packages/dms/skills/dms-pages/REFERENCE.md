@@ -128,9 +128,6 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
-- Conditional fields on a `TableView`'s generated forms go in `formWatches: { new?, edit?, view? }`,
-  each `{ event, functionId, params?, onParam?, requirePermission? }` as `.watch()` takes it — they
-  run in a drawer, a modal or a form page alike; no custom page just to add a watch.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 

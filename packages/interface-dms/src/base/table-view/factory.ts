@@ -26,10 +26,6 @@ import {
   resolveTableViewGrants,
 } from "./internal/request-filter";
 import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
-import {
-  applyFormWatches,
-  grantedFormComponents,
-} from "./internal/form-watches";
 import { TableViewRoutes } from "./routes";
 import {
   applyFormPageSubmitDefaults,
@@ -361,11 +357,11 @@ export function TableView<T extends ControllerClass>(
     .onFilter(async (permissions, options, permissionId, context) => {
       const grants = await resolveTableViewGrants(permissions, permissionId);
 
-      const adaptedFormComponents = await grantedFormComponents(
-        options.formComponents,
-        grants,
-        permissions,
-      );
+      const adaptedFormComponents = {
+        new: grants.add ? options.formComponents.new : undefined,
+        edit: grants.edit ? options.formComponents.edit : undefined,
+        view: grants.view ? options.formComponents.view : undefined,
+      };
 
       const adaptedRowActions = adaptRowActions({
         rowActions: options.rowActions,
@@ -464,29 +460,21 @@ function buildTableViewForms<T extends ControllerClass>(
   options: TableViewOptions<InstanceType<T>>,
   access: TableViewAccess,
 ): Record<FormPageKind, FormBuilder | undefined> {
-  const watches = options.formWatches ?? {};
-  const viewForm = applyFormWatches(
-    resourceForm(controller, "view", { slotId: options.formSlots?.view }),
-    watches.view,
-  );
+  const viewForm = resourceForm(controller, "view", {
+    slotId: options.formSlots?.view,
+  });
   if (access === "read")
     return { new: undefined, edit: undefined, view: viewForm };
   const submitDefaults = buildFilterSubmitDefaults(options);
   return {
-    new: applyFormWatches(
-      resourceForm(controller, "new", {
-        submitDefaults,
-        slotId: options.formSlots?.new,
-      }),
-      watches.new,
-    ),
-    edit: applyFormWatches(
-      resourceForm(controller, "edit", {
-        submitDefaults,
-        slotId: options.formSlots?.edit,
-      }),
-      watches.edit,
-    ),
+    new: resourceForm(controller, "new", {
+      submitDefaults,
+      slotId: options.formSlots?.new,
+    }),
+    edit: resourceForm(controller, "edit", {
+      submitDefaults,
+      slotId: options.formSlots?.edit,
+    }),
     view: viewForm,
   };
 }

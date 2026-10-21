@@ -90,7 +90,6 @@ export {
   type TableViewEmptyStateSerialized,
   type TableViewEmptyStatesSerialized,
   type TableViewFooterOptions,
-  type TableViewFormWatch,
   type TableViewFooterSerialized,
   type TableViewFooterSummary,
   type TableViewFooterSummarySerialized,
