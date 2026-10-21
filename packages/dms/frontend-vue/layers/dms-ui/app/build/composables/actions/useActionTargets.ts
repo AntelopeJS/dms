@@ -66,6 +66,7 @@ import {
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
+import { dmsOwnDrawer } from "../containers/context";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -347,13 +348,17 @@ export function useActionTargets(config: ActionTargetsConfig) {
     if (run.target.type === "modal") {
       return openModal({ ...containerOptions, size: run.target.size });
     }
-    return openDrawer({
-      ...containerOptions,
-      direction: run.target.direction,
-      size: run.target.size,
-      sizeKey: `${config.pageId}-${config.componentId}-${run.target.component?.componentName}`,
-      ...(options.headerComponentOptions && { headerComponent: DmsRowHeader }),
-    });
+    return openDrawer(
+      dmsOwnDrawer({
+        ...containerOptions,
+        direction: run.target.direction,
+        size: run.target.size,
+        sizeKey: `${config.pageId}-${config.componentId}-${run.target.component?.componentName}`,
+        ...(options.headerComponentOptions && {
+          headerComponent: DmsRowHeader,
+        }),
+      }),
+    );
   };
 
   const resolveTargetComponent = (componentName: string): Component =>
