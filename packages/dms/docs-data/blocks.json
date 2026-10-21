@@ -9787,7 +9787,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "description": "How many columns once the list is wide enough.",
+          "description": "How many columns on a wide screen.",
           "ui": {
             "label": "Columns",
             "group": "layout",

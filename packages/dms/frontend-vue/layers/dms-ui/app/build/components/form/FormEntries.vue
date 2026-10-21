@@ -5,11 +5,7 @@ import type {
 } from "../../../composables/form/types/field";
 import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
-import {
-  GROUP_FIELDS_CLASSES,
-  entryFields,
-  entryRowLayout,
-} from "../../composables/form/formLayout";
+import { GROUP_FIELDS_CLASSES } from "../../composables/form/formLayout";
 import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
@@ -25,11 +21,6 @@ const props = defineProps<FormEntriesProps>();
 const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
 
 const classes = computed(() => context.layoutClasses(props.inSection));
-
-/** The row's layout: a wide field takes the full width under its label. */
-function rowOf(entry: FormFieldOrGroup) {
-  return entryRowLayout(classes.value.row, entryFields(entry));
-}
 
 function groupFieldsClass(group: FieldGroup): string {
   return GROUP_FIELDS_CLASSES[
@@ -60,7 +51,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
       <template v-if="isFieldGroup(entry)">
         <DmsFieldRow
           v-if="isGroupVisible(entry)"
-          v-bind="rowOf(entry)"
+          v-bind="classes.row"
           :label="entry.label || ''"
           :description="entry.description"
           :required="isGroupRequired(entry)"
@@ -87,7 +78,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
 
       <DmsFieldRow
         v-else-if="!context.isFieldHidden(entry)"
-        v-bind="rowOf(entry)"
+        v-bind="classes.row"
         :label="entry.label || ''"
         :label-for="entry.id"
         :description="entry.description"

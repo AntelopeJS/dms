@@ -536,9 +536,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- A size container: the preview sits beside its details once the field
-    itself has room (a drawer, a form column), not the window. -->
-  <div class="@container" @paste="onPaste">
+  <div @paste="onPaste">
     <input
       ref="fileInput"
       type="file"
@@ -742,12 +740,9 @@ onBeforeUnmount(() => {
         </span>
       </button>
 
-      <div
-        v-else
-        class="flex flex-col gap-4 @min-[480px]:flex-row @min-[480px]:items-stretch"
-      >
+      <div v-else class="flex flex-col gap-4 sm:flex-row sm:items-stretch">
         <div
-          class="group relative aspect-[4/3] w-full flex-none overflow-hidden rounded-xl shadow-sm @min-[480px]:w-58"
+          class="group relative aspect-[4/3] w-full flex-none overflow-hidden rounded-xl shadow-sm sm:w-58"
           :class="{
             'ring-primary ring-2': isDraggingOver,
             'ring-error ring-2': !isDraggingOver && invalid,

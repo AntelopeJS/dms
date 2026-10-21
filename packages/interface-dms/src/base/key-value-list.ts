@@ -69,10 +69,7 @@ export interface KeyValueListProps
   items?: KeyValueListItem[];
   /** Tighter rows, for side panels. */
   dense?: boolean;
-  /**
-   * Columns (1–3) once the list itself is wide enough: two from 560px, three
-   * from 840px of its own width (a drawer, a card), one below.
-   */
+  /** Columns on wide screens (1–3). */
   columns?: number;
   /** Default ISO 4217 code of `money` values. */
   currency?: string;
@@ -171,7 +168,7 @@ export const KeyValueListSchema = z.object({
       .min(1)
       .max(3)
       .default(KEY_VALUE_LIST_DEFAULTS.columns)
-      .describe("How many columns once the list is wide enough."),
+      .describe("How many columns on a wide screen."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 3 },
   ),
   currency: ui(
