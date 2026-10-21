@@ -57,9 +57,11 @@ let cookies: Map<string, Ref<unknown>>;
 // What the stubbed drawer renders at: its rendered width and height.
 let renderedRect: { width: number; height: number };
 
-const rendered = reactive<{ ui?: Record<string, string>; handle?: boolean }>(
-  {},
-);
+const rendered = reactive<{
+  ui?: Record<string, string>;
+  handle?: boolean;
+  dismissible?: boolean;
+}>({});
 
 function useDmsCookie<T>(
   name: string,
@@ -78,11 +80,13 @@ const DrawerStub = defineComponent({
     ui: Object,
     content: Object,
     handle: { type: Boolean, default: true },
+    dismissible: { type: Boolean, default: true },
   },
   setup(props, { slots }) {
     return () => {
       rendered.ui = props.ui as Record<string, string> | undefined;
       rendered.handle = props.handle;
+      rendered.dismissible = props.dismissible;
       const style = (props.content as { style?: Record<string, string> })
         ?.style;
       return h("div", { "data-slot": "content", style }, [
@@ -263,12 +267,15 @@ describe("a side drawer's width", () => {
     expect(rendered.ui?.body).toContain("min-h-0");
   });
 
-  it("keeps the drawer's own drag off its handle", async () => {
+  // Vaul drags only a dismissible drawer: the press is left to bubble, so
+  // reka's outside-click detection sees it (see container-closing-body).
+  it("keeps the drawer's own drag off its handle without swallowing the press", async () => {
     await mountDrawer({ direction: "right" });
     const onContentPointerDown = vi.fn();
     content().addEventListener("pointerdown", onContentPointerDown);
     handle().dispatchEvent(pointer("pointerdown", 500));
-    expect(onContentPointerDown).not.toHaveBeenCalled();
+    expect(rendered.dismissible).toBe(false);
+    expect(onContentPointerDown).toHaveBeenCalledOnce();
   });
 });
 
