@@ -89,8 +89,8 @@ export interface StoreListingEntry {
   description: string;
   state: StoreModuleState;
   installedVersion?: string;
-  /** Where its code comes from; absent from a backend that predates it. */
-  source?: ModuleSourceKind;
+  /** Where its code comes from. */
+  source: ModuleSourceKind;
   /** Runs from a local or git working copy: active, but no store action. */
   isWorkingCopy?: boolean;
   /** The version range antelope.config.ts declares. */
@@ -110,11 +110,8 @@ export interface StoreListingEntry {
   missingInterfaces: MissingInterface[];
   /** Running modules that need an interface only this one implements. */
   dependents: string[];
-  /**
-   * The project's own code needs an interface only this module implements;
-   * absent from a backend that predates it.
-   */
-  usedByProject?: boolean;
+  /** The project's own code needs an interface only this module implements. */
+  usedByProject: boolean;
 }
 
 export interface StoreListing {

@@ -128,12 +128,10 @@ const versionLabel = computed(() => {
         >
           {{ versionLabel }}
         </span>
-        <template v-if="props.entry.source">
-          <span v-if="versionLabel" aria-hidden="true">·</span>
-          <ModuleSourceLabel :source="props.entry.source" />
-        </template>
+        <span v-if="versionLabel" aria-hidden="true">·</span>
+        <ModuleSourceLabel :source="props.entry.source" />
         <span class="min-w-0 truncate">
-          <template v-if="versionLabel || props.entry.source">·</template>
+          ·
           {{ processI18n(props.entry.catalogCategory) }}
         </span>
       </span>
