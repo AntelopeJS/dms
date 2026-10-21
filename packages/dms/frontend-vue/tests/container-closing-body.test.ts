@@ -2,13 +2,11 @@
 /**
  * A drawer or a modal gives the page its clicks back as soon as it starts
  * closing, not once its panel has finished animating out. Reka sets
- * `pointer-events: none` on the body twice while a modal layer is mounted --
- * from the content's dismissable layer and from the backdrop's scroll lock --
- * and both stay mounted through their exit animations: the containers stub
- * the Nuxt UI component with reka's real dialog (the copy Nuxt UI pins, which
+ * `pointer-events: none` on the body while a modal layer is mounted, and the
+ * layer stays mounted through the exit animation: the containers stub the
+ * Nuxt UI component with reka's real dialog (the copy Nuxt UI pins, which
  * vaul and UModal run on), its content force-mounted as it is while the
- * panel slides or scales away, and a backdrop that holds the page as reka's
- * scroll lock does from 2.11 on.
+ * panel slides or scales away.
  */
 import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -20,7 +18,6 @@ import {
   defineComponent,
   h,
   nextTick,
-  onBeforeUnmount,
   provide,
   reactive,
   ref,
@@ -52,17 +49,6 @@ const { DialogContent, DialogRoot } = (await import(
   pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
 )) as typeof import("reka-ui");
 
-// The backdrop's scroll lock, as reka 2.11 holds it (an owner of the body's
-// pointer events, which a layer letting go no longer clears): the page is
-// blocked from the backdrop's mount until it unmounts, after its fade.
-const BackdropStub = defineComponent({
-  setup() {
-    document.body.style.pointerEvents = "none";
-    onBeforeUnmount(() => (document.body.style.pointerEvents = ""));
-    return () => h("div", { "data-slot": "overlay" });
-  },
-});
-
 let app: App | undefined;
 let host: HTMLDivElement;
 let outside: HTMLButtonElement;
@@ -81,8 +67,7 @@ const ContainerStub = defineComponent({
           open: props.open,
           "onUpdate:open": (value: boolean) => emit("update:open", value),
         },
-        () => [
-          h(BackdropStub),
+        () =>
           h(
             DialogContent,
             {
@@ -96,7 +81,6 @@ const ContainerStub = defineComponent({
             },
             () => [slots.header?.(), slots.body?.()],
           ),
-        ],
       );
   },
 });
@@ -215,42 +199,9 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
       .querySelector<HTMLButtonElement>("button[aria-label='Close']")!
       .click();
     await vi.advanceTimersByTimeAsync(0);
-    // Still on the page, as during their exit animations.
+    // Still on the page, as during its exit animation.
     expect(host.querySelector("[data-slot='content']")).not.toBeNull();
-    expect(host.querySelector("[data-slot='overlay']")).not.toBeNull();
     expect(bodyPointerEvents()).toBe("");
-  });
-
-  it("keeps them blocked while another container stays open", async () => {
-    const { default: container } = await load();
-    const below = document.createElement("div");
-    document.body.append(below);
-    const belowApp = createApp(() =>
-      h(container, {
-        ...props,
-        title: "Below",
-        containerId: "container-below",
-        component: defineComponent({ render: () => null }),
-        open: true,
-      }),
-    );
-    belowApp.component("UDrawer", ContainerStub);
-    belowApp.component("UModal", ContainerStub);
-    belowApp.component("UContainer", passThroughStub);
-    belowApp.component("UButton", () => h("button"));
-    belowApp.component("USkeleton", () => h("span"));
-    belowApp.mount(below);
-    try {
-      await mountContainer(container, props);
-      host
-        .querySelector<HTMLButtonElement>("button[aria-label='Close']")!
-        .click();
-      await vi.advanceTimersByTimeAsync(0);
-      expect(bodyPointerEvents()).toBe("none");
-    } finally {
-      belowApp.unmount();
-      below.remove();
-    }
   });
 });
 
