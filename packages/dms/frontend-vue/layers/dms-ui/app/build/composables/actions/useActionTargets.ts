@@ -29,8 +29,8 @@ import {
 import {
   listenRowSteps,
   type RowNavigationSource,
+  rowNavigation,
   type ShowRow,
-  trackRowNavigation,
 } from "./rowNavigation";
 import type { RowNavigation } from "../../../types/row-navigation";
 import {
@@ -497,7 +497,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const withRowHeader = hasRowHeader(run.target) && !run.selection;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
-    let stopNavigation: (() => void) | undefined;
     // Set once the container closes: a row read that resolves later neither
     // writes `?record=` back nor patches the closed container.
     let closed = false;
@@ -505,32 +504,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
       if (!closed) showRow(row);
     };
     const showRowById = rowShower(showRowOpen);
-    // The position and the steps follow the table (a reload, live rows, the
-    // row located past the page loaded): the open container is patched with
-    // them.
-    const trackNavigation = (row?: Data) => {
-      stopNavigation?.();
-      stopNavigation = undefined;
-      navigation = undefined;
-      if (!row || !source) return;
-      // The first navigation goes out with the row's own options.
-      let isShowing = true;
-      // A step that loads a page first lands after it, maybe closed by then.
-      stopNavigation = trackRowNavigation(source, row, showRowOpen, (next) => {
-        navigation = next;
-        if (isShowing || !instance || closed) return;
-        instance.patch({
-          componentOptions: optionsOf(row),
-          ...(withRowHeader && { headerComponentOptions: headerFor(row) }),
-        });
-      });
-      isShowing = false;
-    };
     const optionsFor = (row?: Data) => {
-      trackNavigation(row);
-      return optionsOf(row);
-    };
-    const optionsOf = (row?: Data) => {
+      // A step that loads a page first lands after it, maybe closed by then.
+      navigation =
+        row && source ? rowNavigation(source, row, showRowOpen) : undefined;
       return {
         ...run.target.component?.options,
         pageId: config.pageId,
@@ -581,7 +558,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const settle = () => {
       closed = true;
       stopSteps?.();
-      stopNavigation?.();
       recordRow(undefined);
     };
     instance.result.then(settle, settle);

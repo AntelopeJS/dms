@@ -5,18 +5,17 @@
  * row drawer): the title, the row's position among the rows the table shows,
  * previous and next (J and K too) and close (Escape too). Below it, the
  * module's component receives the row as a drawer's component does, mounted
- * anew on each row. The position follows the table: a refresh or live rows
- * that move it update it, and a row past the rows loaded (a deep link) is
- * located in the table's whole result. A row the link names but its route answered 404
+ * anew on each row. The position follows the table: a refresh that moves or
+ * drops the row updates it. A row the link names but its route answered 404
  * for shows the "not found" state instead, with a close button.
  */
-import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted } from "vue";
 import DmsRowHeader from "#dms-ui/app/build/components/containers/row/RowHeader.vue";
 import DmsRowNotFound from "#dms-ui/app/build/components/containers/row/RowNotFound.vue";
 import {
   listenRowPanelClose,
   listenRowSteps,
-  trackRowNavigation,
+  rowNavigation,
 } from "#dms-ui/app/build/composables/actions/rowNavigation";
 import type { RowNavigation } from "#dms-ui/app/types/row-navigation";
 import {
@@ -27,27 +26,11 @@ import {
 const { t } = useI18n();
 const content = useRowSidePanelContent();
 
-const navigation = shallowRef<RowNavigation>();
-let stopNavigation: (() => void) | undefined;
-watch(
-  content,
-  (current) => {
-    stopNavigation?.();
-    stopNavigation = undefined;
-    navigation.value = undefined;
-    if (!current?.row || !current.source) return;
-    stopNavigation = trackRowNavigation(
-      current.source,
-      current.row,
-      current.showRow,
-      (next) => {
-        navigation.value = next;
-      },
-    );
-  },
-  // At once: a second J right after the first steps from the row it opened.
-  { immediate: true, flush: "sync" },
-);
+const navigation = computed(() => {
+  const current = content.value;
+  if (!current?.row || !current.source) return undefined;
+  return rowNavigation(current.source, current.row, current.showRow);
+});
 
 const componentProps = computed(() => ({
   ...content.value?.componentOptions,
@@ -72,7 +55,6 @@ onMounted(() => {
 // longer open.
 onBeforeUnmount(() => {
   stopKeys.forEach((stop) => stop());
-  stopNavigation?.();
   close();
 });
 </script>

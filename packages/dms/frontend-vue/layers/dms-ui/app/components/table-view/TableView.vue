@@ -133,7 +133,6 @@ import { useGroupedRows } from "../../build/composables/table-view/useGroupedRow
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import type { RowStep } from "../../build/composables/actions/rowNavigation";
-import { rowLocator } from "../../build/composables/table-view/utils/locateRow";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
 import type { Ref } from "vue";
@@ -1138,24 +1137,6 @@ const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
     });
   return adjacentRowsLoad;
 };
-// A row past the rows loaded (a deep link, a row live rows pushed out) is
-// found in the table's whole result, under the query the list reads: its
-// position, and its neighbours for the steps.
-const locateRow = rowLocator({
-  list: async (offset, limit) => {
-    if (!listsServerPages.value) return null;
-    const page = await tableRows.list({
-      ...queryRequest.value,
-      ...archiveQuery.value,
-      ...liveHold.heldQuery(),
-      offset,
-      limit,
-    });
-    return page && { results: page.results as Data[], total: page.total };
-  },
-  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
-  isWholeRead: () => !!props.source && !props.source.capabilities.paginate,
-});
 
 const accumulation = computed<TableAccumulation | undefined>(() =>
   isAccumulating
@@ -1379,7 +1360,6 @@ const {
         : undefined,
     offset: loadedRowsOffset,
     loadAdjacent: loadAdjacentRows,
-    locate: locateRow,
   },
   recordScope: urlScope,
   onRecordShown: (id) => recordLink?.shown(id),

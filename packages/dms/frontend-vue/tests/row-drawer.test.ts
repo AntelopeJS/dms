@@ -18,7 +18,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
 import type {
-  RowLocation,
   RowNavigationSource,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
@@ -65,7 +64,6 @@ function installRuntime(): void {
     resolveDmsComponent: (name: string) =>
       name === PANEL_COMPONENT ? Panel : undefined,
     useI18n: () => ({
-      locale: ref("fr-FR"),
       t: (key: string, params?: Record<string, unknown>) =>
         params ? `${key}(${params.index}/${params.total})` : key,
     }),
@@ -370,103 +368,6 @@ describe("a row drawer's steps across the table's pages", () => {
   });
 });
 
-describe("a row drawer off the rows loaded", () => {
-  const allRows: Row[] = Array.from({ length: 6 }, (_, index) => ({
-    _id: `q${index}`,
-    name: `Row ${index}`,
-  }));
-
-  // Finds a row in `all`, as a table reads its whole result.
-  const locateIn = (all: () => Row[]) =>
-    vi.fn(async (id: string): Promise<RowLocation | undefined> => {
-      const rowsNow = all() as unknown as Data[];
-      const index = rowsNow.findIndex((row) => row._id === id);
-      if (index < 0) return undefined;
-      return {
-        index,
-        total: rowsNow.length,
-        prev: rowsNow[index - 1],
-        next: rowsNow[index + 1],
-      };
-    });
-
-  const navigationOf = (drawer: OpenedDrawer) => headerOf(drawer)?.navigation;
-
-  it("locates a deep-linked row past the page loaded, and steps from it", async () => {
-    const locate = locateIn(() => allRows);
-    const targets = mountTargets(ref(allRows.slice(0, 2)), {
-      total: () => allRows.length,
-      locate,
-    });
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[4] as unknown as Data,
-    );
-    await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
-    await vi.waitFor(() =>
-      expect(navigationOf(drawer)).toMatchObject({
-        index: 4,
-        total: 6,
-        hasPrev: true,
-        hasNext: true,
-      }),
-    );
-    expect(locate).toHaveBeenCalledWith("q4", undefined);
-    press("j");
-    await vi.waitFor(() => expect(latest(drawer).componentKey).toBe("q5"));
-    await vi.waitFor(() =>
-      expect(navigationOf(drawer)).toMatchObject({ index: 5, hasNext: false }),
-    );
-  });
-
-  it("follows live rows by id: never revisits a row, keeps the position", async () => {
-    const live = ref<Row[]>(allRows.slice(0, 3));
-    const targets = mountTargets(live, {
-      total: () => live.value.length,
-      locate: locateIn(() => live.value),
-    });
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1] as unknown as Data,
-    );
-    await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
-    // A new row arrives on top: the open row moves down one.
-    live.value = [{ _id: "new", name: "New" }, ...live.value];
-    expect(navigationOf(drawer)).toMatchObject({ index: 2, total: 4 });
-    press("j");
-    expect(latest(drawer).componentKey).toBe("q2");
-    press("k");
-    expect(latest(drawer).componentKey).toBe("q1");
-  });
-
-  it("locates the open row once live rows push it out of the rows loaded", async () => {
-    const all = ref<Row[]>(allRows.slice(0, 4));
-    const loaded = computed(() => all.value.slice(0, 2));
-    const targets = mountTargets(loaded as unknown as Ref<Row[]>, {
-      total: () => all.value.length,
-      locate: locateIn(() => all.value),
-    });
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1] as unknown as Data,
-    );
-    await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
-    all.value = [
-      { _id: "a", name: "A" },
-      { _id: "b", name: "B" },
-      ...all.value,
-    ];
-    await vi.waitFor(() =>
-      expect(navigationOf(drawer)).toMatchObject({ index: 3, total: 6 }),
-    );
-    press("j");
-    await vi.waitFor(() => expect(latest(drawer).componentKey).toBe("q2"));
-  });
-});
-
 describe("the row header", () => {
   const mountHeader = (props: Record<string, unknown>) => {
     const host = document.createElement("div");
@@ -518,19 +419,6 @@ describe("the row header", () => {
       host.querySelector<HTMLButtonElement>("[data-dms-row-drawer-prev]")
         ?.disabled,
     ).toBe(true);
-  });
-
-  it("groups the figures as the locale does", () => {
-    const host = mountHeader({
-      part: "dms-row-drawer",
-      navigation: { ...navigation(26_119), total: 26_120 },
-    });
-    expect(
-      host
-        .querySelector("[data-dms-row-drawer-position]")
-        ?.textContent?.trim()
-        .replace(/\s/g, " "),
-    ).toBe("side_panel.position(26 120/26 120)");
   });
 
   it("moves to the next row from its button", async () => {

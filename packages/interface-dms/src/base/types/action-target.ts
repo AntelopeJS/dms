@@ -45,8 +45,7 @@ export interface SidePanelTargetOptions {
   /**
    * Position of the open row among all the rows the table lists (its count,
    * not the page loaded), drawn under the title: an i18n key (`$`-prefixed)
-   * receiving `{ index }` (from 1) and `{ total }`, both written with the
-   * locale's digit grouping ("26 120"), e.g.
+   * receiving `{ index }` (from 1) and `{ total }`, e.g.
    * `"$api.request.position"` for "Request {index} of {total}". Defaults to
    * the DMS's generic "{index} of {total}".
    */
