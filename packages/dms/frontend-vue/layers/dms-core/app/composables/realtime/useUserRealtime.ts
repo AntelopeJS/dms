@@ -190,10 +190,14 @@ const connectTab = (
   // The session's first frames may come before the answer that names it.
   let buffered: BufferedFrame[] | undefined;
 
-  const closeStraySession = (sessionId: string) => {
+  // The backend ends only a session of the connection the request names.
+  const closeStraySession = (forConnection: string, sessionId: string) => {
     void fetch(sessionCloseUrl, {
       method: "POST",
-      headers: { [SESSION_HEADER]: sessionId },
+      headers: {
+        [CONNECTION_HEADER]: forConnection,
+        [SESSION_HEADER]: sessionId,
+      },
       credentials: "include",
     }).catch(() => {});
   };
@@ -234,7 +238,9 @@ const connectTab = (
     const greeting = response.ok ? await readGreeting(response) : null;
     const sessionId = greeting?.sessionId;
     if (!isCurrent()) {
-      if (typeof sessionId === "string") closeStraySession(sessionId);
+      if (typeof sessionId === "string") {
+        closeStraySession(forConnection, sessionId);
+      }
       return;
     }
     if (response.status === HTTP_UNAUTHORIZED) {
