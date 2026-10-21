@@ -119,7 +119,6 @@ describe("filters row URL chips", () => {
       ui: { icons: { close: "i-close", plus: "i-plus" } },
     }));
     vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
-    vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
     vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
     vi.stubGlobal("resolveDmsComponent", () => undefined);
   });

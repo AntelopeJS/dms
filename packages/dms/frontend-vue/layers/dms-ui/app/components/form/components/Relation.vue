@@ -17,10 +17,6 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
-import {
-  relationIdsQuery,
-  unlabeledRelationIds,
-} from "../../../build/composables/data-types/relationValue";
 import type { FormProps } from "../../../composables/form/types";
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -122,9 +118,6 @@ const addContainerId = `relation-add-${useId()}`;
 // unwrapped item is an unbounded type for the checker. The list is always
 // replaced, never mutated in place.
 const locallyAddedItems: Ref<SelectMenuItem[]> = shallowRef([]);
-// The rows of the ids the value holds, read from the `select` route when the
-// form's data answers the ids rather than the joined rows.
-const valueItems: Ref<SelectMenuItem[]> = shallowRef([]);
 
 const canAdd = computed(
   () =>
@@ -261,24 +254,27 @@ const initialItems = computed(() => {
   return values.filter(isMappableObject).map(mapData);
 });
 
-function itemValue(item: SelectMenuItem): unknown {
-  return typeof item === "object" && item !== null && "value" in item
-    ? item.value
-    : item;
-}
-
 const mergedItems = computed<SelectMenuItem[]>(() => {
   const searchResults = data.value?.results || [];
   const initial = initialItems.value || [];
   const added = locallyAddedItems.value;
 
   const merged: SelectMenuItem[] = [...initial, ...added];
-  const existingValues = new Set(merged.map(itemValue));
+  const existingValues = new Set(
+    merged.map((item) =>
+      typeof item === "object" && item !== null && "value" in item
+        ? item.value
+        : item,
+    ),
+  );
 
-  [...valueItems.value, ...searchResults].forEach((item) => {
-    const value = itemValue(item);
-    if (!existingValues.has(value)) {
-      existingValues.add(value);
+  searchResults.forEach((item) => {
+    const itemValue =
+      typeof item === "object" && item !== null && "value" in item
+        ? item.value
+        : item;
+
+    if (!existingValues.has(itemValue)) {
       merged.push(item);
     }
   });
@@ -329,42 +325,6 @@ watch(
   },
   { immediate: true },
 );
-
-const labeledIds = computed(
-  () => new Set(mergedItems.value.map((item) => String(itemValue(item)))),
-);
-// Asked once each: an id the route does not answer (deleted, out of reach)
-// keeps showing as is rather than being asked again.
-const requestedIds = new Set<string>();
-
-async function loadValueItems(ids: string[]) {
-  const url = pageRequestUrl(props.searchUrl);
-  if (!url) return;
-  for (const id of ids) requestedIds.add(id);
-  const response = await $authFetch<RelationResponse>(url, {
-    params: relationIdsQuery(ids, props.keyMapping),
-  }).catch(() => undefined);
-  if (!response?.results?.length) return;
-  valueItems.value = [
-    ...valueItems.value,
-    ...response.results.map((item) => mapData(item)),
-  ];
-}
-
-// The picker shows a value through its item: an id no item carries yet is
-// labelled (and given its avatar) from its row before the picker is opened.
-onMounted(() => {
-  watch(
-    () =>
-      unlabeledRelationIds(props.modelValue, labeledIds.value).filter(
-        (id) => !requestedIds.has(id),
-      ),
-    (ids) => {
-      if (ids.length > 0) void loadValueItems(ids);
-    },
-    { immediate: true },
-  );
-});
 
 function onOpen(isOpen: boolean) {
   if (isOpen && !data.value?.results?.length) {

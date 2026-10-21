@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  relationIdsQuery,
-  sameRelationValue,
-  unlabeledRelationIds,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
+import { sameRelationValue } from "../layers/dms-ui/app/build/composables/data-types/relationValue";
 
 const ANN = { _id: "u-1", name: "Ann", avatar: "ann.png" };
 const BOB = { _id: "u-2", name: "Bob" };
@@ -39,42 +35,5 @@ describe("sameRelationValue", () => {
     expect(sameRelationValue([], undefined, MULTIPLE)).toBe(true);
     expect(sameRelationValue(null, "u-1", SINGLE)).toBe(false);
     expect(sameRelationValue([], [ANN], MULTIPLE)).toBe(false);
-  });
-});
-
-describe("unlabeledRelationIds", () => {
-  const labeled = new Set(["u-1"]);
-
-  it("returns a plain id no known row labels", () => {
-    expect(unlabeledRelationIds("u-2", labeled)).toEqual(["u-2"]);
-    expect(unlabeledRelationIds("u-1", labeled)).toEqual([]);
-  });
-
-  it("returns each unlabeled id of a multiple relation once", () => {
-    expect(unlabeledRelationIds(["u-1", "u-2", 3, "u-2"], labeled)).toEqual([
-      "u-2",
-      "3",
-    ]);
-  });
-
-  it("leaves joined rows and empty values alone", () => {
-    expect(unlabeledRelationIds(ANN, labeled)).toEqual([]);
-    expect(unlabeledRelationIds([BOB], labeled)).toEqual([]);
-    expect(unlabeledRelationIds(undefined, labeled)).toEqual([]);
-    expect(unlabeledRelationIds("", labeled)).toEqual([]);
-  });
-});
-
-describe("relationIdsQuery", () => {
-  it("asks for those rows alone, on the field's value key", () => {
-    expect(relationIdsQuery(["u-1", "u-2"], { value: "_id" })).toEqual({
-      ids: ["u-1", "u-2"],
-      idKey: "_id",
-      limit: 2,
-    });
-  });
-
-  it("leaves the key to the route when none is mapped", () => {
-    expect(relationIdsQuery(["u-1"])).toEqual({ ids: ["u-1"], limit: 1 });
   });
 });

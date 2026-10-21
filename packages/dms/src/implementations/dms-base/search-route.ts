@@ -22,15 +22,10 @@ import {
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
 
 const MIN_SEARCH_LENGTH = 2;
-const IDS_KEY = "ids";
-const ID_KEY_KEY = "idKey";
 
 type SearchCountResult = { total: number };
 
@@ -228,38 +223,6 @@ export async function applyArchiveFilter(
   };
 }
 
-/**
- * The field `ids` names rows by: `idKey` when the request names one the
- * listed rows carry — what a relation picker stores, its `keyMapping.value`
- * — else the table's row id key.
- */
-function resolveIdsField(
-  thisObj: any,
-  reqCtx: RequestContext,
-  pluck: Set<string> | undefined,
-): string {
-  const requested = reqCtx.url.searchParams.get(ID_KEY_KEY);
-  if (requested && pluck?.has(requested)) return requested;
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
-  return tableViewMeta?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
-}
-
-/**
- * The rows a list answers narrowed to the `ids` the request names
- * (`?ids=a&ids=b`), so a relation field can label the ids it holds without
- * paging through every row. The filters, search, archive view and row rules
- * still apply: it only narrows what the caller may already read.
- */
-function applyIdsRestriction(
-  query: Stream<Record<string, unknown>>,
-  ids: string[],
-  field: string,
-): Stream<Record<string, unknown>> {
-  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
-    ids.map((id): Condition => row.key(field).eq(id)).reduce(either, false),
-  );
-}
-
 export async function buildFilteredQuery(
   thisObj: any,
   reqCtx: RequestContext,
@@ -355,8 +318,8 @@ export async function listWithSearch(
     user,
     permissions,
   );
-  const { meta, model, deferredJoined } = built;
-  let { query, queryTotal } = built;
+  const { meta, model, queryTotal, deferredJoined } = built;
+  let query = built.query;
 
   const pluck: Set<string> | undefined = meta.pluck[params.pluckMode ?? "list"];
   assert(
@@ -364,16 +327,6 @@ export async function listWithSearch(
     400,
     `No fields found for pluckMode '${params.pluckMode ?? "list"}'`,
   );
-
-  const ids = reqCtx.url.searchParams.getAll(IDS_KEY);
-  if (ids.length > 0) {
-    query = applyIdsRestriction(
-      query,
-      ids,
-      resolveIdsField(thisObj, reqCtx, pluck),
-    );
-    queryTotal = query.count();
-  }
 
   if (!params.noForeign) {
     query = Query.Foreign(
