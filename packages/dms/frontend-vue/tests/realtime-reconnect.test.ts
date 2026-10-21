@@ -266,6 +266,20 @@ describe("useUserRealtime reconnection", () => {
     expect(received).toEqual([event]);
   });
 
+  it("ends a session answered after it stopped waiting for one", async () => {
+    // Signed out while the session request was in flight: the session the
+    // answer names is a stray, ended at once.
+    server.beforeSessionAnswer = () => {
+      server.beforeSessionAnswer = undefined;
+      loggedIn.value = false;
+    };
+    await loadApi();
+    await settle();
+
+    // The backend ends only a session of the connection the request names.
+    expect(server.closedSessions).toEqual(["session-1"]);
+  });
+
   it("keeps the frames that come before the answer naming its session", async () => {
     const snapshot = { topic: "presence:orders", entries: [] };
     server.beforeSessionAnswer = (session) =>

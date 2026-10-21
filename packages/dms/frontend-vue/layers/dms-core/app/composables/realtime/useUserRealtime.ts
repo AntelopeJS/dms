@@ -224,11 +224,14 @@ const connectTab = (
   // The session's first frames may come before the answer that names it.
   let buffered: BufferedFrame[] | undefined;
 
-  // The server ends a session only on the connection it names: both headers.
-  const closeStraySession = (sessionId: string, onConnection: string) => {
+  // The backend ends only a session of the connection the request names.
+  const closeStraySession = (forConnection: string, sessionId: string) => {
     void fetch(sessionCloseUrl, {
       method: "POST",
-      headers: { [SESSION_HEADER]: sessionId, [CONNECTION_HEADER]: onConnection },
+      headers: {
+        [CONNECTION_HEADER]: forConnection,
+        [SESSION_HEADER]: sessionId,
+      },
       credentials: "include",
     }).catch(() => {});
   };
@@ -272,8 +275,9 @@ const connectTab = (
     const greeting = response.ok ? await readGreeting(response) : null;
     const sessionId = greeting?.sessionId;
     if (!isCurrent()) {
-      if (typeof sessionId === "string")
-        closeStraySession(sessionId, forConnection);
+      if (typeof sessionId === "string") {
+        closeStraySession(forConnection, sessionId);
+      }
       return;
     }
     if (response.status === HTTP_UNAUTHORIZED) {
@@ -296,7 +300,7 @@ const connectTab = (
     if (retries.isCancelled() || !connectionId) return;
     const sessionId = state.sessionId.value;
     if (sessionId) {
-      closeStraySession(sessionId, connectionId);
+      closeStraySession(connectionId, sessionId);
       callbacks.onDisconnected();
     }
     void openSession(connectionId);
