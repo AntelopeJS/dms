@@ -47,6 +47,11 @@ export interface UseChartFetchOptions<T> {
    * usual.
    */
   holdNavigation?: boolean;
+  /**
+   * Reads again when the page asks its blocks to refresh (refreshPageBlocks).
+   * Defaults to `true`; realtime topics and live refreshes read it either way.
+   */
+  refreshOnPageRefresh?: boolean;
 }
 
 export interface UseChartFetchReturn<T> {
@@ -287,6 +292,7 @@ export function useChartFetch<T>(
       () => loaded.refresh(),
       () => status.value === "pending",
     ),
+    { refreshOnPageRefresh: options.refreshOnPageRefresh },
   );
   const holdsUntilScope =
     !!options.holdNavigation &&

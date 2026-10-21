@@ -64,6 +64,8 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
    * Optional. Defaults to `columns` (one row), or 3.
    */
   skeletonCount?: number;
+  /** Read again when the page refreshes its blocks; `true` by default. */
+  refreshOnPageRefresh?: boolean;
   /** Reads `fetchUrl` with the page: a navigation waits for its first answer. */
   holdNavigation?: boolean;
 }
@@ -81,6 +83,7 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   empty: undefined,
   holdNavigation: false,
   skeletonCount: undefined,
+  refreshOnPageRefresh: true,
 });
 
 const MAX_COLUMNS = 4;
@@ -108,6 +111,7 @@ const {
   fetchUrlMethod: props.fetchUrlMethod,
   periodScope: props.periodScope,
   realtimeTopic: props.realtimeTopic,
+  refreshOnPageRefresh: props.refreshOnPageRefresh,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,

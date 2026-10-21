@@ -47,6 +47,8 @@ interface KeyValueListBlockProps extends DefaultComponentProps {
    * Optional. Defaults to 5.
    */
   skeletonCount?: number;
+  /** Read again when the page refreshes its blocks; `true` by default. */
+  refreshOnPageRefresh?: boolean;
   /** Reads `fetchUrl` with the page: a navigation waits for its first answer. */
   holdNavigation?: boolean;
 }
@@ -67,6 +69,7 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   // card usually lists (customer, ids, status, amounts, dates), not a stub.
   holdNavigation: false,
   skeletonCount: 5,
+  refreshOnPageRefresh: true,
 });
 
 const TRANSLATED_TYPES = new Set([undefined, "text", "status", "link"]);
@@ -80,6 +83,7 @@ const { items, isPending, hasError, notFound, refresh, ready } =
     fetchUrlMethod: props.fetchUrlMethod,
     periodScope: props.periodScope,
     realtimeTopic: props.realtimeTopic,
+    refreshOnPageRefresh: props.refreshOnPageRefresh,
     routeParams: () => props.routeParams,
     watchActions: props.watchActions,
     componentId: props.componentId,

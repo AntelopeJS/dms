@@ -194,6 +194,14 @@ export interface BlockItemsSource {
    * `columns`, or 3 (NavCardGrid); `maxItems`, or 3 (ActivityFeed).
    */
   skeletonCount?: number;
+  /**
+   * Whether the block reads `fetchUrl` again when the page asks its blocks to
+   * refresh (see {@link BlockFunctions.REFRESH_PAGE}). Off for a list with a
+   * trigger of its own (its `realtimeTopic`) that a page refresh would only
+   * read twice. Its realtime topics and the live page's refreshes still read
+   * it. Optional. Defaults to `true`.
+   */
+  refreshOnPageRefresh?: boolean;
 }
 
 const PERIOD_SCOPE_OPTION = "periodScope";
@@ -222,6 +230,15 @@ export const blockItemsSourceOptions = () => ({
       min: 1,
       advanced: true,
     },
+  ),
+  refreshOnPageRefresh: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Read the data source again when the page refreshes its blocks (default true).",
+      ),
+    { label: "Refresh with the page", group: "data", advanced: true },
   ),
 });
 

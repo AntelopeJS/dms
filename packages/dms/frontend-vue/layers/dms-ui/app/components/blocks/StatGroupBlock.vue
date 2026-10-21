@@ -42,6 +42,8 @@ interface StatGroupBlockProps extends DefaultComponentProps {
    * usually answers. Optional. Defaults to `columns`, or 4.
    */
   skeletonCount?: number;
+  /** Read again when the page refreshes its blocks; `true` by default. */
+  refreshOnPageRefresh?: boolean;
 }
 
 const props = withDefaults(defineProps<StatGroupBlockProps>(), {
@@ -55,6 +57,7 @@ const props = withDefaults(defineProps<StatGroupBlockProps>(), {
   realtimeTopic: undefined,
   empty: undefined,
   skeletonCount: undefined,
+  refreshOnPageRefresh: true,
 });
 
 const DEFAULT_SKELETON_COUNT = 4;
@@ -68,6 +71,7 @@ const { items, isPending, hasError, notFound, refresh } =
     fetchUrlMethod: props.fetchUrlMethod,
     periodScope: props.periodScope,
     realtimeTopic: props.realtimeTopic,
+    refreshOnPageRefresh: props.refreshOnPageRefresh,
     routeParams: () => props.routeParams,
     watchActions: props.watchActions,
     componentId: props.componentId,

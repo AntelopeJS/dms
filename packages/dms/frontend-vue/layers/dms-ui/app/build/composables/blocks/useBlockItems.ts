@@ -35,6 +35,8 @@ export interface UseBlockItemsOptions<T> {
   componentId?: string;
   /** Reads `fetchUrl` with the page: see useChartFetch's `holdNavigation`. */
   holdNavigation?: boolean;
+  /** See useChartFetch's `refreshOnPageRefresh`; `true` by default. */
+  refreshOnPageRefresh?: boolean;
 }
 
 export interface UseBlockItemsReturn<T> {
@@ -86,6 +88,7 @@ export function useBlockItems<T>(
     routeParams: options.routeParams,
     watchSource: () => watchKey.value,
     holdNavigation: options.holdNavigation,
+    refreshOnPageRefresh: options.refreshOnPageRefresh,
   });
 
   const isFetched = Boolean(options.fetchUrl);

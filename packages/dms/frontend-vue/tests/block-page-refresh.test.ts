@@ -10,6 +10,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   BlockFunctions,
+  refreshLivePageBlocks,
   refreshPageBlocks,
 } from "../layers/dms-ui/app/utils/blockRefresh";
 
@@ -64,13 +65,14 @@ interface Probe {
   isLoading?: { value: boolean };
 }
 
-function mountBlock(fetchUrl: string) {
+function mountBlock(fetchUrl: string, refreshOnPageRefresh?: boolean) {
   const probe: Probe = {};
   const Block = defineComponent({
     setup() {
       const { data, isLoading } = useChartFetch<{ value: number }>({
         fetchUrl,
         routeParams: () => ({ id: "ws-1" }),
+        refreshOnPageRefresh,
       });
       probe.data = data;
       probe.isLoading = isLoading;
@@ -229,3 +231,18 @@ it.each([new Error("Unavailable"), new DOMException("Aborted", "AbortError")])(
     expect(block.probe.data?.value).toEqual({ value: 1 });
   },
 );
+
+it("leaves a block that opted out of page refreshes alone, live refreshes still reading it", async () => {
+  const block = mountBlock("/api/ws/{{params.id}}/attention", false);
+  apps.push(block.unmount);
+  await settle();
+  await refreshPageBlocks();
+  await settle();
+  expect(requests).toEqual(["/api/ws/ws-1/attention"]);
+  refreshLivePageBlocks();
+  await settle();
+  expect(requests).toEqual([
+    "/api/ws/ws-1/attention",
+    "/api/ws/ws-1/attention",
+  ]);
+});

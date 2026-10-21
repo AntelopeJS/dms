@@ -70,6 +70,8 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
    * or 3.
    */
   skeletonCount?: number;
+  /** Read again when the page refreshes its blocks; `true` by default. */
+  refreshOnPageRefresh?: boolean;
   /** Link buttons in the card head ("View all"). */
   actions?: BlockAction[];
   /** Empty state text (i18n keys with `$` or literals). */
@@ -95,6 +97,7 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   wrap: false,
   fillHeight: false,
   skeletonCount: undefined,
+  refreshOnPageRefresh: true,
   actions: () => [],
   empty: undefined,
   mono: false,
@@ -123,6 +126,7 @@ const {
   fetchUrlMethod: props.fetchUrlMethod,
   periodScope: props.periodScope,
   realtimeTopic: props.realtimeTopic,
+  refreshOnPageRefresh: props.refreshOnPageRefresh,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,

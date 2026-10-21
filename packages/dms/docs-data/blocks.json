@@ -871,6 +871,16 @@
             "advanced": true
           }
         },
+        "refreshOnPageRefresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Read the data source again when the page refreshes its blocks (default true).",
+          "ui": {
+            "label": "Refresh with the page",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "mono": {
           "type": "boolean",
           "optional": true,
@@ -9913,6 +9923,16 @@
             "advanced": true
           }
         },
+        "refreshOnPageRefresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Read the data source again when the page refreshes its blocks (default true).",
+          "ui": {
+            "label": "Refresh with the page",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "holdNavigation": {
           "type": "boolean",
           "optional": true,
@@ -11490,6 +11510,16 @@
             "advanced": true
           }
         },
+        "refreshOnPageRefresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Read the data source again when the page refreshes its blocks (default true).",
+          "ui": {
+            "label": "Refresh with the page",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "holdNavigation": {
           "type": "boolean",
           "optional": true,
@@ -12619,6 +12649,16 @@
             "group": "data",
             "widget": "number",
             "min": 1,
+            "advanced": true
+          }
+        },
+        "refreshOnPageRefresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Read the data source again when the page refreshes its blocks (default true).",
+          "ui": {
+            "label": "Refresh with the page",
+            "group": "data",
             "advanced": true
           }
         }
