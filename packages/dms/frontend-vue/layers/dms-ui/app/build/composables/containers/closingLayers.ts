@@ -1,3 +1,5 @@
+import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
+
 // Any reka layer still open: a dialog, a drawer, a modal menu.
 const OPEN_LAYER_SELECTOR = '[data-dismissable-layer][data-state="open"]';
 
@@ -10,6 +12,50 @@ const OPEN_DIALOG_SELECTOR = [
   '[role="dialog"][data-dismissable-layer][data-state="open"]',
   '[role="alertdialog"][data-dismissable-layer][data-state="open"]',
 ].join(", ");
+
+// A popover's content is a dialog layer too, but anchored to its trigger: it
+// covers nothing.
+const POPOVER_SELECTOR = "[data-reka-popper-content-wrapper]";
+
+/**
+ * Whether a drawer, a modal or a slideover is open on the page, whoever
+ * rendered it: the same dialogs the closing-layers watch tracks.
+ * @internal
+ */
+export function hasOpenDialog(root: Document): boolean {
+  return [...root.querySelectorAll(OPEN_DIALOG_SELECTOR)].some(
+    (dialog) => !dialog.closest(POPOVER_SELECTOR),
+  );
+}
+
+/**
+ * {@link hasOpenDialog}, kept up to date while the calling component is
+ * mounted: for what must step aside while a dialog covers the page (a
+ * floating prompt). False on the server and until mounted.
+ * @internal
+ */
+export function useOpenDialog(): Readonly<Ref<boolean>> {
+  const isOpen = ref(false);
+  let observer: MutationObserver | null = null;
+  const update = () => {
+    isOpen.value = hasOpenDialog(document);
+  };
+  onMounted(() => {
+    // A dialog mounts open: its insertion counts, not only its state.
+    observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributeFilter: ["data-state"],
+    });
+    update();
+  });
+  onBeforeUnmount(() => {
+    observer?.disconnect();
+    observer = null;
+  });
+  return isOpen;
+}
 
 // Reka's FocusScope, as it unmounts: cancelling it keeps the focus in place.
 const UNMOUNT_AUTOFOCUS_EVENT = "focusScope.autoFocusOnUnmount";
