@@ -17,7 +17,6 @@ import {
   listenRowSteps,
   rowNavigation,
 } from "#dms-ui/app/build/composables/actions/rowNavigation";
-import type { RowNavigation } from "#dms-ui/app/types/row-navigation";
 import {
   closeRowSidePanel,
   useRowSidePanelContent,

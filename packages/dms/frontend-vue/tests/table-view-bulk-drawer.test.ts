@@ -12,7 +12,6 @@ import {
   listenRowSteps,
   rowNavigation,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
-import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import {
   deepLinkOutcome,
   readRecordId,
