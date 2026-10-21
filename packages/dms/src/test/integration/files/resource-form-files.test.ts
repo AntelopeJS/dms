@@ -88,7 +88,7 @@ describe("[integration] native files submitted from ResourceForm blocks", () => 
     const edited = await client.put(
       `${LOCATION}/edit`,
       { file: formKey },
-      { params: { id: created.data[0] } },
+      { params: { id: created.data._id } },
     );
     expect(edited.status, JSON.stringify(edited.data)).to.equal(200);
     await storedUrl(client, formKey);
@@ -105,7 +105,7 @@ describe("[integration] native files submitted from ResourceForm blocks", () => 
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
     const url = await storedUrl(client, key);
     const removed = await client.delete(`${LOCATION}/delete`, {
-      params: { id: saved.data[0] },
+      params: { id: saved.data._id },
     });
     expect(removed.status, JSON.stringify(removed.data)).to.equal(200);
     expect(
