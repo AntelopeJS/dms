@@ -14,6 +14,10 @@ import {
   joinRelationValue,
   relationLabelSource,
 } from "../layers/dms-ui/app/build/composables/form/repeaterTable";
+import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+
+// The relation data type, as it registers its `select` route.
+const RELATION_TYPE = { selectSource: relationSelectSource };
 
 const PRODUCT = {
   id: "product",
@@ -36,12 +40,14 @@ const UNIT_PRICE = {
 
 describe("a relation column of a read-only list", () => {
   it("reads its names from the picker's endpoint", () => {
-    expect(relationLabelSource(PRODUCT)).toEqual({
-      url: "/products/select",
-      valueKey: "_id",
+    expect(relationLabelSource(PRODUCT, RELATION_TYPE)).toEqual({
+      searchUrl: "/products/select",
+      keyMapping: { label: "name", value: "_id" },
       multiple: false,
     });
-    expect(relationLabelSource(UNIT_PRICE)).toBeUndefined();
+    // A type that names no `select` route has no rows to read.
+    expect(relationLabelSource(UNIT_PRICE, {})).toBeUndefined();
+    expect(relationLabelSource(UNIT_PRICE, undefined)).toBeUndefined();
   });
 
   it("puts the related row in place of each id it knows", () => {
@@ -88,26 +94,43 @@ async function mountTable(
   };
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: (id: string) =>
-      formatters[id] ? { formatter: { default: formatters[id] } } : undefined,
+      formatters[id]
+        ? {
+            formatter: { default: formatters[id] },
+            ...(id === "relation" ? RELATION_TYPE : {}),
+          }
+        : undefined,
   }));
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en"),
     t: (key: string) => key,
   }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
+  const fetched: { url: string; params: unknown }[] = [];
+  vi.stubGlobal("useAuthFetch", () => ({
+    $authFetch: vi.fn(async (url: string, options: { params: unknown }) => {
+      fetched.push({ url, params: options.params });
+      return { results: [{ _id: "p1", name: "Panel" }] };
+    }),
+  }));
   const requested: string[] = [];
-  vi.stubGlobal("useDmsAsyncData", (key: string) => {
-    requested.push(key);
-    return { data: ref({ results: [{ _id: "p1", name: "Panel" }] }) };
-  });
+  vi.stubGlobal(
+    "useDmsAsyncData",
+    (key: string, read: () => Promise<unknown>) => {
+      requested.push(key);
+      const data = ref<unknown>();
+      void read().then((rows) => (data.value = rows));
+      return { data };
+    },
+  );
   const host = document.createElement("div");
   document.body.append(host);
   app = createApp({
     render: () => h(RepeaterTable, { columns, rows }),
   });
   app.mount(host);
+  await new Promise((resolve) => setTimeout(resolve));
   await nextTick();
-  return { host, requested };
+  return { host, requested, fetched };
 }
 
 describe("a read-only list's rows", () => {
@@ -128,6 +151,20 @@ describe("a read-only list's rows", () => {
     ]);
     // One request per relation column, shared by its cells.
     expect(requested).toEqual(["repeater-table-relation-/products/select"]);
+  });
+
+  it("read a relation's names for the ids its rows hold, not a page of the route", async () => {
+    const { fetched } = await mountTable([
+      { product: "p1", unitPrice: 319 },
+      { product: "p2", unitPrice: 20 },
+      { product: "p1", unitPrice: 5 },
+    ]);
+    expect(fetched).toEqual([
+      {
+        url: "/products/select",
+        params: { ids: ["p1", "p2"], idKey: "_id", limit: 2 },
+      },
+    ]);
   });
 
   it("align amounts on the right, and scroll sideways rather than overflow", async () => {

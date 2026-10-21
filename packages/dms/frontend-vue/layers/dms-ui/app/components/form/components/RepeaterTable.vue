@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { VNodeChild } from "vue";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
-import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
+import {
+  relationRowValue,
+  useRelationRows,
+} from "../../../build/composables/data-types/relationRows";
+import { unlabeledRelationIds } from "../../../build/composables/data-types/relationValue";
 import {
   NUMERIC_TYPE_IDS,
   useColumnValueRenderer,
@@ -30,45 +34,47 @@ interface RepeaterTableProps {
 
 const props = defineProps<RepeaterTableProps>();
 const { renderValue } = useColumnValueRenderer();
-const { $authFetch } = useAuthFetch();
+const { getDataType } = useDataTypes();
+const { readRelationRows } = useRelationRows();
 
-// The picker of a relation reads its rows from its `select` endpoint, as
-// many as a cascader does: the table names its ids from the same rows.
-const RELATION_FETCH_LIMIT = 1000;
-
-interface RelationResponse {
-  results: Record<string, unknown>[];
-}
-
-/** The related rows of a relation column, by the value its cells hold. */
-function useRelationRows(source: RelationLabelSource) {
+/**
+ * The related rows of a relation column, by the value its cells hold: read
+ * once for the ids the rows hold, narrowed to them with `?ids=`.
+ */
+function useColumnRelationRows(columnId: string, source: RelationLabelSource) {
+  const ids = computed(() =>
+    unlabeledRelationIds(
+      props.rows.flatMap((row) => [row[columnId]].flat()),
+      NO_LABELS,
+    ),
+  );
   const { data } = useDmsAsyncData(
-    `repeater-table-relation-${source.url}`,
-    () => {
-      const url = pageRequestUrl(source.url);
-      return url
-        ? $authFetch<RelationResponse>(url, {
-            params: { limit: RELATION_FETCH_LIMIT },
-          })
-        : Promise.resolve(undefined);
-    },
+    `repeater-table-relation-${source.searchUrl}`,
+    () => readRelationRows(source, ids.value),
     // Names for the cells, not the page's data.
-    { lazy: true, refreshOnPageRefresh: false },
+    { lazy: true, refreshOnPageRefresh: false, watch: [ids] },
   );
   return computed(
     () =>
       new Map(
-        (data.value?.results ?? []).map((row) => [row[source.valueKey], row]),
+        (data.value ?? []).map((row) => [relationRowValue(source, row), row]),
       ),
   );
 }
 
+const NO_LABELS: ReadonlySet<string> = new Set();
+
 // The columns are the field's own and do not change while it is shown.
 const relationRows = new Map(
   props.columns.flatMap((column) => {
-    const source = relationLabelSource(column);
+    const source = relationLabelSource(column, getDataType(column.type ?? ""));
     return source
-      ? [[column.id, { source, rows: useRelationRows(source) }]]
+      ? [
+          [
+            column.id,
+            { source, rows: useColumnRelationRows(column.id, source) },
+          ],
+        ]
       : [];
   }),
 );

@@ -1,3 +1,7 @@
+import type {
+  DataType,
+  DataTypeSelectSource,
+} from "#dms-core/app/composables/data-types/useDataType";
 import type { RenderableColumn } from "../data-types/useColumnValueRenderer";
 
 /** A column of a read-only list: a field of its rows. */
@@ -9,22 +13,9 @@ export interface RepeaterTableColumn {
 }
 
 /** Where a relation column reads the rows its values name. */
-export interface RelationLabelSource {
-  url: string;
-  valueKey: string;
+export interface RelationLabelSource extends DataTypeSelectSource {
   multiple: boolean;
 }
-
-/** The options of a relation picker the table reads its labels through. */
-interface RelationColumnOptions {
-  searchUrl?: string;
-  multiple?: boolean;
-  keyMapping?: { value?: string };
-}
-
-// The keys a relation picker reads by default (`Relation.vue`'s `mapData`).
-const DEFAULT_RELATION_VALUE_KEY = "value";
-const RELATION_TYPE_ID = "relation";
 
 /**
  * The column as the grid's cell renderer reads it: its data type, with the
@@ -43,18 +34,19 @@ export function renderableColumn(
   return { id: column.id, type };
 }
 
-/** The rows a relation column names its values from, if it is one. */
+/**
+ * The rows a relation column names its values from, if its data type reads
+ * its labels from a `select` route ({@link DataType.selectSource}).
+ */
 export function relationLabelSource(
   column: RepeaterTableColumn,
+  dataType: Pick<DataType, "selectSource"> | undefined,
 ): RelationLabelSource | undefined {
-  if (column.type !== RELATION_TYPE_ID) return undefined;
-  const options = (column.component.options ?? {}) as RelationColumnOptions;
-  if (!options.searchUrl) return undefined;
-  return {
-    url: options.searchUrl,
-    valueKey: options.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY,
-    multiple: !!options.multiple,
-  };
+  const options = column.component.options as
+    | { multiple?: unknown }
+    | undefined;
+  const source = dataType?.selectSource?.(options);
+  return source ? { ...source, multiple: !!options?.multiple } : undefined;
 }
 
 /**
