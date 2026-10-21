@@ -1074,19 +1074,12 @@ watch(
 
 // A view's counter shares the tab counters' request, under its own id.
 const VIEW_COUNT_ID_PREFIX = "view:";
-// So does the navigation badge of a tab while the page's URL filters narrow
-// its counter: the badge stands for the whole page, the counter does not.
-const NAV_BADGE_COUNT_ID_PREFIX = "nav:";
-const countQuery = (
-  filters: TableFilter[],
-  search?: string,
-  hiddenFilters: TableFilter[] = queryParamHiddenFilters.value,
-) =>
+const countQuery = (filters: TableFilter[], search?: string) =>
   buildTableQuery({
     pagination: { pageIndex: 0, pageSize: 0 },
     sorting: [],
     columnFilters: filters,
-    hiddenFilters,
+    hiddenFilters: queryParamHiddenFilters.value,
     globalFilter: search,
   });
 
@@ -1094,12 +1087,6 @@ const tabCountsQuery = computed(() => [
   ...resolvedTabs.value
     .filter((tab) => !tab.to)
     .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
-  ...(queryParamHiddenFilters.value.length > 0 ? resolvedTabs.value : [])
-    .filter((tab) => !tab.to && tab.navBadge)
-    .map((tab) => ({
-      id: `${NAV_BADGE_COUNT_ID_PREFIX}${tab.id}`,
-      query: countQuery(tab.filters, undefined, []),
-    })),
   ...tableViewItems.value
     .filter((view) => view.count)
     .map((view) => ({
@@ -1341,26 +1328,19 @@ const tabsWithCount = computed(() =>
 
 // A tab declared with `navBadge` keeps the navigation badge the server
 // counted for the page it stands for (the linked page, or this one) up to
-// date with its own counter, counted without the page's URL filters; an
-// empty badge stands for zero.
+// date with its own counter; an empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
-const navBadgeCount = (tab: ResolvedTab, count: number | undefined) =>
-  tab.to || queryParamHiddenFilters.value.length === 0
-    ? count
-    : tabCountsData.value?.[`${NAV_BADGE_COUNT_ID_PREFIX}${tab.id}`];
 watch(
   tabsWithCount,
   (next) => {
     for (const tab of next) {
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
-      if (!source?.navBadge) continue;
-      const count = navBadgeCount(source, tab.count);
-      if (count === undefined) continue;
+      if (!source?.navBadge || tab.count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
       const tone =
         typeof source.navBadge === "object" ? source.navBadge.tone : undefined;
       if (fullId) {
-        setNavBadge(fullId, count > 0 ? String(count) : "", tone);
+        setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "", tone);
       }
     }
   },

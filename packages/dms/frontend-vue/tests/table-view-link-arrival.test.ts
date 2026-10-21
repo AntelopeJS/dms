@@ -560,13 +560,4 @@ describe("table view wiring", () => {
       /tablePreferences\.followLink\(\(\) => \{\s*openLinkedView\(query\);/,
     );
   });
-
-  it("publishes a tab's navigation badge without the page's URL filters", () => {
-    expect(tableView).toMatch(
-      /query: countQuery\(tab\.filters, undefined, \[\]\),/,
-    );
-    expect(tableView).toMatch(
-      /const count = navBadgeCount\(source, tab\.count\);/,
-    );
-  });
 });
