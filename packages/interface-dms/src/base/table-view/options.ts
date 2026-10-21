@@ -769,11 +769,6 @@ export type FormContainer =
     };
 
 /**
- * Page-mode form URLs, resolved against the slug of the page the table view is
- * mounted on. They keep the `:id` placeholder of their slug: the frontend
- * substitutes the row id when it navigates.
- */
-/**
  * A watch of a form a table view opens, as `.watch(event, functionId, opts)`
  * declares one on a `Form`: the form event it listens for, the form function
  * it runs, and the options `.watch()` takes.
@@ -785,6 +780,11 @@ export interface TableViewFormWatch<
   functionId: F;
 }
 
+/**
+ * Page-mode form URLs, resolved against the slug of the page the table view is
+ * mounted on. They keep the `:id` placeholder of their slug: the frontend
+ * substitutes the row id when it navigates.
+ */
 export interface TableViewFormPageUrls {
   new: string;
   edit: string;
