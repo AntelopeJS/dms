@@ -86,11 +86,7 @@ class TicketAPI extends DataController(
 
   @Listable()
   @Sortable()
-  @Column({
-    name: "Created",
-    type: new DefaultDataTypes.DateType(),
-    filterable: true,
-  })
+  @Column({ name: "Created", type: new DefaultDataTypes.DateType() })
   @Access(AccessMode.ReadOnly)
   declare createdAt: Date;
 }

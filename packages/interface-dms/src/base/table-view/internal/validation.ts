@@ -6,6 +6,7 @@
 
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import { Logging } from "@antelopejs/interface-core/logging";
 import {
   AccessMode,
   DataAPIMeta,
@@ -305,8 +306,8 @@ export function validateGroupedOptions(
     DataAPIMeta,
   ).filters;
   if (grouped.count && !filters[groupByField]) {
-    throw new Error(
-      `TableView grouped on ${controllerName} counts its groups, but "${groupByField}" is not filterable: every group would count every row. Declare the column \`filterable: true\`.`,
+    Logging.Warn(
+      `[DMS] TableView grouped on ${controllerName} counts its groups, but "${groupByField}" is not filterable: every group would count every row. Declare the column \`filterable: true\`.`,
     );
   }
 }
