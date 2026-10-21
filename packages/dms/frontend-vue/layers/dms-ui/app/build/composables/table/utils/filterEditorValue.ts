@@ -1,46 +1,38 @@
-// A view or tab declares its filter value as text (`TableViewTabFilter.value`),
-// the shape the query sends. The chip's value editor wants the value its own
-// type holds: a number input refuses "0", a switch "true", a date range
-// "start,end". The editor reads the converted value; the filter keeps its text
-// until the user edits it, so the query is unchanged.
+import type {
+  DataType,
+  DataTypeFilterEditorValue,
+} from "#dms-core/app/composables/data-types/useDataType";
 
-type EditorValueConverter = (value: string) => unknown;
+// A view or tab declares its filter value as text (`TableViewTabFilter.value`),
+// the shape the query sends. The chip's value editor wants the value its
+// column's data type holds there ({@link DataType.filterEditorValue}). The
+// editor reads the converted value; the filter keeps its text until the user
+// edits it, so the query is unchanged.
 
 const LIST_SEPARATOR = ",";
+const BETWEEN_MODE = "is_between";
 
-const toNumber: EditorValueConverter = (value) => {
-  const parsed = Number(value);
-  return value.trim() !== "" && Number.isFinite(parsed) ? parsed : value;
+/** A number type's filter: the number a numeric text names, else the text. */
+export const numberFilterEditorValue: DataTypeFilterEditorValue = (text) => {
+  const parsed = Number(text);
+  return text.trim() !== "" && Number.isFinite(parsed) ? parsed : text;
 };
 
-const BOOLEAN_TEXT: Record<string, boolean> = { true: true, false: false };
-
-const toBoolean: EditorValueConverter = (value) =>
-  BOOLEAN_TEXT[value.trim()] ?? value;
-
-const toList: EditorValueConverter = (value) =>
-  value.split(LIST_SEPARATOR).map((item) => item.trim());
-
-/** What each typed value editor holds, by component name. */
-const EDITOR_VALUE_CONVERTERS: Record<string, EditorValueConverter> = {
-  "dms-input-number": toNumber,
-  "dms-input-percentage": toNumber,
-  "dms-slider": toNumber,
-  "dms-switch": toBoolean,
-  "dms-checkbox": toBoolean,
-  "dms-boolean-card": toBoolean,
-  "dms-date-picker-range": toList,
-};
+/** A date's filter: the two days of a range, a single day as written. */
+export const dateFilterEditorValue: DataTypeFilterEditorValue = (text, mode) =>
+  mode === BETWEEN_MODE
+    ? text.split(LIST_SEPARATOR).map((item) => item.trim())
+    : text;
 
 /**
- * The value a filter's editor component reads: a text value converted to the
- * type the component holds, any other value as it is.
+ * The value a filter's editor reads: a declared text value converted by its
+ * column's data type, any other value as it is.
  */
 export function filterEditorValue(
-  componentName: string | undefined,
+  dataType: Pick<DataType, "filterEditorValue"> | undefined,
+  mode: string,
   value: unknown,
 ): unknown {
-  if (typeof value !== "string" || !componentName) return value;
-  const convert = EDITOR_VALUE_CONVERTERS[componentName];
-  return convert ? convert(value) : value;
+  if (typeof value !== "string" || !dataType?.filterEditorValue) return value;
+  return dataType.filterEditorValue(value, mode);
 }

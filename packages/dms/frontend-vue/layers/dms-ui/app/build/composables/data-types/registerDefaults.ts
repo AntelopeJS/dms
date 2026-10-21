@@ -17,6 +17,10 @@ import {
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import {
+  dateFilterEditorValue,
+  numberFilterEditorValue,
+} from "../table/utils/filterEditorValue";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
@@ -769,6 +773,7 @@ const registerPrimitiveTypes = (
   registerDataType({
     id: "number",
     formatter: { default: formatNumber as DataTypeFormatter },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string",
@@ -777,10 +782,12 @@ const registerPrimitiveTypes = (
   registerDataType({
     id: "price",
     formatter: { default: formatPrice as DataTypeFormatter },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "percentage",
     formatter: { default: formatPercentage as DataTypeFormatter },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string_time",
@@ -812,6 +819,7 @@ const registerDateType = (registerDataType: (dataType: DataType) => void) => {
       },
       is_between: formatDateBetween,
     },
+    filterEditorValue: dateFilterEditorValue,
   });
 };
 
