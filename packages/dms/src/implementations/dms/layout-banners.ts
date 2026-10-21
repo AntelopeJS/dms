@@ -60,6 +60,19 @@ function staticBody(banner: LayoutBannerInfo): LayoutBannerBody {
   };
 }
 
+const LAYOUT_BANNER_SCOPES: ReadonlySet<string> = new Set(
+  Object.values(LayoutBannerScope),
+);
+
+// An untyped registration may name a scope that does not exist: it reads as
+// the default, `app`, so the dashboard only ever receives a known one.
+function resolveScope(banner: LayoutBannerInfo): LayoutBannerScope {
+  const { scope } = banner;
+  return scope && LAYOUT_BANNER_SCOPES.has(scope)
+    ? scope
+    : LayoutBannerScope.APP;
+}
+
 function serializeLayoutBanner(
   banner: LayoutBannerInfo,
   body: LayoutBannerBody,
@@ -68,7 +81,7 @@ function serializeLayoutBanner(
     key: banner.key,
     variant: banner.variant,
     order: banner.order ?? DEFAULT_BANNER_ORDER,
-    scope: banner.scope ?? LayoutBannerScope.APP,
+    scope: resolveScope(banner),
     dismissible: banner.dismissible === true,
     icon: banner.icon,
     ...body,

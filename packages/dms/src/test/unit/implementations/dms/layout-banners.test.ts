@@ -151,6 +151,20 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
     ]);
   });
 
+  it("ships an unknown scope of an untyped registration as the default", async () => {
+    disposers.push(
+      RegisterLayoutBanner({
+        key: "untyped",
+        variant: "info",
+        text: "a",
+        scope: "somewhere" as LayoutBannerScope,
+      }),
+    );
+
+    const [banner] = await bannersFor();
+    expect(banner?.scope).to.equal(LayoutBannerScope.APP);
+  });
+
   it("takes the scope the same way on a text, a resolved and a component banner", async () => {
     disposers.push(
       RegisterLayoutBanner({ key: "text-default", variant: "info", text: "a" }),
