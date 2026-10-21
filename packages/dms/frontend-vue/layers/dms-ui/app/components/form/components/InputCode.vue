@@ -169,12 +169,9 @@ onBeforeUnmount(() => {
       class="text-highlighted min-h-(--dms-code-min-height) overflow-auto px-3 py-2 font-mono text-[12.5px] whitespace-pre-wrap"
       >{{ model }}</pre
     >
-    <!-- Important: CodeMirror's unlayered `.cm-content { min-height: 100% }`
-      outranks a utility, and `min-lines` would never apply. -->
     <div
       ref="host"
-      data-dms-code-host
-      class="[&_.cm-content]:min-h-(--dms-code-min-height)! [&_.cm-scroller]:max-h-(--dms-code-max-height) [&_.cm-scroller]:overflow-auto"
+      class="[&_.cm-content]:min-h-(--dms-code-min-height) [&_.cm-scroller]:max-h-(--dms-code-max-height) [&_.cm-scroller]:overflow-auto"
     />
     <div
       class="border-default text-dimmed flex items-center gap-3 border-t bg-(--dms-bg-muted) px-3 py-1 font-mono text-[11px]"
