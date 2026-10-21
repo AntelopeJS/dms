@@ -32,7 +32,10 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { watchClosingLayers } from "../layers/dms-ui/app/build/composables/containers/closingLayers";
+import {
+  UNCOVERED_ATTRIBUTE,
+  watchClosingLayers,
+} from "../layers/dms-ui/app/build/composables/containers/closingLayers";
 
 // The layer's own reka copy only draws the titles here.
 vi.mock("reka-ui", () => {
@@ -336,6 +339,82 @@ describe("closing any other dialog", () => {
     isOpen.value = false;
     await vi.advanceTimersByTimeAsync(0);
     expect(bodyPointerEvents()).toBe("none");
+  });
+});
+
+// A confirm closing over a drawer that stays open: reka disables the drawer's
+// layer until the confirm has unmounted, so the drawer is marked for its
+// theme to give it its clicks back, the page staying blocked.
+describe("a dialog closing over one that stays open", () => {
+  const mounted: Array<[App, HTMLElement]> = [];
+
+  function mountDialog(isOpen: Ref<boolean>, title: string): App {
+    const target = document.createElement("div");
+    document.body.append(target);
+    const dialog = createApp(() =>
+      h(DialogRoot, { open: isOpen.value }, () => [
+        h(BackdropStub),
+        h(DialogContent, { forceMount: true }, () => title),
+      ]),
+    );
+    dialog.mount(target);
+    mounted.push([dialog, target]);
+    return dialog;
+  }
+
+  const layer = (title: string) =>
+    [...document.querySelectorAll("[role='dialog']")].find(
+      (dialog) => dialog.textContent === title,
+    )!;
+  const isUncovered = (title: string) =>
+    layer(title).hasAttribute(UNCOVERED_ATTRIBUTE);
+
+  async function closeConfirmOverDrawer(): Promise<App> {
+    mountDialog(ref(true), "Drawer");
+    const isOpen = ref(true);
+    const confirm = mountDialog(isOpen, "Discard changes?");
+    await vi.advanceTimersByTimeAsync(0);
+    isOpen.value = false;
+    await vi.advanceTimersByTimeAsync(0);
+    return confirm;
+  }
+
+  afterEach(() => {
+    for (const [dialog, target] of mounted.splice(0)) {
+      dialog.unmount();
+      target.remove();
+    }
+  });
+
+  it("gives the dialog below its clicks back while it animates out", async () => {
+    await closeConfirmOverDrawer();
+    expect(isUncovered("Drawer")).toBe(true);
+    expect(isUncovered("Discard changes?")).toBe(false);
+    expect(bodyPointerEvents()).toBe("none");
+  });
+
+  it("lets reka take over once it has unmounted", async () => {
+    const confirm = await closeConfirmOverDrawer();
+    confirm.unmount();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(isUncovered("Drawer")).toBe(false);
+  });
+
+  it("covers the dialog below again when another one opens above it", async () => {
+    await closeConfirmOverDrawer();
+    mountDialog(ref(true), "Send again?");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(isUncovered("Drawer")).toBe(false);
+    expect(isUncovered("Send again?")).toBe(false);
+  });
+
+  it("marks nothing when no dialog stays open", async () => {
+    const isOpen = ref(true);
+    mountDialog(isOpen, "Save the view");
+    await vi.advanceTimersByTimeAsync(0);
+    isOpen.value = false;
+    await vi.advanceTimersByTimeAsync(0);
+    expect(document.querySelector(`[${UNCOVERED_ATTRIBUTE}]`)).toBeNull();
   });
 });
 

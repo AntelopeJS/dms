@@ -2,10 +2,24 @@
 const OPEN_LAYER_SELECTOR = '[data-dismissable-layer][data-state="open"]';
 
 // What blocks the page while it is mounted: a layer and a backdrop.
-const BLOCKING_SELECTOR = '[data-dismissable-layer], [data-slot="overlay"]';
+const LAYER_SELECTOR = "[data-dismissable-layer]";
+const BLOCKING_SELECTOR = `${LAYER_SELECTOR}, [data-slot="overlay"]`;
+
+// A drawer, a modal or a slideover still open: what a closing one covered.
+const OPEN_DIALOG_SELECTOR = [
+  '[role="dialog"][data-dismissable-layer][data-state="open"]',
+  '[role="alertdialog"][data-dismissable-layer][data-state="open"]',
+].join(", ");
 
 // Reka's FocusScope, as it unmounts: cancelling it keeps the focus in place.
 const UNMOUNT_AUTOFOCUS_EVENT = "focusScope.autoFocusOnUnmount";
+
+/**
+ * Set on the dialog a closing one uncovered, until that one has unmounted:
+ * the dialog's theme gives it its pointer events back (`UNCOVERED_PANEL_CLASS`).
+ * @internal
+ */
+export const UNCOVERED_ATTRIBUTE = "data-dms-uncovered";
 
 function isClosing(mutation: MutationRecord): boolean {
   const target = mutation.target as Element;
@@ -26,6 +40,12 @@ function isClosing(mutation: MutationRecord): boolean {
  *   of the body's pointer events, which the content letting go of them does
  *   not clear. The body is released after the closing render, once reka has
  *   let go of it, unless another layer is still open and blocks the page.
+ * - A dialog closing over one that stays open (a confirm over a drawer)
+ *   leaves the page blocked, but not the dialog below: reka disables every
+ *   layer under the highest one that blocks the page, and the closing one
+ *   stays the highest until it unmounts, so a click on the drawer was lost.
+ *   The topmost dialog still open is marked uncovered until the closing one
+ *   has unmounted or another one opens above it.
  * - A click that opens another drawer or modal in the meantime keeps it
  *   open: the closing one gave the focus back to its trigger as it unmounted,
  *   outside the new one, which closed at once. Its focus stays put when a
@@ -40,14 +60,20 @@ export function watchClosingLayers(root: Document): () => void {
   // Each closing layer and the layers that were open when it started.
   const openBeforeClosing = new WeakMap<Element, Set<Element>>();
   const openLayers = () => [...root.querySelectorAll(OPEN_LAYER_SELECTOR)];
+  const uncovering = watchUncovered(root);
 
   const observer = new MutationObserver((mutations) => {
-    const closing = mutations.filter(isClosing);
+    const closing = mutations
+      .filter(isClosing)
+      .map(({ target }) => target as Element);
     if (closing.length === 0) return;
     const open = openLayers();
-    for (const { target } of closing) {
-      openBeforeClosing.set(target as Element, new Set(open));
+    for (const target of closing) {
+      openBeforeClosing.set(target, new Set(open));
     }
+    uncovering.start(
+      closing.filter((target) => target.matches(LAYER_SELECTOR)),
+    );
     if (open.length > 0) return;
     if (root.body.style.pointerEvents === "none") {
       root.body.style.pointerEvents = "";
@@ -69,6 +95,46 @@ export function watchClosingLayers(root: Document): () => void {
 
   return () => {
     observer.disconnect();
+    uncovering.stop();
     root.removeEventListener(UNMOUNT_AUTOFOCUS_EVENT, onUnmountAutoFocus, true);
   };
+}
+
+interface Uncovering {
+  /** Marks the topmost dialog still open while `closing` animates out. */
+  start(closing: Element[]): void;
+  stop(): void;
+}
+
+function watchUncovered(root: Document): Uncovering {
+  let uncovered: Element | null = null;
+  let closingLayers: Element[] = [];
+  const topmostOpen = () =>
+    [...root.querySelectorAll(OPEN_DIALOG_SELECTOR)].at(-1) ?? null;
+
+  function stop(): void {
+    watcher.disconnect();
+    uncovered?.removeAttribute(UNCOVERED_ATTRIBUTE);
+    uncovered = null;
+    closingLayers = [];
+  }
+
+  // Only while a dialog closes over another: a short-lived watch of the DOM,
+  // until the closing one is gone or another one opened above.
+  const watcher = new MutationObserver(() => {
+    const isStillCovering = closingLayers.some((layer) => layer.isConnected);
+    if (!isStillCovering || topmostOpen() !== uncovered) stop();
+  });
+
+  function start(closing: Element[]): void {
+    stop();
+    const top = closing.length > 0 ? topmostOpen() : null;
+    if (!top) return;
+    uncovered = top;
+    closingLayers = closing;
+    top.setAttribute(UNCOVERED_ATTRIBUTE, "");
+    watcher.observe(root.body, { childList: true, subtree: true });
+  }
+
+  return { start, stop };
 }
