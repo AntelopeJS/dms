@@ -1,4 +1,6 @@
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
+/** The browser's time zone, for what the backend writes in the reader's zone. */
+export const TIME_ZONE_HEADER = "x-time-zone";
 
 const RETRY_HEADER = "x-auth-retry";
 const REALTIME_SESSION_HEADER = "x-realtime-session";
@@ -54,6 +56,10 @@ export const useAuthFetch = () => {
       // change asks in the new language. A header the caller sets wins.
       if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
         options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
+      }
+      // The browser's zone only: a server render would name the server's.
+      if (typeof window !== "undefined" && !options.headers.has(TIME_ZONE_HEADER)) {
+        options.headers.set(TIME_ZONE_HEADER, browserTimeZone());
       }
       if (realtimeSessionId.value) {
         options.headers.set(REALTIME_SESSION_HEADER, realtimeSessionId.value);

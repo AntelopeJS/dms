@@ -36,6 +36,12 @@ import { TableViewMeta } from "../table-view/meta";
 import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
+import {
+  type DataTypeExportContext,
+  formatExportDate,
+  formatExportFlag,
+  formatExportRelation,
+} from "./export";
 import * as FieldTypes from "./field-types";
 import { absolutizeJoinedSchemas } from "./internal/compare-types";
 import { DefaultDataCompareTypes } from "./compare-types";
@@ -98,6 +104,22 @@ const BOOLEAN_INPUTS: Record<
     FormComponents.InputCheckbox({ label, description }),
   card: (options) => FormComponents.InputBooleanCard(options),
 };
+
+// How the readable export words the default types (`DataType.exportValue`).
+const RELATIVE_DATE_DISPLAY = "relative_date";
+const INDICATOR_DISPLAY = "indicator";
+const DAY_STYLE = "day";
+const EXPORT_RANGE_SEPARATOR = " – ";
+/** The currency the grid formats every price in: `PriceType` carries none. */
+const EXPORT_PRICE_CURRENCY = "EUR";
+const PERCENT_EXPORT_FRACTION_DIGITS = 1;
+const ADDRESS_EXPORT_PARTS: string[][] = [
+  ["streetName", "houseNumber", "boxNumber"],
+  ["addressLine2"],
+  ["postalCode", "city"],
+  ["countrySubdivision"],
+  ["countryCode"],
+];
 
 export namespace DefaultDataTypes {
   export type NumberTypeOptions = {
@@ -468,6 +490,28 @@ export namespace DefaultDataTypes {
       };
     }
 
+    // A date the grid draws to the minute (a relative date not styled by the
+    // day: a ticket opened, a device last seen) keeps its time; any other date
+    // reads as a day. A range reads as its two bounds.
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      const options = context.display?.options ?? {};
+      const withTime =
+        context.display?.id === RELATIVE_DATE_DISPLAY &&
+        options.style !== DAY_STYLE &&
+        options.pastStyle !== DAY_STYLE;
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !(value instanceof Date)
+      ) {
+        const range = value as { start?: unknown; end?: unknown };
+        return [range.start, range.end]
+          .map((bound) => formatExportDate(bound, context, withTime))
+          .join(EXPORT_RANGE_SEPARATOR);
+      }
+      return formatExportDate(value, context, withTime);
+    }
+
     getValidation() {
       if (this.options.range) {
         // A range is `{ start, end }`, the date picker's shape; a pair of
@@ -568,6 +612,19 @@ export namespace DefaultDataTypes {
       };
     }
 
+    // An indicator's own labels, Yes or No otherwise.
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      const options =
+        context.display?.id === INDICATOR_DISPLAY
+          ? context.display.options
+          : {};
+      return formatExportFlag(
+        value,
+        { on: options.onLabel, off: options.offLabel },
+        context,
+      );
+    }
+
     getValidation() {
       return z.boolean();
     }
@@ -609,6 +666,14 @@ export namespace DefaultDataTypes {
       return { default: FormComponents.InputSelect(options) };
     }
 
+    // A query or a form may hand a numeric option its value as text.
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      const item = this.options.items.find(
+        (candidate) => String(candidate.value) === String(value),
+      );
+      return context.translate(item?.label ?? value);
+    }
+
     getValidation() {
       const validValues = this.options.items.map((item) => String(item.value));
 
@@ -628,6 +693,11 @@ export namespace DefaultDataTypes {
         step: options.step ?? 0.01,
         ...options,
       });
+    }
+
+    /** Prices are written in euros, the currency the grid formats them in. */
+    override exportHeader(name: string): string {
+      return `${name} (${EXPORT_PRICE_CURRENCY})`;
     }
   }
 
@@ -649,6 +719,14 @@ export namespace DefaultDataTypes {
         step: this.options.step,
         placeholder: this.options.placeholder,
       });
+    }
+
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      if (typeof value !== "number") return value;
+      return new Intl.NumberFormat(context.formatLocale, {
+        style: "percent",
+        maximumFractionDigits: PERCENT_EXPORT_FRACTION_DIGITS,
+      }).format(value);
     }
   }
 
@@ -900,6 +978,16 @@ export namespace DefaultDataTypes {
       };
     }
 
+    // The export joins the related row; one left unjoined (`filterOnly`) or
+    // deleted keeps its id.
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      return formatExportRelation(
+        value,
+        this.options.keyMapping?.label as string | undefined,
+        context,
+      );
+    }
+
     getValidation(): z.ZodType {
       return this.options.multiple ? z.array(z.string()) : z.string();
     }
@@ -1002,6 +1090,16 @@ export namespace DefaultDataTypes {
         leafOnly: this.options.leafOnly,
         fallback: this.options.fallback,
       });
+    }
+
+    // The export joins the related row; one left unjoined (`filterOnly`) or
+    // deleted keeps its id.
+    override exportValue(value: unknown, context: DataTypeExportContext) {
+      return formatExportRelation(
+        value,
+        this.options.keyMapping?.label as string | undefined,
+        context,
+      );
     }
 
     getValidation(): z.ZodType {
@@ -1135,6 +1233,22 @@ export namespace DefaultDataTypes {
         searchUrl: location,
         keyMapping: this.options.keyMapping,
       });
+    }
+
+    /** The address on one line, its parts in reading order. */
+    override exportValue(value: unknown) {
+      if (typeof value !== "object" || value === null) return value;
+      const address = value as Record<string, unknown>;
+      return ADDRESS_EXPORT_PARTS.map((part) =>
+        part
+          .map((key) => address[key])
+          .filter(
+            (entry) => entry !== undefined && entry !== null && entry !== "",
+          )
+          .join(" "),
+      )
+        .filter(Boolean)
+        .join(", ");
     }
 
     getValidation() {

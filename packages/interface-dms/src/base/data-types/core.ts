@@ -10,6 +10,7 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { ComponentInfoSerialized } from "../../component";
+import { type DataTypeExportContext, formatExportPlain } from "./export";
 import type { z } from "zod";
 
 export type FilterComponent = ComponentInfoSerialized | "noInput";
@@ -108,6 +109,30 @@ export abstract class DataType {
    * @returns A Zod schema for this data type
    */
   abstract getValidation(): z.ZodType;
+
+  /**
+   * The value a readable export writes for one stored value, in the reader's
+   * language (a table export, `TableViewOptions.exportValues`). Never called
+   * for an empty value; a list is written entry by entry. Override it to word
+   * a value as the grid does; by default a date reads as a day and a time, a
+   * flag as Yes or No, an object by its `name`, `label` or `_id`, anything
+   * else as stored.
+   *
+   * @param value One stored value
+   * @param context The reader's language, region and clock, and the column's display
+   * @returns What the export writes: text, or a number a spreadsheet can sum
+   */
+  public exportValue(value: unknown, context: DataTypeExportContext): unknown {
+    return formatExportPlain(value, context);
+  }
+
+  /**
+   * The header a readable export writes for a column of this type, from the
+   * column's translated name: a price names its currency.
+   */
+  public exportHeader(name: string): string {
+    return name;
+  }
 
   /**
    * Called to add additional decorators on the field using this data type.

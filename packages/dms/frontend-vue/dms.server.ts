@@ -3,6 +3,7 @@ import * as actions from "./layers/dms-auth/server/actions";
 import * as oauth from "./layers/dms-auth/server/oauth";
 import * as session from "./layers/dms-auth/server/session";
 import { renderHtml } from "./layers/dms-layout/server/html-render";
+import { readLocaleMessages } from "./layers/dms-layout/server/locale-messages";
 
 // What the DMS serves from the frontend server: its session, sign-in and
 // provider sign-in routes, the session logic the server runs outside them,
@@ -68,6 +69,12 @@ export default defineDmsServer((server) => {
   // The backend authenticates with a single-use service token, not a
   // browser session, and its default `renderEndpoint` names this path.
   server.registerRoute("POST", "/api/html/render", renderHtml, {
+    sameOrigin: false,
+    overridesBackend: true,
+  });
+  // Next to the render route: the backend's `GetLocaleMessages` reads the
+  // texts a readable export is written with.
+  server.registerRoute("POST", "/api/html/messages", readLocaleMessages, {
     sameOrigin: false,
     overridesBackend: true,
   });

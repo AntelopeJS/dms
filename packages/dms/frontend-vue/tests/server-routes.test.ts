@@ -531,6 +531,23 @@ describe("the DMS's server routes", () => {
     expect(missing.status).toBe(404);
   });
 
+  it("serves the texts of a language for the backend's service token only", async () => {
+    const refused = await askDms("/api/html/messages", {
+      origin: false,
+      body: { locale: "fr" },
+    });
+    expect(refused.status).toBe(401);
+    expect(refused.body).toEqual({ message: "Invalid service token" });
+    const unnamed = await askDms("/api/html/messages", () =>
+      Promise.resolve({
+        origin: false,
+        headers: { "x-dms-service-token": renderToken() },
+        body: {},
+      }),
+    );
+    expect(unnamed.status).toBe(400);
+  });
+
   it("prefers the manifest's secrets to the environment's", async () => {
     const environmentSecrets = {
       render: process.env.DMS_HTML_RENDER_SECRET,

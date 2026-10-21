@@ -1,4 +1,7 @@
-import type { HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
+import type {
+  HtmlTemplateRef,
+  LocaleMessages,
+} from "@antelopejs/interface-dms/html-render";
 import { getHtmlRenderConfig } from "../../config";
 import { SERVICE_JWT_HEADER } from "./constants";
 import { generateServiceToken } from "./service-jwt";
@@ -14,6 +17,44 @@ interface RenderErrorResponse {
   message?: string;
   error?: string | boolean;
   statusMessage?: string;
+}
+
+/** The frontend route serving the texts, next to the render route. */
+const LOCALE_MESSAGES_PATH = "messages";
+
+async function failureMessage(response: Response): Promise<string> {
+  const errorData = (await response
+    .json()
+    .catch(() => ({}))) as RenderErrorResponse;
+  return (
+    errorData.message ||
+    (typeof errorData.error === "string" ? errorData.error : null) ||
+    errorData.statusMessage ||
+    `HTTP ${response.status}`
+  );
+}
+
+export async function GetLocaleMessages(
+  language: string,
+): Promise<LocaleMessages> {
+  const config = getHtmlRenderConfig();
+  const response = await fetch(
+    new URL(LOCALE_MESSAGES_PATH, config.renderEndpoint),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [SERVICE_JWT_HEADER]: generateServiceToken(),
+      },
+      body: JSON.stringify({ locale: language }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to read the locale messages: ${await failureMessage(response)}`,
+    );
+  }
+  return (await response.json()) as LocaleMessages;
 }
 
 export async function GenerateHtml<TData = unknown>(
@@ -39,15 +80,9 @@ export async function GenerateHtml<TData = unknown>(
   });
 
   if (!response.ok) {
-    const errorData = (await response
-      .json()
-      .catch(() => ({}))) as RenderErrorResponse;
-    const errorMessage =
-      errorData.message ||
-      (typeof errorData.error === "string" ? errorData.error : null) ||
-      errorData.statusMessage ||
-      `HTTP ${response.status}`;
-    throw new Error(`Failed to render HTML template: ${errorMessage}`);
+    throw new Error(
+      `Failed to render HTML template: ${await failureMessage(response)}`,
+    );
   }
 
   const result = (await response.json()) as RenderResponse;

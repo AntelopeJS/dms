@@ -255,7 +255,7 @@ export async function generateTableViewExport({
   const controllerMetadata = GetDataControllerMeta(controller);
   const selectedFields = getPluckFields(controllerMetadata, listParams);
   const headers = Array.from(selectedFields ?? []);
-  const columns = readableExportColumns(
+  const columns = await readableExportColumns(
     tableViewMetaOf(controller),
     headers,
     ctx,

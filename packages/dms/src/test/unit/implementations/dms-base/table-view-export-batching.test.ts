@@ -16,7 +16,9 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
+import { ImplementInterface } from "@antelopejs/interface-core";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { GetLocaleMessages } from "@antelopejs/interface-dms/html-render";
 import { Exported } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
 import {
@@ -108,6 +110,11 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
   let sourceIds: string[];
 
   before(async () => {
+    // No frontend serves texts here: the readable export reads none.
+    ImplementInterface(
+      { GetLocaleMessages },
+      { GetLocaleMessages: async () => ({ messages: {}, fallback: {} }) },
+    );
     await RegisterSchema(SCHEMA);
     const schema = Schema.get(SCHEMA);
     if (!schema) throw new Error("Missing test schema");

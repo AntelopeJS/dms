@@ -2,6 +2,7 @@
 // them -- default-types, status-type -- can import them without going through
 // the file that re-exports those very modules.
 export * from "./core";
+export * from "./export";
 // The third built-in catalogue, next to the two below. It registers its
 // compare modes as it evaluates, like them, but it imports core.ts only, so it
 // forms no cycle with this barrel and joins it as a plain re-export.

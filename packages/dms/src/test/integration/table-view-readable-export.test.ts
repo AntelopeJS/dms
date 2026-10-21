@@ -1,3 +1,7 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { ImplementInterface } from "@antelopejs/interface-core";
+import { GetLocaleMessages } from "@antelopejs/interface-dms/html-render";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
@@ -29,6 +33,48 @@ interface ExportTicket {
 interface ExportStatusResponse {
   status: string;
   error?: string;
+}
+
+// The harness has no frontend server: the texts the export reads through
+// `GetLocaleMessages` are the DMS layers' own catalogs, the first layer to
+// define a key keeping it.
+const LAYERS = join(__dirname, "../../../frontend-vue/layers");
+
+function layerCatalog(language: string): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  const mergeMissing = (
+    target: Record<string, unknown>,
+    source: Record<string, unknown>,
+  ): void => {
+    for (const [key, value] of Object.entries(source)) {
+      const existing = target[key];
+      if (existing === undefined) target[key] = value;
+      else if (typeof existing === "object" && typeof value === "object") {
+        mergeMissing(
+          existing as Record<string, unknown>,
+          value as Record<string, unknown>,
+        );
+      }
+    }
+  };
+  for (const layer of readdirSync(LAYERS).sort()) {
+    const directory = join(LAYERS, layer, "i18n", "locales");
+    let files: string[] = [];
+    try {
+      files = readdirSync(directory);
+    } catch {
+      continue;
+    }
+    for (const file of files.filter((name) =>
+      name.endsWith(`-${language}-${language === "en" ? "GB" : "FR"}.json`),
+    )) {
+      mergeMissing(
+        merged,
+        JSON.parse(readFileSync(join(directory, file), "utf8")),
+      );
+    }
+  }
+  return merged;
 }
 
 /** A CSV file as rows of cells, quotes unwrapped. */
@@ -76,6 +122,15 @@ describe("[integration] table view export — readable values", () => {
   let customerId: string;
 
   before(async () => {
+    ImplementInterface(
+      { GetLocaleMessages },
+      {
+        GetLocaleMessages: async (language: string) => ({
+          messages: layerCatalog(language.slice(0, 2)),
+          fallback: layerCatalog("en"),
+        }),
+      },
+    );
     await resetDatabase();
     const owner = await registerUser({ owner: true });
     client = authorizedClient(owner.accessToken);
@@ -135,6 +190,7 @@ describe("[integration] table view export — readable values", () => {
     location: string,
     language: string,
     query: Record<string, unknown> = {},
+    timeZone?: string,
   ): Promise<string[][]> {
     const started = await client.get<ExportTicket>(`${location}/export/start`, {
       params: {
@@ -145,7 +201,10 @@ describe("[integration] table view export — readable values", () => {
       },
       // `ids=a&ids=b`, as the export button sends a selection.
       paramsSerializer: { indexes: null },
-      headers: { "x-content-language": language },
+      headers: {
+        "x-content-language": language,
+        ...(timeZone && { "x-time-zone": timeZone }),
+      },
     });
     expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
     await waitForJob(location, started.data.jobId);
@@ -199,20 +258,17 @@ describe("[integration] table view export — readable values", () => {
     ]);
   });
 
-  // As the export button's start reaches the backend through the frontend
-  // server, which relays `x-content-language` but no custom header: the zone
-  // travels in the URL, from the table menu and from the selection bar alike.
+  // The zone `$authFetch` names in `x-time-zone`, from the table menu and
+  // from the selection bar alike.
   it("writes times in the zone the browser names, UTC without one", async () => {
-    const [, brussels] = await exportRows(DEALS, "en", {
-      timeZone: "Europe/Brussels",
-    });
-    const [, selected] = await exportRows(DEALS, "en", {
-      ids: [roofId],
-      timeZone: "Europe/Brussels",
-    });
-    const [, unknown] = await exportRows(DEALS, "en", {
-      timeZone: "Mars/Olympus",
-    });
+    const [, brussels] = await exportRows(DEALS, "en", {}, "Europe/Brussels");
+    const [, selected] = await exportRows(
+      DEALS,
+      "en",
+      { ids: [roofId] },
+      "Europe/Brussels",
+    );
+    const [, unknown] = await exportRows(DEALS, "en", {}, "Mars/Olympus");
 
     expect(brussels[4]).to.equal("01/10/2026, 16:05");
     expect(selected[4]).to.equal("01/10/2026, 16:05");

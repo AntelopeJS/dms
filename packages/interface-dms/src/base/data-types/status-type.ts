@@ -2,6 +2,7 @@ import type { ComponentInfoSerialized } from "../../component";
 import { z } from "zod";
 import { FormComponents } from "../form-schema";
 import { DataType, RegisterDataType } from "./core";
+import { type DataTypeExportContext, formatExportFlag } from "./export";
 // The cycle is what registers the default data types: they declare
 // themselves through decorators, and this barrel is the only value
 // path that evaluates them. Breaking it left the registry empty and
@@ -36,6 +37,17 @@ export class StatusType extends DataType {
     const component: ComponentInfoSerialized = FormComponents.InputCheckbox();
     component.options = this.options;
     return component;
+  }
+
+  override exportValue(value: unknown, context: DataTypeExportContext) {
+    return formatExportFlag(
+      value,
+      {
+        on: this.options.onlineLabel ?? "$common.status.online",
+        off: this.options.offlineLabel ?? "$common.status.offline",
+      },
+      context,
+    );
   }
 
   getValidation() {

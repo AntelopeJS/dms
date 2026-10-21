@@ -2,7 +2,11 @@ import {
   InterfaceFunction,
   RegisteringProxy,
 } from "@antelopejs/interface-core";
-import type { HtmlTemplateInfo, HtmlTemplateRef } from "./types";
+import type {
+  HtmlTemplateInfo,
+  HtmlTemplateRef,
+  LocaleMessages,
+} from "./types";
 
 export * from "./types";
 
@@ -27,6 +31,15 @@ export const GenerateHtml =
       language?: string,
     ) => Promise<string>
   >();
+
+/**
+ * The application's texts in `language` (`fr`, `fr-BE`), read from the
+ * frontend that renders the pages: for text the backend writes outside a page
+ * (an export, a document) in its reader's language.
+ * @throws Error if the frontend is unreachable or refuses the request
+ */
+export const GetLocaleMessages =
+  InterfaceFunction<(language: string) => Promise<LocaleMessages>>();
 
 /** Returns template info by name, or undefined if not registered. */
 export const GetHtmlTemplate =

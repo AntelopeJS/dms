@@ -1,6 +1,3 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
 import type { RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -18,7 +15,6 @@ import {
   readableColumns,
   translateText,
 } from "../../../../implementations/dms-base/readable-export";
-import { readModuleLocaleMessages } from "../../../../implementations/dms/locale-messages";
 
 // Intl separates a figure from its sign with a (narrow) no-break space.
 const ANY_SPACE = /\s/g;
@@ -103,21 +99,15 @@ describe("[unit] implementations/dms-base/readable-export — texts", () => {
 
   it("takes the user's saved time zone, then the browser's, UTC last", () => {
     const ctx = {
-      url: new URL("http://api.local/export/start?timeZone=America/New_York"),
+      rawRequest: { headers: { "x-time-zone": "America/New_York" } },
     } as unknown as RequestContext;
     const unknownZone = {
-      url: new URL("http://api.local/export/start?timeZone=Mars/Olympus"),
-    } as unknown as RequestContext;
-    // A header the frontend server never relays to the backend.
-    const headerOnly = {
-      url: new URL("http://api.local/export/start"),
-      rawRequest: { headers: { "x-time-zone": "America/New_York" } },
+      rawRequest: { headers: { "x-time-zone": "Mars/Olympus" } },
     } as unknown as RequestContext;
     const user = { timeZone: "Europe/Brussels" } as User;
     expect(exportTimeZone(ctx, user)).to.equal("Europe/Brussels");
     expect(exportTimeZone(ctx, {} as User)).to.equal("America/New_York");
     expect(exportTimeZone(unknownZone, undefined)).to.equal("UTC");
-    expect(exportTimeZone(headerOnly, undefined)).to.equal("UTC");
     expect(exportTimeZone(undefined, undefined)).to.equal("UTC");
   });
 });
@@ -261,43 +251,5 @@ describe("[unit] implementations/dms-base/readable-export — headers", () => {
       "amount",
       "internalCode",
     ]);
-  });
-});
-
-describe("[unit] implementations/dms/locale-messages — catalogs", () => {
-  let root: string;
-
-  function write(path: string, content: unknown): void {
-    const file = join(root, path);
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, JSON.stringify(content));
-  }
-
-  before(() => {
-    root = mkdtempSync(join(tmpdir(), "dms-locale-messages-"));
-    write("layered/layers/a-core/i18n/locales/core-fr-FR.json", {
-      shared: { title: "Premier" },
-    });
-    write("layered/layers/b-ui/i18n/locales/ui-fr-FR.json", {
-      shared: { title: "Second", subtitle: "Sous-titre" },
-    });
-    write("layered/i18n/locales/ignored-fr-FR.json", { ignored: "Ignoré" });
-    write("plain/i18n/locales/nested/app-fr-FR.json", { app: "Application" });
-    write("plain/i18n/locales/app-en-GB.json", { app: "Application (en)" });
-    write("plain/i18n/locales/notes.json", { notes: "Pas une langue" });
-    writeFileSync(join(root, "plain/i18n/locales/broken-fr-FR.json"), "{");
-  });
-
-  after(() => rmSync(root, { recursive: true, force: true }));
-
-  it("reads the files the frontend reads, the first to define a key winning", () => {
-    const messages = readModuleLocaleMessages(
-      [join(root, "layered"), join(root, "plain"), join(root, "missing")],
-      "fr",
-    );
-    expect(messages).to.deep.equal({
-      shared: { title: "Premier", subtitle: "Sous-titre" },
-      app: "Application",
-    });
   });
 });

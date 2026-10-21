@@ -6,12 +6,6 @@ const EXPORT_TOAST_DURATION = 5000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TOAST_DURATION_UNTIL_REPLACED = ONE_HOUR_MS;
 const FILENAME_HEADER_PATTERN = /filename="([^"]+)"/i;
-/**
- * The browser's time zone, which a readable export writes dates in when the
- * user saved none: the server cannot see it otherwise. A query parameter, not
- * a header: the frontend server relays a fixed set of headers to the backend.
- */
-const TIME_ZONE_PARAMETER = "timeZone";
 
 function parseFilenameFromContentDisposition(
   header: string | null,
@@ -203,10 +197,8 @@ export const useExportJob = () => {
 
   async function startJob(opts: RunExportJobOptions): Promise<ExportJobTicket> {
     const method = opts.startMethod ?? "POST";
-    const init: Record<string, unknown> = {
-      method,
-      query: { ...opts.startQuery, [TIME_ZONE_PARAMETER]: browserTimeZone() },
-    };
+    const init: Record<string, unknown> = { method };
+    if (opts.startQuery) init.query = opts.startQuery;
     if (opts.startBody && method !== "GET") init.body = opts.startBody;
     const ticket = await $authFetch<ExportJobTicket>(opts.startUrl, init);
     return ticket;
