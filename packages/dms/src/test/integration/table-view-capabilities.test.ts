@@ -203,6 +203,29 @@ describe("[integration] table view capabilities", () => {
     expect(counts.data).to.deep.equal({ all: 3, mine: 2 });
   });
 
+  it("keeps the rows passing every filter of a column filtered twice", async () => {
+    const open = await list(client, "&filter_status=is:open");
+    expect(open.length).to.be.greaterThan(0);
+    const both = await list(
+      client,
+      "&filter_status=is_not:paid&filter_status=is:open",
+    );
+    expect(both.map((row) => row._id).sort()).to.deep.equal(
+      open.map((row) => row._id).sort(),
+    );
+    expect(
+      await list(client, "&filter_status=is:open&filter_status=is_not:open"),
+    ).to.deep.equal([]);
+
+    const counts = await client.post(`${LOCATION}/count/batch`, {
+      queries: [
+        { id: "both", query: { filter_status: ["is_not:paid", "is:open"] } },
+        { id: "none", query: { filter_status: ["is:open", "is_not:open"] } },
+      ],
+    });
+    expect(counts.data).to.deep.equal({ both: open.length, none: 0 });
+  });
+
   it("hands a bulk route the selected ids, or every row the filters match", async () => {
     const open = await list(client, "&filter_status=is:open");
     const [first] = open;

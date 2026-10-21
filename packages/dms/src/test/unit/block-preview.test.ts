@@ -23,21 +23,49 @@ describe("[unit] block preview", () => {
       else process.env[DOCS_PREVIEW_ENV] = environment;
     });
 
-    it("is off by default", () => {
+    it("preserves the non-development default for callers omitting the mode", () => {
       expect(isDocsPreviewEnabled()).to.equal(false);
     });
 
-    it("is on when the module config sets docsPreview", () => {
-      getConfig().docsPreview = true;
-      expect(isDocsPreviewEnabled()).to.equal(true);
-    });
+    for (const nodeEnv of ["development", "production"]) {
+      it(`uses runtime mode independently of NODE_ENV=${nodeEnv}`, () => {
+        const previous = process.env.NODE_ENV;
+        try {
+          process.env.NODE_ENV = nodeEnv;
+          expect(isDocsPreviewEnabled(true)).to.equal(true);
+          expect(isDocsPreviewEnabled(false)).to.equal(false);
+        } finally {
+          if (previous === undefined) delete process.env.NODE_ENV;
+          else process.env.NODE_ENV = previous;
+        }
+      });
+    }
 
-    it("is on when DMS_DOCS_PREVIEW is 1, and only then", () => {
-      process.env[DOCS_PREVIEW_ENV] = "true";
-      expect(isDocsPreviewEnabled()).to.equal(false);
-      process.env[DOCS_PREVIEW_ENV] = "1";
-      expect(isDocsPreviewEnabled()).to.equal(true);
-    });
+    for (const dev of [false, true]) {
+      const cases = [
+        { config: undefined, expected: [false, false, false, false, true] },
+        { config: false, expected: [false, false, false, false, true] },
+        { config: true, expected: [true, true, true, true, true] },
+      ];
+      for (const { config, expected } of cases) {
+        for (const [index, env] of [
+          undefined,
+          "",
+          "0",
+          "true",
+          "1",
+        ].entries()) {
+          it(`runtime dev=${dev}, docsPreview=${config}, env=${JSON.stringify(env)}`, () => {
+            getConfig().docsPreview = config;
+            if (env !== undefined) process.env[DOCS_PREVIEW_ENV] = env;
+
+            expect(isDocsPreviewEnabled(dev)).to.equal(
+              dev ? true : expected[index],
+            );
+          });
+        }
+      }
+    }
   });
 
   describe("listPreviewBlockTypes", () => {
