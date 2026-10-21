@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * The onboarding status the global middleware reads while a server renders a
- * page reaches the browser with the page, through the runtime's real state
- * transfer: the browser's run of the middleware asks nothing.
+ * page reaches the browser with the page, through the runtime's real async
+ * data: the browser's run of the middleware asks nothing.
  */
 import { createApp, createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -12,6 +12,9 @@ import type { DmsFrontendRuntime } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsState", engine.useDmsState);
+vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
+vi.stubGlobal("useDmsData", engine.useDmsData);
 vi.stubGlobal("defineDmsMiddleware", engine.defineDmsMiddleware);
 vi.stubGlobal("navigateDms", engine.navigateDms);
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: true } }));
@@ -19,21 +22,10 @@ vi.stubGlobal("useHomepage", () => "/dashboard");
 
 const $authFetch = vi.fn(async () => ({ has_onboarded: true }));
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch }));
-// The status is read once per app however many callers ask (the preload
-// started with the app, the middleware).
-// No DMS app runs here: each runtime holds the deduper on a state of its own.
-vi.stubGlobal(
-  "useDmsApp",
-  () => engine.useDmsState("onboarding-test-app", () => ({})).value,
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
 );
-const { createTrailingDeduper } = await import(
-  "../layers/dms-core/app/utils/trailingDeduper"
-);
-vi.stubGlobal("createTrailingDeduper", createTrailingDeduper);
-const { useTrailingDeduper } = await import(
-  "../layers/dms-core/app/composables/useTrailingDeduper"
-);
-vi.stubGlobal("useTrailingDeduper", useTrailingDeduper);
+vi.stubGlobal("useApiData", useApiData);
 
 const { useOnboarding } = await import(
   "../layers/dms-onboarding/app/composables/onboarding/useOnboarding"
@@ -46,9 +38,9 @@ const { default: onboardingMiddleware } = await import(
 const Page = defineComponent({
   setup() {
     engine.defineDmsPageMeta({});
-    const info = engine.useDmsState<{ hasOnboarded: boolean } | null>(
-      "dms-onboarding-info",
-    );
+    const info = engine.useDmsData<{ hasOnboarded: boolean }>(
+      "dms-onboarding",
+    ).data;
     return () => h("p", info.value?.hasOnboarded ? "onboarded" : "unknown");
   },
 });
@@ -88,7 +80,7 @@ it("hands the onboarding status the server read to the browser", async () => {
   expect(await renderToString(serverApp)).toBe("<p>onboarded</p>");
   expect($authFetch).toHaveBeenCalledTimes(1);
   const payload = structuredClone(engine.serializeDmsPayload(server));
-  expect(payload.state["dms-onboarding-info"]).toEqual({ hasOnboarded: true });
+  expect(payload.data["dms-onboarding"]).toEqual({ hasOnboarded: true });
 
   $authFetch.mockClear();
   const browser = engine.createDmsFrontendRuntime(undefined, {});
