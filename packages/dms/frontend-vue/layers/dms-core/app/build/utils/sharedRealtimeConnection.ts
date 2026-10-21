@@ -25,6 +25,7 @@ import {
 const HELLO_EVENT = "hello";
 const SESSION_EVENT = "session";
 const SESSION_HEADER = "x-realtime-session";
+const CONNECTION_HEADER = "x-realtime-connection";
 const RECONNECT_INITIAL_DELAY_MS = 500;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 const RECONNECT_MULTIPLIER = 2;
@@ -216,10 +217,14 @@ interface LeaderContext {
   tabId: string;
 }
 
-const closeSession = (url: string, sessionId: string): void => {
+const closeSession = (
+  url: string,
+  connectionId: string,
+  sessionId: string,
+): void => {
   void fetch(url, {
     method: "POST",
-    headers: { [SESSION_HEADER]: sessionId },
+    headers: { [CONNECTION_HEADER]: connectionId, [SESSION_HEADER]: sessionId },
     credentials: "include",
   }).catch(() => {});
 };
@@ -241,8 +246,10 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   const endSessionsOf = (otherTabId: string) => {
     const sessionIds = sessionsByTab.get(otherTabId) ?? new Set<string>();
     sessionsByTab.delete(otherTabId);
+    // The sessions of a connection that went ended with it.
+    if (!connectionId) return;
     for (const sessionId of sessionIds) {
-      closeSession(options.sessionCloseUrl, sessionId);
+      closeSession(options.sessionCloseUrl, connectionId, sessionId);
     }
   };
 

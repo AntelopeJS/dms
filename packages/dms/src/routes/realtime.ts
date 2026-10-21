@@ -49,18 +49,21 @@ const SNAPSHOT_EVENT = "snapshot";
 /** A session's frame on a shared connection, enveloped with its session id. */
 const SESSION_EVENT = "session";
 const SESSION_HEADER = "x-realtime-session";
+/** The browser connection a tab opens its session on. */
+const CONNECTION_HEADER = "x-realtime-connection";
 
 type RealtimeAck = { ok: boolean };
 
-/**
- * A session opened on a shared connection: what the greeting of a stream of
- * its own carries.
- */
+/** A tab's session opened on its browser's connection. */
 interface SessionGreeting extends RealtimeAck {
   sessionId?: string;
   menuTopics?: string[];
-  /** The connection carries the dev reload signal (topic `dms:dev-reload`). */
-  devReload?: true;
+  /**
+   * The topic the connection carries the backend's reload signal under,
+   * outside production: the browser follows it rather than a reload stream
+   * of its own.
+   */
+  devReloadTopic?: string;
 }
 
 /**
@@ -81,13 +84,6 @@ const buildActor = (user: User): PresenceActor => ({
   id: user._id,
   displayName: user.name || user.email,
 });
-
-/** The connection id of a `POST /session` body, or none. */
-const readConnectionId = (body: unknown): string | undefined => {
-  if (!body || typeof body !== "object") return undefined;
-  const { connectionId } = body as { connectionId?: unknown };
-  return typeof connectionId === "string" ? connectionId : undefined;
-};
 
 const isValidPresenceBody = (
   body: unknown,
@@ -187,59 +183,6 @@ const ensureSessionOnPage = async (
 
 export class RealtimeController extends Controller(REALTIME_BASE) {
   /**
-   * A stream of one session, the transport of a client that cannot share a
-   * connection between its tabs. Each one holds an HTTP/1.1 connection of the
-   * browser's six per host for as long as it lives.
-   */
-  @Get("/user")
-  async userStream(
-    @Context() ctx: RequestContext,
-    @AuthRawUser() user: User,
-  ): Promise<void> {
-    const sessionId = randomUUID();
-    const tenantId = getRequestTenantId(ctx);
-    const stream = openSseStream(ctx);
-    registerSession(sessionId, {
-      user,
-      tenantId,
-      send: stream.send,
-      close: stream.close,
-    });
-    // The menu topics travel with the greeting: the client cannot derive its
-    // tenant's topic name on its own, and dispatch is keyed by topic.
-    // Outside production the stream also carries the reload signal (topic
-    // `dms:dev-reload`), so a tab holds one stream to the backend, not two:
-    // browsers allow six HTTP/1.1 connections per host.
-    stream.send(HELLO_EVENT, {
-      sessionId,
-      ts: Date.now(),
-      menuTopics: menuTopicsFor(tenantId, user._id),
-      devReload: isDevReloadEnabled() || undefined,
-    });
-    const stopDevReload = addDevReloadListener((type) =>
-      stream.send(DEV_RELOAD_TOPIC, {
-        topic: DEV_RELOAD_TOPIC,
-        type,
-        ts: Date.now(),
-      }),
-    );
-    let isClosed = false;
-    // Awaited so that stopRealtime() releases presence before the broker
-    // closes.
-    stream.onClose(async () => {
-      isClosed = true;
-      stopDevReload();
-      await cleanupSession(sessionId).catch((error) =>
-        Logging.Warn("Realtime: cleanupSession failed", error),
-      );
-    });
-    void applySessionTopics(sessionId).catch((error) => {
-      if (isClosed) return;
-      Logging.Warn("Realtime: applySessionTopics failed", error);
-    });
-  }
-
-  /**
    * One stream per browser, shared by its tabs: a tab opens its session on it
    * with `POST /session`, and the stream carries each session's frames inside
    * a `session` event that names it. Ending the stream ends its sessions.
@@ -283,20 +226,19 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
    * Opens a tab's session on a shared connection. The session takes this
    * request's tenant, so tabs on different workspaces share one connection.
    * Its frames may reach the browser before this answer does. The connection
-   * id comes in the body, `{ connectionId }`: a proxy in front of the DMS
-   * relays it, where it may drop a header it does not know.
+   * comes in the `x-realtime-connection` header, which the dashboard's proxy
+   * relays with every `x-realtime-*` header.
    */
   @Post("/session")
   async openSession(
     @Context() ctx: RequestContext,
-    @JSONBody() body: unknown,
+    @Parameter(CONNECTION_HEADER, "header") connectionId: string | undefined,
     @AuthRawUser() user: User,
   ): Promise<SessionGreeting> {
-    const connectionId = readConnectionId(body);
     const connection = connectionId
       ? getConnectionInfo(connectionId)
       : undefined;
-    if (!connection) return { ok: false };
+    if (!connectionId || !connection) return { ok: false };
     // The connection id is the browser's: another user's request holding it
     // must not read that user's events.
     assert(connection.userId === user._id, 403, "error.forbidden");
@@ -308,29 +250,34 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       connectionId,
       send: (eventName, data) =>
         connection.send(SESSION_EVENT, { sessionId, event: eventName, data }),
-      close: connection.close,
     });
     void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
     return {
       ok: true,
       sessionId,
       menuTopics: menuTopicsFor(tenantId, user._id),
-      devReload: isDevReloadEnabled() || undefined,
+      devReloadTopic: isDevReloadEnabled() ? DEV_RELOAD_TOPIC : undefined,
     };
   }
 
   /**
    * Ends a session of a shared connection: its tab is gone, or opened another.
-   * The connection and the other sessions on it stay open.
+   * The connection and the other sessions on it stay open. Like
+   * `POST /session`, it names the connection in `x-realtime-connection`: only
+   * a session on that connection is ended.
    */
   @Post("/session/close")
   async closeSession(
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
+    @Parameter(CONNECTION_HEADER, "header") connectionId: string | undefined,
+    @Parameter(SESSION_HEADER, "header") sessionId: string | undefined,
     @AuthRawUser() user: User,
   ): Promise<RealtimeAck> {
     const info = sessionId ? getSessionInfo(sessionId) : undefined;
-    if (!info?.connectionId || info.user?._id !== user._id)
+    if (!sessionId || !info || info.user?._id !== user._id)
       return { ok: false };
+    if (!connectionId || info.connectionId !== connectionId) {
+      return { ok: false };
+    }
     await cleanupSession(sessionId);
     return { ok: true };
   }

@@ -11,8 +11,9 @@
 // Defaults to the playground's frontend, http://localhost:3001, and 8 tabs;
 // DMS_CHECK_EMAIL and DMS_CHECK_PASSWORD stand in for the flags.
 //
-// `--legacy-streams <n>` opens n extra streams per tab the way a client
-// without the shared connection did, to see the check fail.
+// `--legacy-streams <n>` opens n extra connection streams per tab, as a
+// client that does not share its connection between tabs, to see the check
+// fail.
 
 import { parseArgs } from "node:util";
 import { chromium } from "playwright-core";
@@ -29,12 +30,8 @@ const SETTLE_MS = 3_000;
 const SIGN_IN_PATH = "/auth";
 const LOGIN_PATH = "/auth/login";
 const PROBE_PATH = "/api/_auth/session";
-const LEGACY_STREAM_PATH = "/api/realtime/user";
-const STREAM_PATHS = [
-  "/api/realtime/connection",
-  "/api/realtime/user",
-  "/dms/dev/reload",
-];
+const LEGACY_STREAM_PATH = "/api/realtime/connection";
+const STREAM_PATHS = ["/api/realtime/connection", "/dms/dev/reload"];
 
 function readOptions() {
   const { values } = parseArgs({

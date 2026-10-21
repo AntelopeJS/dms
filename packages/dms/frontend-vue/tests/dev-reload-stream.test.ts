@@ -1,7 +1,6 @@
 import { nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  DEV_RELOAD_TOPIC,
   followDevReload,
   openDevReloadStream,
   openSharedDevReloadStream,
@@ -9,6 +8,7 @@ import {
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const ENDPOINT = "http://backend.test/dms/dev/reload";
+const DEV_RELOAD_TOPIC = "dms:dev-reload";
 // Comfortably past the delay before a source the browser gave up on is reopened.
 const REOPEN_WAIT_MS = 5000;
 
@@ -156,7 +156,7 @@ describe("dev reload over the user's realtime stream", () => {
   const carrier = () => {
     const handlers = new Map<string, () => void>();
     return {
-      carriesDevReload: ref(false),
+      devReloadTopic: ref<string | undefined>(undefined),
       handlers,
       subscribe: (topic: string, handler: () => void) => {
         handlers.set(topic, handler);
@@ -178,7 +178,7 @@ describe("dev reload over the user's realtime stream", () => {
 
   it("opens no stream of its own while the user stream carries the signal", async () => {
     const realtime = carrier();
-    realtime.carriesDevReload.value = true;
+    realtime.devReloadTopic.value = DEV_RELOAD_TOPIC;
     const onReload = vi.fn();
     followDevReload({ endpoint: ENDPOINT, onReload }, realtime, NO_SHARING);
 
@@ -202,15 +202,17 @@ describe("dev reload over the user's realtime stream", () => {
     latestSource().emit("reload");
     expect(onReload).toHaveBeenCalledOnce();
 
-    realtime.carriesDevReload.value = true;
+    realtime.devReloadTopic.value = DEV_RELOAD_TOPIC;
     await nextTick();
     expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
+    expect([...realtime.handlers.keys()]).toEqual([DEV_RELOAD_TOPIC]);
 
     // The user stream dropped (a backend restart): the tab falls back until
     // it is back.
-    realtime.carriesDevReload.value = false;
+    realtime.devReloadTopic.value = undefined;
     await nextTick();
     expect(FakeEventSource.instances).toHaveLength(2);
+    expect(realtime.handlers.size).toBe(0);
     expect(latestSource().readyState).toBe(FakeEventSource.CONNECTING);
 
     follow.close();
@@ -255,18 +257,23 @@ describe("shared dev reload stream", () => {
 
   it("shares the fallback of signed-out tabs, and leaves it once carried", async () => {
     const browser = createFakeBrowser();
-    const carriers = [ref(false), ref(false)];
-    for (const carriesDevReload of carriers) {
+    const carriers = [
+      ref<string | undefined>(undefined),
+      ref<string | undefined>(undefined),
+    ];
+    for (const devReloadTopic of carriers) {
       followDevReload(
         { endpoint: ENDPOINT, onReload: vi.fn() },
-        { carriesDevReload, subscribe: () => () => {} },
+        { devReloadTopic, subscribe: () => () => {} },
         browser.openTab().environment,
       );
     }
     await flush();
     expect(FakeEventSource.instances).toHaveLength(1);
 
-    for (const carriesDevReload of carriers) carriesDevReload.value = true;
+    for (const devReloadTopic of carriers) {
+      devReloadTopic.value = DEV_RELOAD_TOPIC;
+    }
     await flush();
     expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
     expect(FakeEventSource.instances).toHaveLength(1);

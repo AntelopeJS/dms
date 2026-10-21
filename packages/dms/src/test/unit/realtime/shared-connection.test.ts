@@ -36,7 +36,7 @@ interface SessionGreeting {
   ok: boolean;
   sessionId?: string;
   menuTopics?: string[];
-  devReload?: boolean;
+  devReloadTopic?: string;
 }
 
 // Comfortably past the 250 ms dev reload broadcast debounce.
@@ -92,7 +92,7 @@ const openSession = (
   controller.openSession.call(
     undefined,
     createFakeStream().ctx,
-    { connectionId },
+    connectionId,
     user as unknown as User,
   );
 
@@ -146,6 +146,7 @@ describe("[unit] realtime — shared connection", () => {
 
     const ack = await controller.closeSession.call(
       undefined,
+      connectionId,
       first.sessionId!,
       USER as unknown as User,
     );
@@ -162,8 +163,25 @@ describe("[unit] realtime — shared connection", () => {
 
     const ack = await controller.closeSession.call(
       undefined,
+      connectionId,
       greeting.sessionId!,
       OTHER_USER as unknown as User,
+    );
+
+    expect(ack.ok).to.equal(false);
+    expect(getSessionInfo(greeting.sessionId!)).to.not.equal(undefined);
+  });
+
+  it("refuses to end a session through another connection", async () => {
+    const connectionId = await openConnection(createFakeStream());
+    const otherConnectionId = await openConnection(createFakeStream());
+    const greeting = await openSession(connectionId);
+
+    const ack = await controller.closeSession.call(
+      undefined,
+      otherConnectionId,
+      greeting.sessionId!,
+      USER as unknown as User,
     );
 
     expect(ack.ok).to.equal(false);
@@ -215,9 +233,9 @@ describe("[unit] realtime — shared connection", () => {
     scheduleBroadcast();
     await new Promise((resolve) => setTimeout(resolve, BROADCAST_SETTLE_MS));
 
-    expect(greetings.map((greeting) => greeting.devReload)).to.deep.equal([
-      true,
-      true,
+    expect(greetings.map((greeting) => greeting.devReloadTopic)).to.deep.equal([
+      DEV_RELOAD_TOPIC,
+      DEV_RELOAD_TOPIC,
     ]);
     const reloads = parseFrames(stream).filter(
       (frame) => frame.event === DEV_RELOAD_TOPIC,

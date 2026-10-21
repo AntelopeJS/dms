@@ -54,9 +54,6 @@ export function openSseStream(ctx: RequestContext): SseStream {
   ) as SseStreamWriter;
   const closeHandlers: Array<() => void | Promise<void>> = [];
   let isClosed = false;
-  // The sessions sharing one connection each hold its `close`: only the first
-  // call ends the response.
-  let isEnded = false;
   const keepalive = startKeepalive(writer);
 
   const cleanup = async (): Promise<void> => {
@@ -77,8 +74,6 @@ export function openSseStream(ctx: RequestContext): SseStream {
     close: async () => {
       try {
         await cleanup();
-        if (isEnded) return;
-        isEnded = true;
         writer.end();
       } catch (error) {
         Logging.Warn("Realtime: SSE stream close failed", error);

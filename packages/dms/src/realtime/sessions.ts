@@ -8,11 +8,9 @@ export interface SessionInfo {
   user?: User;
   tenantId?: string;
   pageId?: string;
-  /** The shared connection the session rides on; unset on a stream of its own. */
-  connectionId?: string;
+  /** The browser connection the session rides on, shared by its tabs. */
+  connectionId: string;
   send: SessionSend;
-  /** Ends the session's stream; its close handlers unregister the session. */
-  close: SessionClose;
 }
 
 /**
@@ -41,16 +39,14 @@ const connections = new Map<string, ConnectionState>();
 
 export function registerSession(sessionId: string, info: SessionInfo): void {
   sessions.set(sessionId, { info, subscriptions: new Map() });
-  if (info.connectionId) {
-    connections.get(info.connectionId)?.sessionIds.add(sessionId);
-  }
+  connections.get(info.connectionId)?.sessionIds.add(sessionId);
 }
 
 export function unregisterSession(sessionId: string): Map<string, Unsubscribe> {
   const state = sessions.get(sessionId);
   sessions.delete(sessionId);
-  const connectionId = state?.info.connectionId;
-  if (connectionId) connections.get(connectionId)?.sessionIds.delete(sessionId);
+  if (state)
+    connections.get(state.info.connectionId)?.sessionIds.delete(sessionId);
   return state?.subscriptions ?? new Map();
 }
 
@@ -95,17 +91,13 @@ export function getConnectionInfo(
 }
 
 /**
- * Ends every open stream, shared connections included. A stream left open
- * across a stop stays bound to a broker that no longer delivers anything: the
- * client keeps receiving keepalives but never another event, and has no reason
- * to reconnect.
+ * Ends every open connection, and with it the sessions riding on it. A stream
+ * left open across a stop stays bound to a broker that no longer delivers
+ * anything: the client keeps receiving keepalives but never another event,
+ * and has no reason to reconnect.
  */
 export async function closeAllSessions(): Promise<void> {
-  const ownStreams = [...sessions.values()].filter(
-    (state) => !state.info.connectionId,
+  await Promise.allSettled(
+    [...connections.values()].map((state) => state.info.close()),
   );
-  await Promise.allSettled([
-    ...ownStreams.map((state) => state.info.close()),
-    ...[...connections.values()].map((state) => state.info.close()),
-  ]);
 }

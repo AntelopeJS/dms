@@ -108,21 +108,21 @@ describe("useUserRealtime reconnection", () => {
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
   });
 
-  it("says whether its session carries the dev reload signal, while it is open", async () => {
-    server.carriesDevReload = true;
+  it("names the dev reload topic its session carries, while it is open", async () => {
+    server.devReloadTopic = "dms:dev-reload";
     const api = await loadApi();
     await settle();
-    expect(api.carriesDevReload.value).toBe(true);
+    expect(api.devReloadTopic.value).toBe("dms:dev-reload");
 
     server.lastConnection().end();
     await settle();
-    expect(api.carriesDevReload.value).toBe(false);
+    expect(api.devReloadTopic.value).toBeUndefined();
 
-    server.carriesDevReload = undefined;
+    server.devReloadTopic = undefined;
     await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
     await settle();
     expect(api.sessionId.value).toBe("session-2");
-    expect(api.carriesDevReload.value).toBe(false);
+    expect(api.devReloadTopic.value).toBeUndefined();
   });
 
   it("backs off further while the server stays unreachable", async () => {
