@@ -185,7 +185,7 @@ const { t } = useI18n();
           variant="ghost"
           size="sm"
           square
-          :aria-label="t('dms.a11y.close')"
+          aria-label="Close"
           :disabled="isContentLoading"
           @click="tryClose"
         />

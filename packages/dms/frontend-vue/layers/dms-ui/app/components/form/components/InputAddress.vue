@@ -635,7 +635,6 @@ const streetPlaceholder = computed(() => {
         value-key="value"
         label-key="label"
         searchable
-        :aria-label="t('dms.a11y.show_options')"
         @update:model-value="updateField('countryCode', $event)"
       />
     </div>

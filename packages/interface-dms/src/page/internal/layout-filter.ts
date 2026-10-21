@@ -46,8 +46,7 @@ async function serveHeaderButton(
  * left out when it hides them.
  * `loadPermissions` is only called when a button declares a permission. When
  * one declares an `availability`, the layout says which page query it was
- * resolved for (`headerActionsQuery`, `headerActionsParams`), so the header
- * asks again for another.
+ * resolved for (`headerActionsQuery`), so the header asks again for another.
  *
  * @internal
  */
@@ -73,7 +72,6 @@ export async function filterLayoutHeaderActions<T>(
   };
   if (buttons.some((button) => button.availability)) {
     servedOptions.headerActionsQuery = context.query ?? {};
-    servedOptions.headerActionsParams = context.params ?? {};
   }
   return { ...layout, options: servedOptions as T };
 }

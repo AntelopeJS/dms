@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
-import { keepHyphenatedWords } from "../../build/utils/eyebrow";
 
 export type EyebrowTone = "dimmed" | "muted" | "primary" | "error";
 export type EyebrowSize = "xs" | "sm";
@@ -57,10 +56,6 @@ const theme = tv({
   },
 });
 
-const text = computed(() =>
-  props.label === undefined ? undefined : keepHyphenatedWords(props.label),
-);
-
 const classes = computed(() =>
   theme({ tone: props.tone, size: props.size, truncate: props.truncate }),
 );
@@ -68,6 +63,6 @@ const classes = computed(() =>
 
 <template>
   <component :is="props.as" :class="classes">
-    <slot>{{ text }}</slot>
+    <slot>{{ props.label }}</slot>
   </component>
 </template>

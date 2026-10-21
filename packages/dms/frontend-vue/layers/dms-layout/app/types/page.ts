@@ -100,8 +100,6 @@ export const MODULE_URL_PREFIX = "/modules";
 
 export interface PageInfo extends Omit<CategoryInfo, "category"> {
   layoutUrl: string;
-  /** Full slug of the page this one is a detail of (`MenuOptions.parent`). */
-  parentSlug?: string;
 }
 
 export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {

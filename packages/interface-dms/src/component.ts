@@ -156,14 +156,6 @@ export interface ComponentFilterContext {
    * the values like any other input.
    */
   query?: Readonly<Record<string, string>>;
-  /**
-   * The route parameters of the page URL the layout is served for: on a page
-   * registered at `/projects/project/:id`, `/projects/project/p1` is
-   * `{ id: "p1" }`. Set alongside `query` while a page layout is served, so a
-   * header button's `availability` can depend on the record the page shows.
-   * Caller-supplied, like `query`.
-   */
-  params?: Readonly<Record<string, string>>;
 }
 
 /**

@@ -11,19 +11,15 @@ interface PageHeaderActionsOutletProps {
   actions: LayoutHeaderAction[];
   /** The page query the server resolved their availability for. */
   servedQuery?: Record<string, string>;
-  /** The route parameters the server resolved their availability for. */
-  servedParams?: Record<string, string>;
 }
 
 const props = withDefaults(defineProps<PageHeaderActionsOutletProps>(), {
   servedQuery: undefined,
-  servedParams: undefined,
 });
 
 const actions = useServedHeaderActions({
   actions: () => props.actions,
   servedQuery: () => props.servedQuery,
-  servedParams: () => props.servedParams,
 });
 
 const ROOT_SELECTOR = "[data-dms-page-header-actions]";

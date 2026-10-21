@@ -327,27 +327,9 @@ export interface MenuOptions {
    * ```
    */
   live?: PageLiveOptions;
-  /**
-   * The page this one is a detail of, named by its controller: the
-   * breadcrumb shows it before this page, so a hidden detail page
-   * (`/operations/project/:id`) reads "Operations / Projects / <record>" and
-   * leads back to its list. Its route parameters are filled from this page's
-   * own when they share a name. Read on pages only: a category ignores it.
-   *
-   * ```ts
-   * export class ProjectPage extends PageController("project", {
-   *   displayName: "Project",
-   *   category: operationsCategory,
-   *   urlSlug: "project/:id",
-   *   hidden: true,
-   *   parent: ProjectsPage,
-   * }) {}
-   * ```
-   */
-  parent?: ControllerClass;
 }
 
-export interface CategoryInfo extends Omit<MenuOptions, "category" | "parent"> {
+export interface CategoryInfo extends Omit<MenuOptions, "category"> {
   id: string;
   fullId: string;
   fullSlug: string;
@@ -367,8 +349,6 @@ export interface CategoryInfo extends Omit<MenuOptions, "category" | "parent"> {
 
 export interface PageInfo extends CategoryInfo {
   layoutUrl: string;
-  /** Full slug of the page declared as `parent`, resolved at registration. */
-  parentSlug?: string;
 }
 
 /**
@@ -478,10 +458,6 @@ export type PageLayoutHandler = (
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
-  // `query`: the query of the page URL, handed to header-button availability;
-  // `params`: its route parameters (`:id`), handed along with it.
-  ...page: [
-    query?: Readonly<Record<string, string>>,
-    params?: Readonly<Record<string, string>>,
-  ]
+  /** The query of the page URL, handed to header-button availability. */
+  query?: Readonly<Record<string, string>>,
 ) => Promise<PageLayout>;

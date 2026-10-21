@@ -6,7 +6,6 @@ import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
   buildPagePayload,
-  pageParamsOf,
   internal as pageImplInternal,
 } from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
@@ -38,7 +37,6 @@ const models = stubPageAccessModels(["*"]);
 interface ServedOptions {
   headerActions: PageHeaderButtonSerialized[];
   headerActionsQuery?: Record<string, string>;
-  headerActionsParams?: Record<string, string>;
 }
 
 /**
@@ -165,83 +163,5 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
         url: new URL("http://dms.test/p/pagelayout?workspace=web&tag=a&tag=b"),
       }),
     ).to.deep.equal({ workspace: "web", tag: "b" });
-  });
-});
-
-/**
- * A detail page reads its record from a route parameter, not the query: its
- * header buttons hide themselves when `/:id` names no record.
- */
-describe("[unit] interfaces/dms/page — header availability reads the route parameters", () => {
-  const cleanups: Array<() => void> = [];
-  let pattern = "";
-
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-
-    const controller: ControllerClass = PageController(
-      "lq-project",
-      {
-        displayName: "Project",
-        category: pagesCategory,
-        urlSlug: "lq-projects/:id",
-        hidden: true,
-      },
-      DefaultLayout({
-        headerActions: [
-          {
-            id: "edit",
-            label: "Edit",
-            target: { type: "page", url: "/edit" },
-            availability: ({ params }) =>
-              params?.id === "p1" ? undefined : { hidden: true },
-          },
-        ],
-      }),
-    );
-    cleanups.push(await registerTestPage(controller));
-    pattern = GetMetadata(controller, PageMetadata).pageInfo?.fullSlug ?? "";
-  });
-
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
-  });
-
-  async function served(id: string) {
-    const path = pattern.replace(":id", id);
-    const payload = await buildPagePayload(
-      path,
-      MEMBER,
-      models.memberModel,
-      models.roleModel,
-      TENANT,
-      false,
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
-    );
-    return payload.layout.layout?.options as ServedOptions;
-  }
-
-  it("serves the button for an existing record, and says which one", async () => {
-    const options = await served("p1");
-    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
-      "edit",
-    ]);
-    expect(options.headerActionsParams).to.deep.equal({ id: "p1" });
-  });
-
-  it("leaves it out for a record that does not exist", async () => {
-    const options = await served("missing");
-    expect(options.headerActions).to.deep.equal([]);
-    expect(options.headerActionsParams).to.deep.equal({ id: "missing" });
-  });
-
-  it("reads a path's parameters against the page's pattern", () => {
-    expect(pageParamsOf("/a/:id/b", "/a/p1/b")).to.deep.equal({ id: "p1" });
-    expect(pageParamsOf("/a/:id/b", "/a/p1/c")).to.deep.equal({});
   });
 });

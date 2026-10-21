@@ -38,7 +38,6 @@ const LAYOUT_REQUEST_PROPERTIES = [
   "memberModel",
   "tenantId",
   "pageQuery",
-  "pageParams",
 ];
 
 interface DelayedComponentFixture {

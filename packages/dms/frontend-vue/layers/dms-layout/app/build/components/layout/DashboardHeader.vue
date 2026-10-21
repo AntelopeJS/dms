@@ -11,12 +11,6 @@ import {
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import type { CategoryInfo } from "../../../types/page";
 import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
-import {
-  foldBreadcrumb,
-  isFoldedCrumbs,
-  withParentCrumb,
-} from "../../../utils/breadcrumb";
-import { fillRouteParams } from "../../../utils/pageQuery";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
@@ -136,26 +130,6 @@ function moduleLandingSlug(
   );
 }
 
-/**
- * The crumb of the page the current one is a detail of (`parentSlug`), its
- * route parameters filled from the current page's: none when it is missing,
- * out of reach, or names a parameter the current page lacks.
- */
-const parentCrumb = computed((): BreadcrumbItem | null => {
-  const current = siteLayout.findMatchingRoute(route.path);
-  const parentSlug = current?.metadata.parentSlug;
-  if (!parentSlug) return null;
-  const path = fillRouteParams(parentSlug, current.params);
-  if (path.includes(":")) return null;
-  const parent = siteLayout.findMatchingRoute(path)?.metadata;
-  if (!parent || parent.hasAccess === false) return null;
-  const target = buildBreadcrumbTarget(path, parent, route.query);
-  return {
-    label: processI18n(parent.displayName),
-    ...(target ? { to: target } : {}),
-  };
-});
-
 const breadcrumb = computed((): BreadcrumbItem[] => {
   const base: BreadcrumbItem[] = [
     { icon: HOME_ICON, to: homepage || "/", "aria-label": t("header.home") },
@@ -169,7 +143,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
 
   const paths = route.path.split("/").filter((path) => path);
 
-  const pathCrumbs = base.concat(
+  const crumbs = base.concat(
     paths
       .map((path, index): BreadcrumbItem | null => {
         const to = `/${paths.slice(0, index + 1).join("/")}`;
@@ -196,7 +170,6 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
       })
       .filter((item) => item !== null),
   );
-  const crumbs = withParentCrumb(pathCrumbs, parentCrumb.value);
 
   // Written as the row has it: an email address keeps its lowercase.
   const last = crumbs.at(-1);
@@ -210,25 +183,32 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
   return crumbs;
 });
 
-// The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
-// deep page still fits a phone without losing the way back up.
 const mobileBreadcrumb = computed(
-  (): (BreadcrumbItem & { children?: DropdownMenuItem[] })[] =>
-    foldBreadcrumb(breadcrumb.value, MOBILE_ELLIPSIS_SLOT).map((crumb) => {
-      if (!isFoldedCrumbs(crumb)) return crumb;
-      return {
-        slot: crumb.slot,
-        children: crumb.children.map((x) => ({ label: x.label, to: x.to })),
-      };
-    }),
+  (): (BreadcrumbItem & { children?: DropdownMenuItem[] })[] => {
+    if (breadcrumb.value.length <= 2) {
+      return breadcrumb.value;
+    }
+
+    // The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
+    // deep page still fits a phone without losing the way back up.
+    return [
+      breadcrumb.value[0]!,
+      {
+        slot: MOBILE_ELLIPSIS_SLOT,
+        children: breadcrumb.value.slice(1, -1).map((x) => ({
+          label: x.label,
+          to: x.to,
+        })),
+      },
+      breadcrumb.value.slice(-1)[0]!,
+    ];
+  },
 );
 </script>
 
 <template>
   <div data-dms-persistent-header>
-    <!-- The phone toggle below is the only one: the navbar's own would sit
-         next to it. -->
-    <UDashboardNavbar :toggle="false">
+    <UDashboardNavbar>
       <template #leading>
         <UButton
           class="lg:hidden"

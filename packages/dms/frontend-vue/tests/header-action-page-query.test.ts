@@ -21,7 +21,6 @@ import {
 import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
 import {
   isSamePageQuery,
-  fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
 } from "../layers/dms-layout/app/utils/pageQuery";
@@ -195,14 +194,6 @@ describe("page query helpers", () => {
     );
     expect(layoutUrlWithQuery("/p/pagelayout", {})).toBe("/p/pagelayout");
   });
-
-  it("fills a page's layout URL with its route parameters", () => {
-    expect(
-      fillRouteParams("/dms/pages/projects/project/:id/pagelayout", {
-        id: "p1",
-      }),
-    ).toBe("/dms/pages/projects/project/p1/pagelayout");
-  });
 });
 
 describe("a header button's target URL", () => {
@@ -363,43 +354,6 @@ describe("a header button's availability", () => {
     route.query = { workspace: "web" };
     await nextTick();
     expect(labels()).toEqual(["Download", "Add key"]);
-  });
-
-  it("is asked again on the record of the page's route parameters", async () => {
-    const pattern = "/projects/project/:id";
-    vi.stubGlobal("useSiteLayout", () => ({
-      quickActions: ref(null),
-      findMatchingRoute: () => ({
-        metadata: {
-          fullSlug: pattern,
-          layoutUrl: `/dms/pages${pattern}/pagelayout`,
-        },
-        params: { id: route.path.split("/").at(-1) },
-      }),
-    }));
-    authFetch.mockResolvedValue({
-      components: {},
-      layout: { options: { headerActions: [] } },
-    });
-    route.path = "/projects/project/p1";
-    await mount(
-      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
-      {
-        actions: [download(false)],
-        servedQuery: { workspace: "web" },
-        servedParams: { id: "p1" },
-      },
-    );
-    expect(authFetch).not.toHaveBeenCalled();
-
-    route.path = "/projects/project/missing";
-    await nextTick();
-    await new Promise((resolve) => setTimeout(resolve));
-    expect(authFetch).toHaveBeenCalledWith(
-      "/dms/pages/projects/project/missing/pagelayout?workspace=web",
-    );
-    expect(labels()).toEqual([]);
-    route.path = "/modules/lang/queue/de";
   });
 
   it("is never asked again when no button declares one", async () => {

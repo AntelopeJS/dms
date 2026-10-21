@@ -91,7 +91,6 @@ import {
   isPageInsideModule,
   logModuleRouteGated,
   RequestQueryProperty,
-  RequestRouteParametersProperty,
   RequestTenantIdProperty,
 } from "./internal/metadata-helpers";
 
@@ -101,8 +100,6 @@ interface PageLayoutRequest {
   enforceTenantAccessGate?: boolean;
   /** The query of the page URL, for header-button availability. */
   query?: Readonly<Record<string, string>>;
-  /** The route parameters of the page URL, for header-button availability. */
-  params?: Readonly<Record<string, string>>;
 }
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
@@ -248,34 +245,33 @@ export class PageMetadata {
     menuOptions: MenuOptions,
     pageLayout?: ComponentInfo,
   ) {
-    const { parent, ...menu } = menuOptions;
-    const resolvedCategory = resolveCategoryInfo(menu.category);
+    const resolvedCategory = resolveCategoryInfo(menuOptions.category);
     const parentFullId = resolvedCategory?.fullId ?? "";
     const fullId = parentFullId ? `${parentFullId}.${id}` : id;
 
     const location = pageRoutePath(fullSlug, "/pagelayout");
 
     const pageInfo: PageInfo = {
-      ...menu,
+      ...menuOptions,
       category: resolvedCategory,
       id,
       fullId,
       fullSlug,
       layoutUrl: location,
-      parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
-      hidden: menu.hidden || resolvedCategory?.hidden,
-      publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
-      authOnly: menu.authOnly || resolvedCategory?.authOnly,
+      hidden: menuOptions.hidden || resolvedCategory?.hidden,
+      publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
+      authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
       memberAccess:
-        menu.memberAccess ||
+        menuOptions.memberAccess ||
         inheritedMemberAccess(resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
-        menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
+        menuOptions.bypassTenantAccessGate ||
+        resolvedCategory?.bypassTenantAccessGate,
     };
 
     this.layout =
       pageLayout ??
-      menu.layout ??
+      menuOptions.layout ??
       resolveInheritedLayout(resolvedCategory) ??
       DefaultLayout();
     this.pageInfo = pageInfo;
@@ -379,7 +375,6 @@ export class PageMetadata {
     this.ownRouteProperties();
     this.applyAuthDecorators(pageInfo);
     RequestQueryProperty()(this.target.prototype, "pageQuery");
-    RequestRouteParametersProperty()(this.target.prototype, "pageParams");
     this.registerLayoutRoute(pageInfo);
   }
 
@@ -535,15 +530,15 @@ export class PageMetadata {
   private registerLayoutRoute(pageInfo: PageInfo): void {
     const apimeta = GetMetadata(this.target, ControllerMeta);
     const resolvePageLayout = (
-      route: RouteCallbackContext,
+      user: User | undefined,
+      memberModel: TenantMemberModel,
+      roleModel: RoleModel,
+      tenantId: string,
+      query: Record<string, string>,
     ): Promise<PageLayout> =>
-      this.resolvePageLayout(
-        route.user,
-        route.memberModel,
-        route.roleModel,
-        route.tenantId,
-        { query: route.pageQuery, params: route.pageParams },
-      );
+      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
+        query,
+      });
 
     // The by-slug entry carries no guard of its own, so it asks the resolver
     // to assert the gate; the route below is already guarded.
@@ -552,19 +547,24 @@ export class PageMetadata {
       memberModel,
       roleModel,
       tenantId,
-      ...[query, params]
+      query,
     ) =>
       this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
         enforceTenantAccessGate: true,
         query,
-        params,
       });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
 
     const routeId = RegisterRoute({
       location: pageInfo.layoutUrl,
       callback: async function (this: RouteCallbackContext) {
-        return resolvePageLayout(this);
+        return resolvePageLayout(
+          this.user,
+          this.memberModel,
+          this.roleModel,
+          this.tenantId,
+          this.pageQuery,
+        );
       },
       method: "GET",
       mode: "handler",
@@ -590,7 +590,7 @@ export class PageMetadata {
     memberModel: TenantMemberModel,
     roleModel: RoleModel,
     tenantId: string,
-    { enforceTenantAccessGate = false, query, params }: PageLayoutRequest = {},
+    { enforceTenantAccessGate = false, query }: PageLayoutRequest = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
     if (!layout) {
@@ -635,7 +635,7 @@ export class PageMetadata {
 
     // Header actions declaring a permission are filtered on every page, even
     // one skipping component permissions: they name their own requirement.
-    const context = { tenantId, user, query, params };
+    const context = { tenantId, user, query };
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,

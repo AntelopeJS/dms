@@ -494,9 +494,7 @@
     },
     "a11y": {
       "breadcrumb": "Fil d'Ariane",
-      "close": "Fermer",
-      "loading": "Chargement",
-      "show_options": "Afficher les options"
+      "loading": "Chargement"
     }
   }
 }

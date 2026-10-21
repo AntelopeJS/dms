@@ -16,7 +16,7 @@
       {{ $t("form.password_strength.contains") }}
     </p>
 
-    <ul class="space-y-1 pl-3" aria-labelledby="password-strength">
+    <ul class="space-y-1 pl-3" aria-label="Password requirements">
       <li
         v-for="(req, index) in props.strength"
         :key="index"
