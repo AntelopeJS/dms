@@ -46,32 +46,10 @@ not survive orb updates.
 Only the project in `DMS_BACK_DIR`. The script records the pids it starts in
 `DMS_BACK_DIR/.antelope/dms-dev.pid`; without that file it matches only dev processes whose working
 directory or command line lies under `DMS_BACK_DIR`. Each process gets SIGTERM, then SIGKILL after
-`DMS_DEV_STOP_GRACE` seconds (default 10); on Windows, `taskkill /T /F` ([below](#windows)). Other projects' dev servers on the machine keep running,
+`DMS_DEV_STOP_GRACE` seconds (default 10). Other projects' dev servers on the machine keep running,
 which is why the script replaces `pkill` by name (`pkill -9 node`, `pkill -f antelope-runner`).
 
-`restart-back` and `restart-front` touch one server only: the pid the pid file records for it
-(`backend` or `frontend`) and its process tree, or, when that pid is gone (the server crashed),
-the processes of that server alone that the scan below finds. The other server keeps running.
-
 Run one `start` or `restart` at a time: a second concurrent call hits a port or lock conflict.
-
-## Windows
-
-The script runs in Git Bash, MSYS2 or Cygwin. Their `ps` lists only their own processes and takes
-no `-o`, and they have no `setsid`, while the dev servers run as native `node.exe` processes. So on
-Windows the script:
-
-- reads the Windows process table through PowerShell (`Get-CimInstance Win32_Process`: pid, parent
-  pid, creation time, command line), and maps the pids it recorded to Windows pids through
-  `/proc/<pid>/winpid`;
-- follows parent pids for the tree (Windows has no process groups), counting only children created
-  after their parent, so that a process holding a dead parent's reused pid is left alone;
-- stops each tree at once with `taskkill /T /F`: a console node process handles no SIGTERM, so
-  there is no grace period (`DMS_DEV_STOP_GRACE` is unused);
-- without a pid file, matches only processes whose command line names `DMS_BACK_DIR`: a native
-  process exposes no working directory. Servers started through `pnpm` rarely do (only binaries
-  installed in the project's `node_modules` show its path), so start them with the script, which
-  records their pids.
 
 ## Pitfalls
 

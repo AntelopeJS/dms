@@ -853,22 +853,6 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return this.relationInput(true);
-    }
-
-    // A filter picks among the rows there are: it never adds one.
-    public filterComponents() {
-      return { default: this.relationInput(false) };
-    }
-
-    public describedInputComponent() {
-      return this.relationInput(false);
-    }
-
-    // The picker, with the related table's "new" form when a row can be
-    // added through it: that form, nested relations included, is the bulk of
-    // the component, and only an editable field opens it.
-    private relationInput(canAdd: boolean) {
       const tableViewMeta = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -880,9 +864,7 @@ export namespace DefaultDataTypes {
       );
 
       const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
-      const addOptions = canAdd
-        ? this.buildAddOptions(tableViewMeta, endpoints)
-        : undefined;
+      const addOptions = this.buildAddOptions(tableViewMeta, endpoints);
 
       return FormComponents.InputRelation({
         placeholder: this.options.placeholder,

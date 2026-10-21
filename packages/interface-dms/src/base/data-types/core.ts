@@ -101,20 +101,6 @@ export abstract class DataType {
   }
 
   /**
-   * The input component a value of this type is described with where
-   * nothing is entered through it: a table column's type, whose cells, cards
-   * and quick filters read its options, and a read-only form field. Defaults
-   * to {@link inputComponent}; a type whose input carries what only an
-   * editable control uses (a relation's inline "add" form) leaves it out, so
-   * a page does not ship it once per column.
-   *
-   * @returns The input component, without what only editing uses
-   */
-  public describedInputComponent(): ComponentInfoSerialized {
-    return this.inputComponent();
-  }
-
-  /**
    * Returns a Zod schema for validating values of this data type.
    * This schema is used in the edit or new process in data-api to validate values
    * before saving to the database.
@@ -227,7 +213,7 @@ export function serializeType(
         compareModes,
         defaultCompareMode,
         filterComponents: filteredInputComponents,
-        inputComponent: instance.describedInputComponent(),
+        inputComponent: instance.inputComponent(),
       };
     }
   }

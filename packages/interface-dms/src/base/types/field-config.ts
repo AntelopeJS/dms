@@ -13,11 +13,6 @@ export interface ListableConfig {
 export interface FieldMetadata {
   mandatory?: Set<FormMode>;
   mode?: AccessMode;
-  /**
-   * The access of one data-api action (`new`, `edit`, `get`, `list`) where it
-   * differs from `mode`: `@Access(AccessMode.ReadWrite, { new: AccessMode.ReadOnly })`.
-   */
-  modeOverrides?: Record<string, AccessMode>;
   listable?: ListableConfig;
   sortable?: boolean;
 }

@@ -49,31 +49,3 @@ export function keepListedRows(
     Object.entries(expanded).filter(([id]) => listed.has(id)),
   );
 }
-
-/** A table's open rows, and the listed set (its query) they belong to. */
-export interface ExpandedRowsState {
-  expanded: ExpandedRowMap;
-  listedKey?: string;
-}
-
-/**
- * The open rows once the listed rows change: a newly listed set (another
- * `listedKey`: page, filter, search, sort, tab, archive view) opens with
- * `defaultExpanded`; a refresh of the same set keeps what the user opened,
- * minus rows no longer listed. Rows that have not arrived yet (`undefined`,
- * the list still loading, as on a first load) list no set: the default waits
- * for them instead of being spent on an empty table.
- */
-export function expandedRowsOnListing(
-  state: ExpandedRowsState,
-  rowIds: string[] | undefined,
-  listedKey: string,
-  mode?: ExpandedDefault,
-  single?: boolean,
-): ExpandedRowsState {
-  if (!rowIds) return state;
-  if (listedKey === state.listedKey) {
-    return { listedKey, expanded: keepListedRows(state.expanded, rowIds) };
-  }
-  return { listedKey, expanded: defaultExpandedRows(rowIds, mode, single) };
-}

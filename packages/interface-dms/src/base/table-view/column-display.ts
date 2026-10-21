@@ -223,10 +223,7 @@ export namespace DefaultDisplays {
   export type RelativeDateStyle = "relative" | "day";
 
   export interface RelativeDateDisplayOptions {
-    /**
-     * `relative` ("2 hr. ago", "In 5 days", the default) or `day` ("Sep 27",
-     * with its year for a date of another year: "Apr 2, 2018").
-     */
+    /** `relative` ("2 hr. ago", "In 5 days", the default) or `day`. */
     style?: RelativeDateStyle;
     tone?: CellTone;
     /** A past date closer than this reads `nowLabel`, with a live dot. */
