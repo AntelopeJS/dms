@@ -547,7 +547,7 @@
           "description": "Send an in-app notification to specific users and/or every user holding one of the given roles",
           "fields": {
             "userId": "One recipient, e.g. a trigger's user ID",
-            "tenantId": "Workspace whose members receive the role notification; leave empty to match the roles in every workspace",
+            "tenantId": "Workspace whose members receive the role notification; leave empty for the default workspace",
             "title": "Literal text, or a \"$\" translation key",
             "description": "Literal text, or a \"$\" translation key",
             "params": "Interpolation params of the title and description translations",

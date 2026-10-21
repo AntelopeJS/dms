@@ -118,14 +118,14 @@ describe("Automation action dms.send-notification", () => {
     assert.equal((await inboxOf(OTHER_USER)).length, 1);
   });
 
-  it("matches the roles in every tenant without a tenantId, as before", async () => {
+  it("matches the roles in the default tenant without a tenantId", async () => {
     await addMember(DEFAULT_TENANT_ID, USER, [ROLE]);
     await addMember(OTHER_TENANT, OTHER_USER, [ROLE]);
 
-    await send({ roleIds: [ROLE], title: "Everywhere" });
+    await send({ roleIds: [ROLE], title: "Default" });
 
     assert.equal((await inboxOf(USER)).length, 1);
-    assert.equal((await inboxOf(OTHER_USER)).length, 1);
+    assert.equal((await inboxOf(OTHER_USER)).length, 0);
   });
 
   it("delivers a replayed event once per node with an idempotency key", async () => {

@@ -547,7 +547,7 @@
           "description": "Envoie une notification dans l'application à des utilisateurs précis et/ou à tous les utilisateurs ayant l'un des rôles indiqués",
           "fields": {
             "userId": "Un destinataire, par ex. l'ID utilisateur d'un déclencheur",
-            "tenantId": "Espace de travail dont les membres reçoivent la notification par rôle ; laissez vide pour viser les rôles dans tous les espaces",
+            "tenantId": "Espace de travail dont les membres reçoivent la notification par rôle ; laissez vide pour l'espace par défaut",
             "title": "Texte littéral, ou clé de traduction \"$\"",
             "description": "Texte littéral, ou clé de traduction \"$\"",
             "params": "Paramètres d'interpolation des traductions du titre et de la description",

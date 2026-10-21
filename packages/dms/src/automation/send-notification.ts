@@ -1,5 +1,4 @@
-import { GetModel } from "@antelopejs/interface-database-decorators";
-import { TenantMemberModel } from "@antelopejs/interface-dms/db";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
   AutomationSubject,
   type NotificationData,
@@ -106,24 +105,6 @@ function collectRecipients(input: SendNotificationInput): Recipients {
 }
 
 /**
- * Members of one tenant holding any of the roles. Role ids belong to a tenant,
- * so a procedure fired by a tenant event names the tenant to keep the
- * notification inside it.
- */
-async function tenantMembersWithRoles(
-  tenantId: string,
-  roleIds: string[],
-): Promise<string[]> {
-  const targetRoleIds = new Set(roleIds);
-  const members = await GetModel(TenantMemberModel, tenantId).listAll();
-  return members
-    .filter((member) =>
-      member.roleIds?.some((roleId) => targetRoleIds.has(roleId)),
-    )
-    .map((member) => member.userId);
-}
-
-/**
  * A trigger's `deliveryId` is unique to one event, but two nodes of a
  * procedure (or two procedures) acting on the same event must not share a
  * delivery: the key is scoped to the node sending it.
@@ -222,12 +203,11 @@ export const sendNotificationAction: ActionType<
     }
     const sendable = buildNotification(input, ctx);
     const options = toSendOptions(input.idempotencyKey, ctx);
-    const tenantId = input.tenantId?.trim();
-    if (tenantId && roleIds.length > 0) {
-      userIds.push(...(await tenantMembersWithRoles(tenantId, roleIds)));
-    } else if (roleIds.length > 0) {
-      await sendable.toRoles(roleIds, options);
-    }
+    // Role ids belong to a tenant: an empty input means the default one, as
+    // for every tenant-scoped node.
+    const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
+    if (roleIds.length > 0)
+      await sendable.toRoles(roleIds, { ...options, tenantId });
     if (userIds.length > 0) await sendable.toUsers(userIds, options);
     return { ok: true };
   },
