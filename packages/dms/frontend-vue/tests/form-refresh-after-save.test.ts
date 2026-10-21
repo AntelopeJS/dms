@@ -5,9 +5,10 @@ import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 
 /**
  * A save the server normalizes (a VAT number stripped of its spaces, the
- * empty rows of a list dropped): the form shows what the edit route answered
- * it stored, not what was typed, and stays saved, without reading the record
- * again.
+ * empty rows of a list dropped): the form shows what the server stored, not
+ * what was typed, and stays saved. A route answering the record (a table
+ * view's edit route) is read without a second request; a route answering
+ * anything else has the form read `fetchUrl` again.
  */
 const GET_URL = "/api/settings/get";
 const EDIT_URL = "/api/settings/edit";
@@ -128,16 +129,38 @@ describe("DMS form after a save", () => {
     expect(form.state.value.vatNumber).toBe(STORED.vatNumber);
   });
 
-  it("keeps the values sent when the route answers no record", async () => {
+  it("reads the record again when the route answers no record", async () => {
     for (const body of [{ success: true }, undefined, ["s-1"]]) {
+      authFetch.mockClear();
       answer = () => body;
-      const form = setupForm();
+      authFetch.mockImplementation(async (url: string) =>
+        url === EDIT_URL ? answer() : structuredClone(STORED),
+      );
+      const onSaved = vi.fn();
+      const form = setupForm({}, onSaved);
 
       await saveTyped(form);
 
-      expect(form.state.value).toMatchObject(TYPED);
+      expect(reads(), JSON.stringify(body)).toHaveLength(1);
+      expect(form.state.value).toMatchObject(STORED);
+      expect(form.initialValues.value).toMatchObject(STORED);
       expect(form.submitSucceeded.value).toBe(true);
+      expect(onSaved).toHaveBeenCalledTimes(2);
     }
+  });
+
+  it("keeps the values sent when that second read fails", async () => {
+    answer = () => ({ success: true });
+    authFetch.mockImplementation(async (url: string) => {
+      if (url === EDIT_URL) return answer();
+      throw new Error("offline");
+    });
+    const form = setupForm();
+
+    await saveTyped(form);
+
+    expect(form.state.value).toMatchObject(TYPED);
+    expect(form.submitSucceeded.value).toBe(true);
   });
 
   it("applies nothing for a new row, an action or a redirect", async () => {

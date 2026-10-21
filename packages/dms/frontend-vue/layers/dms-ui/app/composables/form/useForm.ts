@@ -1,6 +1,6 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
-import { nextTick, onMounted, unref } from "vue";
+import { nextTick, onMounted, onScopeDispose, unref } from "vue";
 import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { FormEvents } from "./types/events";
@@ -553,6 +553,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   // Set while the record a save stored reaches the state: what the server
   // stored is no edit made since.
   let isApplyingSavedRecord = false;
+  let isDisposed = false;
+  onScopeDispose(() => {
+    isDisposed = true;
+  });
   watch(
     () => state.value,
     () => {
@@ -775,35 +779,61 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     options.onSaved?.();
   };
 
+  /** Puts the record a save stored in the state: no edit made since. */
+  const applyStoredRecord = async (stored: FormData): Promise<void> => {
+    isApplyingSavedRecord = true;
+    Object.assign(state.value, stored);
+    options.onSaved?.();
+    await nextTick();
+    isApplyingSavedRecord = false;
+  };
+
   /**
-   * Shows the record its update stored, as the route answered it: the server
-   * may store what it was sent normalized (a VAT number stripped of its
-   * spaces, the empty rows of a list dropped). Only the form's fields are
-   * taken from the answer, so a route answering `{ success: true }` changes
-   * nothing. The form stays saved, and an edit made since is kept.
+   * Reads the record back from `fetchUrl` once its update went through, for
+   * a route that does not answer it. An edit made meanwhile is kept, and a
+   * failed read leaves the values as they were sent.
    */
-  const applySavedRecord = async (
+  const refreshSavedRecord = async (): Promise<void> => {
+    let stored: FormData | undefined;
+    try {
+      stored = (await loadRecord()) as FormData | undefined;
+    } catch {
+      return;
+    }
+    if (isDisposed || !submitSucceeded.value) return;
+    if (!stored || Object.keys(stored).length === 0) return;
+    await applyStoredRecord(stored);
+  };
+
+  /**
+   * Shows the record its update stored rather than what was typed: the
+   * server may store what it was sent normalized (a VAT number stripped of
+   * its spaces, the empty rows of a list dropped). A route that answers the
+   * record (a table view's edit route, interface-data-api 0.3) is read
+   * without a second request: its answer holds the record when it carries
+   * one of the form's fields, and only those are taken. Any other answer
+   * (`{ success: true }`, nothing) has the form read `fetchUrl` again. The
+   * form stays saved.
+   */
+  const showSavedRecord = async (
     response: FormSubmitResponse | undefined,
   ): Promise<void> => {
-    if (!submitSucceeded.value || !isPlainObject(response)) return;
+    if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
     // The route answers JSON, as `fetchUrl` does: field values.
-    const record: FormData = Object.fromEntries(
-      Object.entries(response).filter(([key]) => fieldIds.has(key)),
-    ) as FormData;
-    if (Object.keys(record).length === 0) return;
+    const record: FormData = isPlainObject(response)
+      ? (Object.fromEntries(
+          Object.entries(response).filter(([key]) => fieldIds.has(key)),
+        ) as FormData)
+      : {};
+    if (Object.keys(record).length === 0) return refreshSavedRecord();
     initialValues.value = {
       ...initialValues.value,
       ...JSON.parse(JSON.stringify(record)),
     };
-    isApplyingSavedRecord = true;
-    Object.assign(
-      state.value,
-      processBeforeStateMappers(record, props.fields, getDataType),
+    await applyStoredRecord(
+      processBeforeStateMappers(record, props.fields, getDataType) as FormData,
     );
-    options.onSaved?.();
-    await nextTick();
-    isApplyingSavedRecord = false;
   };
 
   const handleSubmitSuccess = async (
@@ -899,7 +929,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
         props.kind !== "action" &&
         !props.redirectOnSuccess
       ) {
-        await applySavedRecord(response);
+        await showSavedRecord(response);
       }
     } catch (error) {
       reportSubmitError(error);
