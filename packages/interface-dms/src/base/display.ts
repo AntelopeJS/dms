@@ -226,6 +226,36 @@ export const blockItemsSourceOptions = () => ({
 });
 
 /**
+ * A fetched list block read with the page (`NavCardGrid`, `KeyValueList`),
+ * as a fetched `Banner` always is.
+ */
+export interface BlockNavigationHold {
+  /**
+   * Reads `fetchUrl` with the page: a client navigation waits for the first
+   * answer (as for the page's own data) instead of showing the page with the
+   * block still a placeholder, for a block that must not land late and push
+   * what is under it. A server render already waits for it. Off by default:
+   * the page shows at once and the block draws its placeholders. Without
+   * `fetchUrl`, or with a `{{params.X}}` token that has no value yet, it holds
+   * nothing.
+   */
+  holdNavigation?: boolean;
+}
+
+/** The schema entry of {@link BlockNavigationHold}. */
+export const blockNavigationHoldOption = () => ({
+  holdNavigation: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Read the data with the page: a navigation waits for it instead of the block loading after.",
+      ),
+    { label: "Load with the page", group: "data", advanced: true },
+  ),
+});
+
+/**
  * The watch functions every block can name in `.watch()`.
  *
  * `REFRESH_PAGE` asks every block of the page that reads its data from a

@@ -142,6 +142,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).
+- A fetched `NavCardGrid` or `KeyValueList` that must not land late takes `holdNavigation: true`:
+  read with the page, a navigation waits for its first answer — never wrap it in a custom component
+  for that.
 - `TopListCard({ actions })` puts link buttons in its head; `Tab({ fit: true })` keeps pill tabs to
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the

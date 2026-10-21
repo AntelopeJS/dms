@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DmsNavigationHold from "../../build/components/blocks/NavigationHold.vue";
 import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { gridColumnsTemplate } from "../grid/columns";
 import {
@@ -63,6 +64,8 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
    * Optional. Defaults to `columns` (one row), or 3.
    */
   skeletonCount?: number;
+  /** Reads `fetchUrl` with the page: a navigation waits for its first answer. */
+  holdNavigation?: boolean;
 }
 
 const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
@@ -76,6 +79,7 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   periodScope: undefined,
   realtimeTopic: undefined,
   empty: undefined,
+  holdNavigation: false,
   skeletonCount: undefined,
 });
 
@@ -97,6 +101,7 @@ const {
   hasError,
   notFound,
   refresh,
+  ready,
 } = useBlockItems<NavCardGridItem>({
   items: () => props.items,
   fetchUrl: props.fetchUrl,
@@ -106,6 +111,7 @@ const {
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
+  holdNavigation: props.holdNavigation,
 });
 
 const columnCount = computed(() =>
@@ -154,6 +160,9 @@ const { t } = useI18n();
 
 <template>
   <section v-if="!isLeftOut">
+    <!-- With holdNavigation, a client navigation waits for the first answer,
+      as for a fetched Banner; the block itself renders at once. -->
+    <DmsNavigationHold v-if="props.holdNavigation" :until="ready" />
     <DmsSectionHeader
       v-if="props.title || props.description"
       class="mb-3"
