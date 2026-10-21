@@ -3,6 +3,8 @@
  * form input only: table cells, expanded rows, cards and read-only fields
  * drew the bare number, so the unit disappeared from lists. Every place a
  * numeric type is drawn writes it, after the value formatted for the locale.
+ * A formatter runs outside any component setup too (a footer sum, a group
+ * header): the unit is translated without calling a composable.
  */
 import { h } from "vue";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -28,8 +30,14 @@ const NBSP = " ";
 const formatters = new Map<string, DataType["formatter"]>();
 
 beforeAll(async () => {
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
+  // As outside a setup: a composable throws, the app's composer answers.
+  const outsideSetup = () => {
+    throw new Error("Must be called at the top of a `setup` function");
+  };
+  vi.stubGlobal("useI18n", outsideSetup);
+  vi.stubGlobal("useTranslation", outsideSetup);
+  vi.stubGlobal("useDmsApp", () => ({
+    $i18n: { t: (key: string) => `t($${key})` },
   }));
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
