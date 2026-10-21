@@ -2,23 +2,17 @@ import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
-import type { RoleModel } from "@antelopejs/interface-dms/db";
-import { withBackfilledDependencies } from "@antelopejs/interface-dms/internal/backfilled-grants";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
   type ComponentNodeMap,
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import {
-  GetPermission,
-  GetUserPermissions,
-  HasPermission,
-} from "@antelopejs/interface-dms/permissions";
+import { HasPermission } from "@antelopejs/interface-dms/permissions";
 import { classifyPreviewBlocks } from "../../../../pages/settings/users/role-preview";
 
 // The actions a table's rows lead to depend on its `list`, and the table
-// itself is withheld without it; roles stored before keep their rights.
+// itself is withheld without it.
 
 const CATEGORY = "tld-sales";
 const PAGE = `${CATEGORY}.invoices`;
@@ -68,18 +62,6 @@ async function servedBlocks(permissions: string[]): Promise<string[]> {
     CONTEXT,
   );
   return Object.keys(served);
-}
-
-/** A role model serving the given stored roles. */
-function rolesHolding(...roles: string[][]): RoleModel {
-  const stored = roles.map((permissions, index) => ({
-    _id: `role-${index}`,
-    permissions,
-  }));
-  return {
-    getBy: async (_field: string, ...ids: string[]) =>
-      stored.filter((role) => ids.includes(role._id)),
-  } as unknown as RoleModel;
 }
 
 describe("[unit] interfaces/dms/permissions — table actions need the list", () => {
@@ -184,46 +166,6 @@ describe("[unit] interfaces/dms/permissions — table actions need the list", ()
 
     it("does not grant the list a table requires", async () => {
       expect(await withRequiredPermissions([TABLE])).to.not.include(LIST);
-    });
-  });
-
-  describe("roles stored before the dependencies", () => {
-    const getPermission = (id: string) => GetPermission(id);
-
-    it("completes an edit with the list it now needs", async () => {
-      const completed = await withBackfilledDependencies(
-        [...CHAIN, VIEW, EDIT, DELETE],
-        getPermission,
-      );
-      expect(completed).to.have.members([...CHAIN, VIEW, EDIT, DELETE, LIST]);
-    });
-
-    it("completes a restore with the archived view and its list", async () => {
-      const completed = await withBackfilledDependencies(
-        [...CHAIN, RESTORE],
-        getPermission,
-      );
-      expect(completed).to.include.members([VIEW_ARCHIVED, LIST]);
-    });
-
-    it("leaves a completed role, and a table held alone, unchanged", async () => {
-      const completed = [...CHAIN, LIST, VIEW, EDIT];
-      expect(
-        await withBackfilledDependencies(completed, getPermission),
-      ).to.equal(completed);
-      expect(
-        await withBackfilledDependencies([...CHAIN], getPermission),
-      ).to.have.members(CHAIN);
-    });
-
-    it("keeps the rights of a stored role in the member's permission set", async () => {
-      const permissions = await GetUserPermissions(
-        {},
-        ["role-0"],
-        rolesHolding([...CHAIN, VIEW, EDIT]),
-      );
-      expect(await HasPermission(permissions, EDIT)).to.equal(true);
-      expect(await HasPermission(permissions, TABLE)).to.equal(true);
     });
   });
 });

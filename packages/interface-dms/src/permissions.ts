@@ -3,7 +3,6 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
-import { withBackfilledDependencies } from "./internal/backfilled-grants";
 import { permissionIdAncestors } from "./internal/permission-ids";
 import { ApplyPermissionsResolvers } from "./permissions-resolver";
 
@@ -97,14 +96,7 @@ export async function GetUserPermissions(
     return new Set();
   }
   const roles = await roleModel.getBy("_id", ...roleIds);
-  // A role stored before the table view actions depended on their `list`
-  // keeps the rights it had (see `withBackfilledDependencies`).
-  const granted = await Promise.all(
-    roles.map((role: Role) =>
-      withBackfilledDependencies(role.permissions ?? [], GetPermission),
-    ),
-  );
-  return new Set(granted.flat());
+  return new Set(roles.flatMap((role: Role) => role.permissions));
 }
 
 /**
