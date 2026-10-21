@@ -309,6 +309,37 @@ describe("action targets on a selection and on a listed row", () => {
       expect(api.mock.calls[1]?.[0]).toBe("/api/runs/rerun?ids=a&ids=b");
     });
 
+    it("counts one row in its confirmation and its success toast", async () => {
+      // Confirmed: the dialog runs the request inside it.
+      const confirm = vi.fn(
+        async (options: { onConfirm?: (values: object) => unknown }) => {
+          await options.onConfirm?.({});
+          return true;
+        },
+      );
+      vi.stubGlobal("useConfirm", () => ({ confirm }));
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        {
+          label: "Resolve",
+          bulk: true,
+          confirm: { title: "$tickets.resolve_confirm" },
+          target: {
+            type: "api",
+            url: "/api/tickets/bulk/resolve",
+            successMessage: "$tickets.resolved",
+          },
+        },
+        { _id: "t7", subject: "Noisy fan" },
+      );
+      await vi.waitFor(() => expect(toasts).toHaveLength(1));
+      expect(confirm.mock.calls[0]?.[0]).toMatchObject({
+        title: "tickets.resolve_confirm(1|1)",
+      });
+      expect(toasts[0]?.title).toBe("tickets.resolved(1|1)");
+      expect(api.mock.calls[0]?.[0]).toBe("/api/tickets/bulk/resolve?ids=t7");
+    });
+
     it("leaves an action that is not bulk as it is", async () => {
       const targets = mountTargets();
       targets.handleCustomRowAction(

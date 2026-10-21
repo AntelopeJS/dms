@@ -69,7 +69,7 @@ const URL_TARGET_TYPES = new Set([
 
 type UrlTarget = ActionTarget & { url: string };
 
-const isUrlTarget = (target: ActionTarget): target is UrlTarget =>
+export const isUrlTarget = (target: ActionTarget): target is UrlTarget =>
   URL_TARGET_TYPES.has(target.type);
 
 /**

@@ -18,6 +18,7 @@ import {
   type BulkSelection,
   bulkSelectionQuery,
   isBulkAction,
+  isUrlTarget,
   targetForRow,
   targetWithSelection,
   withQuery,
@@ -137,6 +138,8 @@ interface TargetRunExtras {
   selection?: BulkSelection;
   /** The open row is reflected in the URL. */
   deepLink?: boolean;
+  /** Fill-ins of the confirmation's texts besides the row's: `{ count }`. */
+  textParams?: Data;
 }
 
 type SidePanelTarget = ActionTarget & { type: "sidePanel" };
@@ -676,7 +679,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
     const runInside = confirmedRuns[target.type]?.(target, rowData);
     const isConfirmed = await confirmAction(declared, {
-      row: rowData,
+      row: extras?.textParams ? { ...rowData, ...extras.textParams } : rowData,
       urlParams: rowUrlParams(rowData),
       run: runInside,
     });
@@ -712,12 +715,19 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const rowRun = (action: CustomRowAction, rowData?: Data) => {
     const id = rowIdOf(rowData);
     if (!isBulkAction(action) || id === undefined) {
-      return { target: action.target, confirm: action.confirm };
+      return { target: action.target, confirm: action.confirm, row: rowData };
     }
-    const query = bulkSelectionQuery({ ids: [id], count: 1 });
+    const selection: BulkSelection = { ids: [id], count: 1 };
+    const query = bulkSelectionQuery(selection);
     const { confirm } = action;
+    // Its texts count one row, as the bar's count the selection ("Resolve
+    // this ticket?"): its dialog, and the toast of a URL target. A drawer,
+    // modal or side panel still receives the row as it is.
+    const textParams = { count: selection.count };
     return {
       target: targetForRow(action.target, query),
+      textParams,
+      row: isUrlTarget(action.target) ? { ...rowData, ...textParams } : rowData,
       confirm:
         confirm && isConfirmFrom(confirm) && !namesRowField(confirm.from)
           ? { from: withQuery(confirm.from, query) }
@@ -726,9 +736,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    const { target, confirm } = rowRun(action, rowData);
-    void handleActionTarget(target, action.label, rowData, confirm, {
+    const { target, confirm, row, textParams } = rowRun(action, rowData);
+    void handleActionTarget(target, action.label, row, confirm, {
       deepLink: isDeepLinkAction(action),
+      textParams,
     });
   };
 
