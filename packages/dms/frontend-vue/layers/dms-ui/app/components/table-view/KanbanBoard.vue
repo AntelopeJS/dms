@@ -18,7 +18,6 @@ import {
   buildCardProps,
   cardFieldColumns,
 } from "../../build/composables/table-view/utils/card";
-import { isNoRowsQuery } from "../../build/composables/table-view/utils/tableQuery";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -106,25 +105,15 @@ const boardColumns = computed<KanbanColumnDef[]>(() => {
 
 const cells = ref<Record<string, BoardCellState>>({});
 
-const NO_ROWS_PAGE: ListResponse = {
-  results: [],
-  total: 0,
-  offset: 0,
-  limit: 0,
-};
-
-// The table's filters keeping no row (see `buildTableQuery`) list none.
 const fetchColumnPage = (columnValue: string, offset: number) =>
-  isNoRowsQuery(props.baseQuery)
-    ? Promise.resolve(NO_ROWS_PAGE)
-    : $authFetch<ListResponse>(`${props.location}/list`, {
-        query: {
-          ...props.baseQuery,
-          [`filter_${groupByField.value}`]: `is:${columnValue}`,
-          limit: pageSize.value,
-          offset,
-        },
-      });
+  $authFetch<ListResponse>(`${props.location}/list`, {
+    query: {
+      ...props.baseQuery,
+      [`filter_${groupByField.value}`]: `is:${columnValue}`,
+      limit: pageSize.value,
+      offset,
+    },
+  });
 
 // Per-instance suffix: two boards with the same componentId/pageId on one
 // page must not share the same useDmsAsyncData entry.

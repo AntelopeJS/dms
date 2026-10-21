@@ -55,7 +55,6 @@ import { useTableRowActions } from "../../build/composables/table-view/useTableV
 import {
   buildTableQuery,
   isFilterEffective,
-  isNoRowsQuery,
 } from "../../build/composables/table-view/utils/tableQuery";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
 import {
@@ -1406,12 +1405,8 @@ const restoreRows = async (ids: string[]) => {
   }
 };
 
-// Filters keeping no row have nothing to export: the server, which reads one
-// filter per column, would export the tab's rows instead.
 const handleExportTable = () =>
-  isNoRowsQuery(queryRequest.value)
-    ? undefined
-    : exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
+  exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
 const handleExportSelection = (ids: string[]) =>
   exportTable(location, queryRequest.value, ids);
 // A built-in action declaring a `confirm` asks it first.
