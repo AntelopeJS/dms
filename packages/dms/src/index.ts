@@ -40,7 +40,10 @@ import {
   registerDmsCrons,
   runCleanupUserInvites,
 } from "./crons";
-import { runSweepStaleExports } from "./crons/sweep-stale-exports";
+import {
+  runSweepStaleExports,
+  SWEEP_STALE_EXPORTS_CRON_NAME,
+} from "./crons/sweep-stale-exports";
 import {
   startModuleUpdateWatcher,
   stopModuleUpdateWatcher,
@@ -73,7 +76,6 @@ import { registerDocsPreviewPage } from "./pages/public/preview";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
-import { setSchemasRegistered } from "./routes/startup-gate";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
@@ -88,6 +90,7 @@ import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/interna
 export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
+let staleExportsSweep: Promise<void> = Promise.resolve();
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
@@ -295,9 +298,12 @@ export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  setSchemasRegistered(true);
   await SettleHook(Hook.DATABASE_INITIALIZED);
-  await runSweepStaleExports();
+  // `start()` means ready to serve: the sweep scans every tenant and serves
+  // no request, so it runs behind the open gate. `stop()` waits for it.
+  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
+    Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
+  });
   cronTasks = registerDmsCrons();
   // Invitations that expired while no process ran are settled now, not at
   // the next 3 a.m. run: their inviters hear about it the same day.
@@ -310,7 +316,7 @@ export async function start(): Promise<void> {
 }
 
 export async function stop(): Promise<void> {
-  setSchemasRegistered(false);
+  await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
