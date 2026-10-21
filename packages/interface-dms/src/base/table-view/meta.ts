@@ -9,6 +9,7 @@ import {
   AccessMode,
   DataAPIMeta,
   Filter,
+  GetEffectiveMode,
   Listable,
   Validator,
 } from "@antelopejs/interface-data-api/metadata";
@@ -310,14 +311,10 @@ export class TableViewMeta {
     return readonlyBehavior[mode] || ReadonlyBehaviorType.default;
   }
 
-  /**
-   * Whether a field is read-only in a form: its `@Access` for the action the
-   * form runs (`{ new: AccessMode.ReadOnly }`), else its default access, as
-   * the data API reads and writes it.
-   */
+  /** Whether a field is read-only in the data API action a form runs. */
   private isReadOnlyIn(meta: FieldMetadata, mode: FormMode): boolean {
     const action = ACCESS_ACTION_BY_FORM_MODE[mode];
-    return (meta.modeOverrides?.[action] ?? meta.mode) === AccessMode.ReadOnly;
+    return GetEffectiveMode(meta, action) === AccessMode.ReadOnly;
   }
 
   private getRequiredForMode(data: FieldMetadata, mode: FormMode): boolean {
