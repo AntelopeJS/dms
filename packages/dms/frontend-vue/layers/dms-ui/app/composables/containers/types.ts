@@ -1,5 +1,6 @@
 import type { Component } from "vue";
 import type { ModalSize } from "../../types/modal";
+import type { RowNavigation } from "../../types/row-navigation";
 
 /**
  * Side from which a {@link DrawerOptions} drawer slides in.
@@ -43,6 +44,53 @@ export interface ContainerOptions {
 /** Options accepted by {@link useDrawer}'s `open`. */
 export interface DrawerOptions extends ContainerOptions {
   direction?: DrawerDirection;
+  /**
+   * Width a `left` / `right` drawer opens at from `lg`: a modal's width at
+   * that size (`sm` 384px ... `5xl` 1024px), `full` the whole window; 600px
+   * without one, capped to the window. Below `lg` an unsized side drawer is
+   * 440px wide, and on a phone every side drawer, sized or not, leaves a 2rem
+   * strip of backdrop (only `full` fills the screen). A `top` / `bottom`
+   * drawer ignores it.
+   */
+  size?: ModalSize;
+  /**
+   * The key the size the user drags the drawer to is remembered under, on
+   * this device (a cookie): the same drawer opens again at that size. Sizes
+   * are kept per axis, so a side and a bottom drawer may share a key.
+   * Defaults to `containerId`, else to the body component's name (its
+   * `name`, or the file name of a `<script setup>` component): a drawer keeps
+   * its size without one. Set it when one component opens drawers that
+   * should not share a size, or when an anonymous component (a render
+   * function, an async wrapper) or a per-opening `containerId` would forget.
+   */
+  sizeKey?: string;
+  /**
+   * Draws the DMS's row header in place of the drawer's own title, as on a
+   * row action's drawer: the row's title, its position ("4 of 50") and
+   * previous / next, next to the close button; J and K step while the
+   * drawer is open. For a drawer a module opens on a row of its own list.
+   */
+  rowHeader?: DrawerRowHeader;
+}
+
+/**
+ * The DMS's row header over a drawer opened with {@link useDrawer}. Patch it
+ * (`patch({ rowHeader })`) as the drawer steps to another row.
+ */
+export interface DrawerRowHeader {
+  /** The row's title; the drawer's `title` without one. */
+  title?: string;
+  /**
+   * i18n key (`$`-prefixed) of the position, receiving `{ index, total }`
+   * (1-based, grouped as the locale does); "{index} of {total}" without one.
+   */
+  positionLabel?: string;
+  /**
+   * The row's place among the rows it steps through: the position, the
+   * previous / next buttons and J / K call its `prev()` and `next()`. No
+   * position nor buttons without one.
+   */
+  navigation?: RowNavigation;
 }
 
 /** Options accepted by {@link useModal}'s `open`. */
@@ -67,6 +115,23 @@ export interface ContainerInstance<Result = unknown> {
 export type ContainerPatch = Partial<
   Pick<
     ContainerOptions,
-    "title" | "description" | "componentOptions" | "componentKey"
+    | "title"
+    | "description"
+    | "componentOptions"
+    | "componentKey"
+    | "headerComponentOptions"
   >
 >;
+
+/**
+ * What an open drawer can change in place: a container's, and the row
+ * header it was opened with (`rowHeader`), replaced as a whole.
+ */
+export type DrawerPatch = ContainerPatch & Pick<DrawerOptions, "rowHeader">;
+
+/** The handle of a drawer opened with {@link useDrawer}. */
+export interface DrawerInstance<Result = unknown>
+  extends Omit<ContainerInstance<Result>, "patch"> {
+  /** Updates the open drawer: its texts, its body, its row header. */
+  patch: (options: DrawerPatch) => void;
+}

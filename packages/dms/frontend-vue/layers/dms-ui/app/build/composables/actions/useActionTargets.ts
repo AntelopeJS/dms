@@ -13,7 +13,13 @@ import type {
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveResponseToast } from "../../utils/responseWarning";
-import type { ContainerInstance } from "../../../composables/containers/types";
+import type {
+  ContainerInstance,
+  DrawerOptions,
+} from "../../../composables/containers/types";
+import DmsRowHeader from "../../components/containers/row/RowHeader.vue";
+import { drawerRowHeaderProps } from "../../components/containers/row/drawerRowHeader";
+import DmsRowNotFound from "../../components/containers/row/RowNotFound.vue";
 import {
   type BulkSelection,
   bulkSelectionQuery,
@@ -22,13 +28,14 @@ import {
 } from "./bulkSelection";
 import {
   listenRowSteps,
-  type RowNavigation,
   type RowNavigationSource,
   rowNavigation,
   type ShowRow,
 } from "./rowNavigation";
+import type { RowNavigation } from "../../../types/row-navigation";
 import {
   clearWrittenRecord,
+  hasMissingRowState,
   isDeepLinkAction,
   resolveDeepLinkedRow,
   writeRecordId,
@@ -131,7 +138,10 @@ interface TargetRunExtras {
 }
 
 type SidePanelTarget = ActionTarget & { type: "sidePanel" };
+type DrawerTarget = ActionTarget & { type: "drawer" };
 type DownloadTarget = ActionTarget & { type: "download" };
+/** A target opening a row with the DMS's row header and not-found state. */
+type RowTarget = SidePanelTarget | DrawerTarget;
 
 /** A side panel to open, and on what. */
 interface SidePanelTargetRun extends TargetRunExtras {
@@ -165,6 +175,17 @@ interface ComponentTargetRun extends TargetRunExtras {
   description: string;
   containerId: string;
   rowData?: Data;
+  /** Id of a row the link names but the route answered 404 for (a drawer). */
+  missingId?: string;
+}
+
+/**
+ * Whether a drawer draws the DMS's row header (the title naming the row, its
+ * position, previous / next): asked for, or implied by the texts it words.
+ */
+function hasRowHeader(target: ComponentTargetRun["target"]): boolean {
+  if (target.type !== "drawer") return false;
+  return target.rowHeader ?? !!(target.rowTitle || target.positionLabel);
 }
 
 /**
@@ -307,21 +328,32 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
   };
 
+  // A drawer remembers the size the user gives it per action: per table and
+  // component, whatever row it opens on.
   const openContainer = (
     run: ComponentTargetRun,
     component: Component,
-    componentOptions: Record<string, unknown>,
+    options: Pick<
+      DrawerOptions,
+      "title" | "componentOptions" | "headerComponentOptions"
+    >,
   ): ContainerInstance => {
-    const options = {
-      title: run.title,
+    const containerOptions = {
+      ...options,
       description: run.description,
       containerId: run.containerId,
       component,
-      componentOptions,
     };
-    return run.target.type === "modal"
-      ? openModal({ ...options, size: run.target.size })
-      : openDrawer({ ...options, direction: run.target.direction });
+    if (run.target.type === "modal") {
+      return openModal({ ...containerOptions, size: run.target.size });
+    }
+    return openDrawer({
+      ...containerOptions,
+      direction: run.target.direction,
+      size: run.target.size,
+      sizeKey: `${config.pageId}-${config.componentId}-${run.target.component?.componentName}`,
+      ...(options.headerComponentOptions && { headerComponent: DmsRowHeader }),
+    });
   };
 
   const resolveTargetComponent = (componentName: string): Component =>
@@ -383,12 +415,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   // The header names the open row when the target words it from its fields.
-  const rowTitleOf = (target: SidePanelTarget, row?: Data) =>
+  const rowTitleOf = (target: RowTarget, row?: Data) =>
     row && target.rowTitle
       ? resolveConfirmText(target.rowTitle, row, t as ConfirmTranslate)
       : undefined;
 
-  const notFoundOf = (target: SidePanelTarget) => ({
+  const notFoundOf = (target: RowTarget) => ({
     title: processI18n(target.notFound?.title || `$${NOT_FOUND_TITLE_KEY}`),
     description: processI18n(
       target.notFound?.description || `$${NOT_FOUND_DESCRIPTION_KEY}`,
@@ -456,8 +488,11 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
+    if (run.missingId) return showMissingInDrawer(run, run.missingId);
     const component = resolveTargetComponent(componentName);
     const source = config.rowNavigation;
+    const drawerTarget = run.target.type === "drawer" ? run.target : undefined;
+    const withRowHeader = hasRowHeader(run.target) && !run.selection;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
     // Set once the container closes: a row read that resolves later neither
@@ -484,15 +519,35 @@ export function useActionTargets(config: ActionTargetsConfig) {
         },
       };
     };
+    // A drawer words its title from the row (`rowTitle`); with the row
+    // header, the DMS draws it with the position and previous / next. Read
+    // after `optionsFor`, which sets the row's navigation.
+    const titleFor = (row?: Data) =>
+      (drawerTarget && rowTitleOf(drawerTarget, row)) || run.title;
+    const headerFor = (row?: Data) =>
+      withRowHeader
+        ? drawerRowHeaderProps(
+            { positionLabel: drawerTarget?.positionLabel, navigation },
+            titleFor(row),
+          )
+        : undefined;
     const recordRow = rowRecorder(run.deepLink);
     function showRow(row: Data) {
+      const componentOptions = optionsFor(row);
       instance?.patch({
-        componentOptions: optionsFor(row),
+        title: titleFor(row),
+        componentOptions,
         componentKey: rowIdOf(row),
+        ...(withRowHeader && { headerComponentOptions: headerFor(row) }),
       });
       recordRow(row);
     }
-    instance = openContainer(run, component, optionsFor(run.rowData));
+    const componentOptions = optionsFor(run.rowData);
+    instance = openContainer(run, component, {
+      title: titleFor(run.rowData),
+      componentOptions,
+      headerComponentOptions: headerFor(run.rowData),
+    });
     recordRow(run.rowData);
     // `showRow` may move an unlisted row's container onto a listed one.
     const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
@@ -503,6 +558,23 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
     instance.result.then(settle, settle);
   };
+
+  // A drawer opened on a row its link names but its route answered 404 for:
+  // under its title, the state in place of the component, a close button.
+  // Closing it removes the link, as closing it on a row does.
+  function showMissingInDrawer(run: ComponentTargetRun, id: string): void {
+    if (run.target.type !== "drawer") return;
+    const recordId = recordRecorder(run.deepLink);
+    let instance: ContainerInstance | undefined;
+    const notFound = notFoundOf(run.target);
+    instance = openContainer(run, DmsRowNotFound, {
+      title: run.title,
+      componentOptions: { ...notFound, onClose: () => instance?.close() },
+    });
+    recordId(id);
+    const settle = () => recordId(undefined);
+    instance.result.then(settle, settle);
+  }
 
   type TargetHandler = (
     target: ActionTarget,
@@ -687,11 +759,24 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   /**
-   * Opens a side panel action on a row its link names but its route answered
-   * 404 for: the panel says the row is gone, and closing it removes the link.
-   * Another target opens nothing: no row, no drawer.
+   * Opens a side panel action, or a drawer wording its `notFound` state, on a
+   * row its link names but its route answered 404 for: the container says the
+   * row is gone, and closing it removes the link. Another target opens
+   * nothing: no row, no container.
    */
   const handleMissingRow = (action: CustomRowAction, id: string) => {
+    if (!hasMissingRowState(action)) return;
+    if (action.target.type === "drawer") {
+      handleComponentTarget({
+        target: action.target,
+        title: processI18n(action.target.title || action.label),
+        description: processI18n(action.target.description || ""),
+        containerId: `${config.pageId}-${config.componentId}-${action.target.type}`,
+        deepLink: isDeepLinkAction(action),
+        missingId: id,
+      });
+      return;
+    }
     if (action.target.type !== "sidePanel") return;
     handleSidePanelTarget({
       target: action.target,

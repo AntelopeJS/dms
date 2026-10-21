@@ -1,18 +1,5 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-
-/**
- * What a drawer or modal opened on a row receives to step through the rows
- * the table shows (`navigation` prop): J and K do the same.
- */
-export interface RowNavigation {
-  /** Position of the row among the rows shown, from 0. */
-  index: number;
-  total: number;
-  hasPrev: boolean;
-  hasNext: boolean;
-  prev: () => void;
-  next: () => void;
-}
+import type { RowNavigation } from "../../../types/row-navigation";
 
 /** The rows a container steps through, in the order the table shows them. */
 export interface RowNavigationSource {
