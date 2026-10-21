@@ -104,6 +104,7 @@ Primitives, covered in `docs/03.auth-and-tenancy/03.multi-tenant.md`: `@TenantSc
 (`dms/tenant-scoped-model`) scopes a model to the request's tenant, `getRequestTenantId`
 (`dms/request-tenant`) reads it, `applyTenantOwnership`
 (`dms/tenant-ownership`) upserts a user's tenant membership (roles + owner flag),
+`WaitForTenantInstance` (`dms/tenant-instances`) waits until a tenant's tables exist (startup declarations),
 `inviteUserToTenant` (`dms/invites`, expiry `INVITE_EXPIRY_DAYS`), and `CROSS_INSTANCE`
 (`@antelopejs/interface-database`) for cross-tenant queries. SaaS mode (Stripe billing,
 public registration, plans gating permissions) is `docs/03.auth-and-tenancy/04.saas-mode.md`.
