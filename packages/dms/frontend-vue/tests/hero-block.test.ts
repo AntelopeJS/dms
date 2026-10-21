@@ -167,6 +167,12 @@ describe("HeroBlock", () => {
     expect(host.querySelector("img")?.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("draws no image from an unsafe address", () => {
+    mount({ title: "Hi", image: "javascript:alert(1)" });
+    expect(host.querySelector("img")).toBeNull();
+    expect(host.querySelector("[data-dms-hero-media]")).toBeNull();
+  });
+
   it("draws an icon composition when there is no image", () => {
     mount({ title: "Hi", icons: ["i-ph-package", "i-ph-truck"] });
 

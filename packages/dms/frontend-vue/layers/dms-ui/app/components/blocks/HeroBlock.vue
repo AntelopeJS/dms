@@ -4,9 +4,11 @@ import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
 import { splitHeadline } from "../../build/utils/heroHeadline";
-import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
+import { isSafeImageUrl } from "../../build/utils/markdown";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
+// Relative: defineProps extends it, and the SFC compiler resolves no alias.
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import type { BlockText } from "../../../../dms-core/app/types/composed-text";
+import type { BlockText } from "#dms-core/app/types/composed-text";
 
 /** A figure under the lead (interface-dms `HeroProof`). */
 interface HeroProof {
@@ -112,7 +114,11 @@ const headline = computed(() =>
 const actions = computed(() => props.actions.slice(0, MAX_ACTIONS));
 const proof = computed(() => props.proof.slice(0, MAX_PROOF));
 const icons = computed(() => props.icons.slice(0, MAX_ICONS));
-const hasMedia = computed(() => Boolean(props.image) || icons.value.length > 0);
+// A route may serve the address: only `http(s)` or a path becomes a source.
+const image = computed(() =>
+  props.image && isSafeImageUrl(props.image) ? props.image : undefined,
+);
+const hasMedia = computed(() => Boolean(image.value) || icons.value.length > 0);
 const isSide = computed(() => hasMedia.value && props.mediaPosition === "side");
 const isCentered = computed(() => props.align === "center");
 const isFramed = computed(() => props.background !== "plain");
@@ -208,8 +214,8 @@ const textsClass = computed(() =>
         data-dms-hero-media
       >
         <img
-          v-if="props.image"
-          :src="props.image"
+          v-if="image"
+          :src="image"
           :alt="text(props.imageAlt)"
           :aria-hidden="props.imageAlt ? undefined : 'true'"
           class="border-default h-auto w-full rounded-(--dms-radius-card) border object-cover shadow-(--dms-shadow-card)"

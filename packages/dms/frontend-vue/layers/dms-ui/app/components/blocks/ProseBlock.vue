@@ -5,7 +5,8 @@ import DmsProseTokens from "../../build/components/prose/ProseTokens";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import { parseProse, pickLocaleText } from "../../build/utils/markdown";
-import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
+import { useWatch } from "#dms-core/app/composables/watch/useWatch";
+// Relative: defineProps extends it, and the SFC compiler resolves no alias.
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 /** What the block's data source answers (interface-dms `ProseResponse`). */
