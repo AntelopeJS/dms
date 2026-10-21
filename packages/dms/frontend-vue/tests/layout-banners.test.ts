@@ -23,7 +23,6 @@ import {
 import {
   MODULE_URL_PREFIX,
   type LayoutBanner,
-  type LayoutBannerScope,
   type LayoutBannerVariant,
   type SiteLayout,
 } from "../layers/dms-layout/app/types/page";
@@ -41,6 +40,7 @@ const banner = (extra: Partial<LayoutBanner> = {}): LayoutBanner => ({
   key: "banner",
   variant: "info",
   order: 0,
+  scope: "app",
   dismissible: false,
   text: "Heads up",
   ...extra,
@@ -166,12 +166,9 @@ describe("isLayoutBannerInScope", () => {
   });
 
   it.each([
-    [undefined, true, false],
     ["app", true, false],
     ["modules", false, true],
     ["everywhere", true, true],
-    // From a newer backend, or an untyped registration: the default applies.
-    ["somewhere" as LayoutBannerScope, true, false],
   ] as const)(
     "places a %s banner on an app page: %s, on a module page: %s",
     (scope, onAppPage, onModulePage) => {
@@ -203,15 +200,13 @@ describe("useLayoutBanners", () => {
     expect(banners.value.map((entry) => entry.key)).toEqual(["b"]);
   });
 
-  it("keeps a banner without a scope out of the module area", () => {
+  it("keeps an app banner out of the module area", () => {
     serveBanners([
-      banner({ key: "default" }),
       banner({ key: "app", scope: "app" }),
       banner({ key: "workspace", scope: "everywhere" }),
     ]);
     const { banners } = useLayoutBanners();
     expect(banners.value.map((entry) => entry.key)).toEqual([
-      "default",
       "app",
       "workspace",
     ]);

@@ -120,8 +120,8 @@ export interface LayoutBanner {
   key: string;
   variant: LayoutBannerVariant;
   order: number;
-  /** Absent from a backend that predates scopes: reads as `app`. */
-  scope?: LayoutBannerScope;
+  /** The pages it shows on, the backend's `app` unless it says otherwise. */
+  scope: LayoutBannerScope;
   dismissible: boolean;
   icon?: string;
   /** A string (`$` for an i18n key) or a composed text. */

@@ -43,17 +43,11 @@ const SCOPE_MATCHERS: Record<
   everywhere: () => true,
 };
 
-/**
- * Whether a banner's scope covers a page. A missing or unknown scope reads as
- * `app`, the backend's default.
- */
+/** Whether a banner's scope, as the backend serves it, covers a page. */
 export const isLayoutBannerInScope = (
   banner: LayoutBanner,
   path: string,
-): boolean => {
-  const matches = SCOPE_MATCHERS[banner.scope ?? "app"] ?? SCOPE_MATCHERS.app;
-  return matches(isModuleAreaPath(path));
-};
+): boolean => SCOPE_MATCHERS[banner.scope](isModuleAreaPath(path));
 
 /**
  * The global banners rendered under the dashboard header, as resolved by the
