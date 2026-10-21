@@ -892,6 +892,7 @@ export namespace DefaultDataTypes {
         fields: newFields,
         submitUrl,
         submitUrlMethod: HttpMethod.post,
+        kind: "create",
       }).serializeSync();
 
       return {

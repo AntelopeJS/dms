@@ -8925,16 +8925,18 @@
           "type": "string",
           "enum": [
             "record",
+            "create",
             "action"
           ],
           "optional": true,
-          "description": "A record keeps its values once saved; an action (send, invite, run) empties after a submit.",
+          "description": "A record keeps its values once saved; a create form makes a new record; an action (send, invite, run) empties after a submit.",
           "ui": {
             "label": "Form kind",
             "group": "behavior",
             "widget": "segmented",
             "valueLabels": {
               "record": "Record",
+              "create": "Create",
               "action": "Action"
             }
           }
@@ -13691,15 +13693,6 @@
             "widget": "switch"
           }
         },
-        "archivedCountLabel": {
-          "type": "string",
-          "optional": true,
-          "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\").",
-          "ui": {
-            "label": "Archived count",
-            "group": "content"
-          }
-        },
         "defaultFilters": {
           "type": "array",
           "items": {
@@ -14205,8 +14198,7 @@
           "footer.countLabel",
           "footer.hint",
           "rowActions.hasSelection",
-          "archiveMode",
-          "archivedCountLabel"
+          "archiveMode"
         ]
       }
     },

@@ -43,11 +43,6 @@ interface SaveBarProps {
    * which can be changed never offers Reset.
    */
   resettable?: boolean;
-  /**
-   * The form creates a row (a new one, or a duplicate): its submit shows from
-   * the start, and no "Unsaved changes" lists what it holds.
-   */
-  creates?: boolean;
 }
 
 const props = withDefaults(defineProps<SaveBarProps>(), {
@@ -59,7 +54,6 @@ const props = withDefaults(defineProps<SaveBarProps>(), {
   variant: "floating",
   kind: "record",
   resettable: true,
-  creates: false,
 });
 
 const emit = defineEmits<{
@@ -70,6 +64,7 @@ const emit = defineEmits<{
 
 const SECONDARY_LABELS: Record<FormKind, string> = {
   record: "dms.save_bar.discard",
+  create: "dms.save_bar.discard",
   action: "dms.button.reset",
 };
 
@@ -133,7 +128,6 @@ const state = computed(() =>
     dirty: props.dirty,
     cancellable: props.cancellable,
     resettable: props.resettable,
-    creates: props.creates,
   }),
 );
 const ui = computed(() =>

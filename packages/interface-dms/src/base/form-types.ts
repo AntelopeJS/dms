@@ -156,7 +156,7 @@ export interface FormSectionSerialized extends Omit<FormSection, "fields"> {
 }
 
 /** What a form edits: see `FormProps.kind`. */
-export const FORM_KINDS = ["record", "action"] as const;
+export const FORM_KINDS = ["record", "create", "action"] as const;
 
 export type FormKind = (typeof FORM_KINDS)[number];
 
@@ -207,10 +207,16 @@ export interface FormProps extends BaseComponentProps {
   saveMode?: FormSaveMode;
   /**
    * What the form edits. `record` (the default): a record, a settings page,
-   * a table view's form; it keeps its values once saved, and offers Cancel
-   * when it has somewhere to go back to (`backTo`, the drawer or modal it
-   * sits in, or the page of the app the user came from): changes or not, Cancel drops them and leaves, in one click. `action`: a form that does something each time it
-   * is sent — send a message, invite someone, run a job; its `submitLabel`
+   * a table view's edit form; it keeps its values once saved, and offers
+   * Cancel when it has somewhere to go back to (`backTo`, the drawer or
+   * modal it sits in, or the page of the app the user came from): changes or
+   * not, Cancel drops them and leaves, in one click. `create`: a form that
+   * makes a new record (a table view's add form and the duplicate it opens,
+   * a relation's add form); its submit reads "Create" and shows from the
+   * start, and its fields list no changes, since all it holds is new.
+   * Declared, never guessed from the method: a settings page posting the
+   * record it read stays a `record`. `action`: a form that does something
+   * each time it is sent — send a message, invite someone, run a job; its `submitLabel`
    * shows from the start, so its defaults can be sent as they are, with
    * Reset once a value changes (in a drawer or a modal, Cancel before that),
    * and it empties after a successful submit.

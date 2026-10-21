@@ -43,9 +43,7 @@ describe("saveBarState of a record form", () => {
   });
 
   it("keeps Cancel beside Save once changed, when it can be left", () => {
-    expect(
-      saveBarState(context({ dirty: true, cancellable: true })),
-    ).toEqual({
+    expect(saveBarState(context({ dirty: true, cancellable: true }))).toEqual({
       showsStatus: true,
       secondary: "cancel",
       showsSubmit: true,
@@ -70,7 +68,7 @@ describe("saveBarState of a record form", () => {
 
 describe("saveBarState of a create form", () => {
   const create = (overrides: Partial<SaveBarContext>) =>
-    saveBarState(context({ creates: true, ...overrides }));
+    saveBarState(context({ kind: "create", ...overrides }));
 
   it("can be saved as it opened: a duplicate needs no change first", () => {
     expect(create({ cancellable: true })).toEqual({

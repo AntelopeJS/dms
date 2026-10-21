@@ -6,13 +6,16 @@
  *   it has somewhere to go back to, then "Unsaved changes" with Save and,
  *   beside it, Cancel again (discard and leave) or, with nowhere to go back
  *   to, Discard.
+ * - `create`: a form that makes a new record (a table view's add form, the
+ *   duplicate it opens). Its submit from the start, no "Unsaved changes"
+ *   list, since all it holds is new.
  * - `action`: a form that does something each time (send a notification,
  *   invite someone, run a job). Its own submit label, always ready: what it
  *   holds untouched, its defaults included, is a payload too. Beside it,
  *   Reset once a value changed, Cancel before that in a drawer or a modal.
  *   It empties after a successful submit.
  */
-export type FormKind = "record" | "action";
+export type FormKind = "record" | "create" | "action";
 
 /** How a form offers to save (interface-dms `FormSaveMode`). */
 export type FormSaveMode = "bar" | "footer" | "none" | "instant";
@@ -38,11 +41,6 @@ export interface SaveBarContext {
   cancellable: boolean;
   /** Something in the form can be changed, hence reset. */
   resettable: boolean;
-  /**
-   * A `record` form that creates a row: a new one, or a duplicate seeded by
-   * the row it copies.
-   */
-  creates?: boolean;
 }
 
 /**
@@ -83,7 +81,6 @@ const HIDDEN_BAR: SaveBarState = {
  * A form with nowhere to go back to offers Discard.
  */
 function recordSaveBar(context: SaveBarContext): SaveBarState {
-  if (context.creates) return createSaveBar(context);
   if (context.dirty) {
     return {
       ...HIDDEN_BAR,
@@ -143,6 +140,7 @@ function actionSaveBar(context: SaveBarContext): SaveBarState {
 
 const SAVE_BARS: Record<FormKind, (context: SaveBarContext) => SaveBarState> = {
   record: recordSaveBar,
+  create: createSaveBar,
   action: actionSaveBar,
 };
 

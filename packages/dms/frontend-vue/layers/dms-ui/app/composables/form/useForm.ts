@@ -611,14 +611,9 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const isRecordUpdate = computed(
     () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
   );
-  // A form that posts creates a row, empty or seeded by the one it
-  // duplicates: what it holds is new as a whole, nothing "changed" in it.
-  // One that posts back to the address it reads (a settings record) saves
-  // that record instead.
-  const postsBackToFetchUrl =
-    !!props.fetchUrl && props.fetchUrl === props.submitUrl;
-  const createsRecord =
-    props.submitUrlMethod === HttpMethod.post && !postsBackToFetchUrl;
+  // A create form (a table view's add form, the duplicate it opens) makes a
+  // new row: what it holds is new as a whole, nothing "changed" in it.
+  const createsRecord = props.kind === "create";
 
   /** Reads the record at `fetchUrl`: its values, mapped for the fields. */
   const loadRecord = async () => {
