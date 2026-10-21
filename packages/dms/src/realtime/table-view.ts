@@ -28,6 +28,7 @@ export async function publishTableViewMutation({
     type: eventType,
     payload: { ids },
     actorId: actor?.id,
+    originSessionId: sessionId,
     ts: Date.now(),
   });
   if (!sessionId || !PRESENCE_RELEASING_EVENTS.has(eventType)) return;

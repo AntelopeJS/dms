@@ -102,6 +102,7 @@ export interface TableViewSourceOptions extends Pick<
   | "defaultSort"
   | "pinnedRows"
   | "realtimeTopic"
+  | "ignoreOwnRealtimeEvents"
   | "liveHold"
   | "queryParamFilters"
 > {
@@ -371,6 +372,7 @@ export function tableViewFromSource(
       enableTableExport: false,
       realtime: false,
       realtimeTopic: options.realtimeTopic,
+      ignoreOwnRealtimeEvents: options.ignoreOwnRealtimeEvents,
       liveHold: options.liveHold,
       formComponents: {},
     })

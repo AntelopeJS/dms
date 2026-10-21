@@ -13958,6 +13958,16 @@
             "advanced": true
           }
         },
+        "ignoreOwnRealtimeEvents": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Ignore own realtime events",
+            "group": "advanced",
+            "widget": "switch",
+            "advanced": true
+          }
+        },
         "liveHold": {
           "type": "union",
           "oneOf": [

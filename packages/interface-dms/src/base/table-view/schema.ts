@@ -484,6 +484,12 @@ export const TableViewSchema = z.object({
       .describe("Topics whose events make the table read its rows again."),
     { label: "Realtime topics", group: "data", advanced: true },
   ),
+  ignoreOwnRealtimeEvents: ui(z.boolean().optional(), {
+    label: "Ignore own realtime events",
+    group: "advanced",
+    widget: "switch",
+    advanced: true,
+  }),
   liveHold: ui(
     z
       .union([

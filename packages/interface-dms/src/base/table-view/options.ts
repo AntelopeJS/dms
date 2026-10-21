@@ -1052,6 +1052,15 @@ export interface TableViewOptions<
    */
   realtimeTopic?: string | string[];
   /**
+   * Skip the realtime events this browser tab's own requests caused: the
+   * row events of its writes, and the `realtimeTopic` messages published
+   * with that tab's `originSessionId`. Use it when the code that wrote also
+   * decides what happens next — a delete followed by a navigation — so the
+   * table does not read its rows again in between. Other tabs and users
+   * still refresh it. Defaults to false.
+   */
+  ignoreOwnRealtimeEvents?: boolean;
+  /**
    * On a page declared with `live`, keeps the rows on screen while the page is
    * paused, through the user's own search, sort and pagination too, and shows
    * a "N new · Show" banner counting the events the table received since.

@@ -101,6 +101,7 @@ import {
 } from "../../utils/rowClickAction";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
+import type { RealtimeEvent } from "#dms-core/app/composables/realtime/useUserRealtime";
 
 import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
@@ -222,6 +223,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   isSoleTableView?: boolean;
   /** Topics whose events make the table read its rows again. */
   realtimeTopic?: string | string[];
+  /** Skip the events this tab's own requests caused (backend option). */
+  ignoreOwnRealtimeEvents?: boolean;
   /** Keeps the rows while the live page is paused (backend `liveHold`). */
   liveHold?: boolean | TableViewLiveHoldOptions;
 }
@@ -1214,7 +1217,17 @@ const refreshAll = async () => {
 // block's action): a topic of the backend or a page refresh reads them again,
 // keeping the current rows on screen until the answer lands. On a live page
 // the row events below go through the same gate.
-const liveGate = useRefreshTriggers(props.realtimeTopic, () => refreshAll());
+// With `ignoreOwnRealtimeEvents`, an event this tab's own request caused
+// (its realtime session is the event's origin) is left to that request's
+// caller, which decides what follows: a navigation, its own refresh.
+const { sessionId: realtimeSessionId } = useUserRealtime();
+const isOwnRealtimeEvent = (event: object): boolean =>
+  !!props.ignoreOwnRealtimeEvents &&
+  !!realtimeSessionId.value &&
+  (event as RealtimeEvent).originSessionId === realtimeSessionId.value;
+const liveGate = useRefreshTriggers(props.realtimeTopic, () => refreshAll(), {
+  skipEvent: isOwnRealtimeEvent,
+});
 // What the user asks for (a row action, the refresh button, ⌘R, a display's
 // own action) reads at once, even while the live page is paused, and brings
 // a held table up to date.
@@ -1506,6 +1519,7 @@ const gateRowEvent = (type: string, ids: string[], event: object) => {
 };
 
 useRealtimeTopic(realtimeRowTopic, (event) => {
+  if (isOwnRealtimeEvent(event)) return;
   const payload = event as { type: string; payload?: { ids?: string[] } };
   const handler = realtimeEventHandlers[payload.type];
   if (!handler) return;

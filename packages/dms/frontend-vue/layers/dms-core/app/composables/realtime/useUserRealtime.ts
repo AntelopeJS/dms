@@ -21,6 +21,8 @@ export interface RealtimeEvent {
   type: string;
   payload?: Record<string, unknown>;
   actorId?: string;
+  /** The realtime session whose request caused the event. */
+  originSessionId?: string;
   ts: number;
 }
 

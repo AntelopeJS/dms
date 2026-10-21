@@ -4,9 +4,23 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 
+/**
+ * The request header naming the realtime session of the browser tab that
+ * sent the request (`$authFetch` sets it). Read it with
+ * `@Parameter(REALTIME_SESSION_HEADER, "header")` to hand a message its
+ * {@link PublishMessageOptions.originSessionId}.
+ */
+export const REALTIME_SESSION_HEADER = "x-realtime-session";
+
 export interface PublishMessageOptions {
   payload?: Record<string, unknown>;
   actorId?: string;
+  /**
+   * The realtime session whose request caused the message, read from the
+   * {@link REALTIME_SESSION_HEADER} header. A table view declared with
+   * `ignoreOwnRealtimeEvents` skips the messages its own session caused.
+   */
+  originSessionId?: string;
 }
 
 /** One message delivered to a {@link SubscribeMessage} handler. */
@@ -15,6 +29,8 @@ export interface RealtimeMessage {
   type: string;
   payload?: Record<string, unknown>;
   actorId?: string;
+  /** See {@link PublishMessageOptions.originSessionId}. */
+  originSessionId?: string;
   ts: number;
 }
 

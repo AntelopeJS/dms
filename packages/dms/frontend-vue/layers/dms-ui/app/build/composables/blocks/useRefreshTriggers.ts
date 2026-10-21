@@ -7,6 +7,12 @@ import {
 } from "../../../utils/blockRefresh";
 import { type LiveGate, useLiveGate } from "../live/currentPageLive";
 
+/** How {@link useRefreshTriggers} reads its realtime events. */
+export interface RefreshTriggerOptions {
+  /** An event this returns true for triggers nothing. */
+  skipEvent?: (event: object) => boolean;
+}
+
 /**
  * Calls `onRefresh` whenever the data behind a block moved without its inputs
  * changing: on each event of one of its realtime topics, and each time the
@@ -22,13 +28,17 @@ import { type LiveGate, useLiveGate } from "../live/currentPageLive";
 export function useRefreshTriggers(
   realtimeTopic: string | string[] | undefined,
   onRefresh: () => void | Promise<unknown>,
+  options: RefreshTriggerOptions = {},
 ): LiveGate {
   let pageRefresh: Event | undefined;
   const gate = useLiveGate(() => {
     const work = onRefresh();
     if (pageRefresh && work) waitForPageBlocksRefresh(pageRefresh, work);
   });
-  subscribeRealtimeTopics(realtimeTopic, gate.trigger);
+  subscribeRealtimeTopics(realtimeTopic, (event) => {
+    if (options.skipEvent?.(event)) return;
+    gate.trigger(event);
+  });
   subscribePageRefresh(gate, (event) => {
     // The gate reads at once on a page refresh: the read starts in this call.
     pageRefresh = event;

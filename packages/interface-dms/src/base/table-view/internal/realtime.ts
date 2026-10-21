@@ -3,7 +3,10 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { AuthUser } from "../../../auth";
 import type { User } from "../../../auth/db";
-import { RegisterPageTopic } from "../../../realtime";
+import {
+  REALTIME_SESSION_HEADER,
+  RegisterPageTopic,
+} from "../../../realtime";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 import { realtimeMutationListeners } from "./realtime-listeners";
 import {
@@ -14,7 +17,6 @@ import {
   tableViewRowTopic,
 } from "../realtime";
 
-const REALTIME_SESSION_HEADER = "x-realtime-session";
 /** @internal */
 export const REALTIME_PRESENCE_QUERY = "_presence";
 /** @internal */
