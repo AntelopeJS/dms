@@ -9,7 +9,6 @@ import type {
   LiveSubscription,
   PageLiveController,
 } from "./pageLiveController";
-import { setPageLivePause } from "../../../../../dms-core/app/build/composables/live/pageLivePause";
 import { markPageRead } from "./pageReadClock";
 
 // Client-only state: the page renderer sets it in the browser, where one app
@@ -36,8 +35,6 @@ export function currentPageLive(): PageLiveController | null {
 export function setCurrentPageLive(controller: PageLiveController | null) {
   if (typeof window === "undefined") return;
   currentController.value = controller;
-  // A component's own polling (`useApiData`'s `refreshInterval`) stops with it.
-  setPageLivePause(controller ? () => controller.isPaused.value : null);
 }
 
 /** @internal */

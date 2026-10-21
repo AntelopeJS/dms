@@ -95,6 +95,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (`comparisons: ["previous-period", "previous-year", "none"]`) draws a menu naming the compared window ("vs 16 – 17 Oct ▾", the range label then
   without its "vs …"); a single one
   stays on without a control. A `custom` preset shows as a calendar icon, named in full.
+  `live` / `period` also take `childId` (keep an id roles already grant, `live` / `period` by
+  default) and `meta` (roles-editor name), so a page never builds the toolbar by hand for that;
+  an editor reads the default children from the block type's `initialChildren`.
   A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
   of its own: neither needs a `componentId` or `pageId` there.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
