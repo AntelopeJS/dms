@@ -649,6 +649,10 @@
           "tab": {
             "title": "Tabs",
             "description": "Pages split into tabs."
+          },
+          "livetoggle": {
+            "title": "Live toggle",
+            "description": "Pages with a Live / Pause switch."
           }
         }
       },

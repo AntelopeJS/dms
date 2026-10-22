@@ -754,6 +754,7 @@
       "show_new": "Afficher",
       "paused": "En pause",
       "resume": "Reprendre",
+      "refresh": "Actualiser",
       "reason_hidden": "onglet masqué",
       "polling": "sans temps réel, relecture régulière",
       "table_held": "Tableau figé",

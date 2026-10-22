@@ -34,6 +34,8 @@ interface Props extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   periodScope?: string;
+  /** Topics whose events make the card read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -83,6 +85,7 @@ const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
   periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   staticData: () => staticData.value,
   watchSource: () => watchKey.value,
 });
