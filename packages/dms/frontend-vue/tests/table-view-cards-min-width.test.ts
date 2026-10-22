@@ -90,6 +90,19 @@ describe("the width of the cards display's cards", () => {
     expect(grid().style.getPropertyValue(MIN_WIDTH_PROPERTY)).toBe("20rem");
   });
 
+  it("draws the skeleton's cards at the table's card.skeletonHeight", () => {
+    mount(createContext({ skeletonHeight: "260px" }, true));
+    const cards = [...grid().children] as HTMLElement[];
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.every((card) => card.style.minHeight === "260px")).toBe(true);
+  });
+
+  it("leaves a skeleton card its own height when the table sets none", () => {
+    mount(createContext({}, true));
+    const card = grid().firstElementChild as HTMLElement;
+    expect(card.style.minHeight).toBe("");
+  });
+
   it("keeps 230px for a table that sets no width", () => {
     mount(createContext({}));
     expect(grid().style.getPropertyValue(MIN_WIDTH_PROPERTY)).toBe(

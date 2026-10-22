@@ -178,6 +178,8 @@
         "save_as": "Enregistrer comme nouvelle vue",
         "save_current": "Enregistrer la vue actuelle",
         "delete": "Supprimer la vue",
+        "delete_title": "Supprimer cette vue ?",
+        "delete_description": "« {view} » sera supprimée définitivement. Si elle est ouverte, le tableau revient à son état par défaut.",
         "save_as_title": "Enregistrer comme nouvelle vue",
         "save_as_description": "Conservez les filtres, la recherche, le tri, les colonnes et l'affichage actuels sous un nom. Vous seul la verrez.",
         "save_as_confirm": "Enregistrer la vue",
@@ -258,6 +260,7 @@
       "reset": "Réinitialiser",
       "cancel": "Annuler",
       "save_changes": "Enregistrer les modifications",
+      "create": "Créer",
       "refresh_data": "Actualiser les données",
       "export_data": "Exporter les données"
     },
@@ -408,7 +411,8 @@
         "invalid": "Aucune erreur | 1 champ à corriger | {count} champs à corriger"
       },
       "error_summary": {
-        "title": "Aucun champ à corriger | 1 champ demande votre attention | {count} champs demandent votre attention"
+        "title": "Aucun champ à corriger | 1 champ demande votre attention | {count} champs demandent votre attention",
+        "resolved": "Tout est corrigé : le formulaire peut être enregistré."
       },
       "repeater": {
         "add": "Ajouter une ligne",
@@ -723,7 +727,7 @@
     },
     "save_bar": {
       "unsaved": "Modifications non enregistrées",
-      "discard": "Annuler",
+      "discard": "Abandonner",
       "save": "Enregistrer",
       "saving": "Enregistrement",
       "saved": "Enregistré",

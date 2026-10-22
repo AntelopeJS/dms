@@ -87,7 +87,11 @@ export interface TableViewDisplayActions<T> {
   canDeleteRow: (item: T) => boolean;
   add: () => void;
   edit: (item: T) => void;
-  delete: (ids: string[]) => void;
+  /**
+   * Deletes the rows once confirmed. A display drawing rows the grid does not
+   * list (a kanban card) hands them in `rows`, so a dialog can name them.
+   */
+  delete: (ids: string[], rows?: T[]) => void;
   duplicate: (id: string) => void;
   details: (item: T) => void;
   /** What a click on the row does in the grid: its default action. */
@@ -152,6 +156,8 @@ export interface TableViewCardConfig {
   component?: ComponentInfo;
   /** `cards` only: the narrowest a card gets, a CSS length (`230px` left out). */
   minWidth?: string;
+  /** `cards` only: the height of a placeholder card, a CSS length. */
+  skeletonHeight?: string;
 }
 
 /**

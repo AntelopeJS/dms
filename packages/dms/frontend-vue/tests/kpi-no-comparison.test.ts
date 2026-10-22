@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 
 const response = ref<Record<string, unknown> | null>(null);
+const loading = ref(false);
 const fetchOptions = vi.hoisted(() => [] as Record<string, unknown>[]);
 
 vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
@@ -11,7 +12,7 @@ vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
     fetchOptions.push(options);
     return {
       data: response,
-      isLoading: ref(false),
+      isLoading: loading,
       error: ref(null),
       refresh: async () => {},
     };
@@ -58,7 +59,10 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  loading.value = false;
+});
 
 describe("a KPI card with no comparison period", () => {
   it("shows no change at all, not a 0% stand-in", async () => {
@@ -117,6 +121,29 @@ describe("a KPI card with no comparison period", () => {
     response.value = { value: 1535 };
     const html = await render({ showDelta: false, compareLabel: undefined });
     expect(html).not.toContain(TREND_LINE);
+  });
+});
+
+describe("a stat KPI card loading its first value", () => {
+  // The sparkline's 24px box, beside the trend's line: the aside is taller
+  // than the value column, so it sets the card's height.
+  const SPARKLINE_BOX = 'class="h-6 w-16"';
+
+  it("holds the sparkline's box, so the card keeps its height when it lands", async () => {
+    loading.value = true;
+    response.value = null;
+    const loadingHtml = await render({ variant: "stat", showSparkline: true });
+    loading.value = false;
+    response.value = { value: 1535, delta: 4, sparkline: [1, 2, 3] };
+    const loadedHtml = await render({ variant: "stat", showSparkline: true });
+    expect(loadingHtml).toContain(SPARKLINE_BOX);
+    expect(loadedHtml).toContain(SPARKLINE_BOX);
+  });
+
+  it("keeps the box when the value comes without a sparkline", async () => {
+    response.value = { value: 1535 };
+    const html = await render({ variant: "stat", showSparkline: true });
+    expect(html).toContain(SPARKLINE_BOX);
   });
 });
 

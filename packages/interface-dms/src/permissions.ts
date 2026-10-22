@@ -131,8 +131,8 @@ export async function GetEffectiveUserPermissions(
  * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
  * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
  * it sits under) and `dependencies` are held too — a table's delete action
- * grants nothing without its table and its page, its edit nothing without
- * the view that loads the row.
+ * grants nothing without its table, its page and its list, its edit nothing
+ * without the view that loads the row.
  */
 export async function HasPermission(
   permissions: Set<string>,

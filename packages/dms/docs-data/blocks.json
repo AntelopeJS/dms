@@ -8388,6 +8388,15 @@
                             "advanced": true
                           }
                         },
+                        "showEmptyOnCreate": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Shown empty on create",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "required": {
                           "type": "boolean",
                           "optional": true,
@@ -8518,6 +8527,15 @@
                     "ui": {
                       "label": "Read-only",
                       "widget": "json",
+                      "advanced": true
+                    }
+                  },
+                  "showEmptyOnCreate": {
+                    "type": "boolean",
+                    "optional": true,
+                    "ui": {
+                      "label": "Shown empty on create",
+                      "widget": "switch",
                       "advanced": true
                     }
                   },
@@ -8746,6 +8764,15 @@
                             "advanced": true
                           }
                         },
+                        "showEmptyOnCreate": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Shown empty on create",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "required": {
                           "type": "boolean",
                           "optional": true,
@@ -8936,16 +8963,18 @@
           "type": "string",
           "enum": [
             "record",
+            "create",
             "action"
           ],
           "optional": true,
-          "description": "A record keeps its values once saved; an action (send, invite, run) empties after a submit.",
+          "description": "A record keeps its values once saved; a create form makes a new record; an action (send, invite, run) empties after a submit.",
           "ui": {
             "label": "Form kind",
             "group": "behavior",
             "widget": "segmented",
             "valueLabels": {
               "record": "Record",
+              "create": "Create",
               "action": "Action"
             }
           }
@@ -14197,7 +14226,7 @@
             }
           ],
           "optional": true,
-          "description": "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also holds them in Direct, `missedLabel` words the new rows.",
+          "description": "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
           "ui": {
             "label": "Hold rows while paused",
             "group": "data",

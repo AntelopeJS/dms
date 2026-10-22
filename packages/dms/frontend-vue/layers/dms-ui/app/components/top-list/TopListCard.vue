@@ -365,10 +365,12 @@ const gridStyle = computed(() => ({
         class="divide-y divide-(--ui-border-muted) py-1"
         aria-busy="true"
       >
+        <!-- A loaded row's height: 60px with its bar, 56px without. -->
         <div
           v-for="row in props.skeletonCount"
           :key="row"
-          class="flex h-14 items-center gap-3 px-[18px]"
+          class="flex items-center gap-3 px-[18px]"
+          :class="props.showBar ? 'h-[60px]' : 'h-14'"
         >
           <USkeleton
             :aria-label="t('dms.a11y.loading')"

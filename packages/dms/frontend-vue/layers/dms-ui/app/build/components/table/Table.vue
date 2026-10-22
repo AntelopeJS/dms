@@ -22,6 +22,8 @@ import type {
 } from "@tanstack/vue-table";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useTable } from "../../composables/table/useTable";
+import { MAX_PAGE_SIZE } from "../../composables/table/constants";
+import { useRowScrollAnchor } from "../../composables/table/useRowScrollAnchor";
 import type { LabeledColumn } from "../../composables/table/useTableColumns";
 import {
   defaultSortingState,
@@ -413,6 +415,10 @@ export interface TableSharedData<T> {
    * too.
    */
   emptyStates?: TableViewEmptyStatesConfig;
+  /** The add action's configured label (`$`: i18n key), if any. */
+  addLabel?: string;
+  /** The add action's configured icon, if any. */
+  addIcon?: string;
 }
 </script>
 
@@ -819,8 +825,10 @@ const isShowingArchived = computed(
   () => !!props.archiveToggle && showArchivedState.value,
 );
 
-// As many placeholder rows as the page will list (capped), fading out.
-const SKELETON_MAX_ROW_COUNT = 10;
+// As many placeholder rows as the page will list, fading out: the footer
+// (count, page size, pages) and what follows the table already stand where a
+// full page puts them, and do not move when the rows land.
+const SKELETON_MAX_ROW_COUNT = MAX_PAGE_SIZE;
 const SKELETON_TOTAL_FADE = 0.7;
 const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
@@ -848,6 +856,17 @@ const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
 const { width: tableContentWidth } = useElementSize(tableBaseRef);
 watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
+// The column header band's height, for what the table view lays over the
+// first rows (the live hold's pill) to land under it, sticky or not; unset
+// while a custom display draws no header.
+const tableHeadRef = useTemplateRef<HTMLElement>("tableHead");
+const { height: tableHeadHeight } = useElementSize(tableHeadRef, undefined, {
+  box: "border-box",
+});
+const rootStyle = computed(() => ({
+  "--dms-table-head-height":
+    tableHeadHeight.value > 0 ? `${tableHeadHeight.value}px` : undefined,
+}));
 const tableRootStyle = computed(() => ({
   maxHeight: props.maxHeight,
   "--dms-table-viewport":
@@ -1096,6 +1115,14 @@ const bodyEntries = computed<BodyEntry[]>(() => {
   return entries;
 });
 
+// Rows added above the ones the reader scrolled to (a live list's new rows)
+// do not push them down.
+useRowScrollAnchor(tableRootRef, () =>
+  bodyEntries.value
+    .filter((entry) => entry.kind === "row")
+    .map((entry) => entry.id),
+);
+
 const { t, locale } = useI18n();
 
 const formattedRowCount = computed(() =>
@@ -1139,6 +1166,13 @@ const canAddFromToolbar = computed(() => {
   const add = normalizeActionConfig(props.rowActions?.add);
   return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
 });
+// Drawn on the toolbar and empty-state buttons, as the header one draws them.
+const addLabel = computed(
+  () => normalizeActionConfig(props.rowActions?.add).label,
+);
+const addIcon = computed(
+  () => normalizeActionConfig(props.rowActions?.add).icon,
+);
 
 // The bulk bar shows whenever selected rows have something to go to.
 const hasBulkActions = computed(
@@ -1284,6 +1318,8 @@ watchEffect(() => {
     defaultPageSize: props.defaultPageSize,
     accumulation: props.accumulation,
     emptyStates: props.emptyStates,
+    addLabel: addLabel.value,
+    addIcon: addIcon.value,
   };
 });
 
@@ -1360,7 +1396,7 @@ defineShortcuts({
 </script>
 
 <template>
-  <div :class="uiTable.root()">
+  <div :class="uiTable.root()" :style="rootStyle">
     <template v-if="resolvedCapabilities.header">
       <header
         :class="
@@ -1401,6 +1437,8 @@ defineShortcuts({
           v-model:show-archived="showArchivedState"
           :table
           :can-add-row="canAddFromToolbar"
+          :add-label="addLabel"
+          :add-icon="addIcon"
           :archive-toggle="archiveToggle"
           :custom-buttons="toolbarButtons"
           :on-custom-button="onCustomButton"
@@ -1495,7 +1533,7 @@ defineShortcuts({
                 {{ caption }}
               </caption>
 
-              <thead>
+              <thead ref="tableHead">
                 <tr
                   v-for="headerGroup in table.getHeaderGroups()"
                   :key="headerGroup.id"
@@ -1607,6 +1645,7 @@ defineShortcuts({
                     </tr>
                     <template v-else>
                       <tr
+                        :data-row-id="id"
                         :data-selected="row.getIsSelected()"
                         :data-expanded="row.getIsExpanded()"
                         :data-open="isOpenRow(row.original) || undefined"

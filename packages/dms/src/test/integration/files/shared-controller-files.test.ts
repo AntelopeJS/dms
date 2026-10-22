@@ -122,6 +122,7 @@ describe("[integration] native files on a data controller shared by a writing an
       permissions: [
         firstTable.pageId,
         firstTable.componentId,
+        `${firstTable.componentId}.list`,
         `${firstTable.componentId}.add`,
       ],
     });

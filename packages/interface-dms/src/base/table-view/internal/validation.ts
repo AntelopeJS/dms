@@ -6,12 +6,13 @@
 
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import { Logging } from "@antelopejs/interface-core/logging";
 import {
   AccessMode,
   DataAPIMeta,
 } from "@antelopejs/interface-data-api/metadata";
-import { getDataTypeId } from "../../data-types";
-import { TableViewMeta } from "../meta";
+import { type DataType, getDataTypeId } from "../../data-types";
+import { type ColumnOptions, TableViewMeta } from "../meta";
 import {
   type FormContainerPages,
   CARDS_DISPLAY_ID,
@@ -70,8 +71,77 @@ export function assertKnownColumns(
   }
 }
 
+// Types whose quick filter values are known whatever their input: the two
+// labels of a boolean or a status, the rows a relation's `select` endpoint
+// lists. Their input is not built here: a relation's reads the metadata of
+// the controller it points to, which may not be declared yet.
+const QUICK_FILTER_VALUED_TYPES = new Set([
+  "boolean",
+  "status",
+  "relation",
+  "cascader_relation",
+]);
+
+interface QuickFilterInputOptions {
+  items?: unknown[];
+  /** A tags column's suggested tags. */
+  suggestions?: unknown[];
+  searchUrl?: string;
+}
+
+/**
+ * Whether the toolbar can list values for a quick filter on a column of this
+ * type, by the rule the browser applies: a boolean or a status, the `items`
+ * or `suggestions` of its input (a select, a tags column), or the endpoint
+ * its input searches (a relation).
+ * A type whose input cannot be built here is given the benefit of the doubt.
+ */
+function offersQuickFilterValues(type: DataType): boolean {
+  const typeId = getDataTypeId(type);
+  if (typeId && QUICK_FILTER_VALUED_TYPES.has(typeId)) return true;
+  try {
+    const options = (type.inputComponent().options ??
+      {}) as QuickFilterInputOptions;
+    return (
+      (options.items?.length ?? 0) > 0 ||
+      (options.suggestions?.length ?? 0) > 0 ||
+      !!options.searchUrl
+    );
+  } catch {
+    return true;
+  }
+}
+
+const warnedValuelessQuickFilters = new Set<string>();
+
+/**
+ * Warns, once per table and field, about a quick filter whose column offers
+ * nothing to pick — a free-text string, a number, a date, a select without
+ * items: the browser leaves it out of the toolbar. Not thrown, so that an
+ * application already declaring one keeps starting.
+ *
+ * @internal
+ */
+export function warnIfQuickFiltersLackValues(
+  controllerName: string,
+  columns: Record<string, Pick<ColumnOptions, "type"> | undefined>,
+  quickFilters: TableViewQuickFilter[] | undefined,
+): void {
+  for (const { field } of quickFilters ?? []) {
+    const column = columns[field];
+    if (!column || offersQuickFilterValues(column.type)) continue;
+    const key = `${controllerName} ${field}`;
+    if (warnedValuelessQuickFilters.has(key)) continue;
+    warnedValuelessQuickFilters.add(key);
+    Logging.Warn(
+      `[DMS] TableView quickFilters on ${controllerName}: column "${field}" (${getDataTypeId(column.type) ?? "custom type"}) has no values to pick, so the toolbar leaves it out. A quick filter needs a select with items, a boolean, a status or a relation column; filter a free-text column from the filters row or the search instead.`,
+    );
+  }
+}
+
 /**
  * Quick filters must name filterable columns: they filter with `filter_<field>`.
+ * One on a column with no values to pick is only warned about.
  *
  * @internal
  */
@@ -93,6 +163,7 @@ export function validateQuickFilters(
       );
     }
   }
+  warnIfQuickFiltersLackValues(controllerName, meta.columns, quickFilters);
 }
 
 interface KanbanGroupColumnType {

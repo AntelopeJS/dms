@@ -49,16 +49,36 @@ function loadPageLayoutComponents(
   );
 }
 
+// How long a navigation waits for the chunks of the page's blocks: on any
+// usable network they land well within it, and one that hangs does not hold
+// the page for long (its block then loads as it renders).
+export const PAGE_COMPONENTS_WAIT_MS = 3_000;
+
 /**
  * Start fetching the chunks of every component a page layout references,
  * in parallel, instead of letting each <Component :is> trigger its own
  * fetch when it mounts (which waterfalls for nested children).
  * No-op on the server: SSR resolves async components during render.
+ *
+ * Settles once they are all in, or failed, or after
+ * `PAGE_COMPONENTS_WAIT_MS`: the page's setup awaits it, so a client
+ * navigation shows the page with its blocks' code there. A lazy block
+ * renders nothing until its chunk lands, then pushes the page down and
+ * draws its skeleton again.
  */
 export function preloadPageLayoutComponents(
   layout: PageLayout | null | undefined,
-): void {
-  if (import.meta.env.SSR) return;
+): Promise<void> {
+  if (import.meta.env.SSR) return Promise.resolve();
 
-  loadPageLayoutComponents(layout).catch(() => {});
+  const loaded = loadPageLayoutComponents(layout).then(
+    () => {},
+    () => {},
+  );
+  return Promise.race([
+    loaded,
+    new Promise<void>((resolve) =>
+      setTimeout(resolve, PAGE_COMPONENTS_WAIT_MS),
+    ),
+  ]);
 }

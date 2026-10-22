@@ -65,6 +65,7 @@ const emit = defineEmits<{
 
 const SECONDARY_LABELS: Record<FormKind, string> = {
   record: "dms.save_bar.discard",
+  create: "dms.save_bar.discard",
   action: "dms.button.reset",
 };
 

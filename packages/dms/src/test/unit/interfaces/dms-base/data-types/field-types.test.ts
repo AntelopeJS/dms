@@ -255,4 +255,16 @@ describe("[unit] interfaces/dms-base — a number's unit and a text's counter", 
     expect(notes.inputComponent().componentName).to.equal("dms-textarea");
     expect(notes.inputComponent().options).to.include({ showCount: true });
   });
+
+  it("hands a number, a percentage and a text field their width", () => {
+    const estimate = new DefaultDataTypes.NumberType({ width: "compact" });
+    expect(estimate.inputComponent().options).to.include({ width: "compact" });
+    const share = new DefaultDataTypes.PercentageType({ width: "full" });
+    expect(share.inputComponent().options).to.include({ width: "full" });
+    const code = new DefaultDataTypes.StringType({ width: "compact" });
+    expect(code.inputComponent().options).to.include({ width: "compact" });
+    expect(
+      new DefaultDataTypes.NumberType().inputComponent().options,
+    ).to.include({ width: undefined });
+  });
 });

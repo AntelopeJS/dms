@@ -178,6 +178,8 @@
         "save_as": "Save as new view",
         "save_current": "Save current view",
         "delete": "Delete view",
+        "delete_title": "Delete this view?",
+        "delete_description": "\"{view}\" will be deleted for good. The table goes back to its default state if the view is open.",
         "save_as_title": "Save as a new view",
         "save_as_description": "Keep the current filters, search, sort, columns and display under a name. Only you will see it.",
         "save_as_confirm": "Save view",
@@ -258,6 +260,7 @@
       "reset": "Reset",
       "cancel": "Cancel",
       "save_changes": "Save changes",
+      "create": "Create",
       "refresh_data": "Refresh data",
       "export_data": "Export data"
     },
@@ -407,7 +410,8 @@
         "invalid": "No errors | 1 field to fix | {count} fields to fix"
       },
       "error_summary": {
-        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention"
+        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention",
+        "resolved": "Everything is fixed: the form can be saved."
       },
       "repeater": {
         "add": "Add a row",

@@ -89,8 +89,10 @@ const heightClass = computed(
   () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[size.value],
 );
 
-// The state lives in the browser (its storage, its clock): the server and the
-// hydrating render draw nothing, the mounted block draws the real state.
+// The toggle is drawn from the server on, live (the remembered pause applies
+// once mounted), so it takes its place before the page paints. Only the
+// "updated N s ago" text waits for the browser's clock: the server's would
+// not match the hydrating render's.
 const isMounted = ref(false);
 onMounted(() => (isMounted.value = true));
 const updatedText = useUpdatedLabel(
@@ -111,13 +113,9 @@ const items = computed(() => [
   { value: PAUSE, label: t("dms.live.pause"), icon: "i-ph-pause" },
 ]);
 
-const updatedLabel = computed(() => {
-  const updated = updatedText.value;
-  if (!updated) return "";
-  return live.isPolling.value
-    ? `${updated} · ${t("dms.live.polling")}`
-    : updated;
-});
+// The browser's clock only: the server's text would not match the hydrating
+// render's.
+const updatedLabel = computed(() => (isMounted.value ? updatedText.value : ""));
 
 const missedText = computed(() => {
   const count = live.missedCount.value;
@@ -156,7 +154,7 @@ useLiveToggleShortcut(() => live.toggle());
 
 <template>
   <div
-    v-if="isMounted && live.isEnabled.value"
+    v-if="live.isEnabled.value"
     class="dms-live-toggle flex flex-wrap items-center gap-x-2.5 gap-y-1"
     :class="[ALIGN_CLASSES[align], `dms-live-toggle--${variant}`]"
   >
@@ -171,11 +169,21 @@ useLiveToggleShortcut(() => live.toggle());
     </span>
     <span
       v-else-if="showUpdatedAt"
-      class="text-muted tabular-nums"
+      class="text-muted inline-flex items-center gap-1.5 tabular-nums"
       :class="sizeClasses.text"
       aria-live="off"
     >
       {{ updatedLabel }}
+      <!-- The polling hint, its box always kept: showing it never widens the
+           toggle, which would wrap the toolbar and move the page. -->
+      <UIcon
+        name="i-ph-wifi-slash"
+        class="dms-live-toggle__polling size-3.5 shrink-0"
+        :class="!live.isPolling.value && 'invisible'"
+        :title="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-label="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-hidden="!live.isPolling.value || undefined"
+      />
     </span>
     <div
       v-if="variant === 'pill'"

@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 /**
+ * A row added to an array field is empty: it is checked once its cells are
+ * filled or the form is submitted, never flagged "required" the moment it
+ * appears. Changing, moving or removing a row validates the field as before.
+ *
  * A read-only array field shows its rows and nothing to change them with.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -83,6 +87,21 @@ async function mount(
 }
 
 describe("an array field's rows", () => {
+  it("adds an empty row without validating the field", async () => {
+    const { host, events, model } = await mount([]);
+    host.querySelector<HTMLButtonElement>("button:last-of-type")!.click();
+    await nextTick();
+    expect(model.value).toEqual([{}]);
+    expect(events).toEqual([]);
+  });
+
+  it("validates once a row is removed", async () => {
+    const { host, events } = await mount([{ name: "a" }, { name: "b" }]);
+    host.querySelector<HTMLButtonElement>("button")!.click();
+    await nextTick();
+    expect(events).toEqual(["change"]);
+  });
+
   // A read-only list (a record's details) shows its rows as a table of
   // values, and nothing to change them with.
   it("shows only the rows' values when disabled", async () => {

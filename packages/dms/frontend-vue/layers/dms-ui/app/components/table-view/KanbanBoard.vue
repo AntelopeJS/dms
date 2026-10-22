@@ -73,6 +73,8 @@ const props = defineProps<KanbanBoardProps>();
 const emit = defineEmits<{
   "card-click": [item: T];
   "card-delete": [item: T];
+  /** A card moved to another column and the change was saved. */
+  moved: [item: T, column: KanbanColumnDef];
   /** The cards shown, column by column: what a row's drawer steps through. */
   "rows-shown": [items: T[]];
 }>();
@@ -363,6 +365,7 @@ const onColumnChange = async (
 
   try {
     await queued;
+    emit("moved", item, target);
     toast.add({
       color: Color.success,
       title: t("dms.table.kanban.move_success", { column: target.label }),

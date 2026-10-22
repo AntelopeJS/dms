@@ -34,6 +34,8 @@ export const VIEW_ACTION = "view";
 export const LIST_ACTION = "list";
 /** @internal */
 export const SELECT_ACTION = "select";
+/** @internal */
+export const VIEW_ARCHIVED_ACTION = "viewArchived";
 
 /**
  * The actions a `bypassTenantAccessGate` table view may still serve while a

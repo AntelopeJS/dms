@@ -99,6 +99,12 @@ export interface ColumnOptions {
   isVisible?: boolean;
   defaultValue?: DefaultValue;
   readonlyBehavior?: ReadonlyBehavior;
+  /**
+   * A create form leaves out a read-only column that holds nothing yet (a
+   * value the server sets): `true` shows it empty all the same. To leave it
+   * out whatever it holds, use `readonlyBehavior: { new: "hidden" }`.
+   */
+  showEmptyOnCreate?: boolean;
   validate?: boolean;
   filterable?: boolean;
   inputComponent?: Component;
@@ -350,6 +356,7 @@ export class TableViewMeta {
         options.inputComponent?.serializeSync() ??
         (isDisabled ? options.type.describedInputComponent() : undefined),
       disabled: isDisabled,
+      showEmptyOnCreate: options.showEmptyOnCreate,
       required: isRequired,
       defaultValue: options.defaultValue,
       localized: localizedFields.includes(key),

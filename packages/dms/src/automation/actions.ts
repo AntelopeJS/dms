@@ -40,14 +40,16 @@ async function recipientLanguage(email: string): Promise<string | undefined> {
 }
 
 /**
- * The body to send: a registered template rendered in the given language (or
- * the recipient's), else the literal HTML. A template name that no module
- * registered fails the run rather than sending a blank email.
+ * The registered template an email renders, or `undefined` for literal HTML.
+ * A template name that no module registered fails the run rather than sending
+ * a blank email; a test run checks the same.
  */
-async function emailBody(input: SendEmailInput): Promise<string> {
+async function bodyTemplate(
+  input: SendEmailInput,
+): Promise<string | undefined> {
   const template = input.template?.trim();
   if (!template) {
-    if (typeof input.html === "string") return input.html;
+    if (typeof input.html === "string") return undefined;
     throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
   }
   if (!(await GetHtmlTemplate(template))) {
@@ -55,6 +57,16 @@ async function emailBody(input: SendEmailInput): Promise<string> {
       `${SEND_EMAIL_ACTION_ID}: no HTML template is registered as "${template}"`,
     );
   }
+  return template;
+}
+
+/**
+ * The body to send: a registered template rendered in the given language (or
+ * the recipient's), else the literal HTML.
+ */
+async function emailBody(input: SendEmailInput): Promise<string> {
+  const template = await bodyTemplate(input);
+  if (!template) return input.html ?? "";
   const language =
     input.language?.trim() || (await recipientLanguage(input.to));
   return GenerateHtml({ name: template }, input.props ?? {}, language);
@@ -94,6 +106,12 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
       messageId: { type: "string" },
       error: { type: "string" },
     }),
+  },
+  // A test run checks the body as a send would, renders and sends nothing.
+  async dryRun(input, ctx) {
+    await bodyTemplate(input);
+    ctx.log("info", `test run: email to "${input.to}" not sent`);
+    return { success: true };
   },
   async execute(input, ctx) {
     const result = await Send({
@@ -153,6 +171,24 @@ function invitationDetails(input: InviteUserInput): InvitationDetails {
   return details;
 }
 
+interface ExistingMembership {
+  userId?: string;
+  member: boolean;
+}
+
+/** The user an address belongs to, and whether they already are a member. */
+async function existingMembership(
+  email: string,
+  tenantId: string,
+): Promise<ExistingMembership> {
+  const user = await GetModel(UserModel).getByEmail(email);
+  if (!user) return { member: false };
+  const member = await GetModel(TenantMemberModel, tenantId).getByUser(
+    user._id,
+  );
+  return { userId: user._id, member: Boolean(member) };
+}
+
 const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
   id: INVITE_USER_ACTION_ID,
   name: nodeText(INVITE_USER_TEXTS, "name"),
@@ -190,22 +226,32 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       inviteId: { type: "string" },
     }),
   },
+  // A test run reads who the address belongs to and reports what an invite
+  // would do: nothing is created and no email is sent.
+  async dryRun(input, ctx) {
+    const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
+    const existing = await existingMembership(input.email, tenantId);
+    if (existing.member) {
+      return { kind: "already-member", userId: existing.userId };
+    }
+    ctx.log(
+      "info",
+      `test run: "${input.email}" not invited to tenant "${tenantId}"`,
+    );
+    if (existing.userId) return { kind: "added", userId: existing.userId };
+    return { kind: "invited" };
+  },
   async execute(input, ctx) {
     const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
     // Same pre-check as the members invite route: never let a duplicate
     // invite silently overwrite an existing member's roles or ownership.
-    const existingUser = await GetModel(UserModel).getByEmail(input.email);
-    if (existingUser) {
-      const member = await GetModel(TenantMemberModel, tenantId).getByUser(
-        existingUser._id,
+    const existing = await existingMembership(input.email, tenantId);
+    if (existing.member) {
+      ctx.log(
+        "warn",
+        `"${input.email}" is already a member of tenant "${tenantId}"; membership left unchanged`,
       );
-      if (member) {
-        ctx.log(
-          "warn",
-          `"${input.email}" is already a member of tenant "${tenantId}"; membership left unchanged`,
-        );
-        return { kind: "already-member", userId: existingUser._id };
-      }
+      return { kind: "already-member", userId: existing.userId };
     }
     const result = await inviteUserToTenant({
       tenantId,
