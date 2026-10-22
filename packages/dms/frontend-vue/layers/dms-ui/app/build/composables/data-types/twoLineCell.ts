@@ -1,6 +1,6 @@
 import { h, type VNodeChild } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
-import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   type ComposableText,
   isComposedText,
@@ -53,7 +53,7 @@ function readPrimary(
   opts: TwoLineOptions,
   row: Row,
 ): VNodeChild | undefined {
-  const { processText } = useComposedText();
+  const { processText } = getAppComposedText();
   if (opts.primaryField) {
     const text = processText(
       readRowField(row, opts.primaryField) as ComposableText,
@@ -76,7 +76,7 @@ function renderTwoLine(
   options: unknown,
   row: Row,
 ) {
-  const { processText } = useComposedText();
+  const { processText } = getAppComposedText();
   const opts = (options ?? {}) as TwoLineOptions;
   const primary = readPrimary(value, locale, opts, row);
   const sub = readSubline(readRowField(row, opts.subField), {

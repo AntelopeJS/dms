@@ -5,7 +5,10 @@ import type {
 } from "../../../composables/form/types/field";
 import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
-import { GROUP_FIELDS_CLASSES } from "../../composables/form/formLayout";
+import {
+  GROUP_FIELDS_CLASSES,
+  GROUP_MEMBER_CLASSES,
+} from "../../composables/form/formLayout";
 import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
@@ -19,6 +22,7 @@ interface FormEntriesProps {
 
 const props = defineProps<FormEntriesProps>();
 const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
+const { processI18n } = useTranslation();
 
 const classes = computed(() => context.layoutClasses(props.inSection));
 
@@ -63,14 +67,32 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
             />
           </template>
           <div :class="groupFieldsClass(entry)">
+            <!-- The group's label heads the cluster; each member keeps its
+                 own above its control, so a group can title a run of
+                 labelled fields. -->
             <template v-for="field in entry.fields" :key="field.id">
-              <DmsFormFieldControl
+              <div
                 v-if="
                   field.component.componentName && !context.isFieldHidden(field)
                 "
-                :field
-                class="min-w-0 flex-1"
-              />
+                :class="GROUP_MEMBER_CLASSES.root"
+              >
+                <label
+                  v-if="field.label"
+                  :for="field.id"
+                  :class="GROUP_MEMBER_CLASSES.label"
+                >
+                  {{ processI18n(field.label) }}
+                  <span
+                    v-if="context.isFieldRequired(field)"
+                    class="text-error"
+                    aria-hidden="true"
+                  >
+                    *
+                  </span>
+                </label>
+                <DmsFormFieldControl :field class="min-w-0" />
+              </div>
             </template>
           </div>
         </DmsFieldRow>

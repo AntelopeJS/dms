@@ -39,6 +39,7 @@ it("loads a page registered after setup without changing the route", async () =>
   expect(loadPageLayout).toHaveBeenCalledExactlyOnceWith(
     "/new-page/pagelayout",
     {},
+    "/new-page/pagelayout",
   );
   expect(pageLayout.value).toBe("/new-page/pagelayout");
   expect(route.path).toBe("/new-page");

@@ -6,7 +6,8 @@ import type {
   UseDmsPagedDataOptions,
   UseFetchOptions,
 } from "#dms/frontend-module";
-import type { MaybeRefOrGetter } from "vue";
+import { getCurrentInstance, toValue, watch, type MaybeRefOrGetter } from "vue";
+import { useLivePauseSource } from "../live/livePauseSource";
 
 /** The authenticated fetch `useAuthFetch` returns. */
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -61,7 +62,9 @@ export type ApiDataResult<T> = DmsAsyncDataResult<T>;
  * - `refreshInterval: ms` reads again on an interval while the caller shows
  *   the data and the page is visible: polling. A ref or a getter changes it,
  *   and `0` or `null` stops it; a call from a plugin polls for as long as
- *   the application runs.
+ *   the application runs. On a page declared with `live`, a component's
+ *   polling stops while the page is paused, and reads once on resume if a
+ *   poll fell due meanwhile.
  * - The page's refreshes (`refreshPageBlocks()`) and the events of its
  *   realtime topics read the data again; `refreshOnPageRefresh: false` opts
  *   out, for data with refresh triggers of its own.
@@ -88,15 +91,74 @@ export function useApiData<T>(
 ): ApiDataResult<T> {
   const { $authFetch } = useAuthFetch();
   if (typeof handlerOrOptions === "function")
-    return useDmsAsyncData<T>(
-      source,
-      ({ signal }) => handlerOrOptions({ $authFetch, signal }),
+    return followLivePause(
+      useDmsAsyncData<T>(
+        source,
+        ({ signal }) => handlerOrOptions({ $authFetch, signal }),
+        gateLivePolling(options),
+      ),
       options,
     );
-  return useDmsFetch<T>(source, {
-    ...handlerOrOptions,
-    $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
+  return followLivePause(
+    useDmsFetch<T>(source, {
+      ...gateLivePolling(handlerOrOptions),
+      $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
+    }),
+    handlerOrOptions,
+  );
+}
+
+/** The options of a read that polls, as far as its live gate goes. */
+interface PolledReadOptions {
+  refreshInterval?: MaybeRefOrGetter<number | null | undefined>;
+  immediate?: boolean;
+}
+
+// A component's polling is one more read nobody asked for: on a live page it
+// stops while the page is paused, as the blocks' refetches do. A plugin's
+// polling (the shell's, outside any page) keeps running. The pause is read
+// through the app's `LIVE_PAUSE_SOURCE`, which the UI layer provides.
+function isGatedPolling(
+  options: PolledReadOptions | undefined,
+): options is PolledReadOptions {
+  return options?.refreshInterval !== undefined && !!getCurrentInstance();
+}
+
+/** `options` with a `refreshInterval` that is `null` while the page is paused. */
+function gateLivePolling<O extends PolledReadOptions>(
+  options: O | undefined,
+): O | undefined {
+  if (!isGatedPolling(options)) return options;
+  const interval = options.refreshInterval;
+  const isPaused = useLivePauseSource();
+  return {
+    ...options,
+    refreshInterval: () => (isPaused() ? null : toValue(interval)),
+  };
+}
+
+/**
+ * Reads once as the page resumes when a poll fell due while it was paused:
+ * the polling restarts with a full interval, which would show the data of
+ * before the pause that long.
+ */
+function followLivePause<
+  R extends Pick<DmsAsyncDataResult<unknown>, "status" | "refresh">,
+>(result: R, options: PolledReadOptions | undefined): R {
+  if (typeof window === "undefined" || !isGatedPolling(options)) return result;
+  let pausedAt = 0;
+  watch(useLivePauseSource(), (isPaused) => {
+    if (isPaused) {
+      pausedAt = Date.now();
+      return;
+    }
+    const period = toValue(options.refreshInterval);
+    if (!period || period <= 0 || Date.now() - pausedAt < period) return;
+    // Data a caller waits to `execute()` is not read before it is.
+    if (result.status.value === "idle" && options.immediate === false) return;
+    void result.refresh({ dedupe: "defer" });
   });
+  return result;
 }
 
 /** What a handler reading one page of API data receives. */
@@ -139,10 +201,13 @@ export function useApiPagedData<TPage, TCursor = unknown>(
   options: UseDmsPagedDataOptions<TPage, TCursor>,
 ): ApiPagedDataResult<TPage, TCursor> {
   const { $authFetch } = useAuthFetch();
-  return useDmsPagedData<TPage, TCursor>(
-    key,
-    ({ cursor, index, signal }) =>
-      handler({ $authFetch, cursor, index, signal }),
+  return followLivePause(
+    useDmsPagedData<TPage, TCursor>(
+      key,
+      ({ cursor, index, signal }) =>
+        handler({ $authFetch, cursor, index, signal }),
+      gateLivePolling(options) ?? options,
+    ),
     options,
   );
 }

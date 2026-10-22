@@ -1,12 +1,17 @@
 import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
-import type { ModuleCatalogEntry } from "../../types/page";
+import { type ModuleCatalogEntry, MODULE_URL_PREFIX } from "../../types/page";
 import type {
+  ModuleSourceKind,
   StoreListingEntry,
   StoreModuleState,
   StoreOperationKind,
 } from "../../types/module-store";
-import type { DisplayResolver } from "./modules-catalog";
+import {
+  type DisplayResolver,
+  compareDisplayNames,
+  moduleStatus,
+} from "./modules-catalog";
 
 /** A store module as the Modules page filters and draws it. */
 export type ModuleStoreEntry = StoreListingEntry & {
@@ -17,13 +22,19 @@ export type ModuleStoreEntry = StoreListingEntry & {
 /** Which store modules the store section shows. */
 export type StoreScope = "all" | "available" | "installed";
 
-/** What a store tile's pill says. */
-export interface StoreTileStatus {
-  tone: Tone;
-  /** i18n key under `modules.store.state`. */
-  labelKey: string;
-  dot?: StatusPillDot;
-}
+/**
+ * The scopes in the order the store's switch shows them. The store is for
+ * discovering, so it opens on what can still be installed; "all" comes last,
+ * the widest view.
+ */
+export const STORE_SCOPES: readonly StoreScope[] = [
+  "available",
+  "installed",
+  "all",
+];
+
+/** The scope the store opens on. */
+export const DEFAULT_STORE_SCOPE: StoreScope = "available";
 
 /** One action a store tile offers. */
 export interface StoreAction {
@@ -42,17 +53,17 @@ export interface StoreAction {
 
 const CATEGORY_PREFIX = "$modules.store.category";
 
+/** The icon a tile's footer names a module's source with. */
+export const MODULE_SOURCE_ICONS: Record<ModuleSourceKind, string> = {
+  npm: "i-ph-package",
+  github: "i-ph-github-logo",
+  gitlab: "i-ph-gitlab-logo",
+  git: "i-ph-git-branch",
+  local: "i-ph-folder-simple",
+};
+
 /** The command that turns a production frontend into one serving new layers. */
 export const FRONTEND_BUILD_COMMAND = "ajs dms build";
-
-const STATUSES: Record<StoreModuleState, StoreTileStatus> = {
-  available: { tone: "neutral", labelKey: "available", dot: "none" },
-  busy: { tone: "info", labelKey: "busy", dot: "live" },
-  active: { tone: "success", labelKey: "active" },
-  disabled: { tone: "neutral", labelKey: "disabled" },
-  error: { tone: "error", labelKey: "error" },
-  pending: { tone: "warning", labelKey: "pending" },
-};
 
 const ACTIONS: Record<StoreOperationKind, StoreAction> = {
   install: {
@@ -85,19 +96,83 @@ const INSTALLED_STATES = new Set<StoreModuleState>([
   "pending",
 ]);
 
+/**
+ * The category a module is filed under, the same on its installed tile and
+ * its store tile: the one its registration names, else the store catalog's.
+ */
+export function resolveCatalogCategory(
+  registered: Pick<ModuleCatalogEntry, "catalogCategory"> | undefined,
+  entry: Pick<StoreListingEntry, "category">,
+): string {
+  return (
+    registered?.catalogCategory?.trim() ||
+    `${CATEGORY_PREFIX}.${entry.category}`
+  );
+}
+
 export function toModuleStoreEntry(
   entry: StoreListingEntry,
-  registeredModules: readonly Pick<ModuleCatalogEntry, "id" | "title">[] = [],
+  registeredModules: readonly Pick<
+    ModuleCatalogEntry,
+    "id" | "title" | "catalogCategory"
+  >[] = [],
 ): ModuleStoreEntry {
+  const registered = registeredModules.find((module) => module.id === entry.id);
   return {
     ...entry,
     // The registration also names Installed and navigation. Keep the catalog
     // fallback for unloaded modules, whose translations may not be served.
-    title:
-      registeredModules.find((module) => module.id === entry.id)?.title ??
-      entry.title,
-    catalogCategory: `${CATEGORY_PREFIX}.${entry.category}`,
+    title: registered?.title ?? entry.title,
+    catalogCategory: resolveCatalogCategory(registered, entry),
   };
+}
+
+/** A version as written, not a range: what an installed tile prints. */
+const PLAIN_VERSION = /^\d+\.\d+\.\d+/;
+
+/**
+ * Installed modules with the version, category and source their registration
+ * leaves out, read from the store listing of the same id. A module that registers
+ * neither still reads like the others on its tile and in the filters.
+ */
+export function withStoreDetails<T extends ModuleCatalogEntry>(
+  modules: readonly T[],
+  store: readonly StoreListingEntry[],
+): T[] {
+  const byId = new Map(store.map((entry) => [entry.id, entry]));
+  return modules.map((module) => {
+    const entry = byId.get(module.id);
+    if (!entry) return module;
+    const installed = entry.installedVersion;
+    return {
+      ...module,
+      version:
+        module.version ??
+        (installed && PLAIN_VERSION.test(installed) ? installed : undefined),
+      catalogCategory: resolveCatalogCategory(module, entry),
+      source: entry.source,
+    };
+  });
+}
+
+/**
+ * Where a store tile's Open button leads: the landing page of the installed
+ * module of the same id, when the caller may open it and it has pages (a
+ * module without one lands on its own address, which has nothing to show).
+ */
+export function storeOpenTarget(
+  entry: Pick<StoreListingEntry, "id">,
+  installedModules: readonly Pick<
+    ModuleCatalogEntry,
+    "id" | "hasAccess" | "landingSlug"
+  >[],
+): string | undefined {
+  const module = installedModules.find(
+    (candidate) => candidate.id === entry.id,
+  );
+  if (!module?.hasAccess || !module.landingSlug) return undefined;
+  const ownAddress = `${MODULE_URL_PREFIX}/${entry.id}`;
+  return module.landingSlug === ownAddress ? undefined : module.landingSlug;
 }
 
 /** Whether the module is installed, from the store or by the config. */
@@ -115,21 +190,16 @@ export function filterByScope<T extends StoreListingEntry>(
   return entries.filter((entry) => isInstalled(entry) === wantsInstalled);
 }
 
-/** The store modules, alphabetical by their shown name. */
+/** The store modules, alphabetical by their shown name in `locale`'s order. */
 export function sortStoreModules<T extends StoreListingEntry>(
   entries: readonly T[],
   resolve: DisplayResolver,
+  locale?: string,
 ): T[] {
+  const compare = compareDisplayNames(locale);
   return [...entries].sort((a, b) =>
-    resolve(a.title).localeCompare(resolve(b.title)),
+    compare(resolve(a.title), resolve(b.title)),
   );
-}
-
-export function storeTileStatus(entry: StoreListingEntry): StoreTileStatus {
-  if (entry.state === "active" && entry.updateAvailable) {
-    return { tone: "warning", labelKey: "update_available" };
-  }
-  return STATUSES[entry.state];
 }
 
 /**
@@ -138,6 +208,8 @@ export function storeTileStatus(entry: StoreListingEntry): StoreTileStatus {
  * applying the file otherwise.
  */
 export function storeActions(entry: StoreListingEntry): StoreAction[] {
+  // The developer's working copy is theirs to change in antelope.config.ts.
+  if (entry.isWorkingCopy) return [];
   const installed = entry.installedVersion !== undefined;
   const byState: Record<StoreModuleState, StoreOperationKind[]> = {
     available: ["install"],
@@ -166,6 +238,7 @@ export type StoreActionBlock =
   | "incompatible"
   | "frontend"
   | "interfaces"
+  | "used_by_project"
   | "dependents";
 
 /** Actions that load a new release of the module. */
@@ -197,10 +270,55 @@ export function storeActionBlock(
   kind: StoreOperationKind,
 ): StoreActionBlock | undefined {
   if (RELEASE_ACTIONS.has(kind)) return releaseBlock(entry, kind);
-  if (TAKE_DOWN_ACTIONS.has(kind) && entry.dependents.length > 0) {
-    return "dependents";
-  }
-  return undefined;
+  if (!TAKE_DOWN_ACTIONS.has(kind)) return undefined;
+  // The project cannot be removed first: only a change to its code frees it.
+  if (entry.usedByProject) return "used_by_project";
+  return entry.dependents.length > 0 ? "dependents" : undefined;
+}
+
+/** Translates an i18n key with its named parameters. */
+export type StoreTranslate = (
+  key: string,
+  params?: Record<string, string>,
+) => string;
+
+const LIST_SEPARATOR = ", ";
+
+const BLOCK_MESSAGES: Record<
+  StoreActionBlock,
+  (entry: StoreListingEntry, t: StoreTranslate) => string
+> = {
+  no_release: (_entry, t) => t("modules.store.no_release"),
+  incompatible: (entry, t) =>
+    t("modules.store.incompatible", {
+      range: entry.requiredInterfaceRange ?? "",
+    }),
+  frontend: (entry, t) =>
+    t("modules.store.frontend_requirement.needs", {
+      range: entry.frontendRequirement?.range ?? "",
+      running: entry.frontendRequirement?.running ?? "",
+    }),
+  interfaces: (entry, t) =>
+    t("modules.store.requires_first", {
+      interfaces: entry.missingInterfaces
+        .map((missing) => missing.interfacePackage)
+        .join(LIST_SEPARATOR),
+    }),
+  used_by_project: (_entry, t) => t("modules.store.used_by_project"),
+  dependents: (entry, t) =>
+    t("modules.store.used_by", {
+      modules: entry.dependents.join(LIST_SEPARATOR),
+    }),
+};
+
+/** Why `kind` cannot run on the module, worded for its tile, if it cannot. */
+export function storeBlockMessage(
+  entry: StoreListingEntry,
+  kind: StoreOperationKind,
+  t: StoreTranslate,
+): string | undefined {
+  const block = storeActionBlock(entry, kind);
+  return block ? BLOCK_MESSAGES[block](entry, t) : undefined;
 }
 
 /** Whether `kind` first asks which modules implement the missing interfaces. */
@@ -209,4 +327,82 @@ export function needsDependencyChoice(
   kind: StoreOperationKind,
 ): boolean {
   return PICKS_DEPENDENCIES.has(kind) && entry.missingInterfaces.length > 0;
+}
+
+/** What an installed module's pill says. */
+export interface InstalledTileStatus {
+  tone: Tone;
+  /** Full i18n key of the label. */
+  labelKey: string;
+  dot?: StatusPillDot;
+}
+
+/** Store states an installed module's pill says before anything else. */
+const STORE_STATE_PILLS: Partial<
+  Record<StoreModuleState, InstalledTileStatus>
+> = {
+  busy: { tone: "info", labelKey: "modules.store.state.busy", dot: "live" },
+  error: { tone: "error", labelKey: "modules.store.state.error" },
+  disabled: { tone: "warning", labelKey: "modules.store.state.disabled" },
+  pending: { tone: "warning", labelKey: "modules.store.state.pending" },
+};
+
+const MODULE_STATUS_PILLS: Record<
+  ReturnType<typeof moduleStatus>,
+  InstalledTileStatus
+> = {
+  live: { tone: "success", labelKey: "modules.status.live" },
+  beta: { tone: "secondary", labelKey: "modules.status.beta" },
+  update: { tone: "warning", labelKey: "modules.status.update" },
+  attention: { tone: "error", labelKey: "modules.status.attention" },
+};
+
+/**
+ * The pill of an installed module: what the store says of it first (an
+ * operation, an error, paused, not applied, a frontend to restart, an
+ * update), then what the module reports of itself, Active otherwise.
+ */
+export function installedTileStatus(
+  module: ModuleCatalogEntry,
+  entry: StoreListingEntry | undefined,
+): InstalledTileStatus {
+  const storeStatus = entry && STORE_STATE_PILLS[entry.state];
+  if (storeStatus) return storeStatus;
+  if (entry && isAwaitingFrontend(entry)) {
+    return { tone: "warning", labelKey: "modules.status.restart_required" };
+  }
+  if (entry?.updateAvailable) {
+    return { tone: "warning", labelKey: "modules.status.update" };
+  }
+  return MODULE_STATUS_PILLS[moduleStatus(module)];
+}
+
+/**
+ * Installed store modules that register no module of their own, as the
+ * Installed grid lists them: a paused module, one that did not start, or one
+ * without pages. antelope.config.ts still declares them, so they stay listed
+ * and managed there, with what the store knows of them.
+ */
+export function storeOnlyModules(
+  store: readonly ModuleStoreEntry[],
+  registered: readonly Pick<ModuleCatalogEntry, "id">[],
+): ModuleCatalogEntry[] {
+  const registeredIds = new Set(registered.map((module) => module.id));
+  return store
+    .filter((entry) => isInstalled(entry) && !registeredIds.has(entry.id))
+    .map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      description: entry.description,
+      icon: entry.icon,
+      hasAccess: true,
+      // Nothing to open: the module serves no page.
+      landingSlug: "",
+      catalogCategory: entry.catalogCategory,
+      version:
+        entry.installedVersion && PLAIN_VERSION.test(entry.installedVersion)
+          ? entry.installedVersion
+          : undefined,
+      source: entry.source,
+    }));
 }
