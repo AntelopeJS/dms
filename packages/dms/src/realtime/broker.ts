@@ -8,7 +8,34 @@ export interface RealtimeEvent {
   type: string;
   payload?: Record<string, unknown>;
   actorId?: string;
+  /** The tenant the event is about; absent on an event for every tenant. */
+  tenantId?: string;
   ts: number;
+}
+
+/** The view of a session that receives the events of every tenant. */
+export const EVERY_TENANT = Symbol("every tenant");
+
+/**
+ * The tenants a session receives the events of: those of one tenant (with
+ * the global ones), or {@link EVERY_TENANT}.
+ */
+export type TenantView = string | undefined | typeof EVERY_TENANT;
+
+/**
+ * Whether a session viewing `view` receives `event`: a global event reaches
+ * every session, a tenant's event the sessions of that tenant and those that
+ * view every tenant.
+ */
+export function isEventForTenant(
+  event: { tenantId?: string },
+  view: TenantView,
+): boolean {
+  return (
+    view === EVERY_TENANT ||
+    event.tenantId === undefined ||
+    event.tenantId === view
+  );
 }
 
 export type RealtimeEventHandler = (event: RealtimeEvent) => void;

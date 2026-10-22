@@ -350,12 +350,12 @@ export type TableViewQuickFilterMode =
 
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
- * values of a column: a select's items, a boolean's two labels, or the rows
- * a relation points to. The picked value is the column's filter, the very one
- * the filters row edits: kept with the table's state, counted as an active
- * filter and cleared by "Reset filters". In the `compact` layout, which has
- * no filters row, the button names the column and its value ("Role: Admin")
- * next to a clear button.
+ * values of a column: a select's items, a boolean's two labels, a tags
+ * column's `suggestions`, or the rows a relation points to. The picked value
+ * is the column's filter, the very one the filters row edits: kept with the
+ * table's state, counted as an active filter and cleared by "Reset filters".
+ * In the `compact` layout, which has no filters row, the button names the
+ * column and its value ("Role: Admin") next to a clear button.
  */
 export interface TableViewQuickFilter {
   /** Filterable column the control filters on. */
@@ -368,7 +368,8 @@ export interface TableViewQuickFilter {
   allLabel?: string;
   /**
    * Compare mode of the filter. Defaults to `array_contains_string` for a
-   * multiple relation or select, `is` otherwise.
+   * multiple relation or select and for a type whose default compare mode it
+   * is (tags), `is` otherwise.
    */
   mode?: TableViewQuickFilterMode;
 }
@@ -1002,6 +1003,15 @@ export interface TableViewOptions<
    * Enable archive mode: replaces delete action with archive/restore
    */
   archiveMode?: boolean;
+  /**
+   * The count the caption shows while the archived rows are listed, naming
+   * them: an i18n key with `$` receiving `{ count }` and pluralized on it
+   * ("13 factures archivées"), or a text with `{count}`. Defaults to
+   * "Archived: {count}" ("Archives : {count}" in French), which agrees with
+   * no noun.
+   * @example "$invoices.archived_count"
+   */
+  archivedCountLabel?: string;
   /**
    * Default filters to apply when the table view is opened
    */

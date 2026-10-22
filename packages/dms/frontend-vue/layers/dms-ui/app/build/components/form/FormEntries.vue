@@ -7,6 +7,8 @@ import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
 import {
   GROUP_FIELDS_CLASSES,
+  entryFields,
+  entryRowLayout,
   GROUP_MEMBER_CLASSES,
 } from "../../composables/form/formLayout";
 import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
@@ -25,6 +27,11 @@ const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
 const { processI18n } = useTranslation();
 
 const classes = computed(() => context.layoutClasses(props.inSection));
+
+/** The row's layout: a wide field takes the full width under its label. */
+function rowOf(entry: FormFieldOrGroup) {
+  return entryRowLayout(classes.value.row, entryFields(entry));
+}
 
 function groupFieldsClass(group: FieldGroup): string {
   return GROUP_FIELDS_CLASSES[
@@ -61,7 +68,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
       <template v-if="isFieldGroup(entry)">
         <DmsFieldRow
           v-if="isGroupVisible(entry)"
-          v-bind="classes.row"
+          v-bind="rowOf(entry)"
           :label="entry.label || ''"
           :description="descriptionOf(entry)"
           :required="isGroupRequired(entry)"
@@ -106,7 +113,7 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
 
       <DmsFieldRow
         v-else-if="!context.isFieldHidden(entry)"
-        v-bind="classes.row"
+        v-bind="rowOf(entry)"
         :label="entry.label || ''"
         :label-for="entry.id"
         :description="descriptionOf(entry)"

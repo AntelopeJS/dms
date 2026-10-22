@@ -35,7 +35,6 @@ function stubLayerGlobals() {
     "formatNumber",
     "formatPrice",
     "formatPercentage",
-    "formatTimeSpan",
     "formatDate",
     "getBooleanLabel",
   ]) {
