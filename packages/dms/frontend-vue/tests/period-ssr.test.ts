@@ -149,7 +149,7 @@ describe("a period-scoped card in a server render", () => {
     expect(html).toContain("value:last-24h");
     expect(requests).toHaveLength(1);
     const query = new URL(requests[0]!, "http://dms.local").searchParams;
-    expect(payload.state["dms-period-render-now"]).toBe(
+    expect(payload.state["dms-render-now"]).toBe(
       new Date(query.get("to")!).getTime(),
     );
   });

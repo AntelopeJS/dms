@@ -3,9 +3,9 @@ import { isHydratingComponent } from "../../composables/hydration/isHydratingCom
 
 /**
  * The instant a server render reads the clock at, handed to the browser with
- * the page. Named for the periods, its first reader.
+ * the page: the periods' bounds and the relative dates read it.
  */
-const RENDER_NOW_STATE_KEY = "dms-period-render-now";
+const RENDER_NOW_STATE_KEY = "dms-render-now";
 
 /**
  * The instant, in milliseconds, a component reads the clock at while its
