@@ -35,23 +35,6 @@ export interface UseChartFetchOptions<T> {
   realtimeTopic?: string | string[];
   watchSource?: () => unknown;
   staticData?: T | null | (() => T | null);
-  /**
-   * Reads the data with the page, as the page's own data is: a client
-   * navigation waits for the first answer instead of showing the page with
-   * the block still empty, for a block that must not appear late and push
-   * the page (a fetched Banner). The caller awaits `ready` in its setup. A
-   * URL known at setup holds the navigation, and so does one waiting for its
-   * period scope in the browser: the page's selector registers it from its
-   * own lazily loaded chunk, within the same navigation (for at most
-   * `NAVIGATION_SCOPE_WAIT_MS`). One waiting for a token loads afterwards, as
-   * usual.
-   */
-  holdNavigation?: boolean;
-  /**
-   * Reads again when the page asks its blocks to refresh (refreshPageBlocks).
-   * Defaults to `true`; realtime topics and live refreshes read it either way.
-   */
-  refreshOnPageRefresh?: boolean;
 }
 
 export interface UseChartFetchReturn<T> {
@@ -68,11 +51,6 @@ export interface UseChartFetchReturn<T> {
    */
   error: Ref<unknown>;
   refresh: () => Promise<void>;
-  /**
-   * Settles once the first answer is in with `holdNavigation`, at once
-   * otherwise. Awaited in a setup, it holds the page's client navigation.
-   */
-  ready: Promise<void>;
 }
 
 const DEBOUNCE_FRAME_MS = 180;
@@ -82,10 +60,6 @@ const DEBOUNCE_FRAME_MS = 180;
 // a short grace would drop the card to its empty state ("No data") while the
 // scope is merely late. Only a scope no selector ever registers reaches it.
 export const PENDING_SCOPE_TIMEOUT_MS = 10_000;
-// How long a `holdNavigation` read waiting for its period scope holds the
-// navigation: the selector's chunk lands within it on any usable network,
-// and a scope no selector registers does not hold a page for long.
-export const NAVIGATION_SCOPE_WAIT_MS = 1_500;
 
 /** What a card asks for: its URL with its period, and the state it watches. */
 interface ChartRequest {
@@ -246,13 +220,10 @@ export function useChartFetch<T>(
     };
   });
   const request = useScheduledRequest(target);
-  const holdsNavigation =
-    !!options.holdNavigation && request.current.value.url !== null;
   const loaded = useApiData<T>(() => request.current.value.url, {
     method: options.fetchUrlMethod as UseApiDataOptions<T>["method"],
-    // A block does not hold a navigation unless asked: it draws its skeleton
-    // meanwhile.
-    lazy: !holdsNavigation,
+    // A block never holds a navigation: it draws its skeleton meanwhile.
+    lazy: true,
     default: () => readStaticData(options.staticData) as T,
     watch: [() => request.current.value.watched],
     // Read again on its own triggers (realtime topic, page refresh, live
@@ -292,39 +263,8 @@ export function useChartFetch<T>(
       () => loaded.refresh(),
       () => status.value === "pending",
     ),
-    { refreshOnPageRefresh: options.refreshOnPageRefresh },
   );
-  const holdsUntilScope =
-    !!options.holdNavigation &&
-    !holdsNavigation &&
-    typeof window !== "undefined" &&
-    isWaitingForScope.value;
-  let ready = Promise.resolve();
-  if (holdsNavigation) ready = loaded.then(() => undefined);
-  else if (holdsUntilScope)
-    ready = untilSettled(() => isLoading.value, NAVIGATION_SCOPE_WAIT_MS);
-  return { data: data as Ref<T | null>, isLoading, error, refresh, ready };
-}
-
-/**
- * Settles once `isPending` turns false (the scope registered and its first
- * answer is in), or after `timeoutMs` whatever it says.
- */
-function untilSettled(
-  isPending: () => boolean,
-  timeoutMs: number,
-): Promise<void> {
-  return new Promise((resolve) => {
-    const finish = () => {
-      clearTimeout(timer);
-      stop();
-      resolve();
-    };
-    const timer = setTimeout(finish, timeoutMs);
-    const stop = watch(isPending, (pending) => {
-      if (!pending) finish();
-    });
-  });
+  return { data: data as Ref<T | null>, isLoading, error, refresh };
 }
 
 /** A block without `fetchUrl`: its `staticData`, followed as it changes. */
@@ -346,6 +286,5 @@ function useStaticChartData<T>(
     isLoading: ref(false),
     error: ref<unknown>(null),
     refresh: async () => {},
-    ready: Promise.resolve(),
   };
 }

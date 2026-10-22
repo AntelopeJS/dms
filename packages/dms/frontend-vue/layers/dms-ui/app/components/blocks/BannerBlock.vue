@@ -90,17 +90,13 @@ const { state: watchState } = useWatch(
   props.componentId,
 );
 
-// Read with the page: a server render waits for it, and so does a client
-// navigation (see `ready` below), so the banner is there when the page shows
-// instead of pushing it down a beat later.
-const { data, ready } = useChartFetch<BannerContent | null>({
+const { data } = useChartFetch<BannerContent | null>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   periodScope: props.periodScope,
   realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
-  holdNavigation: true,
 });
 
 // A button that changed something changes what the page shows: its blocks,
@@ -172,10 +168,6 @@ function dismiss(): void {
 function press(action: BlockButtonAction): void {
   handleCustomButton(action as CustomButton);
 }
-
-// Last, once every composable of the setup ran: the page's navigation waits
-// for the first answer.
-await ready;
 </script>
 
 <template>

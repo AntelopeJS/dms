@@ -1,38 +1,22 @@
 // @vitest-environment jsdom
 /**
  * A Banner with a `fetchUrl` draws what its route answers, over its static
- * options field by field; holds the page (its Suspense) until the first
- * answer, so it never appears late, also while the page's period selector
- * registers the scope it reads; draws nothing when the route answers no
- * banner (`null`, `{}`, a 204); reads its route again on a page refresh; and
- * runs the button targets the route answers.
+ * options field by field; draws nothing while the first answer is on its way
+ * or when the route answers no banner (`null`, `{}`, a 204); reads its route
+ * again on a page refresh; and runs the button targets the route answers.
  */
-import {
-  Suspense,
-  computed,
-  createApp,
-  defineComponent,
-  h,
-  reactive,
-  ref,
-} from "vue";
+import { createApp, defineComponent, h, reactive, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
-import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
-import { NAVIGATION_SCOPE_WAIT_MS } from "../layers/dms-ui/app/composables/chart/useChartFetch";
-import type { PeriodState } from "../layers/dms-core/app/composables/period/types";
 
 const requests: string[] = [];
 let answer: unknown = null;
-// When set, the route answers only once it resolves.
-let gate: Promise<void> | null = null;
 const pressed: unknown[] = [];
 
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: async (url: string) => {
     requests.push(url);
-    if (gate) await gate;
     return answer;
   },
 }));
@@ -89,26 +73,15 @@ const UButton = defineComponent({
 
 const mounted: Array<{ unmount: () => void }> = [];
 
-// The page renders its blocks under a Suspense, which a banner holds until
-// its first answer.
-function mountBanner(props: Record<string, unknown>, onResolve = () => {}) {
+function mountBanner(props: Record<string, unknown>) {
   const root = document.createElement("div");
-  const app = createApp(() =>
-    h(
-      Suspense,
-      { onResolve },
-      {
-        default: () =>
-          h(BannerBlock, {
-            componentId: "health",
-            pageId: "ws",
-            routeParams: { id: "ws-1" },
-            fetchUrl: FETCH_URL,
-            ...props,
-          }),
-      },
-    ),
-  );
+  const app = createApp(BannerBlock, {
+    componentId: "health",
+    pageId: "ws",
+    routeParams: { id: "ws-1" },
+    fetchUrl: FETCH_URL,
+    ...props,
+  });
   app.component("UButton", UButton);
   app.mount(root);
   mounted.push(app);
@@ -127,7 +100,6 @@ beforeEach(() => {
   requests.length = 0;
   pressed.length = 0;
   answer = null;
-  gate = null;
 });
 
 afterEach(() => {
@@ -147,73 +119,6 @@ it("draws the fetched props over the static options", async () => {
     description: "Kept",
     icon: "i-ph-warning-circle",
   });
-});
-
-it("holds the page until its route answers, then shows with it", async () => {
-  let open = () => {};
-  gate = new Promise<void>((resolve) => (open = resolve));
-  answer = { tone: "warning", title: "Degraded" };
-  let resolved = false;
-  const banner = mountBanner({}, () => (resolved = true));
-  await settle();
-  expect(requests).toEqual(["/api/ws/ws-1/health"]);
-  expect(resolved).toBe(false);
-
-  open();
-  await settle();
-  expect(resolved).toBe(true);
-  expect(banner.read()).toMatchObject({ title: "Degraded" });
-});
-
-it("does not hold the page while its URL waits for a value", async () => {
-  let resolved = false;
-  mountBanner({ routeParams: {} }, () => (resolved = true));
-  await settle();
-  expect(requests).toEqual([]);
-  expect(resolved).toBe(true);
-});
-
-const LAST_7_DAYS: PeriodState = {
-  preset: "last-7-days",
-  comparison: "none",
-  range: null,
-  compareRange: null,
-  key: "last-7-days",
-};
-
-it("holds the page while its period scope registers, then shows with it", async () => {
-  answer = { tone: "warning", title: "2 procedures degraded" };
-  let resolved = false;
-  const banner = mountBanner(
-    { periodScope: "overview" },
-    () => (resolved = true),
-  );
-  await settle();
-  expect(requests).toEqual([]);
-  expect(resolved).toBe(false);
-
-  // The page's selector, from its own chunk, a beat later.
-  const unregister = registerPeriodScope(
-    "overview",
-    computed(() => LAST_7_DAYS),
-  );
-  await settle();
-  expect(requests).toEqual([
-    "/api/ws/ws-1/health?preset=last-7-days&comparison=none",
-  ]);
-  expect(resolved).toBe(true);
-  expect(banner.read()).toMatchObject({ title: "2 procedures degraded" });
-  unregister();
-});
-
-it("stops holding the page when no selector registers its scope", async () => {
-  let resolved = false;
-  mountBanner({ periodScope: "nowhere" }, () => (resolved = true));
-  await settle();
-  expect(resolved).toBe(false);
-  await new Promise((resolve) => setTimeout(resolve, NAVIGATION_SCOPE_WAIT_MS));
-  expect(resolved).toBe(true);
-  expect(requests).toEqual([]);
 });
 
 it.each([

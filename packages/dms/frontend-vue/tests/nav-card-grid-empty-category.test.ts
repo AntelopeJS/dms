@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
-import { Suspense, computed, createApp, h, ref, type App } from "vue";
+import { computed, createApp, h, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue";
 
 // The settings overview of a member without a role: the Workspace grid lists
 // the workspace pages they can open, and they open none.
-
-// What the grid's read settles on (`ready` of useBlockItems).
-let blockItemsReady: Promise<void> = Promise.resolve();
 
 const categoryCards = ref<
   Array<{
@@ -61,7 +58,6 @@ vi.mock(
         isPending: vueComputed(() => false),
         hasError: vueComputed(() => false),
         refresh: vi.fn(),
-        ready: blockItemsReady,
       }),
     };
   },
@@ -165,39 +161,4 @@ it("hands each card its page's badge for the corner, not as a state line", () =>
   expect(card.dataset.badge).toBe("1");
   expect(card.dataset.badgeTone).toBe("warning");
   expect(card.dataset.state).toBeUndefined();
-});
-
-// The page renders its blocks under a Suspense: a held read keeps it pending,
-// so a client navigation waits for it.
-async function suspenseResolves(props: Record<string, unknown>) {
-  let isResolved = false;
-  app = createApp(() =>
-    h(
-      Suspense,
-      { onResolve: () => (isResolved = true) },
-      { default: () => h(NavCardGridBlock, props) },
-    ),
-  );
-  app.mount(document.createElement("div"));
-  await new Promise((resolve) => setTimeout(resolve));
-  return () => isResolved;
-}
-
-it("holds the page's Suspense until its first answer with holdNavigation", async () => {
-  let answer!: () => void;
-  blockItemsReady = new Promise((resolve) => (answer = resolve));
-  const isResolved = await suspenseResolves({
-    fetchUrl: "/api/cards",
-    holdNavigation: true,
-  });
-  expect(isResolved()).toBe(false);
-  answer();
-  await new Promise((resolve) => setTimeout(resolve));
-  expect(isResolved()).toBe(true);
-});
-
-it("holds nothing without holdNavigation, the read still pending", async () => {
-  blockItemsReady = new Promise(() => {});
-  const isResolved = await suspenseResolves({ fetchUrl: "/api/cards" });
-  expect(isResolved()).toBe(true);
 });

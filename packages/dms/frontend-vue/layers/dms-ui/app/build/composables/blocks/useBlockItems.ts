@@ -33,10 +33,6 @@ export interface UseBlockItemsOptions<T> {
   routeParams?: () => Record<string, string> | undefined;
   watchActions?: WatchAction[];
   componentId?: string;
-  /** Reads `fetchUrl` with the page: see useChartFetch's `holdNavigation`. */
-  holdNavigation?: boolean;
-  /** See useChartFetch's `refreshOnPageRefresh`; `true` by default. */
-  refreshOnPageRefresh?: boolean;
 }
 
 export interface UseBlockItemsReturn<T> {
@@ -53,11 +49,6 @@ export interface UseBlockItemsReturn<T> {
    */
   notFound: ComputedRef<FetchNotFound | null>;
   refresh: () => Promise<void>;
-  /**
-   * Settles once the first answer is in with `holdNavigation`, at once
-   * otherwise: the block awaits it last in its setup.
-   */
-  ready: Promise<void>;
 }
 
 /**
@@ -78,7 +69,7 @@ export function useBlockItems<T>(
   );
   const watchKey = computed(() => JSON.stringify(watchState.value));
 
-  const { data, isLoading, error, refresh, ready } = useChartFetch<
+  const { data, isLoading, error, refresh } = useChartFetch<
     BlockItemsResponse<T>
   >({
     fetchUrl: options.fetchUrl,
@@ -87,8 +78,6 @@ export function useBlockItems<T>(
     realtimeTopic: options.realtimeTopic,
     routeParams: options.routeParams,
     watchSource: () => watchKey.value,
-    holdNavigation: options.holdNavigation,
-    refreshOnPageRefresh: options.refreshOnPageRefresh,
   });
 
   const isFetched = Boolean(options.fetchUrl);
@@ -113,5 +102,5 @@ export function useBlockItems<T>(
       !notFound.value,
   );
 
-  return { items, count, isPending, hasError, notFound, refresh, ready };
+  return { items, count, isPending, hasError, notFound, refresh };
 }

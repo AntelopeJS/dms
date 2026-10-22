@@ -2,18 +2,9 @@
 /**
  * A KeyValueList row with `copy` draws a copy button next to its value, from
  * static items as from the items a `fetchUrl` answers; `copyValue` copies
- * another text than the one shown. With `holdNavigation`, a fetched list
- * holds the page's Suspense until its rows are in.
+ * another text than the one shown.
  */
-import {
-  Suspense,
-  createApp,
-  defineComponent,
-  h,
-  reactive,
-  ref,
-  type App,
-} from "vue";
+import { createApp, defineComponent, h, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
@@ -40,14 +31,9 @@ vi.mock("@vueuse/core", async (importOriginal) => ({
 }));
 
 let fetchedItems: unknown[] = [];
-// When set, the route answers only once it resolves.
-let fetchGate: Promise<void> | null = null;
 
 vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async () => {
-    if (fetchGate) await fetchGate;
-    return { items: fetchedItems };
-  },
+  $authFetch: async () => ({ items: fetchedItems }),
 }));
 vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
 
@@ -67,18 +53,11 @@ const SETTLE_MS = 50;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 const mounted: Array<{ unmount: () => void }> = [];
 
-const UIcon = defineComponent({ render: () => h("i") });
-const USkeleton = defineComponent({ render: () => h("span") });
-
-function registerStubs(app: App): void {
-  app.component("UIcon", UIcon);
-  app.component("USkeleton", USkeleton);
-}
-
 function render(props: Record<string, unknown>): HTMLElement {
   const root = document.createElement("div");
   const app = createApp(KeyValueListBlock, { card: false, ...props });
-  registerStubs(app);
+  app.component("UIcon", defineComponent({ render: () => h("i") }));
+  app.component("USkeleton", defineComponent({ render: () => h("span") }));
   app.mount(root);
   mounted.push(app);
   return root;
@@ -92,7 +71,6 @@ beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   fetchedItems = [];
-  fetchGate = null;
   copied.splice(0);
   vi.stubGlobal("useI18n", () => ({
     t: i18n.global.t,
@@ -135,46 +113,5 @@ describe("KeyValueList copy button", () => {
     copyButtons(root)[0]!.click();
     await settle();
     expect(copied).toEqual(["https://cdn.example.com/media/42/thumb.webp"]);
-  });
-});
-
-describe("KeyValueList holdNavigation", () => {
-  // The page renders its blocks under a Suspense, which a client navigation
-  // waits for.
-  function renderInPage(props: Record<string, unknown>) {
-    const root = document.createElement("div");
-    let isResolved = false;
-    const app = createApp(() =>
-      h(
-        Suspense,
-        { onResolve: () => (isResolved = true) },
-        { default: () => h(KeyValueListBlock, { card: false, ...props }) },
-      ),
-    );
-    registerStubs(app);
-    app.mount(root);
-    mounted.push(app);
-    return { root, isResolved: () => isResolved };
-  }
-
-  it("holds the page until its rows are in, then shows them at once", async () => {
-    let answer!: () => void;
-    fetchGate = new Promise((resolve) => (answer = resolve));
-    fetchedItems = [{ label: "Plan", value: "Business" }];
-    const page = renderInPage({ fetchUrl: "/api/plan", holdNavigation: true });
-    await settle();
-    expect(page.isResolved()).toBe(false);
-
-    answer();
-    await settle();
-    expect(page.isResolved()).toBe(true);
-    expect(page.root.textContent).toContain("Business");
-  });
-
-  it("lets the page show at once without it, the rows loading after", async () => {
-    fetchGate = new Promise(() => {});
-    const page = renderInPage({ fetchUrl: "/api/plan" });
-    await settle();
-    expect(page.isResolved()).toBe(true);
   });
 });

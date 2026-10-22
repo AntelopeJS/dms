@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import DmsNavigationHold from "../../build/components/blocks/NavigationHold.vue";
 import { computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsKeyValueList, {
@@ -47,10 +46,6 @@ interface KeyValueListBlockProps extends DefaultComponentProps {
    * Optional. Defaults to 5.
    */
   skeletonCount?: number;
-  /** Read again when the page refreshes its blocks; `true` by default. */
-  refreshOnPageRefresh?: boolean;
-  /** Reads `fetchUrl` with the page: a navigation waits for its first answer. */
-  holdNavigation?: boolean;
 }
 
 const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
@@ -67,27 +62,23 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   empty: undefined,
   // A fetched list's length is unknown until it lands: draw the rows a record
   // card usually lists (customer, ids, status, amounts, dates), not a stub.
-  holdNavigation: false,
   skeletonCount: 5,
-  refreshOnPageRefresh: true,
 });
 
 const TRANSLATED_TYPES = new Set([undefined, "text", "status", "link"]);
 
 const { processText } = useComposedText();
 
-const { items, isPending, hasError, notFound, refresh, ready } =
+const { items, isPending, hasError, notFound, refresh } =
   useBlockItems<KeyValueListBlockItem>({
     items: () => props.items,
     fetchUrl: props.fetchUrl,
     fetchUrlMethod: props.fetchUrlMethod,
     periodScope: props.periodScope,
     realtimeTopic: props.realtimeTopic,
-    refreshOnPageRefresh: props.refreshOnPageRefresh,
     routeParams: () => props.routeParams,
     watchActions: props.watchActions,
     componentId: props.componentId,
-    holdNavigation: props.holdNavigation,
   });
 
 // A composed value already says how each of its parameters is written, so it
@@ -129,9 +120,6 @@ const listClass = computed(() => (props.card ? "px-[18px] py-2" : undefined));
     :is="props.card ? DmsCard : 'div'"
     v-bind="props.card ? { padded: false, title } : {}"
   >
-    <!-- With holdNavigation, a client navigation waits for the first answer,
-      as for a fetched Banner; the block itself renders at once. -->
-    <DmsNavigationHold v-if="props.holdNavigation" :until="ready" />
     <DmsBlockStatus
       v-if="hasError"
       state="error"

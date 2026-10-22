@@ -18,13 +18,10 @@ import { type LiveGate, useLiveGate } from "../live/currentPageLive";
  * A refresh the user asked for (refreshPageBlocks) reads at once, paused or
  * not, and the promise `onRefresh` returns then, if any, is one
  * `refreshPageBlocks()` waits for. The returned gate says what was missed.
- * With `refreshOnPageRefresh: false`, a page refresh leaves the block alone;
- * its realtime topics and the live refreshes still read it.
  */
 export function useRefreshTriggers(
   realtimeTopic: string | string[] | undefined,
   onRefresh: () => void | Promise<unknown>,
-  { refreshOnPageRefresh = true }: { refreshOnPageRefresh?: boolean } = {},
 ): LiveGate {
   let pageRefresh: Event | undefined;
   const gate = useLiveGate(() => {
@@ -32,7 +29,7 @@ export function useRefreshTriggers(
     if (pageRefresh && work) waitForPageBlocksRefresh(pageRefresh, work);
   });
   subscribeRealtimeTopics(realtimeTopic, gate.trigger);
-  subscribePageRefresh(gate, refreshOnPageRefresh, (event) => {
+  subscribePageRefresh(gate, (event) => {
     // The gate reads at once on a page refresh: the read starts in this call.
     pageRefresh = event;
     try {
@@ -62,13 +59,14 @@ function subscribeRealtimeTopics(
 // renders has nothing to refetch.
 function subscribePageRefresh(
   gate: LiveGate,
-  onPageRefreshToo: boolean,
   onPageRefresh: (event: Event) => void,
 ): void {
   const unsubscribes: Array<() => void> = [];
   onMounted(() => {
-    unsubscribes.push(onLivePageBlocksRefresh(gate.trigger));
-    if (onPageRefreshToo) unsubscribes.push(onPageBlocksRefresh(onPageRefresh));
+    unsubscribes.push(
+      onPageBlocksRefresh(onPageRefresh),
+      onLivePageBlocksRefresh(gate.trigger),
+    );
   });
   onBeforeUnmount(() => unsubscribes.splice(0).forEach((stop) => stop()));
 }

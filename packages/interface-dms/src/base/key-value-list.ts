@@ -5,8 +5,6 @@ import {
   blockCardOption,
   type BlockItemsSource,
   blockItemsSourceOptions,
-  type BlockNavigationHold,
-  blockNavigationHoldOption,
 } from "./display";
 import { toneEnum } from "./internal/display";
 import { TONES, type Tone } from "./types/tone";
@@ -67,7 +65,7 @@ export interface KeyValueListItem {
 
 /** The options `KeyValueList` takes. */
 export interface KeyValueListProps
-  extends BaseComponentProps, BlockItemsSource, BlockNavigationHold {
+  extends BaseComponentProps, BlockItemsSource {
   items?: KeyValueListItem[];
   /** Tighter rows, for side panels. */
   dense?: boolean;
@@ -181,7 +179,6 @@ export const KeyValueListSchema = z.object({
     { label: "Currency", group: "appearance" },
   ),
   ...blockItemsSourceOptions(),
-  ...blockNavigationHoldOption(),
 }) satisfies BlockOptionsFor<KeyValueListProps>;
 
 RegisterBlockType({

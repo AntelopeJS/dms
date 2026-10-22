@@ -194,14 +194,6 @@ export interface BlockItemsSource {
    * `columns`, or 3 (NavCardGrid); `maxItems`, or 3 (ActivityFeed).
    */
   skeletonCount?: number;
-  /**
-   * Whether the block reads `fetchUrl` again when the page asks its blocks to
-   * refresh (see {@link BlockFunctions.REFRESH_PAGE}). Off for a list with a
-   * trigger of its own (its `realtimeTopic`) that a page refresh would only
-   * read twice. Its realtime topics and the live page's refreshes still read
-   * it. Optional. Defaults to `true`.
-   */
-  refreshOnPageRefresh?: boolean;
 }
 
 const PERIOD_SCOPE_OPTION = "periodScope";
@@ -230,45 +222,6 @@ export const blockItemsSourceOptions = () => ({
       min: 1,
       advanced: true,
     },
-  ),
-  refreshOnPageRefresh: ui(
-    z
-      .boolean()
-      .optional()
-      .describe(
-        "Read the data source again when the page refreshes its blocks (default true).",
-      ),
-    { label: "Refresh with the page", group: "data", advanced: true },
-  ),
-});
-
-/**
- * A fetched list block read with the page (`NavCardGrid`, `KeyValueList`),
- * as a fetched `Banner` always is.
- */
-export interface BlockNavigationHold {
-  /**
-   * Reads `fetchUrl` with the page: a client navigation waits for the first
-   * answer (as for the page's own data) instead of showing the page with the
-   * block still a placeholder, for a block that must not land late and push
-   * what is under it. A server render already waits for it. Off by default:
-   * the page shows at once and the block draws its placeholders. Without
-   * `fetchUrl`, or with a `{{params.X}}` token that has no value yet, it holds
-   * nothing.
-   */
-  holdNavigation?: boolean;
-}
-
-/** The schema entry of {@link BlockNavigationHold}. */
-export const blockNavigationHoldOption = () => ({
-  holdNavigation: ui(
-    z
-      .boolean()
-      .optional()
-      .describe(
-        "Read the data with the page: a navigation waits for it instead of the block loading after.",
-      ),
-    { label: "Load with the page", group: "data", advanced: true },
   ),
 });
 
