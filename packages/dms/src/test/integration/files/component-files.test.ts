@@ -124,13 +124,13 @@ describe("[integration] native component file security", () => {
     });
     expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
     expect(
-      (await client.get(`${LOCATION}/get`, { params: { id: saved.data[0] } }))
+      (await client.get(`${LOCATION}/get`, { params: { id: saved.data._id } }))
         .status,
     ).to.equal(403);
     const removed = await client.put(
       `${LOCATION}/edit`,
       { file: "" },
-      { params: { id: saved.data[0] } },
+      { params: { id: saved.data._id } },
     );
     expect(removed.status, JSON.stringify(removed.data)).to.equal(200);
     expect(
@@ -177,7 +177,7 @@ describe("[integration] native component file security", () => {
       }),
     );
     const removed = await client.delete(`${LOCATION}/delete`, {
-      params: { id: saved.data[0] },
+      params: { id: saved.data._id },
     });
     expect(removed.status, JSON.stringify(removed.data)).to.equal(200);
     for (const url of links)
@@ -306,7 +306,7 @@ describe("[integration] native component file security", () => {
         },
       },
       {
-        params: { id: saved.data[0] },
+        params: { id: saved.data._id },
         headers: { "x-content-language": "*" },
       },
     );
@@ -315,7 +315,7 @@ describe("[integration] native component file security", () => {
       `${LOCATION}/edit`,
       { file: "" },
       {
-        params: { id: saved.data[0] },
+        params: { id: saved.data._id },
         headers: { "x-content-language": "*" },
       },
     );

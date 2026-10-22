@@ -438,7 +438,8 @@
     "chart": {
       "no_data": "Aucune donnée",
       "legend_period": "Période",
-      "legend_comparison": "Comparaison"
+      "legend_comparison": "Comparaison",
+      "versus_value": "vs {value}"
     },
     "period": {
       "aria_label": "Sélecteur de période",
@@ -485,6 +486,11 @@
         "previous-year": "vs année précédente",
         "custom": "Personnalisé"
       },
+      "compare_labels": {
+        "previous-period": "vs période précédente",
+        "previous-year": "vs année précédente",
+        "custom": "vs période de comparaison"
+      },
       "compare_options": {
         "none": "Aucune comparaison",
         "previous-period": "Période précédente",
@@ -513,6 +519,114 @@
       "close": "Fermer",
       "loading": "Chargement",
       "show_options": "Afficher les options"
+    },
+    "automation": {
+      "triggers": {
+        "memberAdded": {
+          "name": "Membre ajouté",
+          "description": "Se déclenche quand un utilisateur devient membre d'un espace de travail"
+        },
+        "memberRemoved": {
+          "name": "Membre retiré",
+          "description": "Se déclenche quand des membres sont retirés d'un espace de travail"
+        },
+        "inviteCreated": {
+          "name": "Invitation créée",
+          "description": "Se déclenche quand une invitation est créée dans un espace de travail"
+        },
+        "userRegistered": {
+          "name": "Utilisateur inscrit",
+          "description": "Se déclenche quand un nouvel utilisateur termine son inscription"
+        },
+        "recordCreated": {
+          "name": "Enregistrement créé",
+          "description": "Se déclenche quand des lignes sont créées dans une table adossée à une TableView"
+        },
+        "recordUpdated": {
+          "name": "Enregistrement modifié",
+          "description": "Se déclenche quand des lignes sont modifiées dans une table adossée à une TableView"
+        },
+        "recordDeleted": {
+          "name": "Enregistrement supprimé",
+          "description": "Se déclenche quand des lignes sont supprimées dans une table adossée à une TableView"
+        },
+        "record": {
+          "fields": {
+            "location": "Emplacement du contrôleur de données à surveiller, par ex. \"/api/tables/members\". Laissez vide pour réagir à toutes les tables."
+          }
+        }
+      },
+      "actions": {
+        "sendEmail": {
+          "name": "Envoyer un e-mail",
+          "description": "Envoie un e-mail HTML via le fournisseur d'e-mail configuré, rédigé tel quel ou généré à partir d'un modèle HTML enregistré",
+          "fields": {
+            "template": "Nom d'un modèle HTML enregistré à générer à la place du HTML",
+            "props": "Propriétés avec lesquelles le modèle est généré",
+            "language": "Langue dans laquelle le modèle est généré ; par défaut celle du destinataire quand l'adresse appartient à un utilisateur"
+          }
+        },
+        "sendNotification": {
+          "name": "Envoyer une notification",
+          "description": "Envoie une notification dans l'application à des utilisateurs précis et/ou à tous les utilisateurs ayant l'un des rôles indiqués",
+          "fields": {
+            "userId": "Un destinataire, par ex. l'ID utilisateur d'un déclencheur",
+            "tenantId": "Espace de travail dont les membres reçoivent la notification par rôle ; laissez vide pour l'espace par défaut",
+            "title": "Texte littéral, ou clé de traduction \"$\"",
+            "description": "Texte littéral, ou clé de traduction \"$\"",
+            "params": "Paramètres d'interpolation des traductions du titre et de la description",
+            "idempotencyKey": "Clé stable de l'événement, par ex. l'ID de livraison d'un déclencheur : un événement rejoué n'est livré qu'une fois"
+          }
+        },
+        "inviteUser": {
+          "name": "Inviter un utilisateur",
+          "description": "Invite une adresse e-mail dans un espace de travail : un utilisateur existant y est ajouté directement comme membre, sinon une invitation est créée (et son e-mail d'inscription envoyé, sauf si Envoyer l'e-mail est désactivé)",
+          "fields": {
+            "tenantId": "Espace de travail où inviter ; par défaut l'espace par défaut",
+            "language": "Langue de l'e-mail d'invitation et du compte qu'il crée ; en par défaut",
+            "inviterName": "Nom de l'expéditeur indiqué dans l'e-mail d'invitation"
+          }
+        }
+      },
+      "fields": {
+        "actorId": "ID de l'auteur",
+        "actorName": "Nom de l'auteur",
+        "asTenantOwner": "Propriétaire de l'espace",
+        "at": "Date",
+        "deliveryId": "ID de livraison",
+        "description": "Description",
+        "email": "E-mail",
+        "error": "Erreur",
+        "firstname": "Prénom",
+        "html": "HTML",
+        "icon": "Icône",
+        "idempotencyKey": "Clé de rejeu",
+        "ids": "ID des enregistrements",
+        "inviteId": "ID de l'invitation",
+        "inviterName": "Nom de l'invitant",
+        "isTenantOwner": "Propriétaire de l'espace",
+        "kind": "Résultat",
+        "language": "Langue",
+        "lastname": "Nom",
+        "linkTo": "Lien",
+        "location": "Table",
+        "messageId": "ID du message",
+        "name": "Nom",
+        "ok": "Envoyée",
+        "params": "Paramètres",
+        "props": "Propriétés du modèle",
+        "roleIds": "Rôles",
+        "sendEmail": "Envoyer l'e-mail",
+        "subject": "Objet",
+        "success": "Succès",
+        "template": "Modèle",
+        "tenantId": "Espace de travail",
+        "title": "Titre",
+        "to": "Destinataire",
+        "tone": "Ton",
+        "userId": "Utilisateur",
+        "userIds": "Utilisateurs"
+      }
     }
   }
 }

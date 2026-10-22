@@ -438,7 +438,8 @@
     "chart": {
       "no_data": "No data",
       "legend_period": "Period",
-      "legend_comparison": "Comparison"
+      "legend_comparison": "Comparison",
+      "versus_value": "vs {value}"
     },
     "period": {
       "aria_label": "Period selector",
@@ -485,6 +486,11 @@
         "previous-year": "vs previous year",
         "custom": "Custom"
       },
+      "compare_labels": {
+        "previous-period": "vs previous period",
+        "previous-year": "vs previous year",
+        "custom": "vs comparison period"
+      },
       "compare_options": {
         "none": "No comparison",
         "previous-period": "Previous period",
@@ -513,6 +519,114 @@
       "close": "Close",
       "loading": "Loading",
       "show_options": "Show options"
+    },
+    "automation": {
+      "triggers": {
+        "memberAdded": {
+          "name": "Member added",
+          "description": "Fires when a user becomes a member of a workspace"
+        },
+        "memberRemoved": {
+          "name": "Member removed",
+          "description": "Fires when members are removed from a workspace"
+        },
+        "inviteCreated": {
+          "name": "Invite created",
+          "description": "Fires when a user invite is created on a workspace"
+        },
+        "userRegistered": {
+          "name": "User registered",
+          "description": "Fires when a new user completes signup"
+        },
+        "recordCreated": {
+          "name": "Record created",
+          "description": "Fires when rows are created in a TableView-backed table"
+        },
+        "recordUpdated": {
+          "name": "Record updated",
+          "description": "Fires when rows are updated in a TableView-backed table"
+        },
+        "recordDeleted": {
+          "name": "Record deleted",
+          "description": "Fires when rows are deleted in a TableView-backed table"
+        },
+        "record": {
+          "fields": {
+            "location": "Data controller location to watch, e.g. \"/api/tables/members\". Leave empty to fire for every table."
+          }
+        }
+      },
+      "actions": {
+        "sendEmail": {
+          "name": "Send email",
+          "description": "Send an HTML email through the configured email provider, written out or rendered from a registered HTML template",
+          "fields": {
+            "template": "Name of a registered HTML template to render instead of the HTML",
+            "props": "Props the template is rendered with",
+            "language": "Language the template is rendered in; defaults to the recipient's when the address belongs to a user"
+          }
+        },
+        "sendNotification": {
+          "name": "Send notification",
+          "description": "Send an in-app notification to specific users and/or every user holding one of the given roles",
+          "fields": {
+            "userId": "One recipient, e.g. a trigger's user ID",
+            "tenantId": "Workspace whose members receive the role notification; leave empty for the default workspace",
+            "title": "Literal text, or a \"$\" translation key",
+            "description": "Literal text, or a \"$\" translation key",
+            "params": "Interpolation params of the title and description translations",
+            "idempotencyKey": "Stable event key, e.g. a trigger's delivery ID: a replayed event is delivered once"
+          }
+        },
+        "inviteUser": {
+          "name": "Invite user",
+          "description": "Invite an email address to a workspace: existing users are added as members directly, otherwise an invite is created (and its signup email sent unless Send the email is off)",
+          "fields": {
+            "tenantId": "Workspace to invite into; defaults to the default workspace",
+            "language": "Language of the invitation email and of the account it creates; defaults to en",
+            "inviterName": "Who the invitation email says it comes from"
+          }
+        }
+      },
+      "fields": {
+        "actorId": "Actor ID",
+        "actorName": "Actor name",
+        "asTenantOwner": "Workspace owner",
+        "at": "Date",
+        "deliveryId": "Delivery ID",
+        "description": "Description",
+        "email": "Email",
+        "error": "Error",
+        "firstname": "First name",
+        "html": "HTML",
+        "icon": "Icon",
+        "idempotencyKey": "Replay key",
+        "ids": "Record IDs",
+        "inviteId": "Invite ID",
+        "inviterName": "Inviter name",
+        "isTenantOwner": "Workspace owner",
+        "kind": "Result",
+        "language": "Language",
+        "lastname": "Last name",
+        "linkTo": "Link",
+        "location": "Table",
+        "messageId": "Message ID",
+        "name": "Name",
+        "ok": "Sent",
+        "params": "Parameters",
+        "props": "Template props",
+        "roleIds": "Roles",
+        "sendEmail": "Send the email",
+        "subject": "Subject",
+        "success": "Success",
+        "template": "Template",
+        "tenantId": "Workspace",
+        "title": "Title",
+        "to": "To",
+        "tone": "Tone",
+        "userId": "User",
+        "userIds": "Users"
+      }
     }
   }
 }

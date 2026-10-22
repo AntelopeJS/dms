@@ -43,6 +43,7 @@ import {
   fieldErrorPattern,
 } from "../../build/composables/form/formEntryContext";
 import {
+  CONTAINER_LAYOUT_CLASSES,
   FORM_LAYOUT_CLASSES,
   FORM_SURFACE_CLASSES,
   type FormSurface,
@@ -684,7 +685,10 @@ function layoutClasses(inSectionCard: boolean) {
   if ((inSectionCard || inSection) && isHorizontal) {
     return SECTION_LAYOUT_CLASSES;
   }
-  return FORM_LAYOUT_CLASSES[isHorizontal ? "horizontal" : "vertical"];
+  const orientation = isHorizontal ? "horizontal" : "vertical";
+  return inFormContainer
+    ? CONTAINER_LAYOUT_CLASSES[orientation]
+    : FORM_LAYOUT_CLASSES[orientation];
 }
 
 function isFieldDisabled(field: FormField): boolean {

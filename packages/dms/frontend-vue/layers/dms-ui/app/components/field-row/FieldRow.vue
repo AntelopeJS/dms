@@ -8,9 +8,10 @@ export type FieldRowLayout = "inline" | "form" | "stack";
 
 /**
  * `row`: the row pads itself and draws a hairline above the next one (rows
- * of a card). `list`: the list around it spaces the rows (a stacked form).
+ * of a card). `dense`: the same, tighter, for a form in a drawer or a modal.
+ * `list`: the list around it spaces the rows (a stacked form).
  */
-export type FieldRowSpacing = "row" | "list";
+export type FieldRowSpacing = "row" | "dense" | "list";
 
 // The renderer's props are optional: DmsFieldRow is both the backend
 // `FieldRow` block (`dms-field-row-block`) and a template component.
@@ -34,6 +35,12 @@ interface FieldRowProps extends Partial<DefaultComponentProps> {
   required?: boolean;
   /** Dims the whole row. */
   disabled?: boolean;
+  /**
+   * `stack` only: the row and its control fill the height their flex parent
+   * leaves them (a drawer's body), handing it to a control that fills it
+   * (`DmsInputCode fill`).
+   */
+  fill?: boolean;
 }
 
 interface FieldRowSlots {
@@ -56,6 +63,7 @@ const props = withDefaults(defineProps<FieldRowProps>(), {
   spacing: "row",
   required: false,
   disabled: false,
+  fill: false,
 });
 const slots = defineSlots<FieldRowSlots>();
 
@@ -102,10 +110,24 @@ const theme = tv({
     },
     spacing: {
       row: { root: "border-t border-muted first:border-t-0", body: "py-4" },
+      // 12px above and below a 32px control, 6px from a label set above it.
+      dense: {
+        root: "border-t border-muted first:border-t-0",
+        body: "py-3 gap-y-1.5",
+      },
       list: { body: "gap-y-1.5" },
     },
     disabled: {
       true: { root: "opacity-55" },
+    },
+    // Flex columns down to the control, which grows: their minimum stays
+    // their content's (the control's floor), the parent scrolling below it.
+    fill: {
+      true: {
+        root: "flex flex-1 flex-col",
+        body: "flex flex-1 flex-col",
+        control: "flex flex-1 flex-col",
+      },
     },
     // Without a label cell, the control is the grid's only child: it spans
     // both columns instead of falling into the form's 240px label column.
@@ -124,6 +146,7 @@ const ui = computed(() =>
     inset: props.inset,
     spacing: props.spacing,
     disabled: props.disabled,
+    fill: props.fill && props.layout === "stack",
     labeled: hasText.value,
   }),
 );

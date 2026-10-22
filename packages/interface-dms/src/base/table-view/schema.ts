@@ -364,6 +364,15 @@ export const TableViewSchema = z.object({
       ),
     { label: "Ghost delete", order: 4, group: "features", widget: "switch" },
   ),
+  archivedCountLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        'Count shown while the archive is listed, with {count} ("13 archived invoices").',
+      ),
+    { label: "Archived count", group: "content" },
+  ),
   defaultFilters: ui(z.array(tabFilterSchema).optional(), {
     label: "Default filters",
     group: "advanced",

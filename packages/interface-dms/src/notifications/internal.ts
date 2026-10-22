@@ -8,6 +8,7 @@ import type {
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
+  RoleSendOptions,
 } from "./types";
 
 // On its own rather than in index.ts: sendable.ts sends through these proxies
@@ -55,9 +56,7 @@ export namespace internal {
       (
         roleIds: string[],
         data: NotificationData,
-        readScope?: ReadScope,
-        idempotencyKey?: string,
-        delivery?: DeliveryOptions,
+        options?: RoleSendOptions,
       ) => Promise<void>
     >();
 
