@@ -218,6 +218,15 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       /not declared in displays/,
     );
     expect(() => sourceOf({ displays: [] })).to.throw(/offers no display/);
+    expect(() => sourceOf({ mobileDisplay: "cards" })).to.throw(
+      /opens phones on display "cards" which is not declared in displays/,
+    );
+    expect(
+      sourceOf({
+        displays: [{ id: "table" }, { id: "cards" }],
+        mobileDisplay: "cards",
+      }).mobileDisplay,
+    ).to.equal("cards");
     expect(() =>
       sourceOf({
         displays: [{ id: "cards" }],

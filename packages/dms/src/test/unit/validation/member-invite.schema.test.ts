@@ -5,7 +5,7 @@ import {
 } from "../../../validation/member-invite.schema";
 
 const basePayload = {
-  email: "invitee@test.local",
+  emails: ["invitee@test.local"],
   roles: ["role-1"],
   language: "en",
   asTenantOwner: false,

@@ -7,6 +7,8 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { syncPlatformOwnerOnTenantOwnerChange } from "@antelopejs/interface-dms/tenant-ownership";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
+import { describeMemberEdit } from "@antelopejs/interface-dms/internal/member-changes";
 import type { ConfirmDialogSerialized } from "@antelopejs/interface-dms/base/table-view";
 
 const HTTP_NOT_FOUND = 404;
@@ -45,7 +47,8 @@ export async function assertNotLastTenantOwner(
 
 /**
  * Checks and side effects of an owner flag change, run before the membership
- * row is written — by the table's edit guard and by the owner route alike.
+ * row is written — by the table's edit guard and by the owner route alike,
+ * both inside the `changeTenantMembers` call that announced the change.
  */
 export async function prepareOwnerChange(
   tenantId: string,
@@ -85,15 +88,22 @@ export async function setMemberOwnership(
   memberId: string,
   isTenantOwner: boolean,
 ): Promise<OwnershipChangeResult> {
-  const member = await requireMember(tenantId, memberId);
-  const change = detectOwnerChange(
-    { isTenantOwner: member.isTenantOwner === true },
-    isTenantOwner,
-  );
-  await prepareOwnerChange(tenantId, member, isTenantOwner);
-  member.isTenantOwner = isTenantOwner;
-  await GetModel(TenantMemberModel, tenantId).update(member);
-  return { member, change };
+  return changeTenantMembers(tenantId, async () => {
+    const member = await requireMember(tenantId, memberId);
+    return {
+      changes: describeMemberEdit(member, { isTenantOwner }),
+      write: async () => {
+        const change = detectOwnerChange(
+          { isTenantOwner: member.isTenantOwner === true },
+          isTenantOwner,
+        );
+        await prepareOwnerChange(tenantId, member, isTenantOwner);
+        member.isTenantOwner = isTenantOwner;
+        await GetModel(TenantMemberModel, tenantId).update(member);
+        return { member, change };
+      },
+    };
+  });
 }
 
 /** What removing a member takes away, for the confirmation to spell out. */

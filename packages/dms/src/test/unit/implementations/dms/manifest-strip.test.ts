@@ -8,18 +8,15 @@ import {
 
 interface LayerEntry extends ManifestModuleEntry {
   name: string;
-  archiveName: string;
   priority: number;
   configKey?: string;
 }
 
 function buildManifest(): ModuleManifestShape<LayerEntry> {
   return {
-    pack: "/dms/frontend/modules",
     modules: [
       {
         name: "@scope/dms-frontend",
-        archiveName: "@scope-dms-frontend",
         priority: 0,
         configKey: "dms",
         path: "/srv/app/node_modules/@scope/dms/frontend",
@@ -33,7 +30,6 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
       },
       {
         name: "@scope/dms-lang-layer",
-        archiveName: "@scope-dms-lang-layer",
         priority: 1,
         path: "/srv/app/node_modules/@scope/dms-lang/frontend",
       },
@@ -117,9 +113,7 @@ describe("[unit] manifest field policy", () => {
       path: false,
       authEstablishEndpoints: false,
     });
-    expect(shaped.pack).to.equal("/dms/frontend/modules");
     expect(shaped.modules[0].name).to.equal("@scope/dms-frontend");
-    expect(shaped.modules[0].archiveName).to.equal("@scope-dms-frontend");
     expect(shaped.modules[0].priority).to.equal(0);
     expect(shaped.modules[0].configKey).to.equal("dms");
     expect(shaped.modules[0].options).to.deep.equal({

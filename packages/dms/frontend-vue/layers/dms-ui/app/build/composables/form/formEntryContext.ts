@@ -21,6 +21,11 @@ export interface FormEntryContext {
   isFieldDisabled: (field: FormField) => boolean;
   isFieldRequired: (field: FormField) => boolean;
   /**
+   * Whether nothing in the form can be changed (a record's details): its
+   * rows show values without the descriptions that tell how to fill them.
+   */
+  isReadOnly: Readonly<Ref<boolean>>;
+  /**
    * Whether a field points out a change waiting to be saved: not in an
    * instant form (nothing waits) nor in an action form (nothing was saved).
    */

@@ -53,9 +53,12 @@ import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
 
+/** One query value; a list repeats its key (`filter_x=a&filter_x=b`). */
+type BatchCountQueryValue = string | number | boolean | string[] | undefined;
+
 interface BatchCountQuery {
   id: string;
-  query: Record<string, string | number | boolean | undefined>;
+  query: Record<string, BatchCountQueryValue>;
 }
 
 interface BatchCountBody {
@@ -88,7 +91,10 @@ function buildBatchCountContext(
   const url = new URL(ctx.url);
   url.search = "";
   for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined) url.searchParams.set(key, String(value));
+    if (value === undefined) continue;
+    for (const item of Array.isArray(value) ? value : [value]) {
+      url.searchParams.append(key, String(item));
+    }
   }
   return { ...ctx, url };
 }

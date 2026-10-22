@@ -23,6 +23,9 @@ const USER = {
   email: "reload-host@example.test",
 } as User;
 
+// A request without a bound principal or token: its tenant is the default.
+const REQUEST_CONTEXT = { rawRequest: { headers: {} } };
+
 class RowsController extends Controller(RELOAD_HOST_LOCATION) {}
 
 const updateRow = withRealtimeMutation(
@@ -31,7 +34,12 @@ const updateRow = withRealtimeMutation(
 );
 
 async function mutateRow(): Promise<void> {
-  await updateRow.func.call(new RowsController(), SESSION_ID, USER);
+  await updateRow.func.call(
+    new RowsController(),
+    REQUEST_CONTEXT,
+    SESSION_ID,
+    USER,
+  );
 }
 
 // The reload-host module registers from `construct()` and releases nothing, as

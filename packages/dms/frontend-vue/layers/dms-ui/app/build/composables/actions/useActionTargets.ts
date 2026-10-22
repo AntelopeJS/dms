@@ -13,22 +13,32 @@ import type {
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveResponseToast } from "../../utils/responseWarning";
-import type { ContainerInstance } from "../../../composables/containers/types";
+import type {
+  ContainerInstance,
+  DrawerOptions,
+} from "../../../composables/containers/types";
+import DmsRowHeader from "../../components/containers/row/RowHeader.vue";
+import { drawerRowHeaderProps } from "../../components/containers/row/drawerRowHeader";
+import DmsRowNotFound from "../../components/containers/row/RowNotFound.vue";
 import {
   type BulkSelection,
   bulkSelectionQuery,
+  isBulkAction,
+  isUrlTarget,
+  targetForRow,
   targetWithSelection,
   withQuery,
 } from "./bulkSelection";
 import {
   listenRowSteps,
-  type RowNavigation,
   type RowNavigationSource,
-  rowNavigation,
   type ShowRow,
+  trackRowNavigation,
 } from "./rowNavigation";
+import type { RowNavigation } from "../../../types/row-navigation";
 import {
   clearWrittenRecord,
+  hasMissingRowState,
   isDeepLinkAction,
   resolveDeepLinkedRow,
   writeRecordId,
@@ -58,7 +68,15 @@ import {
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
-import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  namesRowField,
+} from "#dms-core/app/utils/url-interpolation";
+import { dropRowTokens } from "../../utils/urlVariables";
+import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
+import { resolveComponentChildren } from "../../../utils/componentTree";
+import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
+import { dmsOwnDrawer } from "../containers/context";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -128,10 +146,17 @@ interface TargetRunExtras {
   selection?: BulkSelection;
   /** The open row is reflected in the URL. */
   deepLink?: boolean;
+  /** Fill-ins of the confirmation's texts besides the row's: `{ count }`. */
+  textParams?: Data;
+  /** A bulk action run from a row: its drawer, modal or panel gets the row too. */
+  keepsRow?: boolean;
 }
 
 type SidePanelTarget = ActionTarget & { type: "sidePanel" };
+type DrawerTarget = ActionTarget & { type: "drawer" };
 type DownloadTarget = ActionTarget & { type: "download" };
+/** A target opening a row with the DMS's row header and not-found state. */
+type RowTarget = SidePanelTarget | DrawerTarget;
 
 /** A side panel to open, and on what. */
 interface SidePanelTargetRun extends TargetRunExtras {
@@ -165,6 +190,17 @@ interface ComponentTargetRun extends TargetRunExtras {
   description: string;
   containerId: string;
   rowData?: Data;
+  /** Id of a row the link names but the route answered 404 for (a drawer). */
+  missingId?: string;
+}
+
+/**
+ * Whether a drawer draws the DMS's row header (the title naming the row, its
+ * position, previous / next): asked for, or implied by the texts it words.
+ */
+function hasRowHeader(target: ComponentTargetRun["target"]): boolean {
+  if (target.type !== "drawer") return false;
+  return target.rowHeader ?? !!(target.rowTitle || target.positionLabel);
 }
 
 /**
@@ -307,25 +343,50 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
   };
 
+  // A drawer remembers the size the user gives it per action: per table and
+  // component, whatever row it opens on.
   const openContainer = (
     run: ComponentTargetRun,
     component: Component,
-    componentOptions: Record<string, unknown>,
+    options: Pick<
+      DrawerOptions,
+      "title" | "componentOptions" | "headerComponentOptions"
+    >,
   ): ContainerInstance => {
-    const options = {
-      title: run.title,
+    const containerOptions = {
+      ...options,
       description: run.description,
       containerId: run.containerId,
       component,
-      componentOptions,
     };
-    return run.target.type === "modal"
-      ? openModal({ ...options, size: run.target.size })
-      : openDrawer({ ...options, direction: run.target.direction });
+    if (run.target.type === "modal") {
+      return openModal({ ...containerOptions, size: run.target.size });
+    }
+    return openDrawer(
+      dmsOwnDrawer({
+        ...containerOptions,
+        direction: run.target.direction,
+        size: run.target.size,
+        sizeKey: `${config.pageId}-${config.componentId}-${run.target.component?.componentName}`,
+        ...(options.headerComponentOptions && {
+          headerComponent: DmsRowHeader,
+        }),
+      }),
+    );
   };
 
   const resolveTargetComponent = (componentName: string): Component =>
     (resolveDmsComponent(componentName) || componentName) as Component;
+
+  // A container block (a Card, a VStack, a Tab) mounts its children as a
+  // page does; a single block is mounted as it is.
+  const targetComponentOf = (
+    componentName: string,
+    info: ComponentInfo,
+  ): Component =>
+    info.children?.length
+      ? TargetComponentTree
+      : resolveTargetComponent(componentName);
 
   const rowIdOf = (row?: Data): string | undefined => {
     if (!row) return undefined;
@@ -377,18 +438,41 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
   };
 
+  // The target's component options for the row shown, its `{{row.X}}`
+  // tokens filled (`{{row.id}}` being the row's id); without a row (a bulk
+  // selection, a toolbar button) they are handed as declared.
+  const targetOptionsFor = (target: ActionTarget, row?: Data): Data => {
+    const { component } = target as { component?: ComponentInfo<Data> };
+    const id = rowIdOf(row);
+    const tokens = row && id !== undefined ? { ...row, id } : row;
+    const declared = component?.options ?? {};
+    const options = tokens ? fillRowOptions(declared, tokens) : declared;
+    const children = component?.children;
+    if (!component?.componentName || !children?.length) return options;
+    // The container's children read the row through the same tokens.
+    const targetTree: ResolvedComponentInfo = {
+      id: component.componentName,
+      component: resolveTargetComponent(component.componentName),
+      componentName: component.componentName,
+      children: resolveComponentChildren(
+        tokens ? fillRowChildren(children, tokens) : children,
+      ),
+    };
+    return { ...options, targetTree };
+  };
+
   const rowRecorder = (deepLink?: boolean) => {
     const recordId = recordRecorder(deepLink);
     return (row?: Data): void => recordId(rowIdOf(row));
   };
 
   // The header names the open row when the target words it from its fields.
-  const rowTitleOf = (target: SidePanelTarget, row?: Data) =>
+  const rowTitleOf = (target: RowTarget, row?: Data) =>
     row && target.rowTitle
       ? resolveConfirmText(target.rowTitle, row, t as ConfirmTranslate)
       : undefined;
 
-  const notFoundOf = (target: SidePanelTarget) => ({
+  const notFoundOf = (target: RowTarget) => ({
     title: processI18n(target.notFound?.title || `$${NOT_FOUND_TITLE_KEY}`),
     description: processI18n(
       target.notFound?.description || `$${NOT_FOUND_DESCRIPTION_KEY}`,
@@ -407,15 +491,16 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
     const session = Symbol(componentName);
-    const recordId = recordRecorder(run.deepLink && !run.selection);
+    const recordId = recordRecorder(
+      run.deepLink && (!run.selection || run.keepsRow),
+    );
     const panel = {
       session,
       ownerKey,
       title: run.title,
       positionLabel: run.target.positionLabel,
-      component: resolveTargetComponent(componentName),
+      component: targetComponentOf(componentName, run.target.component),
       componentOptions: {
-        ...run.target.component?.options,
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -434,16 +519,30 @@ export function useActionTargets(config: ActionTargetsConfig) {
     function showRow(row?: Data) {
       openRowSidePanel({
         ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target, row),
+          ...panel.componentOptions,
+        },
         rowTitle: rowTitleOf(run.target, row),
         row,
         rowKey: rowIdOf(row),
         source: row ? config.rowNavigation : undefined,
-        showRow,
+        // A step that loads a page first lands after it: not on a panel
+        // closed or replaced meanwhile.
+        showRow: whileShown(session, showRow),
       });
       recordId(rowIdOf(row));
     }
     function showMissing(id: string) {
-      openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+      openRowSidePanel({
+        ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target),
+          ...panel.componentOptions,
+        },
+        notFound: notFoundOf(run.target),
+        showRow,
+      });
       recordId(id);
     }
     if (run.missingId) return showMissing(run.missingId);
@@ -456,21 +555,49 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
-    const component = resolveTargetComponent(componentName);
+    if (run.missingId) return showMissingInDrawer(run, run.missingId);
+    const component = targetComponentOf(componentName, run.target.component);
     const source = config.rowNavigation;
+    const drawerTarget = run.target.type === "drawer" ? run.target : undefined;
+    const withRowHeader = hasRowHeader(run.target) && !run.selection;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
+    let stopNavigation: (() => void) | undefined;
     // Set once the container closes: a row read that resolves later neither
     // writes `?record=` back nor patches the closed container.
     let closed = false;
-    const showRowById = rowShower((row) => {
+    const showRowOpen = (row: Data) => {
       if (!closed) showRow(row);
-    });
+    };
+    const showRowById = rowShower(showRowOpen);
+    // The position and the steps follow the table (a reload, live rows, the
+    // row located past the page loaded): the open container is patched with
+    // them.
+    const trackNavigation = (row?: Data) => {
+      stopNavigation?.();
+      stopNavigation = undefined;
+      navigation = undefined;
+      if (!row || !source) return;
+      // The first navigation goes out with the row's own options.
+      let isShowing = true;
+      // A step that loads a page first lands after it, maybe closed by then.
+      stopNavigation = trackRowNavigation(source, row, showRowOpen, (next) => {
+        navigation = next;
+        if (isShowing || !instance || closed) return;
+        instance.patch({
+          componentOptions: optionsOf(row),
+          ...(withRowHeader && { headerComponentOptions: headerFor(row) }),
+        });
+      });
+      isShowing = false;
+    };
     const optionsFor = (row?: Data) => {
-      navigation =
-        row && source ? rowNavigation(source, row, showRow) : undefined;
+      trackNavigation(row);
+      return optionsOf(row);
+    };
+    const optionsOf = (row?: Data) => {
       return {
-        ...run.target.component?.options,
+        ...targetOptionsFor(run.target, row),
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -484,25 +611,63 @@ export function useActionTargets(config: ActionTargetsConfig) {
         },
       };
     };
+    // A drawer words its title from the row (`rowTitle`); with the row
+    // header, the DMS draws it with the position and previous / next. Read
+    // after `optionsFor`, which sets the row's navigation.
+    const titleFor = (row?: Data) =>
+      (drawerTarget && rowTitleOf(drawerTarget, row)) || run.title;
+    const headerFor = (row?: Data) =>
+      withRowHeader
+        ? drawerRowHeaderProps(
+            { positionLabel: drawerTarget?.positionLabel, navigation },
+            titleFor(row),
+          )
+        : undefined;
     const recordRow = rowRecorder(run.deepLink);
     function showRow(row: Data) {
+      const componentOptions = optionsFor(row);
       instance?.patch({
-        componentOptions: optionsFor(row),
+        title: titleFor(row),
+        componentOptions,
         componentKey: rowIdOf(row),
+        ...(withRowHeader && { headerComponentOptions: headerFor(row) }),
       });
       recordRow(row);
     }
-    instance = openContainer(run, component, optionsFor(run.rowData));
+    const componentOptions = optionsFor(run.rowData);
+    instance = openContainer(run, component, {
+      title: titleFor(run.rowData),
+      componentOptions,
+      headerComponentOptions: headerFor(run.rowData),
+    });
     recordRow(run.rowData);
     // `showRow` may move an unlisted row's container onto a listed one.
     const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
     const settle = () => {
       closed = true;
       stopSteps?.();
+      stopNavigation?.();
       recordRow(undefined);
     };
     instance.result.then(settle, settle);
   };
+
+  // A drawer opened on a row its link names but its route answered 404 for:
+  // under its title, the state in place of the component, a close button.
+  // Closing it removes the link, as closing it on a row does.
+  function showMissingInDrawer(run: ComponentTargetRun, id: string): void {
+    if (run.target.type !== "drawer") return;
+    const recordId = recordRecorder(run.deepLink);
+    let instance: ContainerInstance | undefined;
+    const notFound = notFoundOf(run.target);
+    instance = openContainer(run, DmsRowNotFound, {
+      title: run.title,
+      componentOptions: { ...notFound, onClose: () => instance?.close() },
+    });
+    recordId(id);
+    const settle = () => recordId(undefined);
+    instance.result.then(settle, settle);
+  }
 
   type TargetHandler = (
     target: ActionTarget,
@@ -520,7 +685,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         (target as { description?: string }).description || "",
       ),
       containerId: `${config.pageId}-${config.componentId}-${target.type}`,
-      rowData: extras?.selection ? undefined : rowData,
+      rowData: extras?.selection && !extras.keepsRow ? undefined : rowData,
       ...extras,
     });
 
@@ -529,7 +694,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       target: target as SidePanelTarget,
       title: processI18n((target as SidePanelTarget).title || label),
       containerId: `${config.pageId}-${config.componentId}-${target.type}`,
-      rowData: extras?.selection ? undefined : rowData,
+      rowData: extras?.selection && !extras.keepsRow ? undefined : rowData,
       ...extras,
     });
 
@@ -623,7 +788,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
     const runInside = confirmedRuns[target.type]?.(target, rowData);
     const isConfirmed = await confirmAction(declared, {
-      row: rowData,
+      row: extras?.textParams ? { ...rowData, ...extras.textParams } : rowData,
       urlParams: rowUrlParams(rowData),
       run: runInside,
     });
@@ -653,14 +818,45 @@ export function useActionTargets(config: ActionTargetsConfig) {
     );
   };
 
+  // A bulk action offered on a row runs on that row as the selection bar runs
+  // on several: a URL target, and a `from` confirmation, carry `?ids=<id>` —
+  // unless the URL names the row itself (`{{row._id}}`), which fills it.
+  const rowRun = (action: CustomRowAction, rowData?: Data) => {
+    const id = rowIdOf(rowData);
+    if (!isBulkAction(action) || id === undefined) {
+      return { target: action.target, confirm: action.confirm, row: rowData };
+    }
+    const selection: BulkSelection = { ids: [id], count: 1 };
+    const query = bulkSelectionQuery(selection);
+    const { confirm } = action;
+    // Its texts count one row, as the bar's count the selection ("Resolve
+    // this ticket?"): its dialog, and the toast of a URL target. A drawer,
+    // modal or side panel receives the row as it is, and the selection of
+    // that row as from the bar.
+    const textParams = { count: selection.count };
+    return {
+      target: targetForRow(action.target, query),
+      textParams,
+      selection: isUrlTarget(action.target) ? undefined : selection,
+      row: isUrlTarget(action.target) ? { ...rowData, ...textParams } : rowData,
+      confirm:
+        confirm && isConfirmFrom(confirm) && !namesRowField(confirm.from)
+          ? { from: withQuery(confirm.from, query) }
+          : confirm,
+    };
+  };
+
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    void handleActionTarget(
-      action.target,
-      action.label,
+    const { target, confirm, row, textParams, selection } = rowRun(
+      action,
       rowData,
-      action.confirm,
-      { deepLink: isDeepLinkAction(action) },
     );
+    void handleActionTarget(target, action.label, row, confirm, {
+      deepLink: isDeepLinkAction(action),
+      textParams,
+      selection,
+      keepsRow: !!selection,
+    });
   };
 
   /**
@@ -675,7 +871,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const query = bulkSelectionQuery(selection);
     const declared =
       action.confirm && isConfirmFrom(action.confirm)
-        ? { from: withQuery(action.confirm.from, query) }
+        ? { from: withQuery(dropRowTokens(action.confirm.from), query) }
         : action.confirm;
     void handleActionTarget(
       targetWithSelection(action.target, query),
@@ -687,11 +883,24 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   /**
-   * Opens a side panel action on a row its link names but its route answered
-   * 404 for: the panel says the row is gone, and closing it removes the link.
-   * Another target opens nothing: no row, no drawer.
+   * Opens a side panel action, or a drawer wording its `notFound` state, on a
+   * row its link names but its route answered 404 for: the container says the
+   * row is gone, and closing it removes the link. Another target opens
+   * nothing: no row, no container.
    */
   const handleMissingRow = (action: CustomRowAction, id: string) => {
+    if (!hasMissingRowState(action)) return;
+    if (action.target.type === "drawer") {
+      handleComponentTarget({
+        target: action.target,
+        title: processI18n(action.target.title || action.label),
+        description: processI18n(action.target.description || ""),
+        containerId: `${config.pageId}-${config.componentId}-${action.target.type}`,
+        deepLink: isDeepLinkAction(action),
+        missingId: id,
+      });
+      return;
+    }
     if (action.target.type !== "sidePanel") return;
     handleSidePanelTarget({
       target: action.target,

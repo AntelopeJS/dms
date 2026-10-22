@@ -135,6 +135,8 @@ import {
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import type { RowStep } from "../../build/composables/actions/rowNavigation";
+import { rowLocator } from "../../build/composables/table-view/utils/locateRow";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
 import {
@@ -146,10 +148,12 @@ import {
 } from "../../build/composables/table-view/utils/linkedArrival";
 import { pageArrivalKind } from "../../build/composables/table-view/utils/pageArrival";
 import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
+import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { refreshPageBlocks } from "../../utils/blockRefresh";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
@@ -199,6 +203,7 @@ interface RealtimePresenceActor {
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
 /** A kept field of the table, its state, and its default. */
+// The default may move once mounted (a phone's display): read when written.
 type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
 // The backend options of a table view, declared here as well so the
@@ -206,6 +211,8 @@ type TableStatePreference = [TableField, Ref<unknown>, unknown];
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
+  /** Caption count while the archived rows show (backend `archivedCountLabel`). */
+  archivedCountLabel?: string;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
@@ -613,10 +620,17 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
+// The display the table counts as its default: the phone's `mobileDisplay`
+// once applied (see `useMobileDisplay` below).
+const displayDefault = ref(
+  offeredDisplayIds.has(defaultDisplay) ? defaultDisplay : fallbackDisplayId,
+);
+
 // Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
   activeViewId,
+  activeView,
   isModified: isViewModified,
   canSaveViews,
   selectView,
@@ -640,9 +654,10 @@ const {
     columnOrder: listableColumns.map(
       (column) => column.id ?? column.accessorKey,
     ),
-    display: offeredDisplayIds.has(defaultDisplay)
-      ? defaultDisplay
-      : fallbackDisplayId,
+    // Read when a view opens: a phone's `mobileDisplay` once applied.
+    get display() {
+      return displayDefault.value;
+    },
     density: props.density ?? DEFAULT_DENSITY,
     displays: offeredDisplayIds,
   },
@@ -658,6 +673,21 @@ const {
   },
   preferences: tablePreferences,
   urlScope,
+});
+
+// A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
+// after its first columns) unless a display was chosen: saved, fixed by the
+// open view, or the only way in.
+useMobileDisplay({
+  mobileDisplay: props.mobileDisplay,
+  defaultDisplay: displayDefault,
+  offered: offeredDisplayIds,
+  display: activeDisplayId,
+  activeView,
+  isDisplayChosen: () =>
+    isDefaultDisplayStandalone ||
+    tablePreferences.get<string | undefined>("viewMode", undefined) !==
+      undefined,
 });
 
 const { t, te } = useI18n();
@@ -769,6 +799,7 @@ const tableRows = useTableRows<T>({
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
 // filter like the filters row does.
+const { getDataType } = useDataTypes();
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 // Relation values load after mount: until then their buttons hold their place.
 const relationQuickFiltersLoaded = ref(false);
@@ -781,7 +812,7 @@ const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
     column,
     mode: quickFilterMode(column, filter.mode),
     items: staticQuickFilterItems(column, processI18n),
-    source: relationQuickFilterSource(column),
+    source: relationQuickFilterSource(column, getDataType),
   };
 });
 
@@ -795,7 +826,9 @@ const loadRelationQuickFilters = async () => {
         try {
           const response = await $authFetch<
             TableViewListResponse<Record<string, unknown>>
-          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          >(source!.searchUrl, {
+            query: { limit: RELATION_QUICK_FILTER_LIMIT },
+          });
           relationQuickFilterValues.value = {
             ...relationQuickFilterValues.value,
             [filter.field]: relationQuickFilterItems(response.results, source!),
@@ -1164,6 +1197,83 @@ const hasMoreRows = computed(
 const loadMoreRows = () => {
   if (hasMoreRows.value && !isListLoading.value) loadNextPage();
 };
+// A row's drawer or side panel steps through every row the table lists: past
+// the rows loaded, it turns the table's page (or grows its feed) and steps
+// onto the rows that arrive. A display reading its own rows keeps to them.
+const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
+const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
+// What a display reading its own rows shows (`setShownRows`), in its order:
+// the rows its row's container steps through. Another display, another set.
+const selfManagedRows = shallowRef<Data[]>([]);
+const setSelfManagedRows = (rows: T[]) => {
+  selfManagedRows.value = rows as Data[];
+};
+watch(activeDisplayId, () => {
+  selfManagedRows.value = [];
+});
+const navigableRows = (): Data[] =>
+  listsServerPages.value
+    ? ((shownResults.value ?? []) as Data[])
+    : selfManagedRows.value;
+const loadedRowsOffset = () => {
+  if (isAccumulating || !listsServerPages.value) return 0;
+  const { pageIndex, pageSize } = paginationState.value;
+  return pageSize > 0 ? pageIndex * pageSize : 0;
+};
+const turnPage = (step: RowStep): boolean => {
+  if (isAccumulating) {
+    if (step < 0 || !hasMoreRows.value) return false;
+    loadNextPage();
+    return true;
+  }
+  const { pageIndex, pageSize } = paginationState.value;
+  const next = pageIndex + step;
+  const total = data.value?.total ?? 0;
+  if (pageSize <= 0 || next < 0 || next * pageSize >= total) return false;
+  paginationState.value = { ...paginationState.value, pageIndex: next };
+  return true;
+};
+let adjacentRowsLoad: Promise<boolean> | undefined;
+const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
+  // A second J while the page loads waits for the same page.
+  if (adjacentRowsLoad) return adjacentRowsLoad;
+  if (!listsServerPages.value || isListLoading.value || !turnPage(step)) {
+    return Promise.resolve(false);
+  }
+  const before = shownResults.value;
+  adjacentRowsLoad = until(
+    () => shownResults.value !== before && !isListLoading.value,
+  )
+    .toBe(true, { timeout: ADJACENT_ROWS_TIMEOUT_MS })
+    .then(() => !listLoadError.value && shownResults.value !== before)
+    .finally(() => {
+      adjacentRowsLoad = undefined;
+    });
+  return adjacentRowsLoad;
+};
+// A row past the rows loaded (a deep link, a row live rows pushed out) is
+// found in the table's whole result, under the query the list reads: its
+// position, and its neighbours for the steps. Its rows read in the order
+// the table shows them: pinned rows lead each page it reads, not the result.
+const locateRow = rowLocator({
+  list: async (offset, limit) => {
+    if (!listsServerPages.value) return null;
+    const page = await tableRows.listAsShown(
+      {
+        ...queryRequest.value,
+        ...archiveQuery.value,
+        ...liveHold.heldQuery(),
+        offset,
+        limit,
+      },
+      requestedPagination.value.pageSize,
+    );
+    return page && { results: page.results as Data[], total: page.total };
+  },
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  isWholeRead: () => !!props.source && !props.source.capabilities.paginate,
+});
+
 const accumulation = computed<TableAccumulation | undefined>(() =>
   isAccumulating
     ? {
@@ -1291,6 +1401,11 @@ const refreshByUser = () => {
   liveGate.acknowledge();
   return refreshAll();
 };
+// A write of the user's (a row or bulk action, a form saved) can move what
+// the rest of the page shows of the same records — a KPI, a tab's badge,
+// another list: every block of the page reads its data again, this table
+// among them, at once even on a paused live page.
+const refreshAfterWrite = () => refreshPageBlocks();
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1368,7 +1483,7 @@ const {
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
-  refreshCallback: refreshByUser,
+  refreshCallback: refreshAfterWrite,
   formComponents,
   formContainer,
   formPages,
@@ -1377,9 +1492,16 @@ const {
   pageId: pageId!,
   queryParamFilters,
   rowNavigation: {
-    rows: () => (shownResults.value ?? []) as Data[],
+    rows: navigableRows,
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
     getRow: (id) => tableRows.getRow(id) as Promise<Data | undefined>,
+    total: () =>
+      listsServerPages.value
+        ? (shownData.value?.total ?? undefined)
+        : undefined,
+    offset: loadedRowsOffset,
+    loadAdjacent: loadAdjacentRows,
+    locate: locateRow,
   },
   recordScope: urlScope,
   onRecordShown: (id) => recordLink?.shown(id),
@@ -1965,6 +2087,7 @@ const displayContext = computed(
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
     refresh: refreshByUser,
+    setShownRows: setSelfManagedRows,
     reorder: reorderState.value,
     table: displayTable.value,
   }),
@@ -2068,7 +2191,7 @@ const tableStatePreferences: TableStatePreference[] = [
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
   ["activeTab", activeTabId, ALL_TAB_ID],
-  ["viewMode", activeDisplayId, defaultDisplay],
+  ["viewMode", activeDisplayId, displayDefault],
   ["columnOrder", columnOrder, []],
   ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
   ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
@@ -2079,7 +2202,7 @@ tableStatePreferences.forEach(([field, state, defaultValue]) => {
   watch(
     state,
     (newValue) => {
-      tablePreferences.set(field, newValue, defaultValue);
+      tablePreferences.set(field, newValue, unref(defaultValue));
     },
     { deep: true },
   );
@@ -2201,6 +2324,7 @@ onMounted(() => {
     :url-filters="shownUrlFilters"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
+    :archived-count-label="props.archivedCountLabel"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"

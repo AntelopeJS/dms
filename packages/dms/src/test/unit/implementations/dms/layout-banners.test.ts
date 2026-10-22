@@ -11,6 +11,7 @@ import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access
 import * as layoutBannersInterface from "@antelopejs/interface-dms/layout-banners";
 import {
   type LayoutBannerContext,
+  LayoutBannerScope,
   LayoutBannerVariant,
   RegisterLayoutBanner,
 } from "@antelopejs/interface-dms/layout-banners";
@@ -90,6 +91,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "always",
         variant: LayoutBannerVariant.INFO,
         order: 0,
+        scope: LayoutBannerScope.APP,
         dismissible: false,
         icon: undefined,
         text: "$banner.always",
@@ -120,6 +122,93 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
       icon: "i-ph-clock",
     });
     expect(banner?.props).to.deep.equal({ days: 3 });
+  });
+
+  // The site layout is shared by every page: the scope travels with the banner
+  // and the dashboard applies it against the route.
+  it("ships each banner's scope, the application's pages by default", async () => {
+    disposers.push(
+      RegisterLayoutBanner({ key: "default", variant: "info", text: "a" }),
+      RegisterLayoutBanner({
+        key: "workspace",
+        variant: "error",
+        text: "b",
+        scope: LayoutBannerScope.EVERYWHERE,
+      }),
+      RegisterLayoutBanner({
+        key: "module-area",
+        variant: "info",
+        text: "c",
+        scope: LayoutBannerScope.MODULES,
+      }),
+    );
+
+    const scopes = (await bannersFor()).map(({ key, scope }) => [key, scope]);
+    expect(scopes).to.deep.equal([
+      ["default", LayoutBannerScope.APP],
+      ["workspace", LayoutBannerScope.EVERYWHERE],
+      ["module-area", LayoutBannerScope.MODULES],
+    ]);
+  });
+
+  it("ships an unknown scope of an untyped registration as the default", async () => {
+    disposers.push(
+      RegisterLayoutBanner({
+        key: "untyped",
+        variant: "info",
+        text: "a",
+        scope: "somewhere" as LayoutBannerScope,
+      }),
+    );
+
+    const [banner] = await bannersFor();
+    expect(banner?.scope).to.equal(LayoutBannerScope.APP);
+  });
+
+  it("takes the scope the same way on a text, a resolved and a component banner", async () => {
+    disposers.push(
+      RegisterLayoutBanner({ key: "text-default", variant: "info", text: "a" }),
+      RegisterLayoutBanner({
+        key: "resolved-default",
+        variant: "error",
+        resolve: () => ({ text: "b" }),
+      }),
+      RegisterLayoutBanner({
+        key: "component-default",
+        variant: "warning",
+        component: "MyBanner",
+      }),
+      RegisterLayoutBanner({
+        key: "text-everywhere",
+        variant: "info",
+        text: "c",
+        scope: LayoutBannerScope.EVERYWHERE,
+      }),
+      RegisterLayoutBanner({
+        key: "resolved-everywhere",
+        variant: "error",
+        scope: LayoutBannerScope.EVERYWHERE,
+        resolve: () => ({ text: "d" }),
+      }),
+      RegisterLayoutBanner({
+        key: "component-everywhere",
+        variant: "warning",
+        scope: LayoutBannerScope.EVERYWHERE,
+        component: "MyBanner",
+      }),
+    );
+
+    const scopes = Object.fromEntries(
+      (await bannersFor()).map(({ key, scope }) => [key, scope]),
+    );
+    expect(scopes).to.deep.equal({
+      "text-default": LayoutBannerScope.APP,
+      "resolved-default": LayoutBannerScope.APP,
+      "component-default": LayoutBannerScope.APP,
+      "text-everywhere": LayoutBannerScope.EVERYWHERE,
+      "resolved-everywhere": LayoutBannerScope.EVERYWHERE,
+      "component-everywhere": LayoutBannerScope.EVERYWHERE,
+    });
   });
 
   it("stacks banners by order, ties in registration order", async () => {
@@ -292,6 +381,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "past-due",
         variant: "error",
         order: 0,
+        scope: LayoutBannerScope.APP,
         dismissible: false,
         icon: undefined,
         text: {

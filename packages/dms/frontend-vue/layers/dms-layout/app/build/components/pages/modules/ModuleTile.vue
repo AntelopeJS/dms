@@ -20,7 +20,8 @@ interface ModuleTileProps {
   icon: string;
   title: string;
   description: string;
-  status: ModuleTileStatus;
+  /** The pill of the tile's head; a tile without one shows none. */
+  status?: ModuleTileStatus;
   /** Where the tile leads; without it, the tile is a placeholder. */
   to?: string;
   /**
@@ -35,11 +36,16 @@ interface ModuleTileSlots {
   readout?: () => unknown;
   /** Under the description (an install command). */
   default?: () => unknown;
-  /** The footer band's content. */
+  /**
+   * The footer band's content. The band wraps: a facts group (version,
+   * source, category) kept whole, then actions pushed to the end with
+   * `ms-auto`, which drop to a second line when both do not fit.
+   */
   footer: () => unknown;
 }
 
 const props = withDefaults(defineProps<ModuleTileProps>(), {
+  status: undefined,
   to: undefined,
   isSolid: false,
 });
@@ -49,7 +55,7 @@ const theme = tv({
   slots: {
     root: "flex min-h-[228px] flex-col gap-3 overflow-hidden px-4 pt-4",
     footer:
-      "text-dimmed -mx-4 mt-auto flex items-center gap-2 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
+      "text-dimmed -mx-4 mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
   },
   variants: {
     isPlaceholder: {
@@ -91,6 +97,7 @@ const ui = computed(() =>
         :tone="props.to || props.isSolid ? undefined : 'muted'"
       />
       <DmsStatusPill
+        v-if="props.status"
         :tone="props.status.tone"
         :dot="props.status.dot"
         :label="props.status.label"

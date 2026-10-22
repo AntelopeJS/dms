@@ -361,6 +361,11 @@ export namespace FormComponents {
     minLength?: number;
     /** Shows the characters typed, out of `maxLength` when set ("4 / 60"). */
     showCount?: boolean;
+    /**
+     * How the value reads where it is shown, not edited: a URL as the image
+     * it points to (`UrlType`'s `preview`). The input itself ignores it.
+     */
+    preview?: "avatar" | "image";
   }
 
   export interface RadioGroupOptions {
@@ -460,6 +465,11 @@ export namespace FormComponents {
      * enabled). Set `url` to use a self-hosted / alternative provider.
      */
     autocomplete?: DefaultDataTypes.AddressAutocomplete;
+    /**
+     * ISO 3166-1 alpha-2 code shown while the address has no country, and
+     * whose places the suggestions list first.
+     */
+    defaultCountry?: string;
   }
 
   export interface FileOptions {

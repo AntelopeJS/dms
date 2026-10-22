@@ -20,8 +20,6 @@ const TIME_UNITS = {
   ms: 1,
 } as const;
 
-const TIME_UNIT_ORDER = ["y", "M", "w", "d", "h", "m", "s", "ms"] as const;
-
 type TranslateFunction = (
   key: string,
   params?: Record<string, unknown>,
@@ -229,9 +227,56 @@ export function formatDateTime(
   });
 }
 
+// The narrow no-break space French (and a few other locales) groups digits
+// with: the interface's font draws it a fraction of a digit wide, so "1 234"
+// read as "1234" beside a column's "12 345". Groups take a full no-break space.
+const NARROW_GROUP_SEPARATOR = " ";
+const GROUP_SEPARATOR = " ";
+
+/** `Intl.NumberFormat`, its digit groups always shown and visible. */
+export interface ReadableNumberFormat {
+  format(value: number): string;
+  formatToParts(value: number): Intl.NumberFormatPart[];
+  resolvedOptions(): Intl.ResolvedNumberFormatOptions;
+}
+
+function readablePart(part: Intl.NumberFormatPart): Intl.NumberFormatPart {
+  return part.type === "group" && part.value === NARROW_GROUP_SEPARATOR
+    ? { ...part, value: GROUP_SEPARATOR }
+    : part;
+}
+
 /**
- * A number written for `locale`; a value that is not a number is returned as
- * is. Options Intl refuses (an unknown currency) write the bare number.
+ * `new Intl.NumberFormat(locale, options)` the way the interface writes a
+ * figure: a four-digit one grouped like a longer one ("1 234" next to
+ * "12 345", where Spanish or Polish would leave "1234" by default), with a
+ * group separator wide enough to see. `options.useGrouping` still decides.
+ * Throws as `Intl.NumberFormat` does on options it refuses.
+ */
+export function readableNumberFormat(
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): ReadableNumberFormat {
+  const format = new Intl.NumberFormat(locale, {
+    useGrouping: true,
+    ...options,
+  });
+  const formatToParts = (value: number) =>
+    format.formatToParts(value).map(readablePart);
+  return {
+    format: (value) =>
+      formatToParts(value)
+        .map((part) => part.value)
+        .join(""),
+    formatToParts,
+    resolvedOptions: () => format.resolvedOptions(),
+  };
+}
+
+/**
+ * A number written for `locale` (see {@link readableNumberFormat}); a value
+ * that is not a number is returned as is. Options Intl refuses (an unknown
+ * currency) write the bare number.
  */
 export function formatNumber(
   value: number,
@@ -250,7 +295,7 @@ export function formatNumber(
 ): unknown {
   if (!isNumber(value)) return value;
   try {
-    return new Intl.NumberFormat(locale, options).format(value);
+    return readableNumberFormat(locale, options).format(value);
   } catch {
     return String(value);
   }
@@ -312,16 +357,19 @@ const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
   w: "w",
   d: "d",
   h: "h",
+  min: "m",
   m: "m",
   s: "s",
   ms: "ms",
 };
 
-// `01:30`, `26:00:30`: hours, then minutes and seconds under 60.
+// `01:30`, `8:15`, `26:00:30`: hours, then minutes and seconds under 60.
 const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
-// `1h30m`, `1h 30m`, `1h:30m` (what `formatTimeSpan` writes), `1.5h`.
-const UNIT_SPAN = /^(?:\d+(?:\.\d+)?(?:ms|mo|[Mmwydhs])[\s:]*)+$/;
-const UNIT_SPAN_PART = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
+// `8h15`, `8 h 05`: hours, then bare minutes, the way a time is often written.
+const HOUR_MINUTE_SPAN = /^(\d+)\s*h\s*([0-5]?\d)$/i;
+// `1h30m`, `1h 30m`, `7 h 30 min`, `1h:30m` (older displays), `1.5h`.
+const UNIT_SPAN = /^(?:\d+(?:[.,]\d+)?\s*(?:ms|mo|min|[Mmwydhs])[\s:]*)+$/;
+const UNIT_SPAN_PART = /(\d+(?:[.,]\d+)?)\s*(ms|mo|min|[Mmwydhs])/g;
 
 function readClockSpan(text: string): number | undefined {
   const match = CLOCK_SPAN.exec(text);
@@ -334,24 +382,38 @@ function readClockSpan(text: string): number | undefined {
   );
 }
 
+function readHourMinuteSpan(text: string): number | undefined {
+  const match = HOUR_MINUTE_SPAN.exec(text);
+  if (!match) return undefined;
+  const [, hours, minutes] = match;
+  return Number(hours) * TIME_UNITS.h + Number(minutes) * TIME_UNITS.m;
+}
+
 function readUnitSpan(text: string): number | undefined {
   if (!UNIT_SPAN.test(text)) return undefined;
   let total = 0;
   for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
-    total += Number.parseFloat(amount!) * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+    const value = Number.parseFloat(amount!.replace(",", "."));
+    total += value * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
   }
   return total;
 }
 
 /**
- * A duration typed in, in milliseconds: a clock duration (`01:30`,
- * `26:00:30`) or units (`1h30m`, `1h 30m`, `1.5h`), or `undefined` for a
- * text that is neither.
+ * A duration typed in, in milliseconds: a clock duration (`01:30`, `8:15`,
+ * `26:00:30`), hours then minutes (`8h15`, `8h`) or units (`1h30m`,
+ * `1h 30m`, `7 h 30 min`, `1.5h`), a `-` before any of them for a negative
+ * one, or `undefined` for a text that is neither. It reads all
+ * {@link formatDuration} writes.
  */
 export function readTimeSpan(value: string): number | undefined {
-  const text = value.trim();
+  const trimmed = value.trim();
+  const isNegative = trimmed.startsWith("-");
+  const text = isNegative ? trimmed.slice(1).trimStart() : trimmed;
   if (!text) return undefined;
-  return readClockSpan(text) ?? readUnitSpan(text);
+  const span =
+    readClockSpan(text) ?? readHourMinuteSpan(text) ?? readUnitSpan(text);
+  return span !== undefined && isNegative ? -span : span;
 }
 
 export function parseTimeSpan(value: string | number): number {
@@ -359,30 +421,99 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-const DEFAULT_SEPARATOR = ":";
-const ZERO_MS = "0ms";
+// Durations count in hours at most: a day or a month is a calendar span, not
+// a number of hours.
+const DURATION_UNITS = [
+  { symbol: "h", ms: TIME_UNITS.h, fractionDigits: 0 },
+  { symbol: "min", ms: TIME_UNITS.m, fractionDigits: 0 },
+  // The seconds carry the milliseconds, so nothing is rounded away.
+  { symbol: "s", ms: TIME_UNITS.s, fractionDigits: 3 },
+] as const;
+const MS_FRACTION_DIGITS = 3;
 
-export function formatTimeSpan(
-  ms: unknown,
-  separator: string = DEFAULT_SEPARATOR,
+/**
+ * How exact a written duration is: `exact` (the default) keeps every
+ * millisecond, so a field shows the value it holds and {@link readTimeSpan}
+ * reads it back; `rounded` keeps two units at most, the smaller one rounded
+ * ("2.1 s", "4 min 12 s", "7 h 30 min"), for a cell read at a glance.
+ */
+export type DurationPrecision = "exact" | "rounded";
+
+export interface DurationFormatOptions {
+  precision?: DurationPrecision;
+}
+
+const ROUNDED_SECONDS_FRACTION_DIGITS = 1;
+
+function durationFigure(
+  locale: string,
+  value: number,
+  symbol: string,
+  fractionDigits: number,
 ): string {
-  if (!isNumber(ms)) return String(ms);
+  const figure = readableNumberFormat(locale, {
+    maximumFractionDigits: fractionDigits,
+    useGrouping: false,
+    numberingSystem: "latn",
+  }).format(value);
+  return `${figure} ${symbol}`;
+}
 
-  const totalMs = Number(ms);
-  if (totalMs === 0) return ZERO_MS;
-
-  const parts: string[] = [];
-  let remaining = Math.abs(totalMs);
-
-  for (const unit of TIME_UNIT_ORDER) {
-    const unitValue = TIME_UNITS[unit];
-    if (remaining >= unitValue) {
-      const value = Math.floor(remaining / unitValue);
-      parts.push(`${value}${unit}`);
-      remaining %= unitValue;
-    }
+function exactDuration(ms: number, locale: string): string {
+  let remaining = ms;
+  if (remaining < TIME_UNITS.s) {
+    return durationFigure(locale, remaining, "ms", MS_FRACTION_DIGITS);
   }
+  const parts: string[] = [];
+  for (const { symbol, ms: unitMs, fractionDigits } of DURATION_UNITS) {
+    const amount = fractionDigits
+      ? remaining / unitMs
+      : Math.floor(remaining / unitMs);
+    remaining -= amount * unitMs;
+    if (amount)
+      parts.push(durationFigure(locale, amount, symbol, fractionDigits));
+  }
+  return parts.join(" ");
+}
 
-  const formatted = parts.join(separator);
-  return totalMs < 0 ? `-${formatted}` : formatted;
+function roundedDuration(ms: number, locale: string): string {
+  if (ms < TIME_UNITS.s) return durationFigure(locale, Math.round(ms), "ms", 0);
+  if (ms < TIME_UNITS.m) {
+    return durationFigure(
+      locale,
+      ms / TIME_UNITS.s,
+      "s",
+      ROUNDED_SECONDS_FRACTION_DIGITS,
+    );
+  }
+  const [major, majorSymbol, minor, minorSymbol] =
+    ms < TIME_UNITS.h
+      ? ([TIME_UNITS.m, "min", TIME_UNITS.s, "s"] as const)
+      : ([TIME_UNITS.h, "h", TIME_UNITS.m, "min"] as const);
+  // Rounded as a whole first, so 1 min 59.7 s reads "2 min", not "1 min 60 s".
+  const total = Math.round(ms / minor) * minor;
+  const whole = Math.floor(total / major);
+  const rest = (total - whole * major) / minor;
+  const head = durationFigure(locale, whole, majorSymbol, 0);
+  return rest
+    ? `${head} ${durationFigure(locale, rest, minorSymbol, 0)}`
+    : head;
+}
+
+/**
+ * A duration in milliseconds the way people write it, its figures in the
+ * reader's locale: "910 ms", "2.149 s", "4 min 12 s", "7 h 30 min". The one
+ * writer of a duration, for a field and a cell alike. Exact by default (hours
+ * and minutes whole, the seconds carrying the milliseconds), its figures
+ * neither grouped nor in another script, so {@link readTimeSpan} reads back
+ * the very value it wrote; `precision: "rounded"` for a cell.
+ */
+export function formatDuration(
+  ms: number,
+  locale: string,
+  { precision = "exact" }: DurationFormatOptions = {},
+): string {
+  const sign = ms < 0 ? "-" : "";
+  const write = precision === "rounded" ? roundedDuration : exactDuration;
+  return sign + write(Math.abs(ms), locale);
 }
