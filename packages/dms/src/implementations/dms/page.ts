@@ -1,4 +1,3 @@
-import type { PassThrough } from "node:stream";
 import {
   Context,
   Controller,
@@ -7,7 +6,6 @@ import {
   Parameter,
   Post,
   type RequestContext,
-  WriteStream,
 } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
@@ -74,10 +72,7 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
 import { acknowledgeFrontendReady } from "./frontend-ready";
 import { assertPageSessionAccepted } from "./stale-session";
-import {
-  buildFrontendManifest,
-  writeFrontendModules,
-} from "./frontend-modules";
+import { buildFrontendManifest } from "./frontend-modules";
 import { BOOTSTRAP_HEADER } from "./frontend-bootstrap";
 import type { FrontendManifest, ManifestModuleEntry } from "./manifest";
 import {
@@ -114,11 +109,7 @@ import {
 } from "./permission-preview";
 import { runInBatches } from "../../utils/run-in-batches";
 
-export {
-  AddFrontendModule,
-  createIgnoreFilter,
-  GetFrontendModules,
-} from "./frontend-modules";
+export { AddFrontendModule, GetFrontendModules } from "./frontend-modules";
 
 type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   children: Record<string, SiteLayoutTree>;
@@ -807,20 +798,6 @@ export class DMSController extends Controller("/dms") {
     return buildFrontendManifest(
       requestContext,
       clientUrl,
-      renderer,
-      rendererVersion,
-      this.bootstrapHeader,
-    );
-  }
-
-  @Get("/frontend/modules")
-  async frontendModules(
-    @WriteStream("application/zip") out: PassThrough,
-    @Parameter("renderer", "query") renderer: string | undefined,
-    @Parameter("rendererVersion", "query") rendererVersion: string | undefined,
-  ) {
-    await writeFrontendModules(
-      out,
       renderer,
       rendererVersion,
       this.bootstrapHeader,
