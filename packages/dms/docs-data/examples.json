@@ -834,6 +834,10 @@
       "xaxisType": "numeric",
       "showLabels": true,
       "pointSize": 8,
+      "rawOptions": [
+        { "key": "xaxis.min", "value": "0" },
+        { "key": "xaxis.max", "value": "30" }
+      ],
       "yRange": {
         "min": 0,
         "max": 500
@@ -848,7 +852,7 @@
       "title": "Sales",
       "description": "Revenue of the last 30 days",
       "icon": "i-ph-currency-eur",
-      "fetchUrl": "/api/dashboard/sales",
+      "fetchUrl": "/api/block-preview/fixtures/sales",
       "valueFormat": "currency",
       "currencyCode": "EUR"
     },
@@ -919,6 +923,7 @@
     "options": {
       "title": "Workspace profile",
       "description": "Shown on invoices and in emails sent to members.",
+      "fetchUrl": "/api/block-preview/fixtures/workspace",
       "submitLabel": "Save changes",
       "fields": [
         {
@@ -1112,7 +1117,7 @@
   "Guard": {
     "type": "Guard",
     "options": {
-      "fetchUrl": "/api/blocks/guard/records/r1",
+      "fetchUrl": "/api/block-preview/fixtures/customer",
       "when": "notFound"
     },
     "children": [
@@ -1121,7 +1126,7 @@
         "type": "KeyValueList",
         "options": {
           "title": "Customer",
-          "fetchUrl": "/api/blocks/guard/records/r1/facts"
+          "fetchUrl": "/api/block-preview/fixtures/customer/facts"
         }
       }
     ]
@@ -1558,7 +1563,7 @@
   "TableView": {
     "type": "TableView",
     "options": {
-      "location": "/api/playground/request-log-server",
+      "location": "/api/block-preview/fixtures/requests",
       "columns": [
         {
           "id": "method",
@@ -1801,7 +1806,7 @@
         }
       ],
       "source": {
-        "fetchUrl": "/api/playground/request-log-server",
+        "fetchUrl": "/api/block-preview/fixtures/requests",
         "capabilities": {
           "filter": true,
           "search": true,
@@ -1845,10 +1850,11 @@
     "width": 1100
   },
   "ResourceForm": {
-    "type": "Form",
+    "type": "ResourceForm",
     "options": {
-      "title": "Edit workspace",
-      "description": "A ResourceForm draws this same form from a resource's fields, reading and saving the row through its controller.",
+      "title": "Workspace record",
+      "description": "A serialized resource form populated by a fixed demonstration record. Changes are not saved.",
+      "fetchUrl": "/api/block-preview/fixtures/workspace",
       "submitLabel": "Save changes",
       "fields": [
         {
@@ -2002,7 +2008,7 @@
   "guard-fallback": {
     "type": "Guard",
     "options": {
-      "fetchUrl": "/api/blocks/guard/alerts",
+      "fetchUrl": "/api/block-preview/fixtures/alerts",
       "when": "empty",
       "fallback": {
         "title": "No open alert",
@@ -2061,7 +2067,7 @@
       "title": "Channels",
       "description": "Sessions per channel",
       "icon": "i-ph-chart-donut",
-      "fetchUrl": "/api/dashboard/cards/channels",
+      "fetchUrl": "/api/block-preview/fixtures/channels",
       "valueFormat": "number",
       "showDelta": false
     },

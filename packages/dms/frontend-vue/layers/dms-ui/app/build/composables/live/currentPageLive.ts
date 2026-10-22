@@ -9,6 +9,7 @@ import type {
   LiveSubscription,
   PageLiveController,
 } from "./pageLiveController";
+import { markPageRead } from "./pageReadClock";
 
 // Client-only state: the page renderer sets it in the browser, where one app
 // shows one page at a time. The server renders no event and no refetch, so it
@@ -62,7 +63,7 @@ interface BoundSubscription {
 
 /**
  * The gate a block's refetch goes through. On a page without `live` it calls
- * `refresh` at once, as before. Bound lazily, on the first event, to the
+ * `refresh` at once, as before, and records the read (`pageReadAt`). Bound lazily, on the first event, to the
  * controller of the page on screen: a block of the page layout sets up before
  * the page installs its controller.
  *
@@ -89,6 +90,11 @@ export function useLiveGate(refresh: () => void): LiveGate {
 
   if (getCurrentScope()) onScopeDispose(unbind);
 
+  const refreshUngated = () => {
+    markPageRead();
+    refresh();
+  };
+
   const current = () =>
     bound.value?.controller === currentController.value
       ? (bound.value?.subscription ?? null)
@@ -98,14 +104,14 @@ export function useLiveGate(refresh: () => void): LiveGate {
     trigger: (event) => {
       const subscription = resolve();
       if (subscription) subscription.trigger(event);
-      else refresh();
+      else refreshUngated();
     },
     missed: computed(() => current()?.missed.value ?? 0),
     lastReadAt: computed(() => current()?.lastReadAt.value ?? 0),
     catchUp: () => {
       const subscription = resolve();
       if (subscription) subscription.catchUp();
-      else refresh();
+      else refreshUngated();
     },
     acknowledge: () => resolve()?.acknowledge(),
     setHeld: (isHeld) => resolve()?.setHeld(isHeld),

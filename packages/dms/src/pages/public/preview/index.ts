@@ -5,6 +5,7 @@ import {
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
 import { listPreviewBlockTypes, type PreviewBlockTypes } from "./block-types";
+import { registerPreviewFixtures } from "./fixtures";
 
 export * from "./block-types";
 
@@ -55,5 +56,6 @@ export class DocsPreviewPage extends PageController(
  * why the page carries no decorator: importing this file registers nothing.
  */
 export function registerDocsPreviewPage(): void {
+  registerPreviewFixtures();
   RegisterPage()(DocsPreviewPage);
 }

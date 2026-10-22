@@ -86,11 +86,11 @@ describe("previous-period comparison", () => {
     // October 2026 holds the European DST change (Oct 25); the previous
     // 31 days must still start at local midnight.
     const range = {
-      from: new Date(2026, 9, 1),
-      to: new Date(new Date(2026, 10, 1).getTime() - 1),
+      from: new Date(2026, 9, 5),
+      to: new Date(new Date(2026, 10, 5).getTime() - 1),
     };
     const compare = resolveComparisonRange("previous-period", range, null);
-    expect(compare!.from).toEqual(new Date(2026, 7, 31));
+    expect(compare!.from).toEqual(new Date(2026, 8, 4));
     expect(compare!.to.getTime()).toBe(range.from.getTime() - 1);
   });
 
@@ -104,5 +104,81 @@ describe("previous-period comparison", () => {
   it("returns null when comparison is none", () => {
     const range = resolvePresetRange("today", NOW, FALLBACK);
     expect(resolveComparisonRange("none", range, null)).toBeNull();
+  });
+});
+
+describe("calendar comparisons", () => {
+  // The 18th of October: the month and the quarter are under way.
+  const TODAY = new Date(2026, 9, 18, 10, 30);
+  const endOf = (year: number, month: number, day: number) =>
+    new Date(new Date(year, month, day + 1).getTime() - 1);
+  const compare = (
+    preset: Parameters<typeof resolvePresetRange>[0],
+    comparison: "previous-period" | "previous-year" = "previous-period",
+  ) =>
+    resolveComparisonRange(
+      comparison,
+      resolvePresetRange(preset, TODAY, FALLBACK),
+      null,
+      { preset, now: TODAY },
+    );
+
+  it("compares a month to the month before, not to as many days", () => {
+    // September (30 days) against August (31), not August 2-31.
+    expect(compare("last-month")).toEqual({
+      from: new Date(2026, 7, 1),
+      to: endOf(2026, 7, 31),
+    });
+    // Q3 against Q2, not March 31 - June 30.
+    expect(compare("last-quarter")).toEqual({
+      from: new Date(2026, 3, 1),
+      to: endOf(2026, 5, 30),
+    });
+    expect(compare("last-year")).toEqual({
+      from: new Date(2024, 0, 1),
+      to: endOf(2024, 11, 31),
+    });
+  });
+
+  it("compares what has elapsed of a period under way", () => {
+    // October 1-31 holds no data past the 18th: September 1-18 it is.
+    expect(compare("this-month")).toEqual({
+      from: new Date(2026, 8, 1),
+      to: endOf(2026, 8, 18),
+    });
+    expect(compare("this-quarter")).toEqual({
+      from: new Date(2026, 6, 1),
+      to: endOf(2026, 6, 18),
+    });
+    expect(compare("ytd")).toEqual({
+      from: new Date(2025, 0, 1),
+      to: endOf(2025, 9, 18),
+    });
+    expect(compare("this-month", "previous-year")).toEqual({
+      from: new Date(2025, 9, 1),
+      to: endOf(2025, 9, 18),
+    });
+  });
+
+  it("keeps the day within a shorter month", () => {
+    // March 31: the month before has no 31st.
+    const lastOfMarch = new Date(2026, 2, 31, 9);
+    const range = resolvePresetRange("this-month", lastOfMarch, FALLBACK);
+    expect(
+      resolveComparisonRange("previous-period", range, null, {
+        preset: "this-month",
+        now: lastOfMarch,
+      }),
+    ).toEqual({ from: new Date(2026, 1, 1), to: endOf(2026, 1, 28) });
+  });
+
+  it("compares a custom range of whole months to the months before", () => {
+    const september = { from: new Date(2026, 8, 1), to: endOf(2026, 8, 30) };
+    expect(
+      resolveComparisonRange("previous-period", september, null, {
+        preset: "custom",
+        now: TODAY,
+      }),
+    ).toEqual({ from: new Date(2026, 7, 1), to: endOf(2026, 7, 31) });
   });
 });

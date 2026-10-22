@@ -46,7 +46,10 @@ async function upsertTenantMembership(
   }
 }
 
-/** @internal Caller must hold a confirmed tenant lifecycle admission until this resolves. */
+/**
+ * @internal The write of a `changeTenantMembers` call, which has already
+ * announced the change; never call it from anywhere else.
+ */
 export async function applyAdmittedTenantOwnership(
   userModel: UserModel,
   userId: string,

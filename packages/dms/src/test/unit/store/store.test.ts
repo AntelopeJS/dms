@@ -1,10 +1,14 @@
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { expect } from "chai";
 import { isStoreEditable } from "../../../config";
 import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
+import { findDependents, isProjectModule } from "../../../store/interfaces";
 import { packageDeclarationSource } from "../../../store/declarations";
 import { supportsFrontend } from "../../../store/frontend-compatibility";
-import { isLive } from "../../../store/runtime";
+import { findWorkingCopy, isLive, sourceKindOf } from "../../../store/runtime";
 import { readTarFile } from "../../../store/tarball";
 import { storeInstallSchema } from "../../../validation/store.schema";
 import type { RuntimeModule } from "../../../store/types";
@@ -13,6 +17,7 @@ function runtimeModule(status: string): RuntimeModule {
   return {
     id: "@antelopejs/dms-lang",
     packageName: "@antelopejs/dms-lang",
+    isPackageSource: true,
     status,
     localPath: "/modules/dms-lang",
   };
@@ -67,6 +72,40 @@ describe("[unit] store/runtime", () => {
     expect(isLive(runtimeModule("constructed"))).to.equal(true);
     expect(isLive(runtimeModule("loaded"))).to.equal(false);
     expect(isLive(undefined)).to.equal(false);
+  });
+
+  it("finds a running working copy of a catalog package, never an npm one", () => {
+    const local = { ...runtimeModule("active"), isPackageSource: false };
+    const stopped = { ...local, id: "stopped", status: "loaded" };
+    const npm = runtimeModule("active");
+    expect(findWorkingCopy("@antelopejs/dms-lang", [npm, stopped])).to.equal(
+      undefined,
+    );
+    expect(findWorkingCopy("@antelopejs/dms-lang", [npm, local])).to.equal(
+      local,
+    );
+    expect(findWorkingCopy("@antelopejs/dms-media", [local])).to.equal(
+      undefined,
+    );
+  });
+});
+
+describe("[unit] store/runtime sources", () => {
+  it("names a module's source after where its code comes from", () => {
+    expect(sourceKindOf({ type: "package", package: "@acme/a" })).to.equal(
+      "npm",
+    );
+    expect(sourceKindOf({ type: "local" })).to.equal("local");
+    expect(sourceKindOf({ type: "local-folder" })).to.equal("local");
+    expect(
+      sourceKindOf({ type: "git", remote: "https://github.com/acme/a.git" }),
+    ).to.equal("github");
+    expect(
+      sourceKindOf({ type: "git", remote: "git@gitlab.acme.io:team/a.git" }),
+    ).to.equal("gitlab");
+    expect(
+      sourceKindOf({ type: "git", remote: "ssh://git@code.acme.io/a.git" }),
+    ).to.equal("git");
   });
 });
 
@@ -143,5 +182,62 @@ describe("[unit] validation/store", () => {
     expect(install("../redis")).to.equal(false);
     expect(install("file:/tmp/redis")).to.equal(false);
     expect(install("github:a/b")).to.equal(false);
+  });
+});
+
+describe("[unit] store/interfaces", () => {
+  const INTERFACE = "@acme/interface-jobs";
+  let root: string;
+
+  async function moduleAt(
+    id: string,
+    manifest: Record<string, unknown>,
+  ): Promise<RuntimeModule> {
+    const localPath = path.join(root, id);
+    await mkdir(localPath, { recursive: true });
+    await writeFile(
+      path.join(localPath, "package.json"),
+      JSON.stringify({ name: id, ...manifest }),
+    );
+    return {
+      id,
+      packageName: id,
+      isPackageSource: true,
+      status: "active",
+      localPath,
+    };
+  }
+
+  before(async () => {
+    root = await mkdtemp(path.join(tmpdir(), "dms-store-"));
+  });
+  after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("tells the project apart from the modules that need an interface", async () => {
+    const provider = await moduleAt("jobs", {
+      antelopeJs: { implements: [INTERFACE] },
+    });
+    const consumer = await moduleAt("reports", {
+      dependencies: { [INTERFACE]: "^1.0.0" },
+    });
+    const project = await moduleAt("project", {
+      dependencies: { [INTERFACE]: "^1.0.0" },
+    });
+    const projectPath = project.localPath;
+    expect(isProjectModule(project, projectPath)).to.equal(true);
+    expect(isProjectModule(consumer, projectPath)).to.equal(false);
+
+    expect(
+      await findDependents(
+        provider,
+        [provider, consumer, project],
+        projectPath,
+      ),
+    ).to.deep.equal({ modules: ["reports"], usedByProject: true });
+    expect(
+      await findDependents(provider, [provider, project], projectPath),
+    ).to.deep.equal({ modules: [], usedByProject: true });
   });
 });
