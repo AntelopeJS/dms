@@ -12,13 +12,17 @@ export interface ManifestModuleEntry {
 export interface ModuleManifestShape<
   T extends ManifestModuleEntry = ManifestModuleEntry,
 > {
-  pack: string;
   modules: T[];
 }
 
+/**
+ * Version 2 dropped the layers archive: a frontend build reads the modules
+ * from the project's packages, and only `ajs dms dev` reads this manifest.
+ */
+export const FRONTEND_MANIFEST_VERSION = 2;
+
 export interface FrontendManifest<T extends ManifestModuleEntry> {
   version: number;
-  archive: string;
   modules: T[];
   /**
    * True while the module store changes the set of loaded modules: a

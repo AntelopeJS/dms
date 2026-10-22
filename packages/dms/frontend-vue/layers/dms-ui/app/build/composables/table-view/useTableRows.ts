@@ -11,7 +11,7 @@ import {
   resolveUrlVariables,
 } from "../../utils/urlVariables";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
-import { pinRows } from "./utils/pinnedRows";
+import { pinRows, pinRowsBySpan } from "./utils/pinnedRows";
 import {
   appendPeriodToUrl,
   usePeriodScope,
@@ -155,7 +155,10 @@ interface SharedRead<T> {
  * order its keys were built in.
  */
 const sourceReadKey = (url: string, query: Query): string =>
-  JSON.stringify([url, Object.entries(query).sort(([a], [b]) => a.localeCompare(b))]);
+  JSON.stringify([
+    url,
+    Object.entries(query).sort(([a], [b]) => a.localeCompare(b)),
+  ]);
 
 /**
  * Settles with `answer`, or rejects as soon as `signal` aborts, calling
@@ -173,9 +176,9 @@ function awaitUnlessAborted<R>(
     };
     if (signal.aborted) return abort();
     signal.addEventListener("abort", abort, { once: true });
-    answer.then(resolve, reject).finally(() =>
-      signal.removeEventListener("abort", abort),
-    );
+    answer
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
   });
 }
 
@@ -294,19 +297,57 @@ export function useTableRows<T extends Record<string, unknown>>(
   ): TableViewListResponse<T> | null =>
     page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
 
+  // The list the route answers, before the pinned rows lead it.
+  const listAnswered = (
+    query: Query,
+    signal?: AbortSignal,
+  ): Promise<TableViewListResponse<T> | null> =>
+    source
+      ? listFromSource(source, query, signal)
+      : api<TableViewListResponse<T>>(`${location}/list`, { query, signal });
+
   // `signal` aborts the request once its answer is no longer wanted.
   const list = async (
     query: Query,
     signal?: AbortSignal,
   ): Promise<TableViewListResponse<T> | null> =>
-    withPinnedRows(
-      source
-        ? await listFromSource(source, query, signal)
-        : await api<TableViewListResponse<T>>(`${location}/list`, {
-            query,
-            signal,
-          }),
-    );
+    withPinnedRows(await listAnswered(query, signal));
+
+  /**
+   * The rows `query.offset` and `query.limit` name, in the order a table
+   * reading `span` rows at a time from the first shows them: the pinned
+   * rows lead each of its reads (a page), not the rows read here. The reads
+   * they fall in are read whole, then each pinned on its own. A source
+   * answering every row pins them all before its pages are cut: as `list`.
+   */
+  const listAsShown = async (
+    query: Query,
+    span: number,
+  ): Promise<TableViewListResponse<T> | null> => {
+    const pinnedRows = options.pinnedRows?.();
+    const offset = Number(query.offset) || 0;
+    const limit = Number(query.limit) || 0;
+    const isWholeSource = !!source && !source.capabilities.paginate;
+    if (!pinnedRows || span <= 0 || limit <= 0 || isWholeSource) {
+      return list(query);
+    }
+    const start = Math.floor(offset / span) * span;
+    const end = Math.ceil((offset + limit) / span) * span;
+    const page = await listAnswered({
+      ...query,
+      offset: start,
+      limit: end - start,
+    });
+    if (!page) return null;
+    const shown = pinRowsBySpan(page.results, span, pinnedRows);
+    const from = offset - start;
+    return {
+      ...page,
+      results: shown.slice(from, from + limit),
+      offset,
+      limit,
+    };
+  };
 
   // A source answers its totals one list at a time.
   const countBatch = async (
@@ -358,6 +399,7 @@ export function useTableRows<T extends Record<string, unknown>>(
     sourceUrl,
     isPeriodPending,
     list,
+    listAsShown,
     countBatch,
     getRow,
   };

@@ -1,10 +1,8 @@
 import {
   Context,
-  Delete,
   Get,
   HTTPResult,
   JSONBody,
-  Parameter,
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
@@ -21,7 +19,6 @@ import {
 import { sanitizeUser } from "@antelopejs/interface-dms/auth";
 import {
   normalizeEmail,
-  SessionModel,
   type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
@@ -31,11 +28,6 @@ import { Section } from "@antelopejs/interface-dms/base/section";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import * as z from "zod";
-import {
-  listSessions,
-  revokeAllSessions,
-  revokeSession,
-} from "./account-credentials";
 import { type AccountExport, AccountExportThrottle } from "./account-data";
 import {
   type AccountDeletionImpact,
@@ -307,29 +299,5 @@ export class ProfileSettingsController extends PageController("profile", {
     @JSONBody() body: unknown,
   ): Promise<AccountDeletionResult> {
     return requestAccountDeletion(user, body);
-  }
-
-  @Get("/sessions")
-  getSessions(
-    @Model(SessionModel) sessionModel: SessionModel,
-    @Parameter("authorization", "header") authorization: string,
-  ) {
-    return listSessions(this.user, { sessionModel, authorization });
-  }
-
-  @Delete("/sessions/:id")
-  revokeSession(
-    @Parameter("id", "param") id: string,
-    @Model(SessionModel) sessionModel: SessionModel,
-  ) {
-    return revokeSession(this.user, id, sessionModel);
-  }
-
-  @Delete("/sessions")
-  revokeAllSessions(
-    @Model(SessionModel) sessionModel: SessionModel,
-    @Model(UserModel) userModel: UserModel,
-  ) {
-    return revokeAllSessions(this.user, sessionModel, userModel);
   }
 }

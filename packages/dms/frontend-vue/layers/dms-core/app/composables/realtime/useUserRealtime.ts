@@ -1,20 +1,26 @@
 import {
-  isUnauthorizedStreamError,
-  openSseStream,
-  type SseStreamHandle,
-} from "./useSseStream";
+  createReconnector,
+  joinSharedRealtimeConnection,
+  recoverFromError,
+  type StreamRecovery,
+} from "../../build/utils/sharedRealtimeConnection";
+import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 
-const REALTIME_USER_PATH = "/api/realtime/user";
+const REALTIME_CONNECTION_PATH = "/api/realtime/connection";
+const REALTIME_SESSION_PATH = "/api/realtime/session";
+const REALTIME_SESSION_CLOSE_PATH = "/api/realtime/session/close";
 const REALTIME_SUBSCRIBE_PATH_PREFIX = "/api/realtime/subscribe/";
 const REALTIME_UNSUBSCRIBE_PATH = "/api/realtime/unsubscribe";
 const SESSION_HEADER = "x-realtime-session";
+const CONNECTION_HEADER = "x-realtime-connection";
+const CONNECTION_NAME_PREFIX = "dms-realtime";
 const SESSION_STATE_KEY = "dms.realtime.sessionId";
 const MENU_TOPICS_STATE_KEY = "dms.realtime.menuTopics";
-const HELLO_EVENT = "hello";
 const SNAPSHOT_EVENT = "snapshot";
-const RECONNECT_INITIAL_DELAY_MS = 500;
-const RECONNECT_MAX_DELAY_MS = 30_000;
-const RECONNECT_MULTIPLIER = 2;
+/** The server ended this tab's session alone: the tab opens a new one. */
+const SESSION_ENDED_EVENT = "session-ended";
+/** Frames held while a session is being opened, every tab's included. */
+const MAX_BUFFERED_FRAMES = 256;
 
 export interface RealtimeEvent {
   topic: string;
@@ -56,6 +62,13 @@ export interface UserRealtimeApi {
    * answered them: an event on one means the page's data moved.
    */
   pageTopics: Ref<string[]>;
+  /**
+   * The topic the open connection carries the backend's development reload
+   * signal under, as the session's greeting named it: the tab then needs no
+   * reload stream of its own. Unset while no session is open, and in
+   * production.
+   */
+  devReloadTopic: Ref<string | undefined>;
 }
 
 interface UserRealtimeState {
@@ -63,14 +76,44 @@ interface UserRealtimeState {
   pageId: Ref<string | undefined>;
   menuTopics: Ref<string[]>;
   pageTopics: Ref<string[]>;
+  devReloadTopic: Ref<string | undefined>;
   appliedPageId: Ref<string | null>;
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
   reconciling: Promise<void>;
-  cancelConnect?: () => void;
+  connection?: TabConnection;
+}
+
+/** This tab's hold on the shared connection. */
+interface TabConnection {
+  /** Opens a new session for the tab, in the browser session's workspace. */
+  renewSession: () => void;
+  cancel: () => void;
 }
 
 let singletonApi: UserRealtimeApi | undefined;
+
+/** The user field the shared connection is keyed by. */
+interface ConnectionUser {
+  _id?: string;
+}
+
+/** The session fields a realtime session is bound to on the server. */
+interface SessionScopeFields {
+  accountId?: string;
+  activeTenantId?: string;
+}
+
+/**
+ * The account and workspace a realtime session is opened in. The server binds
+ * a session to those of the request that opened it, so a switch of either
+ * needs a new session: the old one would keep delivering the previous
+ * workspace's events. The connection, keyed by user, stays.
+ */
+const sessionScopeOf = (
+  session: SessionScopeFields | null | undefined,
+): string =>
+  JSON.stringify([session?.accountId ?? "", session?.activeTenantId ?? ""]);
 
 const dispatchToHandlers = (
   state: UserRealtimeState,
@@ -105,19 +148,19 @@ const readMenuTopics = (data: object): string[] => {
   );
 };
 
+/** Takes the session a greeting names, with the menu topics it announces. */
 const handleHello = (state: UserRealtimeState, data: unknown): void => {
   if (!data || typeof data !== "object" || !("sessionId" in data)) return;
   state.sessionId.value = String((data as { sessionId: unknown }).sessionId);
   state.menuTopics.value = readMenuTopics(data);
+  const { devReloadTopic } = data as { devReloadTopic?: unknown };
+  state.devReloadTopic.value =
+    typeof devReloadTopic === "string" ? devReloadTopic : undefined;
 };
 
 const handleEvent =
   (state: UserRealtimeState) =>
   (eventName: string, data: unknown): void => {
-    if (eventName === HELLO_EVENT) {
-      handleHello(state, data);
-      return;
-    }
     if (isSnapshotEvent(eventName, data)) {
       state.snapshots.set(data.topic, data);
       dispatchToHandlers(state, data.topic, data);
@@ -128,111 +171,187 @@ const handleEvent =
     }
   };
 
-interface ConnectionCallbacks {
+interface ConnectionCallbacks extends StreamRecovery {
   onConnected: () => void;
   onDisconnected: () => void;
-  refreshSession: () => Promise<boolean>;
-  redirectToAuth: () => Promise<void>;
 }
 
-interface Reconnector {
-  isCancelled(): boolean;
-  schedule(open: () => void): void;
-  resetDelay(): void;
-  cancel(): void;
+/** The answer of `POST /api/realtime/session`: a greeting, or `ok: false`. */
+interface SessionGreeting {
+  sessionId?: unknown;
+  menuTopics?: unknown;
 }
 
-const createReconnector = (): Reconnector => {
-  let isCancelled = false;
-  let delay = RECONNECT_INITIAL_DELAY_MS;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return {
-    isCancelled: () => isCancelled,
-    schedule: (open) => {
-      // A pending reconnect absorbs concurrent triggers: one stream per tab.
-      if (isCancelled || timer) return;
-      timer = setTimeout(() => {
-        timer = undefined;
-        open();
-      }, delay);
-      delay = Math.min(delay * RECONNECT_MULTIPLIER, RECONNECT_MAX_DELAY_MS);
-    },
-    resetDelay: () => {
-      delay = RECONNECT_INITIAL_DELAY_MS;
-    },
-    cancel: () => {
-      isCancelled = true;
-      if (timer) clearTimeout(timer);
-      timer = undefined;
-    },
-  };
-};
+interface BufferedFrame {
+  sessionId: string;
+  eventName: string;
+  data: unknown;
+}
 
-const recoverFromError = (
-  error: unknown,
-  reconnect: () => void,
-  callbacks: ConnectionCallbacks,
-): void => {
-  if (!isUnauthorizedStreamError(error)) {
-    reconnect();
-    return;
+const readGreeting = async (
+  response: Response,
+): Promise<SessionGreeting | null> => {
+  try {
+    return (await response.json()) as SessionGreeting | null;
+  } catch {
+    return null;
   }
-  void callbacks.refreshSession().then((isRefreshed) => {
-    if (isRefreshed) {
-      reconnect();
-    } else {
-      void callbacks.redirectToAuth();
-    }
-  }, reconnect);
 };
+
+const unauthorizedError = (): Error =>
+  Object.assign(new Error("Realtime session refused"), {
+    status: HTTP_UNAUTHORIZED,
+  });
 
 /**
- * Keeps one user stream open until cancelled. The server ends the stream when
- * it stops (a dev reload included), so a clean EOF reconnects just like an
- * error does: the user stream has no business completion.
+ * Keeps a session of this tab on the browser's shared realtime connection
+ * until cancelled: a new one each time the connection changes, its leader tab
+ * having gone or its stream having dropped, and each time it is renewed.
  */
-const connectWithBackoff = (
-  url: string,
+const connectTab = (
   state: UserRealtimeState,
+  baseUrl: string,
+  userKey: string,
   callbacks: ConnectionCallbacks,
-): (() => void) => {
-  const reconnector = createReconnector();
+): TabConnection => {
   const dispatch = handleEvent(state);
-  let activeHandle: SseStreamHandle | undefined;
-  const open = () => {
-    if (reconnector.isCancelled()) return;
-    activeHandle?.close();
-    const handle: SseStreamHandle = openSseStream({
-      url,
-      onEvent: (eventName, data) => {
-        if (handle !== activeHandle) return;
-        reconnector.resetDelay();
+  const retries = createReconnector();
+  const sessionCloseUrl = `${baseUrl}${REALTIME_SESSION_CLOSE_PATH}`;
+  let connectionId: string | undefined;
+  // Each opening attempt supersedes the previous one, which a renewal may
+  // leave in flight on the same connection.
+  let attempt = 0;
+  // The session's first frames may come before the answer that names it.
+  let buffered: BufferedFrame[] | undefined;
+
+  // The backend ends only a session of the connection the request names.
+  const closeStraySession = (forConnection: string, sessionId: string) => {
+    void fetch(sessionCloseUrl, {
+      method: "POST",
+      headers: {
+        [CONNECTION_HEADER]: forConnection,
+        [SESSION_HEADER]: sessionId,
+      },
+      credentials: "include",
+    }).catch(() => {});
+  };
+
+  const adopt = (forConnection: string, greeting: SessionGreeting) => {
+    const sessionId = String(greeting.sessionId);
+    handleHello(state, greeting);
+    const pending = buffered ?? [];
+    buffered = undefined;
+    for (const frame of pending) {
+      if (frame.sessionId === sessionId) dispatch(frame.eventName, frame.data);
+    }
+    retries.resetDelay();
+    connection.announceSession(forConnection, sessionId);
+    callbacks.onConnected();
+  };
+
+  const openSession = async (forConnection: string): Promise<void> => {
+    const ownAttempt = ++attempt;
+    const isCurrent = () =>
+      !retries.isCancelled() &&
+      connectionId === forConnection &&
+      attempt === ownAttempt;
+    const retry = () =>
+      retries.schedule(() => {
+        if (isCurrent()) void openSession(forConnection);
+      });
+    buffered = [];
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
+        method: "POST",
+        // The dashboard's backend proxy relays this header by name.
+        headers: { [CONNECTION_HEADER]: forConnection },
+        credentials: "include",
+      });
+    } catch (error) {
+      if (isCurrent()) recoverFromError(error, retry, callbacks);
+      return;
+    }
+    const greeting = response.ok ? await readGreeting(response) : null;
+    const sessionId = greeting?.sessionId;
+    if (!isCurrent()) {
+      if (typeof sessionId === "string") {
+        closeStraySession(forConnection, sessionId);
+      }
+      return;
+    }
+    if (response.status === HTTP_UNAUTHORIZED) {
+      recoverFromError(unauthorizedError(), retry, callbacks);
+      return;
+    }
+    if (!response.ok) {
+      retry();
+      return;
+    }
+    // The backend does not know the connection: it went, or this request
+    // reached an instance that does not hold it. The leader opens a new one,
+    // which this tab opens its session on; the backoff spaces the attempts.
+    if (typeof sessionId !== "string") {
+      buffered = undefined;
+      retries.schedule(() => {
+        if (isCurrent()) connection.reopen(forConnection);
+      });
+      return;
+    }
+    adopt(forConnection, greeting!);
+  };
+
+  // A new session on the connection the tab keeps: the backend ended the
+  // current one alone, or the tab's account or workspace changed.
+  const renewSession = () => {
+    if (retries.isCancelled() || !connectionId) return;
+    const sessionId = state.sessionId.value;
+    if (sessionId) {
+      closeStraySession(connectionId, sessionId);
+      callbacks.onDisconnected();
+    }
+    void openSession(connectionId);
+  };
+
+  const connection = joinSharedRealtimeConnection({
+    name: `${CONNECTION_NAME_PREFIX}:${baseUrl}:${userKey}`,
+    streamUrl: `${baseUrl}${REALTIME_CONNECTION_PATH}`,
+    sessionCloseUrl,
+    onConnection: (next) => {
+      if (retries.isCancelled()) return;
+      if (state.sessionId.value) callbacks.onDisconnected();
+      buffered = undefined;
+      connectionId = next;
+      if (next) void openSession(next);
+    },
+    onFrame: (sessionId, eventName, data) => {
+      // The connection's own frames reach a tab once it has a session on it.
+      if (sessionId === undefined) {
+        if (state.sessionId.value) dispatch(eventName, data);
+        return;
+      }
+      if (sessionId === state.sessionId.value) {
+        if (eventName === SESSION_ENDED_EVENT) {
+          renewSession();
+          return;
+        }
         dispatch(eventName, data);
-        if (eventName === HELLO_EVENT) callbacks.onConnected();
-      },
-      onError: (error) => {
-        if (!retire(handle)) return;
-        recoverFromError(error, reconnect, callbacks);
-      },
-      onClose: (reason) => {
-        if (reason !== "eof" || !retire(handle)) return;
-        reconnect();
-      },
-    });
-    activeHandle = handle;
-  };
-  const reconnect = () => reconnector.schedule(open);
-  const retire = (handle: SseStreamHandle): boolean => {
-    if (handle !== activeHandle || reconnector.isCancelled()) return false;
-    activeHandle = undefined;
-    callbacks.onDisconnected();
-    return true;
-  };
-  open();
-  return () => {
-    reconnector.cancel();
-    activeHandle?.close();
-    activeHandle = undefined;
+        return;
+      }
+      if (buffered && buffered.length < MAX_BUFFERED_FRAMES) {
+        buffered.push({ sessionId, eventName, data });
+      }
+    },
+    refreshSession: callbacks.refreshSession,
+    redirectToAuth: callbacks.redirectToAuth,
+  });
+
+  return {
+    renewSession,
+    cancel: () => {
+      retries.cancel();
+      connection.leave();
+    },
   };
 };
 
@@ -316,6 +435,7 @@ const resetSession = (state: UserRealtimeState): void => {
   state.sessionId.value = undefined;
   state.appliedPageId.value = null;
   state.pageTopics.value = [];
+  state.devReloadTopic.value = undefined;
   state.snapshots.clear();
 };
 
@@ -328,11 +448,13 @@ const buildApi = (): UserRealtimeApi => {
   const appliedPageId = ref<string | null>(null);
   const pageId = ref<string | undefined>(undefined);
   const pageTopics = ref<string[]>([]);
+  const devReloadTopic = ref<string | undefined>(undefined);
   const state: UserRealtimeState = {
     sessionId,
     pageId,
     menuTopics,
     pageTopics,
+    devReloadTopic,
     appliedPageId,
     handlers: new Map(),
     snapshots: new Map(),
@@ -340,33 +462,40 @@ const buildApi = (): UserRealtimeApi => {
   };
 
   const config = useDmsRuntimeConfig();
-  const { loggedIn } = useDmsUserSession();
+  const { loggedIn, user, session } = useDmsUserSession<
+    ConnectionUser,
+    SessionScopeFields
+  >();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL as string;
 
   if (!import.meta.env.SSR) {
+    // One connection per user: the tabs of another user (an account
+    // switched in one tab) share theirs, and never read this one's events.
     watch(
-      () => loggedIn.value,
-      (isLoggedIn) => {
-        state.cancelConnect?.();
-        state.cancelConnect = undefined;
+      () => (loggedIn.value ? String(user.value?._id ?? "") : undefined),
+      (userKey) => {
+        state.connection?.cancel();
+        state.connection = undefined;
         resetSession(state);
         state.menuTopics.value = [];
-        if (!isLoggedIn) return;
-        state.cancelConnect = connectWithBackoff(
-          `${baseUrl}${REALTIME_USER_PATH}`,
-          state,
-          {
-            onConnected: () => {
-              void reconcilePage(state, baseUrl);
-            },
-            onDisconnected: () => resetSession(state),
-            refreshSession,
-            redirectToAuth,
+        if (userKey === undefined) return;
+        state.connection = connectTab(state, baseUrl, userKey, {
+          onConnected: () => {
+            void reconcilePage(state, baseUrl);
           },
-        );
+          onDisconnected: () => resetSession(state),
+          refreshSession,
+          redirectToAuth,
+        });
       },
       { immediate: true },
+    );
+    // A switch of account or workspace within the same user: the tab's session
+    // is renewed on the connection it already shares.
+    watch(
+      () => sessionScopeOf(session?.value),
+      () => state.connection?.renewSession(),
     );
   }
 
@@ -396,7 +525,15 @@ const buildApi = (): UserRealtimeApi => {
     await reconcilePage(state, baseUrl);
   };
 
-  return { subscribe, setPage, sessionId, pageId, menuTopics, pageTopics };
+  return {
+    subscribe,
+    setPage,
+    sessionId,
+    pageId,
+    menuTopics,
+    pageTopics,
+    devReloadTopic,
+  };
 };
 
 export function useUserRealtime(): UserRealtimeApi {

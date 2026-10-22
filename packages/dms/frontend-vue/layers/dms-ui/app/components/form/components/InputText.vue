@@ -13,6 +13,8 @@ interface InputTextProps extends InputProps {
   maxLength?: number;
   /** Shows the characters typed at the end of the field ("4 / 60"). */
   showCount?: boolean;
+  /** How the value reads shown, not edited (a URL's image): not the input's. */
+  preview?: "avatar" | "image";
 }
 
 const props = defineProps<InputTextProps>();
@@ -21,7 +23,7 @@ defineSlots<InputSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
 const inputProps = computed(() => {
-  const { showCount: _showCount, ...rest } = forwarded.value;
+  const { showCount: _showCount, preview: _preview, ...rest } = forwarded.value;
   return rest;
 });
 const countText = computed(() =>

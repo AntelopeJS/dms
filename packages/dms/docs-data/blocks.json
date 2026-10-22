@@ -3384,6 +3384,16 @@
             "widget": "switch"
           }
         },
+        "invert": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Treat a falling value as the good outcome.",
+          "ui": {
+            "label": "Invert variation",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
         "showLegend": {
           "type": "boolean",
           "default": true,
@@ -3433,6 +3443,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "invert",
           "showLegend",
           "showSeriesLegend",
           "primaryLabel",
@@ -8394,6 +8405,15 @@
                             "typedBy": "type"
                           }
                         },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "localized": {
                           "type": "boolean",
                           "optional": true,
@@ -8516,6 +8536,15 @@
                       "label": "Default value",
                       "widget": "json",
                       "typedBy": "type"
+                    }
+                  },
+                  "offersDefault": {
+                    "type": "boolean",
+                    "optional": true,
+                    "ui": {
+                      "label": "Offer the default",
+                      "widget": "switch",
+                      "advanced": true
                     }
                   },
                   "localized": {
@@ -8732,6 +8761,15 @@
                             "label": "Default value",
                             "widget": "json",
                             "typedBy": "type"
+                          }
+                        },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
                           }
                         },
                         "localized": {
@@ -9787,7 +9825,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "description": "How many columns on a wide screen.",
+          "description": "How many columns once the list is wide enough.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -10011,6 +10049,27 @@
             "group": "advanced"
           }
         },
+        "realtimeTopic": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Topics whose events make the block read its data again.",
+          "ui": {
+            "label": "Realtime topics",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "valueFormat": {
           "type": "string",
           "enum": [
@@ -10040,6 +10099,16 @@
           "optional": true,
           "ui": {
             "label": "Show variation",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "showPreviousValue": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Show the figure the value is compared against.",
+          "ui": {
+            "label": "Show comparison value",
             "group": "appearance",
             "widget": "switch"
           }
@@ -10075,6 +10144,7 @@
         "compareLabel": {
           "type": "string",
           "optional": true,
+          "description": "Caption of the variation; follows the period selector's comparison when empty.",
           "ui": {
             "label": "Comparison label",
             "group": "content"
@@ -10095,6 +10165,15 @@
           "optional": true,
           "ui": {
             "label": "Static variation",
+            "group": "advanced",
+            "widget": "number"
+          }
+        },
+        "staticPreviousValue": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Static comparison value",
             "group": "advanced",
             "widget": "number"
           }
@@ -10123,6 +10202,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "showPreviousValue",
           "showSparkline",
           "sparklineAccent",
           "invert",
@@ -10177,6 +10257,20 @@
             "widget": "segmented"
           }
         },
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
         "missedLabel": {
           "type": "string",
           "optional": true,
@@ -10194,6 +10288,7 @@
           "align",
           "showUpdatedAt",
           "variant",
+          "size",
           "missedLabel"
         ]
       }
@@ -11428,6 +11523,91 @@
       }
     },
     {
+      "type": "PageToolbar",
+      "componentName": "dms-page-toolbar-block",
+      "container": true,
+      "meta": {
+        "name": "Page toolbar",
+        "icon": "i-ph-sliders-horizontal",
+        "description": "Context bar of a page: its scope, the last update, live mode and period.",
+        "group": "data"
+      },
+      "initialChildren": [
+        {
+          "id": "live",
+          "type": "LiveToggle",
+          "options": {
+            "align": "right",
+            "variant": "pill"
+          }
+        },
+        {
+          "id": "period",
+          "type": "PeriodSelector",
+          "options": {
+            "variant": "segmented",
+            "align": "right",
+            "rangeLabel": "relative",
+            "presets": [
+              "last-hour",
+              "last-24h",
+              "last-7-days",
+              "last-30-days"
+            ],
+            "defaultPreset": "last-24h",
+            "comparisonControl": "menu",
+            "defaultComparison": "previous-period"
+          }
+        }
+      ],
+      "config": {
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "description": "The size of the controls the toolbar holds.",
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
+        "showUpdatedAt": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, shows how long ago the page last read its data.",
+          "ui": {
+            "label": "Show the last update",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "refresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, offers a button reading the page again.",
+          "ui": {
+            "label": "Refresh button",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        }
+      },
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "size",
+          "showUpdatedAt",
+          "refresh"
+        ]
+      }
+    },
+    {
       "type": "PeriodSelector",
       "componentName": "dms-period-selector",
       "meta": {
@@ -12341,6 +12521,23 @@
             "widget": "number",
             "min": 1,
             "max": 6
+          }
+        },
+        "columnsFrom": {
+          "type": "string",
+          "enum": [
+            "sm",
+            "md",
+            "lg",
+            "xl"
+          ],
+          "optional": true,
+          "description": "The group's width from which all columns sit side by side (sm 24rem, md 28rem, lg 32rem, xl 36rem).",
+          "ui": {
+            "label": "All columns from",
+            "group": "layout",
+            "widget": "segmented",
+            "advanced": true
           }
         },
         "label": {
@@ -13664,6 +13861,15 @@
             "widget": "switch"
           }
         },
+        "archivedCountLabel": {
+          "type": "string",
+          "optional": true,
+          "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\").",
+          "ui": {
+            "label": "Archived count",
+            "group": "content"
+          }
+        },
         "defaultFilters": {
           "type": "array",
           "items": {
@@ -14135,6 +14341,14 @@
             "group": "advanced"
           }
         },
+        "mobileDisplay": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Display on phones",
+            "group": "advanced"
+          }
+        },
         "guards": {
           "type": "unknown",
           "optional": true,
@@ -14169,7 +14383,8 @@
           "footer.countLabel",
           "footer.hint",
           "rowActions.hasSelection",
-          "archiveMode"
+          "archiveMode",
+          "archivedCountLabel"
         ]
       }
     },

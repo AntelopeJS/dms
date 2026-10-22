@@ -117,11 +117,16 @@ const inputTheme = {
   ],
 };
 
-/** Select-like triggers: the input scale with explicit line heights. */
+/**
+ * Select-like triggers: the input scale with explicit line heights, so a
+ * select is as tall as the text field beside it. Below md they keep the
+ * input's 16px (14px for sm), as a text field does, so a form on a phone
+ * reads in one size.
+ */
 const SELECT_TRIGGER_SIZES = {
-  sm: { base: "px-2 text-[12.5px]/4" },
-  md: { base: "text-[13px]/5" },
-  xl: { base: "text-[15px]/6" },
+  sm: { base: "px-2 text-sm/4 md:text-[12.5px]/4" },
+  md: { base: "text-base/5 md:text-[13px]/5" },
+  xl: { base: "text-base/6 md:text-[15px]/6" },
 };
 
 /**

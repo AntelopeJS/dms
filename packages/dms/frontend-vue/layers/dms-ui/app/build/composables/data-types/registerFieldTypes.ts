@@ -1,5 +1,6 @@
 import { h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 // How the field types made of several values read in a table cell or a
 // read-only form: a count, a masked secret, the first line of the code,
@@ -19,7 +20,7 @@ const countOf = (value: unknown): number => {
 
 function renderCount(key: string) {
   return (value: unknown) => {
-    const { t } = useI18n();
+    const { t } = getAppTranslation();
     const count = countOf(value);
     return t(key, { count }, count);
   };

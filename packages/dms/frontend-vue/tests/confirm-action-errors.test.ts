@@ -226,6 +226,19 @@ describe("ConfirmModal failures", () => {
     expect(closed).toHaveBeenCalledWith(true);
   });
 
+  it("names one button Cancel: the corner one closes", async () => {
+    mount({ title: "Delete?", description: "Gone", confirmLabel: "Delete" });
+    await flush();
+    const named = (label: string) =>
+      [...host.querySelectorAll("button")].filter(
+        (candidate) =>
+          (candidate.getAttribute("aria-label") ?? candidate.textContent) ===
+          label,
+      );
+    expect(named("dms.confirm.cancel")).toHaveLength(1);
+    expect(named("dms.confirm.close")).toHaveLength(1);
+  });
+
   it("clears the error when the user retries", async () => {
     let settle: (value?: unknown) => void = () => undefined;
     const onConfirm = vi

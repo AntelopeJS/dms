@@ -1,3 +1,4 @@
+import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type {
   InputNumberAdjustment,
   InputNumberAdjustmentReason,
@@ -15,7 +16,7 @@ const WHITESPACE = /\s/g;
 const NOT_NUMERIC = /[^\d.+-]/g;
 
 function separatorsOf(locale: string): { group?: string; decimal: string } {
-  const parts = new Intl.NumberFormat(locale).formatToParts(SEPARATOR_SAMPLE);
+  const parts = readableNumberFormat(locale).formatToParts(SEPARATOR_SAMPLE);
   return {
     group: parts.find((part) => part.type === "group")?.value,
     decimal: parts.find((part) => part.type === "decimal")?.value ?? ".",
@@ -23,8 +24,10 @@ function separatorsOf(locale: string): { group?: string; decimal: string } {
 }
 
 /**
- * A number as typed in a field written in `locale` ("1,020", "1 020,5"):
- * `null` when nothing is typed or it does not read as a number.
+ * A number as typed in a field written in `locale` ("1,020", "1 020,5"),
+ * its digits grouped by any space (the narrow one the field draws in French,
+ * the no-break one the cells write, a typed one): `null` when nothing is
+ * typed or it does not read as a number.
  */
 export function parseTypedNumber(text: string, locale: string): number | null {
   const { group, decimal } = separatorsOf(locale);

@@ -1,4 +1,7 @@
-import type { PermissionsResolverInfo } from "@antelopejs/interface-dms/permissions-resolver";
+import type {
+  PermissionsResolverContext,
+  PermissionsResolverInfo,
+} from "@antelopejs/interface-dms/permissions-resolver";
 
 const resolvers: PermissionsResolverInfo[] = [];
 
@@ -24,10 +27,11 @@ export async function ApplyPermissionsResolvers(
   userId: string,
   tenantId: string,
   basePermissions: Set<string>,
+  context: PermissionsResolverContext,
 ): Promise<Set<string>> {
   let current = basePermissions;
   for (const resolver of resolvers) {
-    current = await resolver.resolver(userId, tenantId, current);
+    current = await resolver.resolver(userId, tenantId, current, context);
   }
   return current;
 }

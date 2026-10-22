@@ -17,7 +17,10 @@ import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/t
 
 vi.mock("reka-ui", () => {
   const passThrough = defineComponent({
-    setup: (_props, { slots }) => () => h("div", slots.default?.()),
+    setup:
+      (_props, { slots }) =>
+      () =>
+        h("div", slots.default?.()),
   });
   return {
     DialogTitle: passThrough,
@@ -162,8 +165,10 @@ describe("the drawer container", () => {
     app.component(
       "UContainer",
       defineComponent({
-        setup: (_props, { slots }) => () =>
-          h("div", { "data-container": "" }, slots.default?.()),
+        setup:
+          (_props, { slots }) =>
+          () =>
+            h("div", { "data-container": "" }, slots.default?.()),
       }),
     );
     app.component("UButton", () => h("button"));
@@ -185,6 +190,7 @@ describe("the drawer container", () => {
     }));
     vi.stubGlobal("useDmsRoute", () => reactive({ path: "/" }));
     vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+    vi.stubGlobal("useDmsCookie", () => ref({ widths: {}, heights: {} }));
   });
 
   it("slides in from the bottom, full width, by default", async () => {
@@ -196,10 +202,10 @@ describe("the drawer container", () => {
     expect(containers[0]!.className).not.toContain("lg:px-0");
   });
 
-  it("is a side sheet as wide as a side panel from the right", async () => {
+  it("is a side sheet as wide as a side panel below lg, resizable from it", async () => {
     await mountDrawer({ direction: "right" });
     expect(rendered.direction).toBe("right");
-    expect(rendered.ui?.content).toBe("w-[440px]");
+    expect(rendered.ui?.content).toBe("w-[440px] lg:w-(--dms-drawer-size)");
     const containers = host.querySelectorAll("[data-container]");
     expect(containers[0]!.className).toContain("px-0 sm:px-0 lg:px-0");
   });

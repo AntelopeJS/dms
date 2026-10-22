@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { sendAdminInviteEmail } from "@antelopejs/interface-dms/auth";
 import { TenantModel, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
-import { ACTIONS } from "../../../../automation/actions";
+import { ACTIONS, INVITE_USER_ACTION_ID } from "../../../../automation/actions";
 import { inviteMembers } from "../../../../pages/settings/users/member-invite-batch";
 import {
   INVITE_RESEND_EMAIL_FAILED_WARNING,
@@ -23,6 +23,7 @@ const INVITEE_EMAIL = "invitee@delivery.test";
 const SMTP_REFUSAL = "525 5.7.1 Unauthorized IP address";
 
 type EmailSender = () => Promise<void>;
+type InviteEmailArgs = Parameters<typeof sendAdminInviteEmail>;
 
 const refuse: EmailSender = async () => {
   throw new Error(`Failed to send email: ${SMTP_REFUSAL}`);
@@ -64,13 +65,15 @@ function pendingInvite() {
 describe("[unit] pages/settings — invitation email delivery", () => {
   let sendEmail: EmailSender;
   let sentCount: number;
+  let sentArgs: InviteEmailArgs | undefined;
 
   before(() => {
     ImplementInterface(
       { sendAdminInviteEmail },
       {
-        sendAdminInviteEmail: () => {
+        sendAdminInviteEmail: (...args: InviteEmailArgs) => {
           sentCount += 1;
+          sentArgs = args;
           return sendEmail();
         },
       },
@@ -81,6 +84,7 @@ describe("[unit] pages/settings — invitation email delivery", () => {
     await resetDatabase();
     sendEmail = accept;
     sentCount = 0;
+    sentArgs = undefined;
     const now = new Date();
     await GetModel(TenantModel).insert({
       _id: WORKSPACE_ID,
@@ -184,6 +188,52 @@ describe("[unit] pages/settings — invitation email delivery", () => {
 
       const invite = await pendingInvite();
       expect(output).to.deep.equal({ kind: "invited", inviteId: invite?._id });
+    });
+
+    it("give the automation invite its language, names and inviter", async () => {
+      const emailRequested = new Promise<void>((requested) => {
+        sendEmail = async () => requested();
+      });
+      const action = ACTIONS.find(({ id }) => id === INVITE_USER_ACTION_ID);
+
+      await action?.execute(
+        {
+          email: INVITEE_EMAIL,
+          tenantId: WORKSPACE_ID,
+          language: "fr",
+          firstname: "Ada",
+          lastname: "Lovelace",
+          inviterName: "Onboarding",
+        },
+        automationCtx,
+      );
+      await emailRequested;
+
+      const invite = await pendingInvite();
+      expect(invite).to.include({
+        language: "fr",
+        firstname: "Ada",
+        lastname: "Lovelace",
+      });
+      expect(sentArgs?.[3]).to.include({
+        inviterName: "Onboarding",
+        language: "fr",
+      });
+    });
+
+    it("keep the automation invite in English without a language", async () => {
+      const action = ACTIONS.find(({ id }) => id === INVITE_USER_ACTION_ID);
+
+      await action?.execute(
+        { email: INVITEE_EMAIL, tenantId: WORKSPACE_ID, language: " " },
+        automationCtx,
+      );
+
+      expect(await pendingInvite()).to.include({
+        language: "en",
+        firstname: null,
+        lastname: null,
+      });
     });
   });
 });
