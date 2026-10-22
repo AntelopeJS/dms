@@ -68,8 +68,9 @@ export interface DefaultLayoutOptions {
    */
   headerActions?: PageHeaderButton[];
   /**
-   * The record the page shows, read by the browser for the header buttons
-   * that act on it (`requiresRecord`, or a `{{record.X}}` in their target).
+   * The record the page shows, for the header buttons that act on it
+   * (`requiresRecord`, or a `{{record.X}}` in their target). Read once per
+   * page: a block reading the same `fetchUrl` shares the request.
    */
   record?: PageRecordSource;
 }

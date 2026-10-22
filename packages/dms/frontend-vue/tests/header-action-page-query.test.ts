@@ -71,6 +71,8 @@ beforeEach(() => {
   handleCustomButton.mockClear();
   authFetch.mockReset();
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  // The header's page record: these pages declare none, so nothing is read.
+  vi.stubGlobal("useApiData", () => ({ data: ref(null), error: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string, params?: Record<string, unknown>) =>

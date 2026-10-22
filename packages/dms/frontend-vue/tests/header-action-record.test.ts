@@ -22,6 +22,8 @@ import {
   isRecordBound,
   withPageRecord,
 } from "../layers/dms-layout/app/utils/pageRecord";
+import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
   useActionTargets: () => ({ handleCustomButton: vi.fn() }),
@@ -72,7 +74,7 @@ let host: HTMLDivElement;
 
 beforeEach(() => {
   authFetch.mockReset();
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(authFetch);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
@@ -93,13 +95,28 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountOutlet(record: typeof RECORD | undefined) {
+// A block of the page reading the record's URL as `useChartFetch` does.
+const RecordBlock = defineComponent({
+  setup() {
+    useApiData("/api/sites/get?id=s1", { lazy: true });
+    return () => null;
+  },
+});
+
+async function mountOutlet(
+  record: typeof RECORD | undefined,
+  withBlock = false,
+) {
   const { default: Outlet } = await import(
     "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue"
   );
   app = createApp({
-    render: () => h(Outlet, { actions: [MAPS, EDIT, HELP], record }),
+    render: () => [
+      h(Outlet, { actions: [MAPS, EDIT, HELP], record }),
+      withBlock ? h(RecordBlock) : null,
+    ],
   });
+  browserRuntime(app);
   app.component("UButton", ButtonStub);
   app.component("UTooltip", SlotStub);
   app.mount(host);
@@ -123,7 +140,10 @@ describe("header buttons acting on the page's record", () => {
     let answer!: (values: unknown) => void;
     authFetch.mockReturnValue(new Promise((resolve) => (answer = resolve)));
     await mountOutlet(RECORD);
-    expect(authFetch).toHaveBeenCalledWith("/api/sites/get?id=s1");
+    expect(authFetch).toHaveBeenCalledWith(
+      "/api/sites/get?id=s1",
+      expect.anything(),
+    );
     expect(buttons().map((button) => button.disabled)).toEqual([
       true,
       true,
@@ -150,6 +170,18 @@ describe("header buttons acting on the page's record", () => {
     await mountOutlet(RECORD);
     await settle();
     expect(buttons().map((button) => button.label)).toEqual(["Help"]);
+  });
+
+  it("share one read with a block of the page reading the same record", async () => {
+    authFetch.mockResolvedValue({ address: "1 Main St" });
+    await mountOutlet(RECORD, true);
+    await settle();
+    expect(authFetch).toHaveBeenCalledTimes(1);
+    expect(buttons().map((button) => button.disabled)).toEqual([
+      false,
+      false,
+      false,
+    ]);
   });
 
   it("are left alone on a page declaring no record", async () => {
