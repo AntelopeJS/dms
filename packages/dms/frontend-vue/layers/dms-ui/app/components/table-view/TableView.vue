@@ -129,7 +129,10 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
-import { useTableViews } from "../../build/composables/table-view/useTableViews";
+import {
+  keptViewId,
+  useTableViews,
+} from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
@@ -137,6 +140,15 @@ import type { RowStep } from "../../build/composables/actions/rowNavigation";
 import { rowLocator } from "../../build/composables/table-view/utils/locateRow";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import {
+  isLinkedArrival,
+  linkedArrivalPreferences,
+  linkFollowingPreferences,
+  linkKeyScope,
+  urlFilterScope,
+} from "../../build/composables/table-view/utils/linkedArrival";
+import { pageArrivalKind } from "../../build/composables/table-view/utils/pageArrival";
+import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
 import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
@@ -262,7 +274,51 @@ const {
   defaultDisplay,
 } = useTableViewConfig<T>(props);
 
-const tablePreferences = useTablePreferences(componentId, pageId);
+const route = useDmsRoute();
+const urlScope = {
+  tableId: props.tableId,
+  isSoleTableView: props.isSoleTableView,
+};
+const ALL_TAB_ID = "all";
+
+const keptPreferences = useTablePreferences(componentId, pageId);
+// A link naming a view, a tab, a record or a URL filter opens on the table's
+// defaults plus what it names, never over the state kept from the last visit
+// (which stays kept for the next plain visit), until the user makes the
+// state shown their own: a view, a tab, a filter or a sort they pick. Only a
+// reload (or Back) of the URL the table wrote for that state restores it.
+const isLinked = isLinkedArrival({
+  query: route.query,
+  urlScope,
+  queryParamFilters,
+  isVisit: pageArrivalKind() === "visit",
+  rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
+  keptLinkScope: keptPreferences.get<string | undefined>(
+    "linkScope",
+    undefined,
+  ),
+  shownLink: keptPreferences.get<string | undefined>("shownLink", undefined),
+});
+const tablePreferences = linkFollowingPreferences(
+  isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,
+  {
+    isLinkedArrival: isLinked,
+    urlScope,
+    linkScope: () => urlFilterScope(route.query, queryParamFilters),
+    linkKeys: () => linkKeyScope(route.query, urlScope, queryParamFilters),
+    // Read once the table is mounted, past the declarations below. A page
+    // kept without its scope is restored as it is (`usePersistedPagination`).
+    listingState: () => [
+      ["activeView", keptViewId(activeViewId.value), undefined],
+      ["activeTab", activeTabId.value, ALL_TAB_ID],
+      ["columnFilters", columnFilters.value, []],
+      ["sorting", sorting.value, defaultSortState],
+      ["pagination", paginationState.value, DEFAULT_PAGINATION],
+      ["paginationScope", undefined, undefined],
+    ],
+  },
+);
+onMounted(() => void tablePreferences.settleArrival());
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
 
@@ -401,8 +457,6 @@ const resolvedChrome = resolveTableChrome(props.layout, {
   isFilterable: allColumns.some((column) => column.enableColumnFilter),
 });
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
-
-const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
 
@@ -571,11 +625,6 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
-const urlScope = {
-  tableId: props.tableId,
-  isSoleTableView: props.isSoleTableView,
-};
-
 // The display the table counts as its default: the phone's `mobileDisplay`
 // once applied (see `useMobileDisplay` below).
 const displayDefault = ref(
@@ -589,7 +638,8 @@ const {
   activeView,
   isModified: isViewModified,
   canSaveViews,
-  openView,
+  selectView,
+  openLinkedView,
   resetView,
   saveView,
   saveAsNewView,
@@ -644,8 +694,6 @@ useMobileDisplay({
     tablePreferences.get<string | undefined>("viewMode", undefined) !==
       undefined,
 });
-
-const ALL_TAB_ID = "all";
 
 const { t, te } = useI18n();
 
@@ -703,12 +751,33 @@ const activeTabFilters = computed<TableFilter[]>(() => {
   return tab?.filters || [];
 });
 
+const isOpenableTab = (tabId: string) =>
+  resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId);
+
 useTableUrlTab({
   route,
   urlScope,
   activeTabId,
-  isOpenable: (tabId) =>
-    resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId),
+  isOpenable: isOpenableTab,
+});
+
+// A link to this page while it is shown opens like a linked arrival: on the
+// table's defaults plus what it names, leaving the kept state as it was.
+useTableLinkedVisit({
+  route,
+  urlScope,
+  queryParamFilters,
+  activeView: () => activeViewId.value,
+  activeTab: () => activeTabId.value,
+  canOpenView: (id) => tableViewItems.value.some((view) => view.id === id),
+  canOpenTab: isOpenableTab,
+  follow: (query) => {
+    void tablePreferences.followLink(() => {
+      openLinkedView(query);
+      const tab = readTableUrlTab(query, urlScope);
+      activeTabId.value = tab && isOpenableTab(tab) ? tab : ALL_TAB_ID;
+    });
+  },
 });
 
 watch(resolvedTabs, (next) => {
@@ -2387,7 +2456,7 @@ onMounted(() => {
         :modified="isViewModified"
         :can-save-as="canSaveViews"
         :divided="tabsWithCount.length === 0"
-        @open="openView"
+        @open="selectView"
         @reset="resetView"
         @save="saveView"
         @save-as="saveAsNewView"
