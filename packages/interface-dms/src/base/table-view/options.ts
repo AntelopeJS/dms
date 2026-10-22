@@ -3,9 +3,8 @@ import type {
   ButtonPermission,
   Component,
   ComponentInfoSerialized,
-  WatchOptions,
 } from "../../component";
-import type { FormPropsSerialized } from "../form-types";
+import type { FormBuilder, FormPropsSerialized } from "../form-types";
 import type { BlockLinkAction } from "../display";
 import type { Tone } from "../types/tone";
 import type { ColorValue } from "../types";
@@ -673,7 +672,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "kanban"
   | "displays"
   | "formSlots"
-  | "formWatches"
+  | "forms"
   | "expandable"
   | "tabs"
   | "views"
@@ -769,16 +768,11 @@ export type FormContainer =
     };
 
 /**
- * A watch of a form a table view opens, as `.watch(event, functionId, opts)`
- * declares one on a `Form`: the form event it listens for, the form function
- * it runs, and the options `.watch()` takes.
+ * Settles one of the forms a table view generates, as a module writes its own
+ * `Form`: it receives the builder, and what it declares on it (`.watch()`…)
+ * holds wherever the form opens.
  */
-export interface TableViewFormWatch<
-  F extends string = string,
-> extends WatchOptions<F> {
-  event: string;
-  functionId: F;
-}
+export type TableViewFormSetup = (form: FormBuilder) => void;
 
 /**
  * Page-mode form URLs, resolved against the slug of the page the table view is
@@ -1155,25 +1149,25 @@ export interface TableViewOptions<
    */
   formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
   /**
-   * Watches of the forms the table view opens, by form kind, declared as
-   * `.watch()` takes them on a `Form`: conditional fields
-   * (`FormEvents.FIELD_CHANGE` running `FormFunctions.SET_FIELD_HIDDEN` or
-   * `SET_FIELD_REQUIRED`) without replacing the generated form by a custom
-   * page. They run in a drawer, a modal or a form page alike; the `new`
-   * form's also run on a duplicated row. A watch's `requirePermission` is
-   * checked per request, as on a page's own components.
+   * Settles the forms the table view generates, by form kind: each callback
+   * receives the form's builder before the table view embeds it, and declares
+   * on it what a module's own `Form` would — conditional fields with
+   * `.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, …)`,
+   * without replacing the generated form by a custom page. What it declares
+   * holds in a drawer, a modal or a form page alike; the `new` form's also on
+   * a duplicated row. A watch's `requirePermission` is checked per request,
+   * as on a page's own components.
    *
    * @example
-   * formWatches: {
-   *   new: [{
-   *     event: FormEvents.FIELD_CHANGE,
-   *     functionId: FormFunctions.SET_FIELD_HIDDEN,
-   *     params: { targetField: "companyName", setHidden: false },
-   *     onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
-   *   }],
+   * forms: {
+   *   new: (form) =>
+   *     form.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
+   *       params: { targetField: "companyName", setHidden: false },
+   *       onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
+   *     }),
    * }
    */
-  formWatches?: Partial<Record<"new" | "edit" | "view", TableViewFormWatch[]>>;
+  forms?: Partial<Record<"new" | "edit" | "view", TableViewFormSetup>>;
   /**
    * Skip the tenant access gate on every data route of this table view, the
    * table-view mirror of the guards' `bypassTenantAccessGate` option. Reserved
