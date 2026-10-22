@@ -544,12 +544,20 @@ export interface TableViewCardOptions {
    * `v-bind` on a button).
    */
   component?: Component;
+  /**
+   * `cards` display only: the narrowest a card gets, as a CSS length
+   * (`"300px"`, `"20rem"`). Defaults to `"230px"`. The row fits as many
+   * cards of that width as it can and stretches them to fill it; a list too
+   * short to fill a row stretches its cards up to twice that width.
+   */
+  minWidth?: string;
 }
 
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
 export interface TableViewCardOptionsSerialized {
   fields?: string[];
   component?: ComponentInfoSerialized;
+  minWidth?: string;
 }
 
 /** The kanban options as its display entry carries them. */
@@ -1133,6 +1141,17 @@ export interface TableViewOptions<
    * the first display offered: `table` when `displays` is left out.
    */
   defaultDisplay?: string;
+  /**
+   * Display a phone opens on (a viewport narrower than 768px) when the user
+   * has no saved choice and the open view sets no `display` of its own (a
+   * `views.defaultView` without one opens on it too): `cards` gives a narrow screen a
+   * card per row instead of a grid cut after its first columns. One of the
+   * displays offered, so the switcher still leads back to the grid. Applied
+   * once mounted (the server cannot see the viewport) and not saved: the same
+   * user on a wide screen keeps `defaultDisplay`.
+   * @example { displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards" }
+   */
+  mobileDisplay?: string;
   /**
    * Server-side guards that run before mutating actions (edit/delete/archive/
    * restore/new). Throw with `assert(...)` from `@antelopejs/interface-api-util`
