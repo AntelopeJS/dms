@@ -1,6 +1,5 @@
 import path from "node:path";
 import type {
-  FrontendModuleContext,
   FrontendModuleFunction,
   FrontendModuleRegistration,
 } from "@antelopejs/interface-dms/page";
@@ -9,9 +8,9 @@ import {
   type Config,
   DEFAULT_ACCESS_TOKEN_LIFETIME,
   DEFAULT_API_BASE_URL,
+  DEFAULT_CLIENT_BASE_URL,
 } from "./config";
 import { describeEnabledOAuthProviders } from "./routes/auth/oauth/config";
-import { resolveClientBaseUrl } from "./startup-config";
 
 /**
  * Where the frontend server opens the session a credential change handed back
@@ -27,13 +26,13 @@ const DEFAULT_HOMEPAGE = "/";
  * calls this same function (declared as `dmsFrontend` in package.json) on the
  * configuration it evaluates from `antelope.config.ts`.
  *
+ * It checks nothing: the backend refuses a production configuration in
+ * `construct()`, and a frontend build runs without the deployment's variables.
+ *
  * @param config The `dms` module configuration
- * @param context Whether the project runs in development
- * @throws When `clientBaseUrl` is invalid, or missing in production
  */
 export const frontendModule: FrontendModuleFunction<Config> = (
   config: Config,
-  { dev }: FrontendModuleContext,
 ): FrontendModuleRegistration => ({
   name: "@antelopejs/dms-frontend-vue",
   sourcePath: path.join(__dirname, "../frontend-vue"),
@@ -43,7 +42,7 @@ export const frontendModule: FrontendModuleFunction<Config> = (
   authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
   options: {
     baseURL: config.apiBaseUrl ?? DEFAULT_API_BASE_URL,
-    clientBaseUrl: resolveClientBaseUrl(config.clientBaseUrl, dev),
+    clientBaseUrl: config.clientBaseUrl ?? DEFAULT_CLIENT_BASE_URL,
     mustValidateEmail: false,
     token: {
       maxAgeInSeconds:

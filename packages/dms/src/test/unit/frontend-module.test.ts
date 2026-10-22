@@ -18,7 +18,6 @@ describe("[unit] dms frontend module", () => {
   it("computes the public options from the configuration alone", () => {
     const options = productionOptions({
       apiBaseUrl: "https://api.example.com",
-      clientBaseUrl: `${CLIENT_ORIGIN}/`,
       homepage: "/home",
       auth: {
         accessTokenLifetime: HALF_AN_HOUR_MS,
@@ -41,9 +40,9 @@ describe("[unit] dms frontend module", () => {
     ]);
   });
 
-  it("refuses a production registration without the dashboard origin", () => {
-    expect(() => frontendModule({} as Config, PRODUCTION)).to.throw(
-      /clientBaseUrl is required in production/,
+  it("defaults the dashboard origin to the development server's", () => {
+    expect(frontendModule({}, PRODUCTION)?.options?.clientBaseUrl).to.equal(
+      "http://localhost:3001",
     );
   });
 });

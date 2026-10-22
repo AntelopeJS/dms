@@ -28,6 +28,7 @@ import {
 import {
   applyConfig,
   type Config,
+  getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
   isDocsPreviewEnabled,
@@ -114,7 +115,7 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
-  await registerDmsFrontend(config, dev);
+  await registerDmsFrontend(dev);
 
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
@@ -233,11 +234,9 @@ async function implementInterfaces(): Promise<void> {
  * The registration `frontendModule` computes from the configuration, plus the
  * private options, which never leave the backend and the frontend server.
  */
-async function registerDmsFrontend(
-  config: Config,
-  dev: boolean,
-): Promise<void> {
-  const registration = frontendModule(config, { dev });
+async function registerDmsFrontend(dev: boolean): Promise<void> {
+  // The merged configuration: its clientBaseUrl is the one construct() checked.
+  const registration = frontendModule(getConfig(), { dev });
   if (!registration) return;
   await AddFrontendModule({
     ...registration,
