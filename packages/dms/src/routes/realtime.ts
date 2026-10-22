@@ -187,18 +187,6 @@ const isSessionOf = (
   info.user?._id === requester.userId && info.tenantId === requester.tenantId;
 
 /**
- * Ends one session alone: the other tabs' sessions riding on its connection
- * stay, and its tab is told so, to open a new one.
- */
-const endSession = async (
-  sessionId: string,
-  info: SessionInfo,
-): Promise<void> => {
-  info.send(SESSION_ENDED_EVENT, { sessionId });
-  await cleanupSession(sessionId);
-};
-
-/**
  * Puts the session on `pageId`, once it is known to be the requester's own.
  *
  * A session keeps the user and tenant it was opened with, while the browser
@@ -215,7 +203,7 @@ export const ensureSessionOnPage = async (
   const info = getSessionInfo(sessionId);
   if (!info) return false;
   if (!isSessionOf(info, requester)) {
-    await endSession(sessionId, info);
+    await info.close();
     return false;
   }
   if (info.pageId === pageId) return true;
