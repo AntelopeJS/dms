@@ -1,4 +1,4 @@
-import { isIPv4 } from "node:net";
+import { isIP, isIPv4 } from "node:net";
 import type { ClientAddressSource } from "@antelopejs/interface-dms/client-ip";
 import type { AuthConfig } from "../../config";
 
@@ -51,6 +51,50 @@ export function resolveClientIp(
   ];
   const index = Math.min(trustedProxies, addresses.length - 1);
   return normalizeAddress(addresses[index]);
+}
+
+/**
+ * The header name `auth.clientIpHeader` declares, lowercased as Node keys
+ * request headers, or none when unset or blank.
+ */
+function clientIpHeaderName(authConfig: AuthConfig): string | undefined {
+  const name = authConfig.clientIpHeader?.trim().toLowerCase();
+  return name ? name : undefined;
+}
+
+/** A single, valid IP address the header carries, or none. */
+function headerAddress(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const address = normalizeAddress(value.trim());
+  return isIP(address) ? address : undefined;
+}
+
+/**
+ * The client address of a request under an auth config.
+ *
+ * With `auth.clientIpHeader` set, the address is that header's, which the
+ * hosting platform overwrites on every request (AntelopeJS Cloud:
+ * `X-Client-IP`). A request without it, or with anything but one IP address
+ * in it, falls back to the socket peer, never to `x-forwarded-for`. Without
+ * the option, `trustedProxies` reverse proxies are walked back as in
+ * {@link resolveClientIp}.
+ *
+ * @param source The socket peer and headers of the request
+ * @param authConfig The resolved auth configuration
+ * @returns The client address, or an empty string when none is known
+ */
+export function resolveRequestClientIp(
+  source: ClientAddressSource,
+  authConfig: AuthConfig,
+): string {
+  const name = clientIpHeaderName(authConfig);
+  if (!name) return resolveClientIp(source, trustedProxyCount(authConfig));
+  return (
+    headerAddress(source.headers?.[name]) ??
+    normalizeAddress(source.socketAddress ?? "")
+  );
 }
 
 function isProxyCount(value: unknown): value is number {

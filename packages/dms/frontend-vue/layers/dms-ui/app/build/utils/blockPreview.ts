@@ -356,6 +356,19 @@ function readsRouteSource(options: Record<string, unknown>): boolean {
   return isRecord(source) && typeof source.fetchUrl === "string";
 }
 
+/** Serialized resource fields may read the preview's immutable demo record. */
+function readsFixtureForm(
+  blockType: PreviewBlockType,
+  options: Record<string, unknown>,
+): boolean {
+  return (
+    blockType.componentName === "dms-form" &&
+    options.fetchUrl === "/api/block-preview/fixtures/workspace" &&
+    Array.isArray(options.fields) &&
+    !options.submitUrl
+  );
+}
+
 function issueFor(
   node: PreviewNode,
   match: MatchedBlockType | undefined,
@@ -367,7 +380,11 @@ function issueFor(
       name: node.type ?? node.componentName ?? "",
     };
   }
-  if (match.blockType.needsController && !readsRouteSource(options)) {
+  if (
+    match.blockType.needsController &&
+    !readsRouteSource(options) &&
+    !readsFixtureForm(match.blockType, options)
+  ) {
     return { key: "needs_backend", name: match.name };
   }
   const refused = findRefusedOption(options);

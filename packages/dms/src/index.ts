@@ -1,4 +1,3 @@
-import path from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
@@ -29,7 +28,6 @@ import {
 import {
   applyConfig,
   type Config,
-  getAuthConfig,
   getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
@@ -40,7 +38,10 @@ import {
   registerDmsCrons,
   runCleanupUserInvites,
 } from "./crons";
-import { runSweepStaleExports } from "./crons/sweep-stale-exports";
+import {
+  runSweepStaleExports,
+  SWEEP_STALE_EXPORTS_CRON_NAME,
+} from "./crons/sweep-stale-exports";
 import {
   startModuleUpdateWatcher,
   stopModuleUpdateWatcher,
@@ -70,26 +71,37 @@ import {
   stopPendingExtensionReport,
 } from "./page-extensions/pending-report";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
-import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
+import { frontendModule } from "./frontend-module";
+import {
+  assertProductionSecrets,
+  resolveClientBaseUrl,
+} from "./startup-config";
+import { allowClientOrigin } from "./client-origin-cors";
 import {
   ensureDefaultTenantExists,
   registerExistingTenantInstances,
 } from "./utils";
-import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 
 export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
+let staleExportsSweep: Promise<void> = Promise.resolve();
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
 export async function construct(config: Config): Promise<void> {
-  applyConfig(config);
+  const { dev } = await GetRuntimeInfo();
+  // Checked here rather than when the project configuration is evaluated: a
+  // production build evaluates it without the deployment's secrets.
+  applyConfig({
+    ...config,
+    clientBaseUrl: resolveClientBaseUrl(config.clientBaseUrl, dev),
+  });
+  if (!dev) assertProductionSecrets();
   globalRealtimeConfig = config.realtime;
 
-  await setupFrontendBootstrap();
+  await setupFrontendBootstrap(dev);
 
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
@@ -103,15 +115,14 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
-  await registerDmsFrontend();
+  await registerDmsFrontend(dev);
 
-  if (isDocsPreviewEnabled()) {
+  if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
 }
 
-async function setupFrontendBootstrap(): Promise<void> {
-  const { dev } = await GetRuntimeInfo();
+async function setupFrontendBootstrap(dev: boolean): Promise<void> {
   initFrontendBootstrapSecret(dev);
 
   if (dev) {
@@ -121,10 +132,9 @@ async function setupFrontendBootstrap(): Promise<void> {
 
   if (!getFrontendConfig().bootstrapSecret?.trim()) {
     Logging.Warn(
-      "[DMS] frontend.bootstrapSecret is not configured, so GET /dms/frontend and GET /dms/frontend/modules " +
-        "are open to anyone who can reach this backend — /dms/frontend/modules streams the full source " +
-        "of every registered frontend module. Configure frontend.bootstrapSecret and set the same value " +
-        "as DMS_BOOTSTRAP_SECRET where the frontend is built.",
+      "[DMS] frontend.bootstrapSecret is not configured, so GET /dms/frontend and POST /dms/frontend/ready " +
+        "are open to anyone who can reach this backend. Configure frontend.bootstrapSecret and set the same " +
+        "value as DMS_BOOTSTRAP_SECRET on the frontend server.",
     );
   }
 }
@@ -220,29 +230,16 @@ async function implementInterfaces(): Promise<void> {
   );
 }
 
-async function registerDmsFrontend(): Promise<void> {
-  const config = getConfig();
-  const authConfig = getAuthConfig();
-  const sharedOptions = {
-    configKey: "dms",
-    priority: 0,
-    options: {
-      baseURL: config.apiBaseUrl ?? "",
-      clientBaseUrl: config.clientBaseUrl ?? "",
-      mustValidateEmail: false,
-      token: {
-        maxAgeInSeconds:
-          authConfig.accessTokenLifetime / MILLISECONDS_PER_SECOND,
-      },
-      homepage: config.homepage ?? "/",
-      oauthProviders: listEnabledOAuthProviders().map(
-        ({ id, label, icon }) => ({
-          id,
-          label,
-          icon,
-        }),
-      ),
-    },
+/**
+ * The registration `frontendModule` computes from the configuration, its
+ * private options filled with the backend's secrets.
+ */
+async function registerDmsFrontend(dev: boolean): Promise<void> {
+  // The merged configuration: its clientBaseUrl is the one construct() checked.
+  const registration = frontendModule(getConfig(), { dev });
+  if (!registration) return;
+  await AddFrontendModule({
+    ...registration,
     privateOptions: {
       htmlRender: {
         serviceSecret: getHtmlRenderConfig().serviceSecret ?? null,
@@ -251,14 +248,6 @@ async function registerDmsFrontend(): Promise<void> {
         relaySecret: deriveOAuthRelaySecret(),
       },
     },
-  };
-
-  await AddFrontendModule({
-    ...sharedOptions,
-    name: "@antelopejs/dms-frontend-vue",
-    sourcePath: path.join(__dirname, "../frontend-vue"),
-    renderer: { name: "vue", version: "3" },
-    authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
   });
 }
 
@@ -279,11 +268,16 @@ export function destroy(): void {
 }
 
 export async function start(): Promise<void> {
+  await allowClientOrigin();
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   await SettleHook(Hook.DATABASE_INITIALIZED);
-  await runSweepStaleExports();
+  // `start()` means ready to serve: the sweep scans every tenant and serves
+  // no request, so it runs behind the open gate. `stop()` waits for it.
+  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
+    Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
+  });
   cronTasks = registerDmsCrons();
   // Invitations that expired while no process ran are settled now, not at
   // the next 3 a.m. run: their inviters hear about it the same day.
@@ -296,6 +290,7 @@ export async function start(): Promise<void> {
 }
 
 export async function stop(): Promise<void> {
+  await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();

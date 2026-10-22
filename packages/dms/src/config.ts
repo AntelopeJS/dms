@@ -95,6 +95,15 @@ export interface AuthConfig {
    */
   trustedProxies?: number;
   /**
+   * Header the hosting platform overwrites on every request with the client's
+   * address, such as `X-Client-IP` on AntelopeJS Cloud. When set, it gives the
+   * client address and `trustedProxies` is not used: a request without a
+   * valid address in it falls back to the socket peer. Set it only when the
+   * platform guarantees that nothing but its gateway and the frontend server
+   * reaches the API, since any other caller could write the header.
+   */
+  clientIpHeader?: string;
+  /**
    * The country of a sign-in joins its device in the "New sign-in" check: the
    * same browser and system signing in from another country is a new sign-in.
    * Without a country (no header, no database entry for the address), the
@@ -139,11 +148,12 @@ export type BootstrapEnforcement = "warn" | "enforce";
 
 export interface FrontendConfig {
   /**
-   * Credential the frontend build tool presents on `GET /dms/frontend` and
-   * `GET /dms/frontend/modules`.
+   * Credential the frontend tool presents on `GET /dms/frontend` (read by
+   * `ajs dms dev`) and `POST /dms/frontend/ready` (sent by a frontend server
+   * once it serves).
    *
    * Deliberately independent of `auth.jwtSecret` rather than derived from it:
-   * this value lives on the build host, so it must not be a function of the
+   * this value lives on the frontend server, so it must not be a function of the
    * secret that signs session tokens, and it must be rotatable without
    * invalidating every session. Left unset in development, an ephemeral
    * per-process value is generated and published to the project's
@@ -187,19 +197,21 @@ export interface Config {
   store?: StoreConfig;
   /**
    * Serves `/dms-preview`, a public hidden page rendering any tree of
-   * registered blocks it is handed, for documentation sites to embed. Off by
-   * default; the `DMS_DOCS_PREVIEW=1` environment variable turns it on too.
+   * registered blocks it is handed, for documentation sites to embed. On in
+   * development; elsewhere, requires `true` or `DMS_DOCS_PREVIEW=1`.
+   * `false` does not override development mode or the environment opt-in.
    */
   docsPreview?: boolean;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
+export const DEFAULT_ACCESS_TOKEN_LIFETIME = MILLISECONDS_PER_HOUR;
 
 let globalAuthConfig: AuthConfig = {
   jwtSecret: "",
   emailValidationTokenLifetime: MILLISECONDS_PER_DAY,
   passwordRecoverTokenLifetime: MILLISECONDS_PER_DAY,
-  accessTokenLifetime: MILLISECONDS_PER_HOUR,
+  accessTokenLifetime: DEFAULT_ACCESS_TOKEN_LIFETIME,
   refreshTokenLifetime: REFRESH_TOKEN_LIFETIME_DAYS * MILLISECONDS_PER_DAY,
   userSensitiveKeys: [],
   mustValidateEmail: false,
@@ -230,10 +242,11 @@ let globalFrontendConfig: FrontendConfig = {
 };
 
 export const DEFAULT_CLIENT_BASE_URL = "http://localhost:3001";
+export const DEFAULT_API_BASE_URL = "http://127.0.0.1:5010";
 
 let globalConfig: Config = {
   clientBaseUrl: DEFAULT_CLIENT_BASE_URL,
-  apiBaseUrl: "http://127.0.0.1:5010",
+  apiBaseUrl: DEFAULT_API_BASE_URL,
 };
 
 let devClientBaseUrl: string | undefined;
@@ -263,9 +276,10 @@ export function getApiBaseUrl(): string | undefined {
 const DOCS_PREVIEW_ENV = "DMS_DOCS_PREVIEW";
 const DOCS_PREVIEW_ENV_ENABLED = "1";
 
-/** Whether `/dms-preview` is served: by configuration or by environment. */
-export function isDocsPreviewEnabled(): boolean {
+/** Whether `/dms-preview` is served, `dev` being the runtime's mode. */
+export function isDocsPreviewEnabled(dev = false): boolean {
   return (
+    dev ||
     globalConfig.docsPreview === true ||
     process.env[DOCS_PREVIEW_ENV] === DOCS_PREVIEW_ENV_ENABLED
   );
