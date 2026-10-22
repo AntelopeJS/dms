@@ -11,7 +11,7 @@ import {
 } from "../layers/dms-ui/app/build/composables/actions/bulkSelection";
 import {
   listenRowSteps,
-  rowNavigation,
+  trackRowNavigation,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
 import {
   deepLinkOutcome,
@@ -101,8 +101,14 @@ describe("row navigation", () => {
 
   it("places a row among the rows shown and steps to its neighbours", () => {
     const opened: unknown[] = [];
-    const navigation = rowNavigation(source, rows[1]!, (row) =>
-      opened.push(row),
+    let navigation: RowNavigation | undefined;
+    const stop = trackRowNavigation(
+      source,
+      rows[1]!,
+      (row) => opened.push(row),
+      (next) => {
+        navigation = next;
+      },
     );
     expect(navigation).toMatchObject({
       index: 1,
@@ -113,7 +119,16 @@ describe("row navigation", () => {
     navigation!.next();
     navigation!.prev();
     expect(opened).toEqual([rows[2], rows[0]]);
-    expect(rowNavigation(source, { _id: "gone" }, () => {})).toBe(undefined);
+    stop();
+    trackRowNavigation(
+      source,
+      { _id: "gone" },
+      () => {},
+      (next) => {
+        navigation = next;
+      },
+    )();
+    expect(navigation).toBe(undefined);
   });
 
   it("steps with J and K, never while the user types", () => {

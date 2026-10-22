@@ -19,13 +19,18 @@ import { relationSelectSource } from "../layers/dms-ui/app/build/composables/dat
 const column = (
   id: string,
   options: Record<string, unknown> = {},
+  defaultCompareMode?: string,
 ): TableViewColumn =>
   ({
     id,
     accessorKey: id,
     header: id,
     listable: true,
-    type: { id, inputComponent: { componentName: "x", options } },
+    type: {
+      id,
+      defaultCompareMode,
+      inputComponent: { componentName: "x", options },
+    },
   }) as unknown as TableViewColumn;
 
 const dataTypes = (id: string): DataType | undefined =>
@@ -135,6 +140,26 @@ describe("TableView quick filters", () => {
     );
     expect(quickFilterMode(column("select"))).toBe("is");
     expect(quickFilterMode(column("select"), "is_not")).toBe("is_not");
+  });
+
+  it("matches inside a tags column's list and offers its suggested tags", () => {
+    // A list is told by the type's own default mode, not by its id.
+    const tags = column(
+      "tags",
+      { suggestions: ["battery", "solar"] },
+      "array_contains_string",
+    );
+    expect(quickFilterMode(tags)).toBe("array_contains_string");
+    expect(quickFilterMode(column("tags"))).toBe("is");
+    expect(quickFilterMode(column("labels", {}, "array_contains_string"))).toBe(
+      "array_contains_string",
+    );
+    expect(staticQuickFilterItems(tags, translate)).toEqual([
+      { value: "battery", label: "battery" },
+      { value: "solar", label: "solar" },
+    ]);
+    // A column that declares no value offers none (as a relation before its read).
+    expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
   });
 
   const roles = { field: "roleIds", mode: "array_contains_string" } as const;

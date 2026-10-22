@@ -23,6 +23,8 @@ const settle = async (): Promise<void> => {
 
 const realFetch = globalThis.fetch;
 let loggedIn = ref(false);
+let session = ref<{ accountId?: string; activeTenantId?: string } | null>(null);
+let user = ref<{ _id: string }>({ _id: "user-1" });
 let server: FakeRealtimeServer;
 
 const loadApi = async (): Promise<UserRealtimeApi> => {
@@ -44,10 +46,7 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useDmsUserSession", () => ({
-    loggedIn,
-    user: ref({ _id: "user-1" }),
-  }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn, user, session }));
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},
@@ -57,6 +56,8 @@ beforeEach(() => {
   installRealtimeFetch(server);
   // Fresh per test: the singleton of a previous test keeps watching its own.
   loggedIn = ref(true);
+  session = ref({ accountId: "account-1", activeTenantId: "tenant-1" });
+  user = ref({ _id: "user-1" });
 });
 
 afterEach(async () => {
@@ -69,6 +70,74 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime reconnection", () => {
+  it("opens a new session on the same connection in the workspace the session switched to, and resubscribes the page", async () => {
+    const api = await loadApi();
+    await settle();
+    await api.setPage(PAGE_ID);
+
+    session.value = { accountId: "account-1", activeTenantId: "tenant-2" };
+    await settle();
+
+    expect(server.connections).toHaveLength(1);
+    expect(server.lastConnection().isOpen()).toBe(true);
+    expect(server.closedSessions).toEqual(["session-1"]);
+    expect(api.sessionId.value).toBe("session-2");
+    expect(server.pageCalls).toEqual([
+      { pageId: PAGE_ID, sessionId: "session-1" },
+      { pageId: PAGE_ID, sessionId: "session-2" },
+    ]);
+  });
+
+  it("keeps its session when the browser session is read again unchanged", async () => {
+    const api = await loadApi();
+    await settle();
+
+    session.value = { accountId: "account-1", activeTenantId: "tenant-1" };
+    await settle();
+
+    expect(server.sessions).toHaveLength(1);
+    expect(api.sessionId.value).toBe("session-1");
+  });
+
+  it("opens a new session for the account the browser switched to", async () => {
+    const api = await loadApi();
+    await settle();
+
+    session.value = { accountId: "account-2", activeTenantId: "tenant-1" };
+    await settle();
+
+    expect(server.closedSessions).toEqual(["session-1"]);
+    expect(api.sessionId.value).toBe("session-2");
+  });
+
+  it("opens a connection of its own for the user an account switch brought", async () => {
+    await loadApi();
+    await settle();
+
+    user.value = { _id: "user-2" };
+    session.value = { accountId: "account-2", activeTenantId: "tenant-1" };
+    await settle();
+
+    expect(server.connections).toHaveLength(2);
+    expect(server.maxOpenConnections).toBe(1);
+  });
+
+  it("opens a new session when the server ends its own, leaving the connection open", async () => {
+    const api = await loadApi();
+    await settle();
+    await api.setPage(PAGE_ID);
+
+    server.send("session-1", "session-ended", { sessionId: "session-1" });
+    await settle();
+
+    expect(server.connections).toHaveLength(1);
+    expect(api.sessionId.value).toBe("session-2");
+    expect(server.pageCalls).toEqual([
+      { pageId: PAGE_ID, sessionId: "session-1" },
+      { pageId: PAGE_ID, sessionId: "session-2" },
+    ]);
+  });
+
   it("reconnects with backoff when the server ends the stream, then resubscribes the page", async () => {
     const api = await loadApi();
     await settle();

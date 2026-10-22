@@ -2,9 +2,11 @@
 import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { formatDuration } from "../layers/dms-core/app/utils/formatter";
+
+const ROUNDED = { precision: "rounded" } as const;
 import {
   formatBytes,
-  formatDuration,
   progressShares,
   registerMetricCellTypes,
 } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
@@ -32,12 +34,16 @@ registerMetricCellTypes((dataType: DataType) => {
 
 describe("metric cell formats", () => {
   it("reads a duration in its most fitting unit", () => {
-    expect(formatDuration(910, "en-GB")).toBe("910 ms");
-    expect(formatDuration(1800, "en-GB")).toBe("1.8 s");
-    expect(formatDuration(1800, "fr-FR")).toBe("1,8 s");
-    expect(formatDuration(252_000, "en-GB")).toBe("4 min 12 s");
-    expect(formatDuration(240_000, "en-GB")).toBe("4 min");
-    expect(formatDuration(7_500_000, "en-GB")).toBe("2 h 5 min");
+    expect(formatDuration(910, "en-GB", ROUNDED)).toBe("910 ms");
+    expect(formatDuration(1800, "en-GB", ROUNDED)).toBe("1.8 s");
+    expect(formatDuration(1800, "fr-FR", ROUNDED)).toBe("1,8 s");
+    expect(formatDuration(252_000, "en-GB", ROUNDED)).toBe("4 min 12 s");
+    expect(formatDuration(240_000, "en-GB", ROUNDED)).toBe("4 min");
+    expect(formatDuration(7_500_000, "en-GB", ROUNDED)).toBe("2 h 5 min");
+    expect(formatDuration(2149, "en-GB", ROUNDED)).toBe("2.1 s");
+    expect(formatDuration(252_600, "en-GB", ROUNDED)).toBe("4 min 13 s");
+    // Rounded as a whole: never "1 min 60 s".
+    expect(formatDuration(119_700, "en-GB", ROUNDED)).toBe("2 min");
   });
 
   it("reads a size in its most fitting unit", () => {

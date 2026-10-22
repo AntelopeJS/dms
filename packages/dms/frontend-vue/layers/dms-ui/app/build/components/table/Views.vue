@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
@@ -78,7 +79,7 @@ const uiVariant = tv({
 const ui = computed(() => uiVariant({ divided: props.divided }));
 
 const { t, locale } = useI18n();
-const countFormat = computed(() => new Intl.NumberFormat(locale.value));
+const countFormat = computed(() => readableNumberFormat(locale.value));
 
 const activeView = computed(() =>
   props.items.find((view) => view.id === props.activeId),
