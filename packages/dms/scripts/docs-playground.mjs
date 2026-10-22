@@ -25,6 +25,7 @@ for (const name of [
   "DMS_JWT_SECRET",
   "AUTH_JWT_SECRET",
   "DMS_BOOTSTRAP_SECRET",
+  "DMS_HTML_RENDER_SECRET",
   "DMS_SESSION_SECRET",
 ]) {
   process.env[name] ??= randomBytes(SECRET_BYTES).toString("hex");
