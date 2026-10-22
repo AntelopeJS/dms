@@ -49,3 +49,33 @@ export function buildBreadcrumbTarget(
 
   return buildPageTarget(path, metadata.validation, currentQuery);
 }
+
+/** The crumb a folded breadcrumb shows for the crumbs it hides. */
+export interface FoldedCrumbs<T> {
+  isFolded: true;
+  slot: string;
+  children: T[];
+}
+
+export function isFoldedCrumbs<T>(
+  crumb: T | FoldedCrumbs<T>,
+): crumb is FoldedCrumbs<T> {
+  return (crumb as Partial<FoldedCrumbs<T>>).isFolded === true;
+}
+
+/**
+ * A phone's breadcrumb: the first and the last crumb, the ones between
+ * folded into one `slot` crumb. A single crumb between them stays as it is,
+ * a "…" holding one name only hid it.
+ */
+export function foldBreadcrumb<T>(
+  crumbs: readonly T[],
+  slot: string,
+): (T | FoldedCrumbs<T>)[] {
+  if (crumbs.length <= 3) return [...crumbs];
+  return [
+    crumbs[0]!,
+    { isFolded: true, slot, children: crumbs.slice(1, -1) },
+    crumbs.at(-1)!,
+  ];
+}
