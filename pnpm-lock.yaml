@@ -71,9 +71,6 @@ importers:
       defu:
         specifier: ^6.1.4
         version: 6.1.7
-      ignore:
-        specifier: ^7.0.5
-        version: 7.0.5
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
