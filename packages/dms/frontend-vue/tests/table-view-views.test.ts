@@ -14,6 +14,10 @@ import type { SortingState, VisibilityState } from "@tanstack/vue-table";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableViews from "../layers/dms-ui/app/build/components/table/Views.vue";
 import { mergeColumnOrder } from "../layers/dms-ui/app/build/composables/table/utils/columnOrder";
+import {
+  PHONE_VIEWPORT_QUERY,
+  useMobileDisplay,
+} from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
 import { useTableViews } from "../layers/dms-ui/app/build/composables/table-view/useTableViews";
 import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 import {
@@ -202,6 +206,8 @@ interface HarnessOptions {
   preferences?: Record<string, unknown>;
   userId?: string;
   viewName?: string;
+  /** Wires a phone's `mobileDisplay` after the views, as the table view does. */
+  mobileDisplay?: string;
 }
 
 describe("useTableViews", () => {
@@ -251,6 +257,13 @@ describe("useTableViews", () => {
       density: ref<TableDensity>("default"),
       pagination: ref({ pageIndex: 3, pageSize: 10 }),
     };
+    const displayDefault = ref(DEFAULTS.display);
+    const defaults: TableStateDefaults = {
+      ...DEFAULTS,
+      get display() {
+        return displayDefault.value;
+      },
+    };
     let api: ReturnType<typeof useTableViews> | undefined;
     app = createApp(
       defineComponent({
@@ -261,10 +274,18 @@ describe("useTableViews", () => {
           tablePreferences.restore("columnOrder", state.columnOrder);
           api = useTableViews({
             views: options.views,
-            defaults: DEFAULTS,
+            defaults,
             state,
             preferences: tablePreferences,
             urlScope: { tableId: "content", isSoleTableView: true },
+          });
+          useMobileDisplay({
+            mobileDisplay: options.mobileDisplay,
+            defaultDisplay: displayDefault,
+            offered: DEFAULTS.displays,
+            display: state.display,
+            activeView: api.activeView,
+            isDisplayChosen: () => false,
           });
           return () => h("div");
         },
@@ -429,6 +450,48 @@ describe("useTableViews", () => {
     await nextTick();
     expect(api.activeViewId.value).toBe(undefined);
     expect(api.items.value).toHaveLength(2);
+  });
+
+  describe("on a phone, with a mobileDisplay", () => {
+    beforeEach(() => {
+      window.matchMedia = vi.fn((query: string) => ({
+        matches: query === PHONE_VIEWPORT_QUERY,
+      })) as unknown as typeof window.matchMedia;
+    });
+
+    it("opens the default view on the phone's display when the view sets none", async () => {
+      const { api, state } = await mountViews({
+        views: VIEWS,
+        mobileDisplay: "grouped",
+      });
+      expect(api.activeViewId.value).toBe("all");
+      expect(state.display.value).toBe("grouped");
+      expect(api.isModified.value).toBe(false);
+      api.openView("mine");
+      await nextTick();
+      expect(state.display.value).toBe("grouped");
+    });
+
+    it("keeps the display an open view fixes", async () => {
+      const { state } = await mountViews({
+        views: {
+          ...VIEWS,
+          items: [{ id: "all", label: "All", display: "table" }],
+        },
+        mobileDisplay: "grouped",
+      });
+      expect(state.display.value).toBe("table");
+    });
+
+    it("opens a view the URL names without a display on the phone's display", async () => {
+      const { api, state } = await mountViews({
+        views: VIEWS,
+        query: { view: "mine" },
+        mobileDisplay: "grouped",
+      });
+      expect(api.activeViewId.value).toBe("mine");
+      expect(state.display.value).toBe("grouped");
+    });
   });
 
   it("never saves over a view the module declares", async () => {

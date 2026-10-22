@@ -11,8 +11,9 @@ import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 import { decideInvite } from "./invite-resolution";
-import { runTenantLifecycleOperation } from "./tenant-lifecycle";
+import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
+import { describeMembershipPatch } from "./internal/member-changes";
 import {
   deliverTenantInviteEmail,
   sendTenantInviteEmail,
@@ -85,8 +86,8 @@ export type InviteUserToTenantResult =
 export async function inviteUserToTenant(
   options: InviteUserToTenantOptions,
 ): Promise<InviteUserToTenantResult> {
-  const result = await runTenantLifecycleOperation(options.tenantId, () =>
-    inviteAdmittedUser(options),
+  const result = await changeTenantMembers(options.tenantId, () =>
+    planInvite(options),
   );
   if (!options.sendEmail || result.kind !== "invited") return result;
   const invite = { ...options, token: result.token };
@@ -103,9 +104,9 @@ export async function inviteUserToTenant(
   };
 }
 
-async function inviteAdmittedUser(
+async function planInvite(
   options: InviteUserToTenantOptions,
-): Promise<InviteUserToTenantResult> {
+): Promise<TenantMembersWrite<InviteUserToTenantResult>> {
   const {
     tenantId,
     email,
@@ -121,32 +122,38 @@ async function inviteAdmittedUser(
   const userModel = GetModel(UserModel);
   const existingUser = await userModel.getByEmail(email);
   if (existingUser) {
-    await applyAdmittedTenantOwnership(userModel, existingUser._id, tenantId, {
-      roleIds,
-      isTenantOwner: asTenantOwner,
-    });
-    await deliverToExistingMember(
-      tenantId,
-      email,
-      existingUser._id,
-      extensions,
+    const userId = existingUser._id;
+    const patch = { roleIds, isTenantOwner: asTenantOwner };
+    const member = await GetModel(TenantMemberModel, tenantId).getByUser(
+      userId,
     );
-    return { kind: "added", userId: existingUser._id };
+    return {
+      changes: describeMembershipPatch(member, userId, patch),
+      write: async () => {
+        await applyAdmittedTenantOwnership(userModel, userId, tenantId, patch);
+        await deliverToExistingMember(tenantId, email, userId, extensions);
+        return { kind: "added", userId };
+      },
+    };
   }
 
-  const { inviteId, token } = await createAdmittedInviteToken({
-    tenantId,
-    email,
-    firstname,
-    lastname,
-    language,
-    roleIds,
-    asTenantOwner,
-    invitedBy,
-    extensions,
-  });
-
-  return { kind: "invited", inviteId, token };
+  return {
+    changes: [],
+    write: async () => {
+      const { inviteId, token } = await createAdmittedInviteToken({
+        tenantId,
+        email,
+        firstname,
+        lastname,
+        language,
+        roleIds,
+        asTenantOwner,
+        invitedBy,
+        extensions,
+      });
+      return { kind: "invited", inviteId, token };
+    },
+  };
 }
 
 /**
@@ -211,9 +218,10 @@ export interface CreateUserInviteTokenResult {
 export async function createUserInviteToken(
   options: CreateUserInviteTokenOptions,
 ): Promise<CreateUserInviteTokenResult> {
-  return runTenantLifecycleOperation(options.tenantId, () =>
-    createAdmittedInviteToken(options),
-  );
+  return changeTenantMembers(options.tenantId, async () => ({
+    changes: [],
+    write: () => createAdmittedInviteToken(options),
+  }));
 }
 
 async function createAdmittedInviteToken(
