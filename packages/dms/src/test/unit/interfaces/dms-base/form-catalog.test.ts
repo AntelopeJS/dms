@@ -56,7 +56,7 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
       "none",
       "instant",
     ]);
-    expect(config?.kind?.enum).to.deep.equal(["record", "action"]);
+    expect(config?.kind?.enum).to.deep.equal(["record", "create", "action"]);
     expect(config?.labelKey?.ui).to.include({ advanced: true });
     expect(config).to.not.have.any.keys(
       "showActions",

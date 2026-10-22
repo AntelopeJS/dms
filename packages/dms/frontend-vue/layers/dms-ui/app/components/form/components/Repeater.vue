@@ -102,9 +102,14 @@ const gridTemplate = computed(() => ({
   "--dms-repeater-stacked-columns": rowTemplate([FLUID_COLUMN]),
 }));
 
-function emitRows(next: RepeaterRow[]): void {
+/**
+ * Sets the rows; `shouldValidate: false` leaves the form's validation alone: a row
+ * just added is empty, and is only checked once filled or on submit, never
+ * flagged "required" the moment it appears.
+ */
+function emitRows(next: RepeaterRow[], shouldValidate = true): void {
   model.value = next;
-  emitFormChange();
+  if (shouldValidate) emitFormChange();
 }
 
 function setCell(index: number, column: string, value: unknown): void {
@@ -117,7 +122,7 @@ function setCell(index: number, column: string, value: unknown): void {
 
 function addRow(): void {
   rowKeys.value.push(nextKey++);
-  emitRows([...rows.value, {}]);
+  emitRows([...rows.value, {}], false);
 }
 
 function removeRow(index: number): void {

@@ -258,6 +258,7 @@
       "reset": "Reset",
       "cancel": "Cancel",
       "save_changes": "Save changes",
+      "create": "Create",
       "refresh_data": "Refresh data",
       "export_data": "Export data"
     },
@@ -407,7 +408,8 @@
         "invalid": "No errors | 1 field to fix | {count} fields to fix"
       },
       "error_summary": {
-        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention"
+        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention",
+        "resolved": "Everything is fixed: the form can be saved."
       },
       "repeater": {
         "add": "Add a row",
