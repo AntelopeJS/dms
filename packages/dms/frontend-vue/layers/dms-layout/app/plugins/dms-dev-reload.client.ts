@@ -1,5 +1,5 @@
 import { useDevReloadHolder } from "../build/composables/dev-reload/useDevReloadHolder";
-import { openDevReloadStream } from "../build/utils/dev-reload-stream";
+import { followDevReload } from "../build/utils/dev-reload-stream";
 
 const RELOAD_ENDPOINT_PATH = "/dms/dev/reload";
 
@@ -11,7 +11,7 @@ function resolveBackendBase(): string | null {
 }
 
 /**
- * Dev-only: turn the backend's `reload` stream into a soft refresh.
+ * Dev-only: turn the backend's reload signal into a soft refresh.
  *
  * All the waiting lives in the dev-reload coordinator (see `useDevReloadHolder`), so
  * this plugin and the `useDevReload().awaitRoute` module frontends call
@@ -25,14 +25,19 @@ export default defineDmsPlugin(() => {
 
   const endpoint = `${backendBase}${RELOAD_ENDPOINT_PATH}`;
   const { coordinator } = useDevReloadHolder();
-  const stream = openDevReloadStream({
-    endpoint,
-    onReload: () => {
-      void coordinator.requestRefresh().catch((err: unknown) => {
-        console.error("[dms-dev-reload] Reload handler failed:", err);
-      });
+  // Carried by the user's realtime stream while it is open, by a stream of
+  // its own otherwise (the sign-in page).
+  const stream = followDevReload(
+    {
+      endpoint,
+      onReload: () => {
+        void coordinator.requestRefresh().catch((err: unknown) => {
+          console.error("[dms-dev-reload] Reload handler failed:", err);
+        });
+      },
     },
-  });
+    useUserRealtime(),
+  );
 
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {

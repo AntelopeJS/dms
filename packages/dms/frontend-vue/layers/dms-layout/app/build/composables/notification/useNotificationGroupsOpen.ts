@@ -28,12 +28,22 @@ function writeStorage(key: string, value: string): void {
  * Which groups of the preferences matrix are open. A group starts folded,
  * so the page opens short and each group row's count sums it up; the state
  * the viewer picks is kept per group in this browser.
+ *
+ * The kept state is read once mounted: the server cannot see it, so the
+ * server render and the browser hydrating it both draw every group folded,
+ * and a kept group opens right after (reading it in setup left the
+ * collapsible open on one side and folded on the other).
  */
 export const useNotificationGroupsOpen = () => {
   const picked = ref<Record<string, boolean>>({});
+  const isMounted = ref(false);
+  onMounted(() => {
+    isMounted.value = true;
+  });
 
   const isOpen = (categoryId: string): boolean =>
-    picked.value[categoryId] ?? readStorage(storageKey(categoryId)) === OPEN;
+    picked.value[categoryId] ??
+    (isMounted.value && readStorage(storageKey(categoryId)) === OPEN);
 
   const toggleOpen = (categoryId: string) => {
     const open = !isOpen(categoryId);
