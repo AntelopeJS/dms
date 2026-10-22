@@ -119,6 +119,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
   chart's `legendPosition`) — never a raw Apex `legend` in `rawOptions`.
+- A chart route sends series names, categories (`x`) and point labels as `$` keys, bare chart or
+  `ChartCard` alike: the browser translates them, so donut slices are `{ x: "$app.plan.pro", y }`.
 
 ### Tables
 
