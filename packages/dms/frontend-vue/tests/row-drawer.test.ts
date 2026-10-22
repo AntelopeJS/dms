@@ -655,6 +655,62 @@ describe("the row header", () => {
     expect(host.querySelector("[data-dms-row-drawer-position]")).toBeNull();
     expect(host.querySelector("[data-dms-row-drawer-next]")).toBeNull();
   });
+
+  it("wraps a title only after its separator when asked", () => {
+    const host = mountHeader({
+      part: "dms-row-drawer",
+      heading: "billing.invoice.title",
+      headingBreakAfter: ".",
+    });
+    const title = host.querySelector("h2")!;
+    expect(
+      [...title.querySelectorAll("span")].map((s) => s.textContent),
+    ).toEqual(["billing.", "invoice.", "title"]);
+    expect(title.querySelectorAll("wbr")).toHaveLength(3);
+    expect(title.title).toBe("billing.invoice.title");
+  });
+
+  it("follows the position with the subtitle, cut on its line", () => {
+    const host = mountHeader({
+      part: "dms-row-drawer",
+      navigation: navigation(11),
+      subtitle: "helio › catalog",
+      subtitleClass: "font-mono",
+    });
+    const subtitle = host.querySelector<HTMLElement>(
+      "[data-dms-row-drawer-subtitle]",
+    )!;
+    const line = subtitle.parentElement!;
+    expect([...line.children].map((part) => part.textContent?.trim())).toEqual([
+      "side_panel.position(12/50)",
+      "·",
+      "helio › catalog",
+    ]);
+    expect(line.className).toContain("flex");
+    expect(subtitle.className).toContain("truncate");
+    expect(subtitle.className).toContain("font-mono");
+    expect(subtitle.title).toBe("helio › catalog");
+  });
+
+  it("draws its component under the position line", () => {
+    const Pills: Component = {
+      props: { count: Number },
+      setup: (props: { count?: number }) => () =>
+        h("span", { "data-pills": "" }, `${props.count} missing`),
+    };
+    const host = mountHeader({
+      part: "dms-row-drawer",
+      heading: "Key",
+      navigation: navigation(0),
+      component: Pills,
+      componentOptions: { count: 2 },
+    });
+    const pills = host.querySelector("[data-pills]")!;
+    expect(pills.textContent).toBe("2 missing");
+    const column = host.querySelector("h2")!.parentElement!.parentElement!;
+    expect(pills.parentElement).toBe(column);
+    expect(column.className).toContain("space-y-1.5");
+  });
 });
 
 describe("a row drawer's deep link", () => {

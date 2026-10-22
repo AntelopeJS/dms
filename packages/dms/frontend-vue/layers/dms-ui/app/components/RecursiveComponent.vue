@@ -20,6 +20,11 @@ interface Props {
    * a role preview veil this block; without it the block is never veiled.
    */
   layoutPath?: string;
+  /**
+   * Props handed to this block only, as they are (functions included), over
+   * its options: what an action target's container gives its block.
+   */
+  rootProps?: Record<string, unknown>;
 }
 
 const props = defineProps<Props>();
@@ -108,7 +113,10 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
     <Component
       :is="component.component"
       :ref="anchorBlock"
-      v-bind="JSON.parse(JSON.stringify(component.options || {})) || {}"
+      v-bind="{
+        ...JSON.parse(JSON.stringify(component.options || {})),
+        ...rootProps,
+      }"
       :page-id="pageId"
       :component-id="componentId"
       :child-count="columnCount"

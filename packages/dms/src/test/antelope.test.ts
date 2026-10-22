@@ -13,9 +13,14 @@ const ANY_FREE_PORT = 0;
 const UNUSED_PUBLIC_BASE_URL = "https://api.test.example.com";
 const API_LOCAL_BASE_URL = "${@api.API_LOCAL_BASE_URL}";
 const JWT_SECRET = "test-jwt-secret";
+// The runner starts modules outside development mode, where the DMS refuses
+// to start without a client origin and a render secret.
+const CLIENT_BASE_URL = "http://localhost:3001";
+const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
+const API_GATE_COMMIT = "bfec71c873e582bb4c04202e823ba876d989a13b";
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
 // The loader runs a local module's install command on every start. CI has
@@ -57,8 +62,12 @@ export default defineConfig({
         installCommand: LOCAL_INSTALL_COMMAND,
       },
       config: {
+        clientBaseUrl: CLIENT_BASE_URL,
         auth: {
           jwtSecret: JWT_SECRET,
+        },
+        htmlRender: {
+          serviceSecret: HTML_RENDER_SECRET,
         },
         frontend: {
           bootstrapSecret: BOOTSTRAP_SECRET,
@@ -106,7 +115,16 @@ export default defineConfig({
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", "^1.3.5"),
+      // The startup gate (503 until every module started) is on api main,
+      // not on npm yet: the harness builds that commit.
+      source: LOCAL_API_PATH
+        ? providerSource(LOCAL_API_PATH, "@antelopejs/api", "")
+        : {
+            type: "git" as const,
+            remote: "https://github.com/AntelopeJS/api.git",
+            commit: API_GATE_COMMIT,
+            installCommand: ["pnpm install --frozen-lockfile", "pnpm build"],
+          },
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
         servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],

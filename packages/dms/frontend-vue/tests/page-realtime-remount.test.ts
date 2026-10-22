@@ -10,9 +10,12 @@ import {
   type EffectScope,
 } from "vue";
 import type { UserRealtimeApi } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const BASE_URL = "http://api";
-const USER_STREAM_URL = `${BASE_URL}/api/realtime/user`;
+const CONNECTION_URL = `${BASE_URL}/api/realtime/connection`;
+const SESSION_URL = `${BASE_URL}/api/realtime/session`;
+const CONNECTION_ID = "connection-1";
 const SUBSCRIBE_URL_PREFIX = `${BASE_URL}/api/realtime/subscribe/`;
 const UNSUBSCRIBE_URL = `${BASE_URL}/api/realtime/unsubscribe`;
 const PAGE_ID = "lang.translations";
@@ -30,18 +33,24 @@ interface FakeServer {
 
 const encoder = new TextEncoder();
 
-const openUserStream = () => {
+const openConnection = () => {
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       controller.enqueue(
         encoder.encode(
-          `event: hello\ndata: ${JSON.stringify({ sessionId: SESSION_ID })}\n\n`,
+          `event: hello\ndata: ${JSON.stringify({ connectionId: CONNECTION_ID })}\n\n`,
         ),
       );
     },
   });
   return { ok: true, status: 200, body };
 };
+
+const openSession = () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ ok: true, sessionId: SESSION_ID, menuTopics: [] }),
+});
 
 const applyPageCall = (server: FakeServer, url: string): void => {
   server.page =
@@ -50,7 +59,8 @@ const applyPageCall = (server: FakeServer, url: string): void => {
 
 const installFetch = (server: FakeServer): void => {
   globalThis.fetch = vi.fn(async (url: string) => {
-    if (url === USER_STREAM_URL) return openUserStream();
+    if (url === CONNECTION_URL) return openConnection();
+    if (url === SESSION_URL) return openSession();
     if (!server.isHoldingCalls) {
       applyPageCall(server, url);
       return { ok: true, status: 200 };
@@ -101,7 +111,11 @@ beforeEach(async () => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
+  vi.stubGlobal("useDmsUserSession", () => ({
+    loggedIn,
+    user: ref({ _id: "user-1" }),
+  }));
+  createFakeBrowser().openTab().activate();
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},

@@ -39,7 +39,7 @@ ajs project modules add @antelopejs/dms
 pnpm add -D @antelopejs/dms-frontend
 ```
 
-The DMS also needs an API module, a module implementing the database interface, and an authentication module: see [Installation](https://dms.antelopejs.com/docs/getting-started/installation). Its settings belong in the `config` block of `@antelopejs/dms` in `antelope.config.ts` ([Configuration](https://dms.antelopejs.com/docs/building/configuration)). In production, set strong values for `auth.jwtSecret`, `htmlRender.serviceSecret` and `frontend.bootstrapSecret`, and use Redis for realtime across several backend instances.
+The DMS also needs an API module, a module implementing the database interface, and an authentication module: see [Installation](https://dms.antelopejs.com/docs/getting-started/installation). Its settings belong in the `config` block of `@antelopejs/dms` in `antelope.config.ts` ([Configuration](https://dms.antelopejs.com/docs/building/configuration)). In production, set `clientBaseUrl` and strong values for `auth.jwtSecret`, `htmlRender.serviceSecret` and `frontend.bootstrapSecret` (the DMS refuses to start without the first three), and use Redis for realtime across several backend instances.
 
 ## Quick start
 

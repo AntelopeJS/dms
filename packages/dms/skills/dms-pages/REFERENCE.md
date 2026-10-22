@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata; a `GridRow` inside a cell, e.g. in a `Section`, spreads its own children rather than the grid's columns), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
@@ -70,7 +70,9 @@ its `sizeKey`, by default its `containerId`, else its component's name — pass 
 when one component opens drawers that must not share a size, or when the component is
 anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`. On a row of a list the module draws
 itself, `rowHeader: { title, positionLabel, navigation }` draws the DMS's row header (position,
-previous / next, J and K); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
+previous / next, J and K; `titleClass`, `titleBreakAfter`, `subtitle`, `subtitleClass` and
+`component` / `componentOptions` under the position line shape it — never a header component of
+the module's own); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
 import the layer's `RowHeader` component —
 `docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
@@ -119,7 +121,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `setMissedDetail()`); one that reads its own data on a topic calls
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
-  held while paused.
+  held while paused. A table view's write (row/bulk action, its form saved) already
+  calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
 
 ### Texts
 
@@ -128,6 +131,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A route that must word a text reads the request's `x-content-language` header (the language on
+  screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
   `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`) or
   `null` for no banner.
@@ -142,6 +147,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
   chart's `legendPosition`) — never a raw Apex `legend` in `rawOptions`.
+- A chart route sends series names, categories (`x`) and point labels as `$` keys, bare chart or
+  `ChartCard` alike: the browser translates them, so donut slices are `{ x: "$app.plan.pro", y }`.
 
 ### Tables
 
@@ -153,8 +160,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- A table of more than a few columns that phones will read offers the cards and opens them there:
+  `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
+  saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
+  still opens phones on the cards.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
+- A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
+  default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
+  rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
 ### Forms
 
