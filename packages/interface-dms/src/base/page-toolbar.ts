@@ -5,7 +5,12 @@ import {
   type ComponentMetadata,
 } from "../component";
 import type { MaybePromise } from "../types";
-import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
+import {
+  type BlockInitialChild,
+  type BlockOptionsFor,
+  RegisterBlockType,
+  ui,
+} from "./block-registry";
 import { LiveToggle, type LiveToggleProps } from "./live-toggle";
 import {
   PeriodSelector,
@@ -192,6 +197,15 @@ export const PAGE_TOOLBAR_LIVE_CHILD_ID = "live";
 /** The child id of the toolbar's `PeriodSelector` unless `period.childId` says otherwise. */
 export const PAGE_TOOLBAR_PERIOD_CHILD_ID = "period";
 
+/**
+ * One control of a toolbar's default children: the catalog entry an editor
+ * starts a new toolbar with, and the block `pageToolbar()` places.
+ */
+interface ToolbarControl extends BlockInitialChild {
+  /** The control as `pageToolbar()` places it, its metadata and transform on. */
+  build(): Component;
+}
+
 // A control built over its defaults, carrying the metadata and the options
 // transform it was given.
 function placed<P>(
@@ -237,31 +251,48 @@ export function pageToolbar(
   for (const [id, component] of Object.entries(leading ?? {})) {
     toolbar.child(id, component);
   }
+  for (const control of toolbarControls(live, period)) {
+    toolbar.child(control.id, control.build());
+  }
+  return toolbar;
+}
+
+/**
+ * The toolbar's default children, in order: the `LiveToggle` then the
+ * `PeriodSelector`, each over its defaults. The one source of what a toolbar
+ * holds, for `pageToolbar()` and for the catalog's `initialChildren`.
+ */
+function toolbarControls(
+  live: PageToolbarOptions["live"],
+  period: PageToolbarOptions["period"],
+): ToolbarControl[] {
+  const controls: ToolbarControl[] = [];
   if (live !== false) {
     const { childId, meta, transformOptions, ...liveProps } = live ?? {};
-    toolbar.child(
-      childId ?? PAGE_TOOLBAR_LIVE_CHILD_ID,
-      placed(LiveToggle({ ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...liveProps }), {
-        meta,
-        transformOptions,
-      }),
-    );
+    const liveOptions = { ...PAGE_TOOLBAR_LIVE_DEFAULTS, ...liveProps };
+    controls.push({
+      id: childId ?? PAGE_TOOLBAR_LIVE_CHILD_ID,
+      type: "LiveToggle",
+      options: liveOptions,
+      build: () => placed(LiveToggle(liveOptions), { meta, transformOptions }),
+    });
   }
   if (period !== false) {
     const { childId, meta, transformOptions, ...periodProps } = period ?? {};
-    toolbar.child(
-      childId ?? PAGE_TOOLBAR_PERIOD_CHILD_ID,
-      placed(
-        PeriodSelector({
-          ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
-          ...toolbarComparisonSetup(periodProps),
-          ...periodProps,
-        }),
-        { meta, transformOptions },
-      ),
-    );
+    const periodOptions = {
+      ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+      ...toolbarComparisonSetup(periodProps),
+      ...periodProps,
+    };
+    controls.push({
+      id: childId ?? PAGE_TOOLBAR_PERIOD_CHILD_ID,
+      type: "PeriodSelector",
+      options: periodOptions,
+      build: () =>
+        placed(PeriodSelector(periodOptions), { meta, transformOptions }),
+    });
   }
-  return toolbar;
+  return controls;
 }
 
 /** The options `PageToolbar` accepts. */
@@ -304,19 +335,7 @@ RegisterBlockType({
     group: "data",
   },
   // What `pageToolbar()` places, for an editor building a toolbar.
-  initialChildren: [
-    {
-      id: PAGE_TOOLBAR_LIVE_CHILD_ID,
-      type: "LiveToggle",
-      options: { ...PAGE_TOOLBAR_LIVE_DEFAULTS },
-    },
-    {
-      id: PAGE_TOOLBAR_PERIOD_CHILD_ID,
-      type: "PeriodSelector",
-      options: {
-        ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
-        ...toolbarComparisonSetup({}),
-      },
-    },
-  ],
+  initialChildren: toolbarControls(undefined, undefined).map(
+    ({ id, type, options }) => ({ id, type, options }),
+  ),
 });
