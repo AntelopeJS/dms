@@ -13861,6 +13861,15 @@
             "widget": "switch"
           }
         },
+        "archivedCountLabel": {
+          "type": "string",
+          "optional": true,
+          "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\").",
+          "ui": {
+            "label": "Archived count",
+            "group": "content"
+          }
+        },
         "defaultFilters": {
           "type": "array",
           "items": {
@@ -14374,7 +14383,8 @@
           "footer.countLabel",
           "footer.hint",
           "rowActions.hasSelection",
-          "archiveMode"
+          "archiveMode",
+          "archivedCountLabel"
         ]
       }
     },

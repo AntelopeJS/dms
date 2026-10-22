@@ -109,7 +109,7 @@
       "show_archived": "Show archived items",
       "archived": "Archived",
       "archive_toggle": "Archive",
-      "archived_count": "{count} archived",
+      "archived_count": "Archived: {count}",
       "archive_strip_title": "Viewing archived items.",
       "archive_strip_description": "They are hidden from the regular list until restored.",
       "archived_empty_title": "No archived items",
