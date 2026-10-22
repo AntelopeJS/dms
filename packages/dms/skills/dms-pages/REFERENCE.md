@@ -56,8 +56,11 @@ points at an `ActionTarget`. A detail or record panel (an inspector, a request, 
 resizes by its inner edge and which opens again at that size. On a row it takes the side
 panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
 fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
-with previous / next next to close; J / K step in place through the rows the table shows;
-`deepLink:
+with previous / next next to close; J / K step in place, through every row the table lists
+(the position counts them all, a step past the page loaded turns the page, a step goes to
+the open row's neighbour by id so live rows never make it skip or revisit one, and a
+deep-linked row past the page loaded is located in the table's result, in the order
+the table shows, pinned rows leading their own page); `deepLink:
 true` on the target keeps
 `?record=`; `notFound: { title, description }` draws the 404 state — with the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
@@ -75,7 +78,9 @@ import the layer's `RowHeader` component —
 `docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
 fills it and ends with `<DmsContainerFooter>` for its buttons — never measure the drawer nor use
-`--dms-form-foot-*` — `docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
+`--dms-form-foot-*`; a code editor taking the height left (`DmsInputCode fill`, in a stacked
+`DmsFieldRow fill`) — never count its lines from the drawer's size —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
 A `useDrawer()` body injects what the component calling `useDrawer()` (in its setup) provides —
 never pass a context as a prop to provide it again in the body.
 A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
@@ -101,9 +106,15 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)` makes the page's data blocks
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
-  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
+  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`). Its selected
+  comparison drives the cards: `KpiCard` names it ("vs previous year", leave `compareLabel`
+  unset) and prints the route's `previousValue`; "No comparison" hides the change, the value
+  compared against and the label on `KpiCard`, `ChartCard` and `TopListCard`.
 - `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
-  `PublishMessage`.
+  `PublishMessage`. Publish tenant data with the tenant id (`{ tenantId }`): without it the message
+  is global and refetches the page in every workspace. A `TableView` needs no option: the DMS
+  publishes to every tenant for a table of the shared schema, and a platform (module) page receives
+  every tenant's changes.
 
 ### Live pages
 
@@ -155,6 +166,11 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A layout banner (`RegisterLayoutBanner`) shows on the application's pages only by default, never
+  inside `/modules` (modules page, module store, module pages). Give `scope:
+  LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
+  maintenance) that must follow the user into modules; leave the default for anything about the
+  application's own data.
 - A route that must word a text reads the request's `x-content-language` header (the language on
   screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
@@ -164,6 +180,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Blocks
 
 - `StatGroup` details and `NavCardGrid` card titles take up to two lines before their ellipsis.
+- `StatGroup({ columnsFrom: "md" })` (`DmsStatGroup columns-from`) sets all `columns` side by side from
+  that group width — never a class forcing the group's grid (`[&>div]:grid-cols-*`).
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).

@@ -37,12 +37,18 @@ interface InputNumberFieldProps extends InputNumberProps {
    * fills the row; left out, a `max` of a few digits makes it compact.
    */
   width?: InputWidth;
+  /**
+   * `true` puts a typed value on the nearest `step` when the field is left.
+   * Off by default: `step` only drives the steppers and the arrow keys, and
+   * a value is never rewritten (9,692 kept as 9,692 with steps of 100).
+   */
+  stepSnapping?: boolean;
 }
 
 interface InputNumberAdjustEmits {
   /**
    * The field kept another value than the one typed, on leaving it or on
-   * Enter: clamped to `min` / `max`, or put on its `step`.
+   * Enter: clamped to `min` / `max`, or put on its `step` (`stepSnapping`).
    */
   adjust: [adjustment: InputNumberAdjustment];
 }
@@ -51,6 +57,7 @@ type InputNumberFieldEmits = InputNumberEmits & InputNumberAdjustEmits;
 
 const props = withDefaults(defineProps<InputNumberFieldProps>(), {
   clamp: true,
+  stepSnapping: false,
 });
 const emits = defineEmits<InputNumberFieldEmits>();
 defineSlots<InputNumberSlots>();
@@ -80,6 +87,25 @@ const { locale } = useI18n();
 
 // v2 number fields keep the value left-aligned with a compact caret stepper.
 const DEFAULT_ORIENTATION = "vertical";
+
+// The unit sits inside the box, before the stepper, so a field with a unit
+// is as wide as the fields around it: the value's end padding makes room for
+// the stepper (2rem, `end-8` below), a gap and the unit, sized in
+// characters (`ch` slightly overestimates a short unit, never clips it).
+const SUFFIX_BASE_CLASS = "pe-[calc(var(--dms-field-suffix-width)+2.375rem)]";
+const suffixText = computed(() =>
+  props.suffix ? processI18n(props.suffix) : "",
+);
+const suffixStyle = computed(() =>
+  suffixText.value
+    ? { "--dms-field-suffix-width": `${suffixText.value.length}ch` }
+    : undefined,
+);
+const fieldUi = computed(() =>
+  suffixText.value
+    ? { ...props.ui, base: [props.ui?.base, SUFFIX_BASE_CLASS] }
+    : props.ui,
+);
 
 // A minus typed or pasted where no negative number is allowed is refused
 // by the field before it shows: it says why, rather than leaving an emptied
@@ -145,10 +171,9 @@ async function settle(event: Event): Promise<void> {
 </script>
 
 <template>
-  <!-- The unit sits after the field rather than inside it, where the
-    stepper already takes the end of the box. -->
   <div
-    :class="props.suffix ? 'flex items-center gap-2' : 'contents'"
+    :class="suffixText ? 'relative flex items-center' : 'contents'"
+    :style="suffixStyle"
     @beforeinput.capture="onIncomingText"
     @input="onTyped"
     @keydown.enter="settle"
@@ -157,17 +182,18 @@ async function settle(event: Event): Promise<void> {
       v-bind="{ ...inputProps, ...$attrs }"
       @blur="settle"
       @update:model-value="onSettledValue"
-      :class="[props.suffix && 'min-w-0 flex-1', isCompact && 'sm:max-w-44']"
+      :class="[suffixText && 'min-w-0 flex-1', isCompact && 'sm:max-w-44']"
+      :ui="fieldUi"
       :orientation="props.orientation ?? DEFAULT_ORIENTATION"
       :increment="{ color: 'neutral' }"
       :decrement="{ color: 'neutral' }"
     />
     <span
-      v-if="props.suffix"
-      class="text-muted shrink-0 text-[13px]"
+      v-if="suffixText"
+      class="text-muted pointer-events-none absolute inset-y-0 end-8 flex items-center text-[13px] whitespace-nowrap"
       data-field-suffix
     >
-      {{ processI18n(props.suffix) }}
+      {{ suffixText }}
     </span>
   </div>
 </template>

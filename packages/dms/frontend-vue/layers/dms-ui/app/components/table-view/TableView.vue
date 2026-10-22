@@ -132,6 +132,8 @@ import { useTableViews } from "../../build/composables/table-view/useTableViews"
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import type { RowStep } from "../../build/composables/actions/rowNavigation";
+import { rowLocator } from "../../build/composables/table-view/utils/locateRow";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
 import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
@@ -197,6 +199,8 @@ type TableStatePreference = [TableField, Ref<unknown>, unknown];
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
+  /** Caption count while the archived rows show (backend `archivedCountLabel`). */
+  archivedCountLabel?: string;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
@@ -1124,6 +1128,83 @@ const hasMoreRows = computed(
 const loadMoreRows = () => {
   if (hasMoreRows.value && !isListLoading.value) loadNextPage();
 };
+// A row's drawer or side panel steps through every row the table lists: past
+// the rows loaded, it turns the table's page (or grows its feed) and steps
+// onto the rows that arrive. A display reading its own rows keeps to them.
+const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
+const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
+// What a display reading its own rows shows (`setShownRows`), in its order:
+// the rows its row's container steps through. Another display, another set.
+const selfManagedRows = shallowRef<Data[]>([]);
+const setSelfManagedRows = (rows: T[]) => {
+  selfManagedRows.value = rows as Data[];
+};
+watch(activeDisplayId, () => {
+  selfManagedRows.value = [];
+});
+const navigableRows = (): Data[] =>
+  listsServerPages.value
+    ? ((shownResults.value ?? []) as Data[])
+    : selfManagedRows.value;
+const loadedRowsOffset = () => {
+  if (isAccumulating || !listsServerPages.value) return 0;
+  const { pageIndex, pageSize } = paginationState.value;
+  return pageSize > 0 ? pageIndex * pageSize : 0;
+};
+const turnPage = (step: RowStep): boolean => {
+  if (isAccumulating) {
+    if (step < 0 || !hasMoreRows.value) return false;
+    loadNextPage();
+    return true;
+  }
+  const { pageIndex, pageSize } = paginationState.value;
+  const next = pageIndex + step;
+  const total = data.value?.total ?? 0;
+  if (pageSize <= 0 || next < 0 || next * pageSize >= total) return false;
+  paginationState.value = { ...paginationState.value, pageIndex: next };
+  return true;
+};
+let adjacentRowsLoad: Promise<boolean> | undefined;
+const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
+  // A second J while the page loads waits for the same page.
+  if (adjacentRowsLoad) return adjacentRowsLoad;
+  if (!listsServerPages.value || isListLoading.value || !turnPage(step)) {
+    return Promise.resolve(false);
+  }
+  const before = shownResults.value;
+  adjacentRowsLoad = until(
+    () => shownResults.value !== before && !isListLoading.value,
+  )
+    .toBe(true, { timeout: ADJACENT_ROWS_TIMEOUT_MS })
+    .then(() => !listLoadError.value && shownResults.value !== before)
+    .finally(() => {
+      adjacentRowsLoad = undefined;
+    });
+  return adjacentRowsLoad;
+};
+// A row past the rows loaded (a deep link, a row live rows pushed out) is
+// found in the table's whole result, under the query the list reads: its
+// position, and its neighbours for the steps. Its rows read in the order
+// the table shows them: pinned rows lead each page it reads, not the result.
+const locateRow = rowLocator({
+  list: async (offset, limit) => {
+    if (!listsServerPages.value) return null;
+    const page = await tableRows.listAsShown(
+      {
+        ...queryRequest.value,
+        ...archiveQuery.value,
+        ...liveHold.heldQuery(),
+        offset,
+        limit,
+      },
+      requestedPagination.value.pageSize,
+    );
+    return page && { results: page.results as Data[], total: page.total };
+  },
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  isWholeRead: () => !!props.source && !props.source.capabilities.paginate,
+});
+
 const accumulation = computed<TableAccumulation | undefined>(() =>
   isAccumulating
     ? {
@@ -1342,9 +1423,16 @@ const {
   pageId: pageId!,
   queryParamFilters,
   rowNavigation: {
-    rows: () => (shownResults.value ?? []) as Data[],
+    rows: navigableRows,
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
     getRow: (id) => tableRows.getRow(id) as Promise<Data | undefined>,
+    total: () =>
+      listsServerPages.value
+        ? (shownData.value?.total ?? undefined)
+        : undefined,
+    offset: loadedRowsOffset,
+    loadAdjacent: loadAdjacentRows,
+    locate: locateRow,
   },
   recordScope: urlScope,
   onRecordShown: (id) => recordLink?.shown(id),
@@ -1930,6 +2018,7 @@ const displayContext = computed(
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
     refresh: refreshByUser,
+    setShownRows: setSelfManagedRows,
     reorder: reorderState.value,
     table: displayTable.value,
   }),
@@ -2166,6 +2255,7 @@ onMounted(() => {
     :url-filters="shownUrlFilters"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
+    :archived-count-label="props.archivedCountLabel"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"

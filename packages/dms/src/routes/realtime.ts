@@ -15,7 +15,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { AuthRawUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { userCanAccessPage } from "../implementations/dms/page";
+import { isPlatformPage, userCanAccessPage } from "../implementations/dms/page";
 import {
   addDevReloadListener,
   DEV_RELOAD_TOPIC,
@@ -25,12 +25,15 @@ import {
   buildMemberMenuTopic,
   buildMenuTopic,
   buildUserNotificationTopic,
+  EVERY_TENANT,
   getPageTopics,
   getPresenceTracker,
+  isEventForTenant,
   MENU_BROADCAST_TOPIC,
   openSseStream,
   type PresenceActor,
   subscribeRealtime,
+  type TenantView,
 } from "../realtime";
 import {
   getConnectionInfo,
@@ -38,6 +41,7 @@ import {
   getSessionSubscriptions,
   registerConnection,
   registerSession,
+  type SessionInfo,
   setSessionPage,
   unregisterConnection,
   unregisterSession,
@@ -74,6 +78,12 @@ interface SessionGreeting extends RealtimeAck {
  */
 interface PageSubscriptionAck extends RealtimeAck {
   topics: string[];
+}
+
+/** Who a page request was made as: the stream it names must be theirs. */
+export interface RealtimeRequester {
+  userId: string;
+  tenantId: string;
 }
 
 interface PresenceRequestBody {
@@ -126,6 +136,16 @@ const computeDesiredTopics = (sessionId: string): Set<string> => {
   return topics;
 };
 
+/**
+ * The tenants whose events the session receives on `topic`: its own, or every
+ * tenant on the topics of a platform page, which lists every tenant's data
+ * whichever workspace the owner has open.
+ */
+const tenantViewOn = (info: SessionInfo, topic: string): TenantView =>
+  info.isOnPlatformPage && info.pageId && getPageTopics(info.pageId).has(topic)
+    ? EVERY_TENANT
+    : info.tenantId;
+
 const applySessionTopics = async (
   sessionId: string,
   refreshSnapshots = false,
@@ -144,14 +164,22 @@ const applySessionTopics = async (
     const isNew = !subscriptions.has(topic);
     if (isNew) {
       // Tracked rather than bound to the broker of the moment: a live SSE
-      // session must keep receiving across a realtime reconfiguration.
+      // session must keep receiving across a realtime reconfiguration. An
+      // event another tenant published is not this session's to receive,
+      // unless it views every tenant on this topic.
       subscriptions.set(
         topic,
-        subscribeRealtime(topic, (event) => info.send(event.topic, event)),
+        subscribeRealtime(topic, (event) => {
+          if (!isEventForTenant(event, tenantViewOn(info, topic))) return;
+          info.send(event.topic, event);
+        }),
       );
     }
     if (isNew || refreshSnapshots) {
-      const entries = await presence.snapshotForTopic(topic);
+      const entries = await presence.snapshotForTopic(
+        topic,
+        tenantViewOn(info, topic),
+      );
       info.send(SNAPSHOT_EVENT, { topic, entries });
     }
   }
@@ -168,17 +196,37 @@ const warnUnlessClosed = (sessionId: string) => (error: unknown) => {
   Logging.Warn("Realtime: applySessionTopics failed", error);
 };
 
-const ensureSessionOnPage = async (
+const isSessionOf = (
+  info: SessionInfo,
+  requester: RealtimeRequester,
+): boolean =>
+  info.user?._id === requester.userId && info.tenantId === requester.tenantId;
+
+/**
+ * Puts the session on `pageId`, once it is known to be the requester's own.
+ *
+ * A session keeps the user and tenant it was opened with, while the browser
+ * may have switched workspace (or account) since, in this tab or another: its
+ * page requests then carry the new identity. Subscribing the old session would
+ * deliver the previous workspace's events to the new one's page, so the
+ * session is ended instead, and the client opens one in the current workspace.
+ */
+export const ensureSessionOnPage = async (
   sessionId: string,
   pageId: string,
+  requester: RealtimeRequester,
 ): Promise<boolean> => {
   const info = getSessionInfo(sessionId);
   if (!info) return false;
+  if (!isSessionOf(info, requester)) {
+    await info.close();
+    return false;
+  }
   if (info.pageId === pageId) return true;
   if (info.pageId) {
     await getPresenceTracker().releaseAllForSession(sessionId);
   }
-  setSessionPage(sessionId, pageId);
+  setSessionPage(sessionId, pageId, isPlatformPage(pageId));
   await applySessionTopics(sessionId, true);
   return true;
 };
@@ -306,15 +354,23 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     if (!sessionId || !getSessionInfo(sessionId)) {
       return { ok: false, topics: [] };
     }
+    const tenantId = getRequestTenantId(ctx);
     const canAccess = await userCanAccessPage(
       user,
       pageId,
       memberModel,
       roleModel,
-      getRequestTenantId(ctx),
+      tenantId,
     );
     assert(canAccess, 403, "error.forbidden");
-    await ensureSessionOnPage(sessionId, pageId);
+    if (
+      !(await ensureSessionOnPage(sessionId, pageId, {
+        userId: user._id,
+        tenantId,
+      }))
+    ) {
+      return { ok: false, topics: [] };
+    }
     return { ok: true, topics: [...getPageTopics(pageId)] };
   }
 
@@ -347,23 +403,27 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   ): Promise<RealtimeAck> {
     if (!sessionId || !isValidPresenceBody(body)) return { ok: false };
     if (!getPageTopics(body.pageId).has(body.topic)) return { ok: false };
+    const tenantId = getRequestTenantId(ctx);
     const canAccess = await userCanAccessPage(
       user,
       body.pageId,
       memberModel,
       roleModel,
-      getRequestTenantId(ctx),
+      tenantId,
     );
     if (!canAccess) return { ok: false };
-    if (!(await ensureSessionOnPage(sessionId, body.pageId))) {
+    if (
+      !(await ensureSessionOnPage(sessionId, body.pageId, {
+        userId: user._id,
+        tenantId,
+      }))
+    ) {
       return { ok: false };
     }
-    await getPresenceTracker().acquire(
-      sessionId,
-      body.topic,
-      body.key,
-      buildActor(user),
-    );
+    await getPresenceTracker().acquire(sessionId, body.topic, body.key, {
+      actor: buildActor(user),
+      tenantId,
+    });
     return { ok: true };
   }
 

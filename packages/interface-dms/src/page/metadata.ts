@@ -571,6 +571,7 @@ export class PageMetadata {
       tenantId,
       query,
       params,
+      resolverContext,
     }: PageLayoutRequest,
     // Only for the by-slug entry, which has no guard of its own.
     { enforceTenantAccessGate = false } = {},
@@ -613,7 +614,13 @@ export class PageMetadata {
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+      return GetEffectiveUserPermissions(
+        user,
+        tenantId,
+        roleIds,
+        roleModel,
+        resolverContext,
+      );
     };
 
     // Header actions declaring a permission are filtered on every page, even

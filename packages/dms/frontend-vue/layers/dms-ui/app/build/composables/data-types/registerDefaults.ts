@@ -18,6 +18,7 @@ import {
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import { formatDuration } from "#dms-core/app/utils/formatter";
 import { withNumberSuffix } from "./numberSuffix";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
@@ -787,7 +788,14 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "string_time",
-    formatter: { default: formatTimeSpan },
+    // Written as the field writes it ("7 h 30 min"), in the reader's locale,
+    // rounded as every duration cell is: the field keeps the exact value.
+    formatter: {
+      default: (value: unknown, locale: string) =>
+        isNumber(value)
+          ? formatDuration(Number(value), locale, { precision: "rounded" })
+          : value,
+    },
   });
 };
 

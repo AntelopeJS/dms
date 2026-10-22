@@ -4,14 +4,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 
 const response = ref<Record<string, unknown> | null>(null);
+const fetchOptions = vi.hoisted(() => [] as Record<string, unknown>[]);
 
 vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: response,
-    isLoading: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  }),
+  useChartFetch: (options: Record<string, unknown>) => {
+    fetchOptions.push(options);
+    return {
+      data: response,
+      isLoading: ref(false),
+      error: ref(null),
+      refresh: async () => {},
+    };
+  },
 }));
 
 const Slot = defineComponent({
@@ -21,8 +25,8 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-const TREND_LINE = 'class="flex h-6 items-center"';
-const STAT_TREND_PLACEHOLDER = 'class="h-4"';
+const TREND_LINE = 'class="flex h-6 min-w-0 items-center gap-2"';
+const STAT_TREND_PLACEHOLDER = 'class="flex h-4 items-center gap-1.5"';
 const FOOTNOTE_PLACEHOLDER = 'class="block h-4"';
 // The trend badge's own classes (the sparkline's gradient carries "%" too).
 const TREND_BADGE = "whitespace-nowrap tabular-nums transition-colors";
@@ -49,6 +53,9 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+    ref(initial()),
+  );
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -110,5 +117,17 @@ describe("a KPI card with no comparison period", () => {
     response.value = { value: 1535 };
     const html = await render({ showDelta: false, compareLabel: undefined });
     expect(html).not.toContain(TREND_LINE);
+  });
+});
+
+describe("a live KPI card", () => {
+  it("reads on its realtimeTopic and follows its period scope at once", async () => {
+    fetchOptions.length = 0;
+    response.value = { value: 1535, previousValue: 1616, delta: -5 };
+    await render({ periodScope: "api", realtimeTopic: "api:requests" });
+    expect(fetchOptions.at(-1)).toMatchObject({
+      periodScope: "api",
+      realtimeTopic: "api:requests",
+    });
   });
 });

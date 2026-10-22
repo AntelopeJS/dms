@@ -81,10 +81,39 @@ interface UserRealtimeState {
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
   reconciling: Promise<void>;
-  cancelConnect?: () => void;
+  connection?: TabConnection;
+}
+
+/** This tab's hold on the shared connection. */
+interface TabConnection {
+  /** Opens a new session for the tab, in the browser session's workspace. */
+  renewSession: () => void;
+  cancel: () => void;
 }
 
 let singletonApi: UserRealtimeApi | undefined;
+
+/** The user field the shared connection is keyed by. */
+interface ConnectionUser {
+  _id?: string;
+}
+
+/** The session fields a realtime session is bound to on the server. */
+interface SessionScopeFields {
+  accountId?: string;
+  activeTenantId?: string;
+}
+
+/**
+ * The account and workspace a realtime session is opened in. The server binds
+ * a session to those of the request that opened it, so a switch of either
+ * needs a new session: the old one would keep delivering the previous
+ * workspace's events. The connection, keyed by user, stays.
+ */
+const sessionScopeOf = (
+  session: SessionScopeFields | null | undefined,
+): string =>
+  JSON.stringify([session?.accountId ?? "", session?.activeTenantId ?? ""]);
 
 const dispatchToHandlers = (
   state: UserRealtimeState,
@@ -177,18 +206,21 @@ const unauthorizedError = (): Error =>
 /**
  * Keeps a session of this tab on the browser's shared realtime connection
  * until cancelled: a new one each time the connection changes, its leader tab
- * having gone or its stream having dropped.
+ * having gone or its stream having dropped, and each time it is renewed.
  */
 const connectTab = (
   state: UserRealtimeState,
   baseUrl: string,
   userKey: string,
   callbacks: ConnectionCallbacks,
-): (() => void) => {
+): TabConnection => {
   const dispatch = handleEvent(state);
   const retries = createReconnector();
   const sessionCloseUrl = `${baseUrl}${REALTIME_SESSION_CLOSE_PATH}`;
   let connectionId: string | undefined;
+  // Each opening attempt supersedes the previous one, which a renewal may
+  // leave in flight on the same connection.
+  let attempt = 0;
   // The session's first frames may come before the answer that names it.
   let buffered: BufferedFrame[] | undefined;
 
@@ -218,8 +250,11 @@ const connectTab = (
   };
 
   const openSession = async (forConnection: string): Promise<void> => {
+    const ownAttempt = ++attempt;
     const isCurrent = () =>
-      !retries.isCancelled() && connectionId === forConnection;
+      !retries.isCancelled() &&
+      connectionId === forConnection &&
+      attempt === ownAttempt;
     const retry = () =>
       retries.schedule(() => {
         if (isCurrent()) void openSession(forConnection);
@@ -266,10 +301,15 @@ const connectTab = (
     adopt(forConnection, greeting!);
   };
 
-  // The backend ended this tab's session alone, on the connection it keeps.
-  const reopenSession = () => {
+  // A new session on the connection the tab keeps: the backend ended the
+  // current one alone, or the tab's account or workspace changed.
+  const renewSession = () => {
     if (retries.isCancelled() || !connectionId) return;
-    callbacks.onDisconnected();
+    const sessionId = state.sessionId.value;
+    if (sessionId) {
+      closeStraySession(connectionId, sessionId);
+      callbacks.onDisconnected();
+    }
     void openSession(connectionId);
   };
 
@@ -292,7 +332,7 @@ const connectTab = (
       }
       if (sessionId === state.sessionId.value) {
         if (eventName === SESSION_ENDED_EVENT) {
-          reopenSession();
+          renewSession();
           return;
         }
         dispatch(eventName, data);
@@ -306,9 +346,12 @@ const connectTab = (
     redirectToAuth: callbacks.redirectToAuth,
   });
 
-  return () => {
-    retries.cancel();
-    connection.leave();
+  return {
+    renewSession,
+    cancel: () => {
+      retries.cancel();
+      connection.leave();
+    },
   };
 };
 
@@ -419,7 +462,10 @@ const buildApi = (): UserRealtimeApi => {
   };
 
   const config = useDmsRuntimeConfig();
-  const { loggedIn, user } = useDmsUserSession();
+  const { loggedIn, user, session } = useDmsUserSession<
+    ConnectionUser,
+    SessionScopeFields
+  >();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL as string;
 
@@ -429,12 +475,12 @@ const buildApi = (): UserRealtimeApi => {
     watch(
       () => (loggedIn.value ? String(user.value?._id ?? "") : undefined),
       (userKey) => {
-        state.cancelConnect?.();
-        state.cancelConnect = undefined;
+        state.connection?.cancel();
+        state.connection = undefined;
         resetSession(state);
         state.menuTopics.value = [];
         if (userKey === undefined) return;
-        state.cancelConnect = connectTab(state, baseUrl, userKey, {
+        state.connection = connectTab(state, baseUrl, userKey, {
           onConnected: () => {
             void reconcilePage(state, baseUrl);
           },
@@ -444,6 +490,12 @@ const buildApi = (): UserRealtimeApi => {
         });
       },
       { immediate: true },
+    );
+    // A switch of account or workspace within the same user: the tab's session
+    // is renewed on the connection it already shares.
+    watch(
+      () => sessionScopeOf(session?.value),
+      () => state.connection?.renewSession(),
     );
   }
 

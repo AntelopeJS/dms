@@ -10,6 +10,7 @@ import type {
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
+  RoleSendOptions,
 } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
 import {
@@ -299,26 +300,35 @@ export namespace internal {
   export async function SendToRoles(
     roleIds: string[],
     data: NotificationData,
-    readScope: ReadScope = "individual",
-    idempotencyKey?: string,
-    delivery: DeliveryOptions = {},
+    options: RoleSendOptions = {},
   ): Promise<void> {
     if (roleIds.length === 0 || !isDeliverable(data, "roles")) {
       return;
     }
 
-    const userIds = await collectUserIdsWithRoles(roleIds);
+    const userIds = await collectUserIdsWithRoles(roleIds, options.tenantId);
 
     if (userIds.length === 0) {
       return;
     }
 
-    await SendToUsers(userIds, data, readScope, idempotencyKey, delivery);
+    await SendToUsers(
+      userIds,
+      data,
+      options.readScope,
+      options.idempotencyKey,
+      { dedupe: options.dedupe },
+    );
   }
 
-  async function collectUserIdsWithRoles(roleIds: string[]): Promise<string[]> {
+  // The members of `tenantId` holding any of the roles, or of every tenant
+  // when it is not given.
+  async function collectUserIdsWithRoles(
+    roleIds: string[],
+    tenantId: string | undefined,
+  ): Promise<string[]> {
     const targetRoleIds = new Set(roleIds);
-    const memberModel = GetModel(TenantMemberModel, CROSS_INSTANCE);
+    const memberModel = GetModel(TenantMemberModel, tenantId ?? CROSS_INSTANCE);
     const userIds = new Set<string>();
     let offset = 0;
     while (true) {

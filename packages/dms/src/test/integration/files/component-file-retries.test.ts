@@ -102,7 +102,7 @@ async function persist(
   });
   expect(response.status, JSON.stringify(response.data)).to.equal(200);
   await assertFinal(f);
-  return { document, result: response.data[0] };
+  return { document, result: response.data._id };
 }
 
 function outcome<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {

@@ -20,5 +20,5 @@ Put secrets/per-deploy values in `envOverrides` (a framework feature); per-envir
 | --- | --- |
 | Pages, TableViews, the component builders | **dms-pages** (`docs/02.building/03.pages-and-components.md`, `docs/04.components/`) |
 | Auth on pages/routes, permissions, tenants | **dms-auth** (`docs/03.auth-and-tenancy/`) |
-| Hooks, notifications, realtime, replayable jobs, HTML render, export jobs | `docs/02.building/06.backend-services.md` |
+| Hooks, notifications, realtime, replayable jobs, automation nodes, HTML render, export jobs | `docs/02.building/06.backend-services.md` |
 | Custom Vue in your `frontend-vue/` module | `docs/02.building/08.frontend-layer.md`, `docs/05.extending-the-dashboard/`, `docs/06.frontend-composables/` |
