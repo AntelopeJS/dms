@@ -689,6 +689,9 @@
         "info": "note"
       }
     },
+    "flow_canvas": {
+      "delete_node": "Supprimer le nœud"
+    },
     "password_rules": {
       "head": "{met} sur {total} respectées",
       "verdict": {

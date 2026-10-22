@@ -309,6 +309,10 @@ const expandableSchema = z.union([
   }),
 ]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
+/** An option naming one of the displays offered. */
+const displayIdOption = (label: string) =>
+  ui(z.string().optional(), { label, group: "advanced" });
+
 /** The options `TableView` accepts, after its controller argument. */
 export const TableViewSchema = z.object({
   caption: ui(z.string().optional().describe("Heading above the table."), {
@@ -516,10 +520,8 @@ export const TableViewSchema = z.object({
     label: "Displays",
     group: "advanced",
   }),
-  defaultDisplay: ui(z.string().optional(), {
-    label: "Default display",
-    group: "advanced",
-  }),
+  defaultDisplay: displayIdOption("Default display"),
+  mobileDisplay: displayIdOption("Display on phones"),
   guards: ui(opaqueOption<TableViewGuards>().optional(), {
     label: "Guards",
     hidden: true,

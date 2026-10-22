@@ -688,6 +688,9 @@
         "info": "note"
       }
     },
+    "flow_canvas": {
+      "delete_node": "Delete node"
+    },
     "password_rules": {
       "head": "{met} of {total} met",
       "verdict": {
