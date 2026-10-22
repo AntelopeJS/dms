@@ -8405,6 +8405,15 @@
                             "typedBy": "type"
                           }
                         },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "localized": {
                           "type": "boolean",
                           "optional": true,
@@ -8527,6 +8536,15 @@
                       "label": "Default value",
                       "widget": "json",
                       "typedBy": "type"
+                    }
+                  },
+                  "offersDefault": {
+                    "type": "boolean",
+                    "optional": true,
+                    "ui": {
+                      "label": "Offer the default",
+                      "widget": "switch",
+                      "advanced": true
                     }
                   },
                   "localized": {
@@ -8743,6 +8761,15 @@
                             "label": "Default value",
                             "widget": "json",
                             "typedBy": "type"
+                          }
+                        },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
                           }
                         },
                         "localized": {
@@ -9798,7 +9825,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "description": "How many columns on a wide screen.",
+          "description": "How many columns once the list is wide enough.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -12496,6 +12523,23 @@
             "max": 6
           }
         },
+        "columnsFrom": {
+          "type": "string",
+          "enum": [
+            "sm",
+            "md",
+            "lg",
+            "xl"
+          ],
+          "optional": true,
+          "description": "The group's width from which all columns sit side by side (sm 24rem, md 28rem, lg 32rem, xl 36rem).",
+          "ui": {
+            "label": "All columns from",
+            "group": "layout",
+            "widget": "segmented",
+            "advanced": true
+          }
+        },
         "label": {
           "type": "string",
           "optional": true,
@@ -13817,6 +13861,15 @@
             "widget": "switch"
           }
         },
+        "archivedCountLabel": {
+          "type": "string",
+          "optional": true,
+          "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\").",
+          "ui": {
+            "label": "Archived count",
+            "group": "content"
+          }
+        },
         "defaultFilters": {
           "type": "array",
           "items": {
@@ -14330,7 +14383,8 @@
           "footer.countLabel",
           "footer.hint",
           "rowActions.hasSelection",
-          "archiveMode"
+          "archiveMode",
+          "archivedCountLabel"
         ]
       }
     },

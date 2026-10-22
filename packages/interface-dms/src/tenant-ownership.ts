@@ -1,8 +1,8 @@
 import type { UserModel } from "./auth/db";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "./db/models/tenantMembers.model";
-import { ExecuteHooks, Hook } from "./hooks";
-import { runTenantLifecycleOperation } from "./tenant-lifecycle";
+import { changeTenantMembers } from "./tenant-members";
+import { describeMembershipPatch } from "./internal/member-changes";
 import {
   applyAdmittedTenantOwnership,
   mirrorPlatformOwner,
@@ -16,29 +16,25 @@ export interface TenantMembershipPatch {
   deliveryId?: string;
 }
 
-/** Admits membership writes before a tenant can begin destructive deletion. */
+/**
+ * Adds the user to the tenant, or sets the roles and ownership of an existing
+ * member, through `changeTenantMembers`.
+ */
 export async function applyTenantOwnership(
   userModel: UserModel,
   userId: string,
   tenantId: string,
   patch: TenantMembershipPatch,
 ): Promise<void> {
-  await runTenantLifecycleOperation(tenantId, async () => {
-    // Public callers supplying a delivery identity still need the policy veto.
-    // Internal resolution checks it before persisting its applying phase.
-    if (
-      patch.deliveryId &&
-      !(await GetModel(TenantMemberModel, tenantId).getByUser(userId))
-    ) {
-      await ExecuteHooks(Hook.MEMBER_BEING_CHANGED, {
-        tenantId,
-        userId,
-        isTenantOwner: patch.isTenantOwner,
-        previousIsTenantOwner: null,
-        deliveryId: patch.deliveryId,
-      });
-    }
-    await applyAdmittedTenantOwnership(userModel, userId, tenantId, patch);
+  await changeTenantMembers(tenantId, async () => {
+    const existing = await GetModel(TenantMemberModel, tenantId).getByUser(
+      userId,
+    );
+    return {
+      changes: describeMembershipPatch(existing, userId, patch),
+      write: () =>
+        applyAdmittedTenantOwnership(userModel, userId, tenantId, patch),
+    };
   });
 }
 

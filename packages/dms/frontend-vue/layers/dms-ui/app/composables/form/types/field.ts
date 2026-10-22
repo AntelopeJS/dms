@@ -31,6 +31,8 @@ export interface FormField {
   required?: boolean;
   type?: string;
   defaultValue?: FormFieldValue;
+  /** "Module default · Use default" while it holds something else. */
+  offersDefault?: boolean;
   localized?: boolean;
 }
 

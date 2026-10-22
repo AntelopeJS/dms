@@ -1,10 +1,14 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import {
   type AsyncProxy,
+  GetMetadata,
   ImplementInterface,
 } from "@antelopejs/interface-core";
 import { internal as runtime } from "@antelopejs/interface-core/internal";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
+import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
+import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { internal as dmsTableView } from "../../../../implementations/dms-base/table-view";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import * as tableViewInterface from "@antelopejs/interface-dms/base/table-view";
@@ -27,7 +31,18 @@ import {
 const LOCATION = "/api/table-view-realtime";
 const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
+const TENANT = "table-view-realtime-tenant";
+
+// The route's auth decorator binds the verified user and tenant to the
+// request; the handler reads the tenant from that binding.
+const REQUEST_CONTEXT = {
+  rawRequest: { headers: { authorization: "Bearer table-view-realtime" } },
+} as unknown as RequestContext;
 const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
+bindVerifiedRequestPrincipal(REQUEST_CONTEXT, {
+  userId: USER._id,
+  tenantId: TENANT,
+});
 const REMOVED_SETTERS = [
   "setRealtimeMutationHook",
   "setRealtimePresenceHook",
@@ -58,7 +73,14 @@ const getRoute = withPresenceAcquire({
 });
 
 function edit(id: string): Promise<unknown> {
-  return editRoute.func.call(controller, undefined, { id }, SESSION, USER);
+  return editRoute.func.call(
+    controller,
+    undefined,
+    { id },
+    REQUEST_CONTEXT,
+    SESSION,
+    USER,
+  );
 }
 
 function open(id: string): Promise<unknown> {
@@ -66,6 +88,7 @@ function open(id: string): Promise<unknown> {
     controller,
     undefined,
     { id },
+    REQUEST_CONTEXT,
     SESSION,
     PRESENCE_ACQUIRE,
     USER,
@@ -80,6 +103,20 @@ function generation(name: string): TableViewRealtime {
       },
       AcquirePresence: async ({ rowId }: RealtimePresenceContext) => {
         deliveries.push(`${name} presence ${rowId}`);
+      },
+    },
+  };
+}
+
+/** A generation recording the tenant each call names. */
+function tenantRecorder(tenants: Array<string | undefined>): TableViewRealtime {
+  return {
+    internal: {
+      PublishMutation: async ({ tenantId }: RealtimeMutationContext) => {
+        tenants.push(tenantId);
+      },
+      AcquirePresence: async ({ tenantId }: RealtimePresenceContext) => {
+        tenants.push(tenantId);
       },
     },
   };
@@ -149,6 +186,31 @@ describe("[unit] interfaces/dms-base — table-view realtime across DMS generati
       "second updated row-3",
       "second presence row-3",
     ]);
+  });
+
+  it("names the tenant the write and the open were made in", async () => {
+    const tenants: Array<string | undefined> = [];
+    attach(tenantRecorder(tenants));
+    await edit("row-4");
+    await open("row-4");
+
+    expect(tenants).to.deep.equal([TENANT, TENANT]);
+  });
+
+  it("names no tenant for a table of the schema every tenant shares", async () => {
+    const tenants: Array<string | undefined> = [];
+    const meta = GetMetadata(RowsAPI, DataAPIMeta);
+    const schemaName = meta.schemaName;
+    attach(tenantRecorder(tenants));
+    meta.schemaName = CORE_SCHEMA_NAME;
+    try {
+      await edit("row-5");
+      await open("row-5");
+    } finally {
+      meta.schemaName = schemaName;
+    }
+
+    expect(tenants).to.deep.equal([undefined, undefined]);
   });
 
   it("offers no setter to leave a DMS callback in the interface", () => {

@@ -200,6 +200,7 @@ export function TableView<T extends ControllerClass>(
       labelKey: options.labelKey,
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
+      archivedCountLabel: options.archivedCountLabel,
       defaultSort: options.defaultSort,
       pinnedRows: options.pinnedRows as RowActionRule | undefined,
       queryParamFilters: options.queryParamFilters,
@@ -464,20 +465,28 @@ function buildTableViewForms<T extends ControllerClass>(
   const viewForm = resourceForm(controller, "view", {
     slotId: options.formSlots?.view,
   });
-  if (access === "read")
-    return { new: undefined, edit: undefined, view: viewForm };
   const submitDefaults = buildFilterSubmitDefaults(options);
-  return {
-    new: resourceForm(controller, "new", {
-      submitDefaults,
-      slotId: options.formSlots?.new,
-    }),
-    edit: resourceForm(controller, "edit", {
-      submitDefaults,
-      slotId: options.formSlots?.edit,
-    }),
-    view: viewForm,
-  };
+  const forms: Record<FormPageKind, FormBuilder | undefined> =
+    access === "read"
+      ? { new: undefined, edit: undefined, view: viewForm }
+      : {
+          new: resourceForm(controller, "new", {
+            submitDefaults,
+            slotId: options.formSlots?.new,
+          }),
+          edit: resourceForm(controller, "edit", {
+            submitDefaults,
+            slotId: options.formSlots?.edit,
+          }),
+          view: viewForm,
+        };
+  // Each form is handed to the module before it is embedded or mounted, so
+  // what it declares on the builder (its watches) reaches every container.
+  for (const kind of FORM_PAGE_KINDS) {
+    const form = forms[kind];
+    if (form) options.forms?.[kind]?.(form);
+  }
+  return forms;
 }
 
 /**

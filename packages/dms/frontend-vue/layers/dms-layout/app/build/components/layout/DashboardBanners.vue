@@ -3,8 +3,9 @@ import DmsBlockActions from "#dms-ui/app/build/components/blocks/BlockActions.vu
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
 /**
- * Stacks the global layout banners under the dashboard header, on every page
- * of the dashboard layout. Each banner carries its own live-region role, so a
+ * Stacks the global layout banners under the dashboard header, on the pages
+ * each banner's scope covers (the application's pages unless it says
+ * otherwise). Each banner carries its own live-region role, so a
  * banner appearing after a navigation is announced as well. A text is a
  * string or a composed text, written in the reader's language, followed by
  * the banner's link buttons.

@@ -19,6 +19,7 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `P
 | Recent events, audit log | `ActivityFeed` | Day separators vs relative times |
 | Usage bar, quota | `Meter` | Bar thickness (`size`) |
 | Notice, alert strip | `Banner` | Wash vs flat background |
+| Strip under the dashboard header, across pages | `RegisterLayoutBanner` (backend): the app's pages by default, `scope: "everywhere"` for a workspace-wide state | Not inside `/modules` unless scoped `everywhere` |
 | Empty / first-run screen | `EmptyState` (or `Guard` around blocks) | Illustration vs icon well |
 | Links to sub-pages as cards | `NavCardGrid` | Card height |
 | Code snippet | `CodeBlock` | Theme of the highlighting |

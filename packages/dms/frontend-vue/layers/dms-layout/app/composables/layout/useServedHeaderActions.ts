@@ -3,6 +3,8 @@ import type { LayoutHeaderAction } from "../../build/components/layout/PageHeade
 import type { PageLayout } from "../../types/page";
 import {
   isSamePageQuery,
+  isSameRouteParams,
+  fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
 } from "../../utils/pageQuery";
@@ -15,6 +17,8 @@ interface ServedHeaderActionsOptions {
    * declares an `availability` (`headerActionsQuery`).
    */
   servedQuery: () => Record<string, string> | undefined;
+  /** The route parameters (`:id`) their availability was resolved for. */
+  servedParams?: () => Record<string, string> | undefined;
 }
 
 /**
@@ -22,20 +26,22 @@ interface ServedHeaderActionsOptions {
  * `availability` depends on the query (`?workspace=` names the record the
  * page acts on) was resolved for the query the layout was loaded with: when
  * the URL's query moves away from it, the header asks the page layout again
- * for that query and takes its buttons, keeping the last ones meanwhile.
+ * for that query and takes its buttons, keeping the last ones meanwhile. The
+ * same goes for the route parameters: the layout of `/projects/project/:id`
+ * is cached once for the page, whichever record it was first served for.
  * Buttons without an availability never cause a request.
  */
 export function useServedHeaderActions({
   actions,
   servedQuery,
+  servedParams = () => undefined,
 }: ServedHeaderActionsOptions): ComputedRef<LayoutHeaderAction[]> {
   const route = useDmsRoute();
   const siteLayout = useSiteLayout();
   const refreshed = shallowRef<LayoutHeaderAction[] | null>(null);
   let latestRequest = 0;
 
-  const layoutUrl = () =>
-    siteLayout.findMatchingRoute(route.path)?.metadata?.layoutUrl;
+  const pageRoute = () => siteLayout.findMatchingRoute(route.path);
 
   async function askFor(url: string, query: Record<string, string>) {
     const request = ++latestRequest;
@@ -58,17 +64,29 @@ export function useServedHeaderActions({
   function follow() {
     const served = servedQuery();
     const current = pageQueryValues(route.query as Record<string, unknown>);
-    const url = layoutUrl();
-    if (!served || !url || isSamePageQuery(served, current)) {
+    const match = pageRoute();
+    const layoutUrl = match?.metadata?.layoutUrl;
+    const params = match?.params ?? {};
+    const paramsServed = servedParams();
+    if (
+      !served ||
+      !layoutUrl ||
+      (isSamePageQuery(served, current) &&
+        (!paramsServed || isSameRouteParams(paramsServed, params)))
+    ) {
       latestRequest++;
       refreshed.value = null;
       return;
     }
-    void askFor(url, current);
+    void askFor(fillRouteParams(layoutUrl, params), current);
   }
 
   if (!import.meta.env.SSR) {
-    watch([() => route.query, servedQuery], follow, { immediate: true });
+    watch(
+      [() => route.query, () => route.path, servedQuery, servedParams],
+      follow,
+      { immediate: true },
+    );
   }
 
   return computed(() => refreshed.value ?? actions());

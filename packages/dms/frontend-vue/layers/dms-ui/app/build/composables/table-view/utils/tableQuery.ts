@@ -47,16 +47,39 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
   );
 };
 
+/**
+ * The column filters (the filters row, a saved view) laid over the hidden
+ * ones (a tab, a route or query parameter). On a column both filter, both
+ * are sent: the list route keeps the rows passing every filter of a column
+ * (AND), so a tab never lists rows it excludes, and two filters no row can
+ * pass list nothing.
+ */
+const combineFilters = (
+  hidden: Record<string, string>,
+  column: Record<string, string>,
+): Record<string, string | string[]> => {
+  const combined: Record<string, string | string[]> = { ...hidden };
+  for (const [key, value] of Object.entries(column)) {
+    const hiddenValue = hidden[key];
+    combined[key] =
+      hiddenValue === undefined || hiddenValue === value
+        ? value
+        : [hiddenValue, value];
+  }
+  return combined;
+};
+
 export const buildTableQuery = (config: QueryConfig): TableQueryParams => {
   const pageSize = config.pagination.pageSize;
   const activeSort = config.sorting[0];
 
-  const columnFilters = buildFiltersQuery(config.columnFilters);
-  const hiddenFilters = buildFiltersQuery(config.hiddenFilters || []);
+  const filters = combineFilters(
+    buildFiltersQuery(config.hiddenFilters || []),
+    buildFiltersQuery(config.columnFilters),
+  );
 
   return {
-    ...hiddenFilters,
-    ...columnFilters,
+    ...filters,
     search: config.globalFilter ?? undefined,
     offset: config.pagination.pageIndex * pageSize,
     limit: pageSize,

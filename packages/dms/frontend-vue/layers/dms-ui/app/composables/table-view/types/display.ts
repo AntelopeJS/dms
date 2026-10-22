@@ -250,6 +250,14 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
   options?: Record<string, unknown>;
+  /**
+   * A self-managed display hands the rows it shows, in the order the user
+   * reads them (a board: column by column), each time they change: a row
+   * opened from it steps through them in its drawer or side panel ("3 of
+   * 12", previous / next, J and K). Without it, a self-managed display's row
+   * opens without steps. The shared list's displays need not call it.
+   */
+  setShownRows?: (rows: T[]) => void;
   /** Re-fetch the table view (shared list + tab counts + active display). */
   refresh: () => Promise<void> | void;
   /**

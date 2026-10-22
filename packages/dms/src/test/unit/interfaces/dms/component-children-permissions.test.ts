@@ -93,18 +93,18 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
   expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
     undefined,
   );
-  const layout = await (handler as NonNullable<typeof handler>)(
-    { _id: "cc-user" } as User,
-    {
+  const layout = await (handler as NonNullable<typeof handler>)({
+    user: { _id: "cc-user" } as User,
+    memberModel: {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,
-    {
+    roleModel: {
       getBy: async () => [
         { permissions: withPermissionAncestors(permissions) },
       ],
     } as unknown as RoleModel,
-    TENANT,
-  );
+    tenantId: TENANT,
+  });
   return (layout.components.card?.children ?? []) as LayoutChild[];
 }
 
@@ -375,18 +375,18 @@ async function sharedLayout(permissions: string[]) {
   expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
     undefined,
   );
-  return (handler as NonNullable<typeof handler>)(
-    { _id: "cc-shared-user" } as User,
-    {
+  return (handler as NonNullable<typeof handler>)({
+    user: { _id: "cc-shared-user" } as User,
+    memberModel: {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,
-    {
+    roleModel: {
       getBy: async () => [
         { permissions: withPermissionAncestors(permissions) },
       ],
     } as unknown as RoleModel,
-    TENANT,
-  );
+    tenantId: TENANT,
+  });
 }
 
 describe("[unit] interfaces/dms/page — nested components under stress", () => {
