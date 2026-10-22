@@ -38,12 +38,11 @@ interface SessionUser {
 }
 
 /**
- * Whether a session, or a stored account, outlives the browser. Only a login
- * that left "keep me signed in" unchecked says no; a cookie written before
- * the flag existed carries none, and keeps the lifetime it was given then.
+ * Whether a session, or a stored account, outlives the browser: only one a
+ * login that ticked "keep me signed in" wrote (`persistent: true`).
  */
 export function isPersistent(session?: { persistent?: unknown }): boolean {
-  return session?.persistent !== false;
+  return session?.persistent === true;
 }
 
 function lifetime(persistent: boolean): number | undefined {

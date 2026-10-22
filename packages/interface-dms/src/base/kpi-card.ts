@@ -43,6 +43,11 @@ export interface KpiCardProps extends BaseComponentProps {
   showSparkline?: boolean;
   sparklineAccent?: ChartColorValue | "auto";
   invert?: boolean;
+  /**
+   * Names the period the delta is measured against ("vs previous period").
+   * Shown with the delta only: without a comparison, `description` shows in
+   * its place.
+   */
   compareLabel?: string;
   staticValue?: number;
   /** The change in percent, as a fetched `delta`: 12.5 reads +12.5 %. */
