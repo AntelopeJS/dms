@@ -94,7 +94,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `setMissedDetail()`); one that reads its own data on a topic calls
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
-  held while paused.
+  held while paused. A table view's write (row/bulk action, its form saved) already
+  calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
 
 ### Texts
 
@@ -132,8 +133,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- A table of more than a few columns that phones will read offers the cards and opens them there:
+  `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
+  saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
+  still opens phones on the cards.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
+- A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
+  default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
+  rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
 ### Forms
 
