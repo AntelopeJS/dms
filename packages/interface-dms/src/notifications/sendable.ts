@@ -1,5 +1,10 @@
 import { internal } from "./internal";
-import type { DeliveryOptions, NotificationData, SendOptions } from "./types";
+import type {
+  DeliveryOptions,
+  NotificationData,
+  RoleSendOptions,
+  SendOptions,
+} from "./types";
 
 function deliveryOf(options: SendOptions): DeliveryOptions {
   return { dedupe: options.dedupe };
@@ -48,15 +53,13 @@ export class SendableNotification {
     await this.toUsers(userIds, { ...options, idempotencyKey });
   }
 
-  async toRoles(roleIds: string[], options: SendOptions = {}): Promise<void> {
+  /** Sends to the holders of any of `roleIds`, in `options.tenantId` only when set. */
+  async toRoles(
+    roleIds: string[],
+    options: RoleSendOptions = {},
+  ): Promise<void> {
     await this.requireIdempotencySupport(options);
-    await internal.SendToRoles(
-      roleIds,
-      this.data,
-      options.readScope,
-      options.idempotencyKey,
-      deliveryOf(options),
-    );
+    await internal.SendToRoles(roleIds, this.data, options);
   }
 
   async broadcast(options: SendOptions = {}): Promise<void> {

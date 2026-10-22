@@ -85,7 +85,7 @@ module's frontend; without it the module is backend-only.
 
 `renderer` names the framework (Vue 3), not a loader release. The `@antelopejs/dms-frontend`
 releases the frontend module runs on go in the frontend module's own `package.json`, as
-`"engines": { "@antelopejs/dms-frontend": ">=0.6.0 <0.7.0" }`: the loader refuses the module
+`"engines": { "@antelopejs/dms-frontend": ">=0.8.0 <0.9.0" }`: the loader refuses the module
 outside that range. Cap it below the next loader minor while the loader is 0.x.
 
 An absolute link (a public file, a snippet to copy, a mail) is built on `await GetApiBaseUrl()`
@@ -103,7 +103,8 @@ module root** (nest under what `RegisterModule` returned, or rely on `defaultCat
 module pages cannot use the Settings category, and the module must exist before a page names
 it. Pages resolve at `/modules/<moduleId>/<urlSlug>`; entering the module lands on
 `landingPage` if set, else the first page by `order` — `/modules/<id>` itself redirects there (server
-redirect, query and hash kept), so never register a hidden page to forward it. Access is **owner-only by design**: the
+redirect, query and hash kept), so never register a hidden page to forward it. `store` is not a
+module id to take: `/modules/store` is the DMS's module store. Access is **owner-only by design**: the
 Modules group is visible to the platform owner alone (the `*` holder), and the
 `modules.<moduleId>.…` permission ids are module-scoped — never grantable through Roles. On a
 SaaS deployment that means you, the maker, not your customers; a screen for end users belongs

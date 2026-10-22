@@ -87,7 +87,7 @@ export const DASHBOARD_CARDS: NavCardItem[] = [
     icon: "i-ph-app-window",
     title: "Dashboard chrome",
     description:
-      "Layout banners shown on every page, and quick actions run from the command palette.",
+      "Layout banners under the dashboard header, and quick actions run from the command palette.",
     to: "/layout-banners",
     readout: ["Layout banners · Quick actions"],
   },

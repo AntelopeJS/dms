@@ -9,6 +9,10 @@
  */
 
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import {
+  CLOSING_OVERLAY_CLASS,
+  UNCOVERED_PANEL_CLASS,
+} from "#dms-ui/app/build/components/containers/constants";
 
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =
@@ -18,7 +22,15 @@ const FLOATING_SURFACE =
 const OVERLAY_SURFACE =
   "bg-default ring-(--dms-border-top) shadow-(--dms-shadow-modal)";
 
-const BACKDROP = "bg-(--dms-overlay) backdrop-blur-[2px]";
+/**
+ * Every modal, slideover and drawer, the DMS's or a module's: its backdrop
+ * lets clicks through as soon as it starts closing and fades out quickly,
+ * and the panel animating out no longer catches them either (reka keeps
+ * `pointer-events: auto` inline on both). The panel a closing dialog
+ * uncovered (a drawer under a confirm) takes clicks again at once.
+ */
+const BACKDROP = `bg-(--dms-overlay) backdrop-blur-[2px] ${CLOSING_OVERLAY_CLASS}`;
+const CLOSING_PANEL = `data-[state=closed]:pointer-events-none! ${UNCOVERED_PANEL_CLASS}`;
 
 const cardTheme = {
   slots: {
@@ -90,7 +102,7 @@ const tooltipTheme = {
 
 const modalTheme = {
   slots: {
-    content: "bg-default divide-y-0",
+    content: `bg-default divide-y-0 ${CLOSING_PANEL}`,
     header: "items-start gap-3 min-h-0 px-5 pt-[18px] pb-0 sm:px-5",
     title: "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]",
     description: "mt-1 text-[13px]",
@@ -116,7 +128,7 @@ const modalTheme = {
 const slideoverTheme = {
   slots: {
     overlay: BACKDROP,
-    content: `${OVERLAY_SURFACE} sm:shadow-(--dms-shadow-modal)`,
+    content: `${OVERLAY_SURFACE} sm:shadow-(--dms-shadow-modal) ${CLOSING_PANEL}`,
     header: "px-5 sm:px-5",
     title: "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]",
     description: "text-[13px]",
@@ -138,7 +150,7 @@ const DRAWER_EDGE_COMPOUNDS = [
 const drawerTheme = {
   slots: {
     overlay: BACKDROP,
-    content: OVERLAY_SURFACE,
+    content: `${OVERLAY_SURFACE} ${CLOSING_PANEL}`,
   },
   compoundVariants: DRAWER_EDGE_COMPOUNDS,
 };
@@ -178,7 +190,10 @@ const toastTheme = {
  * New toasts rise 16px into place instead of sliding in from a full toast
  * height below: that slide started off-screen, so a toast whose animation
  * had not run yet (background tab, throttled frame) sat cut off under the
- * bottom edge.
+ * bottom edge. A bottom stack rises above a save bar on the bottom edge (the
+ * floating bar, a drawer's footer band): the bar sets how far it reaches
+ * (`--dms-toaster-clearance`, see `toasterClearance.ts`), so a toast never
+ * covers its buttons, and the stack drops back once the bar hides.
  */
 const toasterTheme = {
   slots: {
@@ -203,7 +218,8 @@ const toasterTheme = {
     {
       position: ["bottom-left", "bottom-center", "bottom-right"],
       class: {
-        viewport: "bottom-5",
+        viewport:
+          "bottom-[calc(var(--dms-toaster-clearance,0px)+1.25rem)] transition-[bottom] duration-200 ease-out motion-reduce:transition-none",
         base: "data-[state=open]:animate-none starting:translate-y-4",
       },
     },

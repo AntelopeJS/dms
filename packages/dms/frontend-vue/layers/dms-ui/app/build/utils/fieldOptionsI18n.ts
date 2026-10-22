@@ -1,6 +1,11 @@
+/** An input component, with the options its field declares. */
+interface ComponentWithOptions {
+  options?: object;
+}
+
 /** A field whose input component carries options. */
 interface FieldWithOptions {
-  component: { options?: object };
+  component: ComponentWithOptions;
 }
 
 type Translate = (key: string) => string;
@@ -23,6 +28,9 @@ const ENTRY_TEXTS = ["label", "description"] as const;
 
 const isText = (value: unknown): value is string => typeof value === "string";
 
+const isOptions = (value: unknown): value is Options =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 function translateTexts(
   source: Options,
   keys: readonly string[],
@@ -36,25 +44,57 @@ function translateTexts(
 }
 
 /**
- * A field with the texts of its input component's options translated
- * (`$`-prefixed i18n keys): placeholder, labels, descriptions, and those of
- * its options and columns, the way forms show them.
+ * An entry holding a field of its own (a repeater's column, a key-value
+ * editor's value) has the options of that field's component translated too,
+ * so a select inside a repeater shows its options in the reader's language.
  */
-export function processFieldI18n<F extends FieldWithOptions>(
-  field: F,
+function translateNestedField(entry: Options, processI18n: Translate): Options {
+  if (!isOptions(entry.component)) return entry;
+  return {
+    ...entry,
+    component: translateComponent(entry.component, processI18n),
+  };
+}
+
+function translateComponent<C extends ComponentWithOptions>(
+  component: C,
   processI18n: Translate,
-): F {
-  const opts = field.component.options as Options | undefined;
-  if (!opts) return field;
+): C {
+  const opts = component.options as Options | undefined;
+  if (!opts) return component;
 
   const options = translateTexts(opts, TEXT_OPTIONS, processI18n);
   for (const key of LIST_OPTIONS) {
     const list = opts[key];
     if (!Array.isArray(list)) continue;
     options[key] = list.map((entry: Options) =>
-      translateTexts(entry, ENTRY_TEXTS, processI18n),
+      translateNestedField(
+        translateTexts(entry, ENTRY_TEXTS, processI18n),
+        processI18n,
+      ),
     );
   }
+  if (isOptions(opts.value)) {
+    options.value = translateNestedField(opts.value, processI18n);
+  }
 
-  return { ...field, component: { ...field.component, options } };
+  return { ...component, options };
+}
+
+/**
+ * A field with the texts of its input component's options translated
+ * (`$`-prefixed i18n keys): placeholder, labels, descriptions, and those of
+ * its options and columns, the way forms show them. The fields nested in it
+ * (a repeater's columns, a key-value editor's value) are translated the same
+ * way, at any depth.
+ */
+export function processFieldI18n<F extends FieldWithOptions>(
+  field: F,
+  processI18n: Translate,
+): F {
+  if (!field.component.options) return field;
+  return {
+    ...field,
+    component: translateComponent(field.component, processI18n),
+  };
 }

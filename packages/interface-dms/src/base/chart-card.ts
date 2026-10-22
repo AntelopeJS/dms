@@ -35,6 +35,12 @@ export interface ChartCardProps extends BaseComponentProps {
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
   /**
+   * Treat an increase as bad, for a metric where lower is better (errors,
+   * latency): a rising delta shows in the error colour, a falling one in the
+   * success colour. The arrow still follows the raw direction.
+   */
+  invert?: boolean;
+  /**
    * The card's own legend, "Period" and "Comparison" in its head, drawn when
    * the route answers a comparison. Defaults to `true`.
    */
@@ -46,6 +52,12 @@ export interface ChartCardProps extends BaseComponentProps {
    */
   showSeriesLegend?: boolean;
   primaryLabel?: string;
+  /**
+   * The legend's name for the comparison series. Optional: with a
+   * `periodScope`, it names the comparison its selector applies ("Previous
+   * year"), else "Comparison". With no comparison selected, the card draws no
+   * change, no "vs" figure and no comparison series.
+   */
   comparisonLabel?: string;
 }
 
@@ -152,6 +164,13 @@ export const ChartCardSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  invert: ui(
+    z
+      .boolean()
+      .optional()
+      .describe("Treat a falling value as the good outcome."),
+    { label: "Invert variation", group: "behavior", widget: "switch" },
+  ),
   showLegend: ui(z.boolean().default(true), {
     label: "Show legend",
     group: "appearance",

@@ -89,14 +89,16 @@ function handleUpdateModelValue(value: unknown) {
       "
       #default
     >
-      <span class="inline-flex items-center gap-1.5">
+      <!-- Top-aligned: on the text's baseline, the icon would add the
+        line's descent and make the trigger taller than a text field. -->
+      <span class="inline-flex max-w-full items-center gap-1.5 align-top">
         <UIcon
           v-if="selectedItem.icon"
           :name="selectedItem.icon"
           class="size-4 shrink-0"
           :style="colorVar(selectedItem.iconColor)"
         />
-        <span :style="colorVar(selectedItem.textColor)">
+        <span class="truncate" :style="colorVar(selectedItem.textColor)">
           {{ selectedItem.label }}
         </span>
       </span>

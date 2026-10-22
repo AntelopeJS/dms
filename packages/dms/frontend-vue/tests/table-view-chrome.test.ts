@@ -13,18 +13,28 @@ import {
   staticQuickFilterItems,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/quickFilters";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
+import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
 
 const column = (
   id: string,
   options: Record<string, unknown> = {},
+  defaultCompareMode?: string,
 ): TableViewColumn =>
   ({
     id,
     accessorKey: id,
     header: id,
     listable: true,
-    type: { id, inputComponent: { componentName: "x", options } },
+    type: {
+      id,
+      defaultCompareMode,
+      inputComponent: { componentName: "x", options },
+    },
   }) as unknown as TableViewColumn;
+
+const dataTypes = (id: string): DataType | undefined =>
+  id === "relation" ? { id, selectSource: relationSelectSource } : undefined;
 
 describe("TableView layout", () => {
   const everything = {
@@ -85,25 +95,43 @@ describe("TableView quick filters", () => {
     ).toEqual(["true", "false"]);
   });
 
-  it("reads a relation's values from its select endpoint", () => {
+  it("reads a relation's values from the select source its data type names", () => {
     const relation = column("relation", {
       multiple: true,
       searchUrl: "/api/roles/select",
-      keyMapping: { label: "title", value: "_id" },
+      keyMapping: { label: "title" },
     });
     expect(staticQuickFilterItems(relation, translate)).toBe(undefined);
-    const source = relationQuickFilterSource(relation)!;
+    const source = relationQuickFilterSource(relation, dataTypes)!;
     expect(source).toEqual({
-      url: "/api/roles/select",
-      labelKey: "title",
-      valueKey: "_id",
+      searchUrl: "/api/roles/select",
+      keyMapping: { label: "title" },
     });
+    // The value key is not mapped: the route's `value`, as the picker reads.
     expect(
       relationQuickFilterItems(
-        [{ _id: "r1", title: "Admin" }, { title: "no id" }],
+        [{ value: "r1", title: "Admin", _id: "x" }, { title: "no id" }],
         source,
       ),
     ).toEqual([{ value: "r1", label: "Admin" }]);
+  });
+
+  it("names a relation's values by the route's label and value keys by default", () => {
+    const source = relationQuickFilterSource(
+      column("relation", { searchUrl: "/api/customers/select" }),
+      dataTypes,
+    )!;
+    expect(
+      relationQuickFilterItems(
+        [{ value: "cust-060", label: "Acme", _id: "row", name: "other" }],
+        source,
+      ),
+    ).toEqual([{ value: "cust-060", label: "Acme" }]);
+  });
+
+  it("fetches values only for a type that declares a select source", () => {
+    const searchable = column("custom_picker", { searchUrl: "/api/x/select" });
+    expect(relationQuickFilterSource(searchable, dataTypes)).toBe(undefined);
   });
 
   it("matches inside a list for a multiple column, by equality otherwise", () => {
@@ -112,6 +140,26 @@ describe("TableView quick filters", () => {
     );
     expect(quickFilterMode(column("select"))).toBe("is");
     expect(quickFilterMode(column("select"), "is_not")).toBe("is_not");
+  });
+
+  it("matches inside a tags column's list and offers its suggested tags", () => {
+    // A list is told by the type's own default mode, not by its id.
+    const tags = column(
+      "tags",
+      { suggestions: ["battery", "solar"] },
+      "array_contains_string",
+    );
+    expect(quickFilterMode(tags)).toBe("array_contains_string");
+    expect(quickFilterMode(column("tags"))).toBe("is");
+    expect(quickFilterMode(column("labels", {}, "array_contains_string"))).toBe(
+      "array_contains_string",
+    );
+    expect(staticQuickFilterItems(tags, translate)).toEqual([
+      { value: "battery", label: "battery" },
+      { value: "solar", label: "solar" },
+    ]);
+    // A column that declares no value offers none (as a relation before its read).
+    expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
   });
 
   const roles = { field: "roleIds", mode: "array_contains_string" } as const;
@@ -135,9 +183,9 @@ describe("TableView quick filters", () => {
     ]);
     expect(quickFilterValue(filters, roles)).toBe("r1");
     expect(applyQuickFilter(filters, roles, "r2")).toHaveLength(2);
-    expect(quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles)).toBe(
-      "r2",
-    );
+    expect(
+      quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles),
+    ).toBe("r2");
   });
 
   it("clears its filter on All, leaving the others", () => {

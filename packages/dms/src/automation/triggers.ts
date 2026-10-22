@@ -8,6 +8,7 @@ import {
   listenersFor,
   type RecordMutationEvent,
 } from "./events";
+import { fieldHint, nodeText, titledProperties } from "./i18n";
 
 const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 
@@ -16,8 +17,8 @@ const AT_PROPERTY: JsonSchema = { type: "string" };
 
 interface DmsEventTriggerSpec {
   event: AutomationEventName;
-  name: string;
-  description: string;
+  /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
+  texts: string;
   icon: string;
   outputProperties: Record<string, JsonSchema>;
 }
@@ -29,18 +30,18 @@ interface DmsEventTriggerSpec {
 function createEventTrigger(spec: DmsEventTriggerSpec): TriggerType {
   return {
     id: spec.event,
-    name: spec.name,
-    description: spec.description,
+    name: nodeText(`triggers.${spec.texts}`, "name"),
+    description: nodeText(`triggers.${spec.texts}`, "description"),
     icon: spec.icon,
     cluster: "replicated",
     configSchema: EMPTY_CONFIG_SCHEMA,
     outputSchema: {
       type: "object",
-      properties: {
+      properties: titledProperties({
         tenantId: TENANT_ID_PROPERTY,
         ...spec.outputProperties,
         at: AT_PROPERTY,
-      },
+      }),
     },
     async activate(_config, emit) {
       const listener: AutomationEventListener = (payload) => emit(payload);
@@ -59,37 +60,36 @@ interface RecordTriggerConfig {
 
 interface RecordTriggerSpec {
   event: AutomationEventName;
-  name: string;
-  description: string;
+  /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
+  texts: string;
   icon: string;
 }
 
 function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
   return {
     id: spec.event,
-    name: spec.name,
-    description: spec.description,
+    name: nodeText(`triggers.${spec.texts}`, "name"),
+    description: nodeText(`triggers.${spec.texts}`, "description"),
     icon: spec.icon,
     cluster: "replicated",
     configSchema: {
       type: "object",
-      properties: {
+      properties: titledProperties({
         location: {
           type: "string",
-          description:
-            'Data controller location to watch, e.g. "/api/tables/members". Leave empty to fire for every table.',
+          description: fieldHint("triggers.record", "location"),
         },
-      },
+      }),
     },
     outputSchema: {
       type: "object",
-      properties: {
+      properties: titledProperties({
         location: { type: "string" },
         ids: { type: "array", items: { type: "string" } },
         actorId: { type: "string" },
         actorName: { type: "string" },
         at: AT_PROPERTY,
-      },
+      }),
     },
     async activate(config, emit) {
       const location = (
@@ -112,8 +112,7 @@ function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
 export const TRIGGERS: TriggerType[] = [
   createEventTrigger({
     event: "dms.member-added",
-    name: "Member added",
-    description: "Fires when a user becomes a member of a tenant",
+    texts: "memberAdded",
     icon: "i-ph-user-plus",
     outputProperties: {
       userId: { type: "string" },
@@ -123,8 +122,7 @@ export const TRIGGERS: TriggerType[] = [
   }),
   createEventTrigger({
     event: "dms.member-removed",
-    name: "Member removed",
-    description: "Fires when members are removed from a tenant",
+    texts: "memberRemoved",
     icon: "i-ph-user-minus",
     outputProperties: {
       userIds: { type: "array", items: { type: "string" } },
@@ -132,8 +130,7 @@ export const TRIGGERS: TriggerType[] = [
   }),
   createEventTrigger({
     event: "dms.invite-created",
-    name: "Invite created",
-    description: "Fires when a user invite is created on a tenant",
+    texts: "inviteCreated",
     icon: "i-ph-paper-plane-tilt",
     outputProperties: {
       inviteId: { type: "string" },
@@ -145,8 +142,7 @@ export const TRIGGERS: TriggerType[] = [
   }),
   createEventTrigger({
     event: "dms.user-registered",
-    name: "User registered",
-    description: "Fires when a new user completes signup",
+    texts: "userRegistered",
     icon: "i-ph-user-circle-plus",
     outputProperties: {
       userId: { type: "string" },
@@ -156,20 +152,17 @@ export const TRIGGERS: TriggerType[] = [
   }),
   createRecordTrigger({
     event: "dms.record-created",
-    name: "Record created",
-    description: "Fires when rows are created in a TableView-backed table",
+    texts: "recordCreated",
     icon: "i-ph-plus-circle",
   }),
   createRecordTrigger({
     event: "dms.record-updated",
-    name: "Record updated",
-    description: "Fires when rows are updated in a TableView-backed table",
+    texts: "recordUpdated",
     icon: "i-ph-pencil-simple",
   }),
   createRecordTrigger({
     event: "dms.record-deleted",
-    name: "Record deleted",
-    description: "Fires when rows are deleted in a TableView-backed table",
+    texts: "recordDeleted",
     icon: "i-ph-trash",
   }),
 ];
