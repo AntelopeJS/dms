@@ -880,13 +880,13 @@ export class DMSController extends Controller("/dms") {
     const handler = GetPageLayoutBySlug(normalizedSlug);
     assert(handler, 404, "error.page_not_found");
 
-    return handler(
+    return handler({
       user,
       memberModel,
       roleModel,
-      getRequestTenantId(requestContext),
-      pageQueryOf(requestContext),
-    );
+      tenantId: getRequestTenantId(requestContext),
+      query: pageQueryOf(requestContext),
+    });
   }
 
   @Get("/page")
@@ -1009,6 +1009,29 @@ function matchesPagePattern(pattern: string, path: string): boolean {
   );
 }
 
+/**
+ * The route parameters `path` gives the page registered at `pattern`
+ * (`/projects/project/p1` is `{ id: "p1" }` for `/projects/project/:id`),
+ * empty when it does not match.
+ */
+export function pageParamsOf(
+  pattern: string,
+  path: string,
+): Record<string, string> {
+  if (!matchesPagePattern(pattern, path)) return {};
+  const pathSegments = path.split("/").filter(Boolean);
+  return Object.fromEntries(
+    pattern
+      .split("/")
+      .filter(Boolean)
+      .flatMap((segment, index) =>
+        segment.startsWith(":")
+          ? [[segment.slice(1), pathSegments[index]!]]
+          : [],
+      ),
+  );
+}
+
 function resolveRegisteredPageSlug(path: string): string | undefined {
   if (pagesBySlug[path]) return path;
   return Object.keys(pagesBySlug).find(
@@ -1084,13 +1107,15 @@ export async function buildPagePayload(
   const [layout, navBadges] = await Promise.all([
     // Header buttons resolve against the page URL's query, as `/pagelayout`
     // does: the layout then matches the one the browser would read again.
-    handler(
+    handler({
       user,
       memberModel,
       roleModel,
       tenantId,
-      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
-    ),
+      query:
+        requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+      params: pageParamsOf(registeredSlug, normalizedSlug),
+    }),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
@@ -1321,12 +1346,12 @@ async function findPreviewHeaderActions(
   const previewUser: User = Object.assign(Object.create(request.user), {
     owner: false,
   });
-  const previewLayout = await handler(
-    previewUser,
+  const previewLayout = await handler({
+    user: previewUser,
     memberModel,
     roleModel,
-    request.tenantId,
-  );
+    tenantId: request.tenantId,
+  });
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,
     quickActions: quickActions.real,
@@ -1358,7 +1383,7 @@ function readViewerLayout(
   const known = layouts.get(route.fullId);
   if (known) return known;
   const { user, memberModel, roleModel, tenantId } = request;
-  const layout = handler(user, memberModel, roleModel, tenantId);
+  const layout = handler({ user, memberModel, roleModel, tenantId });
   layouts.set(route.fullId, layout);
   layout.catch(() => layouts.delete(route.fullId));
   return layout;

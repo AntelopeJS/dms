@@ -1,5 +1,9 @@
 import { Controller, type ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata, InterfaceFunction } from "@antelopejs/interface-core";
+import {
+  EventProxy,
+  GetMetadata,
+  InterfaceFunction,
+} from "@antelopejs/interface-core";
 import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
@@ -524,3 +528,19 @@ export interface FrontendModuleMetadata {
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */
 export const GetFrontendModules =
   InterfaceFunction<() => FrontendModuleMetadata[]>();
+
+/**
+ * Fired whenever the list {@link GetFrontendModules} returns changes: a
+ * module registered its frontend (or replaced it with a higher priority), or
+ * a module was taken down with its frontend. Modules start in parallel, so a
+ * module that reads the list in its own `start()` may run before another
+ * registers: it registers a handler, reads the list once, and reads it again
+ * in the handler.
+ *
+ * @example
+ * FrontendModulesChanged.register(() => void refresh());
+ * await refresh(); // reads GetFrontendModules()
+ */
+export const FrontendModulesChanged = new EventProxy<() => void>(
+  "dms.page.FrontendModulesChanged",
+);

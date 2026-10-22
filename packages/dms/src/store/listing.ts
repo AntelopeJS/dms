@@ -22,7 +22,7 @@ import {
 } from "./interfaces";
 import { currentOperation, removedLayerNames, storeError } from "./operations";
 import { latestRelease } from "./registry";
-import { isLive, listRuntimeModules } from "./runtime";
+import { findWorkingCopy, isLive, listRuntimeModules } from "./runtime";
 import type {
   PackageRelease,
   RuntimeModule,
@@ -42,6 +42,8 @@ const CATALOG_I18N_PREFIX = "$modules.store.catalog";
 interface EntrySources {
   catalogEntry: StoreCatalogEntry;
   declaration: StoreDeclaration | undefined;
+  /** The developer's working copy that runs it, when nothing declares it from npm. */
+  workingCopy: RuntimeModule | undefined;
   runtime: ReadonlyMap<string, RuntimeModule>;
   release: PackageRelease | undefined;
   interfaceVersion: string;
@@ -62,6 +64,7 @@ interface EntryRequirements {
   frontendRequirement?: FrontendRequirement;
   missingInterfaces: MissingInterface[];
   dependents: string[];
+  usedByProject: boolean;
 }
 
 interface DeclarationsRead {
@@ -71,7 +74,7 @@ interface DeclarationsRead {
 
 function runtimeModule(sources: EntrySources): RuntimeModule | undefined {
   const key = sources.declaration?.key;
-  return key === undefined ? undefined : sources.runtime.get(key);
+  return key === undefined ? sources.workingCopy : sources.runtime.get(key);
 }
 
 function resolveState(sources: EntrySources): StoreModuleState {
@@ -79,7 +82,7 @@ function resolveState(sources: EntrySources): StoreModuleState {
   if (currentOperation()?.moduleId === id) return "busy";
   if (storeError(id)) return "error";
   const { declaration } = sources;
-  if (!declaration) return "available";
+  if (!declaration) return sources.workingCopy ? "active" : "available";
   const live = isLive(runtimeModule(sources));
   if (!declaration.disabled) return live ? "active" : "pending";
   return live ? "pending" : "disabled";
@@ -124,7 +127,7 @@ function isRangeBehind(
  */
 function pendingRelease(sources: EntrySources): PackageRelease | undefined {
   const { release, declaration } = sources;
-  if (!release) return undefined;
+  if (!release || sources.workingCopy) return undefined;
   if (!declaration) return release;
   return isRangeBehind(release.version, declaration.range)
     ? release
@@ -176,20 +179,23 @@ async function inspectRequirements(
   platform: PlatformState,
 ): Promise<EntryRequirements> {
   const module = runtimeModule(sources);
-  const dependents =
-    module && isLive(module) ? await findDependents(module, platform.live) : [];
+  const { modules: dependents, usedByProject } =
+    module && isLive(module)
+      ? await findDependents(module, platform.live, platform.projectPath)
+      : { modules: [], usedByProject: false };
   const release = pendingRelease(sources);
   if (!release) {
     return {
       missingInterfaces: await stalledOn(sources, platform),
       dependents,
+      usedByProject,
     };
   }
   const [frontend, missingInterfaces] = await Promise.all([
     checkFrontend(sources, release, platform),
     findMissingInterfaces(release, platform.implemented, platform.projectPath),
   ]);
-  return { ...frontend, missingInterfaces, dependents };
+  return { ...frontend, missingInterfaces, dependents, usedByProject };
 }
 
 function buildEntry(
@@ -207,6 +213,9 @@ function buildEntry(
     description: `${CATALOG_I18N_PREFIX}.${id}.description`,
     state: resolveState(sources),
     installedVersion: runtimeModule(sources)?.version ?? declaration?.range,
+    // A declaration is an npm one: the store reads no other.
+    source: sources.workingCopy?.sourceKind ?? "npm",
+    isWorkingCopy: sources.workingCopy ? true : undefined,
     declaredRange: declaration?.range,
     latestVersion: release?.version,
     updateAvailable: isRangeBehind(release?.version, declaration?.range),
@@ -262,14 +271,20 @@ export async function buildStoreListing(): Promise<StoreListing> {
   const interfaceVersion = installedInterfaceVersion();
   const acknowledgement = getFrontendAcknowledgement();
   const platform = await readPlatformState(projectPath, runtime);
-  const sources = catalog.map((catalogEntry, index) => ({
-    catalogEntry,
-    declaration: read.declarations.get(catalogEntry.id),
-    runtime,
-    release: releases[index],
-    interfaceVersion,
-    acknowledgement,
-  }));
+  const sources = catalog.map((catalogEntry, index) => {
+    const declaration = read.declarations.get(catalogEntry.id);
+    return {
+      catalogEntry,
+      declaration,
+      workingCopy: declaration
+        ? undefined
+        : findWorkingCopy(catalogEntry.package, runtime.values()),
+      runtime,
+      release: releases[index],
+      interfaceVersion,
+      acknowledgement,
+    };
+  });
   const requirements = await Promise.all(
     sources.map((entry) => inspectRequirements(entry, platform)),
   );

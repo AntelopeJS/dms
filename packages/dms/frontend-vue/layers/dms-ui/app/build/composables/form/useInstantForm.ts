@@ -54,6 +54,11 @@ export interface InstantFormOptions {
 export interface InstantForm extends InstantSave<FormValues> {
   /** The form loaded or was reset: its values are the confirmed ones. */
   start: () => void;
+  /**
+   * A field the server stored on its own (a rotated secret): its value is the
+   * confirmed one, not a change to save again.
+   */
+  confirmField: (id: string, value: unknown) => void;
 }
 
 const clone = (value: unknown): unknown =>
@@ -92,6 +97,12 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
     instant.confirm(values);
   }
 
+  function confirmField(id: string, value: unknown): void {
+    const confirmed = clone(value);
+    shown.set(id, confirmed);
+    instant.confirm({ [id]: confirmed });
+  }
+
   async function saveField(field: FormField, value: unknown): Promise<void> {
     const check = (checks.get(field.id) ?? 0) + 1;
     checks.set(field.id, check);
@@ -121,5 +132,5 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
     { deep: true },
   );
 
-  return { ...instant, start };
+  return { ...instant, start, confirmField };
 }
