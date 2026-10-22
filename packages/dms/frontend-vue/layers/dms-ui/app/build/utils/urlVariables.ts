@@ -154,17 +154,30 @@ const FRAGMENT_SEPARATOR = "#";
 const PAIR_SEPARATOR = "&";
 const VALUE_SEPARATOR = "=";
 
-/** The query of a URL without the pairs whose whole value is a token left empty. */
-function dropUnresolvedPairs(search: string): string {
+/** The query of a URL without the pairs whose whole value matches `value`. */
+function dropPairs(search: string, value: RegExp): string {
   return search
     .split(PAIR_SEPARATOR)
     .filter((pair) => {
-      const value = pair.slice(pair.indexOf(VALUE_SEPARATOR) + 1);
-      return (
-        !pair.includes(VALUE_SEPARATOR) || !UNRESOLVED_ROUTE_VALUE.test(value)
-      );
+      const pairValue = pair.slice(pair.indexOf(VALUE_SEPARATOR) + 1);
+      return !pair.includes(VALUE_SEPARATOR) || !value.test(pairValue);
     })
     .join(PAIR_SEPARATOR);
+}
+
+/**
+ * A URL without its `token`s: a query pair whose whole value is one (`value`)
+ * is left out, any other is left empty.
+ */
+function stripTokens(url: string, token: RegExp, value: RegExp): string {
+  const [beforeFragment = "", ...fragment] = url.split(FRAGMENT_SEPARATOR);
+  const [path = "", ...search] = beforeFragment.split(QUERY_SEPARATOR);
+  const query = dropPairs(search.join(QUERY_SEPARATOR), value);
+  const rebuilt = [
+    query ? `${path}${QUERY_SEPARATOR}${query}` : path,
+    ...fragment,
+  ].join(FRAGMENT_SEPARATOR);
+  return rebuilt.replace(token, "");
 }
 
 /**
@@ -180,12 +193,21 @@ export function resolveLinkVariables(
 ): string {
   const filled = replaceUrlVariables(url, context);
   if (!hasUrlVariables(filled)) return filled;
-  const [beforeFragment = "", ...fragment] = filled.split(FRAGMENT_SEPARATOR);
-  const [path = "", ...search] = beforeFragment.split(QUERY_SEPARATOR);
-  const query = dropUnresolvedPairs(search.join(QUERY_SEPARATOR));
-  const rebuilt = [
-    query ? `${path}${QUERY_SEPARATOR}${query}` : path,
-    ...fragment,
-  ].join(FRAGMENT_SEPARATOR);
-  return rebuilt.replace(UNRESOLVED_ROUTE_TOKEN, "");
+  return stripTokens(filled, UNRESOLVED_ROUTE_TOKEN, UNRESOLVED_ROUTE_VALUE);
+}
+
+// A row field, `{{row.<path>}}`, as `interpolateUrl` fills it.
+const ROW_KEY = String.raw`row\.[^{}\s]+`;
+const ROW_TOKEN = tokenPattern(ROW_KEY);
+const ROW_VALUE = new RegExp(`^${tokenPattern(ROW_KEY, "").source}$`);
+
+/**
+ * A URL sent without a row (a bulk action on the selection bar) with its
+ * `{{row.X}}` tokens taken out as a link's unresolved page tokens are: a query
+ * pair whose whole value is one is left out (`?ids={{row._id}}` gives way to
+ * the selection's `ids`), any other is left empty.
+ */
+export function dropRowTokens(url: string): string {
+  if (!new RegExp(ROW_TOKEN.source).test(url)) return url;
+  return stripTokens(url, ROW_TOKEN, ROW_VALUE);
 }

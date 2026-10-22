@@ -455,6 +455,42 @@ export interface FrontendPublicEndpoint {
 export const AddFrontendModule =
   InterfaceFunction<(config: AddFrontendModuleOptions) => void>();
 
+/**
+ * A module's frontend registration as both the backend and the frontend build
+ * compute it from the module's configuration. Its `privateOptions`, if any,
+ * hold their shape only, every value an empty string: the backend fills in its
+ * secrets before `AddFrontendModule`, and the frontend server fills them from
+ * its own environment when it starts (`DMS_HTML_RENDER_SECRET`,
+ * `DMS_PRIVATE_OPTIONS`…).
+ */
+export type FrontendModuleRegistration = AddFrontendModuleOptions;
+
+/** What a {@link FrontendModuleFunction} knows besides the module's config. */
+export interface FrontendModuleContext {
+  /** Whether the project runs in development, as the core reports it. */
+  dev: boolean;
+}
+
+/**
+ * The pure `config → registration` function a module ships with its
+ * frontend, named in its package.json:
+ *
+ * ```json
+ * { "dmsFrontend": "dist/frontend-module.js" }
+ * ```
+ *
+ * The file exports it as `frontendModule`. The backend passes its result to
+ * `AddFrontendModule` (adding the private options); `@antelopejs/dms-frontend`
+ * calls it with the configuration it evaluates from `antelope.config.ts`, so
+ * a frontend builds and starts without asking a backend. It reads nothing
+ * but its arguments: no runtime interface, no database, no network. A module
+ * that registers no frontend in this configuration returns `undefined`.
+ */
+export type FrontendModuleFunction<TConfig = unknown> = (
+  config: TConfig,
+  context: FrontendModuleContext,
+) => FrontendModuleRegistration | undefined;
+
 export interface FrontendModuleMetadata {
   name: string;
   sourcePath: string;
