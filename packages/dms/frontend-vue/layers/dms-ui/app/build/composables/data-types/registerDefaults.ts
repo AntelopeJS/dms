@@ -18,9 +18,14 @@ import {
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import {
+  dateFilterEditorValue,
+  numberFilterEditorValue,
+} from "../table/utils/filterEditorValue";
 import { formatDuration } from "#dms-core/app/utils/formatter";
 import { withNumberSuffix } from "./numberSuffix";
 import { registerTwoLineCellType } from "./twoLineCell";
+import { formatRecordLabel } from "../table-view/utils/formTexts";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
   type StatusPillVariant,
@@ -143,6 +148,52 @@ function createLinkRenderer(options: LinkRendererOptions) {
       ],
     );
   };
+}
+
+/** A `UrlType`'s options its read-only value reads. */
+interface UrlOptions {
+  preview?: "avatar" | "image";
+  /**
+   * The label of the field shown, handed by the form's read-only display:
+   * the image's name when its row has none.
+   */
+  fieldLabel?: string;
+}
+
+const URL_IMAGE_CLASS =
+  "border-default h-16 w-auto max-w-full rounded-md border object-cover";
+
+// The fields that name a row, read in order for its image's text.
+const ROW_NAME_FIELDS = ["name", "label", "title"];
+
+/**
+ * What an image stands for to a reader who cannot see it: the name of the
+ * row it belongs to (a team member's photo is that member), or else the
+ * field's label.
+ */
+function imageAlt(row: Row, locale: string, options: UrlOptions): string {
+  for (const field of ROW_NAME_FIELDS) {
+    const name = formatRecordLabel(row?.[field], locale);
+    if (name) return name;
+  }
+  return options.fieldLabel ?? "";
+}
+
+/**
+ * A URL drawn as the image it points to, when its type asks for it
+ * (`preview`): a remote photo reads as a picture, not as its address.
+ */
+function renderUrl(value: unknown, locale: string, options: unknown, row: Row) {
+  const opts = (options ?? {}) as UrlOptions;
+  if (!opts.preview || !isString(value) || !value) return undefined;
+  const alt = imageAlt(row, locale, opts);
+  if (opts.preview === "avatar") return h(UAvatar, { src: value, alt });
+  return h("img", {
+    src: value,
+    alt,
+    loading: "lazy",
+    class: URL_IMAGE_CLASS,
+  });
 }
 
 const convertToBoolean = (value: unknown): boolean =>
@@ -773,6 +824,7 @@ const registerPrimitiveTypes = (
   registerDataType({
     id: "number",
     formatter: { default: withNumberSuffix(formatNumber) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string",
@@ -781,10 +833,12 @@ const registerPrimitiveTypes = (
   registerDataType({
     id: "price",
     formatter: { default: withNumberSuffix(formatPrice) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "percentage",
     formatter: { default: withNumberSuffix(formatPercentage) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string_time",
@@ -823,6 +877,7 @@ const registerDateType = (registerDataType: (dataType: DataType) => void) => {
       },
       is_between: formatDateBetween,
     },
+    filterEditorValue: dateFilterEditorValue,
   });
 };
 
@@ -886,9 +941,13 @@ const registerLinkTypes = (registerDataType: (dataType: DataType) => void) => {
     id: "email",
     formatter: { default: createLinkRenderer({ hrefPrefix: "mailto:" }) },
   });
+  const renderLink = createLinkRenderer({ target: "_blank" });
   registerDataType({
     id: "url",
-    formatter: { default: createLinkRenderer({ target: "_blank" }) },
+    formatter: {
+      default: (value: unknown, locale: string, options: unknown, row?: Row) =>
+        renderUrl(value, locale, options, row) ?? renderLink(value, locale),
+    },
   });
 };
 

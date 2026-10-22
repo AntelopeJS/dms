@@ -22,6 +22,8 @@ interface InputTextProps extends InputProps {
    * fills the row; left out, a `maxLength` of 16 or less makes it compact.
    */
   width?: InputWidth;
+  /** How the value reads shown, not edited (a URL's image): not the input's. */
+  preview?: "avatar" | "image";
 }
 
 const props = defineProps<InputTextProps>();
@@ -30,7 +32,12 @@ defineSlots<InputSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
 const inputProps = computed(() => {
-  const { showCount: _showCount, width: _width, ...rest } = forwarded.value;
+  const {
+    showCount: _showCount,
+    width: _width,
+    preview: _preview,
+    ...rest
+  } = forwarded.value;
   return rest;
 });
 const isCompact = computed(() => isCompactTextInput(props));

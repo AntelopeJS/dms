@@ -29,6 +29,7 @@ import {
 } from "../../../composables/containers/useResizableSize";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
+  CLOSING_OVERLAY_CLASS,
   CONTAINER_SKELETON_CLASS,
   CONTAINER_SKELETON_FIELDS,
 } from "../constants";
@@ -179,11 +180,15 @@ const contentClass = computed(() => {
     ? undefined
     : EDGE_DRAWER_DESKTOP_CONTENT;
 });
-const contentProps = computed(() =>
-  resizedSize.value === undefined
-    ? undefined
-    : { style: { [SIZE_VARIABLE]: `${resizedSize.value}px` } },
-);
+// Reka keeps the page's `pointer-events: none` on the body until the
+// panel has slid out (half a second): released as soon as the close starts,
+// a click on the page lands while the drawer animates away.
+const contentProps = computed(() => ({
+  disableOutsidePointerEvents: isOpen.value,
+  ...(resizedSize.value !== undefined && {
+    style: { [SIZE_VARIABLE]: `${resizedSize.value}px` },
+  }),
+}));
 const handleClass = computed(() => HANDLE_CLASSES[props.direction]);
 const handleLineClass = computed(() =>
   isSide.value ? SIDE_HANDLE_LINE : EDGE_HANDLE_LINE,
@@ -199,9 +204,12 @@ function renderedSize(handle: Element): number | undefined {
   return isSide.value ? rect.width : rect.height;
 }
 
-// The drawer's own drag (to dismiss it) must not start from the handle.
+// The pointerdown is left to bubble: reka's outside-click detection listens
+// on the document and, if it never saw this press inside the drawer, would
+// take the next click on the backdrop for one inside and ignore it. The
+// drawer's own drag cannot start from it: vaul drags only a dismissible
+// drawer, and this one is not.
 function startHandleDrag(event: PointerEvent): void {
-  event.stopPropagation();
   const handle = event.currentTarget as HTMLElement;
   handle.setPointerCapture?.(event.pointerId);
   const rendered = renderedSize(handle) || resizedSize.value;
@@ -234,6 +242,7 @@ const DRAWER_BODY_CLASS =
 
 const drawerUi = computed(() => ({
   ...(contentClass.value && { content: contentClass.value }),
+  overlay: CLOSING_OVERLAY_CLASS,
   handle: DESKTOP_HIDDEN_GRIP,
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
   container: DRAWER_CONTAINER_CLASS,

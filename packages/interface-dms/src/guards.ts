@@ -4,7 +4,7 @@ import {
   type RequestContext,
   SetParameterProvider,
 } from "@antelopejs/interface-api";
-import { CreateAuthDecorator } from "@antelopejs/interface-auth";
+import { CreateJwtAuthDecorator } from "./auth/internal/jwt-auth-decorator";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import { MakeParameterAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -56,8 +56,7 @@ export const AuthUserWithPermission = (
   target: ComponentTargetInput | ControllerClass | Action,
   options?: TenantGuardOptions,
 ) => {
-  const decorator = CreateAuthDecorator({
-    source: (req, _) => req.headers.authorization?.split(" ")[1],
+  const decorator = CreateJwtAuthDecorator({
     authenticator: authInternal.AuthUserAuthenticator,
     validator: (data) =>
       internal.AuthUserWithPermissionValidator(target, data, options),
