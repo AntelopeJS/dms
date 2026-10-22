@@ -890,6 +890,7 @@ const openRowId = computed(() =>
 
 // The gate is set up with the other refresh triggers below; the hold only
 // reads it once the table is on screen.
+const NEW_ROWS_COUNT_ID = "liveHold:new";
 const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
 const liveHold = useTableLiveHold({
   liveHold: props.liveHold,
@@ -900,6 +901,32 @@ const liveHold = useTableLiveHold({
     isSearching: () => !!effectiveGlobalFilter.value,
     isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
     tableElement: () => tableRoot.value?.$el ?? null,
+  },
+  // The pill counts the rows the table would list, on its own count route:
+  // the rows its tab, search and filters match now, less those it holds.
+  newRows: {
+    heldList: () => data.value,
+    countNow: async (signal) => {
+      const counts = await tableRows.countBatch(
+        [
+          {
+            id: NEW_ROWS_COUNT_ID,
+            query: {
+              ...buildTableQuery({
+                pagination: { pageIndex: 0, pageSize: 0 },
+                sorting: [],
+                columnFilters: effectiveColumnFilters.value,
+                hiddenFilters: hiddenFilters.value,
+                globalFilter: effectiveGlobalFilter.value,
+              }),
+              ...archiveQuery.value,
+            },
+          },
+        ],
+        signal,
+      );
+      return counts[NEW_ROWS_COUNT_ID];
+    },
   },
 });
 
@@ -2322,10 +2349,7 @@ onMounted(() => {
     @remove-url-filter="removeUrlFilter"
     @edit="handleRowEdit"
   >
-    <template
-      v-if="liveHold.newCount.value > 0 || liveHold.reason.value"
-      #notice
-    >
+    <template v-if="liveHold.reason.value" #notice>
       <LiveHoldBanner
         :count="liveHold.newCount.value"
         :reason="liveHold.reason.value"
@@ -2333,6 +2357,27 @@ onMounted(() => {
         :detail="liveHold.missedDetail.value"
         @show="liveHold.showNew"
       />
+    </template>
+    <!-- What came in while the rows were read or the page paused: a pill
+         over the first rows, under the column header band (the table sets
+         its height; a sticky one stays put above a scrolled area, so the pill
+         stays under it), taking no room, so the rows stay where they are.
+         Above the pinned columns and the presence rail it overlaps. -->
+    <template v-else-if="liveHold.newCount.value > 0" #notice>
+      <div class="relative z-30 h-0">
+        <div
+          class="pointer-events-none absolute inset-x-0 top-[calc(var(--dms-table-head-height,0px)+0.5rem)] flex justify-center px-4"
+        >
+          <LiveHoldBanner
+            floating
+            class="pointer-events-auto"
+            :count="liveHold.newCount.value"
+            :missed-label="liveHold.missedLabel"
+            :detail="liveHold.missedDetail.value"
+            @show="liveHold.showNew"
+          />
+        </div>
+      </div>
     </template>
     <template v-if="hasViews" #views>
       <TableViews

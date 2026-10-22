@@ -309,12 +309,19 @@ export interface TableViewDisplaySources {
 function serializeCard({
   card,
 }: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
-  if (!card?.fields && !card?.component && !card?.minWidth) return undefined;
+  if (
+    !card?.fields &&
+    !card?.component &&
+    !card?.minWidth &&
+    !card?.skeletonHeight
+  )
+    return undefined;
   const serialized: TableViewCardOptionsSerialized = {
     fields: card.fields,
     component: card.component?.serializeSync(),
   };
   if (card.minWidth) serialized.minWidth = card.minWidth;
+  if (card.skeletonHeight) serialized.skeletonHeight = card.skeletonHeight;
   return serialized;
 }
 

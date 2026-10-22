@@ -156,6 +156,8 @@ export interface TableViewCardConfig {
   component?: ComponentInfo;
   /** `cards` only: the narrowest a card gets, a CSS length (`230px` left out). */
   minWidth?: string;
+  /** `cards` only: the height of a placeholder card, a CSS length. */
+  skeletonHeight?: string;
 }
 
 /**

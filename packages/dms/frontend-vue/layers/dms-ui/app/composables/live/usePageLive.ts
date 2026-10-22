@@ -4,7 +4,10 @@ import {
   onScopeDispose,
   type ComputedRef,
 } from "vue";
-import { currentPageLive } from "../../build/composables/live/currentPageLive";
+import {
+  currentPageLive,
+  isServerPageLive,
+} from "../../build/composables/live/currentPageLive";
 import type { PageLiveController } from "../../build/composables/live/pageLiveController";
 import type { PageLiveNote, PageLiveNoteInput } from "../../types/live";
 
@@ -68,8 +71,11 @@ export interface PageLiveState {
  * paused, show what was missed, offer its own switch, hold the page while the
  * user types.
  *
- * On a page without `live`, or while server-rendering, `isEnabled` is false,
- * the page reads as live and never paused, and its actions do nothing.
+ * On a page without `live`, `isEnabled` is false, the page reads as live and
+ * never paused, and its actions do nothing. A server render reads the page as
+ * live and never paused too, but `isEnabled` says whether it declares `live`:
+ * the browser hydrates the page's blocks with its controller installed, so
+ * the server draws them as it will.
  *
  * ```ts
  * const { isPaused, missedCount, resume, hold, release } = usePageLive();
@@ -82,8 +88,9 @@ export interface PageLiveState {
 export function usePageLive(): PageLiveState {
   const isPaused = computed(() => currentPageLive()?.isPaused.value ?? false);
   const hold = usePageLiveHold();
+  const isServerLive = isServerPageLive();
   return {
-    isEnabled: computed(() => currentPageLive() !== null),
+    isEnabled: computed(() => currentPageLive() !== null || isServerLive),
     isLive: computed(() => !isPaused.value),
     isPaused,
     pauseReason: computed(() => currentPageLive()?.pauseReason.value ?? null),

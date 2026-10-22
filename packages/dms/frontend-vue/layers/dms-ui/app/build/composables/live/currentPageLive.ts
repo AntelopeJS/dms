@@ -1,9 +1,13 @@
 import {
   computed,
+  getCurrentInstance,
   getCurrentScope,
+  inject,
   onScopeDispose,
+  provide,
   shallowRef,
   type ComputedRef,
+  type InjectionKey,
 } from "vue";
 import type {
   LiveSubscription,
@@ -35,6 +39,34 @@ export function currentPageLive(): PageLiveController | null {
 export function setCurrentPageLive(controller: PageLiveController | null) {
   if (typeof window === "undefined") return;
   currentController.value = controller;
+}
+
+// Server only: whether the page being rendered declares `live`. The browser
+// installs the page's controller before its blocks set up, so they hydrate
+// as on a live page; the server has no controller, and tells them instead.
+const SERVER_PAGE_LIVE_KEY: InjectionKey<() => boolean> = Symbol(
+  "dms-server-page-live",
+);
+
+/**
+ * Tells the blocks of the page the server renders whether it declares `live`.
+ * The page renderer calls it.
+ *
+ * @internal
+ */
+export function provideServerPageLive(isLive: () => boolean): void {
+  provide(SERVER_PAGE_LIVE_KEY, isLive);
+}
+
+/**
+ * While server-rendering, whether the page declares `live`; `false` in the
+ * browser, where `currentPageLive()` answers. Call it in a component setup.
+ *
+ * @internal
+ */
+export function isServerPageLive(): boolean {
+  if (typeof window !== "undefined" || !getCurrentInstance()) return false;
+  return inject(SERVER_PAGE_LIVE_KEY, null)?.() ?? false;
 }
 
 /** @internal */

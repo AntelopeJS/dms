@@ -217,8 +217,10 @@ const isStat = computed(() => props.variant === "stat");
     </template>
     <!-- While the change is still to come, the trend's line keeps its
          place: toggling a comparison never resizes the card. With no
-         comparison selected it goes. -->
-    <template v-if="showTrendLine || previousText || hasSparkline" #aside>
+         comparison selected it goes. So does the sparkline's box keep its
+         place, from the first load on: the aside is taller than the value
+         column with it, and the card would grow. -->
+    <template v-if="showTrendLine || previousText || showSparkline" #aside>
       <div class="ml-auto grid shrink-0 justify-items-end gap-1">
         <div
           v-if="showTrendLine || previousText"
@@ -237,11 +239,17 @@ const isStat = computed(() => props.variant === "stat");
             {{ previousText }}
           </span>
         </div>
-        <div v-if="hasSparkline" class="h-6 w-16">
+        <div v-if="showSparkline" class="h-6 w-16">
           <DmsSparkline
+            v-if="hasSparkline"
             :values="sparkline"
             :accent="resolvedSparklineAccent"
             :aria-label="processI18n(title)"
+          />
+          <USkeleton
+            v-else-if="isFirstLoad"
+            :aria-label="t('dms.a11y.loading')"
+            class="size-full"
           />
         </div>
       </div>

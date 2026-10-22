@@ -138,7 +138,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   an editor reads the default children from the block type's `initialChildren`.
   A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
   of its own: neither needs a `componentId` or `pageId` there.
-- `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
+- `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
+  rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
   publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
@@ -185,6 +186,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).
+- A fetched list block draws `skeletonCount` placeholders until its first answer in a client
+  navigation (a server render waits for the data): set it to the usual number of items so the page
+  does not move when they land. A refresh keeps the items on screen until the new ones land.
 - `TopListCard({ actions })` puts link buttons in its head; `Tab({ fit: true })` keeps pill tabs to
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
@@ -213,6 +217,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 - A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
   default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A `cards` display whose `card.component` is taller than the built-in card sets
+  `card.skeletonHeight` to its height (a CSS length): the loading placeholder takes it, so the
+  pagination footer does not drop when the cards land.
 - A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
   rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
