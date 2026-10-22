@@ -60,7 +60,7 @@ importers:
         specifier: '>=0.0.6 <1.0.0'
         version: 0.0.6(@antelopejs/interface-core@0.2.4)
       '@antelopejs/interface-file-storage':
-        specifier: '>=0.1.4 <0.2.0'
+        specifier: '>=0.1.4 <0.3.0'
         version: 0.1.4(@antelopejs/interface-core@0.2.4)
       archiver:
         specifier: ^7.0.1
@@ -476,7 +476,7 @@ importers:
         specifier: '>=0.1.9 <1.0.0'
         version: 0.1.9(@antelopejs/interface-api@0.0.15(@antelopejs/interface-core@0.2.4))(@antelopejs/interface-core@0.2.4)(@antelopejs/interface-database@0.1.10(@antelopejs/interface-core@0.2.4))
       '@antelopejs/interface-file-storage':
-        specifier: '>=0.1.4 <0.2.0'
+        specifier: '>=0.1.4 <0.3.0'
         version: 0.1.4(@antelopejs/interface-core@0.2.4)
       '@types/jsonwebtoken':
         specifier: ^9.0.10
