@@ -95,6 +95,15 @@ export interface AuthConfig {
    */
   trustedProxies?: number;
   /**
+   * Header the hosting platform overwrites on every request with the client's
+   * address, such as `X-Client-IP` on AntelopeJS Cloud. When set, it gives the
+   * client address and `trustedProxies` is not used: a request without a
+   * valid address in it falls back to the socket peer. Set it only when the
+   * platform guarantees that nothing but its gateway and the frontend server
+   * reaches the API, since any other caller could write the header.
+   */
+  clientIpHeader?: string;
+  /**
    * The country of a sign-in joins its device in the "New sign-in" check: the
    * same browser and system signing in from another country is a new sign-in.
    * Without a country (no header, no database entry for the address), the
