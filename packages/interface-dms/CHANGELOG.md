@@ -1,5 +1,112 @@
 # Changelog
 
+## v0.8.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.4...v0.8.0)
+
+### 🚀 Enhancements
+
+- **config:** Refuse a production start on public secrets or without the dashboard origin ([#401](https://github.com/AntelopeJS/dms/pull/401))
+- **auth:** Take the client address from the header the hosting platform writes (auth.clientIpHeader) ([#405](https://github.com/AntelopeJS/dms/pull/405))
+- **frontend:** Proxy the storage's signed URLs through the frontend server ([#406](https://github.com/AntelopeJS/dms/pull/406))
+- **tenancy:** ⚠️  Route every member and invite write through changeTenantMembers ([#407](https://github.com/AntelopeJS/dms/pull/407))
+- **frontend:** ⚠️  Compute each frontend module from its config, report served versions ([#408](https://github.com/AntelopeJS/dms/pull/408))
+- **dms-core:** One public hydration check, isHydratingComponent ([#376](https://github.com/AntelopeJS/dms/pull/376))
+- **page:** Route params for header-button availability, breadcrumb parent, one PageLayoutRequest ([#387](https://github.com/AntelopeJS/dms/pull/387))
+- Shared page toolbar for pages with a period or live data ([#351](https://github.com/AntelopeJS/dms/pull/351))
+- **drawer:** Resizable drawers, 600px side default, and side panel row options for row drawers ([#375](https://github.com/AntelopeJS/dms/pull/375))
+- **table-view:** Declare watches on the forms a table view generates ([#379](https://github.com/AntelopeJS/dms/pull/379))
+- **interface-dms:** FrontendModulesChanged event for late frontend modules ([#382](https://github.com/AntelopeJS/dms/pull/382))
+- **data-types:** Filter a tags column on the rows holding a tag ([#380](https://github.com/AntelopeJS/dms/pull/380))
+- **table-view:** ⚠️  Adopt @antelopejs/interface-data-api 0.3 ([#389](https://github.com/AntelopeJS/dms/pull/389))
+- **realtime:** Scope page messages to the tenant they are about ([#353](https://github.com/AntelopeJS/dms/pull/353))
+- **automation:** Configurable texts, tone, tenant and templates for the DMS automation nodes ([#337](https://github.com/AntelopeJS/dms/pull/337))
+- **kpi-card:** Show the comparison value and follow the selected comparison ([#352](https://github.com/AntelopeJS/dms/pull/352))
+- **layout-banners:** Scope layout banners to the application's pages by default ([#348](https://github.com/AntelopeJS/dms/pull/348))
+- **row-navigation:** Steps follow the table's full result, live tables and the kanban ([#375](https://github.com/AntelopeJS/dms/pull/375), [#398](https://github.com/AntelopeJS/dms/pull/398))
+- **layout:** Settings from the account menu only, profile picture in the sidebar ([#374](https://github.com/AntelopeJS/dms/pull/374))
+- **form:** Dependent relation options and field value rules ([#346](https://github.com/AntelopeJS/dms/pull/346))
+- **table-view:** Require a table's list for the actions reached from its rows ([#371](https://github.com/AntelopeJS/dms/pull/371))
+- **automation:** Dry-run the DMS actions in a builder test run ([#388](https://github.com/AntelopeJS/dms/pull/388))
+
+### 🩹 Fixes
+
+- **deps:** Require the tenant admission barrier and access evaluation contract ([#367](https://github.com/AntelopeJS/dms/pull/367))
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#368](https://github.com/AntelopeJS/dms/pull/368))
+- **startup:** Answer 503 with Retry-After until the DMS schemas are bound ([#369](https://github.com/AntelopeJS/dms/pull/369))
+- **tenant-lifecycle:** Refuse admission under a barrier with 409, not 500 ([#409](https://github.com/AntelopeJS/dms/pull/409))
+- **auth:** A session outlives the browser only when written persistent ([#377](https://github.com/AntelopeJS/dms/pull/377))
+- **layout:** Store a signed-in user's footer language switch on their profile ([#383](https://github.com/AntelopeJS/dms/pull/383))
+- **skills:** Make dms-dev.sh stop, status and restart work on Windows Git Bash ([#384](https://github.com/AntelopeJS/dms/pull/384))
+- **layout:** Translated close / select labels and a readable phone header ([#386](https://github.com/AntelopeJS/dms/pull/386))
+- **notifications:** Stop Mark read clicks from landing on Delete in the inbox ([#342](https://github.com/AntelopeJS/dms/pull/342))
+- **grid:** Lay a row nested in a cell out on its own children ([#350](https://github.com/AntelopeJS/dms/pull/350))
+- Onboarding SSR read, and row action, row token and action-target container fixes for block-built pages ([#332](https://github.com/AntelopeJS/dms/pull/332))
+- **chart:** Chart and widget fixes for block-built dashboards ([#334](https://github.com/AntelopeJS/dms/pull/334))
+- **save-bar:** Lift the toasts above a save bar on the bottom edge ([#372](https://github.com/AntelopeJS/dms/pull/372))
+- **table-view:** Row containers, grouped display, cards, bulk row runs, wide tables and calendar period comparisons ([#344](https://github.com/AntelopeJS/dms/pull/344))
+- **realtime:** Share one realtime connection between a browser's tabs ([#335](https://github.com/AntelopeJS/dms/pull/335))
+- **form:** Generic form and i18n fixes (nested options, secret rotation, group labels, module-default note) ([#333](https://github.com/AntelopeJS/dms/pull/333))
+- **data-types:** Keep formatters out of component setup and log dev errors ([#338](https://github.com/AntelopeJS/dms/pull/338))
+- **data-types:** Read a null array as empty in include and exclude filters ([#341](https://github.com/AntelopeJS/dms/pull/341))
+- **form:** Keep a refused submit's field error while its value is unchanged ([#360](https://github.com/AntelopeJS/dms/pull/360))
+- **form:** Label a relation's ids from its select route, in the picker and the filter chips ([#378](https://github.com/AntelopeJS/dms/pull/378))
+- **table:** Write a number field's unit wherever its value is drawn ([#381](https://github.com/AntelopeJS/dms/pull/381))
+- **modules:** Modules page and module store polish (installed tiles, store view, working copies) ([#345](https://github.com/AntelopeJS/dms/pull/345))
+- **format:** Read durations as written, let a number step drive the steppers, group every figure ([#391](https://github.com/AntelopeJS/dms/pull/391))
+- **form:** Address suggestions, relation add entry, confirm Close and date picker close ([#392](https://github.com/AntelopeJS/dms/pull/392))
+- **roles:** Preview a role as a non-owner member, and tell resolvers it is a preview ([#356](https://github.com/AntelopeJS/dms/pull/356))
+- **form:** Forms and KeyValueList follow the container's width in drawers and modals ([#375](https://github.com/AntelopeJS/dms/pull/375), [#399](https://github.com/AntelopeJS/dms/pull/399))
+- **table:** Count the archive without agreeing with a noun, let a table view name it ([#394](https://github.com/AntelopeJS/dms/pull/394))
+- **form:** Show a read-only list as a table of values, a URL as its image ([#395](https://github.com/AntelopeJS/dms/pull/395))
+- **dialog:** Closing any dialog gives the page its clicks at once ([#375](https://github.com/AntelopeJS/dms/pull/375), [#400](https://github.com/AntelopeJS/dms/pull/400))
+- **data-types:** Multiple relation include; date greater than excludes the picked day; order filters skip empty values; typed chip editor ([#363](https://github.com/AntelopeJS/dms/pull/363))
+- **table-view:** Combine views with tabs, date chips for relative filters, and keep the tab on reload ([#358](https://github.com/AntelopeJS/dms/pull/358))
+- **form:** Narrow date fields and repeater rows, and relation labels in change notes ([#361](https://github.com/AntelopeJS/dms/pull/361))
+- **frontend:** Refresh counts after a kanban move, no header sort on a hand-ordered table ([#362](https://github.com/AntelopeJS/dms/pull/362))
+- **frontend:** Configured add label in every placement, bulk toast counts what the route changed ([#364](https://github.com/AntelopeJS/dms/pull/364))
+- **table-view:** Warn at registration about a quick filter with no values to pick ([#370](https://github.com/AntelopeJS/dms/pull/370))
+- **form:** Create, cancel and save behaviour of forms, section scroll, error summary ([#343](https://github.com/AntelopeJS/dms/pull/343))
+- No layout shift from the live toggle, fetched banners, KPI and table skeletons, and live rows ([#354](https://github.com/AntelopeJS/dms/pull/354))
+- **table-view:** Links open on the table's defaults, global nav badges, kept view search ([#365](https://github.com/AntelopeJS/dms/pull/365))
+- **table-view:** Tab and view counters count what a click would list ([#373](https://github.com/AntelopeJS/dms/pull/373))
+- **table-view:** Generic TableView fixes from block-built pages ([#336](https://github.com/AntelopeJS/dms/pull/336))
+- **table-view:** Per-action access in forms, relative dates while hydrating, expanded rows ([#385](https://github.com/AntelopeJS/dms/pull/385))
+
+### 💅 Refactors
+
+- **startup:** Rely on the api startup gate instead of a DMS one ([#402](https://github.com/AntelopeJS/dms/pull/402))
+- **table-view:** Keep a table view's row actions schema in its own module ([#393](https://github.com/AntelopeJS/dms/pull/393))
+- **dms:** ⚠️  Remove the compatibility paths of #119 and #172, restore the migration guides ([#390](https://github.com/AntelopeJS/dms/pull/390), [#119](https://github.com/AntelopeJS/dms/issues/119), [#172](https://github.com/AntelopeJS/dms/issues/172))
+
+### 📖 Documentation
+
+- **file-storage:** Uploads stop at 100 MB at the Cloudflare edge on AntelopeJS Cloud ([#410](https://github.com/AntelopeJS/dms/pull/410))
+- **migration:** Note the KPI compared-figure default and include on multiple relations ([#415](https://github.com/AntelopeJS/dms/pull/415))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.9.6 ([0ccc9b57](https://github.com/AntelopeJS/dms/commit/0ccc9b57))
+- **release:** @antelopejs/dms v0.9.7 ([ababaeda](https://github.com/AntelopeJS/dms/commit/ababaeda))
+- **release:** @antelopejs/dms v0.9.8 ([75daeb05](https://github.com/AntelopeJS/dms/commit/75daeb05))
+
+### ✅ Tests
+
+- Pin file-storage-local 0.1.11, mongodb 1.4.4 and api with interface-api 0.0.16 in the harness ([#411](https://github.com/AntelopeJS/dms/pull/411))
+- **realtime:** Bind the verified tenant as the auth decorator does ([#414](https://github.com/AntelopeJS/dms/pull/414))
+
+#### ⚠️ Breaking Changes
+
+- **tenancy:** ⚠️  Route every member and invite write through changeTenantMembers ([#407](https://github.com/AntelopeJS/dms/pull/407))
+- **frontend:** ⚠️  Compute each frontend module from its config, report served versions ([#408](https://github.com/AntelopeJS/dms/pull/408))
+- **table-view:** ⚠️  Adopt @antelopejs/interface-data-api 0.3 ([#389](https://github.com/AntelopeJS/dms/pull/389))
+- **dms:** ⚠️  Remove the compatibility paths of #119 and #172, restore the migration guides ([#390](https://github.com/AntelopeJS/dms/pull/390), [#119](https://github.com/AntelopeJS/dms/issues/119), [#172](https://github.com/AntelopeJS/dms/issues/172))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven ([@mwesto](http://github.com/mwesto))
+
 ## v0.7.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.3...v0.7.4)
