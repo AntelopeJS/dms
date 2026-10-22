@@ -110,7 +110,7 @@ async function mountContainer(
 }
 
 async function closeContainer(): Promise<void> {
-  host.querySelector<HTMLButtonElement>("button[aria-label='Close']")!.click();
+  host.querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!.click();
   await vi.waitFor(() => expect(overlay().dataset.state).toBe("closed"));
 }
 
