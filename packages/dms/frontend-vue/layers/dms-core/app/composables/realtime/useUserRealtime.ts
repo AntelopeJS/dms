@@ -17,6 +17,8 @@ const CONNECTION_NAME_PREFIX = "dms-realtime";
 const SESSION_STATE_KEY = "dms.realtime.sessionId";
 const MENU_TOPICS_STATE_KEY = "dms.realtime.menuTopics";
 const SNAPSHOT_EVENT = "snapshot";
+/** The server ended this tab's session alone: the tab opens a new one. */
+const SESSION_ENDED_EVENT = "session-ended";
 /** Frames held while a session is being opened, every tab's included. */
 const MAX_BUFFERED_FRAMES = 256;
 
@@ -227,7 +229,7 @@ const connectTab = (
     try {
       response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
         method: "POST",
-        // The dashboard's backend proxy relays every `x-realtime-*` header.
+        // The dashboard's backend proxy relays this header by name.
         headers: { [CONNECTION_HEADER]: forConnection },
         credentials: "include",
       });
@@ -251,12 +253,24 @@ const connectTab = (
       retry();
       return;
     }
-    // The server no longer knows the connection: its leader is replacing it.
+    // The backend does not know the connection: it went, or this request
+    // reached an instance that does not hold it. The leader opens a new one,
+    // which this tab opens its session on; the backoff spaces the attempts.
     if (typeof sessionId !== "string") {
       buffered = undefined;
+      retries.schedule(() => {
+        if (isCurrent()) connection.reopen(forConnection);
+      });
       return;
     }
     adopt(forConnection, greeting!);
+  };
+
+  // The backend ended this tab's session alone, on the connection it keeps.
+  const reopenSession = () => {
+    if (retries.isCancelled() || !connectionId) return;
+    callbacks.onDisconnected();
+    void openSession(connectionId);
   };
 
   const connection = joinSharedRealtimeConnection({
@@ -277,6 +291,10 @@ const connectTab = (
         return;
       }
       if (sessionId === state.sessionId.value) {
+        if (eventName === SESSION_ENDED_EVENT) {
+          reopenSession();
+          return;
+        }
         dispatch(eventName, data);
         return;
       }

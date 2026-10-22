@@ -237,6 +237,42 @@ describe("useUserRealtime across tabs", () => {
     }
   });
 
+  it("reopens the connection when the backend answers it does not know it", async () => {
+    server.unknownConnectionAnswers = 1;
+    const tab = await openTab();
+    expect(tab.api.sessionId.value).toBeUndefined();
+
+    // The tab's retry delay, then the leader's reconnect delay.
+    await vi.advanceTimersByTimeAsync(500);
+    await settle();
+    await vi.advanceTimersByTimeAsync(500);
+    await settle();
+
+    expect(server.connections).toHaveLength(2);
+    expect(server.openConnections()).toHaveLength(1);
+    const session = server.sessions.find((s) => s.id === sessionOf(tab));
+    expect(session?.connectionId).toBe("connection-2");
+  });
+
+  it("opens a new session for a tab whose session the backend ended alone", async () => {
+    const [ended, kept] = await openTabs(2);
+    await ended!.api.setPage("orders");
+    const endedSession = sessionOf(ended!);
+    const keptSession = sessionOf(kept!);
+
+    server.send(endedSession, "session-ended", { sessionId: endedSession });
+    await settle();
+
+    expect(sessionOf(ended!)).toBeDefined();
+    expect(sessionOf(ended!)).not.toBe(endedSession);
+    expect(sessionOf(kept!)).toBe(keptSession);
+    expect(server.connections).toHaveLength(1);
+    expect(server.pageCalls.at(-1)).toEqual({
+      sessionId: sessionOf(ended!),
+      pageId: "orders",
+    });
+  });
+
   it("never shares a connection between two users", async () => {
     const mine = await openTab(USER_ID);
     const theirs = await openTab(OTHER_USER_ID);

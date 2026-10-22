@@ -28,9 +28,9 @@ const RELAYED_HEADERS: ReadonlySet<string> = new Set([
   "referer",
   "user-agent",
   "x-content-language",
-  "x-time-zone",
+  "x-realtime-session",
+  "x-realtime-connection",
 ]);
-const RELAYED_HEADER_PREFIX = "x-realtime-";
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;
 
@@ -67,6 +67,11 @@ export interface FakeRealtimeServer {
   devReloadTopic?: string;
   /** Answers each session request with this status instead, while set. */
   sessionStatus?: number;
+  /**
+   * Answers this many next session requests `ok: false`, as an instance that
+   * does not hold the connection named.
+   */
+  unknownConnectionAnswers: number;
   /** Runs once a session exists, before its answer leaves. */
   beforeSessionAnswer?: (session: FakeSession) => void;
   openConnections(): FakeConnection[];
@@ -136,6 +141,10 @@ const openSession = (
   connectionId: string,
 ): JsonAnswer => {
   if (server.sessionStatus) return json({}, server.sessionStatus);
+  if (server.unknownConnectionAnswers > 0) {
+    server.unknownConnectionAnswers -= 1;
+    return json({ ok: false });
+  }
   const connection = server.connections.find(
     (candidate) => candidate.id === connectionId,
   );
@@ -173,6 +182,7 @@ export function createRealtimeServer(): FakeRealtimeServer {
     pageCalls: [],
     maxOpenConnections: 0,
     isDown: false,
+    unknownConnectionAnswers: 0,
     openConnections: () =>
       server.connections.filter((connection) => connection.isOpen()),
     lastConnection: () => server.connections[server.connections.length - 1]!,
@@ -204,9 +214,7 @@ const relayHeaders = (
     (init?.headers ?? {}) as Record<string, string>,
   )) {
     const key = name.toLowerCase();
-    const isRelayed =
-      RELAYED_HEADERS.has(key) || key.startsWith(RELAYED_HEADER_PREFIX);
-    if (isRelayed) relayed[key] = value;
+    if (RELAYED_HEADERS.has(key)) relayed[key] = value;
     else server.droppedHeaders.push(name);
   }
   return relayed;
