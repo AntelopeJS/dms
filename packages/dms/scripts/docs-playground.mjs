@@ -100,7 +100,8 @@ async function build() {
     await waitFor(`${apiUrl}/dms/frontend`, api, {
       "x-dms-bootstrap": process.env.DMS_BOOTSTRAP_SECRET,
     });
-    await start(frontendCli, ["build", "-b", apiUrl]).done;
+    // dms-frontend 0.8 builds from the project itself, not from the backend.
+    await start(frontendCli, ["build", "-e", "docs"]).done;
     const client = frontend();
     await waitFor(`${previewUrl}/dms-preview`, client);
     await start(join(packageRoot, "scripts/docs-screenshots.mjs"), [
