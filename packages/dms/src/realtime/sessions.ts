@@ -11,6 +11,12 @@ export interface SessionInfo {
   /** The browser connection the session rides on, shared by its tabs. */
   connectionId: string;
   send: SessionSend;
+  /**
+   * Ends this session alone: it leaves the registry, and its tab is told on
+   * the shared stream to open a new one. The connection and the other tabs'
+   * sessions on it stay open.
+   */
+  close: SessionClose;
 }
 
 /**

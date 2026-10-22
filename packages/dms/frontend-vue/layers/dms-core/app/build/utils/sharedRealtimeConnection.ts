@@ -58,11 +58,21 @@ interface SessionMessage {
   tabId: string;
 }
 
+/**
+ * A tab whose session request the backend answered without knowing the
+ * connection asks the leader to open a new one.
+ */
+interface ReopenMessage {
+  kind: "reopen";
+  connectionId: string;
+}
+
 type HubMessage =
   | ConnectionMessage
   | FrameMessage
   | QueryMessage
-  | SessionMessage;
+  | SessionMessage
+  | ReopenMessage;
 
 export interface StreamRecovery {
   refreshSession: () => Promise<boolean>;
@@ -91,6 +101,11 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
 export interface SharedRealtimeConnection {
   /** Hands this tab's session to the leader, which ends it once the tab goes. */
   announceSession: (connectionId: string, sessionId: string) => void;
+  /**
+   * Asks the leader to replace `connectionId` with a new stream: the backend
+   * answered a session request on it as a connection it does not know.
+   */
+  reopen: (connectionId: string) => void;
   leave: () => void;
 }
 
@@ -151,6 +166,12 @@ interface StreamCallbacks extends StreamRecovery {
   onDisconnected: () => void;
 }
 
+interface KeptStream {
+  /** Drops the open stream and opens a new one. */
+  reopen: () => void;
+  stop: () => void;
+}
+
 /**
  * Keeps one stream open until cancelled. The server ends the stream when it
  * stops (a dev reload included), so a clean EOF reconnects just like an error
@@ -159,7 +180,7 @@ interface StreamCallbacks extends StreamRecovery {
 const connectWithBackoff = (
   url: string,
   callbacks: StreamCallbacks,
-): (() => void) => {
+): KeptStream => {
   const reconnector = createReconnector();
   let activeHandle: SseStreamHandle | undefined;
   const open = () => {
@@ -191,10 +212,18 @@ const connectWithBackoff = (
     return true;
   };
   open();
-  return () => {
-    reconnector.cancel();
-    activeHandle?.close();
-    activeHandle = undefined;
+  return {
+    reopen: () => {
+      const handle = activeHandle;
+      if (!handle || !retire(handle)) return;
+      handle.close();
+      reconnect();
+    },
+    stop: () => {
+      reconnector.cancel();
+      activeHandle?.close();
+      activeHandle = undefined;
+    },
   };
 };
 
@@ -277,11 +306,14 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
     if (message.kind === "query")
       bus.post({ kind: "connection", connectionId });
     if (message.kind === "session") watchSession(message);
+    if (message.kind === "reopen" && message.connectionId === connectionId) {
+      stream.reopen();
+    }
   });
 
   // The tabs may still hold the connection of a leader that went: they drop it.
   publish(null);
-  const stopStream = connectWithBackoff(options.streamUrl, {
+  const stream = connectWithBackoff(options.streamUrl, {
     onEvent: (eventName, data) => {
       if (eventName === HELLO_EVENT) {
         sessionsByTab.clear();
@@ -312,7 +344,7 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   return () => {
     watchers.abort();
     unlisten();
-    stopStream();
+    stream.stop();
     publish(null);
   };
 };
@@ -366,6 +398,8 @@ export function joinSharedRealtimeConnection(
         }),
       );
     },
+    reopen: (reopenedConnectionId) =>
+      bus.post({ kind: "reopen", connectionId: reopenedConnectionId }),
     leave: () => {
       resign();
       unlisten();

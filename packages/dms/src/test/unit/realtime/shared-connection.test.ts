@@ -157,6 +157,28 @@ describe("[unit] realtime — shared connection", () => {
     expect(stream.isEnded()).to.equal(false);
   });
 
+  it("closes one session alone, telling its tab on the shared stream", async () => {
+    const stream = createFakeStream();
+    const connectionId = await openConnection(stream);
+    const first = await openSession(connectionId);
+    const second = await openSession(connectionId);
+
+    await getSessionInfo(first.sessionId!)!.close();
+
+    expect(getSessionInfo(first.sessionId!)).to.equal(undefined);
+    expect(getSessionInfo(second.sessionId!)).to.not.equal(undefined);
+    expect(stream.isEnded()).to.equal(false);
+    const ended = sessionFramesOf(stream, first.sessionId!).filter(
+      (frame) => frame.data.event === "session-ended",
+    );
+    expect(ended).to.have.length(1);
+    expect(
+      sessionFramesOf(stream, second.sessionId!).some(
+        (frame) => frame.data.event === "session-ended",
+      ),
+    ).to.equal(false);
+  });
+
   it("refuses to end a session for another user", async () => {
     const connectionId = await openConnection(createFakeStream());
     const greeting = await openSession(connectionId);

@@ -273,7 +273,8 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
    * request's tenant, so tabs on different workspaces share one connection.
    * Its frames may reach the browser before this answer does. The connection
    * comes in the `x-realtime-connection` header, which the dashboard's proxy
-   * relays with every `x-realtime-*` header.
+   * relays by name, like `x-realtime-session`. A connection this instance does
+   * not know answers `ok: false`: the browser then reopens its connection.
    */
   @Post("/session")
   async openSession(
@@ -290,12 +291,17 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     assert(connection.userId === user._id, 403, "error.forbidden");
     const sessionId = randomUUID();
     const tenantId = getRequestTenantId(ctx);
+    const send = (eventName: string, data: unknown) =>
+      connection.send(SESSION_EVENT, { sessionId, event: eventName, data });
     registerSession(sessionId, {
       user,
       tenantId,
       connectionId,
-      send: (eventName, data) =>
-        connection.send(SESSION_EVENT, { sessionId, event: eventName, data }),
+      send,
+      close: async () => {
+        send(SESSION_ENDED_EVENT, { sessionId });
+        await cleanupSession(sessionId);
+      },
     });
     void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
     return {
