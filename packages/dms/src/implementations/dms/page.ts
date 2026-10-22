@@ -195,6 +195,15 @@ function findPageByFullId(fullId: string): PageInfo | undefined {
   return findEntryByFullId(pagesBySlug, fullId);
 }
 
+/**
+ * Whether `fullId` is a platform page: a module's, owner-only, listing the
+ * data of every tenant.
+ */
+export function isPlatformPage(fullId: string): boolean {
+  const info = findPageByFullId(fullId);
+  return info !== undefined && isInsideModule(info);
+}
+
 function findNavigationEntryByFullId(
   fullId: string,
 ): PageInfo | CategoryInfo | undefined {

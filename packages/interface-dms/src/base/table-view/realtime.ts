@@ -14,8 +14,8 @@ export interface RealtimeMutationContext {
   actor?: RealtimePresenceActor;
   /**
    * The tenant the write was made in: the change is published to that
-   * tenant's sessions only. Absent on a table declared with
-   * `realtimeScope: "global"`, whose changes reach every tenant.
+   * tenant's sessions only. Absent on a table of the shared schema
+   * (`CORE_SCHEMA_NAME`), whose changes reach every tenant.
    */
   tenantId?: string;
 }

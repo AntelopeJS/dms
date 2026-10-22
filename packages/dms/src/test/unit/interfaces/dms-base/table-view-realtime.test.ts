@@ -5,7 +5,9 @@ import {
   ImplementInterface,
 } from "@antelopejs/interface-core";
 import { internal as runtime } from "@antelopejs/interface-core/internal";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
+import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { internal as dmsTableView } from "../../../../implementations/dms-base/table-view";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import * as tableViewInterface from "@antelopejs/interface-dms/base/table-view";
@@ -13,7 +15,6 @@ import {
   type RealtimeMutationContext,
   type RealtimePresenceContext,
   internal as tableView,
-  TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import {
   extractSingleParamId,
@@ -197,16 +198,17 @@ describe("[unit] interfaces/dms-base — table-view realtime across DMS generati
     expect(tenants).to.deep.equal([TENANT, TENANT]);
   });
 
-  it("names no tenant for a table whose realtime scope is global", async () => {
+  it("names no tenant for a table of the schema every tenant shares", async () => {
     const tenants: Array<string | undefined> = [];
-    const meta = GetMetadata(RowsAPI, TableViewMeta);
+    const meta = GetMetadata(RowsAPI, DataAPIMeta);
+    const schemaName = meta.schemaName;
     attach(tenantRecorder(tenants));
-    meta.options.realtimeScope = "global";
+    meta.schemaName = CORE_SCHEMA_NAME;
     try {
       await edit("row-5");
       await open("row-5");
     } finally {
-      delete meta.options.realtimeScope;
+      meta.schemaName = schemaName;
     }
 
     expect(tenants).to.deep.equal([undefined, undefined]);

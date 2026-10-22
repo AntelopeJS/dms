@@ -1,11 +1,15 @@
 import {
   Context,
+  type ControllerClass,
   Parameter,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import { GetMetadata } from "@antelopejs/interface-core";
 import { AuthUser } from "../../../auth";
+import { CORE_SCHEMA_NAME } from "../../../constants";
 import type { User } from "../../../auth/db";
 import { RegisterPageTopic } from "../../../realtime";
 import { getRequestTenantId } from "../../../request-tenant";
@@ -112,13 +116,16 @@ const isRealtimeEnabled = (target: unknown): boolean =>
 
 /**
  * The tenant a table's realtime events are published for: the request's,
- * unless the table declares its data shared between tenants.
+ * unless the table's rows live in the schema every tenant shares.
  */
 const realtimeTenantOf = (
   target: unknown,
   ctx: RequestContext,
 ): string | undefined =>
-  getTableViewMetaFor(target).options.realtimeScope === "global"
+  GetMetadata(
+    (target as { constructor: ControllerClass }).constructor,
+    DataAPIMeta,
+  ).schemaName === CORE_SCHEMA_NAME
     ? undefined
     : getRequestTenantId(ctx);
 

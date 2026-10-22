@@ -15,7 +15,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { AuthRawUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { userCanAccessPage } from "../implementations/dms/page";
+import { isPlatformPage, userCanAccessPage } from "../implementations/dms/page";
 import {
   addDevReloadListener,
   DEV_RELOAD_TOPIC,
@@ -25,6 +25,7 @@ import {
   buildMemberMenuTopic,
   buildMenuTopic,
   buildUserNotificationTopic,
+  EVERY_TENANT,
   getPageTopics,
   getPresenceTracker,
   isEventForTenant,
@@ -32,6 +33,7 @@ import {
   openSseStream,
   type PresenceActor,
   subscribeRealtime,
+  type TenantView,
 } from "../realtime";
 import {
   getConnectionInfo,
@@ -134,6 +136,16 @@ const computeDesiredTopics = (sessionId: string): Set<string> => {
   return topics;
 };
 
+/**
+ * The tenants whose events the session receives on `topic`: its own, or every
+ * tenant on the topics of a platform page, which lists every tenant's data
+ * whichever workspace the owner has open.
+ */
+const tenantViewOn = (info: SessionInfo, topic: string): TenantView =>
+  info.isOnPlatformPage && info.pageId && getPageTopics(info.pageId).has(topic)
+    ? EVERY_TENANT
+    : info.tenantId;
+
 const applySessionTopics = async (
   sessionId: string,
   refreshSnapshots = false,
@@ -153,17 +165,21 @@ const applySessionTopics = async (
     if (isNew) {
       // Tracked rather than bound to the broker of the moment: a live SSE
       // session must keep receiving across a realtime reconfiguration. An
-      // event another tenant published is not this session's to receive.
+      // event another tenant published is not this session's to receive,
+      // unless it views every tenant on this topic.
       subscriptions.set(
         topic,
         subscribeRealtime(topic, (event) => {
-          if (!isEventForTenant(event, info.tenantId)) return;
+          if (!isEventForTenant(event, tenantViewOn(info, topic))) return;
           info.send(event.topic, event);
         }),
       );
     }
     if (isNew || refreshSnapshots) {
-      const entries = await presence.snapshotForTopic(topic, info.tenantId);
+      const entries = await presence.snapshotForTopic(
+        topic,
+        tenantViewOn(info, topic),
+      );
       info.send(SNAPSHOT_EVENT, { topic, entries });
     }
   }
@@ -210,7 +226,7 @@ export const ensureSessionOnPage = async (
   if (info.pageId) {
     await getPresenceTracker().releaseAllForSession(sessionId);
   }
-  setSessionPage(sessionId, pageId);
+  setSessionPage(sessionId, pageId, isPlatformPage(pageId));
   await applySessionTopics(sessionId, true);
   return true;
 };

@@ -161,12 +161,6 @@ export type TableViewDensity = "default" | "compact";
 export type TableViewRowClick = "single" | "double";
 
 /**
- * Who a table's realtime row changes and presence reach: the writer's tenant
- * (`"tenant"`, the default) or every tenant (`"global"`).
- */
-export type TableViewRealtimeScope = "tenant" | "global";
-
-/**
  * Everything a view sets on the table when it is opened. What a view leaves
  * out falls back to the table's defaults, so opening a view always shows the
  * same rows the same way.
@@ -1048,14 +1042,6 @@ export interface TableViewOptions<
    * Defaults to true (realtime is opt-out).
    */
   realtime?: boolean;
-  /**
-   * Who the row changes and the presence of this table reach. `"tenant"` (the
-   * default) publishes them to the sessions of the writer's tenant only, as
-   * the rows of a tenant-scoped model belong to it. `"global"` publishes them
-   * to every tenant, for a table over data shared between tenants (a platform
-   * catalogue, the list of tenants itself) viewed from several of them.
-   */
-  realtimeScope?: TableViewRealtimeScope;
   /**
    * Topics the backend publishes on (`PublishMessage`) when the rows change
    * without a write through this table's routes — a batch, a job, an import.

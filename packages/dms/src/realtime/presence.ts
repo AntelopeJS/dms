@@ -1,5 +1,11 @@
 import { runInBatches } from "../utils/run-in-batches";
-import type { KvStore, RealtimeBroker, RealtimeEvent } from "./broker";
+import {
+  isEventForTenant,
+  type KvStore,
+  type RealtimeBroker,
+  type RealtimeEvent,
+  type TenantView,
+} from "./broker";
 
 export const PRESENCE_EVENT_TYPE = {
   ACQUIRED: "acquired",
@@ -239,15 +245,15 @@ export class PresenceTracker {
   }
 
   /**
-   * The entries held on `topic` that a session of `tenantId` may see: those
-   * of its tenant and those scoped to none.
+   * The entries held on `topic` that a session viewing `view` may see: those
+   * of its tenant and those scoped to none, or all of them.
    */
   async snapshotForTopic(
     topic: string,
-    tenantId?: string,
+    view?: TenantView,
   ): Promise<PresenceEntry[]> {
     const isVisible = (entry: PresenceEntry): boolean =>
-      entry.tenantId === undefined || entry.tenantId === tenantId;
+      isEventForTenant(entry, view);
     if (!this.kv) {
       const result: PresenceEntry[] = [];
       for (const entry of this.entries.values()) {

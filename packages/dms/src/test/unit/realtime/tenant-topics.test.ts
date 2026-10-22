@@ -1,10 +1,19 @@
 import { EventEmitter } from "node:events";
 import type { RequestContext } from "@antelopejs/interface-api";
+import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
+import {
+  PageController,
+  PageMetadata,
+  internal as pageInterfaceInternal,
+  RegisterModule,
+} from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { internal as pageImplInternal } from "../../../implementations/dms/page";
 import { PublishMessage } from "../../../implementations/dms/realtime";
 import {
   clearPageTopics,
+  getPresenceTracker,
   InMemoryBroker,
   PresenceTracker,
   registerPageTopic,
@@ -63,6 +72,7 @@ const createFakeStream = (tenantId: string): FakeStream => {
 interface SharedFrame {
   sessionId: string;
   event: string;
+  data?: unknown;
 }
 
 /** The session frames a shared connection's stream carried. */
@@ -89,6 +99,7 @@ const openSharedConnection = async (stream: FakeStream): Promise<string> => {
 const openTabOnPage = async (
   connectionId: string,
   tenantId: string,
+  pageId = PAGE_ID,
 ): Promise<string> => {
   const greeting = await RealtimeController.prototype.openSession.call(
     undefined,
@@ -97,7 +108,7 @@ const openTabOnPage = async (
     USER as unknown as User,
   );
   const sessionId = greeting.sessionId!;
-  const isOnPage = await ensureSessionOnPage(sessionId, PAGE_ID, {
+  const isOnPage = await ensureSessionOnPage(sessionId, pageId, {
     userId: USER._id,
     tenantId,
   });
@@ -111,10 +122,16 @@ interface BrowserTab {
   sessionId: string;
 }
 
-const openOnPage = async (tenantId: string): Promise<BrowserTab> => {
+const openOnPage = async (
+  tenantId: string,
+  pageId = PAGE_ID,
+): Promise<BrowserTab> => {
   const stream = createFakeStream(tenantId);
   const connectionId = await openSharedConnection(stream);
-  return { stream, sessionId: await openTabOnPage(connectionId, tenantId) };
+  return {
+    stream,
+    sessionId: await openTabOnPage(connectionId, tenantId, pageId),
+  };
 };
 
 /** The topic frames a browser's connection carried for its sessions. */
@@ -200,6 +217,87 @@ describe("[unit] realtime — tenant-scoped page topics", () => {
 
     expect(topicFrames(stale)).to.have.length(0);
     expect(topicFrames(current)).to.have.length(1);
+  });
+});
+
+describe("[unit] realtime — platform pages see every tenant", () => {
+  const MODULE_ID = "tenant-topics-mod";
+  const PLATFORM_PAGE_ID = `modules.${MODULE_ID}.tenant-topics-platform`;
+  const PRESENCE_TOPIC = "tenant-topics:platform-presence";
+
+  before(async () => {
+    // Registered pages land in the mocha-loaded implementation's registry.
+    ImplementInterface(pageInterfaceInternal, pageImplInternal);
+    RegisterModule({
+      id: MODULE_ID,
+      title: "Tenant topics module",
+      description: "Module holding a platform page",
+      icon: "i-ph-cube",
+    });
+    const platformPage = PageController("tenant-topics-platform", {
+      displayName: "Platform page",
+      module: MODULE_ID,
+    });
+    await GetMetadata(platformPage, PageMetadata).Register();
+  });
+
+  beforeEach(() => {
+    setRealtimeBroker(new InMemoryBroker());
+    registerPageTopic(PAGE_ID, TOPIC);
+    registerPageTopic(PLATFORM_PAGE_ID, TOPIC);
+    registerPageTopic(PLATFORM_PAGE_ID, PRESENCE_TOPIC);
+  });
+
+  afterEach(async () => {
+    await stopRealtime();
+    clearPageTopics(PAGE_ID);
+    clearPageTopics(PLATFORM_PAGE_ID);
+    setRealtimeBroker(new InMemoryBroker());
+  });
+
+  it("delivers another tenant's message on a platform page, not on a workspace page", async () => {
+    const platform = await openOnPage(TENANT_A, PLATFORM_PAGE_ID);
+    const workspace = await openOnPage(TENANT_A);
+
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_B });
+
+    expect(topicFrames(platform)).to.have.length(1);
+    expect(topicFrames(workspace)).to.have.length(0);
+  });
+
+  it("stops delivering other tenants' messages once the session leaves the platform page", async () => {
+    const browser = await openOnPage(TENANT_A, PLATFORM_PAGE_ID);
+    await ensureSessionOnPage(browser.sessionId, PAGE_ID, {
+      userId: USER._id,
+      tenantId: TENANT_A,
+    });
+
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_B });
+
+    expect(topicFrames(browser)).to.have.length(0);
+  });
+
+  it("shows every tenant's presence in a platform page's snapshot", async () => {
+    const holder = await openOnPage(TENANT_B, PLATFORM_PAGE_ID);
+    await getPresenceTracker().acquire(
+      holder.sessionId,
+      PRESENCE_TOPIC,
+      "row-1",
+      {
+        actor: { id: USER._id },
+        tenantId: TENANT_B,
+      },
+    );
+    const viewer = await openOnPage(TENANT_A, PLATFORM_PAGE_ID);
+
+    const snapshot = sharedFrames(viewer.stream).find(
+      (frame) =>
+        frame.event === "snapshot" &&
+        (frame.data as { topic?: string }).topic === PRESENCE_TOPIC,
+    );
+    const entries = (snapshot?.data as { entries?: Array<{ rowId: string }> })
+      ?.entries;
+    expect(entries?.map((entry) => entry.rowId)).to.deep.equal(["row-1"]);
   });
 });
 
