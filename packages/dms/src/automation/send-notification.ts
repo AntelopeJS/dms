@@ -142,6 +142,34 @@ function buildNotification(
   return new SendableNotification(data);
 }
 
+interface PreparedSend extends Recipients {
+  sendable: SendableNotification;
+  options: SendOptions;
+  tenantId: string;
+}
+
+/** Everything a send needs, checked: a test run stops here. */
+function prepareSend(
+  input: SendNotificationInput,
+  ctx: ExecutionCtx,
+): PreparedSend {
+  const { userIds, roleIds } = collectRecipients(input);
+  if (userIds.length === 0 && roleIds.length === 0) {
+    throw new Error(
+      `${SEND_NOTIFICATION_ACTION_ID} requires at least one of userId / userIds / roleIds`,
+    );
+  }
+  return {
+    sendable: buildNotification(input, ctx),
+    userIds,
+    roleIds,
+    options: toSendOptions(input.idempotencyKey, ctx),
+    // Role ids belong to a tenant: an empty input means the default one, as
+    // for every tenant-scoped node.
+    tenantId: input.tenantId?.trim() || DEFAULT_TENANT_ID,
+  };
+}
+
 export const sendNotificationAction: ActionType<
   SendNotificationInput,
   SendNotificationOutput
@@ -194,18 +222,17 @@ export const sendNotificationAction: ActionType<
     type: "object",
     properties: titledProperties({ ok: { type: "boolean" } }),
   },
+  // A test run checks the input as a send would and notifies nobody.
+  async dryRun(input, ctx) {
+    prepareSend(input, ctx);
+    ctx.log("info", "test run: notification not sent");
+    return { ok: true };
+  },
   async execute(input, ctx) {
-    const { userIds, roleIds } = collectRecipients(input);
-    if (userIds.length === 0 && roleIds.length === 0) {
-      throw new Error(
-        `${SEND_NOTIFICATION_ACTION_ID} requires at least one of userId / userIds / roleIds`,
-      );
-    }
-    const sendable = buildNotification(input, ctx);
-    const options = toSendOptions(input.idempotencyKey, ctx);
-    // Role ids belong to a tenant: an empty input means the default one, as
-    // for every tenant-scoped node.
-    const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
+    const { sendable, userIds, roleIds, options, tenantId } = prepareSend(
+      input,
+      ctx,
+    );
     if (roleIds.length > 0)
       await sendable.toRoles(roleIds, { ...options, tenantId });
     if (userIds.length > 0) await sendable.toUsers(userIds, options);
