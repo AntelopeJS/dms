@@ -1,36 +1,48 @@
 import { expect } from "chai";
+import { StartModule, StopModule } from "@antelopejs/interface-core/modules";
 import { createClient } from "../helpers/http";
-import { setSchemasRegistered } from "../../routes/startup-gate";
 
-// The api module listens before the DMS `start()` has bound its schemas. A
-// request in that window used to reach a tenant-scoped model and fail with
-// "Role is not bound to a schema" (500); it must get a 503 to retry instead.
+// The api module serves its port before the DMS `start()` has bound its
+// schemas. Until the core announces that every module has started, every
+// route must answer 503 with Retry-After rather than reach a tenant-scoped
+// model and fail with "Role is not bound to a schema" (500).
 
 const HTTP_SERVICE_UNAVAILABLE = 503;
-const STORE_LISTING = "/dms/store/listing";
-const SYSTEM_STATE = "/api/system-state";
+const DMS_MODULE = "local";
+const GATED_PATHS = ["/dms/store/listing", "/api/system-state"];
+
+async function expectStarting(): Promise<void> {
+  const client = createClient();
+  for (const path of GATED_PATHS) {
+    const response = await client.get(path);
+    expect(
+      response.status,
+      `${path}: ${JSON.stringify(response.data)}`,
+    ).to.equal(HTTP_SERVICE_UNAVAILABLE);
+    expect(response.headers["retry-after"]).to.equal("1");
+    expect(response.data).to.equal("error.server_starting");
+  }
+}
 
 describe("[integration] the startup gate", () => {
-  afterEach(() => setSchemasRegistered(true));
+  it("lets requests through once every module has started", async () => {
+    const response = await createClient().get(GATED_PATHS[1]);
 
-  it("answers 503 with Retry-After on every route until the schemas are bound", async () => {
-    const client = createClient();
-    setSchemasRegistered(false);
-
-    for (const path of [STORE_LISTING, SYSTEM_STATE]) {
-      const response = await client.get(path);
-      expect(
-        response.status,
-        `${path}: ${JSON.stringify(response.data)}`,
-      ).to.equal(HTTP_SERVICE_UNAVAILABLE);
-      expect(response.headers["retry-after"]).to.equal("1");
-      expect(response.data).to.equal("error.server_starting");
-    }
+    expect(response.status).to.not.equal(HTTP_SERVICE_UNAVAILABLE);
   });
 
-  it("lets requests through once the schemas are bound", async () => {
-    const response = await createClient().get(SYSTEM_STATE);
+  it("answers 503 on every route from the moment the DMS stops, until it started again", async function () {
+    this.timeout(30_000);
+    await StopModule(DMS_MODULE);
+    try {
+      await expectStarting();
+      const live = await createClient().get("/_live");
+      expect(live.status).to.equal(200);
+    } finally {
+      await StartModule(DMS_MODULE);
+    }
 
+    const response = await createClient().get(GATED_PATHS[1]);
     expect(response.status).to.not.equal(HTTP_SERVICE_UNAVAILABLE);
   });
 });

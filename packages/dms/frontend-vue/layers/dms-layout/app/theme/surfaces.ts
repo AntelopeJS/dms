@@ -190,7 +190,10 @@ const toastTheme = {
  * New toasts rise 16px into place instead of sliding in from a full toast
  * height below: that slide started off-screen, so a toast whose animation
  * had not run yet (background tab, throttled frame) sat cut off under the
- * bottom edge.
+ * bottom edge. A bottom stack rises above a save bar on the bottom edge (the
+ * floating bar, a drawer's footer band): the bar sets how far it reaches
+ * (`--dms-toaster-clearance`, see `toasterClearance.ts`), so a toast never
+ * covers its buttons, and the stack drops back once the bar hides.
  */
 const toasterTheme = {
   slots: {
@@ -215,7 +218,8 @@ const toasterTheme = {
     {
       position: ["bottom-left", "bottom-center", "bottom-right"],
       class: {
-        viewport: "bottom-5",
+        viewport:
+          "bottom-[calc(var(--dms-toaster-clearance,0px)+1.25rem)] transition-[bottom] duration-200 ease-out motion-reduce:transition-none",
         base: "data-[state=open]:animate-none starting:translate-y-4",
       },
     },

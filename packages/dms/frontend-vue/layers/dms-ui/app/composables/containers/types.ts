@@ -91,6 +91,24 @@ export interface DrawerRowHeader {
    * position nor buttons without one.
    */
   navigation?: RowNavigation;
+  /** Classes added to the title's (`font-mono` for a key); its size stays. */
+  titleClass?: string;
+  /**
+   * Wraps the title only after this separator (`"."` for a dotted key): each
+   * segment keeps the separator that follows it, a `<wbr>` between them.
+   */
+  titleBreakAfter?: string;
+  /**
+   * Text after the position, on its line after a "·", cut at its end (the
+   * whole text in its tooltip): "12 of 1,338 · helio › catalog".
+   */
+  subtitle?: string;
+  /** Classes added to the subtitle's (`font-mono`). */
+  subtitleClass?: string;
+  /** Drawn under the position line, in the title's column (pills, hints). */
+  component?: Component;
+  /** Props passed to `component`. */
+  componentOptions?: Record<string, unknown>;
 }
 
 /** Options accepted by {@link useModal}'s `open`. */

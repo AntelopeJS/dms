@@ -6,7 +6,7 @@
  * as on a row action's drawer, patched as the drawer steps.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defineComponent } from "vue";
+import { defineComponent, type Component } from "vue";
 import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 
@@ -53,9 +53,8 @@ const navigation = (index: number): RowNavigation => ({
 });
 
 async function openDrawer(options: Record<string, unknown>) {
-  const { useDrawer } = await import(
-    "../layers/dms-ui/app/composables/containers/useDrawer"
-  );
+  const { useDrawer } =
+    await import("../layers/dms-ui/app/composables/containers/useDrawer");
   return useDrawer().open({ title: "Key", component: Editor, ...options });
 }
 
@@ -81,6 +80,43 @@ describe("useDrawer's row header", () => {
       navigation: steps,
     });
     expect(props.rowHeader).toBeUndefined();
+  });
+
+  it("passes the title's look, the subtitle and the component", async () => {
+    const Pills: Component = { name: "KeyPills", render: () => null };
+    const drawer = await openDrawer({
+      rowHeader: {
+        title: "billing.invoice.title",
+        titleClass: "font-mono",
+        titleBreakAfter: ".",
+        subtitle: "helio › billing",
+        subtitleClass: "font-mono",
+        component: Pills,
+        componentOptions: { missing: 2 },
+      },
+    });
+    const options = created[0]!.props.headerComponentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(options.headingClass).toMatch(/text-\[17px\].* font-mono$/);
+    expect(options).toMatchObject({
+      headingBreakAfter: ".",
+      subtitle: "helio › billing",
+      subtitleClass: "font-mono",
+      component: Pills,
+      componentOptions: { missing: 2 },
+    });
+    drawer.patch({
+      rowHeader: { title: "billing.total", subtitle: "helio › other" },
+    });
+    expect(created[0]!.patch).toHaveBeenCalledWith({
+      headerComponentOptions: expect.objectContaining({
+        heading: "billing.total",
+        subtitle: "helio › other",
+        component: undefined,
+      }),
+    });
   });
 
   it("titles the header with the drawer's title without its own", async () => {

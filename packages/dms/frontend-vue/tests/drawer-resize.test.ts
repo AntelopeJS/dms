@@ -435,14 +435,23 @@ describe("a drawer's body", () => {
 // The overlay provider mounts the drawer outside the caller's tree: the body
 // still reads what the caller provides, and the drawer's own provides win.
 describe("a drawer opened through useDrawer, and its caller's provides", () => {
-  it("lets the body inject what the caller provides, the drawer's own container first", async () => {
+  const EXPLORER_KEY = Symbol("explorer");
+
+  // Opens a drawer from a caller that provides after calling useDrawer(),
+  // inside another container and a Nuxt UI form field; returns what the body
+  // injected.
+  async function injectedByBody(
+    wrap: (options: Record<string, unknown>) => Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const { default: DynamicDrawer } = await import(
       "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
     );
     const { DMS_CONTAINER_KEY } = await import(
       "../layers/dms-ui/app/build/composables/containers/context"
     );
-    const EXPLORER_KEY = Symbol("explorer");
+    const { formFieldInjectionKey } = await import(
+      "@nuxt/ui/runtime/composables/useFormField.js"
+    );
     const opened = shallowRef<Record<string, unknown>>();
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     vi.stubGlobal("useOverlay", () => ({
@@ -466,21 +475,23 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
           DMS_CONTAINER_KEY,
           null,
         )?.id;
+        injected.formField = inject(formFieldInjectionKey, null);
         return () => null;
       },
     };
     const Caller: Component = {
       setup() {
         const drawer = useDrawer();
-        // Provided after useDrawer() is called, and inside another
-        // container whose key the drawer's must override.
         provide(EXPLORER_KEY, "library-1");
         provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
-        drawer.open({
-          title: "Details",
-          component: Body,
-          containerId: "inner",
-        });
+        provide(formFieldInjectionKey, { name: "outer-field" } as never);
+        drawer.open(
+          wrap({
+            title: "Details",
+            component: Body,
+            containerId: "inner",
+          }) as never,
+        );
         return () => null;
       },
     };
@@ -499,7 +510,27 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     app.mount(host);
     await nextTick();
     await nextTick();
-    expect(injected).toEqual({ explorer: "library-1", containerId: "inner" });
+    return injected;
+  }
+
+  it("lets a module's body inject what the caller provides, the drawer's own container first", async () => {
+    expect(await injectedByBody((options) => options)).toEqual({
+      explorer: "library-1",
+      containerId: "inner",
+      // A field in the body does not join the caller's form field.
+      formField: undefined,
+    });
+  });
+
+  it("keeps the DMS's own drawers on the app's provides", async () => {
+    const { dmsOwnDrawer } = await import(
+      "../layers/dms-ui/app/build/composables/containers/context"
+    );
+    expect(await injectedByBody(dmsOwnDrawer)).toEqual({
+      explorer: null,
+      containerId: "inner",
+      formField: null,
+    });
   });
 });
 

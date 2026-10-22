@@ -16,6 +16,7 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
+import { dmsOwnDrawer } from "../../../build/composables/containers/context";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type { FormProps } from "../../../composables/form/types";
 
@@ -335,25 +336,27 @@ function onOpen(isOpen: boolean) {
 function openAddDrawer() {
   const formOptions = addFormOptions.value;
   if (!formOptions) return;
-  const drawer = openDrawer({
-    title: props.addFormTexts?.displayName
-      ? processI18n(props.addFormTexts.displayName)
-      : t("dms.table.new_item"),
-    description: props.addFormTexts?.description
-      ? processI18n(props.addFormTexts.description)
-      : t("dms.table.new_item_description"),
-    direction: "bottom",
-    containerId: addContainerId,
-    component: DmsForm,
-    componentOptions: {
-      ...formOptions,
-      onSuccessCallback: (response: unknown, formData: unknown) => {
-        clearGuards(addContainerId);
-        drawer.close();
-        handleAddSuccess(response, formData);
+  const drawer = openDrawer(
+    dmsOwnDrawer({
+      title: props.addFormTexts?.displayName
+        ? processI18n(props.addFormTexts.displayName)
+        : t("dms.table.new_item"),
+      description: props.addFormTexts?.description
+        ? processI18n(props.addFormTexts.description)
+        : t("dms.table.new_item_description"),
+      direction: "bottom",
+      containerId: addContainerId,
+      component: DmsForm,
+      componentOptions: {
+        ...formOptions,
+        onSuccessCallback: (response: unknown, formData: unknown) => {
+          clearGuards(addContainerId);
+          drawer.close();
+          handleAddSuccess(response, formData);
+        },
       },
-    },
-  });
+    }),
+  );
 }
 
 function extractInsertedId(response: unknown): string | undefined {
@@ -434,6 +437,7 @@ const addFormOptions = computed(() => {
     :portal="false"
     :ignore-filter="true"
     :ui="{ content: 'z-50' }"
+    :aria-label="t('dms.a11y.show_options')"
     @update:open="onOpen"
     @update:model-value="handleUpdateModelValue"
   >

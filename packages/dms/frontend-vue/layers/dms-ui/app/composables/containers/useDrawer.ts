@@ -3,6 +3,7 @@ import DynamicDrawer from "../../build/components/containers/drawer/DynamicDrawe
 import DmsRowHeader from "../../build/components/containers/row/RowHeader.vue";
 import { drawerRowHeaderProps } from "../../build/components/containers/row/drawerRowHeader";
 import { listenRowSteps } from "../../build/composables/actions/rowNavigation";
+import { DMS_OWN_DRAWER } from "../../build/composables/containers/context";
 import { componentSizeKey } from "../../build/composables/containers/drawerSize";
 import { openDynamicContainer } from "./openDynamicContainer";
 import type {
@@ -52,7 +53,8 @@ export function useDrawer() {
       DrawerOptions & DrawerCallerContext
     >(overlay, DynamicDrawer, DRAWER_ID_PREFIX, {
       ...containerOptions,
-      callerProvides: caller?.provides,
+      // The DMS's own drawers keep the app's provides only.
+      callerProvides: DMS_OWN_DRAWER in options ? undefined : caller?.provides,
       ...(rowHeader && {
         headerComponent: DmsRowHeader,
         headerComponentOptions: headerProps(),
