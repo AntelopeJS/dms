@@ -11,6 +11,8 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
+import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
+import { describeMemberEdit } from "@antelopejs/interface-dms/internal/member-changes";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   type ConfirmDialogSerialized,
@@ -248,30 +250,40 @@ async function moveRoleHolders(
 ): Promise<string[]> {
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const inviteModel = GetModel(UserInviteModel, tenantId);
-  const [members, invites] = await Promise.all([
-    memberModel.listAll(),
-    inviteModel.getAll(),
-  ]);
-  const moved: string[] = [];
-  for (const member of members) {
-    const roleIds = replaceRoleReference(
-      member.roleIds ?? [],
-      roleId,
-      replacementId,
-    );
-    if (!roleIds) continue;
-    await memberModel.update(member._id, { roleIds });
-    moved.push(member.userId);
-  }
-  for (const invite of invites) {
-    const rolesIds = replaceRoleReference(
-      invite.roles_ids ?? [],
-      roleId,
-      replacementId,
-    );
-    if (rolesIds) await inviteModel.update(invite._id, { roles_ids: rolesIds });
-  }
-  return moved;
+  return changeTenantMembers(tenantId, async () => {
+    const [members, invites] = await Promise.all([
+      memberModel.listAll(),
+      inviteModel.getAll(),
+    ]);
+    const memberMoves = members.flatMap((member) => {
+      const roleIds = replaceRoleReference(
+        member.roleIds ?? [],
+        roleId,
+        replacementId,
+      );
+      return roleIds ? [{ member, roleIds }] : [];
+    });
+    return {
+      changes: memberMoves.flatMap(({ member, roleIds }) =>
+        describeMemberEdit(member, { roleIds }),
+      ),
+      write: async () => {
+        for (const { member, roleIds } of memberMoves) {
+          await memberModel.update(member._id, { roleIds });
+        }
+        for (const invite of invites) {
+          const rolesIds = replaceRoleReference(
+            invite.roles_ids ?? [],
+            roleId,
+            replacementId,
+          );
+          if (rolesIds)
+            await inviteModel.update(invite._id, { roles_ids: rolesIds });
+        }
+        return memberMoves.map(({ member }) => member.userId);
+      },
+    };
+  });
 }
 
 /**

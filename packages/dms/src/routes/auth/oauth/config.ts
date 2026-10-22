@@ -2,6 +2,7 @@ import { assert } from "@antelopejs/interface-api-util";
 import {
   getAuthConfig,
   getClientBaseUrl,
+  type OAuthConfig,
   type OAuthProviderCredentials,
 } from "../../../config";
 import { OAUTH_PROVIDERS, type OAuthProvider } from "./providers";
@@ -60,7 +61,19 @@ export interface OAuthProviderDescriptor {
  * @returns Enabled provider descriptors, in the order the DMS declares them
  */
 export function listEnabledOAuthProviders(): OAuthProviderDescriptor[] {
-  const configured = getAuthConfig().oauth?.providers ?? {};
+  return describeEnabledOAuthProviders(getAuthConfig().oauth);
+}
+
+/**
+ * {@link listEnabledOAuthProviders} for a given OAuth configuration, read by
+ * the frontend registration, which runs from the configuration alone.
+ *
+ * @param oauth The `auth.oauth` configuration
+ */
+export function describeEnabledOAuthProviders(
+  oauth: OAuthConfig | undefined,
+): OAuthProviderDescriptor[] {
+  const configured = oauth?.providers ?? {};
   return Object.entries(OAUTH_PROVIDERS)
     .filter(([id]) => hasCredentials(configured[id]))
     .map(([id, provider]) => ({

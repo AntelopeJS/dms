@@ -27,7 +27,6 @@ ENV NODE_ENV=production
 ENV DMS_API_BASE_URL=http://127.0.0.1:5010
 WORKDIR /opt/dms
 COPY --from=build --chown=1000:1000 /opt/dms /opt/dms
-COPY --from=build --chown=1000:1000 /opt/dms-home/.antelopejs /opt/dms-home/.antelopejs
 ARG BUILD_DATE
 ARG VCS_REF
 LABEL org.opencontainers.image.created=$BUILD_DATE

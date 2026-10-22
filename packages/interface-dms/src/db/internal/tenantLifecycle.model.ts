@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assert } from "@antelopejs/interface-api-util";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import {
   TenantLifecycle,
@@ -6,6 +7,7 @@ import {
 } from "./tenantLifecycle.table";
 
 const LIFECYCLE_ID = "membership-and-invites";
+const HTTP_CONFLICT = 409;
 
 /**
  * Admissions never expire; deletion cannot overtake a suspended producer.
@@ -63,12 +65,45 @@ export class TenantLifecycleModel extends BasicDataModel(
     while (true) {
       const state = await this.state(tenantId);
       if (state.closed) throw new Error("Tenant lifecycle admission is closed");
+      // A deliberate refusal with nothing written: a 409 the caller can show
+      // and retry once the barrier is released, not an indeterminate 500.
+      assert(
+        !state.barrierId,
+        HTTP_CONFLICT,
+        "Tenant lifecycle admission is paused",
+      );
       if (
         await this.transition(state, {
           activeAttemptIds: [...state.activeAttemptIds, attemptId],
         })
       )
         return;
+    }
+  }
+
+  /** One CAS only: a delayed caller must not acquire against a newer revision. */
+  async pause(
+    tenantId: string,
+    barrierId: string,
+    expectedRevision: string,
+  ): Promise<boolean> {
+    if (!barrierId)
+      throw new Error("Tenant lifecycle barrier requires an identity");
+    const state = await this.state(tenantId);
+    if (state.closed || state.barrierId || state.revision !== expectedRevision)
+      return false;
+    return this.transition(state, { barrierId });
+  }
+
+  /** Also revokes an in-flight acquisition when no barrier has landed yet. */
+  async resume(tenantId: string, barrierId: string): Promise<boolean> {
+    if (!barrierId)
+      throw new Error("Tenant lifecycle barrier requires an identity");
+    while (true) {
+      const state = await this.state(tenantId);
+      if (state.closed || (state.barrierId && state.barrierId !== barrierId))
+        return false;
+      if (await this.transition(state, { barrierId: null })) return true;
     }
   }
 
