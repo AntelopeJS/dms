@@ -78,6 +78,8 @@ const shownRows = [
   { _id: "t2", name: "Review the draft" },
 ];
 
+const getRow = vi.fn();
+
 async function rowActions() {
   const { useTableRowActions } = await import(
     "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
@@ -89,7 +91,7 @@ async function rowActions() {
     pageId: "tasks",
     formComponents: {},
     refreshCallback: refresh,
-    rowNavigation: { rows: () => shownRows, rowIdKey: "_id" },
+    rowNavigation: { rows: () => shownRows, rowIdKey: "_id", getRow },
   });
 }
 
@@ -120,6 +122,7 @@ beforeEach(() => {
   toast.add.mockReset();
   refresh.mockReset();
   api.mockReset();
+  getRow.mockReset();
   confirm.mockClear();
   dialogs.length = 0;
   dialogValues = {};
@@ -311,6 +314,44 @@ describe("Table row actions: refusals", () => {
     await deleteRows(["t1"], { confirm: { title: "Delete {name}?" } });
 
     expect(dialogs[0]!.options.title).toBe("Delete Write the report?");
+  });
+
+  it("words a fixed dialog with the row its caller hands (a kanban card)", async () => {
+    api.mockResolvedValue(1);
+    const { deleteRows } = await rowActions();
+
+    await deleteRows(
+      ["t9"],
+      { confirm: { title: "Delete {name}?" } },
+      { rows: [{ _id: "t9", name: "Plan the launch" }] },
+    );
+
+    expect(dialogs[0]!.options.title).toBe("Delete Plan the launch?");
+    expect(getRow).not.toHaveBeenCalled();
+  });
+
+  it("reads by id the one row a fixed dialog words, when the table does not show it", async () => {
+    api.mockResolvedValue(1);
+    getRow.mockResolvedValue({ _id: "t9", name: "Plan the launch" });
+    const { deleteRows } = await rowActions();
+
+    await deleteRows(["t9"], { confirm: { title: "Delete {name}?" } });
+
+    expect(getRow).toHaveBeenCalledWith("t9");
+    expect(dialogs[0]!.options.title).toBe("Delete Plan the launch?");
+  });
+
+  it("asks a fixed dialog anyway when the row cannot be read", async () => {
+    api.mockResolvedValue(1);
+    getRow.mockRejectedValue(fetchError(404));
+    const { deleteRows } = await rowActions();
+
+    const done = await deleteRows(["t9"], {
+      confirm: { title: "Delete {count} task?" },
+    });
+
+    expect(done).toBe(true);
+    expect(dialogs[0]!.options.title).toBe("Delete 1 task?");
   });
 
   it("words a fixed dialog with the count of the rows it deletes", async () => {

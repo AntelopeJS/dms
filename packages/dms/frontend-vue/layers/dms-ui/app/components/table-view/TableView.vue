@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type {
   ColumnSizingState,
   ExpandedState,
@@ -518,12 +519,16 @@ const defaultSortKind = tableDefaultSort
         ?.type?.id,
     )
   : undefined;
+// A hand-ordered table has no sort to pick: a sort saved before it was
+// ordered by hand is not read back.
 const sorting = ref<SortingState>(
-  sortingOrDefault(
-    tablePreferences.get<SortingState>("sorting", defaultSortState),
-    declaredSortableIds,
-    defaultSortState,
-  ),
+  reorderConfig
+    ? defaultSortState
+    : sortingOrDefault(
+        tablePreferences.get<SortingState>("sorting", defaultSortState),
+        declaredSortableIds,
+        defaultSortState,
+      ),
 );
 
 const savedFilters = tablePreferences.get<TableFilter[]>("columnFilters", []);
@@ -1270,6 +1275,7 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   groupByField: kanbanGroupBy,
   editAction: tableProps.value.rowActions?.edit,
   deleteAction: tableProps.value.rowActions?.delete,
+  onCardMoved: () => void refreshCounts(),
 });
 
 // A link tab counts the rows of the list it opens; a list the caller may not
@@ -1308,14 +1314,19 @@ const refreshLinkTabCounts = async () => {
 // event) or a refresh: what summarises them elsewhere (a navigation count)
 // is told to read its figure again.
 const { notifyTableDataChanged } = useTableDataChanges();
-const refreshAll = async () => {
+const refreshCounts = async () => {
   notifyTableDataChanged(location);
   await Promise.all([
-    refresh(),
     refreshTabCounts(),
     refreshLinkTabCounts(),
     refreshGroupCounts(),
     refreshSummaries(),
+  ]);
+};
+const refreshAll = async () => {
+  await Promise.all([
+    refresh(),
+    refreshCounts(),
     activeDisplayRef.value?.refresh?.(),
   ]);
 };
@@ -1504,12 +1515,14 @@ const deselectRows = (ids: string[]) => {
 };
 
 // From the archive, a delete is a permanent one: its confirmation says so.
-const deleteRows = async (ids: string[]) => {
+// A display holding the rows (a kanban card) hands them for its wording.
+const deleteRows = async (ids: string[], rows?: T[]) => {
   const done = await deleteRowsAction(
     ids,
     tableProps.value.rowActions?.delete,
     {
       permanently: !!archiveMode && showArchived.value,
+      rows,
     },
   );
   if (done) deselectRows(ids);
@@ -1536,12 +1549,18 @@ const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
   tableProps.value.rowActions?.[key];
 const handleRowClick = (item: T) =>
   runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
-const handleRowDuplicate = (itemId: string) =>
-  runConfirmedBuiltIn(
+// Its dialog words the row shown (`{name}`), else only its id.
+const handleRowDuplicate = (itemId: string) => {
+  const idKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
+  const shown = shownResults.value?.find(
+    (row) => String(get(row, idKey)) === itemId,
+  );
+  return runConfirmedBuiltIn(
     rowActionConfig("duplicate"),
-    { [props.rowIdKey ?? ROW_ID_DEFAULT_KEY]: itemId },
+    shown ?? { [idKey]: itemId },
     () => duplicateRow(itemId),
   );
+};
 const handleRowAdd = () =>
   runConfirmedBuiltIn(rowActionConfig("add"), undefined, () =>
     newRow(queryParamDefaults.value),
@@ -1606,12 +1625,14 @@ const realtimeEventHandlers: Record<
     return refreshAll();
   },
   [REALTIME_EVENT_TYPE.CREATED]: () => refreshAll(),
+  // An edited row can change tab, group or column: the counts are read again
+  // with it.
   [REALTIME_EVENT_TYPE.UPDATED]: async (ids) => {
     if (isActiveDisplaySelfManaged.value) {
-      await activeDisplayRef.value?.refresh?.();
+      await Promise.all([activeDisplayRef.value?.refresh?.(), refreshCounts()]);
       return;
     }
-    await Promise.all(ids.map((id) => patchRowLocal(id)));
+    await Promise.all([...ids.map((id) => patchRowLocal(id)), refreshCounts()]);
   },
 };
 
@@ -2116,8 +2137,11 @@ defineShortcuts(
 );
 
 // Each kept field with its default: a value back to it is forgotten.
+// A hand-ordered table keeps no sort.
 const tableStatePreferences: TableStatePreference[] = [
-  ["sorting", sorting, defaultSortState],
+  ...(reorderConfig
+    ? []
+    : [["sorting", sorting, defaultSortState] as TableStatePreference]),
   ["columnFilters", columnFilters, []],
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
@@ -2267,7 +2291,10 @@ onMounted(() => {
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
-    :sorting-options="{ manualSorting: true }"
+    :sorting-options="{
+      manualSorting: true,
+      enableSorting: activeCapabilities.sorting,
+    }"
     :default-sort="tableDefaultSort"
     :default-sort-label="defaultSortLabel"
     :default-sort-kind="defaultSortKind"

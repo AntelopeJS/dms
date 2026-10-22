@@ -4,8 +4,8 @@ import type { TableViewColumn } from "./types";
 /**
  * The few inputs the (unchanged) KanbanBoard needs beyond the generic
  * {@link TableViewDisplayContext}: the two-way group-by field shared with the
- * options-menu selector, and the raw edit/delete action configs for per-row rule
- * evaluation. Everything else (query, componentId, pageId, labelKey) is read from
+ * options-menu selector, the raw edit/delete action configs for per-row rule
+ * evaluation, and the callback told of a saved move. Everything else (query, componentId, pageId, labelKey) is read from
  * the generic context. Provided by TableView and injected by the kanban adapter
  * — slotted content is a descendant of TableView, so a native inject reaches it.
  */
@@ -13,6 +13,8 @@ export interface KanbanDisplayBridge {
   groupByField: Ref<string>;
   editAction?: boolean | RowActionConfig;
   deleteAction?: boolean | RowActionConfig;
+  /** A card was moved to another column and saved: the counts read again. */
+  onCardMoved?: () => void;
 }
 
 export const KANBAN_DISPLAY_BRIDGE_KEY: InjectionKey<KanbanDisplayBridge> =
