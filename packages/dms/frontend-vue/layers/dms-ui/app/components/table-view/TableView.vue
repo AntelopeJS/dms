@@ -162,7 +162,10 @@ import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
 import {
   groupedOptionsFor,
-  groupedSorting,
+  listTableSorting,
+  orderGroupedRows,
+  pickedTableSorting,
+  type TableSortingInput,
   isGroupableColumn,
 } from "../../build/composables/table-view/utils/groupedRows";
 import {
@@ -707,7 +710,7 @@ useMobileDisplay({
       undefined,
 });
 
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 
 // A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
@@ -919,17 +922,22 @@ const effectiveGlobalFilter = computed(() =>
 const isGroupedDisplay = computed(
   () => activeDisplayId.value === GROUPED_DISPLAY_ID && !!groupedOptions,
 );
+const sortingInput = computed<TableSortingInput>(() => ({
+  reorderField: reorderConfig?.field,
+  grouped: isGroupedDisplay.value ? activeGroupedOptions.value : undefined,
+  canSort: activeCapabilities.value.sorting,
+  sorting: sorting.value,
+  defaultSorting: defaultSortState,
+}));
+// The order the rows are wanted in; the grouped display lists them on the
+// grouped column and orders each group by it (`shownResults`).
+const pickedSorting = computed(() => pickedTableSorting(sortingInput.value));
 const effectiveSorting = computed<SortingState>(() => {
-  if (reorderConfig) return [{ id: reorderConfig.field, desc: false }];
-  const picked = activeCapabilities.value.sorting
-    ? sorting.value
-    : defaultSortState;
-  return sanitizeSorting(
-    isGroupedDisplay.value && activeGroupedOptions.value
-      ? groupedSorting(picked, activeGroupedOptions.value)
-      : picked,
-    sortableIds.value,
-  );
+  const listed = listTableSorting(sortingInput.value);
+  // The hand order is kept whole: its field need not be a sortable column.
+  return reorderConfig && !sortingInput.value.grouped
+    ? listed
+    : sanitizeSorting(listed, sortableIds.value);
 });
 
 // A feed grows by pages (`loadMore`, `infinite`) rather than paging.
@@ -1065,7 +1073,13 @@ const listLoadError = computed(() => {
 const shownData = computed(() =>
   listLoadError.value ? undefined : data.value,
 );
-const shownResults = computed(() => shownData.value?.results);
+const shownResults = computed(() => {
+  const results = shownData.value?.results;
+  const grouped = activeGroupedOptions.value;
+  return results && isGroupedDisplay.value && grouped
+    ? orderGroupedRows(results, grouped, pickedSorting.value, locale.value)
+    : results;
+});
 
 // Rows selected before the failure can no longer be seen or verified, yet the
 // selection toolbar would keep offering delete/archive/export on them.

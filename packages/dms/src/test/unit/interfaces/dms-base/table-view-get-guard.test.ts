@@ -118,7 +118,8 @@ async function expectStatus(promise: Promise<unknown>, status: number) {
 describe("[unit] TableView Get guard", () => {
   let invoiceId: string;
   let quoteId: string;
-  const originalGet = Query.Get;
+  // The row is read once: one query, its joined fields merged.
+  const originalJoined = Query.Joined;
   before(async () => {
     void ImplementInterface(tenantAccess, tenantAccessImpl);
     tenantAccess.RegisterTenantAccessGate(gate);
@@ -148,13 +149,13 @@ describe("[unit] TableView Get guard", () => {
     events.length = 0;
     denied = false;
     meta.setControllerGuards({ get: guard });
-    Query.Get = (...args) => {
+    Query.Joined = ((...args: Parameters<typeof originalJoined>) => {
       events.push("load");
-      return originalGet(...args);
-    };
+      return originalJoined(...args);
+    }) as typeof originalJoined;
   });
   afterEach(() => {
-    Query.Get = originalGet;
+    Query.Joined = originalJoined;
   });
   after(() => {
     tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);

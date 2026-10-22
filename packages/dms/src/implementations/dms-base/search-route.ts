@@ -315,7 +315,14 @@ export async function buildFilteredQuery(
     }
   }
 
-  return { meta, model, query, queryTotal, deferredJoined };
+  return {
+    meta,
+    model,
+    query,
+    queryTotal,
+    deferredJoined,
+    filters: filtersWithArchive,
+  };
 }
 
 export async function countWithSearch(
@@ -355,7 +362,7 @@ export async function listWithSearch(
     user,
     permissions,
   );
-  const { meta, model, deferredJoined } = built;
+  const { meta, model, deferredJoined, filters } = built;
   let { query, queryTotal } = built;
 
   const pluck: Set<string> | undefined = meta.pluck[params.pluckMode ?? "list"];
@@ -375,34 +382,17 @@ export async function listWithSearch(
     queryTotal = query.count();
   }
 
-  if (!params.noForeign) {
-    query = Query.Foreign(
-      model.database,
-      meta,
-      query as any,
-      params.noPluck ? undefined : pluck,
-    );
-  }
-
   const offset = params.offset || 0;
   const limit = params.limit || 10;
-  let queryPaged = query.slice(offset, limit);
-
-  const joinedFields = new Set(
-    [...deferredJoined].filter((field) => params.noPluck || pluck?.has(field)),
-  );
-  if (joinedFields.size > 0) {
-    queryPaged = Query.Joined(
-      model.database,
-      meta,
-      queryPaged as any,
-      joinedFields,
-    );
-  }
-
-  if (!params.noPluck && pluck) {
-    queryPaged = queryPaged.pluck("_internal", ...pluck);
-  }
+  const queryPaged = Query.ListPage(model.database, meta, query, {
+    offset,
+    limit,
+    filters,
+    sortKey: params.sortKey,
+    pluck: params.noPluck ? undefined : pluck,
+    noForeign: params.noForeign,
+    deferredJoined,
+  });
 
   const [dbResult, dbTotal] = await Promise.all([queryPaged, queryTotal]);
 

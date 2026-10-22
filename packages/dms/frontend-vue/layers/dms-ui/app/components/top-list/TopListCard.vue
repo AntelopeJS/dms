@@ -10,6 +10,8 @@ import DmsBlockActions, {
 // would draw an empty card for the moment that chunk takes.
 import DmsTopListRow from "./internal/TopListRow.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
+import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
 import { usePeriodScopePreset } from "#dms-core/app/composables/period/usePeriodScope";
@@ -120,7 +122,7 @@ const staticData = computed<TopListCardResponse | null>(() =>
   props.staticItems ? { items: props.staticItems } : null,
 );
 
-const { data, isLoading } = useChartFetch<TopListCardResponse>({
+const { data, isLoading, error, refresh } = useChartFetch<TopListCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
@@ -237,6 +239,16 @@ const isFirstLoad = computed(() => isLoading.value && data.value === null);
 // belong to the previous ones, so they dim like the KPI values do.
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 
+// A failed first load shows a message and a retry, never the empty state (a
+// list that loaded with no rows); a failed refetch keeps the last rows.
+const hasError = computed(
+  () => !isLoading.value && !data.value && Boolean(error.value),
+);
+// A 404 is a status too, but nothing to retry: the list does not exist.
+const notFound = computed(() =>
+  hasError.value ? readFetchNotFound(error.value) : null,
+);
+
 const emptyLabelDisplay = computed(() =>
   props.emptyLabel
     ? processI18n(props.emptyLabel)
@@ -351,6 +363,14 @@ const gridStyle = computed(() => ({
           :bar-class="barClass(index)"
         />
       </ul>
+
+      <DmsBlockInlineStatus
+        v-else-if="hasError"
+        :state="notFound ? 'not-found' : 'error'"
+        :not-found="notFound"
+        class="min-h-48 px-[18px]"
+        @retry="refresh()"
+      />
 
       <DmsEmptyState
         v-else-if="!isFirstLoad"

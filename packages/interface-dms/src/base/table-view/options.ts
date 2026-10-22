@@ -534,7 +534,7 @@ export type TableViewEmptyStatesSerialized = Partial<
 export interface TableViewCardOptions {
   /**
    * Columns shown on the card below its title (`labelKey`), each value
-   * rendered with its column's data type, like a cell.
+   * drawn like a cell: through its column's `display`, else its data type.
    */
   fields?: string[];
   /**

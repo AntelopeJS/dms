@@ -16,6 +16,7 @@ const HTTP_OK = 200;
 interface Note {
   _id: string;
   title: string;
+  isArchived?: boolean;
 }
 
 describe("[integration] table view archive mode", () => {
@@ -58,6 +59,9 @@ describe("[integration] table view archive mode", () => {
     expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
     expect(await titles(ACTIVE)).to.deep.equal(["Plan"]);
     expect(await titles(ARCHIVED)).to.deep.equal(["Draft"]);
+    // The rows carry the archive field, which the archive rules read.
+    const [archivedNote] = await list("&showArchived=true");
+    expect(archivedNote?.isArchived).to.equal(true);
 
     const restored = await client.put(`${LOCATION}/restore?ids=${draft!._id}`);
     expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);

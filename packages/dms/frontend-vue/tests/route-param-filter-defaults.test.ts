@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
 import {
+  fieldValuesOfSubmitDefaults,
   replaceUrlVariables,
   resolveSubmitDefaults,
 } from "../layers/dms-ui/app/composables/form/useForm";
@@ -55,5 +56,26 @@ describe("route param filter defaults on a nested form page", () => {
     expect(
       resolveSubmitDefaults({ ...EDIT_DEFAULTS, status: "draft" }, context),
     ).toEqual({ status: "draft" });
+  });
+});
+
+describe("route param filter defaults filling the new form", () => {
+  it("fills the field of the filtered parent, which a mandatory relation needs", () => {
+    const defaults = resolveSubmitDefaults(
+      { projectId: "{{params.id}}", source: "import" },
+      contextOf("/projects/:id/tasks/new", "/projects/p-7/tasks/new"),
+    );
+    expect(
+      fieldValuesOfSubmitDefaults(
+        [{ id: "title" }, { id: "projectId" }],
+        defaults,
+      ),
+    ).toEqual({ projectId: "p-7" });
+  });
+
+  it("fills nothing without defaults", () => {
+    expect(fieldValuesOfSubmitDefaults([{ id: "title" }], undefined)).toEqual(
+      {},
+    );
   });
 });

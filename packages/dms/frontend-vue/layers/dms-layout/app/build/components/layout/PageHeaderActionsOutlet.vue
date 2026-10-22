@@ -5,6 +5,10 @@ import PageHeaderActionBar, {
 } from "./PageHeaderActionBar.vue";
 import { injectPageHeaderActionsHost } from "../../../composables/layout/usePageHeaderActions";
 import { useServedHeaderActions } from "../../../composables/layout/useServedHeaderActions";
+import {
+  type PageRecordSource,
+  usePageRecord,
+} from "../../../composables/layout/usePageRecord";
 
 interface PageHeaderActionsOutletProps {
   /** Header buttons declared by the backend page (`headerActions`). */
@@ -13,12 +17,17 @@ interface PageHeaderActionsOutletProps {
   servedQuery?: Record<string, string>;
   /** The route parameters the server resolved their availability for. */
   servedParams?: Record<string, string>;
+  /** The record the page shows (`record` of the layout). */
+  record?: PageRecordSource;
 }
 
 const props = withDefaults(defineProps<PageHeaderActionsOutletProps>(), {
   servedQuery: undefined,
   servedParams: undefined,
+  record: undefined,
 });
+
+const pageRecord = usePageRecord(() => props.record);
 
 const actions = useServedHeaderActions({
   actions: () => props.actions,
@@ -73,6 +82,7 @@ const showsServerMarkup = computed(
     <PageHeaderActionBar
       :actions="actions"
       :slot-order="host?.actionsOrder.value"
+      :record="pageRecord"
     >
       <component :is="pageActions" v-if="pageActions" />
     </PageHeaderActionBar>

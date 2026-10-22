@@ -77,8 +77,9 @@ export class ArchiveNoteController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare labels: string[];
 
+  // No access of its own: @ArchiveField makes it readable, so the rows carry
+  // it for the client to evaluate the archive rules.
   @ArchiveField()
-  @Access(AccessMode.ReadOnly)
   declare isArchived: boolean;
 }
 
