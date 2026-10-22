@@ -52,6 +52,8 @@ function stubLayerGlobals() {
   }
   vi.stubGlobal("useDataTypes", () => ({ registerDataType: register }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
+  // What getAppTranslation reads, outside a setup.
+  vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: String } }));
   vi.stubGlobal("useDmsState", engine.useDmsState);
 }
 
