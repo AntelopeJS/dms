@@ -23,6 +23,8 @@ export interface RouteCallbackContext {
   tenantId: string;
   /** The query of the layout request: the page URL's own. */
   pageQuery: Record<string, string>;
+  /** The route parameters of the layout request: the page URL's own. */
+  pageParams: Record<string, string>;
 }
 
 /**

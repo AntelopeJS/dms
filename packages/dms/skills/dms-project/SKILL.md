@@ -193,6 +193,8 @@ DMS_BACK_DIR=<resolved-path> bash "<skill-base-dir>/scripts/dms-dev.sh" restart
 | Command | Use when |
 | --- | --- |
 | `restart` | Hot reload cannot apply a change, or the state is unknown. |
+| `restart-front` | The frontend crashed or hangs while the backend runs: only the frontend is stopped (if it runs) and started again. |
+| `restart-back` | The backend crashed alone: only the backend is restarted, and the frontend keeps running. Run `restart-front` too if the frontend then serves stale layers. |
 | `start` | Nothing is running (fresh shell, after `stop`). |
 | `stop` | Before walking away, before destructive operations, on session cleanup. |
 | `status` | The user asks whether the DMS is running. |
@@ -202,7 +204,8 @@ The call returns once both servers print their ready line and reports the URLs t
 fails fast when a server exits early, otherwise after 180 s per server (`DMS_DEV_TIMEOUT`). The
 servers keep running detached. By default the script runs the project's `pnpm dev` and
 `pnpm frontend:dev` scripts (a project convention that expands to the two commands above);
-override them with `DMS_BACK_CMD` / `DMS_FRONT_CMD`.
+override them with `DMS_BACK_CMD` / `DMS_FRONT_CMD`. It runs in bash on Linux and macOS, and in
+Git Bash, MSYS2 or Cygwin on Windows ([DEV-SERVERS.md](DEV-SERVERS.md#windows)).
 
 When you hand off for manual testing, run `restart` yourself, wait for both ready lines, then tell
 the user what to click. Boot failures, stale frontends, a refused credential (401), stop scope and

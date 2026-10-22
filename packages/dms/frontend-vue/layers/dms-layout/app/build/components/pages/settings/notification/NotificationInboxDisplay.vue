@@ -4,6 +4,7 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import TableEmpty from "#dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "#dms-ui/app/build/components/table/Pagination.vue";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types/display";
+import { useConfirm } from "#dms-ui/app/composables/confirm";
 import { useNotificationCatalog } from "../../../../composables/notification/useNotificationCatalog";
 import {
   type UserNotification,
@@ -31,6 +32,7 @@ const SKELETON_ROWS = 3;
 
 const { t, locale } = useI18n();
 const toast = useToast();
+const { confirm } = useConfirm();
 const catalog = useNotificationCatalog();
 const {
   unreadCount,
@@ -97,16 +99,30 @@ const toggleRead = (notification: UserNotification) =>
       : markAsRead(notification._id),
   );
 
+// A deletion cannot be undone, and its button sits next to Mark read: it is
+// asked first, as "Delete all" is, with the safe answer focused.
+const removeNotification = async (notification: UserNotification) => {
+  const isConfirmed = await confirm({
+    title: t("page.settings.notifications.delete_one_title"),
+    description: t("page.settings.notifications.delete_one_description"),
+    icon: "i-ph-trash",
+    color: "error",
+    confirmIcon: "i-ph-trash",
+    confirmLabel: t("page.settings.notifications.delete"),
+    cancelLabel: t("page.settings.notifications.cancel"),
+    initialFocus: "cancel",
+  });
+  if (isConfirmed) {
+    await runThenRefresh(() => deleteNotification(notification._id));
+  }
+};
+
 // What the stream changes elsewhere (a notification arriving, read in
 // another tab) is listed again here: once per change of the count or of the
 // newest notification, not each time the bell's lists are rebuilt.
-watch(
-  [unreadCount, () => notifications.value[0]?._id],
-  () => {
-    if (ownChanges === 0) void props.context.refresh();
-  },
-);
-
+watch([unreadCount, () => notifications.value[0]?._id], () => {
+  if (ownChanges === 0) void props.context.refresh();
+});
 </script>
 
 <template>
@@ -136,7 +152,7 @@ watch(
           :source="sourceOf(notification)"
           @open="openNotification(notification)"
           @toggle-read="toggleRead(notification)"
-          @delete="runThenRefresh(() => deleteNotification(notification._id))"
+          @delete="removeNotification(notification)"
         />
       </section>
     </template>

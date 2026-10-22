@@ -63,5 +63,6 @@ defineExpose({ refresh: () => kanbanBoardRef.value?.refresh() });
     :delete-action="bridge?.deleteAction"
     @card-click="(item) => onCardClick(item as T)"
     @card-delete="(item) => onCardDelete(item as T)"
+    @rows-shown="(items) => context.setShownRows?.(items as T[])"
   />
 </template>

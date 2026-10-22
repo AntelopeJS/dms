@@ -6,6 +6,8 @@ import {
   RegisterBlockType,
   ui,
 } from "./block-registry";
+import { blockRealtimeTopicOption } from "./display";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import {
   type ChartColorValue,
   VALUE_FORMATS,
@@ -27,18 +29,43 @@ export interface KpiCardProps extends BaseComponentProps {
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
+  /**
+   * Id of the `PeriodSelector` driving the card. The comparison it selects
+   * names the card's change ("vs previous year"), and "no comparison" hides
+   * the change, the comparison value and the comparison label.
+   */
   periodScope?: string;
+  /**
+   * Topics the backend publishes on (`PublishMessage`) when the figure moves:
+   * the card reads `fetchUrl` again on each event, keeping what it shows,
+   * through the page's `live` gate. The page registers them.
+   */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /**
+   * Shows the figure the value is compared against ("vs €42,900"), formatted
+   * as the value, when the data carries `previousValue`. Defaults to `true`;
+   * `false` keeps a card compact.
+   */
+  showPreviousValue?: boolean;
   showSparkline?: boolean;
   sparklineAccent?: ChartColorValue | "auto";
   invert?: boolean;
+  /**
+   * The caption of the change. Optional: a card with a `periodScope` and no
+   * `description` names the comparison its selector applies on its own, so
+   * set it only for a wording of your own. Shown with the change only:
+   * without a comparison, `description` shows in its place.
+   */
   compareLabel?: string;
   staticValue?: number;
   /** The change in percent, as a fetched `delta`: 12.5 reads +12.5 %. */
   staticDelta?: number;
+  /** The figure compared against, as a fetched `previousValue`. */
+  staticPreviousValue?: number;
   staticSparkline?: number[];
 }
 
@@ -53,12 +80,15 @@ const KPI_CARD_COMPONENT_NAME = "dms-kpi-card";
 export function KpiCard(
   options?: KpiCardProps,
 ): ComponentBuilder<KpiCardProps> {
-  return new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-    .options({ ...options } as KpiCardProps)
-    .meta({
-      name: options?.title || "KPI card",
-      icon: options?.icon || "i-ph-trend-up",
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
+      .options({ ...options } as KpiCardProps)
+      .meta({
+        name: options?.title || "KPI card",
+        icon: options?.icon || "i-ph-trend-up",
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 /** The options `KpiCard` accepts. */
@@ -105,6 +135,7 @@ export const KpiCardSchema = z.object({
       .describe("Id of the PeriodSelector driving this card."),
     { label: "Period scope", group: "advanced" },
   ),
+  realtimeTopic: blockRealtimeTopicOption(),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",
     group: "appearance",
@@ -124,6 +155,13 @@ export const KpiCardSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  showPreviousValue: ui(
+    z
+      .boolean()
+      .optional()
+      .describe("Show the figure the value is compared against."),
+    { label: "Show comparison value", group: "appearance", widget: "switch" },
+  ),
   showSparkline: ui(z.boolean().optional(), {
     label: "Show sparkline",
     group: "appearance",
@@ -141,16 +179,26 @@ export const KpiCardSchema = z.object({
       .describe("Treat a falling value as the good outcome."),
     { label: "Invert variation", group: "behavior", widget: "switch" },
   ),
-  compareLabel: ui(z.string().optional(), {
-    label: "Comparison label",
-    group: "content",
-  }),
+  compareLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        "Caption of the variation; follows the period selector's comparison when empty.",
+      ),
+    { label: "Comparison label", group: "content" },
+  ),
   staticValue: ui(
     z.number().optional().describe("Value shown when no data source is set."),
     { label: "Static value", group: "advanced", widget: "number" },
   ),
   staticDelta: ui(z.number().optional(), {
     label: "Static variation",
+    group: "advanced",
+    widget: "number",
+  }),
+  staticPreviousValue: ui(z.number().optional(), {
+    label: "Static comparison value",
     group: "advanced",
     widget: "number",
   }),

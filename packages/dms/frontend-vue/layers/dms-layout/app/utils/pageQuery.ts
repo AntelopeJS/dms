@@ -57,3 +57,29 @@ export function layoutUrlWithQuery(
   const search = new URLSearchParams(query).toString();
   return search ? `${layoutUrl}?${search}` : layoutUrl;
 }
+
+/**
+ * A page path or layout URL with its `:name` segments filled from `params`;
+ * a segment `params` has no value for stays as it is. The page's layout route
+ * reads them as the page URL's own.
+ */
+export function fillRouteParams(
+  layoutUrl: string,
+  params: Record<string, string>,
+): string {
+  return layoutUrl.replace(/:([^/]+)/g, (segment, name: string) =>
+    name in params ? params[name]! : segment,
+  );
+}
+
+/** Whether two sets of route parameters hold the same values. */
+export function isSameRouteParams(
+  left: Record<string, string>,
+  right: Record<string, string>,
+): boolean {
+  const names = Object.keys(left);
+  return (
+    names.length === Object.keys(right).length &&
+    names.every((name) => left[name] === right[name])
+  );
+}

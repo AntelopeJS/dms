@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import { getCurrentInstance, type Component } from "vue";
+import {
+  formBusInjectionKey,
+  formErrorsInjectionKey,
+  formFieldInjectionKey,
+  formInputsInjectionKey,
+  formLoadingInjectionKey,
+  formOptionsInjectionKey,
+  formStateInjectionKey,
+  inputIdInjectionKey,
+} from "@nuxt/ui/runtime/composables/useFormField.js";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import { useWindowSize } from "@vueuse/core";
 import type {
@@ -74,9 +84,22 @@ const emit = defineEmits<DynamicDrawerEmits>();
 // provides: its own start from the caller's instead, before it provides
 // anything (Vue's `provide` then writes into them). What the drawer provides
 // itself (its container, the form surface) still wins over the caller's.
+const NUXT_UI_FORM_KEYS = [
+  formOptionsInjectionKey,
+  formBusInjectionKey,
+  formStateInjectionKey,
+  formFieldInjectionKey,
+  inputIdInjectionKey,
+  formInputsInjectionKey,
+  formLoadingInjectionKey,
+  formErrorsInjectionKey,
+];
 const drawerInstance = getCurrentInstance() as { provides: object } | null;
 if (drawerInstance && props.callerProvides) {
   drawerInstance.provides = Object.create(props.callerProvides);
+  // A drawer is a surface of its own: a field in its body does not join a
+  // Nuxt UI form or form field around the component that opened it.
+  for (const key of NUXT_UI_FORM_KEYS) provide(key as symbol, undefined);
 }
 
 // Below `lg` a side drawer is a sheet as wide as a side panel (see
@@ -371,7 +394,7 @@ const { t } = useI18n();
           variant="ghost"
           size="sm"
           square
-          aria-label="Close"
+          :aria-label="t('dms.a11y.close')"
           :disabled="isContentLoading"
           @click="tryClose"
         />
