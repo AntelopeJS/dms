@@ -516,7 +516,9 @@
     },
     "a11y": {
       "breadcrumb": "Breadcrumb",
-      "loading": "Loading"
+      "close": "Close",
+      "loading": "Loading",
+      "show_options": "Show options"
     }
   }
 }

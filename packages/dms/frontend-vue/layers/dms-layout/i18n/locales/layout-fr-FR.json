@@ -188,6 +188,8 @@
         "mark_unread": "Marquer non lu",
         "delete": "Supprimer",
         "delete_one": "Supprimer la notification",
+        "delete_one_title": "Supprimer cette notification ?",
+        "delete_one_description": "Elle quitte définitivement votre boîte de réception. Cette action est irréversible.",
         "empty_title": "Vous êtes à jour",
         "empty_description": "Les nouvelles notifications arrivent ici. Choisissez ce que vous recevez dans les préférences ci-dessus.",
         "loading_more": "Chargement des notifications plus anciennes · {count} de plus",
