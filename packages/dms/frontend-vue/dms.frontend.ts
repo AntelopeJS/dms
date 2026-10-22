@@ -21,6 +21,7 @@ import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host
 import livePauseSourcePlugin from "./layers/dms-ui/app/plugins/live-pause-source";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
+import closingLayersPlugin from "./layers/dms-ui/app/plugins/closing-layers.client";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -199,6 +200,8 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(sidePanelHostPlugin);
   // Not deferred: a page's first poll reads it.
   sdk.registerPlugin(livePauseSourcePlugin, clientOnly);
+  // Not deferred: the first dialog the user closes needs it.
+  sdk.registerPlugin(closingLayersPlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);
