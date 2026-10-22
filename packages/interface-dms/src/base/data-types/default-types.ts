@@ -203,6 +203,13 @@ export namespace DefaultDataTypes {
   export type UrlTypeOptions = {
     placeholder?: string;
     fallback?: string;
+    /**
+     * Shown read-only (a table cell, an expanded row, a record's details),
+     * the URL is drawn as the image it points to instead of a link: `avatar`
+     * a round thumbnail, `image` a framed one. A remote photo (a profile
+     * picture) then reads as a picture; the form still edits it as text.
+     */
+    preview?: "avatar" | "image";
   };
 
   export type PhoneTypeOptions = {
@@ -751,6 +758,7 @@ export namespace DefaultDataTypes {
     protected defaultInputComponent() {
       return FormComponents.InputText({
         placeholder: this.options.placeholder,
+        preview: this.options.preview,
       });
     }
 
