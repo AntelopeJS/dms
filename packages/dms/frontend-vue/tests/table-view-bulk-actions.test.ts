@@ -7,6 +7,7 @@ import {
   bulkActionOutcome,
   bulkActionQuery,
   type PluralTranslate,
+  readBulkCount,
   selectedRowIds,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/bulkActions";
 import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
@@ -57,6 +58,13 @@ describe("TableView bulk actions", () => {
       processed: 0,
       skipped: 3,
     });
+  });
+
+  it("reads the count a custom bulk route answers with", () => {
+    expect(readBulkCount({ count: 2 })).toBe(2);
+    expect(readBulkCount(4)).toBe(4);
+    expect(readBulkCount({ success: true })).toBe(undefined);
+    expect(readBulkCount(undefined)).toBe(undefined);
   });
 
   it("takes a response without a count as a full success", () => {

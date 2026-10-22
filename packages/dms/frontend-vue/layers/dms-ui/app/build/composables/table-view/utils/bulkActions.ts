@@ -90,10 +90,20 @@ export interface BulkActionOutcome {
 
 // The count each bulk route answers with: delete sends the number of deleted
 // rows (or `{ deleted }` when a row rule filtered out every id), archive and
-// restore send `{ archivedCount }` / `{ restoredCount }`.
-const COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"] as const;
+// restore send `{ archivedCount }` / `{ restoredCount }`, and a custom bulk
+// route `{ count }`.
+const COUNT_KEYS = [
+  "count",
+  "deleted",
+  "archivedCount",
+  "restoredCount",
+] as const;
 
-const readCount = (response: unknown): number | undefined => {
+/**
+ * The number of rows a bulk route says it changed: a bare number or one of
+ * its count keys, `undefined` when it does not say.
+ */
+export const readBulkCount = (response: unknown): number | undefined => {
   if (typeof response === "number") return response;
   if (!response || typeof response !== "object") return undefined;
   for (const key of COUNT_KEYS) {
@@ -112,7 +122,7 @@ export function bulkActionOutcome(
   response: unknown,
   requested: number,
 ): BulkActionOutcome {
-  const count = readCount(response);
+  const count = readBulkCount(response);
   const processed =
     count === undefined ? requested : Math.min(Math.max(count, 0), requested);
   return { processed, skipped: requested - processed };

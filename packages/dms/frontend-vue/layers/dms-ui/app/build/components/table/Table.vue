@@ -413,6 +413,10 @@ export interface TableSharedData<T> {
    * too.
    */
   emptyStates?: TableViewEmptyStatesConfig;
+  /** The add action's configured label (`$`: i18n key), if any. */
+  addLabel?: string;
+  /** The add action's configured icon, if any. */
+  addIcon?: string;
 }
 </script>
 
@@ -1139,6 +1143,13 @@ const canAddFromToolbar = computed(() => {
   const add = normalizeActionConfig(props.rowActions?.add);
   return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
 });
+// Drawn on the toolbar and empty-state buttons, as the header one draws them.
+const addLabel = computed(
+  () => normalizeActionConfig(props.rowActions?.add).label,
+);
+const addIcon = computed(
+  () => normalizeActionConfig(props.rowActions?.add).icon,
+);
 
 // The bulk bar shows whenever selected rows have something to go to.
 const hasBulkActions = computed(
@@ -1284,6 +1295,8 @@ watchEffect(() => {
     defaultPageSize: props.defaultPageSize,
     accumulation: props.accumulation,
     emptyStates: props.emptyStates,
+    addLabel: addLabel.value,
+    addIcon: addIcon.value,
   };
 });
 
@@ -1401,6 +1414,8 @@ defineShortcuts({
           v-model:show-archived="showArchivedState"
           :table
           :can-add-row="canAddFromToolbar"
+          :add-label="addLabel"
+          :add-icon="addIcon"
           :archive-toggle="archiveToggle"
           :custom-buttons="toolbarButtons"
           :on-custom-button="onCustomButton"
