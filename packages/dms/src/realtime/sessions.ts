@@ -8,8 +8,25 @@ export interface SessionInfo {
   user?: User;
   tenantId?: string;
   pageId?: string;
+  /** The browser connection the session rides on, shared by its tabs. */
+  connectionId: string;
   send: SessionSend;
-  /** Ends the session's stream; its close handlers unregister the session. */
+  /**
+   * Ends this session alone: it leaves the registry, and its tab is told on
+   * the shared stream to open a new one. The connection and the other tabs'
+   * sessions on it stay open.
+   */
+  close: SessionClose;
+}
+
+/**
+ * One browser's stream, shared by the sessions of its tabs: a session per tab
+ * keeps its own page, topics and presence, and only the transport is shared.
+ */
+export interface ConnectionInfo {
+  userId: string;
+  send: SessionSend;
+  /** Ends the stream; its close handlers end the sessions riding on it. */
   close: SessionClose;
 }
 
@@ -18,15 +35,24 @@ interface SessionState {
   subscriptions: Map<string, Unsubscribe>;
 }
 
+interface ConnectionState {
+  info: ConnectionInfo;
+  sessionIds: Set<string>;
+}
+
 const sessions = new Map<string, SessionState>();
+const connections = new Map<string, ConnectionState>();
 
 export function registerSession(sessionId: string, info: SessionInfo): void {
   sessions.set(sessionId, { info, subscriptions: new Map() });
+  connections.get(info.connectionId)?.sessionIds.add(sessionId);
 }
 
 export function unregisterSession(sessionId: string): Map<string, Unsubscribe> {
   const state = sessions.get(sessionId);
   sessions.delete(sessionId);
+  if (state)
+    connections.get(state.info.connectionId)?.sessionIds.delete(sessionId);
   return state?.subscriptions ?? new Map();
 }
 
@@ -50,12 +76,34 @@ export function getSessionSubscriptions(
   return sessions.get(sessionId)?.subscriptions;
 }
 
+export function registerConnection(
+  connectionId: string,
+  info: ConnectionInfo,
+): void {
+  connections.set(connectionId, { info, sessionIds: new Set() });
+}
+
+/** Forgets the connection and returns the sessions still riding on it. */
+export function unregisterConnection(connectionId: string): string[] {
+  const state = connections.get(connectionId);
+  connections.delete(connectionId);
+  return state ? [...state.sessionIds] : [];
+}
+
+export function getConnectionInfo(
+  connectionId: string,
+): ConnectionInfo | undefined {
+  return connections.get(connectionId)?.info;
+}
+
 /**
- * Ends every open session stream. A stream left open across a stop stays bound
- * to a broker that no longer delivers anything: the client keeps receiving
- * keepalives but never another event, and has no reason to reconnect.
+ * Ends every open connection, and with it the sessions riding on it. A stream
+ * left open across a stop stays bound to a broker that no longer delivers
+ * anything: the client keeps receiving keepalives but never another event,
+ * and has no reason to reconnect.
  */
 export async function closeAllSessions(): Promise<void> {
-  const open = [...sessions.values()];
-  await Promise.allSettled(open.map((state) => state.info.close()));
+  await Promise.allSettled(
+    [...connections.values()].map((state) => state.info.close()),
+  );
 }
