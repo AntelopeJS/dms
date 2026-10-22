@@ -236,6 +236,14 @@ export namespace DefaultDataCompareTypes {
     }
   }
 
+  // An optional array field is null or missing on rows saved without a
+  // value, and a database may refuse an array operator over it (MongoDB's
+  // `$in` fails the whole query). Reading it as an empty array keeps such rows
+  // out of an include filter and in an exclude one.
+  function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
+    return (proxy as unknown as ValueProxy<unknown[]>).default([]);
+  }
+
   @RegisterDataCompareMode("include")
   export class Include implements DataCompareMode {
     filter(
@@ -248,8 +256,7 @@ export namespace DefaultDataCompareTypes {
       const parsedValue = parseValue(value);
       assertPrimitiveValue(parsedValue);
 
-      const dbVal = proxy as unknown as ValueProxy<unknown[]>;
-      return dbVal.includes(parsedValue);
+      return arrayOrEmpty(proxy).includes(parsedValue);
     }
   }
 
@@ -265,8 +272,7 @@ export namespace DefaultDataCompareTypes {
       const parsedValue = parseValue(value);
       assertPrimitiveValue(parsedValue);
 
-      const dbVal = proxy as unknown as ValueProxy<unknown[]>;
-      return dbVal.includes(parsedValue).not();
+      return arrayOrEmpty(proxy).includes(parsedValue).not();
     }
   }
 

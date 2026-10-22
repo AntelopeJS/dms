@@ -331,9 +331,14 @@ export const useSiteLayout = () => {
    * URL's, which the first request carries for the header buttons whose
    * availability reads it (the header asks again for another query).
    */
+  /**
+   * The layout of the page at `slug`, cached under it. `url`, the layout
+   * route with the page's `:id` filled in, is what is asked when it differs.
+   */
   const loadPageLayout = async (
     slug: string,
     query?: Record<string, string>,
+    url = slug,
   ): Promise<PageLayout> => {
     if (pageLayouts.value[slug]) {
       return pageLayouts.value[slug];
@@ -347,7 +352,7 @@ export const useSiteLayout = () => {
 
     const { $authFetch } = useAuthFetch();
     const request = $authFetch<PageLayout>(
-      layoutUrlWithQuery(slug, query ?? {}),
+      layoutUrlWithQuery(url, query ?? {}),
     ).then((result) => {
       if (pageLayouts.value === cache) cache[slug] = result;
       return result;

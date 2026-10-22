@@ -73,6 +73,29 @@ export const CheckTenantAccess =
     ) => Promise<TenantAccessResult>
   >();
 
+/** One denying gate, identified independently of its user-facing error code. */
+export interface TenantAccessDenial {
+  gateId: string;
+  code: string;
+}
+
+/**
+ * Server-side evaluation of every registered gate, in gate order. Returns all
+ * denials (empty when allowed); any exception rejects the whole evaluation.
+ * Unlike CheckTenantAccess, an early denial does not hide later blockers.
+ * This is an observation, not an authorization receipt or an atomic snapshot
+ * of external state. Callers must preserve other holds and revalidate their
+ * operation's authorization before effects. Never infer ownership from code.
+ * Does not change the first-denial response of user-facing access checks.
+ */
+export const EvaluateTenantAccess =
+  InterfaceFunction<
+    (
+      userId: string | undefined,
+      tenantId: string,
+    ) => Promise<TenantAccessDenial[]>
+  >();
+
 /**
  * Assert that the tenant is accessible; throws a 403 whose body is the
  * denying gate's `code` (a machine-readable i18n key) otherwise.

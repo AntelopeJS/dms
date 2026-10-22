@@ -269,6 +269,23 @@ export interface BlockTypeDefinition {
   fixedOptions?: Record<string, unknown>;
   /** Whether the factory takes a leading controller class before its options. */
   controllerArg?: boolean;
+  /**
+   * The children an editor places in a new block of this type, as the
+   * module-side helper places them in code: `pageToolbar()`'s `LiveToggle`
+   * and `PeriodSelector` with their defaults. An editor reads them here
+   * rather than keeping its own copy of those defaults.
+   */
+  initialChildren?: BlockInitialChild[];
+}
+
+/** One child a new block starts with (see `BlockTypeDefinition.initialChildren`). */
+export interface BlockInitialChild {
+  /** The child id under its parent, the one roles name it by. */
+  id: string;
+  /** The child's block type, a key of the catalog (`LiveToggle`). */
+  type: string;
+  /** The child's options, JSON-serializable. */
+  options: Record<string, unknown>;
 }
 
 /** A block type as reported by `ListBlockTypes`, with its schemas described. */

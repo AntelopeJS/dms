@@ -15,6 +15,10 @@ import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
 import { filterEditorValue } from "../../composables/table/utils/filterEditorValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
+import {
+  type RelationFilterSource,
+  useRelationFilterLabels,
+} from "../../composables/table/useRelationFilterLabels";
 
 // v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
 // a chip opens its value editor in a popover.
@@ -181,7 +185,29 @@ const itemLabels = (filter: TableFilter): string | undefined => {
   return labels.length ? labels.join(", ") : undefined;
 };
 
+// A relation filter holds the related rows' ids: its chip names the rows,
+// read from where the column's data type says they live (its `select` route).
+const relationSource = (
+  filter: TableFilter,
+): RelationFilterSource | undefined => {
+  const column = getColumn(filter.accessorKey);
+  const component = resolveFilterComponent(filter);
+  if (!column?.type || !component) return undefined;
+  const source = getDataType(column.type.id)?.selectSource?.(component.options);
+  return source ? { ...source, value: filter.value } : undefined;
+};
+
+const { labelsOf: relationLabels } = useRelationFilterLabels(() =>
+  [...urlFilters.value, ...filters.value].flatMap((filter) => {
+    const source = relationSource(filter);
+    return source ? [source] : [];
+  }),
+);
+
 const displayValue = (filter: TableFilter): string => {
+  const source = relationSource(filter);
+  const names = source ? relationLabels(source) : [];
+  if (names.length) return names.join(", ");
   const labels = itemLabels(filter);
   if (labels) return labels;
   const formatted = formatFilterValue(
