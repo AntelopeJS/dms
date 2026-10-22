@@ -152,14 +152,29 @@ async function assertImplements(
 }
 
 /**
- * Refuses to take down a module other running modules need: they would wait
- * forever on its interface, and the next start would refuse them.
+ * Refuses to take down a module other running modules or the project need:
+ * they would wait forever on its interface, and the next start would refuse
+ * them. The listing reads the same `findDependents`, so a tile never offers
+ * what this refuses.
  */
 export async function assertNoDependents(
   context: RequirementContext,
 ): Promise<void> {
   const module = await describeRuntimeModule(context.key);
   if (!module || !isLive(module)) return;
-  const dependents = await findDependents(module, await runningModules());
-  assert(dependents.length === 0, HTTP_CONFLICT, "error.store_module_required");
+  const dependents = await findDependents(
+    module,
+    await runningModules(),
+    context.projectPath,
+  );
+  assert(
+    !dependents.usedByProject,
+    HTTP_CONFLICT,
+    "error.store_module_used_by_project",
+  );
+  assert(
+    dependents.modules.length === 0,
+    HTTP_CONFLICT,
+    "error.store_module_required",
+  );
 }

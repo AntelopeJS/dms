@@ -24,10 +24,12 @@ const defaultValue = computed(() => props.field.defaultValue);
 const showsChange = computed(
   () => context.showsChanges && context.isFieldChanged(props.field.id),
 );
-// "Module default · Use default" on a value that is not the default, unless
-// the change line already says what it was.
+// "Module default · Use default" on a value that is not the default, for a
+// field that offers it (a setting, not a record's initial value), unless the
+// change line already says what it was.
 const showsDefault = computed(
   () =>
+    !!props.field.offersDefault &&
     defaultValue.value !== undefined &&
     !context.isFieldDisabled(props.field) &&
     !sameFormValue(value.value, defaultValue.value) &&
@@ -80,7 +82,10 @@ function useDefault(): void {
 </script>
 
 <template>
-  <div v-if="showsChange || showsDefault" class="grid gap-0.5 text-xs">
+  <div
+    v-if="showsChange || showsDefault"
+    class="grid min-w-0 gap-0.5 text-xs break-words"
+  >
     <p
       v-if="showsChange"
       class="text-muted flex flex-wrap items-center gap-1.5"
@@ -107,7 +112,7 @@ function useDefault(): void {
         color="primary"
         variant="link"
         size="xs"
-        class="p-0"
+        class="p-0 text-start whitespace-normal"
         @click="useDefault"
       />
     </p>

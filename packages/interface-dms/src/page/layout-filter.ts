@@ -50,34 +50,61 @@ async function filterComponentInfo(
   return filtered;
 }
 
+type WatchHolder = Record<string, unknown> & { watchActions?: WatchAction[] };
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  !!value &&
+  typeof value === "object" &&
+  (Object.getPrototypeOf(value) === Object.prototype ||
+    Object.getPrototypeOf(value) === null);
+
 /**
  * The watch actions the caller may run: one gated by `requirePermission` is
  * kept only when the caller holds that permission as everywhere else (an
  * owner's `*` and the permission's ancestors included).
+ *
+ * Checked on the component's own options and on every component embedded in
+ * them: a host serializes what it opens (a table view's forms in a drawer or a
+ * modal, a dialog's content) into its options with `serializeSync()`, so those
+ * are not nodes of the page's tree. `watchActions` is the transport key the
+ * builder alone fills (it strips one a caller passes), so any object holding
+ * it is a component's options. A value with no gated watch keeps its identity.
  */
 async function filterRequiredPermissionWatches(
-  options: unknown,
+  value: unknown,
   permissions: Set<string>,
-): Promise<typeof options> {
-  if (!options || typeof options !== "object") {
-    return options;
+): Promise<unknown> {
+  if (Array.isArray(value)) {
+    const items = await Promise.all(
+      value.map((item) => filterRequiredPermissionWatches(item, permissions)),
+    );
+    return items.every((item, index) => item === value[index]) ? value : items;
   }
-  const opts = options as Record<string, unknown> & {
-    watchActions?: WatchAction[];
-  };
-  if (!Array.isArray(opts.watchActions) || opts.watchActions.length === 0) {
-    return options;
-  }
+  if (!isPlainObject(value)) return value;
+  const entries = await Promise.all(
+    Object.entries(value).map(
+      async ([key, item]) =>
+        [
+          key,
+          await filterRequiredPermissionWatches(item, permissions),
+        ] as const,
+    ),
+  );
+  const changed = entries.some(([key, item]) => item !== value[key]);
+  const next: WatchHolder = changed ? Object.fromEntries(entries) : value;
+  if (!Array.isArray(next.watchActions)) return next;
+  const watches = next.watchActions;
   const granted = await Promise.all(
-    opts.watchActions.map(
+    watches.map(
       async (w) =>
         !w.requirePermission ||
         (await HasPermission(permissions, w.requirePermission)),
     ),
   );
+  if (granted.every(Boolean)) return next;
   return {
-    ...opts,
-    watchActions: opts.watchActions.filter((_, index) => granted[index]),
+    ...next,
+    watchActions: watches.filter((_, index) => granted[index]),
   };
 }
 

@@ -106,8 +106,9 @@ export namespace DefaultDataTypes {
     step?: number;
     placeholder?: string;
     /**
-     * Unit written after the form field ("days", "seats"): an i18n key with
-     * `$`, or a literal. The value stays a bare number.
+     * Unit written after the value ("days", "seats"): after the form field,
+     * and after the number in table cells, cards and read-only fields. An
+     * i18n key with `$`, or a literal. The value stays a bare number.
      */
     suffix?: string;
     /**

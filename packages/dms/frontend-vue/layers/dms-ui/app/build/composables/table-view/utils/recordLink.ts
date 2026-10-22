@@ -39,12 +39,28 @@ export function writeRecordId(
 
 /**
  * Whether an action keeps the row it opens in the URL: a side panel does
- * unless its target or the action sets `deepLink: false`, a drawer or a modal
- * only with the action's `deepLink: true`.
+ * unless its target or the action sets `deepLink: false`, a drawer only with
+ * its target's or the action's `deepLink: true`, a modal only with the
+ * action's.
  */
 export function isDeepLinkAction(action: CustomRowAction): boolean {
-  if (action.target.type !== "sidePanel") return !!action.deepLink;
-  return (action.deepLink ?? action.target.deepLink) !== false;
+  const { target } = action;
+  if (target.type === "sidePanel") {
+    return (action.deepLink ?? target.deepLink) !== false;
+  }
+  if (target.type === "drawer") return !!(action.deepLink ?? target.deepLink);
+  return !!action.deepLink;
+}
+
+/**
+ * Whether the action's container draws its own "no longer available" state
+ * on a row that is gone: a side panel always, a drawer once its target words
+ * it (`notFound`).
+ */
+export function hasMissingRowState(action: CustomRowAction): boolean {
+  const { target } = action;
+  if (target.type === "sidePanel") return true;
+  return target.type === "drawer" && !!target.notFound;
 }
 
 /** The row a table wrote in the URL, and the page it wrote it on. */
@@ -114,8 +130,9 @@ export async function resolveDeepLinkedRow<T>(
 
 /**
  * What a table does with the row a deep link resolved to: open it, let a side
- * panel show its own "no longer available" state, tell the user the link led
- * nowhere (a drawer or a modal has no such state, and a table with no route to
+ * panel (or a drawer wording it) show its own "no longer available" state,
+ * tell the user the link led nowhere (any other container has no such state,
+ * and a table with no route to
  * read one row finds nothing either), or tell them the row could not be read
  * (a refusal, the network) without claiming it is gone.
  */
@@ -131,7 +148,6 @@ export function deepLinkOutcome(
 ): DeepLinkOutcome {
   if (found.row) return "open";
   if (found.isFailed) return "notifyFailed";
-  if (found.isMissing && action.target.type === "sidePanel")
-    return "missingPanel";
+  if (found.isMissing && hasMissingRowState(action)) return "missingPanel";
   return "notify";
 }

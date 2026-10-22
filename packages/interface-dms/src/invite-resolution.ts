@@ -7,8 +7,9 @@ import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { UserInviteModel } from "./db/models/user_invites.model";
 import type { UserInvite } from "./db/tables/user_invites.table";
 import { listInviteExtensions } from "./invite-extensions/internal/registry";
-import { runTenantLifecycleOperation } from "./tenant-lifecycle";
+import { changeTenantMembers } from "./tenant-members";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
+import { describeInviteMembership } from "./internal/invite-membership";
 
 const HTTP_CONFLICT = 409;
 export type ResolveInviteInput = Omit<InviteDecision, "extensionKeys">;
@@ -114,7 +115,8 @@ export async function decideInvite(
 export async function completeInviteResolution(
   resolution: InviteResolution,
 ): Promise<void> {
-  await runTenantLifecycleOperation(resolution.tenantId, () =>
-    completeAdmittedInviteResolution(resolution),
-  );
+  await changeTenantMembers(resolution.tenantId, async () => ({
+    changes: await describeInviteMembership(resolution),
+    write: () => completeAdmittedInviteResolution(resolution),
+  }));
 }

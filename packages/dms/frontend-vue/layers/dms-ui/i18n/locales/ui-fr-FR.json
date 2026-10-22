@@ -688,6 +688,9 @@
         "info": "note"
       }
     },
+    "flow_canvas": {
+      "delete_node": "Supprimer le nœud"
+    },
     "password_rules": {
       "head": "{met} sur {total} respectées",
       "verdict": {
@@ -751,6 +754,7 @@
       "show_new": "Afficher",
       "paused": "En pause",
       "resume": "Reprendre",
+      "refresh": "Actualiser",
       "reason_hidden": "onglet masqué",
       "polling": "sans temps réel, relecture régulière",
       "table_held": "Tableau figé",
@@ -772,6 +776,9 @@
       "invalid_state": "L’état de l’aperçu est illisible.",
       "empty": "Rien à prévisualiser pour l’instant.",
       "unsafe_method": "{name} n’a pas été affiché : un aperçu ne fait que lire ses données, et {value} écrit."
+    },
+    "drawer": {
+      "resize": "Redimensionner le tiroir"
     }
   }
 }

@@ -29,6 +29,7 @@ export * from "./layouts";
 export * from "./live-toggle";
 export * from "./meter";
 export * from "./nav-card-grid";
+export * from "./page-toolbar";
 export * from "./period-selector";
 export * from "./placeholder";
 export * from "./resource-form-schema";

@@ -36,9 +36,11 @@ export interface CustomButtonHidden {
  * disabled, or not at all. Returning `undefined` leaves it enabled, `{ reason
  * }` disables it with that reason, and `{ hidden: true }` leaves it out.
  *
- * In a page header, `context.query` holds the query of the page URL, and the
- * header asks again whenever that query changes: a button can depend on the
- * record `?id=` names. A table's toolbar button gets no query.
+ * In a page header, `context.query` holds the query of the page URL and
+ * `context.params` its route parameters (`:id`), and the header asks again
+ * whenever that query changes: a button can depend on the record `?id=` or
+ * `/:id` names, and hide itself when that record does not exist. A table's
+ * toolbar button gets neither.
  *
  * It only shapes the UI: whatever the button triggers must still refuse the
  * operation on its own.
