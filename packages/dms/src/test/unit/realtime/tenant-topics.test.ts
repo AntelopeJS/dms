@@ -9,6 +9,7 @@ import {
 } from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { internal as pageImplInternal } from "../../../implementations/dms/page";
 import { PublishMessage } from "../../../implementations/dms/realtime";
 import {
@@ -39,14 +40,6 @@ interface FakeStream {
   isEnded: () => boolean;
 }
 
-const encodeSegment = (value: Record<string, unknown>): string =>
-  Buffer.from(JSON.stringify(value)).toString("base64url");
-
-// Without a bound principal the tenant is decoded, not verified, from the
-// bearer token: an unsigned one is enough to open a stream in a tenant.
-const bearerFor = (tenantId: string): string =>
-  `Bearer ${encodeSegment({ alg: "none" })}.${encodeSegment({ tenantId })}.`;
-
 const createFakeStream = (tenantId: string): FakeStream => {
   const frames: string[] = [];
   let isEnded = false;
@@ -60,12 +53,14 @@ const createFakeStream = (tenantId: string): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), {
-    headers: { authorization: bearerFor(tenantId) },
+    headers: { authorization: `Bearer tenant-topics-${tenantId}` },
   });
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
   } as unknown as RequestContext;
+  // As the route's auth decorator does: the verified user and tenant.
+  bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId });
   return { ctx, frames, isEnded: () => isEnded };
 };
 
