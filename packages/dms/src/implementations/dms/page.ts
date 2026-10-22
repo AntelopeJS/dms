@@ -48,6 +48,10 @@ import {
   HasPermission,
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
+import {
+  ApplyPermissionsResolvers,
+  type PermissionsResolverContext,
+} from "@antelopejs/interface-dms/permissions-resolver";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -1330,6 +1334,33 @@ const PREVIEW_PAGE_CONCURRENCY = 4;
 
 const PREVIEW_ROLE_ID = "dms-permission-preview";
 
+/** What the resolvers are told when they shape a previewed role's set. */
+function previewResolverContext(
+  rolePermissions: ReadonlySet<string>,
+): PermissionsResolverContext {
+  return { preview: { rolePermissions } };
+}
+
+/**
+ * The effective permissions of a member holding only `rolePermissions`, as
+ * `viewerId` previews them: the registered resolvers run over the set with
+ * the preview context, which tells them to shape it as for an ordinary
+ * member, never from the viewer's standing. Without any resolver, the set as
+ * given.
+ */
+export function resolvePreviewPermissions(
+  viewerId: string,
+  tenantId: string,
+  rolePermissions: Set<string>,
+): Promise<Set<string>> {
+  return ApplyPermissionsResolvers(
+    viewerId,
+    tenantId,
+    rolePermissions,
+    previewResolverContext(rolePermissions),
+  );
+}
+
 async function findPreviewHeaderActions(
   handler: PageLayoutHandler,
   layout: PageLayout,
@@ -1341,8 +1372,10 @@ async function findPreviewHeaderActions(
   const { memberModel, roleModel } = previewMemberModels(
     request.previewPermissions,
   );
-  // Never an owner: the previewed set is the role's, without the wildcard.
-  // The viewer stays the prototype, so everything else reads through.
+  // Never an owner: the previewed set is the role's. The layout runs the
+  // resolvers again for the viewer, told it is a preview, so a resolver
+  // shapes the role's set rather than the viewer's standing. The viewer stays
+  // the prototype, so everything else reads through.
   const previewUser: User = Object.assign(Object.create(request.user), {
     owner: false,
   });
@@ -1351,6 +1384,7 @@ async function findPreviewHeaderActions(
     memberModel,
     roleModel,
     tenantId: request.tenantId,
+    resolverContext: previewResolverContext(request.previewPermissions),
   });
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,

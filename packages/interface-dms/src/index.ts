@@ -135,8 +135,10 @@ export {
 } from "./permissions";
 export {
   ApplyPermissionsResolvers,
+  PermissionsResolverContext,
   PermissionsResolverFn,
   PermissionsResolverInfo,
+  PermissionsResolverPreview,
   RegisterPermissionsResolver,
 } from "./permissions-resolver";
 export {

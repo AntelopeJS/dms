@@ -9,6 +9,7 @@ import type {
 } from "../component";
 import type { RoleModel, TenantMemberModel } from "../db";
 import type { Permission } from "../permissions";
+import type { PermissionsResolverContext } from "../permissions-resolver";
 import type { Tone } from "../base/types/tone";
 import type { MaybePromise } from "../types";
 
@@ -483,6 +484,11 @@ export interface PageLayoutRequest {
   query?: Readonly<Record<string, string>>;
   /** The route parameters (`:id`) of the page URL, handed along with it. */
   params?: Readonly<Record<string, string>>;
+  /**
+   * What the permission resolvers are told about this read: `preview` when
+   * the layout is served for a role previewed by `user`.
+   */
+  resolverContext?: PermissionsResolverContext;
 }
 
 export type PageLayoutHandler = (
