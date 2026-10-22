@@ -42,6 +42,7 @@ const TENANT = "tenant-lifecycle-test";
 const OTHER_TENANT = "tenant-lifecycle-other";
 const LEGACY_LIFECYCLE_ID = "membership-and-invites";
 const HTTP_PAYMENT_REQUIRED = 402;
+const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_ERROR = 500;
 
 async function createTenantProducers(tenantId: string): Promise<void> {
@@ -95,7 +96,7 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
         runTenantLifecycleOperation(TENANT, async () => {
           policyReads++;
         }),
-        /paused/,
+        (error: HTTPResult) => error.getStatus() === HTTP_CONFLICT,
       );
       assert.equal(policyReads, 0);
       assert.deepEqual(
@@ -583,19 +584,19 @@ describe("Every membership write goes through changeTenantMembers", () => {
     memberRowId = row._id;
   });
 
-  it("refuses role changes and an account deletion while a barrier is held", async () => {
+  it("refuses role changes and an account deletion with 409 while a barrier is held, writing nothing", async () => {
     const { revision } = await observeTenantLifecycle(DEFAULT_TENANT_ID);
     assert.equal(
       await pauseTenantLifecycleAdmission(DEFAULT_TENANT_ID, "free", revision),
       true,
     );
     try {
-      assert.notEqual((await editRoles([])).status, HTTP_OK);
+      assert.equal((await editRoles([])).status, HTTP_CONFLICT);
       const roleDeleted = await owner.delete(`${ROLES_TABLE}/delete`, {
         params: { id: roleId },
         data: { reassignTo: null },
       });
-      assert.notEqual(roleDeleted.status, HTTP_OK);
+      assert.equal(roleDeleted.status, HTTP_CONFLICT);
       assert.ok(await GetModel(RoleModel, DEFAULT_TENANT_ID).get(roleId));
       assert.deepEqual(await storedRoles(), [roleId]);
 
@@ -603,10 +604,14 @@ describe("Every membership write goes through changeTenantMembers", () => {
         ACCOUNT_DELETION,
         { password: member.password, confirmation: member.email },
       );
-      assert.notEqual(accountDeleted.status, HTTP_OK);
+      assert.equal(accountDeleted.status, HTTP_CONFLICT);
       assert.ok(await GetModel(UserModel).get(member.userId));
       assert.ok(
         await GetModel(TenantMemberModel, DEFAULT_TENANT_ID).get(memberRowId),
+      );
+      assert.deepEqual(
+        (await observeTenantLifecycle(DEFAULT_TENANT_ID)).activeAttemptIds,
+        [],
       );
     } finally {
       await resumeTenantLifecycleAdmission(DEFAULT_TENANT_ID, "free");
