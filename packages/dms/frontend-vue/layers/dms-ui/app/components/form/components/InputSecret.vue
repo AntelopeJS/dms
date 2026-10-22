@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { useConfirm } from "../../../composables/confirm/useConfirm";
+import { FORM_FIELD_SAVED_KEY } from "../../../composables/form/types/field-saved";
 import DmsCopyButton from "../../copy/CopyButton.vue";
 
 interface InputSecretProps {
@@ -23,6 +24,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm } = useConfirm();
 const { $authFetch } = useAuthFetch();
+const markFieldSaved = inject(FORM_FIELD_SAVED_KEY, null);
 
 // v2 .secret: the end of the value stays visible, so a reader can tell two
 // secrets apart without revealing either.
@@ -56,6 +58,9 @@ async function rotate(): Promise<void> {
         method: "POST",
       });
       model.value = response.value;
+      // The server stored the new secret already: it is not a change to
+      // save, and "Discard" must not bring the old one back.
+      if (props.id) markFieldSaved?.(props.id, response.value);
     },
   });
   if (confirmed) {

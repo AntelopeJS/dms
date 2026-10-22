@@ -34,7 +34,7 @@ skill (shipped with `@antelopejs/core`).
   `pageRoutePath(slug, route)`); a plain `Controller` the frontend calls sits under
   `/api/<module>/`. A URL names the page's record with `{{params.id}}` /
   `{{query.X}}`; `periodScope` binds a block to a `PeriodSelector`; `realtimeTopic` re-fetches on a
-  `PublishMessage`. Texts are `$` i18n keys or `ComposedText`, never formatted server-side.
+  `PublishMessage` (publish tenant data with `{ tenantId }`). Texts are `$` i18n keys or `ComposedText`, never formatted server-side.
 - **It's interfaces all the way down.** Everything you consume is imported from an
   `@antelopejs/interface-dms/...` subpath; a distributable module exposes its own API from a companion
   `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.

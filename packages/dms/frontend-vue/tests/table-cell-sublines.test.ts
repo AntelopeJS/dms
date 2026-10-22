@@ -144,6 +144,8 @@ beforeEach(() => {
     processI18n: (value: string) =>
       value.startsWith("$") ? i18n.global.t(value.slice(1)) : value,
   }));
+  // The formatters read the application's composer, not `useI18n()`.
+  vi.stubGlobal("useDmsApp", () => ({ $i18n: i18n.global }));
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: (id: string) => ({ id, formatter: formatters.get(id) }),
   }));
@@ -401,7 +403,6 @@ describe("identity sub-line", () => {
       "formatNumber",
       "formatPrice",
       "formatPercentage",
-      "formatTimeSpan",
       "formatDate",
       "getBooleanLabel",
     ]) {

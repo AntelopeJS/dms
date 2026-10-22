@@ -68,18 +68,29 @@ const spyOnIntervals = (): TimerSpy => {
   };
 };
 
-const readSessionId = (stream: FakeStream): string => {
+const readConnectionId = (stream: FakeStream): string => {
   const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
   const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return (JSON.parse(data) as { sessionId: string }).sessionId;
+  return (JSON.parse(data) as { connectionId: string }).connectionId;
 };
 
-const openUserStream = async (stream: FakeStream): Promise<void> => {
-  await RealtimeController.prototype.userStream.call(
+const openConnection = async (stream: FakeStream): Promise<void> => {
+  await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
     USER as unknown as User,
   );
+};
+
+/** Opens a tab's session on the connection `stream` holds; returns its id. */
+const openSession = async (stream: FakeStream): Promise<string> => {
+  const greeting = await RealtimeController.prototype.openSession.call(
+    undefined,
+    createFakeStream().ctx,
+    readConnectionId(stream),
+    USER as unknown as User,
+  );
+  return greeting.sessionId!;
 };
 
 describe("[unit] realtime — stopRealtime ends open SSE streams", () => {
@@ -95,10 +106,10 @@ describe("[unit] realtime — stopRealtime ends open SSE streams", () => {
     setRealtimeBroker(new InMemoryBroker());
   });
 
-  it("ends a user stream opened before the stop and clears its keepalive", async () => {
+  it("ends a connection opened before the stop and clears its keepalive", async () => {
     const stream = createFakeStream();
-    await openUserStream(stream);
-    const sessionId = readSessionId(stream);
+    await openConnection(stream);
+    const sessionId = await openSession(stream);
     expect(getSessionInfo(sessionId)).to.not.equal(undefined);
     expect(timers.started.size).to.equal(1);
 
@@ -113,7 +124,7 @@ describe("[unit] realtime — stopRealtime ends open SSE streams", () => {
 
   it("ends every open stream, not just the first", async () => {
     const streams = [createFakeStream(), createFakeStream()];
-    for (const stream of streams) await openUserStream(stream);
+    for (const stream of streams) await openConnection(stream);
 
     await stopRealtime();
 
@@ -126,7 +137,7 @@ describe("[unit] realtime — stopRealtime ends open SSE streams", () => {
 
   it("leaves a stream the client already closed alone", async () => {
     const stream = createFakeStream();
-    await openUserStream(stream);
+    await openConnection(stream);
     stream.ctx.rawRequest.emit("close");
 
     await stopRealtime();

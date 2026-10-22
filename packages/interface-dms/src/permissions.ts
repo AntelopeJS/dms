@@ -4,7 +4,10 @@ import {
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
 import { permissionIdAncestors } from "./internal/permission-ids";
-import { ApplyPermissionsResolvers } from "./permissions-resolver";
+import {
+  ApplyPermissionsResolvers,
+  type PermissionsResolverContext,
+} from "./permissions-resolver";
 
 export interface Permission {
   id: string;
@@ -104,15 +107,24 @@ export async function GetUserPermissions(
  * (`ApplyPermissionsResolvers`): the dms module wires it in `construct()`.
  * In standalone contexts (unit tests, thin consumers) connect it manually
  * with `ImplementInterface`, otherwise the call queues until wired.
+ *
+ * `context` is handed to the resolvers: `{}` for the user's own set, `preview`
+ * when the set is a role previewed by that user.
  */
 export async function GetEffectiveUserPermissions(
   user: { _id: string; owner?: boolean },
   tenantId: string,
   roleIds: string[],
   roleModel: RoleModel,
+  context: PermissionsResolverContext = {},
 ): Promise<Set<string>> {
   const basePermissions = await GetUserPermissions(user, roleIds, roleModel);
-  return ApplyPermissionsResolvers(user._id, tenantId, basePermissions);
+  return ApplyPermissionsResolvers(
+    user._id,
+    tenantId,
+    basePermissions,
+    context,
+  );
 }
 
 /**
@@ -152,8 +164,7 @@ async function grantsPermission(
   );
 }
 
-// The role routes store a grant with every id it sits under, but a role saved
-// before they did, or a set a resolver reshaped, may lack some. An ancestor
+// The role routes store a grant with every id it sits under. An ancestor
 // counts as held when granted, `defaultGranted`, or not a registered
 // permission at all (a page declaring `permission: { id: "mailing.access" }`
 // has no `mailing` above it).

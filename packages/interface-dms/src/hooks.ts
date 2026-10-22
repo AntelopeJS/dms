@@ -55,7 +55,11 @@ export enum Hook {
   INVITE_CREATED = "invite:created",
   INVITE_DELETED = "invite:deleted",
   MEMBER_BEING_ADDED = "member:being-added",
-  /** Policy veto under lifecycle admission, before a membership write. */
+  /**
+   * Policy veto, fired by `changeTenantMembers` under lifecycle admission
+   * before every membership write — one call per {@link MemberChange}, roles
+   * and removals included. Throwing refuses the write.
+   */
   MEMBER_BEING_CHANGED = "member:being-changed",
   MEMBER_ADDED = "member:added",
   MEMBER_REMOVED = "member:removed",
@@ -138,11 +142,53 @@ export interface InviteDeletedHookPayload {
   extensions?: InviteExtensionPayloads | null;
 }
 
-/** Seat classification belongs to the consumer, including support exemptions. */
-export interface MemberChangeHookPayload extends MemberHookPayload {
-  /** Null for a new membership; deliveryId does not exempt it from policy. */
-  previousIsTenantOwner: boolean | null;
+/** A user joins the tenant. */
+export interface MemberAddedChange {
+  kind: "added";
+  userId: string;
+  isTenantOwner: boolean;
+  roleIds: string[];
+  /** Stable invite delivery identity; it does not exempt the change from policy. */
+  deliveryId?: string;
 }
+
+/** A member leaves the tenant: removed by an admin, or deleting their account. */
+export interface MemberRemovedChange {
+  kind: "removed";
+  userId: string;
+  isTenantOwner: boolean;
+}
+
+/** A member's roles change, ownership untouched. */
+export interface MemberRolesChange {
+  kind: "roles";
+  userId: string;
+  roleIds: string[];
+  previousRoleIds: string[];
+}
+
+/** A member is given or loses the owner role. */
+export interface MemberOwnershipChange {
+  kind: "ownership";
+  userId: string;
+  isTenantOwner: boolean;
+  previousIsTenantOwner: boolean;
+}
+
+/** One membership change `changeTenantMembers` announces before writing it. */
+export type MemberChange =
+  | MemberAddedChange
+  | MemberRemovedChange
+  | MemberRolesChange
+  | MemberOwnershipChange;
+
+/** The tenant a {@link MemberChange} happens in. */
+export interface MemberChangeScope {
+  tenantId: string;
+}
+
+/** Seat classification belongs to the consumer, including support exemptions. */
+export type MemberChangeHookPayload = MemberChange & MemberChangeScope;
 
 export interface MemberHookPayload {
   tenantId: string;
