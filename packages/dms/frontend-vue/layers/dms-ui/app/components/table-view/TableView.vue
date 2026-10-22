@@ -134,10 +134,12 @@ import { useTableFooter } from "../../build/composables/table-view/useTableFoote
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { refreshPageBlocks } from "../../utils/blockRefresh";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
@@ -187,6 +189,7 @@ interface RealtimePresenceActor {
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
 /** A kept field of the table, its state, and its default. */
+// The default may move once mounted (a phone's display): read when written.
 type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
 // The backend options of a table view, declared here as well so the
@@ -564,10 +567,17 @@ const urlScope = {
   isSoleTableView: props.isSoleTableView,
 };
 
+// The display the table counts as its default: the phone's `mobileDisplay`
+// once applied (see `useMobileDisplay` below).
+const displayDefault = ref(
+  offeredDisplayIds.has(defaultDisplay) ? defaultDisplay : fallbackDisplayId,
+);
+
 // Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
   activeViewId,
+  activeView,
   isModified: isViewModified,
   canSaveViews,
   openView,
@@ -590,9 +600,10 @@ const {
     columnOrder: listableColumns.map(
       (column) => column.id ?? column.accessorKey,
     ),
-    display: offeredDisplayIds.has(defaultDisplay)
-      ? defaultDisplay
-      : fallbackDisplayId,
+    // Read when a view opens: a phone's `mobileDisplay` once applied.
+    get display() {
+      return displayDefault.value;
+    },
     density: props.density ?? DEFAULT_DENSITY,
     displays: offeredDisplayIds,
   },
@@ -608,6 +619,21 @@ const {
   },
   preferences: tablePreferences,
   urlScope,
+});
+
+// A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
+// after its first columns) unless a display was chosen: saved, fixed by the
+// open view, or the only way in.
+useMobileDisplay({
+  mobileDisplay: props.mobileDisplay,
+  defaultDisplay: displayDefault,
+  offered: offeredDisplayIds,
+  display: activeDisplayId,
+  activeView,
+  isDisplayChosen: () =>
+    isDefaultDisplayStandalone ||
+    tablePreferences.get<string | undefined>("viewMode", undefined) !==
+      undefined,
 });
 
 const ALL_TAB_ID = "all";
@@ -700,6 +726,7 @@ const tableRows = useTableRows<T>({
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
 // filter like the filters row does.
+const { getDataType } = useDataTypes();
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 // Relation values load after mount: until then their buttons hold their place.
 const relationQuickFiltersLoaded = ref(false);
@@ -712,7 +739,7 @@ const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
     column,
     mode: quickFilterMode(column, filter.mode),
     items: staticQuickFilterItems(column, processI18n),
-    source: relationQuickFilterSource(column),
+    source: relationQuickFilterSource(column, getDataType),
   };
 });
 
@@ -726,7 +753,9 @@ const loadRelationQuickFilters = async () => {
         try {
           const response = await $authFetch<
             TableViewListResponse<Record<string, unknown>>
-          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          >(source!.searchUrl, {
+            query: { limit: RELATION_QUICK_FILTER_LIMIT },
+          });
           relationQuickFilterValues.value = {
             ...relationQuickFilterValues.value,
             [filter.field]: relationQuickFilterItems(response.results, source!),
@@ -1222,6 +1251,11 @@ const refreshByUser = () => {
   liveGate.acknowledge();
   return refreshAll();
 };
+// A write of the user's (a row or bulk action, a form saved) can move what
+// the rest of the page shows of the same records — a KPI, a tab's badge,
+// another list: every block of the page reads its data again, this table
+// among them, at once even on a paused live page.
+const refreshAfterWrite = () => refreshPageBlocks();
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1299,7 +1333,7 @@ const {
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
-  refreshCallback: refreshByUser,
+  refreshCallback: refreshAfterWrite,
   formComponents,
   formContainer,
   formPages,
@@ -1999,7 +2033,7 @@ const tableStatePreferences: TableStatePreference[] = [
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
   ["activeTab", activeTabId, ALL_TAB_ID],
-  ["viewMode", activeDisplayId, defaultDisplay],
+  ["viewMode", activeDisplayId, displayDefault],
   ["columnOrder", columnOrder, []],
   ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
   ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
@@ -2010,7 +2044,7 @@ tableStatePreferences.forEach(([field, state, defaultValue]) => {
   watch(
     state,
     (newValue) => {
-      tablePreferences.set(field, newValue, defaultValue);
+      tablePreferences.set(field, newValue, unref(defaultValue));
     },
     { deep: true },
   );

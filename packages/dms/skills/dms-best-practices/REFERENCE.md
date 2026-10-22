@@ -13,6 +13,7 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `P
 | Ranked list, leaderboard | `TopListCard` | Bar position, rank badge style |
 | Date range picker | `PeriodSelector` (`variant: "segmented"` for pills) | Preset labels |
 | Live / pause switch | `LiveToggle` | Pill vs segmented |
+| Context bar of a page with a period or live data | `pageToolbar()` (a `PageToolbar` holding the `LiveToggle` and `PeriodSelector`) | Leading blocks, `size` |
 | Table, list with actions | `TableView` over a DataController (`displays` for cards / kanban) | Column widths, row height (`density`) |
 | Detail facts of a record | `KeyValueList` | Value alignment |
 | Recent events, audit log | `ActivityFeed` | Day separators vs relative times |

@@ -63,3 +63,59 @@ export async function closeTenantLifecycleAdmission(
 ): Promise<void> {
   await GetModel(TenantLifecycleModel, tenantId).close(tenantId);
 }
+
+/** A non-destructive snapshot; no attempt expires or is retired by observation. */
+export interface TenantLifecycleObservation {
+  revision: string;
+  barrierId: string | null;
+  activeAttemptIds: string[];
+  closed: boolean;
+}
+
+/** Observe outside a producer callback: an initiator must not drain itself. */
+export async function observeTenantLifecycle(
+  tenantId: string,
+): Promise<TenantLifecycleObservation> {
+  const state = await GetModel(TenantLifecycleModel, tenantId).state(tenantId);
+  return {
+    revision: state.revision,
+    barrierId: state.barrierId ?? null,
+    activeAttemptIds: [...state.activeAttemptIds],
+    closed: state.closed,
+  };
+}
+
+/**
+ * Publish a temporary barrier on the same CAS revision as producer admission.
+ * Use a unique identity per phase, never reuse it. Observe the revision BEFORE
+ * checking the durable business intent, then attempt this single CAS. After
+ * acquisition recheck that intent; release if abandoned. False requires a new
+ * observation and intent check, not a blind retry. Unknown outcomes throw.
+ * Existing attempts keep running; only an empty observation while this barrier
+ * remains owned permits inventory validation. No Stripe calls under a barrier.
+ */
+export async function pauseTenantLifecycleAdmission(
+  tenantId: string,
+  barrierId: string,
+  expectedRevision: string,
+): Promise<boolean> {
+  return GetModel(TenantLifecycleModel, tenantId).pause(
+    tenantId,
+    barrierId,
+    expectedRevision,
+  );
+}
+
+/**
+ * Release this owner's barrier, or invalidate the revision when none is held.
+ * The latter revokes a delayed acquisition after its business intent is aborted.
+ * Never reopens permanent deletion closure or another owner's barrier (false).
+ * Retains every active/uncertain attempt; timeout is not evidence of completion.
+ * Publish pending policy before release so newly admitted producers read it.
+ */
+export async function resumeTenantLifecycleAdmission(
+  tenantId: string,
+  barrierId: string,
+): Promise<boolean> {
+  return GetModel(TenantLifecycleModel, tenantId).resume(tenantId, barrierId);
+}

@@ -25,7 +25,15 @@ import {
 } from "../base/table-view";
 import { ReadonlyBehaviorType } from "../base/types";
 import { getRequestTenantId } from "../request-tenant";
-import { runTenantLifecycleOperation } from "../tenant-lifecycle";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import type { MemberChange } from "../hooks";
+import { changeTenantMembers } from "../tenant-members";
+import { parseGuardBody } from "../base/table-view/internal/guards";
+import {
+  describeMemberEdit,
+  describeMemberRemoval,
+  type MemberEdit,
+} from "../internal/member-changes";
 import { roleSettingDataAPI } from "./roles";
 
 const ROLE_KEY_MAPPING = { label: "name", value: "_id" } as const;
@@ -39,19 +47,67 @@ const SYSTEM_MANAGED_FIELD = {
   new: ReadonlyBehaviorType.hidden,
 };
 
-const admittedMemberCreation: DataControllerCallback = {
-  ...TableViewRoutes.New,
-  async func(...args: Parameters<DataControllerCallback["func"]>) {
-    const [ctx] = args;
-    return runTenantLifecycleOperation(getRequestTenantId(ctx), () =>
-      TableViewRoutes.New.func.apply(this, args),
-    );
-  },
-};
+type MemberRouteArgs = Parameters<DataControllerCallback["func"]>;
+
+/** What a table edit or delete changes, read from its request and the rows. */
+type MemberRouteChanges = (
+  model: TenantMemberModel,
+  args: MemberRouteArgs,
+) => Promise<MemberChange[]>;
+
+async function describeEditRoute(
+  model: TenantMemberModel,
+  [, params, body]: MemberRouteArgs,
+): Promise<MemberChange[]> {
+  const member = await model.get(String(params.id));
+  if (!member) return [];
+  return describeMemberEdit(member, parseGuardBody(body) as MemberEdit);
+}
+
+async function describeDeleteRoute(
+  model: TenantMemberModel,
+  [, params]: MemberRouteArgs,
+): Promise<MemberChange[]> {
+  const ids = [params.id].flat().map(String);
+  const members = await Promise.all(ids.map((id) => model.get(id)));
+  return members
+    .filter((member): member is TenantMember => member !== undefined)
+    .map(describeMemberRemoval);
+}
+
+function memberWriteRoute(
+  route: DataControllerCallback,
+  describe: MemberRouteChanges,
+): DataControllerCallback {
+  return {
+    ...route,
+    async func(...args: MemberRouteArgs) {
+      const tenantId = getRequestTenantId(args[0]);
+      return changeTenantMembers(tenantId, async () => ({
+        changes: await describe(GetModel(TenantMemberModel, tenantId), args),
+        write: () => route.func.apply(this, args),
+      }));
+    },
+  };
+}
+
+// No `new`, `archive` or `restore` route: members join through an invitation
+// or `applyTenantOwnership`, and leave through `delete`, the writes that go
+// through `changeTenantMembers`.
+const {
+  new: _unmountedNew,
+  archive: _unmountedArchive,
+  restore: _unmountedRestore,
+  ...memberTableRoutes
+} = TableViewRoutes.All;
 
 export class memberSettingDataAPI extends DataController(
   TenantMember,
-  { ...TableViewRoutes.All, new: admittedMemberCreation },
+  {
+    ...memberTableRoutes,
+    edit: memberWriteRoute(TableViewRoutes.Edit, describeEditRoute),
+    delete: memberWriteRoute(TableViewRoutes.Delete, describeDeleteRoute),
+  },
   Controller("/api/tables/members"),
 ) {
   @ModelReference()

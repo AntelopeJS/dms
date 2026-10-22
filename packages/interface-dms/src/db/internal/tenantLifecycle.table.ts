@@ -19,4 +19,5 @@ export class TenantLifecycle extends Table {
   @Field("string") declare revision: string;
   @Field("boolean") declare closed: boolean;
   @Field(["string"]) declare activeAttemptIds: string[];
+  @Field("string") declare barrierId?: string | null;
 }

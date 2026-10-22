@@ -23,6 +23,7 @@ const Slot = defineComponent({
 
 const TREND_LINE = 'class="flex h-6 items-center"';
 const STAT_TREND_PLACEHOLDER = 'class="h-4"';
+const FOOTNOTE_PLACEHOLDER = 'class="block h-4"';
 // The trend badge's own classes (the sparkline's gradient carries "%" too).
 const TREND_BADGE = "whitespace-nowrap tabular-nums transition-colors";
 
@@ -58,7 +59,28 @@ describe("a KPI card with no comparison period", () => {
     const html = await render();
     expect(html).not.toContain(TREND_BADGE);
     expect(html).not.toContain("●");
+  });
+
+  it("drops the comparison label, which names a period it does not compare", async () => {
+    response.value = { value: 1535 };
+    const html = await render();
+    expect(html).not.toContain("vs previous month");
+    // Its line is held, so toggling a comparison moves nothing.
+    expect(html).toContain(FOOTNOTE_PLACEHOLDER);
+  });
+
+  it("shows the description in its place", async () => {
+    response.value = { value: 1535 };
+    const html = await render({ description: "Paid orders" });
+    expect(html).not.toContain("vs previous month");
+    expect(html).toContain("Paid orders");
+  });
+
+  it("keeps the comparison label while comparing", async () => {
+    response.value = { value: 1535, previousValue: 1616, delta: -5 };
+    const html = await render({ description: "Paid orders" });
     expect(html).toContain("vs previous month");
+    expect(html).not.toContain(FOOTNOTE_PLACEHOLDER);
   });
 
   it("keeps the trend's line, so toggling a comparison moves nothing", async () => {

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.7.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.3...v0.7.4)
+
+### 🚀 Enhancements
+
+- **tenant-lifecycle:** Pause producer admission and evaluate every tenant access gate ([#366](https://github.com/AntelopeJS/dms/pull/366))
+
+### 🩹 Fixes
+
+- **deps:** Require the shared preview presentation contract ([#340](https://github.com/AntelopeJS/dms/pull/340))
+- **frontend:** Read the onboarding status and permissions through the data layer ([#357](https://github.com/AntelopeJS/dms/pull/357))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.9.5 ([a8e395eb](https://github.com/AntelopeJS/dms/commit/a8e395eb))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.7.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.2...v0.7.3)

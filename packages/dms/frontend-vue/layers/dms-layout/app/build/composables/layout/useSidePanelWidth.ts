@@ -1,35 +1,22 @@
 import type { Ref } from "vue";
 import {
+  RESIZE_KEYBOARD_STEP_PX,
+  useResizableSize,
+} from "#dms-ui/app/build/composables/containers/useResizableSize";
+import {
   resolveSidePanelWidthBounds,
   type SidePanel,
   type SidePanelWidthBounds,
 } from "../../../composables/useAppSidePanels";
 import {
-  clampSidePanelWidth,
   readSidePanelPreferences,
-  storedSidePanelWidth,
   storeSidePanelWidth,
   useSidePanelDragWidth,
   useSidePanelPreferences,
 } from "./sidePanelState";
 
 /** @internal */
-export const SIDE_PANEL_KEYBOARD_STEP_PX = 16;
-
-type WidthStep = (width: number, bounds: SidePanelWidthBounds) => number;
-
-// The panel sits on the right: the arrow pointing away from it widens it.
-const KEYBOARD_STEPS: Record<string, WidthStep> = {
-  ArrowLeft: (width) => width + SIDE_PANEL_KEYBOARD_STEP_PX,
-  ArrowRight: (width) => width - SIDE_PANEL_KEYBOARD_STEP_PX,
-  Home: (_, bounds) => bounds.minWidth,
-  End: (_, bounds) => bounds.maxWidth,
-};
-
-interface DragStart {
-  x: number;
-  width: number;
-}
+export const SIDE_PANEL_KEYBOARD_STEP_PX = RESIZE_KEYBOARD_STEP_PX;
 
 /** @internal */
 export interface SidePanelWidth {
@@ -54,60 +41,34 @@ export interface SidePanelWidth {
 export function useSidePanelWidth(panel: SidePanel): SidePanelWidth {
   const bounds = resolveSidePanelWidthBounds(panel);
   const preferences = useSidePanelPreferences();
-  const dragWidth = useSidePanelDragWidth();
-  const width = computed(
-    () =>
-      dragWidth.value ??
-      storedSidePanelWidth(
-        readSidePanelPreferences(preferences.value),
-        panel.id,
-        bounds,
-      ),
-  );
-  let dragStart: DragStart | null = null;
-
-  function commit(next: number): void {
-    storeSidePanelWidth(
-      preferences,
-      panel.id,
-      clampSidePanelWidth(next, bounds),
-    );
-  }
-
-  function startDrag(event: PointerEvent, renderedWidth: number): void {
-    event.preventDefault();
-    dragStart = { x: event.clientX, width: renderedWidth };
-    dragWidth.value = clampSidePanelWidth(renderedWidth, bounds);
-  }
-
-  function drag(event: PointerEvent): void {
-    if (dragStart === null) return;
-    const next = dragStart.width + dragStart.x - event.clientX;
-    dragWidth.value = clampSidePanelWidth(next, bounds);
-  }
-
-  function endDrag(): void {
-    if (dragStart === null) return;
-    dragStart = null;
-    commit(width.value);
-    dragWidth.value = null;
-  }
-
-  function resizeFromKey(event: KeyboardEvent): void {
-    const step = KEYBOARD_STEPS[event.key];
-    if (!step) return;
-    event.preventDefault();
-    commit(step(width.value, bounds));
-  }
+  const resizable = useResizableSize({
+    side: "right",
+    bounds: {
+      defaultSize: bounds.defaultWidth,
+      minSize: bounds.minWidth,
+      maxSize: bounds.maxWidth,
+    },
+    storage: {
+      read: () => readSidePanelPreferences(preferences.value).widths[panel.id],
+      write: (width) =>
+        storeSidePanelWidth(
+          preferences,
+          panel.id,
+          width ?? bounds.defaultWidth,
+        ),
+    },
+    liveSize: useSidePanelDragWidth(),
+  });
 
   return {
-    width,
+    // The panel always has a default width: its size is never natural.
+    width: computed(() => resizable.size.value ?? bounds.defaultWidth),
     bounds,
-    isDragging: computed(() => dragWidth.value !== null),
-    startDrag,
-    drag,
-    endDrag,
-    resizeFromKey,
-    reset: () => commit(bounds.defaultWidth),
+    isDragging: resizable.isDragging,
+    startDrag: resizable.startDrag,
+    drag: resizable.drag,
+    endDrag: resizable.endDrag,
+    resizeFromKey: (event) => resizable.resizeFromKey(event),
+    reset: resizable.reset,
   };
 }
