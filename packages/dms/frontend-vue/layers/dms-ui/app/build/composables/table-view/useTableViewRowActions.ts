@@ -44,6 +44,7 @@ import {
   resolveFormContainerTexts,
   type TableViewFormKind,
 } from "./utils/formTexts";
+import { dmsOwnDrawer } from "../containers/context";
 
 const DEFAULT_ROW_ID_KEY = "_id";
 const DEFAULT_MODAL_SIZE = "xl";
@@ -249,24 +250,26 @@ export const useTableRowActions = <T extends Data>(
     fetchUrl?: string,
     submitDefaults?: Record<string, unknown>,
   ) => {
-    const drawer = openDrawer({
-      title,
-      description,
-      containerId,
-      component: DmsForm,
-      componentOptions: {
-        ...processedOptions,
-        ...(fetchUrl && { fetchUrl }),
-        ...(submitDefaults && { submitDefaults }),
-        componentId: `${config.componentId}-${componentIdSuffix}`,
-        pageId: pageIdSuffix,
+    const drawer = openDrawer(
+      dmsOwnDrawer({
+        title,
+        description,
         containerId,
-        onSuccessCallback: () => {
-          drawer.close();
-          config.refreshCallback?.();
+        component: DmsForm,
+        componentOptions: {
+          ...processedOptions,
+          ...(fetchUrl && { fetchUrl }),
+          ...(submitDefaults && { submitDefaults }),
+          componentId: `${config.componentId}-${componentIdSuffix}`,
+          pageId: pageIdSuffix,
+          containerId,
+          onSuccessCallback: () => {
+            drawer.close();
+            config.refreshCallback?.();
+          },
         },
-      },
-    });
+      }),
+    );
     return drawer;
   };
 
