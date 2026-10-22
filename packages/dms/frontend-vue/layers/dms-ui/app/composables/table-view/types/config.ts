@@ -300,6 +300,8 @@ export interface TableViewConfig<T extends Data>
   displays?: TableViewDisplayConfig[];
   /** Display shown by default when the user has no saved preference. Defaults to the first display. */
   defaultDisplay?: string;
+  /** Display a phone opens on when the user has no saved choice; one of `displays`. */
+  mobileDisplay?: string;
   /** Expandable rows: caret column + detail band. */
   expandable?: TableViewExpandableConfig;
   /** How much the table draws around its rows. */

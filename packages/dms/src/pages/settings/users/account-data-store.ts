@@ -14,6 +14,7 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import {
   RoleModel,
+  type TenantMember,
   TenantMemberModel,
   TenantModel,
   type UserInvite,
@@ -25,6 +26,8 @@ import {
   type UserDeletedHookPayload,
 } from "@antelopejs/interface-dms/hooks";
 import { DeleteFile } from "@antelopejs/interface-file-storage";
+import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
+import { describeMemberRemoval } from "@antelopejs/interface-dms/internal/member-changes";
 import {
   SignInAttemptsModel,
   UserEmailChangesModel,
@@ -203,7 +206,8 @@ export async function loadDeletionImpact(
 // tenant deleting their account meanwhile must not leave it ownerless.
 async function assertTenantKeepsAnOwner(
   userId: string,
-  { tenantId, member }: AccountMembershipSource,
+  tenantId: string,
+  member: TenantMember,
 ): Promise<void> {
   if (!member.isTenantOwner) return;
   const otherOwners = await GetModel(
@@ -214,20 +218,36 @@ async function assertTenantKeepsAnOwner(
 }
 
 /**
- * Leaves every tenant the way removing a member does, hooks included, with
- * the exports the user started there.
+ * Leaves one tenant the way removing a member does, hooks included, with the
+ * exports the user started there. A tenant holding a lifecycle barrier
+ * refuses it, which stops the account deletion.
  */
+async function leaveTenant(userId: string, tenantId: string): Promise<void> {
+  const memberModel = GetModel(TenantMemberModel, tenantId);
+  await changeTenantMembers(tenantId, async () => {
+    const member = await memberModel.getByUser(userId);
+    if (!member) return { changes: [], write: async () => undefined };
+    await assertTenantKeepsAnOwner(userId, tenantId, member);
+    return {
+      changes: [describeMemberRemoval(member)],
+      write: async () => {
+        await deleteUserExportsInTenant(tenantId, userId);
+        await memberModel.delete(member._id);
+        await ExecuteHooks(Hook.MEMBER_REMOVED, {
+          tenantId,
+          userIds: [userId],
+        });
+      },
+    };
+  });
+}
+
+/** Leaves every tenant, one `changeTenantMembers` call each. */
 async function leaveTenants(
   userId: string,
   memberships: AccountMembershipSource[],
 ): Promise<void> {
-  for (const membership of memberships) {
-    const { tenantId, member } = membership;
-    await assertTenantKeepsAnOwner(userId, membership);
-    await deleteUserExportsInTenant(tenantId, userId);
-    await GetModel(TenantMemberModel, tenantId).delete(member._id);
-    await ExecuteHooks(Hook.MEMBER_REMOVED, { tenantId, userIds: [userId] });
-  }
+  for (const { tenantId } of memberships) await leaveTenant(userId, tenantId);
 }
 
 /**

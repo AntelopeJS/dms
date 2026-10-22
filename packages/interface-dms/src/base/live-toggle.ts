@@ -15,6 +15,10 @@ export type LiveToggleAlign = (typeof LIVE_TOGGLE_ALIGNS)[number];
 export const LIVE_TOGGLE_VARIANTS = ["segmented", "pill"] as const;
 export type LiveToggleVariant = (typeof LIVE_TOGGLE_VARIANTS)[number];
 
+/** How large the toggle and its texts are drawn. */
+export const LIVE_TOGGLE_SIZES = ["xs", "sm", "md"] as const;
+export type LiveToggleSize = (typeof LIVE_TOGGLE_SIZES)[number];
+
 export interface LiveToggleProps extends BaseComponentProps {
   align?: LiveToggleAlign;
   /**
@@ -24,6 +28,11 @@ export interface LiveToggleProps extends BaseComponentProps {
   showUpdatedAt?: boolean;
   /** How the toggle is drawn (see {@link LiveToggleVariant}). Defaults to `segmented`. */
   variant?: LiveToggleVariant;
+  /**
+   * How large it is drawn, either variant. Defaults to the size of the
+   * `PageToolbar` holding it, else `sm`.
+   */
+  size?: LiveToggleSize;
   /**
    * What the paused toggle calls the events it missed: an i18n key (prefixed
    * with `$`) or a text, given `{count}` and pluralised on it, e.g.
@@ -79,6 +88,11 @@ export const LiveToggleSchema = z.object({
   ),
   variant: ui(z.enum(LIVE_TOGGLE_VARIANTS).optional(), {
     label: "Variant",
+    group: "appearance",
+    widget: "segmented",
+  }),
+  size: ui(z.enum(LIVE_TOGGLE_SIZES).optional(), {
+    label: "Size",
     group: "appearance",
     widget: "segmented",
   }),

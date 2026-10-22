@@ -288,6 +288,19 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
+  it("hands the card's minimum width to the cards display", () => {
+    const options = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        card: { minWidth: "320px" },
+        displays: [{ id: "cards" }],
+      }),
+    );
+    expect(options.displays?.[0]?.options).to.deep.equal({
+      card: { fields: undefined, component: undefined, minWidth: "320px" },
+    });
+  });
+
   it("refuses a card field the controller lacks", () => {
     expect(() =>
       TableView(OrderAPI, { realtime: false, card: { fields: ["nope"] } }),
