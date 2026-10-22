@@ -5,11 +5,12 @@ import { createClient } from "../helpers/http";
 
 // The test runner constructs the modules and then calls `startAll()` WITHOUT
 // awaiting it, so module `start()` lifecycles (schema registration, API server
-// binding) are still in-flight when Mocha begins. This root hook blocks until
+// serving) are still in-flight when Mocha begins. This root hook blocks until
 // the runtime is actually ready so individual tests don't race startup.
 
 const READY_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 100;
+const HTTP_SERVICE_UNAVAILABLE = 503;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,12 +46,10 @@ before(async function () {
         return false;
       }
     }),
-    // API server bound and accepting connections (any HTTP status counts; only a
-    // connection refusal means it is not up yet).
-    waitFor("API server to accept connections", async () => {
+    // The api answers 503 until the core announces that every module started.
+    waitFor("every module to have started", async () => {
       try {
-        await client.get("/");
-        return true;
+        return (await client.get("/")).status !== HTTP_SERVICE_UNAVAILABLE;
       } catch {
         return false;
       }

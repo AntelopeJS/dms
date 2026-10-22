@@ -1,101 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick, ref, watch } from "vue";
 import type { UserRealtimeApi } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { createFakeBrowser } from "./fixtures/fakeBrowser";
+import {
+  BASE_URL,
+  createRealtimeServer,
+  type FakeRealtimeServer,
+  installRealtimeFetch,
+} from "./fixtures/realtimeServer";
 
-const BASE_URL = "http://api";
-const USER_STREAM_URL = `${BASE_URL}/api/realtime/user`;
-const SUBSCRIBE_URL_PREFIX = `${BASE_URL}/api/realtime/subscribe/`;
-const SESSION_HEADER = "x-realtime-session";
 const PAGE_ID = "orders";
 const INITIAL_DELAY_MS = 500;
 const SECOND_DELAY_MS = 1000;
 const LONG_WAIT_MS = 120_000;
 
-interface FakeStream {
-  signal: AbortSignal;
-  end(): void;
-  isOpen(): boolean;
-}
-
-interface PageSubscription {
-  pageId: string;
-  sessionId: string;
-}
-
-interface FakeServer {
-  streams: FakeStream[];
-  subscriptions: PageSubscription[];
-  maxOpenStreams: number;
-  isDown: boolean;
-}
-
-const encoder = new TextEncoder();
-
-const helloFrame = (sessionId: string): Uint8Array =>
-  encoder.encode(`event: hello\ndata: ${JSON.stringify({ sessionId })}\n\n`);
-
-const openStreamCount = (server: FakeServer): number =>
-  server.streams.filter((stream) => stream.isOpen()).length;
-
-const openUserStream = (server: FakeServer, signal: AbortSignal) => {
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
-  let isOpen = true;
-  const body = new ReadableStream<Uint8Array>({
-    start(streamController) {
-      controller = streamController;
-    },
-    cancel() {
-      isOpen = false;
-    },
-  });
-  signal.addEventListener("abort", () => {
-    isOpen = false;
-  });
-  server.streams.push({
-    signal,
-    end: () => {
-      isOpen = false;
-      controller.close();
-    },
-    isOpen: () => isOpen && !signal.aborted,
-  });
-  server.maxOpenStreams = Math.max(
-    server.maxOpenStreams,
-    openStreamCount(server),
-  );
-  controller.enqueue(helloFrame(`session-${server.streams.length}`));
-  return { ok: true, status: 200, body };
-};
-
-const installFetch = (server: FakeServer): void => {
-  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url === USER_STREAM_URL) {
-      if (server.isDown) throw new Error("connection refused");
-      return openUserStream(server, init!.signal!);
-    }
-    const headers = init?.headers as Record<string, string>;
-    const pageId = url.slice(SUBSCRIBE_URL_PREFIX.length);
-    server.subscriptions.push({
-      pageId,
-      sessionId: headers[SESSION_HEADER]!,
-    });
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ ok: true, topics: [`table:${pageId}`] }),
-    };
-  }) as unknown as typeof fetch;
-};
-
 const settle = async (): Promise<void> => {
-  await vi.advanceTimersByTimeAsync(0);
-  await nextTick();
-  await vi.advanceTimersByTimeAsync(0);
+  for (let round = 0; round < 3; round += 1) {
+    await vi.advanceTimersByTimeAsync(0);
+    await nextTick();
+  }
 };
 
 const realFetch = globalThis.fetch;
 let loggedIn = ref(false);
-let server: FakeServer;
+let server: FakeRealtimeServer;
 
 const loadApi = async (): Promise<UserRealtimeApi> => {
   const module = await import(
@@ -103,8 +31,6 @@ const loadApi = async (): Promise<UserRealtimeApi> => {
   );
   return module.useUserRealtime();
 };
-
-const lastStream = (): FakeStream => server.streams[server.streams.length - 1]!;
 
 beforeEach(() => {
   vi.resetModules();
@@ -118,13 +44,17 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
+  vi.stubGlobal("useDmsUserSession", () => ({
+    loggedIn,
+    user: ref({ _id: "user-1" }),
+  }));
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},
   }));
-  server = { streams: [], subscriptions: [], maxOpenStreams: 0, isDown: false };
-  installFetch(server);
+  createFakeBrowser().openTab().activate();
+  server = createRealtimeServer();
+  installRealtimeFetch(server);
   // Fresh per test: the singleton of a previous test keeps watching its own.
   loggedIn = ref(true);
 });
@@ -144,21 +74,21 @@ describe("useUserRealtime reconnection", () => {
     await settle();
     await api.setPage(PAGE_ID);
     expect(api.sessionId.value).toBe("session-1");
-    expect(server.subscriptions).toEqual([
+    expect(server.pageCalls).toEqual([
       { pageId: PAGE_ID, sessionId: "session-1" },
     ]);
 
-    lastStream().end();
+    server.lastConnection().end();
     await settle();
     expect(api.sessionId.value).toBeUndefined();
     await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS - 1);
-    expect(server.streams).toHaveLength(1);
+    expect(server.connections).toHaveLength(1);
 
     await vi.advanceTimersByTimeAsync(1);
     await settle();
-    expect(server.streams).toHaveLength(2);
+    expect(server.connections).toHaveLength(2);
     expect(api.sessionId.value).toBe("session-2");
-    expect(server.subscriptions).toEqual([
+    expect(server.pageCalls).toEqual([
       { pageId: PAGE_ID, sessionId: "session-1" },
       { pageId: PAGE_ID, sessionId: "session-2" },
     ]);
@@ -170,7 +100,7 @@ describe("useUserRealtime reconnection", () => {
     await api.setPage(PAGE_ID);
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
 
-    lastStream().end();
+    server.lastConnection().end();
     await settle();
     expect(api.pageTopics.value).toEqual([]);
     await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
@@ -178,38 +108,55 @@ describe("useUserRealtime reconnection", () => {
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
   });
 
+  it("names the dev reload topic its session carries, while it is open", async () => {
+    server.devReloadTopic = "dms:dev-reload";
+    const api = await loadApi();
+    await settle();
+    expect(api.devReloadTopic.value).toBe("dms:dev-reload");
+
+    server.lastConnection().end();
+    await settle();
+    expect(api.devReloadTopic.value).toBeUndefined();
+
+    server.devReloadTopic = undefined;
+    await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
+    await settle();
+    expect(api.sessionId.value).toBe("session-2");
+    expect(api.devReloadTopic.value).toBeUndefined();
+  });
+
   it("backs off further while the server stays unreachable", async () => {
     await loadApi();
     await settle();
     server.isDown = true;
 
-    lastStream().end();
+    server.lastConnection().end();
     await settle();
     await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
     await settle();
-    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(2);
+    expect(server.streamAttempts).toBe(2);
 
     server.isDown = false;
     await vi.advanceTimersByTimeAsync(SECOND_DELAY_MS - 1);
-    expect(server.streams).toHaveLength(1);
+    expect(server.connections).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(1);
     await settle();
-    expect(server.streams).toHaveLength(2);
-    expect(lastStream().isOpen()).toBe(true);
+    expect(server.connections).toHaveLength(2);
+    expect(server.lastConnection().isOpen()).toBe(true);
   });
 
   it("does not reconnect after an intentional close", async () => {
     await loadApi();
     await settle();
-    const stream = lastStream();
+    const connection = server.lastConnection();
 
     loggedIn.value = false;
     await settle();
-    expect(stream.signal.aborted).toBe(true);
+    expect(connection.signal.aborted).toBe(true);
 
     await vi.advanceTimersByTimeAsync(LONG_WAIT_MS);
     await settle();
-    expect(server.streams).toHaveLength(1);
+    expect(server.connections).toHaveLength(1);
   });
 
   it("never holds more than one stream at a time", async () => {
@@ -217,7 +164,7 @@ describe("useUserRealtime reconnection", () => {
     await settle();
 
     for (let cycle = 0; cycle < 3; cycle += 1) {
-      lastStream().end();
+      server.lastConnection().end();
       await settle();
       await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
       await settle();
@@ -227,8 +174,73 @@ describe("useUserRealtime reconnection", () => {
     loggedIn.value = true;
     await settle();
 
-    expect(server.streams).toHaveLength(5);
-    expect(server.maxOpenStreams).toBe(1);
-    expect(openStreamCount(server)).toBe(1);
+    expect(server.connections).toHaveLength(5);
+    expect(server.maxOpenConnections).toBe(1);
+    expect(server.openConnections()).toHaveLength(1);
+  });
+
+  it("dispatches its session's frames, and only its own", async () => {
+    const api = await loadApi();
+    await settle();
+    const received: unknown[] = [];
+    api.subscribe("table:orders", (event) => received.push(event));
+    const event = { topic: "table:orders", type: "row:updated", ts: 1 };
+
+    server.send("session-1", "table:orders", event);
+    server.lastConnection().write("session", {
+      sessionId: "another-tab",
+      event: "table:orders",
+      data: { ...event, ts: 2 },
+    });
+    await settle();
+
+    expect(received).toEqual([event]);
+  });
+
+  it("ends a session answered after it stopped waiting for one", async () => {
+    // Signed out while the session request was in flight: the session the
+    // answer names is a stray, ended at once.
+    server.beforeSessionAnswer = () => {
+      server.beforeSessionAnswer = undefined;
+      loggedIn.value = false;
+    };
+    await loadApi();
+    await settle();
+
+    // The backend ends only a session of the connection the request names.
+    expect(server.closedSessions).toEqual(["session-1"]);
+  });
+
+  it("keeps the frames that come before the answer naming its session", async () => {
+    const snapshot = { topic: "presence:orders", entries: [] };
+    server.beforeSessionAnswer = (session) =>
+      server.send(session.id, "snapshot", snapshot);
+    const api = await loadApi();
+    const received: unknown[] = [];
+    api.subscribe("presence:orders", (event) => received.push(event));
+    await settle();
+
+    expect(api.sessionId.value).toBe("session-1");
+    expect(received).toEqual([snapshot]);
+  });
+
+  it("refreshes the browser session when a session is refused with a 401", async () => {
+    const refreshSession = vi.fn(async () => {
+      server.sessionStatus = undefined;
+      return true;
+    });
+    vi.stubGlobal("useSessionRecovery", () => ({
+      refreshSession,
+      redirectToAuth: async () => {},
+    }));
+    server.sessionStatus = 401;
+    const api = await loadApi();
+    await settle();
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(api.sessionId.value).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
+    await settle();
+    expect(api.sessionId.value).toBe("session-1");
   });
 });
