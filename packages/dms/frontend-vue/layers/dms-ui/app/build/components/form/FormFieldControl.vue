@@ -73,7 +73,9 @@ const readonly = computed<FormFieldReadonly>(() =>
 </script>
 
 <template>
-  <div class="grid min-w-0 gap-1.5">
+  <!-- One explicit column (minmax(0, 1fr)): an implicit one grows to its
+       widest content, a long date or select label, past a narrow card. -->
+  <div class="grid min-w-0 grid-cols-1 gap-1.5">
     <DmsLocalizedField
       v-if="field.localized"
       v-model="state[field.id] as Record<string, string> | undefined"

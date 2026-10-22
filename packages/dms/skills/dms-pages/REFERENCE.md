@@ -231,6 +231,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `value`) on `FIELD_CHANGE` keyed on the source `fieldId` — never a custom component. It writes on a
   change only, never over the values a record opens with; a rule that must hold stays in the write
   route — `docs/04.components/07.forms/0.index.md#setting-a-value-from-another-field`.
+- A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
+  `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
+  `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
+  full row.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

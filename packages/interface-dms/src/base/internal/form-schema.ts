@@ -17,6 +17,7 @@ export function serializeFormField(field: FormField): FormFieldSerialized {
     component: field.inputComponent || field.type.inputComponent(),
     disabled: field.disabled,
     readonly: field.readonly,
+    showEmptyOnCreate: field.showEmptyOnCreate,
     type: typeId,
     required: field.required,
     defaultValue: field.defaultValue,

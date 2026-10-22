@@ -106,6 +106,10 @@ const theme = tv({
 
 interface TableActionsProps {
   canAddRow?: boolean;
+  /** The add action's configured label (`$`: i18n key); "New entry" without. */
+  addLabel?: string;
+  /** The add action's configured icon; the theme's plus without. */
+  addIcon?: string;
   /** Shows the archive mode toggle, bound to the `showArchived` model. */
   archiveToggle?: boolean;
   customButtons?: CustomButton[];
@@ -162,6 +166,10 @@ const appConfig = useDmsAppConfig() as DmsAppConfig & {
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
+const addRowLabel = computed(() =>
+  props.addLabel ? processI18n(props.addLabel) : t("dms.table.new_row"),
+);
+const addRowIcon = computed(() => props.addIcon ?? appConfig.ui.icons.plus);
 
 const searchActive = ref(false);
 const searchInputRef = ref<HTMLInputElement>();
@@ -625,16 +633,16 @@ const uiTableActions = computed(() => uiTableActionsVariant());
 
     <UButton
       v-if="canAddRow"
-      :label="t('dms.table.new_row')"
-      :icon="appConfig.ui.icons.plus"
+      :label="addRowLabel"
+      :icon="addRowIcon"
       :class="uiTableActions.add()"
       size="sm"
       @click="tableSharedData!.emits('add')"
     />
     <UButton
       v-if="canAddRow"
-      :aria-label="t('dms.table.new_row')"
-      :icon="appConfig.ui.icons.plus"
+      :aria-label="addRowLabel"
+      :icon="addRowIcon"
       :class="uiTableActions.addMobile()"
       size="sm"
       @click="tableSharedData!.emits('add')"

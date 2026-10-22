@@ -15,14 +15,18 @@ interface FormErrorSummaryProps {
 const props = defineProps<FormErrorSummaryProps>();
 const emit = defineEmits<{ select: [fieldId: string] }>();
 const { t } = useI18n();
+
+// Every field fixed: the summary says so in place, on as many lines, rather
+// than leaving and moving the form up under the pointer.
+const isResolved = computed(() => props.items.length === 0);
 </script>
 
 <template>
   <UAlert
-    color="error"
+    :color="isResolved ? 'success' : 'error'"
     variant="subtle"
-    icon="i-ph-warning-circle"
-    role="alert"
+    :icon="isResolved ? 'i-ph-check-circle' : 'i-ph-warning-circle'"
+    :role="isResolved ? 'status' : 'alert'"
     :title="
       t(
         'dms.form.error_summary.title',
@@ -32,7 +36,10 @@ const { t } = useI18n();
     "
   >
     <template #description>
-      <ul class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+      <p v-if="isResolved" class="mt-1">
+        {{ t("dms.form.error_summary.resolved") }}
+      </p>
+      <ul v-else class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
         <li v-for="item in props.items" :key="item.id">
           <a
             :href="`#${item.id}`"

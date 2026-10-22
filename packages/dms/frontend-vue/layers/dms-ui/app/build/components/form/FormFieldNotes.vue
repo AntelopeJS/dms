@@ -53,7 +53,26 @@ function wordValue(raw: unknown): VNodeChild | undefined {
   return undefined;
 }
 
-const wordedBaseline = computed(() => wordValue(baseline.value));
+/**
+ * The baseline as the form loaded it. A type keeping less in the form than
+ * it reads (a relation keeps the ids of the rows the server joined) words
+ * the loaded value, its label, while that is still the baseline.
+ */
+const loadedBaseline = computed(() => {
+  const loaded = context.initialValues.value[props.field.id];
+  const dataType = props.field.type ? getDataType(props.field.type) : undefined;
+  if (!dataType?.beforeStateMapper || isEmptyFormValue(loaded)) {
+    return baseline.value;
+  }
+  const options = props.field.component.options;
+  const mapped = dataType.beforeStateMapper(loaded, options);
+  const isSame = dataType.isSameValue
+    ? dataType.isSameValue(mapped, baseline.value, options)
+    : sameFormValue(mapped, baseline.value);
+  return isSame ? loaded : baseline.value;
+});
+
+const wordedBaseline = computed(() => wordValue(loadedBaseline.value));
 
 function useDefault(): void {
   context.state.value[props.field.id] = JSON.parse(

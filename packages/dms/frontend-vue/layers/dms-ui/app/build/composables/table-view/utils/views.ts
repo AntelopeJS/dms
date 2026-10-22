@@ -208,6 +208,12 @@ export function writeTableUrlKey(
   const scopedKey = tableUrlKey(scope, key);
   if (value) url.searchParams.set(scopedKey, value);
   else url.searchParams.delete(scopedKey);
+  // The only table reads its prefixed key first (`readTableUrlKey`): a link
+  // naming it (`content.tab=`) would otherwise outlive the short key written
+  // over it, and win again on reload.
+  if (scope.tableId && scopedKey === key) {
+    url.searchParams.delete(`${scope.tableId}.${key}`);
+  }
   window.history.replaceState(window.history.state, "", url);
   return url;
 }

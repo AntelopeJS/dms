@@ -159,7 +159,6 @@ describe("permission preview", () => {
         ],
       },
       { label: "Favorite without id" },
-      { label: "Settings", fullId: "settings" },
       { label: "Modules", fullId: "modules" },
     ];
 

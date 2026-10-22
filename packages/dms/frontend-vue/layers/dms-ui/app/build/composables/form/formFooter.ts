@@ -3,15 +3,19 @@
  *
  * - `record` (default): a record, a settings page, a table view's form. It
  *   keeps its values once saved; Cancel while there is nothing to save when
- *   it has somewhere to go back to, then "Unsaved changes" with Discard and
- *   Save.
+ *   it has somewhere to go back to, then "Unsaved changes" with Save and,
+ *   beside it, Cancel again (discard and leave) or, with nowhere to go back
+ *   to, Discard.
+ * - `create`: a form that makes a new record (a table view's add form, the
+ *   duplicate it opens). Its submit from the start, no "Unsaved changes"
+ *   list, since all it holds is new.
  * - `action`: a form that does something each time (send a notification,
  *   invite someone, run a job). Its own submit label, always ready: what it
  *   holds untouched, its defaults included, is a payload too. Beside it,
  *   Reset once a value changed, Cancel before that in a drawer or a modal.
  *   It empties after a successful submit.
  */
-export type FormKind = "record" | "action";
+export type FormKind = "record" | "create" | "action";
 
 /** How a form offers to save (interface-dms `FormSaveMode`). */
 export type FormSaveMode = "bar" | "footer" | "none" | "instant";
@@ -39,7 +43,10 @@ export interface SaveBarContext {
   resettable: boolean;
 }
 
-/** The button beside the submit: Discard / Reset, or Cancel. */
+/**
+ * The button beside the submit: Discard / Reset (values back, the form
+ * stays), or Cancel (values back, the form is left).
+ */
 export type SaveBarSecondary = "discard" | "cancel";
 
 /** What a form's save bar shows. */
@@ -67,11 +74,20 @@ const HIDDEN_BAR: SaveBarState = {
 };
 
 /**
- * A record form's bar: "Unsaved changes" with Discard and Save once a value
- * changed, Cancel before that when it has somewhere to go back to.
+ * A record form's bar: "Unsaved changes" and Save once a value changed, Cancel
+ * before that when it has somewhere to go back to. Beside Save, a form with
+ * somewhere to go back to keeps Cancel, which drops the changes and leaves,
+ * the same as before any change: one click, never a reverted form left open.
+ * A form with nowhere to go back to offers Discard.
  */
 function recordSaveBar(context: SaveBarContext): SaveBarState {
-  if (context.dirty) return { ...HIDDEN_BAR, isHidden: false };
+  if (context.dirty) {
+    return {
+      ...HIDDEN_BAR,
+      secondary: context.cancellable ? "cancel" : "discard",
+      isHidden: false,
+    };
+  }
   if (!context.cancellable) return HIDDEN_BAR;
   return {
     showsStatus: false,
@@ -80,6 +96,24 @@ function recordSaveBar(context: SaveBarContext): SaveBarState {
     isSubmitHeld: false,
     isHidden: false,
   };
+}
+
+/**
+ * A create form's bar: its submit from the start, since a duplicate (or a
+ * row its defaults fill) is saved as it is, with no "Unsaved changes" list,
+ * since all it holds is new. Beside it, Cancel when it has somewhere to go
+ * back to, Discard once a value changed otherwise.
+ */
+function createSaveBar(context: SaveBarContext): SaveBarState {
+  const bar: SaveBarState = {
+    showsStatus: false,
+    showsSubmit: true,
+    isSubmitHeld: false,
+    isHidden: false,
+  };
+  if (context.cancellable) return { ...bar, secondary: "cancel" };
+  if (context.dirty) return { ...bar, secondary: "discard" };
+  return bar;
 }
 
 /**
@@ -106,6 +140,7 @@ function actionSaveBar(context: SaveBarContext): SaveBarState {
 
 const SAVE_BARS: Record<FormKind, (context: SaveBarContext) => SaveBarState> = {
   record: recordSaveBar,
+  create: createSaveBar,
   action: actionSaveBar,
 };
 

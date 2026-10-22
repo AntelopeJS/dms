@@ -1,20 +1,7 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
+import { scrollParent } from "../../utils/scrollWithin";
 
 const FIRST_ROW_SELECTOR = "tbody tr";
-const SCROLLABLE_OVERFLOW = /(auto|scroll)/;
-
-function scrollParent(element: HTMLElement): HTMLElement | null {
-  for (let node = element.parentElement; node; node = node.parentElement) {
-    const { overflowY } = getComputedStyle(node);
-    if (
-      SCROLLABLE_OVERFLOW.test(overflowY) &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      return node;
-    }
-  }
-  return null;
-}
 
 /**
  * Whether the first row of the table in `element` is out of view above the
