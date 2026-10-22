@@ -1,9 +1,4 @@
-import {
-  computeParameter,
-  type ControllerClass,
-  ControllerMeta,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
@@ -15,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view/internal/auth";
 import {
   BULK_ALL_MATCHING_KEY,
+  type BulkRowSource,
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
@@ -25,30 +21,42 @@ import { buildFilteredQuery } from "./search-route";
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
 
+function isBulkRowSource(table: unknown): table is BulkRowSource {
+  return (
+    typeof table === "object" &&
+    table !== null &&
+    "tableView" in table &&
+    "model" in table
+  );
+}
+
+/** A data controller as the list query reads it: its properties by key. */
+type ControllerReader = Record<PropertyKey, unknown>;
+
 /**
- * The data controller a bulk selection is read through. A route outside it
- * (a page's, another controller's) names it by its class: the rows are then
- * read on an instance holding the model the controller's own routes get for
- * this request (its tenant's).
+ * What the list query reads a source's rows through, in place of a data
+ * controller: the controller's prototype, for its metadata and its methods,
+ * and the source's model under the controller's model key. Any other
+ * property, which the controller's own routes would have injected, throws
+ * rather than reading as missing.
  */
-async function bulkController(
-  target: unknown,
-  ctx: RequestContext,
-): Promise<object> {
-  if (typeof target !== "function") return target as object;
-  const controllerClass = target as ControllerClass;
-  const instance = Object.create(controllerClass.prototype) as Record<
-    string,
-    unknown
-  >;
-  const { modelKey } = GetDataControllerMeta(instance);
-  const provider = modelKey
-    ? GetMetadata(controllerClass, ControllerMeta).computed_props[modelKey]
-    : undefined;
-  if (modelKey && provider) {
-    instance[modelKey] = await computeParameter(ctx, provider, instance);
-  }
-  return instance;
+function sourceReader({ model, tableView }: BulkRowSource): ControllerReader {
+  const controller = tableView.target;
+  const { modelKey } = GetDataControllerMeta(
+    Object.create(controller.prototype as object),
+  );
+  assert(modelKey, 500, `${controller.name} declares no model.`);
+  const reader = Object.create(controller.prototype as object, {
+    [modelKey]: { value: model, enumerable: true },
+  }) as ControllerReader;
+  return new Proxy(reader, {
+    get(target, key) {
+      if (typeof key === "symbol" || key in target) return target[key];
+      throw new Error(
+        `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
+      );
+    },
+  });
 }
 
 /**
@@ -58,11 +66,11 @@ async function bulkController(
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  target: unknown,
+  table: unknown,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
-  const thisObj = await bulkController(target, ctx);
+  const thisObj = isBulkRowSource(table) ? sourceReader(table) : table;
   const permissions = await authorizeAction(
     thisObj,
     LIST_ACTION,

@@ -7,6 +7,7 @@ import type {
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
+import type { TableViewMeta } from "./meta";
 import type { TableViewFooterSummary } from "./options";
 import type {
   FooterSummaryValues,
@@ -56,6 +57,21 @@ export const summarizeWithSearch = InterfaceFunction<
 >();
 
 /**
+ * A table's rows as a route outside its data controller reads them (a page's
+ * route, another controller's): the model they are read with and the table's
+ * metadata, nothing else of the controller.
+ */
+export interface BulkRowSource {
+  /**
+   * The model the rows are read with: the one the calling route is given for
+   * its request (`@Model(...)` on its own controller), so the request's tenant.
+   */
+  model: object;
+  /** The table's metadata: `GetMetadata(<data controller class>, TableViewMeta)`. */
+  tableView: TableViewMeta;
+}
+
+/**
  * The ids of the rows a bulk custom action runs on: the `ids` the selection
  * sent, or — after "Select all N matching" (`allMatching=true`) — every row
  * the table's filters, search and archive view match. Either way it refuses
@@ -63,14 +79,19 @@ export const summarizeWithSearch = InterfaceFunction<
  * the permission of the action itself. The matching rows are capped (see
  * `MAX_BULK_MATCHING_ROWS`).
  *
- * `table` is the table's data controller: `this` from a route on it, or its
- * class from any other route (a page's, another controller's), which reads
- * the rows with the model the controller's own routes get for the request.
+ * `table` is `this` from a route of the table's data controller, or a
+ * `BulkRowSource` from any other route. A source carries no controller: a
+ * filter or a locked field reading another property of the controller
+ * throws, naming it, and is resolved from a route of the controller instead.
  */
-export const resolveBulkRowIds =
-  InterfaceFunction<
-    (table: unknown, ctx: RequestContext, user: User) => Promise<string[]>
-  >();
+export const resolveBulkRowIds = InterfaceFunction<
+  (
+    // `this` of a data controller, or a `BulkRowSource`.
+    table: unknown,
+    ctx: RequestContext,
+    user: User,
+  ) => Promise<string[]>
+>();
 
 /** The most rows "Select all N matching" hands a bulk action at once. */
 export const MAX_BULK_MATCHING_ROWS = 10_000;

@@ -4,6 +4,7 @@ import {
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
 import {
   DataController,
   DefaultRoutes,
@@ -37,6 +38,7 @@ import {
   Column,
   resolveBulkRowIds,
   TableView,
+  TableViewMeta,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
@@ -146,17 +148,26 @@ export class CapabilityInvoiceController extends DataController(
 }
 
 // A route outside the invoices' data controller (a page's would do the same)
-// finding the rows of their table by naming the controller's class.
+// finding the rows of their table from its own model and the table's
+// metadata.
 export class InvoiceBulkController extends Controller(
   "/api/capabilities/invoice-bulk",
 ) {
+  @Model(InvoiceModel)
+  declare invoices: InvoiceModel;
+
   @Post("matching")
   async matching(
     @Context() ctx: RequestContext,
     @AuthUser() user: User,
   ): Promise<{ ids: string[] }> {
+    const tableView = GetMetadata(CapabilityInvoiceController, TableViewMeta);
     return {
-      ids: await resolveBulkRowIds(CapabilityInvoiceController, ctx, user),
+      ids: await resolveBulkRowIds(
+        { model: this.invoices, tableView },
+        ctx,
+        user,
+      ),
     };
   }
 }
