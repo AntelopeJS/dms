@@ -6,9 +6,10 @@ export type I18nTranslate = (
 ) => string;
 
 /**
- * i18n access for DMS app plugins and data-type formatters, where `useI18n()`
- * is unavailable: returns the global composer plus an {@link I18nTranslate}
- * bound to it. Inside components prefer `useI18n` / {@link useTranslation}.
+ * i18n access for DMS app plugins, where `useI18n()` is unavailable: returns
+ * the global composer plus an {@link I18nTranslate} bound to it. Inside
+ * components prefer `useI18n` / {@link useTranslation}; in a data-type
+ * formatter, {@link getAppTranslation}.
  */
 export function getPluginI18n() {
   const { $i18n: i18n } = useDmsApp();
@@ -116,6 +117,10 @@ export const useTranslation = () => translationOf(useI18n().t);
  * export — with no component setup active, where `useI18n()` throws. It reads
  * the application's global composer (the one `useI18n()` returns), and each
  * call reads its active locale, so a text written in a `computed` follows a
- * language switch.
+ * language switch. `t` is that composer's own, for a key with no `$` prefix
+ * (a plural count included).
  */
-export const getAppTranslation = () => translationOf(getPluginI18n().i18n.t);
+export const getAppTranslation = () => {
+  const { t } = getPluginI18n().i18n;
+  return { ...translationOf(t), t };
+};

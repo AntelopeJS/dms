@@ -29,10 +29,7 @@ import {
   formatDayMonth,
   formatRelativeDate,
 } from "../../utils/relativeDate";
-import {
-  getAppTranslation,
-  getPluginI18n,
-} from "../../../../../dms-core/app/composables/translation/useTranslation";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const FilePreview = defineAsyncComponent(
   () => import("../../../components/table-view/FilePreview.vue"),
@@ -164,7 +161,7 @@ function renderBoolean(value: unknown) {
 }
 
 function formatDateBetween(value: unknown, locale: string): string {
-  const { t } = getPluginI18n().i18n;
+  const { t } = getAppTranslation();
   const [rawStart, rawEnd] = Array.isArray(value)
     ? value
     : [
@@ -358,7 +355,7 @@ function renderImage(value: unknown, options: unknown) {
 }
 
 function renderFile(value: unknown, options: unknown) {
-  const { t } = getPluginI18n().i18n;
+  const { t } = getAppTranslation();
   const opts = options as FileOptions | undefined;
 
   if (opts?.multiple && Array.isArray(value)) {
@@ -805,11 +802,11 @@ const registerDateType = (registerDataType: (dataType: DataType) => void) => {
     id: "date",
     formatter: {
       default: (value: unknown, locale: string) => {
-        const { t } = getPluginI18n().i18n;
+        const { t } = getAppTranslation();
         return formatDate(value, locale) ?? t("dms.date.undefined");
       },
       cell: (value: unknown, locale: string) => {
-        const { t } = getPluginI18n().i18n;
+        const { t } = getAppTranslation();
         return (
           formatDate(value, locale, CELL_DATE_FORMAT) ?? t("dms.date.undefined")
         );
