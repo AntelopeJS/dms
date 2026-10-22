@@ -72,6 +72,8 @@ export interface UseApexChartInput {
   xAxis?: ChartXAxis;
   xAxisFormatter?: ChartXAxisFormatter;
   yAxisFormatter?: (value: number) => string;
+  /** The reader's locale, for the dates the chart writes itself. */
+  locale?: string;
   onDataPointClick?: ApexClickHandler;
 }
 
@@ -79,4 +81,9 @@ export interface UseApexChartOutput {
   apexType: ComputedRef<string>;
   options: ComputedRef<Record<string, unknown>>;
   series: ComputedRef<unknown>;
+  /**
+   * The index, in the series as given, of the point Apex drew at
+   * `dataPointIndex` (they differ when the chart lays dates out in buckets).
+   */
+  sourcePointIndex: (seriesIndex: number, dataPointIndex: number) => number;
 }

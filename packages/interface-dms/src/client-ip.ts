@@ -1,3 +1,4 @@
+import type { IncomingHttpHeaders } from "node:http";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 
@@ -10,12 +11,15 @@ export interface ClientAddressSource {
   socketAddress: string | undefined;
   /** The raw `x-forwarded-for` header, possibly absent */
   forwardedFor: string | undefined;
+  /** The request headers, where `auth.clientIpHeader` is read */
+  headers?: IncomingHttpHeaders;
 }
 
 /**
  * The client address of a request, resolved the way the DMS resolves the
- * address it records on a session: behind the `auth.trustedProxies` reverse
- * proxies of its configuration, each trusted hop vouching for the
+ * address it records on a session: from the `auth.clientIpHeader` header the
+ * hosting platform writes when it is configured, otherwise behind the
+ * `auth.trustedProxies` reverse proxies of its configuration, each trusted hop vouching for the
  * `x-forwarded-for` entry it appended and nothing left of it, with an
  * IPv4-mapped address (`::ffff:10.0.0.1`) written as plain IPv4.
  *
@@ -45,5 +49,6 @@ export function getClientIp(context: RequestContext): Promise<string> {
   return ResolveClientIp({
     socketAddress: context.rawRequest.socket.remoteAddress,
     forwardedFor: forwardedForOf(context),
+    headers: context.rawRequest.headers,
   });
 }

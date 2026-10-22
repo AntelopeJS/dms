@@ -27,6 +27,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
 import RowSidePanel from "../layers/dms-layout/app/build/components/layout/RowSidePanel.vue";
+import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
 import {
   readSidePanelPreferences,
   SIDE_PANEL_COOKIE,
@@ -44,9 +45,18 @@ import {
   resolveDeepLinkedRow,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
+import { resolveRowClickAction } from "../layers/dms-ui/app/utils/rowClickAction";
 import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+
+vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
+  usePermissionPreview: () => ({
+    blockFor: () => undefined,
+    isActive: { value: false },
+    session: { value: null },
+  }),
+}));
 
 const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
@@ -223,6 +233,7 @@ function mountPanel(
   });
   app.component("UButton", ButtonStub);
   app.component(ROW_PANEL_COMPONENT, RowSidePanel);
+  app.component("DmsRecursiveComponent", RecursiveComponent);
   app.mount(host);
   return { host, targets: targets!, showTable };
 }
@@ -274,6 +285,17 @@ describe("sidePanel action target", () => {
     expect(position(host)).toBe("side_panel.position(1/3)");
     expect(shownName(host)).toBe("First");
     expect(useRowSidePanelContent().value?.rowKey).toBe("r1");
+  });
+
+  it("hands a bulk panel run from a row the row and the selection of that row", async () => {
+    const { targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction({}, { bulk: true }), rows[0]);
+    await settle();
+    const content = useRowSidePanelContent().value;
+    expect(content?.rowKey).toBe("r1");
+    expect(content?.componentOptions).toMatchObject({
+      selection: { ids: ["r1"], count: 1 },
+    });
   });
 
   it("words the position with the action's own label", async () => {
@@ -363,6 +385,207 @@ describe("row side panel navigation", () => {
     expect(position(host)).toBeUndefined();
     expect(query(host, "[data-dms-row-side-panel-next]")).toBeNull();
     expect(shownName(host)).toBe("Second");
+  });
+});
+
+describe("row tokens in a row panel's component options", () => {
+  // A block declared on the backend (a ResourceForm in view mode) reads its
+  // row from its options, not from `rowData`; it loads the row its options
+  // name when it sets up.
+  let loadedRowIds: Array<string | undefined> = [];
+  const BlockPanel = defineComponent({
+    props: {
+      fetchUrl: { type: String, default: undefined },
+      rowId: { type: String, default: undefined },
+      heading: {
+        type: Object as PropType<{ text: string }>,
+        default: undefined,
+      },
+    },
+    setup(props) {
+      loadedRowIds.push(props.rowId);
+      return () =>
+        h("p", { "data-block": "" }, [
+          `${props.fetchUrl}|${props.rowId}|${props.heading?.text}`,
+        ]);
+    },
+  });
+  const blockAction = () =>
+    panelAction({
+      component: {
+        componentName: "BlockPanel",
+        options: {
+          fetchUrl: "/api/runs/get?id={{row._id}}&site={{query.site}}",
+          rowId: "{{row.id}}",
+          heading: { text: "{{row.name}} run" },
+        },
+      },
+    } as Partial<CustomRowAction["target"]>);
+  const shownBlock = (host: ParentNode) =>
+    query(host, "[data-block]")?.textContent?.trim();
+
+  beforeEach(() => {
+    loadedRowIds = [];
+    vi.stubGlobal("resolveDmsComponent", (name: string) =>
+      name === "BlockPanel" ? BlockPanel : undefined,
+    );
+  });
+
+  it("fills them on a click on a row, before any ?record= is written", async () => {
+    const { host, targets } = mountPanel();
+    const action = blockAction();
+    // As Table.vue runs a row click (`rowClick: "single"`): the row's default
+    // action, handed the clicked row.
+    const row = document.createElement("tr");
+    row.addEventListener("click", (event) => {
+      if (!isRowClickTrigger("single", event)) return;
+      const clicked = resolveRowClickAction({ custom: [action] }, rows[1]!);
+      if (clicked && typeof clicked !== "string")
+        targets.handleCustomRowAction(clicked, rows[1]);
+    });
+    document.body.append(row);
+    expect(window.location.search).toBe("");
+    row.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await settle();
+    expect(loadedRowIds).toEqual(["r2"]);
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r2&site={{query.site}}|r2|Second run",
+    );
+    expect(window.location.search).toBe("?record=r2");
+  });
+
+  it("fills them with the row shown, again on each step and showRow", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(blockAction(), rows[0]);
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r1&site={{query.site}}|r1|First run",
+    );
+    query(host, "[data-dms-row-side-panel-next]")?.click();
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r2&site={{query.site}}|r2|Second run",
+    );
+    press("j");
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r3&site={{query.site}}|r3|Third run",
+    );
+    await useRowSidePanelContent().value?.showRow?.(rows[0]!);
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r1&site={{query.site}}|r1|First run",
+    );
+  });
+
+  it("encodes a URL option's value, and leaves another as it is", async () => {
+    const { host, targets } = mountPanel(ref([{ _id: "a b", name: "A/B" }]));
+    targets.handleCustomRowAction(blockAction(), { _id: "a b", name: "A/B" });
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=a%20b&site={{query.site}}|a b|A/B run",
+    );
+  });
+});
+
+describe("a container block as a row panel's component", () => {
+  // A Card holding blocks: its body and its footer are slots the children
+  // are mounted in.
+  const CardStub = defineComponent({
+    props: {
+      title: { type: String, default: undefined },
+      rowData: { type: Object as PropType<Row>, default: undefined },
+    },
+    setup(props, { slots }) {
+      return () =>
+        h("section", { "data-card": "" }, [
+          h("h3", `${props.title}|${props.rowData?.name}`),
+          h("div", { "data-body": "" }, slots.default?.()),
+          h("footer", slots.footer?.()),
+        ]);
+    },
+  });
+  const StackStub = defineComponent({
+    setup:
+      (_, { slots }) =>
+      () =>
+        h("div", { "data-stack": "" }, slots.default?.()),
+  });
+  const FactsStub = defineComponent({
+    props: { fetchUrl: { type: String, default: undefined } },
+    setup: (props) => () => h("dl", { "data-facts": "" }, props.fetchUrl),
+  });
+  const blocks: Record<string, unknown> = { CardStub, StackStub, FactsStub };
+  const cardAction = () =>
+    panelAction({
+      component: {
+        componentName: "CardStub",
+        options: { title: "{{row.name}} facts" },
+        children: [
+          {
+            id: "facts",
+            component: {
+              componentName: "FactsStub",
+              options: { fetchUrl: "/x/{{row._id}}" },
+            },
+          },
+          {
+            id: "stack",
+            component: {
+              componentName: "StackStub",
+              children: [
+                {
+                  id: "nested",
+                  component: {
+                    componentName: "FactsStub",
+                    options: { fetchUrl: "/y/{{row.id}}?name={{row.name}}" },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            id: "note",
+            slot: "footer",
+            component: {
+              componentName: "FactsStub",
+              options: { fetchUrl: "/notes/{{row._id}}" },
+            },
+          },
+        ],
+      },
+    } as Partial<CustomRowAction["target"]>);
+  const shownCard = (host: ParentNode) => ({
+    heading: query(host, "[data-card] h3")?.textContent,
+    body: [...host.querySelectorAll("[data-body] [data-facts]")].map(
+      (facts) => facts.textContent,
+    ),
+    nested: query(host, "[data-stack] [data-facts]")?.textContent,
+    footer: query(host, "[data-card] footer [data-facts]")?.textContent,
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal("resolveDmsComponent", (name: string) => blocks[name]);
+  });
+
+  it("mounts its children, filled with the row shown, again on each step", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(cardAction(), rows[0]);
+    await settle();
+    expect(shownCard(host)).toEqual({
+      heading: "First facts|First",
+      body: ["/x/r1", "/y/r1?name=First"],
+      nested: "/y/r1?name=First",
+      footer: "/notes/r1",
+    });
+    query(host, "[data-dms-row-side-panel-next]")?.click();
+    await settle();
+    expect(shownCard(host)).toEqual({
+      heading: "Second facts|Second",
+      body: ["/x/r2", "/y/r2?name=Second"],
+      nested: "/y/r2?name=Second",
+      footer: "/notes/r2",
+    });
   });
 });
 
