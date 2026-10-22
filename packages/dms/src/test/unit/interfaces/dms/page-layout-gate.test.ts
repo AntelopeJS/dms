@@ -44,7 +44,12 @@ const models = stubPageAccessModels(["*"]);
 async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
   const handler = GetPageLayoutBySlug(slug);
   if (!handler) throw new Error(`no layout handler registered for ${slug}`);
-  return handler(MEMBER, models.memberModel, models.roleModel, tenantId);
+  return handler({
+    user: MEMBER,
+    memberModel: models.memberModel,
+    roleModel: models.roleModel,
+    tenantId,
+  });
 }
 
 async function refusalOf(promise: Promise<unknown>): Promise<HTTPResult> {

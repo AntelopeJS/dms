@@ -6,14 +6,20 @@ import {
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
   type ModuleStoreEntry,
+  DEFAULT_STORE_SCOPE,
+  STORE_SCOPES,
   filterByScope,
   isAwaitingFrontend,
   needsDependencyChoice,
   sortStoreModules,
   storeActionBlock,
+  installedTileStatus,
   storeActions,
-  storeTileStatus,
+  storeBlockMessage,
+  storeOnlyModules,
+  storeOpenTarget,
   toModuleStoreEntry,
+  withStoreDetails,
 } from "../layers/dms-layout/app/build/utils/module-store-catalog";
 import {
   OTHER_PACKAGE_CHOICE,
@@ -156,6 +162,17 @@ describe("module store catalog", () => {
     expect(filterByScope(catalog, "all")).toHaveLength(4);
   });
 
+  it("opens on the available modules, with all of them last", () => {
+    expect(DEFAULT_STORE_SCOPE).toBe("available");
+    expect(STORE_SCOPES).toEqual(["available", "installed", "all"]);
+    for (const scope of STORE_SCOPES) {
+      expect(en.modules.store.scope[scope]).toContain("{count}");
+      expect(fr.modules.store.scope[scope]).toContain("{count}");
+    }
+    expect(en.modules.store.all_installed.show_all).toBeTruthy();
+    expect(fr.modules.store.all_installed.show_all).toBeTruthy();
+  });
+
   it("counts a failed install as available, a failed update as installed", () => {
     const failedInstall = listingEntry("api", { state: "error" });
     const failedUpdate = listingEntry("api", {
@@ -193,15 +210,87 @@ describe("module store catalog", () => {
     expect(confirmed).toEqual(["uninstall"]);
   });
 
-  it("flags an update on an active module's pill", () => {
-    expect(
-      storeTileStatus(
-        listingEntry("a", { state: "active", updateAvailable: true }),
-      ).labelKey,
-    ).toBe("update_available");
-    expect(storeTileStatus(listingEntry("a", { state: "busy" })).dot).toBe(
-      "live",
+  it("says an installed module's state on its pill, the store's first", () => {
+    const module = {
+      id: "a",
+      title: "A",
+      description: "",
+      icon: "i-ph-cube",
+      hasAccess: true,
+      landingSlug: "/modules/a/home",
+    };
+    const pill = (overrides: Partial<StoreListingEntry>) =>
+      installedTileStatus(module, listingEntry("a", overrides));
+    expect(pill({ state: "active" })).toEqual({
+      tone: "success",
+      labelKey: "modules.status.live",
+    });
+    expect(pill({ state: "disabled" })).toEqual({
+      tone: "warning",
+      labelKey: "modules.store.state.disabled",
+    });
+    expect(pill({ state: "error" }).tone).toBe("error");
+    expect(pill({ state: "busy" }).dot).toBe("live");
+    expect(pill({ state: "active", updateAvailable: true }).labelKey).toBe(
+      "modules.status.update",
     );
+    expect(pill({ state: "active", frontend: "pending" }).labelKey).toBe(
+      "modules.status.restart_required",
+    );
+    expect(
+      installedTileStatus({ ...module, status: "attention" }, undefined)
+        .labelKey,
+    ).toBe("modules.status.attention");
+  });
+
+  it("lists the installed modules that register nothing among the installed", () => {
+    const paused = storeEntry("media", {
+      state: "disabled",
+      installedVersion: "0.5.0",
+      source: "npm",
+    });
+    const running = storeEntry("lang", {
+      state: "active",
+      installedVersion: "0.2.0",
+    });
+    const available = storeEntry("cms");
+    const listed = storeOnlyModules(
+      [paused, running, available],
+      [{ id: "lang" }],
+    );
+    expect(listed).toEqual([
+      expect.objectContaining({
+        id: "media",
+        version: "0.5.0",
+        source: "npm",
+        landingSlug: "",
+        catalogCategory: paused.catalogCategory,
+      }),
+    ]);
+  });
+
+  it("words why a store action waits", () => {
+    const t = (key: string, params?: Record<string, string>) =>
+      `${key}${params ? JSON.stringify(params) : ""}`;
+    const used = listingEntry("a", {
+      state: "active",
+      usedByProject: true,
+      latestVersion: "1.0.0",
+    });
+    expect(storeBlockMessage(used, "uninstall", t)).toBe(
+      "modules.store.used_by_project",
+    );
+    expect(storeBlockMessage(used, "update", t)).toBeUndefined();
+  });
+
+  it("names every source in both locales", () => {
+    for (const messages of [en, fr]) {
+      for (const source of ["npm", "github", "gitlab", "git", "local"]) {
+        expect(lookup(messages, `modules.source.${source}`)).toEqual(
+          expect.any(String),
+        );
+      }
+    }
   });
 
   it("waits on the frontend only once the operation is over", () => {
@@ -238,6 +327,125 @@ describe("module store catalog", () => {
       { value: "Content", label: "Content", count: 2 },
       { value: "Data", label: "Data", count: 1 },
     ]);
+  });
+
+  it("merges two category keys that read the same into one option", () => {
+    const sameName = [
+      storeEntry("media", {
+        catalogCategory: "$modules.store.category.content",
+      }),
+      storeEntry("lang", { catalogCategory: "Content" }),
+      storeEntry("database"),
+    ];
+    const options = moduleCategoryOptions(sameName, resolve);
+    expect(options.map((option) => [option.label, option.count])).toEqual([
+      ["Content", 2],
+      ["Data", 1],
+    ]);
+    expect(
+      filterModules(sameName, {
+        query: "",
+        category: options[0].value,
+        resolve,
+      }).map((entry) => entry.id),
+    ).toEqual(["media", "lang"]);
+  });
+
+  it("shows a working copy as active and installed, with no action", () => {
+    const entry = listingEntry("media", {
+      state: "active",
+      installedVersion: "0.5.0",
+      isWorkingCopy: true,
+    });
+    expect(filterByScope([entry], "installed")).toEqual([entry]);
+    expect(storeActions(entry)).toEqual([]);
+  });
+
+  it("fills the version and category an installed module does not register", () => {
+    const installed = [
+      {
+        id: "media",
+        title: "Media",
+        description: "",
+        icon: "i-ph-image",
+        hasAccess: true,
+        landingSlug: "/modules/media",
+      },
+      {
+        id: "api",
+        title: "API",
+        description: "",
+        icon: "i-ph-plug",
+        hasAccess: true,
+        landingSlug: "/modules/api",
+        version: "0.4.1",
+        catalogCategory: "$api.category",
+      },
+    ];
+    const store = [
+      listingEntry("media", {
+        category: "content",
+        installedVersion: "0.5.0",
+        source: "npm",
+      }),
+      listingEntry("api", { installedVersion: "0.9.0", source: "github" }),
+    ];
+    const [media, api] = withStoreDetails(installed, store);
+    expect(media.version).toBe("0.5.0");
+    expect(media.source).toBe("npm");
+    expect(api.source).toBe("github");
+    expect(media.catalogCategory).toBe("$modules.store.category.content");
+    expect(api.version).toBe("0.4.1");
+    expect(api.catalogCategory).toBe("$api.category");
+    // A declared range is not a version a tile can print.
+    expect(
+      withStoreDetails(installed, [
+        listingEntry("media", { installedVersion: "^0.5.0" }),
+      ])[0].version,
+    ).toBeUndefined();
+  });
+
+  it("files a module under one category on its installed and store tiles", () => {
+    const installed = [
+      {
+        id: "mailing",
+        title: "Mailing",
+        description: "",
+        icon: "i-ph-envelope-simple",
+        hasAccess: true,
+        landingSlug: "/modules/mailing",
+        catalogCategory: "$dms_mailing.catalog_category",
+      },
+      {
+        id: "media",
+        title: "Media",
+        description: "",
+        icon: "i-ph-image",
+        hasAccess: true,
+        landingSlug: "/modules/media",
+      },
+    ];
+    const listing = [
+      listingEntry("mailing", {
+        category: "growth",
+        installedVersion: "1.0.0",
+      }),
+      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
+      listingEntry("ai", { category: "ai" }),
+    ];
+    const tiles = withStoreDetails(installed, listing);
+    const store = listing.map((entry) => toModuleStoreEntry(entry, installed));
+    for (const tile of tiles) {
+      expect(store.find((entry) => entry.id === tile.id)?.catalogCategory).toBe(
+        tile.catalogCategory,
+      );
+    }
+    expect(tiles.map((tile) => tile.catalogCategory)).toEqual([
+      "$dms_mailing.catalog_category",
+      "$modules.store.category.content",
+    ]);
+    // A module the deployment does not run keeps the catalog's category.
+    expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
   });
 });
 
@@ -302,6 +510,29 @@ describe("module store blocked actions", () => {
     expect(
       storeActionBlock(released({ state: "active" }), "uninstall"),
     ).toBeUndefined();
+  });
+
+  it("explains that the project's own code, not a module, holds a module", () => {
+    const used = released({
+      state: "active",
+      usedByProject: true,
+      dependents: ["@acme/jobs"],
+    });
+    expect(storeActionBlock(used, "disable")).toBe("used_by_project");
+    expect(storeActionBlock(used, "uninstall")).toBe("used_by_project");
+    expect(storeActionBlock(used, "update")).toBeUndefined();
+  });
+
+  it("words every block in both locales", () => {
+    for (const messages of [en, fr]) {
+      for (const key of [
+        "modules.store.used_by_project",
+        "modules.store.dependents",
+        "modules.store.errors.store_module_used_by_project",
+      ]) {
+        expect(lookup(messages, key)).toEqual(expect.any(String));
+      }
+    }
   });
 });
 
@@ -405,5 +636,25 @@ describe("bundled module catalog", () => {
         }
       }
     }
+  });
+});
+
+describe("storeOpenTarget", () => {
+  const installed = [
+    { id: "cms", hasAccess: true, landingSlug: "/modules/cms/pages" },
+    { id: "jobs", hasAccess: true, landingSlug: "/modules/jobs" },
+    { id: "crm", hasAccess: false, landingSlug: "/modules/crm/leads" },
+  ];
+
+  it("opens an installed module on its landing page", () => {
+    expect(storeOpenTarget({ id: "cms" }, installed)).toBe(
+      "/modules/cms/pages",
+    );
+  });
+
+  it("offers no Open button for a module without pages, out of reach or not running", () => {
+    expect(storeOpenTarget({ id: "jobs" }, installed)).toBeUndefined();
+    expect(storeOpenTarget({ id: "crm" }, installed)).toBeUndefined();
+    expect(storeOpenTarget({ id: "media" }, installed)).toBeUndefined();
   });
 });

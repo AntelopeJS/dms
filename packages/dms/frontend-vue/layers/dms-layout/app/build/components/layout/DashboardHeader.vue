@@ -11,7 +11,12 @@ import {
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import type { CategoryInfo } from "../../../types/page";
 import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
-import { foldBreadcrumb, isFoldedCrumbs } from "../../../utils/breadcrumb";
+import {
+  foldBreadcrumb,
+  isFoldedCrumbs,
+  withParentCrumb,
+} from "../../../utils/breadcrumb";
+import { fillRouteParams } from "../../../utils/pageQuery";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
@@ -131,6 +136,26 @@ function moduleLandingSlug(
   );
 }
 
+/**
+ * The crumb of the page the current one is a detail of (`parentSlug`), its
+ * route parameters filled from the current page's: none when it is missing,
+ * out of reach, or names a parameter the current page lacks.
+ */
+const parentCrumb = computed((): BreadcrumbItem | null => {
+  const current = siteLayout.findMatchingRoute(route.path);
+  const parentSlug = current?.metadata.parentSlug;
+  if (!parentSlug) return null;
+  const path = fillRouteParams(parentSlug, current.params);
+  if (path.includes(":")) return null;
+  const parent = siteLayout.findMatchingRoute(path)?.metadata;
+  if (!parent || parent.hasAccess === false) return null;
+  const target = buildBreadcrumbTarget(path, parent, route.query);
+  return {
+    label: processI18n(parent.displayName),
+    ...(target ? { to: target } : {}),
+  };
+});
+
 const breadcrumb = computed((): BreadcrumbItem[] => {
   const base: BreadcrumbItem[] = [
     { icon: HOME_ICON, to: homepage || "/", "aria-label": t("header.home") },
@@ -144,7 +169,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
 
   const paths = route.path.split("/").filter((path) => path);
 
-  const crumbs = base.concat(
+  const pathCrumbs = base.concat(
     paths
       .map((path, index): BreadcrumbItem | null => {
         const to = `/${paths.slice(0, index + 1).join("/")}`;
@@ -171,6 +196,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
       })
       .filter((item) => item !== null),
   );
+  const crumbs = withParentCrumb(pathCrumbs, parentCrumb.value);
 
   // Written as the row has it: an email address keeps its lowercase.
   const last = crumbs.at(-1);

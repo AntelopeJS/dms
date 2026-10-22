@@ -47,13 +47,13 @@
       "id": "mailing",
       "package": "@antelopejs/dms-mailing",
       "icon": "i-ph-envelope-simple",
-      "category": "growth"
+      "category": "communication"
     },
     {
       "id": "marketing",
       "package": "@antelopejs/dms-marketing",
       "icon": "i-ph-chart-line-up",
-      "category": "growth"
+      "category": "analytics"
     },
     {
       "id": "media",

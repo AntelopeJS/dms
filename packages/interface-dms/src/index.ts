@@ -100,6 +100,7 @@ export {
   PageInfo,
   PageLayout,
   PageLayoutHandler,
+  PageLayoutRequest,
   PageMetadata,
   PageSetupCleanup,
   PageSetupContext,
@@ -134,8 +135,10 @@ export {
 } from "./permissions";
 export {
   ApplyPermissionsResolvers,
+  PermissionsResolverContext,
   PermissionsResolverFn,
   PermissionsResolverInfo,
+  PermissionsResolverPreview,
   RegisterPermissionsResolver,
 } from "./permissions-resolver";
 export {

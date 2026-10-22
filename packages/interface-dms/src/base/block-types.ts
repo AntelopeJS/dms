@@ -25,6 +25,7 @@ import "./kpi-card";
 import "./live-toggle";
 import "./meter";
 import "./nav-card-grid";
+import "./page-toolbar";
 import "./period-selector";
 import "./placeholder";
 import "./resource-form-schema";

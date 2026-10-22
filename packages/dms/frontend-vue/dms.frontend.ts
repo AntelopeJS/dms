@@ -18,6 +18,7 @@ import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/per
 import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host";
+import livePauseSourcePlugin from "./layers/dms-ui/app/plugins/live-pause-source";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
@@ -162,11 +163,21 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
     sdk.registerPlugin(async (context) => {
-      const plugin = await import(
-        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
-      );
+      const plugin =
+        await import("./layers/dms-layout/app/plugins/dms-dev-reload.client");
       await plugin.default(context);
     }, clientOnly);
+    // Browser only: the server already logs a render that fails, with its
+    // stack. First, so an error a later plugin's work raises is logged too.
+    sdk.registerPlugin(
+      async (context) => {
+        const plugin = await import(
+          "./layers/dms-core/app/plugins/dev-error-log"
+        );
+        await plugin.default(context);
+      },
+      { ...clientOnly, enforce: "pre" },
+    );
   }
   // Before any data is read, a higher-priority module's plugins included:
   // every key lives in the session's scope, and a new scope aborts the reads
@@ -186,6 +197,8 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(faviconPlugin);
   sdk.registerPlugin(sidePanelHostPlugin);
+  // Not deferred: a page's first poll reads it.
+  sdk.registerPlugin(livePauseSourcePlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);

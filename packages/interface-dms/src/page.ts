@@ -33,6 +33,7 @@ export {
   type FrontendModuleValue,
   type FrontendPublicEndpoint,
   type FrontendRendererMetadata,
+  FrontendModulesChanged,
   GetFrontendModules,
   NotifyMenuChanged,
   PageController,

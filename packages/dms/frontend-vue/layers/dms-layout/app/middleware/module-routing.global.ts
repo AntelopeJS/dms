@@ -88,6 +88,9 @@ export default defineDmsMiddleware(async (to, from) => {
 
   const moduleEntry = siteLayout.modules.value?.[moduleId];
 
+  // A page of the Modules page itself (the module store), not of a module.
+  if (!moduleEntry && siteLayout.findMatchingRoute(to.path)?.metadata) return;
+
   if (!moduleId || !moduleEntry) {
     throw createDmsError({
       statusCode: MODULE_NOT_FOUND_STATUS,
