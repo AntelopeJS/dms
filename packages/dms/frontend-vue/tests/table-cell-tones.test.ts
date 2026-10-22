@@ -48,7 +48,6 @@ function stubLayerGlobals() {
     "formatNumber",
     "formatPrice",
     "formatPercentage",
-    "formatTimeSpan",
     "formatDate",
     "getBooleanLabel",
   ]) {
@@ -94,7 +93,7 @@ const cell = (
 describe("milliseconds format", () => {
   it("writes every duration in milliseconds, its digits grouped", () => {
     expect(formatMilliseconds(2149, "en-GB")).toBe("2,149 ms");
-    expect(formatMilliseconds(2149, "fr-FR")).toBe("2 149 ms");
+    expect(formatMilliseconds(2149, "fr-FR")).toBe("2 149 ms");
     expect(formatMilliseconds(2149, "es-ES")).toBe("2.149 ms");
     expect(formatMilliseconds(910.4, "en-GB")).toBe("910 ms");
     expect(formatMilliseconds(125_000, "en-GB")).toBe("125,000 ms");
@@ -102,7 +101,7 @@ describe("milliseconds format", () => {
 });
 
 describe("duration cell", () => {
-  it("keeps its most readable unit by default and writes milliseconds with format ms", () => {
+  it("rounds the duration by default, in milliseconds with format ms", () => {
     expect(render(cell("duration", 2149, {})).textContent).toBe("2.1 s");
     app?.unmount();
     expect(render(cell("duration", 2149, { format: "ms" })).textContent).toBe(

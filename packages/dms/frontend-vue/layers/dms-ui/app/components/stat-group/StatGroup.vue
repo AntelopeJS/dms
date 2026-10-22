@@ -7,6 +7,9 @@ import type { Tone } from "../../types/tone";
 
 export type StatGroupLayout = "joined" | "cards";
 
+/** A container size: `sm` 24rem, `md` 28rem, `lg` 32rem, `xl` 36rem. */
+export type StatGroupColumnsFrom = "sm" | "md" | "lg" | "xl";
+
 export interface StatGroupItem {
   /** Stable key; the position is used without one. */
   id?: string;
@@ -43,6 +46,12 @@ interface StatGroupProps {
    */
   columns?: number;
   /**
+   * The group's own width from which all `columns` sit side by side (a
+   * container size); below it, one column (`joined`) or the narrow count of
+   * `cards`. Defaults to the usual steps for the column count.
+   */
+  columnsFrom?: StatGroupColumnsFrom;
+  /**
    * Loading: with items, their well and value turn to skeletons (labels stay);
    * without, `skeletonCount` placeholder cells are drawn.
    */
@@ -57,6 +66,7 @@ const props = withDefaults(defineProps<StatGroupProps>(), {
   items: () => [],
   layout: "joined",
   columns: undefined,
+  columnsFrom: undefined,
   loading: false,
   skeletonCount: 4,
   label: undefined,
@@ -87,6 +97,38 @@ const CARD_COLUMNS: Record<number, string> = {
   6: "grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6",
 };
 
+// `columnsFrom`: every column from that container size, literal for Tailwind.
+const COLUMNS_FROM: Record<StatGroupColumnsFrom, Record<number, string>> = {
+  sm: {
+    2: "@sm:grid-cols-2",
+    3: "@sm:grid-cols-3",
+    4: "@sm:grid-cols-4",
+    5: "@sm:grid-cols-5",
+    6: "@sm:grid-cols-6",
+  },
+  md: {
+    2: "@md:grid-cols-2",
+    3: "@md:grid-cols-3",
+    4: "@md:grid-cols-4",
+    5: "@md:grid-cols-5",
+    6: "@md:grid-cols-6",
+  },
+  lg: {
+    2: "@lg:grid-cols-2",
+    3: "@lg:grid-cols-3",
+    4: "@lg:grid-cols-4",
+    5: "@lg:grid-cols-5",
+    6: "@lg:grid-cols-6",
+  },
+  xl: {
+    2: "@xl:grid-cols-2",
+    3: "@xl:grid-cols-3",
+    4: "@xl:grid-cols-4",
+    5: "@xl:grid-cols-5",
+    6: "@xl:grid-cols-6",
+  },
+};
+
 // Every joined cell draws its top and start hairlines; the grid is pulled 1px
 // up and left under the card's clipping edge, so the first row and the first
 // column lose theirs at any column count and on every breakpoint.
@@ -98,9 +140,16 @@ const columnCount = computed(() => {
     props.columns ?? (props.items.length || props.skeletonCount || MIN_COLUMNS);
   return Math.min(MAX_COLUMNS, Math.max(MIN_COLUMNS, Math.round(wanted)));
 });
-const columnClass = computed(
-  () => (isJoined.value ? JOINED_COLUMNS : CARD_COLUMNS)[columnCount.value],
-);
+const columnClass = computed(() => {
+  const steps = (isJoined.value ? JOINED_COLUMNS : CARD_COLUMNS)[
+    columnCount.value
+  ]!;
+  const from =
+    props.columnsFrom && COLUMNS_FROM[props.columnsFrom][columnCount.value];
+  if (!from) return steps;
+  // The narrow count of the usual steps, then every column from the size.
+  return `${steps.split(" ")[0]} ${from}`;
+});
 const showPlaceholders = computed(
   () => props.loading && props.items.length === 0,
 );

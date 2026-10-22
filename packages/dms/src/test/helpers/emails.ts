@@ -11,9 +11,12 @@ const POLL_ATTEMPTS = 50;
 export interface RenderedEmail {
   template: string;
   props: Record<string, unknown>;
+  language?: string;
 }
 
 export const renderedEmails: RenderedEmail[] = [];
+
+export const sentEmails: Parameters<typeof Send>[0][] = [];
 
 /**
  * Set by a test to have every email fail before it leaves, as a mail outage
@@ -32,11 +35,16 @@ export function captureEmails(): void {
   ImplementInterface(
     { GenerateHtml },
     {
-      GenerateHtml: async (template: HtmlTemplateRef, props: unknown) => {
+      GenerateHtml: async (
+        template: HtmlTemplateRef,
+        props: unknown,
+        language?: string,
+      ) => {
         if (emailOutage.isOn) throw new Error("Email outage");
         renderedEmails.push({
           template: template.name,
           props: props as Record<string, unknown>,
+          language,
         });
         return "<p>email</p>";
       },
@@ -44,7 +52,12 @@ export function captureEmails(): void {
   );
   ImplementInterface(
     { Send },
-    { Send: async () => ({ success: true, status: "sent" as const }) },
+    {
+      Send: async (email: Parameters<typeof Send>[0]) => {
+        sentEmails.push(email);
+        return { success: true, status: "sent" as const };
+      },
+    },
   );
 }
 

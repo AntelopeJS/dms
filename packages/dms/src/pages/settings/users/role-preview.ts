@@ -1,7 +1,6 @@
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
-import { ALL_PERMISSIONS } from "./role-editor";
 
 /** Separator of permission ids and of layout paths. */
 const ID_SEPARATOR = ".";
@@ -87,16 +86,12 @@ export interface RolePreviewResult {
 
 /**
  * The permission set a preview runs with: the role's ids as saving would
- * store them, with every id they sit under, and the owner wildcard dropped —
- * a role never grants it, so a preview that carried it would show the
- * platform owner's view instead of the role's.
+ * store them, with every id they sit under. A role holding the wildcard keeps
+ * it: `HasPermission` honours it for whoever holds the role, so its preview
+ * hides nothing — and never shows beyond the viewer's own access.
  */
 export function sanitizePreviewPermissions(permissions: string[]): Set<string> {
-  return new Set(
-    withPermissionAncestors(permissions).filter(
-      (id) => id.length > 0 && id !== ALL_PERMISSIONS,
-    ),
-  );
+  return new Set(withPermissionAncestors(permissions).filter(Boolean));
 }
 
 /** The registered permission node of an id, or `undefined`. */

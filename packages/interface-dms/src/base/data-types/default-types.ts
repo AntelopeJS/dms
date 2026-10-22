@@ -1160,6 +1160,13 @@ export namespace DefaultDataTypes {
       public readonly options: {
         placeholder?: AddressPlaceholders;
         autocomplete?: AddressAutocomplete;
+        /**
+         * ISO 3166-1 alpha-2 code ("BE") the country shows while the address
+         * has none, and whose places the street suggestions list first. It
+         * is written with the first part typed: an address left empty stays
+         * empty.
+         */
+        defaultCountry?: string;
         dataApiController?: T;
         keyMapping?: {
           label?: keyof InstanceType<T> & string;
@@ -1179,6 +1186,7 @@ export namespace DefaultDataTypes {
       const baseConfig = {
         placeholder: this.options.placeholder,
         autocomplete: this.options.autocomplete,
+        defaultCountry: this.options.defaultCountry,
       };
 
       if (!this.options.dataApiController) {
