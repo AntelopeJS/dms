@@ -1,60 +1,74 @@
+import type { IncomingMessage } from "node:http";
 import type { RequestContext } from "@antelopejs/interface-api";
-import { decode } from "jsonwebtoken";
-import { getAuthenticatedRequestTenantId } from "./auth/internal/request-authenticators";
+import { internal } from "./auth";
+import {
+  bindVerifiedRequestPrincipal,
+  getAuthenticatedRequestTenantId,
+} from "./auth/internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "./constants";
 
-const BEARER_PREFIX = "Bearer ";
+const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
 
-interface DecodedTenantPayload {
-  tenantId?: string;
+const pendingResolutions = new WeakMap<IncomingMessage, Promise<string>>();
+
+/**
+ * The tenant of the request's verified credential: the one bound by the DMS
+ * auth decorators (`AuthUser`, `AuthUserWithPermission`, `IfAuthUser` with a
+ * valid token…), the tenant guards or `authenticateRequestPrincipal`.
+ * Without a verified credential, `DEFAULT_TENANT_ID`: a token is never read
+ * for its tenant before its signature, user and session are checked.
+ *
+ * Call it once the route's auth decorator has run (in the handler). A
+ * parameter or property provider resolved alongside the auth decorator uses
+ * {@link resolveRequestTenantId} instead.
+ *
+ * @throws HTTPResult 401 when the request's authentication failed or its
+ * credential changed since
+ */
+export function getRequestTenantId(ctx: RequestContext): string {
+  return getAuthenticatedRequestTenantId(ctx) ?? DEFAULT_TENANT_ID;
 }
 
-function extractBearerToken(authHeader: unknown): string | undefined {
-  if (typeof authHeader !== "string") return undefined;
-  if (!authHeader.startsWith(BEARER_PREFIX)) return undefined;
-  return authHeader.slice(BEARER_PREFIX.length);
-}
-
-function readTenantIdFromToken(token: string): string | undefined {
+async function verifyRequestTenantId(
+  ctx: RequestContext,
+  token: string,
+): Promise<string> {
   try {
-    const payload = decode(token) as DecodedTenantPayload | null;
-    if (
-      payload &&
-      typeof payload.tenantId === "string" &&
-      payload.tenantId.length > 0
-    ) {
-      return payload.tenantId;
-    }
+    const data = await internal.IfAuthUserAuthenticator(token);
+    if (!data) return DEFAULT_TENANT_ID;
+    const user = await internal.AuthRawUserValidator(data);
+    if (!user || typeof user === "boolean") return DEFAULT_TENANT_ID;
+    const tenantId = data.tenantId || DEFAULT_TENANT_ID;
+    bindVerifiedRequestPrincipal(ctx, { userId: user._id, tenantId });
+    return tenantId;
   } catch {
-    return undefined;
+    return DEFAULT_TENANT_ID;
   }
-  return undefined;
 }
 
 /**
- * Prefer the tenant bound by authenticateRequestPrincipal or the tenant guards.
- * An authentication failure or changed credential makes this accessor throw.
- * Without a bound principal, preserve legacy JWT decoding / DEFAULT_TENANT_ID.
- *
- * The legacy value is only *decoded*: this function does NOT verify the
- * JWT signature. It is safe when the request has already been authenticated
- * upstream (auth decorators such as `@AuthUser`, `@AuthTenantMember`, or the
- * gating performed by `PageController`) — those validators verify the signature
- * before this function runs, so the decoded `tenantId` is authentic.
- *
- * For routes that legitimately accept anonymous traffic (e.g. `@IfAuthUser`),
- * the fallback resolves to `DEFAULT_TENANT_ID` so public layouts can be served.
- *
- * Do NOT introduce new routes that rely on `tenantId` for authorization without
- * upstream auth verification — without signature checks, the claim is forgeable.
+ * {@link getRequestTenantId} for a provider that may run before the route's
+ * auth decorator (`TenantScopedModel`, a tenant-scoped `Model`): a bearer
+ * token not yet verified is verified here, and its tenant bound to the
+ * request. An invalid token reads as anonymous: `DEFAULT_TENANT_ID`.
  */
-export function getRequestTenantId(ctx: RequestContext): string {
-  const authenticatedTenantId = getAuthenticatedRequestTenantId(ctx);
-  if (authenticatedTenantId) return authenticatedTenantId;
-  const token = extractBearerToken(ctx.rawRequest?.headers?.authorization);
-  if (token) {
-    const tenantIdFromJwt = readTenantIdFromToken(token);
-    if (tenantIdFromJwt) return tenantIdFromJwt;
+export async function resolveRequestTenantId(
+  ctx: RequestContext,
+): Promise<string> {
+  const bound = getAuthenticatedRequestTenantId(ctx);
+  if (bound) return bound;
+  const header = ctx.rawRequest?.headers?.authorization;
+  const token =
+    typeof header === "string" ? header.match(BEARER_SCHEME)?.[1] : undefined;
+  if (!token) return DEFAULT_TENANT_ID;
+  const request = ctx.rawRequest;
+  const pending = pendingResolutions.get(request);
+  if (pending) return pending;
+  const resolution = verifyRequestTenantId(ctx, token);
+  pendingResolutions.set(request, resolution);
+  try {
+    return await resolution;
+  } finally {
+    pendingResolutions.delete(request);
   }
-  return DEFAULT_TENANT_ID;
 }

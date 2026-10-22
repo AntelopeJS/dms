@@ -164,8 +164,7 @@ async function grantsPermission(
   );
 }
 
-// The role routes store a grant with every id it sits under, but a role saved
-// before they did, or a set a resolver reshaped, may lack some. An ancestor
+// The role routes store a grant with every id it sits under. An ancestor
 // counts as held when granted, `defaultGranted`, or not a registered
 // permission at all (a page declaring `permission: { id: "mailing.access" }`
 // has no `mailing` above it).

@@ -16,22 +16,7 @@ export const INVITE_FULL_NAME_MAX_LENGTH = INVITE_NAME_MAX_LENGTH * 2;
  */
 export const INVITE_EMAILS_MAX = 50;
 
-const LEGACY_EMAIL_KEY = "email";
-const EMAILS_KEY = "emails";
 const NAME_SEPARATOR = /\s+/;
-
-/**
- * Callers written before invitations took a list send a single `email`: it is
- * read as a one-address list so they keep working.
- */
-function acceptLegacySingleEmail(payload: unknown): unknown {
-  if (typeof payload !== "object" || payload === null) return payload;
-  const record = payload as Record<string, unknown>;
-  if (record[EMAILS_KEY] !== undefined) return payload;
-  const email = record[LEGACY_EMAIL_KEY];
-  if (typeof email !== "string") return payload;
-  return { ...record, [EMAILS_KEY]: [email] };
-}
 
 // Trimmed and bounded: whitespace alone would pass for a name while
 // `inviteeDisplayName` drops it, so the invitation would go out nameless; and
@@ -53,15 +38,12 @@ const memberInviteObjectSchema = z.object({
   asTenantOwner: z.boolean(),
 });
 
-export const memberInviteSchema = z.preprocess(
-  acceptLegacySingleEmail,
-  memberInviteObjectSchema.refine(
-    (data) => data.asTenantOwner || (data.roles && data.roles.length > 0),
-    {
-      message: "$page.settings.members.invite.roles_required",
-      path: ["roles"],
-    },
-  ),
+export const memberInviteSchema = memberInviteObjectSchema.refine(
+  (data) => data.asTenantOwner || (data.roles && data.roles.length > 0),
+  {
+    message: "$page.settings.members.invite.roles_required",
+    path: ["roles"],
+  },
 );
 
 export type MemberInvitePayload = z.infer<typeof memberInviteSchema>;
