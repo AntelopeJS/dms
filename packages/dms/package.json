@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.9.8",
+  "version": "0.10.0",
   "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
   "keywords": [
     "antelopejs",
