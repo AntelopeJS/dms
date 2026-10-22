@@ -4,9 +4,42 @@ import type { InviteResolution } from "../db/tables/inviteResolutions.table";
 import { UserModel } from "../auth/db/models/users.model";
 import { TenantMemberModel } from "../db/models/tenantMembers.model";
 import type { TenantMember } from "../db/tables/tenantMembers.table";
-import { ExecuteHooks, Hook } from "../hooks";
+import { ExecuteHooks, Hook, type MemberChange } from "../hooks";
+import { describeMembershipPatch } from "./member-changes";
 import { applyAdmittedTenantOwnership } from "./tenant-ownership";
 import { syncPlatformOwnerOnTenantOwnerChange } from "../tenant-ownership";
+
+/**
+ * The membership completing `resolution` would grant, read again from the
+ * stored decision: an acceptance still to begin, for a user not yet a member.
+ * Announced on every attempt, replays included.
+ *
+ * @internal
+ */
+export async function describeInviteMembership(
+  resolution: InviteResolution,
+): Promise<MemberChange[]> {
+  const current = await GetModel(
+    InviteResolutionsModel,
+    resolution.tenantId,
+  ).get(resolution._id);
+  if (
+    !current ||
+    current.completed ||
+    current.reason !== "accepted" ||
+    current.membershipPhase !== "pending" ||
+    !current.userId
+  )
+    return [];
+  const member = await GetModel(TenantMemberModel, current.tenantId).getByUser(
+    current.userId,
+  );
+  return describeMembershipPatch(member, current.userId, {
+    roleIds: current.invite.roles_ids,
+    isTenantOwner: current.invite.asTenantOwner,
+    deliveryId: current._id,
+  });
+}
 
 async function beginMembership(resolution: InviteResolution): Promise<void> {
   const { tenantId, userId, invite } = resolution;
@@ -17,6 +50,7 @@ async function beginMembership(resolution: InviteResolution): Promise<void> {
     await model.advanceMembership(resolution, "applied");
     return;
   }
+  // `changeTenantMembers` announced this membership before the write began.
   await ExecuteHooks(Hook.MEMBER_BEING_ADDED, {
     tenantId,
     userId,

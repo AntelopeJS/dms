@@ -3,6 +3,15 @@ import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
 import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
+import { heatmapRangeColors, isDarkSurface } from "./heatmapColors";
+import { thinnedCategoryFormatter } from "./apexCategoryLabels";
+import {
+  bucketAxisFormatter,
+  bucketTooltipFormatter,
+  detectDatetimeBuckets,
+  toBucketSeries,
+  type DatetimeBuckets,
+} from "./apexDatetimeBuckets";
 import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
   axisLabelStyle,
@@ -21,6 +30,7 @@ import {
   readThemeBorderAccented,
   readThemeHighlighted,
   readThemeMuted,
+  readThemeSurface,
 } from "./useChartTheme";
 import type {
   ChartSeries,
@@ -287,6 +297,12 @@ function applySeriesStroke(
 }
 
 const HIGH_CONTRAST_YAXIS_TYPES: ChartType[] = ["radar"];
+/**
+ * Charts whose Y axis lists categories (a heatmap's rows: its series names)
+ * rather than values: a card's value format would write each name as NaN.
+ * Their values are still formatted, in the tooltip.
+ */
+const CATEGORY_YAXIS_TYPES: ChartType[] = ["heatmap"];
 
 function buildYAxis(
   input: UseApexChartInput,
@@ -303,9 +319,35 @@ function buildYAxis(
     yaxis.min = input.yRange.min;
     yaxis.max = input.yRange.max;
   }
+  const valueFormatter = CATEGORY_YAXIS_TYPES.includes(input.type)
+    ? undefined
+    : input.yAxisFormatter;
   (yaxis.labels as Record<string, unknown>).formatter =
-    input.yAxisFormatter ?? formatPlainAxisValue;
+    valueFormatter ?? formatPlainAxisValue;
   return yaxis;
+}
+
+/**
+ * Charts whose category labels ApexCharts never thins, whatever
+ * `hideOverlappingLabels` says: the chart thins them itself.
+ */
+const SELF_THINNED_XAXIS_TYPES: ChartType[] = ["heatmap"];
+
+function thinsOwnXLabels(input: UseApexChartInput): boolean {
+  const settings = input.xAxis;
+  return (
+    SELF_THINNED_XAXIS_TYPES.includes(input.type) &&
+    (input.xaxisType ?? "category") === "category" &&
+    settings?.hideOverlappingLabels !== false &&
+    settings?.tickAmount === undefined &&
+    !settings?.rotate
+  );
+}
+
+function xLabelFormatter(input: UseApexChartInput): unknown {
+  if (thinsOwnXLabels(input))
+    return thinnedCategoryFormatter(input.xAxisFormatter);
+  return input.xAxisFormatter;
 }
 
 function buildXAxis(
@@ -313,6 +355,7 @@ function buildXAxis(
   theme: ApexThemeColors,
 ): Record<string, unknown> {
   const settings = input.xAxis;
+  const formatter = xLabelFormatter(input);
   const xaxis: Record<string, unknown> = {
     type: input.xaxisType ?? "category",
     axisBorder: { show: false },
@@ -330,7 +373,7 @@ function buildXAxis(
       settings?.datetimeFormat !== undefined
         ? { format: settings.datetimeFormat }
         : {}),
-      ...(input.xAxisFormatter ? { formatter: input.xAxisFormatter } : {}),
+      ...(formatter ? { formatter } : {}),
     },
     crosshairs: {
       stroke: { color: readThemeBorderAccented(), dashArray: CROSSHAIR_DASH },
@@ -568,6 +611,12 @@ function buildValueBasedRanges(
   });
 }
 
+/**
+ * Several colours split a heatmap's values into ranges, one colour each,
+ * laid over the card surface from faint to full: low values fade into the
+ * card in either theme. Apex's own shading is off there, as it would lighten
+ * each range towards white again.
+ */
 function applyValueBasedColorScale(
   plotOptions: Record<string, unknown>,
   input: UseApexChartInput,
@@ -577,13 +626,35 @@ function applyValueBasedColorScale(
   if (!VALUE_SCALED_TYPES.includes(input.type)) return;
   if (input.distributed) return;
   if (palette.length < 2) return;
-  const ranges = buildValueBasedRanges(extractNumericValues(series), palette);
-  if (ranges.length === 0) return;
   const subKey = VALUE_SCALED_PLOT_KEY[input.type]!;
   const subOptions =
     (plotOptions[subKey] as Record<string, unknown> | undefined) ?? {};
+  const colors = heatmapRangeColors(
+    palette,
+    readThemeSurface(),
+    Number(subOptions.shadeIntensity ?? 1),
+  );
+  const ranges = buildValueBasedRanges(extractNumericValues(series), colors);
+  if (ranges.length === 0) return;
   subOptions.colorScale = { ranges };
+  subOptions.enableShades = false;
   plotOptions[subKey] = subOptions;
+}
+
+/**
+ * A heatmap with one colour, or one per row (`distributed`), is shaded by
+ * Apex: towards white unless told the theme is dark, where it shades towards
+ * black, the side of a dark card. Only the shading reads this mode: every
+ * colour Apex would take from it is set explicitly.
+ */
+function applyHeatmapThemeMode(
+  baseOptions: Record<string, unknown>,
+  input: UseApexChartInput,
+): void {
+  if (!VALUE_SCALED_TYPES.includes(input.type)) return;
+  baseOptions.theme = {
+    mode: isDarkSurface(readThemeSurface()) ? "dark" : "light",
+  };
 }
 
 function applyOptionalSections(
@@ -595,6 +666,7 @@ function applyOptionalSections(
 ): void {
   const plotOptions = buildPlotOptions(input);
   applyValueBasedColorScale(plotOptions, input, series, palette);
+  applyHeatmapThemeMode(baseOptions, input);
   if (Object.keys(plotOptions).length > 0)
     baseOptions.plotOptions = plotOptions;
 
@@ -609,16 +681,46 @@ function applyOptionalSections(
 function projectSeries(
   input: UseApexChartInput,
   isCircular: boolean,
+  buckets: DatetimeBuckets | null,
 ): ChartSeries[] {
   if (isCircular) return [];
   void input.themeRevision;
-  const series =
+  const mixed =
     input.type === "mixed"
       ? applyMixedSeriesDefs(input.series, input.seriesDefs)
       : input.series;
+  const series = buckets ? toBucketSeries(mixed, buckets) : mixed;
   return asComparisonLines(series, input).map((entry) =>
     entry.color ? { ...entry, color: resolveChartColor(entry.color) } : entry,
   );
+}
+
+/**
+ * Calendar buckets on a datetime axis become one category each: a column
+ * per month (or day), evenly spaced, under one label, the tooltip naming the
+ * whole bucket.
+ */
+function applyDatetimeBuckets(
+  options: Record<string, unknown>,
+  input: UseApexChartInput,
+  buckets: DatetimeBuckets | null,
+): void {
+  if (!buckets) return;
+  const xaxis = options.xaxis as Record<string, unknown>;
+  const { format: _datetimeFormat, ...labels } = xaxis.labels as Record<
+    string,
+    unknown
+  >;
+  options.xaxis = {
+    ...xaxis,
+    type: "category",
+    labels: { ...labels, formatter: bucketAxisFormatter(buckets, input) },
+  };
+  const tooltip = options.tooltip as Record<string, unknown>;
+  options.tooltip = {
+    ...tooltip,
+    x: { formatter: bucketTooltipFormatter(buckets, input) },
+  };
 }
 
 /**
@@ -700,6 +802,7 @@ function buildChartOptions(
   value: UseApexChartInput,
   cfg: (typeof APEX_TYPE_CONFIGS)[ChartType],
   finalSeries: ChartSeries[],
+  buckets: DatetimeBuckets | null,
 ): Record<string, unknown> {
   void value.themeRevision;
   const ctx = buildChartOptionsContext(value, cfg, finalSeries);
@@ -725,6 +828,7 @@ function buildChartOptions(
     finalSeries,
     ctx.baseColors,
   );
+  applyDatetimeBuckets(baseOptions, value, buckets);
   return injectRawOptions(baseOptions, value.rawOptions);
 }
 
@@ -732,8 +836,9 @@ export function useApexChart(
   input: () => UseApexChartInput,
 ): UseApexChartOutput {
   const config = computed(() => APEX_TYPE_CONFIGS[input().type]);
+  const buckets = computed(() => detectDatetimeBuckets(input()));
   const finalSeries = computed<ChartSeries[]>(() =>
-    projectSeries(input(), config.value.isCircular),
+    projectSeries(input(), config.value.isCircular, buckets.value),
   );
 
   const series = computed<unknown>(() => {
@@ -745,9 +850,12 @@ export function useApexChart(
   });
 
   const options = computed<Record<string, unknown>>(() =>
-    buildChartOptions(input(), config.value, finalSeries.value),
+    buildChartOptions(input(), config.value, finalSeries.value, buckets.value),
   );
 
   const apexType = computed(() => resolveApexType(input()));
-  return { apexType, options, series };
+  const sourcePointIndex = (seriesIndex: number, dataPointIndex: number) =>
+    buckets.value?.sourceIndexes[seriesIndex]?.[dataPointIndex] ??
+    dataPointIndex;
+  return { apexType, options, series, sourcePointIndex };
 }

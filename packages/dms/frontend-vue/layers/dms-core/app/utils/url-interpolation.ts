@@ -12,8 +12,25 @@ const WHOLE_ROW_TOKEN = new RegExp(`^\\s*${ROW_TOKEN.source}\\s*$`);
 export const namesRowField = (template: string): boolean =>
   new RegExp(ROW_TOKEN.source).test(template);
 
+// A relation field is listed as the related row (a join): it stands for that
+// row's id, as the field stores it, rather than "[object Object]". A dotted
+// path (`{{row.customer.name}}`) still reaches into the row.
+const RELATED_ROW_ID_KEYS = ["_id", "id"] as const;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Object.prototype.toString.call(value) === "[object Object]";
+
+const relatedRowId = (value: Record<string, unknown>): unknown =>
+  RELATED_ROW_ID_KEYS.map((key) => value[key]).find(
+    (id) => id !== undefined && id !== null,
+  );
+
+const scalarOf = (value: unknown): unknown =>
+  isPlainObject(value) ? relatedRowId(value) : value;
+
 const rowValue = (data: Record<string, unknown>, key: string): string => {
-  const value: unknown = get(data, key);
+  const field: unknown = get(data, key);
+  const value = Array.isArray(field) ? field.map(scalarOf) : scalarOf(field);
   return value === undefined || value === null ? "" : String(value);
 };
 
