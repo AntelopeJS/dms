@@ -356,6 +356,7 @@ export class PageFormFieldTypes extends PageController(
             hint: "Older entries are deleted every night.",
             type: new DefaultDataTypes.NumberType({ min: 1, max: 365 }),
             defaultValue: 30,
+            offersDefault: true,
           },
           {
             id: "billingEmail",

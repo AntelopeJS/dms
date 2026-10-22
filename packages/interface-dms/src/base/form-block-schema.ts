@@ -73,6 +73,11 @@ const FormFieldSchema = ui(
       widget: "json",
       typedBy: "type",
     }),
+    offersDefault: ui(z.boolean().optional(), {
+      label: "Offer the default",
+      widget: "switch",
+      advanced: true,
+    }),
     localized: ui(z.boolean().optional(), {
       label: "Translatable",
       widget: "switch",

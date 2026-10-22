@@ -7,6 +7,17 @@ import {
 export interface PublishMessageOptions {
   payload?: Record<string, unknown>;
   actorId?: string;
+  /**
+   * The tenant (workspace) the message is about. A message published with it
+   * reaches only the page sessions of that tenant; without it, the message is
+   * global and reaches every session subscribed to the topic, whatever their
+   * tenant.
+   *
+   * Pass it whenever the topic carries one workspace's data — a row changed, a
+   * send finished, a run completed — so the other workspaces' pages neither
+   * refetch nor count the message as missed.
+   */
+  tenantId?: string;
 }
 
 /** One message delivered to a {@link SubscribeMessage} handler. */
@@ -15,6 +26,12 @@ export interface RealtimeMessage {
   type: string;
   payload?: Record<string, unknown>;
   actorId?: string;
+  /**
+   * The tenant the message was published for, absent on a global message. A
+   * {@link SubscribeMessage} handler receives the messages of every tenant
+   * and filters on this field itself when it serves one.
+   */
+  tenantId?: string;
   ts: number;
 }
 
@@ -58,6 +75,11 @@ export const RegisterPageTopic = (pageId: string, topic: string): void => {
   );
 };
 
+/**
+ * Publish a message on `topic`. The page sessions bound to the topic refetch
+ * on it; with `options.tenantId` only those of that tenant do, without it the
+ * message is global.
+ */
 export const PublishMessage =
   InterfaceFunction<
     (
@@ -68,7 +90,8 @@ export const PublishMessage =
   >();
 
 /**
- * Receive every message published on `topic`, whichever instance published it:
+ * Receive every message published on `topic`, whichever instance published it
+ * and whichever tenant it names (see {@link RealtimeMessage.tenantId}):
  * the subscription rides the same broker as {@link PublishMessage}, so what one
  * instance publishes reaches the subscribers of every other.
  *

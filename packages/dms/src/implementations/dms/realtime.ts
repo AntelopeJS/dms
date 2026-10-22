@@ -65,6 +65,7 @@ export async function PublishMessage(
     type,
     payload: options?.payload,
     actorId: options?.actorId,
+    tenantId: options?.tenantId,
     ts: Date.now(),
   });
 }

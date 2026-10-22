@@ -21,6 +21,7 @@ export function serializeFormField(field: FormField): FormFieldSerialized {
     type: typeId,
     required: field.required,
     defaultValue: field.defaultValue,
+    offersDefault: field.offersDefault,
     localized: field.localized,
   };
 }

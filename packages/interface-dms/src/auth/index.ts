@@ -1,5 +1,4 @@
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
-import { CreateAuthDecorator } from "@antelopejs/interface-auth";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -14,6 +13,9 @@ import {
 } from "./db";
 import { fireAndForget } from "../utils/fire-and-forget";
 import type { ParsedUserAgent } from "./internal/user-agent";
+import { CreateJwtAuthDecorator } from "./internal/jwt-auth-decorator";
+import { bindVerifiedRequestPrincipal } from "./internal/request-authenticators";
+import { DEFAULT_TENANT_ID } from "../constants";
 
 export * from "./request-authenticators";
 
@@ -65,6 +67,10 @@ export async function authenticateRequestUser(
   if (!validated || typeof validated === "boolean") {
     throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
   }
+  bindVerifiedRequestPrincipal(ctx, {
+    userId: validated._id,
+    tenantId: decoded.tenantId || DEFAULT_TENANT_ID,
+  });
   return validated;
 }
 
@@ -98,8 +104,7 @@ export namespace internal {
 /**
  * Authentication decorator that returns raw user data, ignoring email validation.
  */
-export const AuthRawUser = CreateAuthDecorator({
-  source: (req, _) => req.headers.authorization?.split(" ")[1],
+export const AuthRawUser = CreateJwtAuthDecorator({
   authenticator: internal.AuthUserAuthenticator,
   validator: internal.AuthRawUserValidator,
 });
@@ -108,8 +113,7 @@ export const AuthRawUser = CreateAuthDecorator({
  * Authentication decorator that provides the `User` instance and enforces email validation
  * if required by the configuration.
  */
-export const AuthUser = CreateAuthDecorator({
-  source: (req, _) => req.headers.authorization?.split(" ")[1],
+export const AuthUser = CreateJwtAuthDecorator({
   authenticator: internal.AuthUserAuthenticator,
   validator: internal.AuthUserValidator,
 });
@@ -118,8 +122,7 @@ export const AuthUser = CreateAuthDecorator({
  * Optional authentication decorator that returns User | undefined without throwing 401
  * Use this for routes that work both when authenticated and unauthenticated
  */
-export const IfAuthUser = CreateAuthDecorator({
-  source: (req, _) => req.headers.authorization?.split(" ")[1],
+export const IfAuthUser = CreateJwtAuthDecorator({
   authenticator: internal.IfAuthUserAuthenticator,
   validator: internal.IfAuthUserValidator,
 });
@@ -135,8 +138,7 @@ export const IfAuthUser = CreateAuthDecorator({
  * @returns Authentication decorator
  */
 export const AuthOwnerOnly = () => {
-  const decorator = CreateAuthDecorator({
-    source: (req, _) => req.headers.authorization?.split(" ")[1],
+  const decorator = CreateJwtAuthDecorator({
     authenticator: internal.AuthUserAuthenticator,
     validator: (data) => internal.AuthOwnerOnlyValidator(data),
   });

@@ -41,3 +41,27 @@ it("reads the description before live figures, requirements, and footer actions"
     );
   }
 });
+
+it("wraps the footer band rather than cutting its facts short", async () => {
+  vi.stubGlobal("computed", computed);
+  const app = createSSRApp({
+    render: () =>
+      h(
+        ModuleTile,
+        {
+          icon: "i-ph-plugs",
+          title: "API",
+          description: "Inspect API traffic",
+        },
+        { footer: () => h("span", { id: "facts" }, "v0.5.0 · Local") },
+      ),
+  });
+  app.component("DmsIconWell", () => null);
+  app.component("DmsStatusPill", () => null);
+  const html = await renderToString(app);
+  // SSR wraps slot content in fragment comments.
+  const band = /<div class="([^"]*)">(?:<!--[^>]*-->)*<span id="facts">/.exec(
+    html,
+  );
+  expect(band?.[1].split(" ")).toContain("flex-wrap");
+});

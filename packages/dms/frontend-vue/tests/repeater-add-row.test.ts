@@ -3,6 +3,8 @@
  * A row added to an array field is empty: it is checked once its cells are
  * filled or the form is submitted, never flagged "required" the moment it
  * appears. Changing, moving or removing a row validates the field as before.
+ *
+ * A read-only array field shows its rows and nothing to change them with.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vue from "vue";
@@ -35,7 +37,10 @@ const Button = defineComponent({
       h("button", { onClick: () => emit("click") }, props.label),
 });
 
-async function mount(rows: Record<string, unknown>[]) {
+async function mount(
+  rows: Record<string, unknown>[],
+  options: { sortable?: boolean; disabled?: boolean } = {},
+) {
   // Auto-imports of the layer.
   for (const name of [
     "inject",
@@ -47,6 +52,9 @@ async function mount(rows: Record<string, unknown>[]) {
     vi.stubGlobal(name, vue[name as keyof typeof vue]);
   }
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  // What the read-only table of a disabled list reads its cells through.
+  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   const events: string[] = [];
   const model = ref(rows);
   const host = document.createElement("div");
@@ -62,6 +70,7 @@ async function mount(rows: Record<string, unknown>[]) {
           },
         ],
         modelValue: model.value,
+        ...options,
         "onUpdate:modelValue": (next: Record<string, unknown>[]) =>
           (model.value = next),
       }),
@@ -91,5 +100,18 @@ describe("an array field's rows", () => {
     host.querySelector<HTMLButtonElement>("button")!.click();
     await nextTick();
     expect(events).toEqual(["change"]);
+  });
+
+  // A read-only list (a record's details) shows its rows as a table of
+  // values, and nothing to change them with.
+  it("shows only the rows' values when disabled", async () => {
+    const { host } = await mount([{ name: "a" }, { name: "b" }], {
+      sortable: true,
+      disabled: true,
+    });
+    expect(host.querySelectorAll("input")).toHaveLength(0);
+    expect(host.querySelectorAll("button")).toHaveLength(0);
+    const cells = [...host.querySelectorAll("tbody td")];
+    expect(cells.map((cell) => cell.textContent?.trim())).toEqual(["a", "b"]);
   });
 });

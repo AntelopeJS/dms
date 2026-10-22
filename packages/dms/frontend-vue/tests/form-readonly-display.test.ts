@@ -2,6 +2,9 @@
 /**
  * A create form leaves out the read-only fields the server fills once the
  * record exists.
+ *
+ * A read-only form shows values, not the means to fill them: no hint under
+ * a read-only field nor descriptions in a form where nothing can be changed.
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -37,6 +40,27 @@ describe("a create form", () => {
   it("applies only when the form creates a record", () => {
     expect(source("components/form/Form.vue")).toMatch(
       /return createsRecord && isHiddenOnCreate\(field, state\.value\[field\.id\]\);/,
+    );
+  });
+});
+
+describe("a read-only field", () => {
+  it("shows no hint under its value", () => {
+    expect(source("build/components/form/FormFieldControl.vue")).toMatch(
+      /props\.field\.hint && !isDisabled\.value/,
+    );
+  });
+
+  it("shows no description in a form where nothing can be changed", () => {
+    const entries = source("build/components/form/FormEntries.vue");
+    expect(entries).toMatch(
+      /context\.isReadOnly\.value \? undefined : entry\.description/,
+    );
+    expect(
+      entries.match(/:description="descriptionOf\(entry\)"/g),
+    ).toHaveLength(2);
+    expect(source("components/form/Form.vue")).toMatch(
+      /isReadOnly: computed\(\(\) => !hasChangeableFields\.value\)/,
     );
   });
 });
