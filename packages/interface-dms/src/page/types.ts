@@ -328,9 +328,27 @@ export interface MenuOptions {
    * ```
    */
   live?: PageLiveOptions;
+  /**
+   * The page this one is a detail of, named by its controller: the
+   * breadcrumb shows it before this page, so a hidden detail page
+   * (`/operations/project/:id`) reads "Operations / Projects / <record>" and
+   * leads back to its list. Its route parameters are filled from this page's
+   * own when they share a name. Read on pages only: a category ignores it.
+   *
+   * ```ts
+   * export class ProjectPage extends PageController("project", {
+   *   displayName: "Project",
+   *   category: operationsCategory,
+   *   urlSlug: "project/:id",
+   *   hidden: true,
+   *   parent: ProjectsPage,
+   * }) {}
+   * ```
+   */
+  parent?: ControllerClass;
 }
 
-export interface CategoryInfo extends Omit<MenuOptions, "category"> {
+export interface CategoryInfo extends Omit<MenuOptions, "category" | "parent"> {
   id: string;
   fullId: string;
   fullSlug: string;
@@ -350,6 +368,8 @@ export interface CategoryInfo extends Omit<MenuOptions, "category"> {
 
 export interface PageInfo extends CategoryInfo {
   layoutUrl: string;
+  /** Full slug of the page declared as `parent`, resolved at registration. */
+  parentSlug?: string;
 }
 
 /**
@@ -454,21 +474,23 @@ export interface PageLayout<T = unknown> {
   allComponentsHidden?: true;
 }
 
-export type PageLayoutHandler = (
-  user: User | undefined,
-  memberModel: TenantMemberModel,
-  roleModel: RoleModel,
-  tenantId: string,
-  read?: PageLayoutRead,
-) => Promise<PageLayout>;
-
-/** How a {@link PageLayoutHandler} reads its layout, besides who asks. */
-export interface PageLayoutRead {
+/** What a page layout is asked for: its caller, and the page URL it is drawn at. */
+export interface PageLayoutRequest {
+  user: User | undefined;
+  memberModel: TenantMemberModel;
+  roleModel: RoleModel;
+  tenantId: string;
   /** The query of the page URL, handed to header-button availability. */
   query?: Readonly<Record<string, string>>;
+  /** The route parameters (`:id`) of the page URL, handed along with it. */
+  params?: Readonly<Record<string, string>>;
   /**
    * What the permission resolvers are told about this read: `preview` when
    * the layout is served for a role previewed by `user`.
    */
   resolverContext?: PermissionsResolverContext;
 }
+
+export type PageLayoutHandler = (
+  request: PageLayoutRequest,
+) => Promise<PageLayout>;
