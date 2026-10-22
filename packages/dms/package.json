@@ -22,6 +22,7 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "dmsFrontend": "dist/frontend-module.js",
   "files": [
     "dist",
     "!dist/.tsbuildinfo",
@@ -88,7 +89,6 @@
     "archiver": "^7.0.1",
     "csv-stringify": "^6.7.0",
     "defu": "^6.1.4",
-    "ignore": "^7.0.5",
     "jsonwebtoken": "^9.0.3",
     "mmdb-lib": "^3.0.3",
     "node-cron": "^4.2.1",
