@@ -40,6 +40,10 @@ export const frontendModule: FrontendModuleFunction<Config> = (
   configKey: "dms",
   priority: 0,
   authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
+  privateOptions: {
+    htmlRender: { serviceSecret: "" },
+    oauth: { relaySecret: "" },
+  },
   options: {
     baseURL: config.apiBaseUrl ?? DEFAULT_API_BASE_URL,
     clientBaseUrl: config.clientBaseUrl ?? DEFAULT_CLIENT_BASE_URL,

@@ -457,14 +457,13 @@ export const AddFrontendModule =
 
 /**
  * A module's frontend registration as both the backend and the frontend build
- * compute it from the module's configuration: everything
- * {@link AddFrontendModuleOptions} holds except the private options, which
- * the frontend server reads from its own environment when it starts.
+ * compute it from the module's configuration. Its `privateOptions`, if any,
+ * hold their shape only, every value an empty string: the backend fills in its
+ * secrets before `AddFrontendModule`, and the frontend server fills them from
+ * its own environment when it starts (`DMS_HTML_RENDER_SECRET`,
+ * `DMS_PRIVATE_OPTIONS`…).
  */
-export type FrontendModuleRegistration = Omit<
-  AddFrontendModuleOptions,
-  "privateOptions"
->;
+export type FrontendModuleRegistration = AddFrontendModuleOptions;
 
 /** What a {@link FrontendModuleFunction} knows besides the module's config. */
 export interface FrontendModuleContext {

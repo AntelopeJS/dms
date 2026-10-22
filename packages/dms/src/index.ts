@@ -231,8 +231,8 @@ async function implementInterfaces(): Promise<void> {
 }
 
 /**
- * The registration `frontendModule` computes from the configuration, plus the
- * private options, which never leave the backend and the frontend server.
+ * The registration `frontendModule` computes from the configuration, its
+ * private options filled with the backend's secrets.
  */
 async function registerDmsFrontend(dev: boolean): Promise<void> {
   // The merged configuration: its clientBaseUrl is the one construct() checked.
