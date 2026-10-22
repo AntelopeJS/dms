@@ -175,7 +175,12 @@ export interface CustomRowAction<
    * (`?ids=a&ids=b`), a page, external or download URL too, a drawer or
    * modal component a `selection` prop. With `{ allMatching: true }`, "Select all
    * N matching" sends `allMatching=true` and the table's filters and search
-   * instead. A fixed confirmation receives `{ count }`.
+   * instead. A fixed confirmation receives `{ count }`. A `{{row.X}}` token
+   * has no row to fill there: a query pair whose value is one is left out
+   * (`?ids={{row._id}}` gives way to the selection's ids), any other is
+   * left empty. The action is still offered on each row, where a URL target
+   * receives that row's id the same way (`?ids=<id>`), unless its URL names a
+   * row field itself; a drawer or modal there receives `rowData`.
    */
   bulk?: CustomRowActionBulk;
   /**

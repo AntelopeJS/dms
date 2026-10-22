@@ -23,7 +23,9 @@ import {
 import { INTERFACE_PACKAGE, latestRelease } from "./registry";
 import {
   describeRuntimeModule,
+  findWorkingCopy,
   isLive,
+  listRuntimeModules,
   loadStoreModule,
   unloadStoreModule,
 } from "./runtime";
@@ -349,6 +351,15 @@ async function prepareContext(
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );
+  // Installing next to a working copy would load the package a second time.
+  if (!declaration) {
+    const runtime = await listRuntimeModules();
+    assert(
+      !findWorkingCopy(catalogEntry.package, runtime.values()),
+      HTTP_CONFLICT,
+      "error.store_working_copy",
+    );
+  }
   const context: OperationContext = {
     id,
     catalogEntry,

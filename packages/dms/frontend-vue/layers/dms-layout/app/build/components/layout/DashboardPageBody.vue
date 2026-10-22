@@ -18,6 +18,8 @@ interface Props {
    * when one declares an `availability` (`headerActionsQuery`).
    */
   headerActionsQuery?: Record<string, string>;
+  /** The route parameters (`:id`) they were resolved for, likewise. */
+  headerActionsParams?: Record<string, string>;
   /** Space between the page header and the page. */
   headerClass?: string;
 }
@@ -29,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   headerActions: () => [],
   headerActionsQuery: undefined,
+  headerActionsParams: undefined,
   headerClass: "pb-6",
 });
 
@@ -67,6 +70,7 @@ const PAGE_SLOT_CLASS =
       <PageHeaderActionsOutlet
         :actions="props.headerActions"
         :served-query="props.headerActionsQuery"
+        :served-params="props.headerActionsParams"
       />
     </template>
   </PageHeader>

@@ -19,10 +19,29 @@ export interface SidePanelTargetOptions {
    * `{ index }` (from 1) and `{ total }`.
    */
   positionLabel?: string;
-  /** The open row is kept in the URL (`?record=`): on unless `false`. */
+  /**
+   * The open row is kept in the URL (`?record=`): on unless `false` for a
+   * side panel, off unless `true` for a drawer.
+   */
   deepLink?: boolean;
   /** The state drawn on a row that no longer exists (a 404). */
   notFound?: SidePanelNotFoundTexts;
+}
+
+/**
+ * What a `drawer` target sets besides its component (backend
+ * `DrawerTargetOptions`): the row options of a side panel, for a drawer
+ * opened on a row, and its size.
+ */
+export interface DrawerTargetOptions
+  extends Omit<SidePanelTargetOptions, "title"> {
+  /** Width of a `left` / `right` drawer: a modal's at that size; 600px without one. */
+  size?: ModalSize;
+  /**
+   * The DMS draws the row header (title, position, previous / next): on when
+   * `rowTitle` or `positionLabel` is set, unless `false`.
+   */
+  rowHeader?: boolean;
 }
 
 /**
@@ -38,14 +57,14 @@ export interface DownloadActionTarget {
 }
 
 export type ActionTarget =
-  | {
+  | ({
       type: "drawer";
       component: ComponentInfo;
       title?: string;
       description?: string;
       /** Edge the drawer slides in from (`bottom` by default). */
       direction?: DrawerDirection;
-    }
+    } & DrawerTargetOptions)
   | {
       type: "modal";
       size?: ModalSize;

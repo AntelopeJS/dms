@@ -96,6 +96,7 @@ export interface TableViewSourceOptions extends Pick<
   | "customButtons"
   | "displays"
   | "defaultDisplay"
+  | "mobileDisplay"
   | "card"
   | "expandable"
   | "tabs"
@@ -368,6 +369,7 @@ export function tableViewFromSource(
       tabs: serializeTableViewTabs(options.tabs),
       displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
+      mobileDisplay: options.mobileDisplay,
       defaultSort: options.defaultSort,
       pinnedRows: options.pinnedRows,
       customButtons: serializeCustomButtons(declaredCustomButtons),

@@ -2,6 +2,7 @@
 import {
   computed,
   createApp,
+  createSSRApp,
   defineComponent,
   h,
   nextTick,
@@ -10,6 +11,7 @@ import {
   type App,
   type Component,
 } from "vue";
+import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationPreferencesForm from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationPreferencesForm.vue";
 import { NOTIFICATION_GROUP_STORAGE_PREFIX } from "../layers/dms-layout/app/build/composables/notification/useNotificationGroupsOpen";
@@ -72,8 +74,12 @@ vi.mock("#dms-ui/app/build/components/skeleton/RowSkeleton.vue", async () => {
 
 let app: App | undefined;
 
-function mount(component: Component) {
-  app = createApp(defineComponent({ setup: () => () => h(component) }));
+function createFormApp(create: typeof createApp): App {
+  const formApp = create(
+    defineComponent({
+      setup: () => () => h(NotificationPreferencesForm as Component),
+    }),
+  );
   const passThrough = defineComponent({
     setup:
       (_props, { slots }) =>
@@ -125,10 +131,29 @@ function mount(component: Component) {
           h("div", props.open ? slots.content?.() : []),
     }),
   })) {
-    app.component(name, stub);
+    formApp.component(name, stub);
   }
+  return formApp;
+}
+
+function mount() {
+  app = createFormApp(createApp);
   const container = document.createElement("div");
   document.body.append(container);
+  app.mount(container);
+  return container;
+}
+
+/**
+ * Renders the form on the "server", runs what only the browser holds, then
+ * hydrates the server markup.
+ */
+async function hydrate(runOnClient: () => void) {
+  const container = document.createElement("div");
+  container.innerHTML = await renderToString(createFormApp(createSSRApp));
+  document.body.append(container);
+  runOnClient();
+  app = createFormApp(createSSRApp);
   app.mount(container);
   return container;
 }
@@ -167,7 +192,7 @@ afterEach(() => {
 
 describe("notification preferences groups", () => {
   it("starts every group folded, with its count on the group row", () => {
-    const container = mount(NotificationPreferencesForm as Component);
+    const container = mount();
 
     expect(subjectNames(container)).toEqual([]);
     const chevron = chevronOf(container, "system");
@@ -182,7 +207,7 @@ describe("notification preferences groups", () => {
   });
 
   it("unfolds and folds a group's subjects from its chevron", async () => {
-    const container = mount(NotificationPreferencesForm as Component);
+    const container = mount();
     const chevron = chevronOf(container, "system");
 
     chevron.click();
@@ -203,7 +228,7 @@ describe("notification preferences groups", () => {
   });
 
   it("unfolds a group from its title area too", async () => {
-    const container = mount(NotificationPreferencesForm as Component);
+    const container = mount();
 
     rowOf(container, "security")
       .querySelector<HTMLElement>("[data-category-title]")!
@@ -213,7 +238,7 @@ describe("notification preferences groups", () => {
   });
 
   it("keeps the master switch working on a folded group without unfolding it", async () => {
-    const container = mount(NotificationPreferencesForm as Component);
+    const container = mount();
 
     rowOf(container, "system")
       .querySelector<HTMLButtonElement>('[role="switch"]')!
@@ -231,7 +256,7 @@ describe("notification preferences groups", () => {
   });
 
   it("remembers the open groups in the browser", async () => {
-    const first = mount(NotificationPreferencesForm as Component);
+    const first = mount();
     chevronOf(first, "security").click();
     await nextTick();
     expect(
@@ -240,7 +265,9 @@ describe("notification preferences groups", () => {
     app?.unmount();
     document.body.innerHTML = "";
 
-    const second = mount(NotificationPreferencesForm as Component);
+    const second = mount();
+    // Read once mounted, as the server render cannot see it.
+    await nextTick();
     expect(chevronOf(second, "security").getAttribute("aria-expanded")).toBe(
       "true",
     );
@@ -250,6 +277,33 @@ describe("notification preferences groups", () => {
     expect(subjectNames(second)).toEqual(["Security alerts"]);
   });
 
+  it("hydrates a kept open group folded, as the server drew it, then opens it", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    // The server cannot read the browser's storage: only the client has it.
+    const container = await hydrate(() =>
+      localStorage.setItem(
+        `${NOTIFICATION_GROUP_STORAGE_PREFIX}system`,
+        "open",
+      ),
+    );
+
+    const messages = spies.flatMap((spy) =>
+      spy.mock.calls.map((call) => String(call[0])),
+    );
+    expect(messages.filter((message) => message.includes("Hydration"))).toEqual(
+      [],
+    );
+    await nextTick();
+    expect(chevronOf(container, "system").getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(subjectNames(container)).toEqual(["General", "Account"]);
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
   it("folds every group when the browser storage is unavailable", async () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
@@ -257,7 +311,7 @@ describe("notification preferences groups", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    const container = mount(NotificationPreferencesForm as Component);
+    const container = mount();
     expect(subjectNames(container)).toEqual([]);
 
     chevronOf(container, "system").click();

@@ -2,6 +2,11 @@ import type {
   FieldRowLayout,
   FieldRowSpacing,
 } from "../../../components/field-row/FieldRow.vue";
+import {
+  type FormField,
+  type FormFieldOrGroup,
+  isFieldGroup,
+} from "../../../composables/form/types/field";
 
 export type FormOrientation = "horizontal" | "vertical";
 export type FormSurface = "card" | "container" | "section" | "sections";
@@ -37,6 +42,25 @@ export const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
   },
   vertical: {
     rows: "flex flex-col gap-4 py-5",
+    row: { layout: "stack", inset: false, spacing: "list" },
+  },
+};
+
+// A form in a drawer or a modal: the same rows on a tighter rhythm, the
+// container's width being scarcer than a page's. A row with one line of
+// value is 57px beside its label; stacked (a phone, a narrow drawer) the
+// label sits 6px above its control. Read-only details and editable forms
+// share the rows, so both read alike.
+export const CONTAINER_LAYOUT_CLASSES: Record<
+  FormOrientation,
+  FormLayoutClasses
+> = {
+  horizontal: {
+    rows: "flex flex-col",
+    row: { layout: "form", inset: false, spacing: "dense" },
+  },
+  vertical: {
+    rows: "flex flex-col gap-3 py-3",
     row: { layout: "stack", inset: false, spacing: "list" },
   },
 };
@@ -82,10 +106,88 @@ export const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
   row: { layout: "form", inset: true, spacing: "row" },
 };
 
-// Grouped controls sit side by side once the row is wide enough for its
-// label column (FieldRow's 560px container step), whatever the viewport: a
-// narrow modal or drawer form stacks them.
+// Grouped controls share the row while each keeps a usable width (11rem: a
+// date, a select showing its value), and wrap onto the next line once they
+// would shrink below it, so a group of five in a modal, a drawer or on a
+// phone wraps instead of drawing its controls over one another. A member
+// alone on its line takes the whole width; `min(100%, ...)` keeps a row
+// narrower than the minimum from overflowing.
 export const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
-  horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
+  horizontal:
+    "grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-x-3 gap-y-2.5",
   vertical: "flex flex-col gap-2.5",
+};
+
+// Fields whose value is a block of its own (a table of rows, pairs, code,
+// formatted text, a gallery): beside a 240px label they get what is left of
+// a drawer, where a repeater falls into its stacked cards. They take the
+// row's full width under their label instead, whatever the form's layout.
+const WIDE_FIELD_COMPONENTS: ReadonlySet<string> = new Set([
+  "dms-repeater",
+  "dms-key-value",
+  "dms-input-code",
+  "dms-rich-text",
+]);
+// The same values shown read-only, drawn from the field's type.
+const WIDE_FIELD_TYPES: ReadonlySet<string> = new Set([
+  "array",
+  "key_value",
+  "code",
+  "rich_text",
+]);
+// Files and images drop their list or gallery under the control when
+// several are allowed.
+const MULTIPLE_FILE_COMPONENTS: ReadonlySet<string> = new Set([
+  "dms-file",
+  "dms-image",
+]);
+// A textarea taller than the browser's three rows is a long text.
+const SHORT_TEXTAREA_ROWS = 3;
+
+/** The options of a field's control that make it wide. */
+interface WideFieldOptions {
+  multiple?: boolean;
+  rows?: number;
+}
+
+/** Whether a field takes the row's full width, its label above it. */
+export function isWideField(field: FormField): boolean {
+  if (field.type && WIDE_FIELD_TYPES.has(field.type)) return true;
+  const name = field.component.componentName ?? "";
+  if (WIDE_FIELD_COMPONENTS.has(name)) return true;
+  const options: WideFieldOptions = field.component.options ?? {};
+  if (MULTIPLE_FILE_COMPONENTS.has(name)) return options.multiple === true;
+  if (name !== "dms-textarea") return false;
+  return (options.rows ?? 0) > SHORT_TEXTAREA_ROWS;
+}
+
+/**
+ * How a form row is drawn: a wide field, or a group holding one, stacks its
+ * label above it where the form would set it beside.
+ */
+export function entryRowLayout(
+  row: FormRowLayout,
+  fields: readonly FormField[],
+): FormRowLayout {
+  if (row.layout !== "form" || !fields.some(isWideField)) return row;
+  return { ...row, layout: "stack" };
+}
+
+/** The fields a form entry draws: its own, or its group's. */
+export function entryFields(entry: FormFieldOrGroup): FormField[] {
+  return isFieldGroup(entry) ? entry.fields : [entry];
+}
+
+/** Classes of a grouped field: its own label above its control. */
+export interface GroupMemberClasses {
+  root: string;
+  label: string;
+}
+
+// A member's label is a step below the group's (FieldRow's 13px semibold
+// label), which heads the cluster.
+export const GROUP_MEMBER_CLASSES: GroupMemberClasses = {
+  root: "grid min-w-0 flex-1 content-start gap-1.5",
+  label:
+    "flex flex-wrap items-center gap-1 text-[12.5px] font-medium text-toned",
 };

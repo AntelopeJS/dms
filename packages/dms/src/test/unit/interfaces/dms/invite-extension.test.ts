@@ -163,12 +163,12 @@ async function hostLayoutFields(
   expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
     undefined,
   );
-  const layout = await (handler as NonNullable<typeof handler>)(
-    undefined as unknown as User,
-    {} as TenantMemberModel,
-    {} as RoleModel,
-    TENANT,
-  );
+  const layout = await (handler as NonNullable<typeof handler>)({
+    user: undefined as unknown as User,
+    memberModel: {} as TenantMemberModel,
+    roleModel: {} as RoleModel,
+    tenantId: TENANT,
+  });
   const options = layout.components.invite
     .options as unknown as FormPropsSerialized;
   return options.fields;
@@ -277,12 +277,12 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-schema");
 
       const handler = GetPageLayoutBySlug("/ie-schema");
-      const layout = await (handler as NonNullable<typeof handler>)(
-        undefined as unknown as User,
-        {} as TenantMemberModel,
-        {} as RoleModel,
-        TENANT,
-      );
+      const layout = await (handler as NonNullable<typeof handler>)({
+        user: undefined as unknown as User,
+        memberModel: {} as TenantMemberModel,
+        roleModel: {} as RoleModel,
+        tenantId: TENANT,
+      });
       const schema = (
         layout.components.invite.options as unknown as FormPropsSerialized
       ).schema as { properties: Record<string, unknown>; required: string[] };

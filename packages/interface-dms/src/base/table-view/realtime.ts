@@ -12,6 +12,12 @@ export interface RealtimeMutationContext {
   ids: string[];
   sessionId?: string;
   actor?: RealtimePresenceActor;
+  /**
+   * The tenant the write was made in: the change is published to that
+   * tenant's sessions only. Absent on a table of the shared schema
+   * (`CORE_SCHEMA_NAME`), whose changes reach every tenant.
+   */
+  tenantId?: string;
 }
 
 export interface RealtimePresenceActor {
@@ -26,6 +32,8 @@ export interface RealtimePresenceContext {
   sessionId: string;
   rowId: string;
   actor: RealtimePresenceActor;
+  /** The tenant the row is opened in, as on {@link RealtimeMutationContext}. */
+  tenantId?: string;
 }
 
 /**

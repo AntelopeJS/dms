@@ -22,12 +22,14 @@ export async function publishTableViewMutation({
   ids,
   sessionId,
   actor,
+  tenantId,
 }: RealtimeMutationContext): Promise<void> {
   await getRealtimeBroker().publish({
     topic: tableViewRowTopic(controllerLocation),
     type: eventType,
     payload: { ids },
     actorId: actor?.id,
+    tenantId,
     ts: Date.now(),
   });
   if (!sessionId || !PRESENCE_RELEASING_EVENTS.has(eventType)) return;
@@ -44,11 +46,12 @@ export async function acquireTableViewPresence({
   sessionId,
   rowId,
   actor,
+  tenantId,
 }: RealtimePresenceContext): Promise<void> {
   await getPresenceTracker().acquire(
     sessionId,
     tableViewPresenceTopic(controllerLocation),
     rowId,
-    actor,
+    { actor, tenantId },
   );
 }

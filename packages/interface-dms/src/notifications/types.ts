@@ -52,6 +52,16 @@ export interface SendOptions extends DeliveryOptions {
   idempotencyKey?: string;
 }
 
+/** Options of `toRoles`: a send to the holders of roles. */
+export interface RoleSendOptions extends SendOptions {
+  /**
+   * Only the members of this tenant holding the roles. Role ids belong to a
+   * tenant, so a send about one tenant names it; without it, the holders are
+   * looked up in every tenant.
+   */
+  tenantId?: string;
+}
+
 export interface NotificationData {
   icon: string;
   title: string;

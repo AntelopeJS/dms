@@ -1,5 +1,9 @@
 import { Controller, type ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata, InterfaceFunction } from "@antelopejs/interface-core";
+import {
+  EventProxy,
+  GetMetadata,
+  InterfaceFunction,
+} from "@antelopejs/interface-core";
 import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
@@ -455,6 +459,42 @@ export interface FrontendPublicEndpoint {
 export const AddFrontendModule =
   InterfaceFunction<(config: AddFrontendModuleOptions) => void>();
 
+/**
+ * A module's frontend registration as both the backend and the frontend build
+ * compute it from the module's configuration. Its `privateOptions`, if any,
+ * hold their shape only, every value an empty string: the backend fills in its
+ * secrets before `AddFrontendModule`, and the frontend server fills them from
+ * its own environment when it starts (`DMS_HTML_RENDER_SECRET`,
+ * `DMS_PRIVATE_OPTIONS`…).
+ */
+export type FrontendModuleRegistration = AddFrontendModuleOptions;
+
+/** What a {@link FrontendModuleFunction} knows besides the module's config. */
+export interface FrontendModuleContext {
+  /** Whether the project runs in development, as the core reports it. */
+  dev: boolean;
+}
+
+/**
+ * The pure `config → registration` function a module ships with its
+ * frontend, named in its package.json:
+ *
+ * ```json
+ * { "dmsFrontend": "dist/frontend-module.js" }
+ * ```
+ *
+ * The file exports it as `frontendModule`. The backend passes its result to
+ * `AddFrontendModule` (adding the private options); `@antelopejs/dms-frontend`
+ * calls it with the configuration it evaluates from `antelope.config.ts`, so
+ * a frontend builds and starts without asking a backend. It reads nothing
+ * but its arguments: no runtime interface, no database, no network. A module
+ * that registers no frontend in this configuration returns `undefined`.
+ */
+export type FrontendModuleFunction<TConfig = unknown> = (
+  config: TConfig,
+  context: FrontendModuleContext,
+) => FrontendModuleRegistration | undefined;
+
 export interface FrontendModuleMetadata {
   name: string;
   sourcePath: string;
@@ -488,3 +528,19 @@ export interface FrontendModuleMetadata {
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */
 export const GetFrontendModules =
   InterfaceFunction<() => FrontendModuleMetadata[]>();
+
+/**
+ * Fired whenever the list {@link GetFrontendModules} returns changes: a
+ * module registered its frontend (or replaced it with a higher priority), or
+ * a module was taken down with its frontend. Modules start in parallel, so a
+ * module that reads the list in its own `start()` may run before another
+ * registers: it registers a handler, reads the list once, and reads it again
+ * in the handler.
+ *
+ * @example
+ * FrontendModulesChanged.register(() => void refresh());
+ * await refresh(); // reads GetFrontendModules()
+ */
+export const FrontendModulesChanged = new EventProxy<() => void>(
+  "dms.page.FrontendModulesChanged",
+);

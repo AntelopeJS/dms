@@ -351,9 +351,10 @@ export namespace DefaultDisplays {
   export type DurationUnit = "ms" | "s";
 
   /**
-   * How a duration is written: `readable` in its most readable unit ("2.1 s",
-   * "4 min 12 s"), `ms` always in milliseconds with grouped digits ("2,149 ms"
-   * in English, "2 149 ms" in French).
+   * How a duration is written: `readable` in two units at most, the smaller
+   * one rounded ("2.1 s", "4 min 12 s"), `ms`
+   * always in milliseconds with grouped digits ("2,149 ms" in English,
+   * "2 149 ms" in French).
    */
   export type DurationFormat = "readable" | "ms";
 
@@ -374,7 +375,7 @@ export namespace DefaultDisplays {
   }
 
   /**
-   * A duration in its most readable unit ("910 ms", "1.8 s", "4 min 12 s"),
+   * A duration in two units at most, rounded ("910 ms", "1.8 s", "4 min 12 s"),
    * or in milliseconds (`format: "ms"`), coloured by the row when `toneField`
    * names its tone.
    */

@@ -182,6 +182,27 @@ export function formatPeriodRange(
   return formatRangeWith(range, locale, options);
 }
 
+/**
+ * Day-only range label, "16 – 17 Oct": a comparison menu's trigger names the
+ * window it compares with, where the hours would only widen it. A window
+ * shorter than a day keeps its times, its day alone telling nothing.
+ * `withYear: false` drops the year, as in `formatPeriodRange`.
+ */
+export function formatPeriodDays(
+  range: PeriodRange,
+  locale: string,
+  withYear = true,
+): string {
+  const span = range.to.getTime() - range.from.getTime();
+  if (span < MS_PER_DAY - MS_PER_HOUR) {
+    return formatRangeWith(range, locale, { ...DAY_FORMAT, ...TIME_FORMAT });
+  }
+  const options: FormatOptions = withYear
+    ? { ...DAY_FORMAT, year: "numeric" }
+    : DAY_FORMAT;
+  return formatRangeWith(range, locale, options);
+}
+
 export interface PeriodDuration {
   unit: "days" | "hours";
   count: number;

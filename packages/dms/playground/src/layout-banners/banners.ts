@@ -1,6 +1,7 @@
 import {
   type LayoutBannerContent,
   type LayoutBannerContext,
+  LayoutBannerScope,
   LayoutBannerVariant,
   RegisterLayoutBanner,
 } from "@antelopejs/interface-dms/layout-banners";
@@ -63,10 +64,12 @@ function pastDueContent({
   };
 }
 
-// A text banner: fixed message and link, shown while switched on.
+// A text banner: fixed message and link, shown while switched on. It is about
+// the application, so it stays out of the module area.
 RegisterLayoutBanner({
   key: "playground:info",
   variant: LayoutBannerVariant.INFO,
+  scope: LayoutBannerScope.APP,
   dismissible: true,
   order: 0,
   text: "$demo.pages.banners.info",
@@ -74,10 +77,13 @@ RegisterLayoutBanner({
   visible: ({ tenantId }) => isBannerShown("info", tenantId),
 });
 
-// A resolved banner: visibility and message built in one read per request.
+// A resolved banner: visibility and message built in one read per request. A
+// past-due workspace is a workspace-wide state: it follows the user into the
+// module area.
 RegisterLayoutBanner({
   key: "playground:past-due",
   variant: LayoutBannerVariant.ERROR,
+  scope: LayoutBannerScope.EVERYWHERE,
   order: 10,
   resolve: pastDueContent,
 });
@@ -87,6 +93,7 @@ RegisterLayoutBanner({
 RegisterLayoutBanner({
   key: "playground:suspended",
   variant: LayoutBannerVariant.WARNING,
+  scope: LayoutBannerScope.EVERYWHERE,
   order: 20,
   component: "PlaygroundSuspendedBanner",
   props: { to: TENANCY_PAGE_URL },
