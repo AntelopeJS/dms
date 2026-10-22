@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useOpenDialog } from "#dms-ui/app/build/composables/containers/closingLayers";
 import { isFloatingSaveBarShown } from "#dms-ui/app/build/composables/form/floatingSaveBars";
 import { useGithubStarPrompt } from "../../composables/general/useGithubStarPrompt";
+import { useActiveSidePanel } from "../../composables/layout/sidePanelState";
+import { useSidebarState } from "./sidebarState";
 
 const TITLE_ID = "dms-github-star-prompt-title";
 const DESCRIPTION_ID = "dms-github-star-prompt-description";
@@ -9,6 +12,9 @@ const DESCRIPTION_ID = "dms-github-star-prompt-description";
 const { t } = useI18n();
 const { user } = useCurrentUser();
 const toast = useToast();
+const { open: isSidebarOpen } = useSidebarState();
+const { panel: sidePanel } = useActiveSidePanel();
+const isDialogOpen = useOpenDialog();
 
 // Developers only: a production build, a client's dashboard included, never
 // counts, stores or shows anything. The same flag gates the dev reload.
@@ -16,15 +22,21 @@ const { isDue, snooze, star, dismiss } = useGithubStarPrompt(
   import.meta.env.DEV,
 );
 
-// The toaster stacks in the same corner, and a floating save bar sticks to
-// the bottom of the panel: the prompt steps aside while either is up rather
-// than cover it.
+// The toaster stacks in the same corner, a floating save bar sticks to the
+// bottom of the panel, and the phone sidebar keeps its account menu trigger
+// at the bottom of the screen: the prompt steps aside while any is up rather
+// than cover it. The sidebar only opens as a drawer, below `lg`. It waits
+// as well while a drawer, a modal or a side panel is open, whose footer or
+// content it would float over, and comes back once they close.
 const isShown = computed(
   () =>
     isDue.value &&
     !!user.value &&
     toast.toasts.value.length === 0 &&
-    !isFloatingSaveBarShown.value,
+    !isFloatingSaveBarShown.value &&
+    !isSidebarOpen.value &&
+    !sidePanel.value &&
+    !isDialogOpen.value,
 );
 </script>
 
@@ -34,14 +46,13 @@ const isShown = computed(
        width, rising into place like a toast. The buttons take the card's
        full width, so the longer French label still fits beside "Later".
        On a phone it tightens and drops the icon, so the text runs the full
-       width and covers less of the page. From `lg` it stays clear of an
-       open side panel, whose width the dashboard frame sets. -->
+       width and covers less of the page. -->
   <div
     v-if="isShown"
     role="dialog"
     :aria-labelledby="TITLE_ID"
     :aria-describedby="DESCRIPTION_ID"
-    class="bg-default ring-accented fixed inset-x-3 bottom-3 z-50 rounded-(--dms-radius-card) p-3 shadow-(--dms-shadow-pop) ring transition duration-300 ease-out motion-reduce:transition-none sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[380px] sm:p-3.5 sm:ps-4 lg:right-[calc(min(var(--dms-side-panel-width,0px),60vw)+1.25rem)] starting:translate-y-4 starting:opacity-0"
+    class="bg-default ring-accented fixed inset-x-3 bottom-3 z-50 rounded-(--dms-radius-card) p-3 shadow-(--dms-shadow-pop) ring transition duration-300 ease-out motion-reduce:transition-none sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[380px] sm:p-3.5 sm:ps-4 starting:translate-y-4 starting:opacity-0"
   >
     <div class="flex items-start gap-3 pe-6">
       <DmsIconWell icon="i-ph-star" size="sm" class="max-sm:hidden" />
