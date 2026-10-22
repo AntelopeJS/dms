@@ -453,6 +453,11 @@ import {
   DEFAULT_PAGE_SIZE,
 } from "../../composables/table/constants";
 import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
+import {
+  horizontalScrollEdges,
+  type ScrollEdges,
+} from "../../composables/table/utils/scrollEdges";
+import { groupRows } from "../../composables/table-view/utils/groupedRows";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { isRowClickTrigger } from "../../utils/rowClickTrigger";
 
@@ -512,6 +517,10 @@ const theme = tv({
     captionCount: "font-mono text-xs font-medium tabular-nums text-dimmed",
     captionCountPlaceholder: "h-3 w-6 rounded-[4px]",
 
+    scrollFrame: "relative",
+    // An inset shadow, whatever the card's background, on the side the
+    // table still hides columns.
+    scrollFade: "pointer-events-none absolute inset-y-0 z-30 w-3",
     tableRoot: "relative overflow-x-auto whitespace-nowrap",
     tableBase: "inline-block min-w-full align-middle",
     table: "text-default w-full min-w-full table-fixed text-left text-[13px]/5",
@@ -638,6 +647,14 @@ const theme = tv({
     },
     scrolled: {
       true: "",
+    },
+    side: {
+      start: {
+        scrollFade: "shadow-[inset_12px_0_10px_-10px_rgb(0_0_0/0.28)]",
+      },
+      end: {
+        scrollFade: "shadow-[inset_-12px_0_10px_-10px_rgb(0_0_0/0.28)]",
+      },
     },
     // Rows listed while viewing the archive read as set aside.
     // Restore stays on show there, it is the only thing to do with them.
@@ -804,7 +821,15 @@ const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
 // The scroll shadow under a sticky header only shows once rows went under it.
 const hasScrollArea = computed(() => !!props.maxHeight);
 const isScrolled = ref(false);
+// Columns beyond the card's edge fade out on that side: the scrollbar sits
+// under the last row, out of view on a long list.
+const scrollEdges = ref<ScrollEdges>({ start: false, end: false });
+const syncScrollEdges = () => {
+  const area = tableRootRef.value;
+  if (area) scrollEdges.value = horizontalScrollEdges(area);
+};
 const onTableScroll = (event: Event) => {
+  syncScrollEdges();
   if (!hasScrollArea.value) return;
   isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
 };
@@ -812,6 +837,9 @@ const onTableScroll = (event: Event) => {
 // the visible scroll area.
 const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
 const { width: tableViewportWidth } = useElementSize(tableRootRef);
+const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
+const { width: tableContentWidth } = useElementSize(tableBaseRef);
+watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
 const tableRootStyle = computed(() => ({
   maxHeight: props.maxHeight,
   "--dms-table-viewport":
@@ -885,6 +913,17 @@ const stickyPinnedSides = computed(() => {
   const keepLeft = left < right && left <= budget;
   const keepRight = left >= right && right <= budget;
   return { left: keepLeft, right: keepRight };
+});
+
+// The fades sit inside the columns pinned on their side, which never scroll.
+const scrollFadeInsets = computed(() => {
+  const sides = stickyPinnedSides.value;
+  return {
+    start:
+      (sides.left ? table.getLeftTotalSize() : 0) +
+      (hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0),
+    end: sides.right ? table.getRightTotalSize() : 0,
+  };
 });
 
 const getStickyPin = (column: { getIsPinned: () => unknown }) => {
@@ -1031,20 +1070,18 @@ const bodyEntries = computed<BodyEntry[]>(() => {
   const grouping = props.grouping;
   if (!grouping) return rows.map((row) => ({ kind: "row", id: row.id, row }));
   const entries: BodyEntry[] = [];
-  let currentKey: string | undefined;
-  for (const row of rows) {
-    const key = grouping.keyOf(row.original);
-    if (key !== currentKey) {
-      currentKey = key;
-      entries.push({
-        kind: "group",
-        id: GROUP_ENTRY_PREFIX + key,
-        row,
-        key,
-        header: () => grouping.header(key, row.original),
-      });
-    }
-    if (!collapsedGroups.value.includes(key)) {
+  for (const group of groupRows(rows, (row) => grouping.keyOf(row.original))) {
+    const { key } = group;
+    const [first] = group.rows as [TableRow];
+    entries.push({
+      kind: "group",
+      id: GROUP_ENTRY_PREFIX + key,
+      row: first,
+      key,
+      header: () => grouping.header(key, first.original),
+    });
+    if (collapsedGroups.value.includes(key)) continue;
+    for (const row of group.rows) {
       entries.push({ kind: "row", id: row.id, row });
     }
   }
@@ -1424,298 +1461,317 @@ defineShortcuts({
     <slot name="notice" />
 
     <slot name="body" :table="table">
-      <section
-        ref="tableRoot"
-        :class="uiTable.tableRoot()"
-        :style="tableRootStyle"
-        @scroll.passive="onTableScroll"
-      >
-        <div
-          v-if="loading && !isFirstPageLoading"
-          aria-hidden="true"
-          :class="uiTable.loadingBar()"
+      <div :class="uiTable.scrollFrame()">
+        <section
+          ref="tableRoot"
+          :class="uiTable.tableRoot()"
+          :style="tableRootStyle"
+          @scroll.passive="onTableScroll"
         >
-          <span :class="uiTable.loadingBarIndicator()" />
-        </div>
+          <div
+            v-if="loading && !isFirstPageLoading"
+            aria-hidden="true"
+            :class="uiTable.loadingBar()"
+          >
+            <span :class="uiTable.loadingBarIndicator()" />
+          </div>
 
-        <div :class="uiTable.tableBase()">
-          <table :class="uiTable.table()">
-            <caption v-if="caption" :class="uiTable.tableCaption()">
-              {{ caption }}
-            </caption>
+          <div ref="tableBase" :class="uiTable.tableBase()">
+            <table :class="uiTable.table()">
+              <caption v-if="caption" :class="uiTable.tableCaption()">
+                {{ caption }}
+              </caption>
 
-            <thead>
-              <tr
-                v-for="headerGroup in table.getHeaderGroups()"
-                :key="headerGroup.id"
-              >
-                <th
-                  v-if="hasPresenceRail"
-                  :class="[
-                    HEADER_MATCH_BG,
-                    'border-b-default sticky left-0 z-30 border-b p-0',
-                    hasScrollArea && 'top-0 z-40',
-                  ]"
-                  :style="{
-                    width: PRESENCE_RAIL_WIDTH_PX,
-                    minWidth: PRESENCE_RAIL_WIDTH_PX,
-                  }"
-                />
-                <th
-                  v-if="reorder"
-                  :class="uiTable.handleHeadCell()"
-                  :aria-label="t('dms.table.reorder.column')"
-                />
-                <th
-                  v-for="header in headerGroup.headers"
-                  :key="header.id"
-                  :colspan="header.colSpan"
-                  :aria-sort="headerAriaSort(header.column)"
-                  :data-pinned="header.column.getIsPinned()"
-                  :class="
-                    uiTable.headCell({
-                      pinned: getPinnedVariant(header.column),
-                    })
-                  "
-                  :style="{
-                    width: getHeaderWidth(header),
-                    left: getPinnedLeftOffset(header.column),
-                    right: getPinnedRightOffset(header.column),
-                  }"
+              <thead>
+                <tr
+                  v-for="headerGroup in table.getHeaderGroups()"
+                  :key="headerGroup.id"
                 >
-                  <slot
-                    :name="`${header.id}-header`"
-                    v-bind="header.getContext()"
+                  <th
+                    v-if="hasPresenceRail"
+                    :class="[
+                      HEADER_MATCH_BG,
+                      'border-b-default sticky left-0 z-30 border-b p-0',
+                      hasScrollArea && 'top-0 z-40',
+                    ]"
+                    :style="{
+                      width: PRESENCE_RAIL_WIDTH_PX,
+                      minWidth: PRESENCE_RAIL_WIDTH_PX,
+                    }"
+                  />
+                  <th
+                    v-if="reorder"
+                    :class="uiTable.handleHeadCell()"
+                    :aria-label="t('dms.table.reorder.column')"
+                  />
+                  <th
+                    v-for="header in headerGroup.headers"
+                    :key="header.id"
+                    :colspan="header.colSpan"
+                    :aria-sort="headerAriaSort(header.column)"
+                    :data-pinned="header.column.getIsPinned()"
+                    :class="
+                      uiTable.headCell({
+                        pinned: getPinnedVariant(header.column),
+                      })
+                    "
+                    :style="{
+                      width: getHeaderWidth(header),
+                      left: getPinnedLeftOffset(header.column),
+                      right: getPinnedRightOffset(header.column),
+                    }"
                   >
-                    <FlexRender
-                      v-if="!header.isPlaceholder"
-                      :render="header.column.columnDef.header"
-                      :props="header.getContext()"
-                    />
-
-                    <div
-                      v-if="header.column.getCanResize()"
-                      :class="
-                        uiTable.colResizer({
-                          isResizing: header.column.getIsResizing(),
-                        })
-                      "
-                      @dblclick="header.column.resetSize()"
-                      @mousedown="onResize($event, header)"
-                      @touchstart="onResize($event, header)"
-                    />
-                  </slot>
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <template v-if="table.getRowModel().rows?.length">
-                <template
-                  v-for="{ kind, id, row, key, header } in bodyEntries"
-                  :key="id"
-                >
-                  <tr v-if="kind === 'group' && grouping">
-                    <td
-                      :colspan="row.getVisibleCells().length + leadingCellCount"
-                      :class="uiTable.groupCell()"
+                    <slot
+                      :name="`${header.id}-header`"
+                      v-bind="header.getContext()"
                     >
-                      <div :class="uiTable.groupHeader()">
-                        <component
-                          :is="grouping.collapsible ? 'button' : 'span'"
-                          :type="grouping.collapsible ? 'button' : undefined"
-                          :aria-expanded="
-                            grouping.collapsible
-                              ? !collapsedGroups.includes(key!)
-                              : undefined
-                          "
-                          :class="uiTable.groupToggle()"
-                          @click="grouping.collapsible && toggleGroup(key!)"
-                        >
-                          <UIcon
-                            v-if="grouping.collapsible"
-                            :name="
-                              collapsedGroups.includes(key!)
-                                ? 'i-ph-caret-right'
-                                : 'i-ph-caret-down'
-                            "
-                            class="size-3"
-                          />
-                          <component :is="header" />
-                        </component>
-                        <span
-                          v-if="grouping.countOf?.(key!) !== undefined"
-                          :class="uiTable.groupCount()"
-                        >
-                          {{ grouping.countOf(key!) }}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  <template v-else>
-                    <tr
-                      :data-selected="row.getIsSelected()"
-                      :data-expanded="row.getIsExpanded()"
-                      :data-open="isOpenRow(row.original) || undefined"
-                      :aria-current="isOpenRow(row.original) || undefined"
-                      :data-presence="!!getRowPresence(row.original)"
-                      :title="
-                        getRowPresence(row.original)
-                          ? presenceTooltipText(getRowPresence(row.original)!)
-                          : undefined
-                      "
-                      :class="[
-                        uiTable.row({
-                          loading,
-                          rowClickable: isRowClickable(row.original),
-                          presence: !!getRowPresence(row.original),
-                        }),
-                        { 'cursor-pointer': isSingleClickRow(row.original) },
-                      ]"
-                      @click="handleRowPointer($event, row.original)"
-                      @dblclick="handleRowPointer($event, row.original)"
-                      @mouseenter="handleRowHover(row)"
-                      @mouseleave="handleRowLeave"
-                      @dragover="reorderHandles.allowDrop"
-                      @drop="reorderHandles.drop(row.index)"
-                    >
-                      <td
-                        v-if="hasPresenceRail"
-                        :class="[
-                          'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
-                          row.getIsSelected() && !getRowPresence(row.original)
-                            ? SELECTION_RAIL_BG
-                            : presenceRailBackground(row.original),
-                        ]"
-                        :style="{
-                          width: PRESENCE_RAIL_WIDTH_PX,
-                          minWidth: PRESENCE_RAIL_WIDTH_PX,
-                        }"
+                      <FlexRender
+                        v-if="!header.isPlaceholder"
+                        :render="header.column.columnDef.header"
+                        :props="header.getContext()"
                       />
-                      <td v-if="reorder" :class="uiTable.handleCell()">
-                        <button
-                          v-bind="reorderHandles.handleFor(row.index)"
-                          :class="uiTable.handle()"
-                        >
-                          <UIcon name="i-ph-dots-six-vertical" />
-                        </button>
-                      </td>
-                      <td
-                        v-for="cell in row.getVisibleCells()"
-                        :key="cell.id"
-                        :data-pinned="cell.column.getIsPinned()"
+
+                      <div
+                        v-if="header.column.getCanResize()"
                         :class="
-                          uiTable.rowCell({
-                            pinned: getPinnedVariant(cell.column),
-                            loading,
-                            rowClickable: isRowClickable(row.original),
-                            cellWrap: (cell.column.columnDef as TableColumn<T>)
-                              .cellWrap,
+                          uiTable.colResizer({
+                            isResizing: header.column.getIsResizing(),
                           })
                         "
-                        :style="{
-                          left: getPinnedLeftOffset(cell.column),
-                          right: getPinnedRightOffset(cell.column),
-                        }"
-                      >
-                        <div :class="uiTable.rowContainer()">
-                          <div :class="uiTable.rowInternal({ loading })">
-                            <slot
-                              :name="`${cell.column.id}-cell`"
-                              v-bind="cell.getContext()"
-                            >
-                              <div
-                                :class="
-                                  uiTable.rowSpan({
-                                    cellWrap: (
-                                      cell.column.columnDef as TableColumn<T>
-                                    ).cellWrap,
-                                  })
-                                "
-                                @mouseenter="syncClippedTitle"
-                              >
-                                <FlexRender
-                                  :render="cell.column.columnDef.cell"
-                                  :props="cell.getContext()"
-                                />
-                              </div>
-                            </slot>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr
-                      v-if="row.getIsExpanded()"
-                      :id="expandedRowDomId(row.id)"
-                    >
+                        @dblclick="header.column.resetSize()"
+                        @mousedown="onResize($event, header)"
+                        @touchstart="onResize($event, header)"
+                      />
+                    </slot>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <template v-if="table.getRowModel().rows?.length">
+                  <template
+                    v-for="{ kind, id, row, key, header } in bodyEntries"
+                    :key="id"
+                  >
+                    <tr v-if="kind === 'group' && grouping">
                       <td
                         :colspan="
                           row.getVisibleCells().length + leadingCellCount
                         "
-                        :class="uiTable.expandedCell()"
+                        :class="uiTable.groupCell()"
                       >
-                        <div :class="uiTable.expandedBody()">
-                          <slot name="expanded" :row="row" />
+                        <div :class="uiTable.groupHeader()">
+                          <component
+                            :is="grouping.collapsible ? 'button' : 'span'"
+                            :type="grouping.collapsible ? 'button' : undefined"
+                            :aria-expanded="
+                              grouping.collapsible
+                                ? !collapsedGroups.includes(key!)
+                                : undefined
+                            "
+                            :class="uiTable.groupToggle()"
+                            @click="grouping.collapsible && toggleGroup(key!)"
+                          >
+                            <UIcon
+                              v-if="grouping.collapsible"
+                              :name="
+                                collapsedGroups.includes(key!)
+                                  ? 'i-ph-caret-right'
+                                  : 'i-ph-caret-down'
+                              "
+                              class="size-3"
+                            />
+                            <component :is="header" />
+                          </component>
+                          <span
+                            v-if="grouping.countOf?.(key!) !== undefined"
+                            :class="uiTable.groupCount()"
+                          >
+                            {{ grouping.countOf(key!) }}
+                          </span>
                         </div>
                       </td>
                     </tr>
+                    <template v-else>
+                      <tr
+                        :data-selected="row.getIsSelected()"
+                        :data-expanded="row.getIsExpanded()"
+                        :data-open="isOpenRow(row.original) || undefined"
+                        :aria-current="isOpenRow(row.original) || undefined"
+                        :data-presence="!!getRowPresence(row.original)"
+                        :title="
+                          getRowPresence(row.original)
+                            ? presenceTooltipText(getRowPresence(row.original)!)
+                            : undefined
+                        "
+                        :class="[
+                          uiTable.row({
+                            loading,
+                            rowClickable: isRowClickable(row.original),
+                            presence: !!getRowPresence(row.original),
+                          }),
+                          { 'cursor-pointer': isSingleClickRow(row.original) },
+                        ]"
+                        @click="handleRowPointer($event, row.original)"
+                        @dblclick="handleRowPointer($event, row.original)"
+                        @mouseenter="handleRowHover(row)"
+                        @mouseleave="handleRowLeave"
+                        @dragover="reorderHandles.allowDrop"
+                        @drop="reorderHandles.drop(row.index)"
+                      >
+                        <td
+                          v-if="hasPresenceRail"
+                          :class="[
+                            'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
+                            row.getIsSelected() && !getRowPresence(row.original)
+                              ? SELECTION_RAIL_BG
+                              : presenceRailBackground(row.original),
+                          ]"
+                          :style="{
+                            width: PRESENCE_RAIL_WIDTH_PX,
+                            minWidth: PRESENCE_RAIL_WIDTH_PX,
+                          }"
+                        />
+                        <td v-if="reorder" :class="uiTable.handleCell()">
+                          <button
+                            v-bind="reorderHandles.handleFor(row.index)"
+                            :class="uiTable.handle()"
+                          >
+                            <UIcon name="i-ph-dots-six-vertical" />
+                          </button>
+                        </td>
+                        <td
+                          v-for="cell in row.getVisibleCells()"
+                          :key="cell.id"
+                          :data-pinned="cell.column.getIsPinned()"
+                          :class="
+                            uiTable.rowCell({
+                              pinned: getPinnedVariant(cell.column),
+                              loading,
+                              rowClickable: isRowClickable(row.original),
+                              cellWrap: (
+                                cell.column.columnDef as TableColumn<T>
+                              ).cellWrap,
+                            })
+                          "
+                          :style="{
+                            left: getPinnedLeftOffset(cell.column),
+                            right: getPinnedRightOffset(cell.column),
+                          }"
+                        >
+                          <div :class="uiTable.rowContainer()">
+                            <div :class="uiTable.rowInternal({ loading })">
+                              <slot
+                                :name="`${cell.column.id}-cell`"
+                                v-bind="cell.getContext()"
+                              >
+                                <div
+                                  :class="
+                                    uiTable.rowSpan({
+                                      cellWrap: (
+                                        cell.column.columnDef as TableColumn<T>
+                                      ).cellWrap,
+                                    })
+                                  "
+                                  @mouseenter="syncClippedTitle"
+                                >
+                                  <FlexRender
+                                    :render="cell.column.columnDef.cell"
+                                    :props="cell.getContext()"
+                                  />
+                                </div>
+                              </slot>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr
+                        v-if="row.getIsExpanded()"
+                        :id="expandedRowDomId(row.id)"
+                      >
+                        <td
+                          :colspan="
+                            row.getVisibleCells().length + leadingCellCount
+                          "
+                          :class="uiTable.expandedCell()"
+                        >
+                          <div :class="uiTable.expandedBody()">
+                            <slot name="expanded" :row="row" />
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
                   </template>
                 </template>
-              </template>
-              <!-- First load: skeleton rows keep the column rhythm instead of
+                <!-- First load: skeleton rows keep the column rhythm instead of
                 flashing the empty state. -->
-              <template v-else-if="isFirstPageLoading">
-                <tr
-                  v-for="rowIndex in skeletonRowCount"
-                  :key="`skeleton-${rowIndex}`"
-                  aria-hidden="true"
-                  :class="uiTable.skeletonRow()"
-                  :style="{ opacity: skeletonRowOpacity(rowIndex) }"
-                >
-                  <td
-                    v-if="hasPresenceRail"
-                    class="border-b-muted border-b p-0 in-[tr:last-child]:border-b-0"
-                  />
-                  <td v-if="reorder" :class="uiTable.handleCell()" />
-                  <td
-                    v-for="(
-                      column, columnIndex
-                    ) in table.getVisibleLeafColumns()"
-                    :key="column.id"
-                    :class="uiTable.rowCell()"
+                <template v-else-if="isFirstPageLoading">
+                  <tr
+                    v-for="rowIndex in skeletonRowCount"
+                    :key="`skeleton-${rowIndex}`"
+                    aria-hidden="true"
+                    :class="uiTable.skeletonRow()"
+                    :style="{ opacity: skeletonRowOpacity(rowIndex) }"
                   >
-                    <USkeleton
-                      :aria-label="t('dms.a11y.loading')"
-                      v-if="column.columnDef.meta"
-                      :class="uiTable.skeletonCell()"
-                      :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
+                    <td
+                      v-if="hasPresenceRail"
+                      class="border-b-muted border-b p-0 in-[tr:last-child]:border-b-0"
                     />
+                    <td v-if="reorder" :class="uiTable.handleCell()" />
+                    <td
+                      v-for="(
+                        column, columnIndex
+                      ) in table.getVisibleLeafColumns()"
+                      :key="column.id"
+                      :class="uiTable.rowCell()"
+                    >
+                      <USkeleton
+                        :aria-label="t('dms.a11y.loading')"
+                        v-if="column.columnDef.meta"
+                        :class="uiTable.skeletonCell()"
+                        :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
+                      />
+                    </td>
+                  </tr>
+                </template>
+                <tr v-else>
+                  <td
+                    :colspan="
+                      table.getVisibleLeafColumns().length + leadingCellCount
+                    "
+                    class="p-0"
+                  >
+                    <div :class="uiTable.emptyBody()">
+                      <TableEmpty
+                        :can-add-row="
+                          normalizeActionConfig(rowActions?.add).isEnabled
+                        "
+                        :load-error="loadError"
+                        :archived="isShowingArchived"
+                        :empty-states="emptyStates"
+                      />
+                    </div>
                   </td>
                 </tr>
-              </template>
-              <tr v-else>
-                <td
-                  :colspan="
-                    table.getVisibleLeafColumns().length + leadingCellCount
-                  "
-                  class="p-0"
-                >
-                  <div :class="uiTable.emptyBody()">
-                    <TableEmpty
-                      :can-add-row="
-                        normalizeActionConfig(rowActions?.add).isEnabled
-                      "
-                      :load-error="loadError"
-                      :archived="isShowingArchived"
-                      :empty-states="emptyStates"
-                    />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <span
+          v-if="scrollEdges.start"
+          aria-hidden="true"
+          data-table-scroll-fade="start"
+          :class="uiTable.scrollFade({ side: 'start' })"
+          :style="{ insetInlineStart: `${scrollFadeInsets.start}px` }"
+        />
+        <span
+          v-if="scrollEdges.end"
+          aria-hidden="true"
+          data-table-scroll-fade="end"
+          :class="uiTable.scrollFade({ side: 'end' })"
+          :style="{ insetInlineEnd: `${scrollFadeInsets.end}px` }"
+        />
+      </div>
 
       <TablePagination />
     </slot>

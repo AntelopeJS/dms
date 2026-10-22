@@ -16,7 +16,10 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
+import { dmsOwnDrawer } from "../../../build/composables/containers/context";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
+import { unlabeledRelationIds } from "../../../build/composables/data-types/relationValue";
+import { useRelationRows } from "../../../build/composables/data-types/relationRows";
 import type { FormProps } from "../../../composables/form/types";
 import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
@@ -132,6 +135,7 @@ const filterKey = computed(() => JSON.stringify(filterParams.value));
 const loadedFilterSource = filterSourceValue.value;
 
 const { $authFetch } = useAuthFetch();
+const { readRelationRows } = useRelationRows();
 const toast = useToast();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
@@ -146,6 +150,9 @@ const addContainerId = `relation-add-${useId()}`;
 // unwrapped item is an unbounded type for the checker. The list is always
 // replaced, never mutated in place.
 const locallyAddedItems: Ref<SelectMenuItem[]> = shallowRef([]);
+// The rows of the ids the value holds, read from the `select` route when the
+// form's data answers the ids rather than the joined rows.
+const valueItems: Ref<SelectMenuItem[]> = shallowRef([]);
 
 const canAdd = computed(
   () =>
@@ -285,27 +292,24 @@ const initialItems = computed(() => {
   return values.filter(isMappableObject).map(mapData);
 });
 
+function itemValue(item: SelectMenuItem): unknown {
+  return typeof item === "object" && item !== null && "value" in item
+    ? item.value
+    : item;
+}
+
 const mergedItems = computed<SelectMenuItem[]>(() => {
   const searchResults = data.value?.results || [];
   const initial = initialItems.value || [];
   const added = locallyAddedItems.value;
 
   const merged: SelectMenuItem[] = [...initial, ...added];
-  const existingValues = new Set(
-    merged.map((item) =>
-      typeof item === "object" && item !== null && "value" in item
-        ? item.value
-        : item,
-    ),
-  );
+  const existingValues = new Set(merged.map(itemValue));
 
-  searchResults.forEach((item) => {
-    const itemValue =
-      typeof item === "object" && item !== null && "value" in item
-        ? item.value
-        : item;
-
-    if (!existingValues.has(itemValue)) {
+  [...valueItems.value, ...searchResults].forEach((item) => {
+    const value = itemValue(item);
+    if (!existingValues.has(value)) {
+      existingValues.add(value);
       merged.push(item);
     }
   });
@@ -384,6 +388,41 @@ watch(
   },
 );
 
+const labeledIds = computed(
+  () => new Set(mergedItems.value.map((item) => String(itemValue(item)))),
+);
+// Asked once each: an id the route does not answer (deleted, out of reach)
+// keeps showing as is rather than being asked again.
+const requestedIds = new Set<string>();
+
+async function loadValueItems(ids: string[]) {
+  for (const id of ids) requestedIds.add(id);
+  const rows = await readRelationRows(
+    { searchUrl: props.searchUrl, keyMapping: props.keyMapping },
+    ids,
+  );
+  if (!rows.length) return;
+  valueItems.value = [
+    ...valueItems.value,
+    ...rows.map((item) => mapData(item as Record<string, string>)),
+  ];
+}
+
+// The picker shows a value through its item: an id no item carries yet is
+// labelled (and given its avatar) from its row before the picker is opened.
+onMounted(() => {
+  watch(
+    () =>
+      unlabeledRelationIds(props.modelValue, labeledIds.value).filter(
+        (id) => !requestedIds.has(id),
+      ),
+    (ids) => {
+      if (ids.length > 0) void loadValueItems(ids);
+    },
+    { immediate: true },
+  );
+});
+
 function onOpen(isOpen: boolean) {
   if (isOpen && !data.value?.results?.length) {
     execute();
@@ -393,25 +432,27 @@ function onOpen(isOpen: boolean) {
 function openAddDrawer() {
   const formOptions = addFormOptions.value;
   if (!formOptions) return;
-  const drawer = openDrawer({
-    title: props.addFormTexts?.displayName
-      ? processI18n(props.addFormTexts.displayName)
-      : t("dms.table.new_item"),
-    description: props.addFormTexts?.description
-      ? processI18n(props.addFormTexts.description)
-      : t("dms.table.new_item_description"),
-    direction: "bottom",
-    containerId: addContainerId,
-    component: DmsForm,
-    componentOptions: {
-      ...formOptions,
-      onSuccessCallback: (response: unknown, formData: unknown) => {
-        clearGuards(addContainerId);
-        drawer.close();
-        handleAddSuccess(response, formData);
+  const drawer = openDrawer(
+    dmsOwnDrawer({
+      title: props.addFormTexts?.displayName
+        ? processI18n(props.addFormTexts.displayName)
+        : t("dms.table.new_item"),
+      description: props.addFormTexts?.description
+        ? processI18n(props.addFormTexts.description)
+        : t("dms.table.new_item_description"),
+      direction: "bottom",
+      containerId: addContainerId,
+      component: DmsForm,
+      componentOptions: {
+        ...formOptions,
+        onSuccessCallback: (response: unknown, formData: unknown) => {
+          clearGuards(addContainerId);
+          drawer.close();
+          handleAddSuccess(response, formData);
+        },
       },
-    },
-  });
+    }),
+  );
 }
 
 function extractInsertedId(response: unknown): string | undefined {
@@ -492,6 +533,7 @@ const addFormOptions = computed(() => {
     :portal="false"
     :ignore-filter="true"
     :ui="{ content: 'z-50' }"
+    :aria-label="t('dms.a11y.show_options')"
     @update:open="onOpen"
     @update:model-value="handleUpdateModelValue"
   >

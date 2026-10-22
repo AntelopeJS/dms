@@ -34,6 +34,8 @@ interface Props extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   periodScope?: string;
+  /** Topics whose events make the card read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -83,6 +85,7 @@ const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
   periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   staticData: () => staticData.value,
   watchSource: () => watchKey.value,
 });
@@ -119,10 +122,25 @@ const showTrend = computed(() => props.showDelta && delta.value !== null);
 const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
+// The comparison label names the period the delta is measured against:
+// with no comparison (no delta), it gives way to the description, or to an
+// empty line holding its place, so toggling a comparison moves nothing.
+const hasComparisonLabel = computed(
+  () => !!props.compareLabel && delta.value !== null,
+);
 const footnote = computed(() => {
-  const text = props.compareLabel || props.description;
+  const text = hasComparisonLabel.value
+    ? props.compareLabel
+    : props.description;
   return text ? processI18n(text) : "";
 });
+// Known from the props alone, before any data: the skeleton draws it.
+const hasFootnoteLine = computed(
+  () => !!(props.compareLabel || props.description),
+);
+const holdsFootnoteLine = computed(
+  () => !footnote.value && hasFootnoteLine.value,
+);
 
 const resolvedSparklineAccent = computed(() =>
   resolveSparklineAccent(
@@ -236,14 +254,14 @@ const isStat = computed(() => props.variant === "stat");
     <!-- The trend (a 24px line) and the footnote (16px) as the loaded card
          lays them out; the footnote is a prop, so it is known up front. -->
     <div
-      v-if="isFirstLoad && (showDelta || footnote || showSparkline)"
+      v-if="isFirstLoad && (showDelta || hasFootnoteLine || showSparkline)"
       class="mt-auto flex items-end gap-2"
     >
       <div class="grid">
         <div v-if="showDelta" class="flex h-6 items-center">
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-[58px]" />
         </div>
-        <div v-if="footnote" class="flex h-4 items-center">
+        <div v-if="hasFootnoteLine" class="flex h-4 items-center">
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-2.5 w-28" />
         </div>
       </div>
@@ -257,7 +275,10 @@ const isStat = computed(() => props.variant === "stat");
          no change to show (no comparison period): no "0%" stand-in, and
          toggling a comparison never moves the footnote. -->
     <div
-      v-else-if="!hasError && (showDelta || footnote || hasSparkline)"
+      v-else-if="
+        !hasError &&
+        (showDelta || footnote || holdsFootnoteLine || hasSparkline)
+      "
       class="mt-auto flex items-end gap-2"
     >
       <div class="min-w-0">
@@ -275,6 +296,11 @@ const isStat = computed(() => props.variant === "stat");
         >
           {{ footnote }}
         </p>
+        <span
+          v-else-if="holdsFootnoteLine"
+          class="block h-4"
+          aria-hidden="true"
+        />
       </div>
       <div
         v-if="hasSparkline"

@@ -11,6 +11,11 @@
 # recorded in DMS_BACK_DIR/.antelope/dms-dev.pid; without that file it falls back to the dev
 # processes whose working directory or command line lies under DMS_BACK_DIR. Other projects'
 # dev servers on the same machine are never touched.
+#
+# Windows (Git Bash, MSYS2, Cygwin): their ps lists only their own processes and takes no -o,
+# while the dev servers run as native node.exe processes. There the script reads the Windows
+# process table (PowerShell's Get-CimInstance Win32_Process), works in Windows pids, and stops
+# a server's whole tree with taskkill /T /F.
 
 set -uo pipefail
 
@@ -34,10 +39,33 @@ DEFAULT_FRONT_URL='http://localhost:3001'
 # Only picks candidates when no pid file exists, and is always combined with the
 # DMS_BACK_DIR scope check: on its own it would match every project on the machine.
 PROC_PATTERN='antelope-runner|ajs project (run|dev)|(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev|pnpm( run)? (dev|frontend:dev)'
+# The same, split per server, for the commands that restart only one of them.
+BACK_PROC_PATTERN='antelope-runner|ajs project (run|dev)|pnpm( run)? dev'
+FRONT_PROC_PATTERN='(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev|pnpm( run)? frontend:dev'
+
+case "$(uname -s 2>/dev/null)" in
+  MINGW* | MSYS* | CYGWIN*) IS_WINDOWS=1 ;;
+  *) IS_WINDOWS="" ;;
+esac
+
+# One line per process: "pid<TAB>ppid<TAB>created<TAB>command line". The creation time, a
+# fixed-width UTC timestamp, tells a child from an older process holding a dead parent's pid.
+# shellcheck disable=SC2016  # PowerShell code, not shell expansions
+WIN_PROCESS_QUERY='[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$tab = [char]9
+Get-CimInstance Win32_Process | ForEach-Object {
+  $created = "00000000000000000000"
+  if ($_.CreationDate) { $created = $_.CreationDate.ToUniversalTime().ToString("yyyyMMddHHmmssffffff") }
+  [string]$_.ProcessId + $tab + $_.ParentProcessId + $tab + $created + $tab + ($_.CommandLine -replace "\s+", " ")
+}'
 
 PROJECT_ROOT=""
 PID_FILE=""
 LAUNCHED_PID=""
+# Windows only: the process table (see refresh_process_table) and the project root as a
+# lowercase Windows path with forward slashes, the form command lines are compared in.
+WIN_TABLE=""
+WIN_ROOT=""
 
 log() { printf '[dms-dev] %s\n' "$*"; }
 
@@ -57,9 +85,53 @@ require_dms_back_dir() {
   fi
   PROJECT_ROOT="$(cd "$DMS_BACK_DIR" && pwd -P)"
   PID_FILE="$PROJECT_ROOT/.antelope/dms-dev.pid"
+  [ -z "$IS_WINDOWS" ] || WIN_ROOT="$(cygpath -m "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
 }
 
 is_alive() { [ -n "$1" ] && kill -0 "$1" 2>/dev/null; }
+
+# Reads the Windows process table once for the lookups that follow; nothing elsewhere.
+# Call it in the shell that runs them: a command substitution's copy is lost with it.
+refresh_process_table() {
+  [ -n "$IS_WINDOWS" ] || return 0
+  WIN_TABLE="$(powershell.exe -NoProfile -NonInteractive -EncodedCommand \
+    "$(printf '%s' "$WIN_PROCESS_QUERY" | iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\n')" \
+    2>/dev/null | tr -d '\r')"
+}
+
+# The Windows pid behind a Git Bash / MSYS2 / Cygwin pid.
+win_pid() { cat "/proc/$1/winpid" 2>/dev/null; }
+
+win_alive() {
+  [ -n "$1" ] && printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v pid="$1" '$1 == pid { found = 1 } END { exit !found }'
+}
+
+win_args() { printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v pid="$1" '$1 == pid { print $4; exit }'; }
+
+# A native process exposes no working directory: only its command line can name the project.
+win_in_project() {
+  local args
+  # shellcheck disable=SC1003  # tr's escaped backslash, not a quote
+  args="$(win_args "$1" | tr '\\' '/' | tr '[:upper:]' '[:lower:]')"
+  case "$args " in *"$WIN_ROOT"/* | *"$WIN_ROOT "* | *"$WIN_ROOT\""*) return 0 ;; esac
+  return 1
+}
+
+# The given Windows pids plus every process whose parent chain leads to one (Windows has no
+# process groups), each child created after its parent.
+win_expand_tree() {
+  printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v roots="$*" '
+    BEGIN { n = split(roots, r, " "); for (i = 1; i <= n; i++) keep[r[i]] = 1 }
+    { parent[$1] = $2; created[$1] = $3 "" }
+    END {
+      do {
+        grew = 0
+        for (p in parent)
+          if (!(p in keep) && (parent[p] in keep) && created[p] >= created[parent[p]]) { keep[p] = 1; grew = 1 }
+      } while (grew)
+      for (p in keep) if (p in parent) print p
+    }'
+}
 
 process_cwd() {
   if [ -e "/proc/$1/cwd" ]; then
@@ -75,6 +147,10 @@ process_args() { ps -o args= -p "$1" 2>/dev/null; }
 
 is_in_project() {
   case "$(process_cwd "$1")/" in "$PROJECT_ROOT"/*) return 0 ;; esac
+  if [ -n "$IS_WINDOWS" ]; then
+    win_in_project "$(win_pid "$1")"
+    return
+  fi
   case "$(process_args "$1") " in *"$PROJECT_ROOT"/* | *"$PROJECT_ROOT "*) return 0 ;; esac
   return 1
 }
@@ -94,13 +170,16 @@ expand_tree() {
     }'
 }
 
+# The live pids the pid file records, of every server or only of the one named; on Windows,
+# as Windows pids.
 pid_file_roots() {
   [ -f "$PID_FILE" ] || return 0
-  local name pid
+  local only="${1:-}" name pid
   while read -r name pid; do
     [ -n "${pid:-}" ] || continue
+    [ -z "$only" ] || [ "$name" = "$only" ] || continue
     if is_alive "$pid" && is_in_project "$pid"; then
-      echo "$pid"
+      if [ -n "$IS_WINDOWS" ]; then win_pid "$pid"; else echo "$pid"; fi
     else
       log "ignoring stale $name pid $pid from $PID_FILE" >&2
     fi
@@ -108,24 +187,60 @@ pid_file_roots() {
 }
 
 scanned_roots() {
-  local listing pid
+  local pattern="${1:-$PROC_PATTERN}" listing pid
+  if [ -n "$IS_WINDOWS" ]; then
+    # Matched with forward slashes, the way the patterns spell paths.
+    # shellcheck disable=SC1003  # tr's escaped backslash, not a quote
+    printf '%s\n' "$WIN_TABLE" | cut -f1,4 | tr '\\' '/' | grep -E "$pattern" | cut -f1 | while read -r pid; do
+      win_in_project "$pid" && echo "$pid"
+    done
+    return
+  fi
   # Captured first so the grep below never sees its own command line.
   listing="$(ps -A -o pid=,args=)"
-  printf '%s\n' "$listing" | grep -E "$PROC_PATTERN" | awk '{print $1}' | while read -r pid; do
+  printf '%s\n' "$listing" | grep -E "$pattern" | awk '{print $1}' | while read -r pid; do
     is_in_project "$pid" && echo "$pid"
   done
 }
 
+# The process pattern of the server named, or of both.
+server_pattern() {
+  case "${1:-}" in
+    backend) echo "$BACK_PROC_PATTERN" ;;
+    frontend) echo "$FRONT_PROC_PATTERN" ;;
+    *) echo "$PROC_PATTERN" ;;
+  esac
+}
+
+# Every process of this project's servers, or of the one named (backend or frontend). On
+# Windows they are Windows pids, read from the table refresh_process_table last read.
 project_pids() {
-  local roots
-  roots="$(pid_file_roots)"
-  [ -n "$roots" ] || roots="$(scanned_roots)"
+  local name="${1:-}" roots
+  roots="$(pid_file_roots "$name")"
+  [ -n "$roots" ] || roots="$(scanned_roots "$(server_pattern "$name")")"
   [ -n "$roots" ] || return 0
+  if [ -n "$IS_WINDOWS" ]; then
+    # shellcheck disable=SC2086  # one pid per word
+    win_expand_tree $roots | grep -vx "$(win_pid $$)"
+    return
+  fi
   # shellcheck disable=SC2086  # one pid per word
   expand_tree $roots | grep -vx "$$"
 }
 
 self_ancestors() {
+  if [ -n "$IS_WINDOWS" ]; then
+    printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v pid="$(win_pid $$)" '
+      { parent[$1] = $2; created[$1] = $3 "" }
+      END {
+        for (depth = 0; pid != "" && pid != "0" && depth < 256; depth++) {
+          print pid
+          if (!(pid in parent) || !(parent[pid] in parent) || created[parent[pid]] > created[pid]) break
+          pid = parent[pid]
+        }
+      }'
+    return
+  fi
   local pid="$$"
   while [ -n "$pid" ] && [ "$pid" -gt 1 ]; do
     echo "$pid"
@@ -169,21 +284,53 @@ signal_and_wait() {
   return 1
 }
 
-stop_servers() {
-  require_dms_back_dir stop
-  log "stopping dev servers of $PROJECT_ROOT…"
-  local targets
-  targets="$(project_pids)"
-  if [ -z "$targets" ]; then
+# Windows has no SIGTERM a console node process would handle: each tree is ended at once.
+win_kill_and_wait() {
+  local pid survivors
+  for pid in "$@"; do taskkill //T //F //PID "$pid" >/dev/null 2>&1; done
+  sleep 1
+  refresh_process_table
+  survivors="$(for pid in "$@"; do win_alive "$pid" && echo "$pid"; done)"
+  [ -z "$survivors" ] && return 0
+  log "error: could not stop: $(echo "$survivors" | tr '\n' ' ')"
+  return 1
+}
+
+# Drops the pid the pid file records for the server named, or the whole file.
+forget_pids() {
+  if [ -z "${1:-}" ]; then
     rm -f "$PID_FILE"
+    return
+  fi
+  [ -f "$PID_FILE" ] || return 0
+  local kept
+  kept="$(grep -v "^$1 " "$PID_FILE")"
+  if [ -n "$kept" ]; then printf '%s\n' "$kept" > "$PID_FILE"; else rm -f "$PID_FILE"; fi
+}
+
+# Stops this project's servers, or only the one named (backend or frontend).
+stop_servers() {
+  local name="${1:-}"
+  require_dms_back_dir "${cmd:-stop}"
+  log "stopping ${name:-dev servers} of $PROJECT_ROOT…"
+  local targets
+  refresh_process_table
+  targets="$(project_pids "$name")"
+  if [ -z "$targets" ]; then
+    forget_pids "$name"
     log "nothing running."
     return 0
   fi
   # shellcheck disable=SC2086  # one pid per word
   refuse_if_hosting_self $targets || exit 3
-  # shellcheck disable=SC2086
-  signal_and_wait $targets || return 1
-  rm -f "$PID_FILE"
+  if [ -n "$IS_WINDOWS" ]; then
+    # shellcheck disable=SC2086
+    win_kill_and_wait $targets || return 1
+  else
+    # shellcheck disable=SC2086
+    signal_and_wait $targets || return 1
+  fi
+  forget_pids "$name"
   log "stopped."
 }
 
@@ -258,11 +405,23 @@ dev_json_url() {
   for file in "$PROJECT_ROOT/.antelope/dev.json" "$PROJECT_ROOT"/*/.antelope/dev.json; do
     [ -f "$file" ] || continue
     read -r pid url <<< "$(read_dev_json "$file")"
-    if [ -n "${url:-}" ] && is_alive "$pid" && is_in_project "$pid"; then
+    if [ -n "${url:-}" ] && is_project_process "$pid"; then
       echo "$url"
       return
     fi
   done
+}
+
+# Whether a pid a server wrote down itself (node's own, a Windows pid on Windows) is alive
+# and one of this project's.
+is_project_process() {
+  if [ -z "$IS_WINDOWS" ]; then
+    is_alive "$1" && is_in_project "$1"
+    return
+  fi
+  [ -n "$1" ] || return 1
+  refresh_process_table
+  project_pids backend | grep -qx "$1"
 }
 
 backend_url() {
@@ -299,6 +458,17 @@ start_frontend() {
   log "frontend ready on $(frontend_url)."
 }
 
+# Stops the server named (backend or frontend) if it runs, and starts it again: the other
+# one keeps running.
+restart_server() {
+  local name="$1"
+  stop_servers "$name" || true
+  if ! "start_$name"; then
+    log "aborting $cmd: $name failed to start."
+    exit 1
+  fi
+}
+
 start_servers() {
   local verb="$1"
   rm -f "$PID_FILE"
@@ -316,9 +486,16 @@ status() {
   require_dms_back_dir status
   log "dev processes of $PROJECT_ROOT:"
   local targets
+  refresh_process_table
   targets="$(project_pids)"
   if [ -z "$targets" ]; then
     echo "  (none)"
+    return
+  fi
+  if [ -n "$IS_WINDOWS" ]; then
+    printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v pids="$targets" '
+      BEGIN { n = split(pids, p, "[[:space:]]+"); for (i = 1; i <= n; i++) wanted[p[i]] = 1 }
+      $1 in wanted { printf "  %s %s\n", $1, $4 }'
     return
   fi
   # shellcheck disable=SC2086  # one pid per word
@@ -333,8 +510,12 @@ Commands:
   restart       Stop this project's servers, start backend, wait, start frontend, wait.
                 Only when hot reload cannot apply a change, and never from an agent
                 running inside the DMS: it would stop its own host.
+  restart-back  Stop this project's backend if it runs, start it again, wait: the frontend
+                keeps running. Same rules as restart.
+  restart-front The same for the frontend alone, e.g. once it crashed while the backend ran.
   start         Same as restart but does not stop first (errors if already running).
-  stop          Stop this project's servers: SIGTERM, then SIGKILL after the grace period.
+  stop          Stop this project's servers: SIGTERM, then SIGKILL after the grace period
+                (on Windows: taskkill /T /F at once).
   status        Show this project's dev processes.
   back-log [N]  Tail the last N (default 60) lines of the backend log.
   front-log [N] Tail the last N (default 60) lines of the frontend log.
@@ -349,7 +530,7 @@ Environment:
   DMS_BACK_LOG       (default: /tmp/dms-back.log)
   DMS_FRONT_LOG      (default: /tmp/dms-front.log)
   DMS_DEV_TIMEOUT    (default: 180 seconds per server)
-  DMS_DEV_STOP_GRACE (default: 10 seconds between SIGTERM and SIGKILL)
+  DMS_DEV_STOP_GRACE (default: 10 seconds between SIGTERM and SIGKILL; unused on Windows)
 EOF
 }
 
@@ -359,8 +540,15 @@ case "$cmd" in
     stop_servers || true
     start_servers restart
     ;;
+  restart-back)
+    restart_server backend
+    ;;
+  restart-front)
+    restart_server frontend
+    ;;
   start)
     require_dms_back_dir start
+    refresh_process_table
     if [ -n "$(project_pids)" ]; then
       log "error: servers already running. Use restart, or stop first."
       status

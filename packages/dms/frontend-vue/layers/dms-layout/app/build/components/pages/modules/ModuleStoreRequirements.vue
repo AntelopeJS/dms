@@ -18,7 +18,10 @@ const missingInterfaces = computed(() =>
     .map((missing) => missing.interfacePackage)
     .join(LIST_SEPARATOR),
 );
-const dependents = computed(() => props.entry.dependents.join(LIST_SEPARATOR));
+// A working copy offers no action, so who uses it changes nothing there.
+const dependents = computed(() =>
+  props.entry.isWorkingCopy ? "" : props.entry.dependents.join(LIST_SEPARATOR),
+);
 </script>
 
 <template>
@@ -92,7 +95,9 @@ const dependents = computed(() => props.entry.dependents.join(LIST_SEPARATOR));
     {{ t("modules.store.requires", { interfaces: missingInterfaces }) }}
   </p>
 
-  <p v-if="dependents" class="text-xs text-(--ui-warning)">
-    {{ t("modules.store.used_by", { modules: dependents }) }}
+  <!-- Informative only: what it takes to pause or remove the module is
+       said in the Manage menu, where those actions are. -->
+  <p v-if="dependents" class="text-dimmed truncate text-xs" :title="dependents">
+    {{ t("modules.store.dependents", { modules: dependents }) }}
   </p>
 </template>

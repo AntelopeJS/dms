@@ -119,4 +119,38 @@ describe("[integration] auth/login throttle", () => {
     expect(burst.filter((row) => row.kind === "alerted")).to.have.length(1);
     expect(burst).to.have.length(BURST_THRESHOLD + 1);
   });
+
+  describe("behind a platform client IP header", () => {
+    before(() => {
+      getAuthConfig().clientIpHeader = "X-Client-IP";
+    });
+
+    after(() => {
+      delete getAuthConfig().clientIpHeader;
+    });
+
+    async function signInAs(email: string, password: string, ip: string) {
+      const response = await createClient().post(
+        "/api/auth/login",
+        { email, password },
+        // A forged x-forwarded-for: only the platform header counts.
+        { headers: { "x-client-ip": ip, "x-forwarded-for": "198.51.100.1" } },
+      );
+      return response.status;
+    }
+
+    it("locks the client the header names and no other", async () => {
+      const locked = `198.18.0.${next()}`;
+      for (let attempt = 0; attempt < FAILURES_PER_CLIENT; attempt++) {
+        await signInAs(freshEmail(), WRONG_PASSWORD, locked);
+      }
+      const user = await registerUser();
+      expect(await signInAs(user.email, user.password, locked)).to.equal(
+        HTTP_TOO_MANY_REQUESTS,
+      );
+      expect(
+        await signInAs(user.email, user.password, `198.18.1.${next()}`),
+      ).to.equal(HTTP_OK);
+    });
+  });
 });

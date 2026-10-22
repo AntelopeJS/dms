@@ -17,6 +17,7 @@ import {
   groupedOptionsFor,
   groupedSorting,
   groupFilter,
+  groupRows,
   isGroupableColumn,
   NO_GROUP_KEY,
   rowGroupKey,
@@ -93,6 +94,25 @@ describe("grouped rows", () => {
     expect(groupedSorting([], { groupByField: "status" })).toEqual([
       { id: "status", desc: false },
     ]);
+  });
+});
+
+describe("groupRows", () => {
+  it("files every row of a group under one header, whatever the order", () => {
+    // Rows still sorted by name while the grouped sort loads.
+    const rows = [
+      { name: "Ann", role: "technician" },
+      { name: "Bob", role: "office" },
+      { name: "Eve", role: "technician" },
+      { name: "Joe", role: "manager" },
+      { name: "Sam", role: "office" },
+    ];
+    expect(groupRows(rows, (row) => row.role)).toEqual([
+      { key: "technician", rows: [rows[0], rows[2]] },
+      { key: "office", rows: [rows[1], rows[4]] },
+      { key: "manager", rows: [rows[3]] },
+    ]);
+    expect(groupRows([], (row: { role: string }) => row.role)).toEqual([]);
   });
 });
 
