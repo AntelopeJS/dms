@@ -4,7 +4,7 @@ import type {
   Component,
   ComponentInfoSerialized,
 } from "../../component";
-import type { FormPropsSerialized } from "../form-types";
+import type { FormBuilder, FormPropsSerialized } from "../form-types";
 import type { BlockLinkAction } from "../display";
 import type { Tone } from "../types/tone";
 import type { ColorValue } from "../types";
@@ -680,6 +680,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "kanban"
   | "displays"
   | "formSlots"
+  | "forms"
   | "expandable"
   | "tabs"
   | "views"
@@ -773,6 +774,13 @@ export type FormContainer =
       type: "page";
       pages?: FormContainerPages;
     };
+
+/**
+ * Settles one of the forms a table view generates, as a module writes its own
+ * `Form`: it receives the builder, and what it declares on it (`.watch()`…)
+ * holds wherever the form opens.
+ */
+export type TableViewFormSetup = (form: FormBuilder) => void;
 
 /**
  * Page-mode form URLs, resolved against the slug of the page the table view is
@@ -1159,6 +1167,26 @@ export interface TableViewOptions<
    * reach the data routes only if the controller reads them.
    */
   formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
+  /**
+   * Settles the forms the table view generates, by form kind: each callback
+   * receives the form's builder before the table view embeds it, and declares
+   * on it what a module's own `Form` would — conditional fields with
+   * `.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, …)`,
+   * without replacing the generated form by a custom page. What it declares
+   * holds in a drawer, a modal or a form page alike; the `new` form's also on
+   * a duplicated row. A watch's `requirePermission` is checked per request,
+   * as on a page's own components.
+   *
+   * @example
+   * forms: {
+   *   new: (form) =>
+   *     form.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
+   *       params: { targetField: "companyName", setHidden: false },
+   *       onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
+   *     }),
+   * }
+   */
+  forms?: Partial<Record<"new" | "edit" | "view", TableViewFormSetup>>;
   /**
    * Skip the tenant access gate on every data route of this table view, the
    * table-view mirror of the guards' `bypassTenantAccessGate` option. Reserved

@@ -2,7 +2,7 @@ import { defineAsyncComponent, h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import MonoCell from "../../components/table/MonoCell.vue";
-import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   readRowField,
   readRowTone,
@@ -11,6 +11,7 @@ import {
   toneClass,
   type Row,
 } from "./cellHelpers";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const Sparkline = defineAsyncComponent(
   () => import("../../../components/chart/internal/Sparkline.vue"),
@@ -50,8 +51,8 @@ function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
  * `subTone`, else the pill's.
  */
 function renderStatusPill(value: unknown, options: unknown, row: Row) {
-  const { processI18n } = useTranslation();
-  const { processText } = useComposedText();
+  const { processI18n } = getAppTranslation();
+  const { processText } = getAppComposedText();
   const opts = (options ?? {}) as StatusPillOptions;
   const key = String(value);
   const item = opts.typeOptions?.items?.find(

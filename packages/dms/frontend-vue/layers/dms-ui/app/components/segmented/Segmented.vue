@@ -7,7 +7,13 @@ import { computed, ref } from "vue";
 // Single-select, v-model'd. Implements the radiogroup keyboard pattern
 // (roving tabindex + arrow/Home/End, skipping disabled segments).
 interface SegItem {
+  /** The visible text; empty for an icon-only segment. */
   label: string;
+  /**
+   * The segment's accessible name when the visible label does not say it
+   * all: a short code ("24H" for "Last 24 hours") or an icon alone.
+   */
+  ariaLabel?: string;
   value: string | number;
   icon?: string;
   /** Small mono counter after the label. */
@@ -149,6 +155,12 @@ function onKeydown(event: KeyboardEvent, index: number) {
 }
 
 // A track wider than its container (a phone, a narrow column) scrolls
+// Every segment is named: its `ariaLabel`, else its label, else its value
+// (an icon-only segment given neither still reads as something).
+function itemAriaLabel(item: SegItem): string {
+  return item.ariaLabel || item.label || String(item.value);
+}
+
 // sideways inside its pill, or wraps with `overflow="wrap"`; the focus ring
 // sits inside the segment so the scroll box never clips it. (No root-level
 // template comment: it would break the class fallthrough.)
@@ -184,6 +196,7 @@ function itemClass(item: SegItem, index: number): (string | false)[] {
       type="button"
       role="radio"
       :aria-checked="model === item.value"
+      :aria-label="itemAriaLabel(item)"
       :disabled="isDisabled(index)"
       :tabindex="index === focusIndex ? 0 : -1"
       class="focus-visible:outline-primary inline-flex shrink-0 items-center gap-1.5 rounded-[6px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2"
