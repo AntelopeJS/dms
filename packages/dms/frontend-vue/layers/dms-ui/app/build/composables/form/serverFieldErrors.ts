@@ -1,16 +1,17 @@
-import type { FormServerFieldError } from "../../../composables/form/useForm";
-import { fieldErrorPattern } from "./formEntryContext";
+/**
+ * A server error as UForm holds it once placed: on the field, or on the part
+ * of it the error names (`address.street`).
+ */
+export interface PlacedServerError {
+  name?: string;
+  message: string;
+}
 
-/** A refused submit's error a field shows, and the value it was raised against. */
+/** A refused submit's errors a field shows, and the value they were raised against. */
 export interface KeptServerError {
   /** The field's value when the server refused it, as JSON. */
   value: string;
-  error: FormServerFieldError;
-}
-
-/** What is read of the form: the errors UForm holds, by field. */
-export interface ServerErrorForm {
-  getErrors(name: RegExp): readonly unknown[];
+  errors: PlacedServerError[];
 }
 
 /** The value of a field as a kept error compares it. */
@@ -29,19 +30,20 @@ export function changedServerErrorFields(
 }
 
 /**
- * The kept errors their field no longer shows. UForm re-validates a field
- * from its schema alone when an input event of it lands, replacing all of
- * its errors: a number input commits its value as it loses focus, and the
- * event comes 300 ms later, after a refused submit placed its error. The
- * value has not moved, so the server's refusal still holds.
+ * The kept server errors, as UForm's `validate` answers them. UForm runs it
+ * with its schema on every validation and replaces a field's errors with what
+ * both answer: a number input commits its value as it loses focus, and the
+ * input event, landing 300 ms later, re-validates the field after a refused
+ * submit placed its error. A field still holding the refused value keeps it.
+ * A submit validates without them: the server judges the values again.
  */
-export function droppedServerErrors(
+export function keptServerErrors(
   kept: ReadonlyMap<string, KeptServerError>,
-  form: ServerErrorForm,
-): FormServerFieldError[] {
-  return [...kept.values()]
-    .filter(
-      (entry) => !form.getErrors(fieldErrorPattern(entry.error.name)).length,
-    )
-    .map((entry) => entry.error);
+  state: Readonly<Record<string, unknown>>,
+  isSubmitting: boolean,
+): PlacedServerError[] {
+  if (isSubmitting) return [];
+  return [...kept]
+    .filter(([name, entry]) => serverErrorValue(state[name]) === entry.value)
+    .flatMap(([, entry]) => entry.errors);
 }
