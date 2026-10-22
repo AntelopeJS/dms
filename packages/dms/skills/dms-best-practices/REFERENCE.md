@@ -13,11 +13,13 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `P
 | Ranked list, leaderboard | `TopListCard` | Bar position, rank badge style |
 | Date range picker | `PeriodSelector` (`variant: "segmented"` for pills) | Preset labels |
 | Live / pause switch | `LiveToggle` | Pill vs segmented |
+| Context bar of a page with a period or live data | `pageToolbar()` (a `PageToolbar` holding the `LiveToggle` and `PeriodSelector`) | Leading blocks, `size` |
 | Table, list with actions | `TableView` over a DataController (`displays` for cards / kanban) | Column widths, row height (`density`) |
 | Detail facts of a record | `KeyValueList` | Value alignment |
 | Recent events, audit log | `ActivityFeed` | Day separators vs relative times |
 | Usage bar, quota | `Meter` | Bar thickness (`size`) |
 | Notice, alert strip | `Banner` | Wash vs flat background |
+| Strip under the dashboard header, across pages | `RegisterLayoutBanner` (backend): the app's pages by default, `scope: "everywhere"` for a workspace-wide state | Not inside `/modules` unless scoped `everywhere` |
 | Empty / first-run screen | `EmptyState` (or `Guard` around blocks) | Illustration vs icon well |
 | Links to sub-pages as cards | `NavCardGrid` | Card height |
 | Code snippet | `CodeBlock` | Theme of the highlighting |

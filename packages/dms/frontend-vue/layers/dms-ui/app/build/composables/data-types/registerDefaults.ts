@@ -7,6 +7,7 @@ import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
 import { buildRelationBadges } from "./relationBadges";
 import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
+import { relationSelectSource } from "./relationRows";
 import {
   isSet,
   readRowField,
@@ -17,8 +18,15 @@ import {
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import {
+  dateFilterEditorValue,
+  numberFilterEditorValue,
+} from "../table/utils/filterEditorValue";
+import { formatDuration } from "#dms-core/app/utils/formatter";
+import { withNumberSuffix } from "./numberSuffix";
 import { registerTwoLineCellType } from "./twoLineCell";
-import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { formatRecordLabel } from "../table-view/utils/formTexts";
+import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
   type StatusPillVariant,
 } from "../../../components/status-pill/StatusPill.vue";
@@ -30,6 +38,7 @@ import {
   formatRelativeDate,
 } from "../../utils/relativeDate";
 import { serverRenderNow } from "#dms-core/app/build/composables/renderNow";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const FilePreview = defineAsyncComponent(
   () => import("../../../components/table-view/FilePreview.vue"),
@@ -142,11 +151,57 @@ function createLinkRenderer(options: LinkRendererOptions) {
   };
 }
 
+/** A `UrlType`'s options its read-only value reads. */
+interface UrlOptions {
+  preview?: "avatar" | "image";
+  /**
+   * The label of the field shown, handed by the form's read-only display:
+   * the image's name when its row has none.
+   */
+  fieldLabel?: string;
+}
+
+const URL_IMAGE_CLASS =
+  "border-default h-16 w-auto max-w-full rounded-md border object-cover";
+
+// The fields that name a row, read in order for its image's text.
+const ROW_NAME_FIELDS = ["name", "label", "title"];
+
+/**
+ * What an image stands for to a reader who cannot see it: the name of the
+ * row it belongs to (a team member's photo is that member), or else the
+ * field's label.
+ */
+function imageAlt(row: Row, locale: string, options: UrlOptions): string {
+  for (const field of ROW_NAME_FIELDS) {
+    const name = formatRecordLabel(row?.[field], locale);
+    if (name) return name;
+  }
+  return options.fieldLabel ?? "";
+}
+
+/**
+ * A URL drawn as the image it points to, when its type asks for it
+ * (`preview`): a remote photo reads as a picture, not as its address.
+ */
+function renderUrl(value: unknown, locale: string, options: unknown, row: Row) {
+  const opts = (options ?? {}) as UrlOptions;
+  if (!opts.preview || !isString(value) || !value) return undefined;
+  const alt = imageAlt(row, locale, opts);
+  if (opts.preview === "avatar") return h(UAvatar, { src: value, alt });
+  return h("img", {
+    src: value,
+    alt,
+    loading: "lazy",
+    class: URL_IMAGE_CLASS,
+  });
+}
+
 const convertToBoolean = (value: unknown): boolean =>
   parse(String(value)) === true;
 
 const getBooleanLabel = (value: unknown): string => {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   return convertToBoolean(value)
     ? processI18n("$dms.table.filter.boolean.checked")
     : processI18n("$dms.table.filter.boolean.unchecked");
@@ -161,7 +216,7 @@ function renderBoolean(value: unknown) {
 }
 
 function formatDateBetween(value: unknown, locale: string): string {
-  const { t } = useI18n();
+  const { t } = getAppTranslation();
   const [rawStart, rawEnd] = Array.isArray(value)
     ? value
     : [
@@ -175,7 +230,7 @@ function formatDateBetween(value: unknown, locale: string): string {
 
 // v2 .status pill, tinted with the configured online/offline color.
 function renderStatus(value: unknown, options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = options as StatusOptions | undefined;
   const isOnline = Boolean(value);
   const onlineLabel = opts?.onlineLabel || "$common.status.online";
@@ -195,7 +250,7 @@ function renderStatusPill(label: string, color: string) {
 }
 
 function renderSelectItem(item: SelectItem) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const label = processI18n(item.label);
   if (!item.icon && !item.iconColor && !item.textColor) return label;
 
@@ -254,7 +309,7 @@ function renderSelect(value: unknown, options?: unknown) {
 function formatAddress(value: unknown): string {
   if (!value || typeof value !== "object") return " ";
 
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const addr = value as Record<string, string>;
   const countryName = addr.countryCode
     ? processI18n(`$country.${addr.countryCode}`)
@@ -284,7 +339,7 @@ function renderRelationBadge(label: string, title?: string) {
 }
 
 function renderRelationBadges(values: unknown[], labelKey: string) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const { visible, hidden } = buildRelationBadges(values, labelKey);
   const badges = visible.map((label) =>
     renderRelationBadge(processI18n(label)),
@@ -355,7 +410,7 @@ function renderImage(value: unknown, options: unknown) {
 }
 
 function renderFile(value: unknown, options: unknown) {
-  const { t } = useI18n();
+  const { t } = getAppTranslation();
   const opts = options as FileOptions | undefined;
 
   if (opts?.multiple && Array.isArray(value)) {
@@ -409,8 +464,8 @@ const matchesBadge = (badge: IdentityBadgeOption, value: unknown): boolean =>
  * `emptyIcon` stand for a row without a value.
  */
 function renderIdentity(value: unknown, options: unknown, row: Row) {
-  const { processI18n } = useTranslation();
-  const { processText } = useComposedText();
+  const { processI18n } = getAppTranslation();
+  const { processText } = getAppComposedText();
   const opts = (options ?? {}) as IdentityOptions;
   const badges = (opts.badges ?? [])
     .filter((badge) => matchesBadge(badge, readRowField(row, badge.field)))
@@ -527,7 +582,7 @@ function renderPill(pill: PillItem) {
  * a relation could not resolve (a deleted row) is skipped.
  */
 function renderPills(value: unknown, options: unknown, row: Row) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as PillsOptions;
   if (opts.exclusive && isSet(readRowField(row, opts.exclusive.field))) {
     return h("span", { class: [PILL_CLASS, PILL_FILLED_CLASS] }, [
@@ -606,7 +661,7 @@ function renderRelativeDate(
   options: unknown,
   row: Row,
 ) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as RelativeDateOptions;
   const date = new Date(value as string);
   if (Number.isNaN(date.getTime())) return String(value);
@@ -648,7 +703,7 @@ function renderRelativeDate(
 }
 
 function renderMissingDate(options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as RelativeDateOptions;
   if (!opts.emptyLabel) return "-";
   return h(
@@ -674,7 +729,7 @@ interface IndicatorOptions {
  * on for a set flag or a non-empty list.
  */
 function renderIndicator(value: unknown, options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as IndicatorOptions;
   const isOn = isSet(value);
   const icon = isOn ? opts.onIcon : opts.offIcon;
@@ -772,7 +827,8 @@ const registerPrimitiveTypes = (
 ) => {
   registerDataType({
     id: "number",
-    formatter: { default: formatNumber as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatNumber) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string",
@@ -780,15 +836,24 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "price",
-    formatter: { default: formatPrice as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatPrice) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "percentage",
-    formatter: { default: formatPercentage as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatPercentage) },
+    filterEditorValue: numberFilterEditorValue,
   });
   registerDataType({
     id: "string_time",
-    formatter: { default: formatTimeSpan },
+    // Written as the field writes it ("7 h 30 min"), in the reader's locale,
+    // rounded as every duration cell is: the field keeps the exact value.
+    formatter: {
+      default: (value: unknown, locale: string) =>
+        isNumber(value)
+          ? formatDuration(Number(value), locale, { precision: "rounded" })
+          : value,
+    },
   });
 };
 
@@ -805,17 +870,18 @@ const registerDateType = (registerDataType: (dataType: DataType) => void) => {
     id: "date",
     formatter: {
       default: (value: unknown, locale: string) => {
-        const { t } = useI18n();
+        const { t } = getAppTranslation();
         return formatDate(value, locale) ?? t("dms.date.undefined");
       },
       cell: (value: unknown, locale: string) => {
-        const { t } = useI18n();
+        const { t } = getAppTranslation();
         return (
           formatDate(value, locale, CELL_DATE_FORMAT) ?? t("dms.date.undefined")
         );
       },
       is_between: formatDateBetween,
     },
+    filterEditorValue: dateFilterEditorValue,
   });
 };
 
@@ -879,9 +945,13 @@ const registerLinkTypes = (registerDataType: (dataType: DataType) => void) => {
     id: "email",
     formatter: { default: createLinkRenderer({ hrefPrefix: "mailto:" }) },
   });
+  const renderLink = createLinkRenderer({ target: "_blank" });
   registerDataType({
     id: "url",
-    formatter: { default: createLinkRenderer({ target: "_blank" }) },
+    formatter: {
+      default: (value: unknown, locale: string, options: unknown, row?: Row) =>
+        renderUrl(value, locale, options, row) ?? renderLink(value, locale),
+    },
   });
 };
 
@@ -896,6 +966,7 @@ const registerRelationType = (
     },
     beforeStateMapper: mapRelationBeforeState,
     isSameValue: sameRelationValue,
+    selectSource: relationSelectSource,
   });
 };
 

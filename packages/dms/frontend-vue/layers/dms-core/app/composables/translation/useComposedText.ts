@@ -3,16 +3,11 @@ import {
   type ComposedTextTranslate,
   resolveComposedText,
 } from "../../utils/composedText";
+import { getPluginI18n } from "./useTranslation";
 
-/**
- * Writes the texts a block receives — a plain or `$`-prefixed string, or a
- * `ComposedText` from its options or its route — in the reader's language,
- * through {@link resolveComposedText}. Each call reads the active locale, so a
- * text written in a `computed` follows a language switch.
- */
-export function useComposedText() {
-  const { t, locale } = useI18n();
+type ComposedTextI18n = Pick<ReturnType<typeof useI18n>, "t" | "locale">;
 
+function composedTextOf({ t, locale }: ComposedTextI18n) {
   // vue-i18n reads a third argument as a plural count only when there is one.
   const translate: ComposedTextTranslate = (key, named, plural) =>
     plural === undefined ? t(key, named) : t(key, named, plural);
@@ -22,4 +17,22 @@ export function useComposedText() {
   }
 
   return { processText };
+}
+
+/**
+ * Writes the texts a block receives — a plain or `$`-prefixed string, or a
+ * `ComposedText` from its options or its route — in the reader's language,
+ * through {@link resolveComposedText}. Each call reads the active locale, so a
+ * text written in a `computed` follows a language switch.
+ */
+export function useComposedText() {
+  return composedTextOf(useI18n());
+}
+
+/**
+ * {@link useComposedText} outside a component setup — in a data-type
+ * formatter, which runs wherever a value is drawn (see `getAppTranslation`).
+ */
+export function getAppComposedText() {
+  return composedTextOf(getPluginI18n().i18n);
 }

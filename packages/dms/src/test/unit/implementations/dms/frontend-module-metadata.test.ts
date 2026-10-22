@@ -3,6 +3,7 @@ import {
   AddFrontendModule,
   GetFrontendModules,
 } from "../../../../implementations/dms/page";
+import { FrontendModulesChanged } from "@antelopejs/interface-dms/page";
 
 const RENDERER = { name: "metadata-test", version: "1" };
 const LOWER_PRIORITY = -2;
@@ -40,5 +41,28 @@ describe("[unit] frontend module metadata", () => {
     );
     expect(original?.options).to.deep.equal({ locale: { editable: true } });
     expect(original?.renderer).to.deep.equal(RENDERER);
+  });
+});
+
+describe("[unit] frontend modules changed event", () => {
+  it("fires when a module registers its frontend", () => {
+    let fired = 0;
+    const onChange = () => {
+      fired += 1;
+    };
+    FrontendModulesChanged.register(onChange);
+    try {
+      AddFrontendModule({
+        name: "metadata-event",
+        sourcePath: process.cwd(),
+        renderer: RENDERER,
+      });
+    } finally {
+      FrontendModulesChanged.unregister(onChange);
+    }
+    expect(fired).to.equal(1);
+    expect(
+      GetFrontendModules().some((module) => module.name === "metadata-event"),
+    ).to.equal(true);
   });
 });

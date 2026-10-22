@@ -313,8 +313,8 @@ defineExpose(flow);
         type="button"
         class="dms-flow-canvas__delete-button"
         :style="{ left: `${affordance.x}px`, top: `${affordance.y}px` }"
-        title="Delete node"
-        aria-label="Delete node"
+        :title="$t('dms.flow_canvas.delete_node')"
+        :aria-label="$t('dms.flow_canvas.delete_node')"
         @click.stop="emitDelete([affordance.id])"
       >
         <svg

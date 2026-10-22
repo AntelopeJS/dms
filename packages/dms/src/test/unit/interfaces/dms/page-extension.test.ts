@@ -105,12 +105,12 @@ async function loadLayout(
   expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
     undefined,
   );
-  return (handler as NonNullable<typeof handler>)(
-    caller.user,
-    caller.memberModel,
-    caller.roleModel,
-    "pe-tenant",
-  );
+  return (handler as NonNullable<typeof handler>)({
+    user: caller.user,
+    memberModel: caller.memberModel,
+    roleModel: caller.roleModel,
+    tenantId: "pe-tenant",
+  });
 }
 
 async function layoutKeys(
@@ -128,12 +128,12 @@ async function layoutChildIds(
   expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
     undefined,
   );
-  const layout = await (handler as NonNullable<typeof handler>)(
-    ANONYMOUS.user,
-    ANONYMOUS.memberModel,
-    ANONYMOUS.roleModel,
-    "pe-tenant",
-  );
+  const layout = await (handler as NonNullable<typeof handler>)({
+    user: ANONYMOUS.user,
+    memberModel: ANONYMOUS.memberModel,
+    roleModel: ANONYMOUS.roleModel,
+    tenantId: "pe-tenant",
+  });
   return layout.components[rootKey]?.children?.map((child) => child.id) ?? [];
 }
 

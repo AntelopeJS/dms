@@ -8,6 +8,7 @@ import {
   FormFunctions,
 } from "@antelopejs/interface-dms/base/form";
 import type { WatchAction } from "@antelopejs/interface-dms/base/types/watch";
+import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   type ComponentNodeMap,
@@ -31,6 +32,7 @@ const REGISTERED = [
   { id: FORM, title: "Form" },
   { id: GROUPED_PAGE, title: "Grouped form" },
   { id: GROUPED_FORM, title: "Form" },
+  { id: `${PAGE}.host`, title: "Host" },
 ];
 
 // The form of the Watch Actions demo: one watch for everyone, one gated by
@@ -70,6 +72,34 @@ const componentMap: ComponentNodeMap = new Map([
   [FORM, { component: form, permissionId: FORM, depth: 0, access: "own" }],
 ]);
 
+const watchTargets = (options: unknown) =>
+  ((options as { watchActions?: WatchAction[] }).watchActions ?? []).map(
+    (watch) => watch.params?.targetField,
+  );
+
+// A host that opens the form in a drawer embeds it in its own options, as a
+// table view embeds its generated forms: not a node of the page's tree.
+const HOST = `${PAGE}.host`;
+const host = new ComponentBuilder<{ drawer: { content: unknown } }>(
+  "DemoDrawerHost",
+).options({ drawer: { content: form.serializeSync() } });
+const hostMap: ComponentNodeMap = new Map([
+  [HOST, { component: host, permissionId: HOST, depth: 0, access: "own" }],
+]);
+
+/** The fields the watches of the form the host embeds act on, as served. */
+async function servedEmbeddedWatchTargets(permissions: Set<string>) {
+  const served = await filterComponents(
+    { host: await host.serialize() },
+    PAGE,
+    permissions,
+    hostMap,
+    CONTEXT,
+  );
+  const options = served.host!.options as { drawer: { content: unknown } };
+  return watchTargets((options.drawer.content as { options: unknown }).options);
+}
+
 /** The fields the watches the caller is served act on, in order. */
 async function servedWatchTargets(permissions: Set<string>) {
   const served = await filterComponents(
@@ -80,10 +110,7 @@ async function servedWatchTargets(permissions: Set<string>) {
     CONTEXT,
   );
   expect(served, "the form itself was not served").to.have.property("form");
-  const { watchActions = [] } = served.form!.options as {
-    watchActions?: WatchAction[];
-  };
-  return watchActions.map((watch) => watch.params?.targetField);
+  return watchTargets(served.form!.options);
 }
 
 describe("[unit] interfaces/dms/page — a form's watches gated by requirePermission", () => {
@@ -125,6 +152,19 @@ describe("[unit] interfaces/dms/page — a form's watches gated by requirePermis
     expect(
       await servedWatchTargets(new Set([CATEGORY, PAGE, FORM, GROUPED_FORM])),
     ).to.deep.equal(["displayName"]);
+  });
+
+  it("filters the watches of a form embedded in another component's options", async () => {
+    expect(
+      await servedEmbeddedWatchTargets(
+        new Set(withPermissionAncestors([HOST])),
+      ),
+    ).to.deep.equal(["displayName"]);
+    expect(
+      await servedEmbeddedWatchTargets(
+        new Set(withPermissionAncestors([HOST, GROUPED_FORM])),
+      ),
+    ).to.deep.equal(["displayName", "adminNotes"]);
   });
 
   it("always serves a watch that requires no permission", async () => {

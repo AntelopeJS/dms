@@ -150,6 +150,7 @@ function buildState(refs: PeriodRefs, now: Date): PeriodState {
     refs.comparison.value,
     range,
     refs.customCompareRange.value,
+    { preset: refs.preset.value, now },
   );
   const partial = {
     preset: refs.preset.value,

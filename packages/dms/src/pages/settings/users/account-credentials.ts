@@ -1,5 +1,5 @@
-// Sign-in credentials and sessions of the signed-in user, shared by the
-// Security page and the legacy profile routes.
+// Sign-in credentials and sessions of the signed-in user, for the Security
+// page and the password reset.
 
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type {
@@ -9,7 +9,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/db";
 import { notifyPasswordChanged } from "../../../utils/account-notifications";
 import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
-import { SESSION_HANDOFF_ENDPOINT } from "../../../routes/auth/session-handoff";
+import { SESSION_HANDOFF_ENDPOINT } from "../../../frontend-module";
 import { generateAuthKey } from "../../../utils/auth-key";
 import { securitySchema } from "../../../validation/security.schema";
 import { assertCurrentPasswordIfSet } from "./current-password";

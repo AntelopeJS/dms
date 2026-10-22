@@ -144,3 +144,29 @@ export function appendPeriodToUrl(
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}${params.toString()}`;
 }
+
+/**
+ * The comparison a period scope applies, `null` while no selector registers
+ * it: `none` too when the selected comparison resolves to no window (every
+ * period, `all`, has nothing to compare against), so a consumer hides its
+ * comparison exactly when the request carries no `compareFrom` /
+ * `compareTo`. A server render reads it once, as the caller sets up, like
+ * `usePeriodScopePreset`: the mode is a name, the same on both sides.
+ */
+export function usePeriodScopeComparison(
+  id: string | undefined,
+): ComputedRef<PeriodState["comparison"] | null> {
+  if (!id) return computed(() => null);
+  const registry = usePeriodScopeRegistry();
+  if (typeof window !== "undefined")
+    return computed(() => effectiveComparison(readPeriodScope(registry, id)));
+  const comparison = effectiveComparison(readPeriodScope(registry, id));
+  return computed(() => comparison);
+}
+
+function effectiveComparison(
+  state: PeriodState | null,
+): PeriodState["comparison"] | null {
+  if (!state) return null;
+  return state.compareRange ? state.comparison : "none";
+}
