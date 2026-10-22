@@ -9825,7 +9825,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "description": "How many columns on a wide screen.",
+          "description": "How many columns once the list is wide enough.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -12521,6 +12521,23 @@
             "widget": "number",
             "min": 1,
             "max": 6
+          }
+        },
+        "columnsFrom": {
+          "type": "string",
+          "enum": [
+            "sm",
+            "md",
+            "lg",
+            "xl"
+          ],
+          "optional": true,
+          "description": "The group's width from which all columns sit side by side (sm 24rem, md 28rem, lg 32rem, xl 36rem).",
+          "ui": {
+            "label": "All columns from",
+            "group": "layout",
+            "widget": "segmented",
+            "advanced": true
           }
         },
         "label": {

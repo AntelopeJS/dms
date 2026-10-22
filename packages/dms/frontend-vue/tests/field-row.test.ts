@@ -10,6 +10,7 @@ import {
   ref,
 } from "vue";
 import {
+  CONTAINER_LAYOUT_CLASSES,
   FORM_LAYOUT_CLASSES,
   SECTION_LAYOUT_CLASSES,
 } from "../layers/dms-ui/app/build/composables/form/formLayout";
@@ -88,6 +89,15 @@ describe("FieldRow", () => {
     expect(body().lastElementChild!.className).not.toContain("col-span-full");
   });
 
+  it("pads a dense row less, its label closer above a stacked control", async () => {
+    await mount({ label: "Name", layout: "form", spacing: "dense" });
+    expect(host.firstElementChild!.className).toContain("border-t");
+    expect(body().className).toContain("py-3");
+    expect(body().className).toContain("gap-y-1.5");
+    expect(body().className).not.toContain("py-4");
+    expect(body().className).not.toContain("gap-y-2");
+  });
+
   it("leaves the spacing to the list of a stacked form", async () => {
     await mount({
       label: "Name",
@@ -111,5 +121,35 @@ describe("form rows", () => {
       inset: false,
       spacing: "list",
     });
+  });
+
+  it("draw a drawer's or a modal's rows dense, details and forms alike", () => {
+    expect(CONTAINER_LAYOUT_CLASSES.horizontal.row).toEqual({
+      layout: "form",
+      inset: false,
+      spacing: "dense",
+    });
+    expect(CONTAINER_LAYOUT_CLASSES.vertical.rows).toContain("gap-3");
+    expect(FORM_LAYOUT_CLASSES.horizontal.row.spacing).toBe("row");
+  });
+
+  it("hands a stacked row's height down to a filling control", async () => {
+    await mount(
+      { label: "data", layout: "stack", fill: true },
+      { default: () => h("div", { "data-code": "" }) },
+    );
+    const root = host.firstElementChild as HTMLElement;
+    const control = host.querySelector("[data-code]")!.parentElement!;
+    for (const part of [root, body(), control]) {
+      expect(part.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["flex", "flex-1", "flex-col"]),
+      );
+    }
+    expect(body().className.split(/\s+/)).not.toContain("grid");
+  });
+
+  it("keeps a row that does not stack as it is", async () => {
+    await mount({ label: "data", layout: "form", fill: true });
+    expect(host.firstElementChild!.className).not.toContain("flex-1");
   });
 });
