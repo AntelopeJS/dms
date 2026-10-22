@@ -18,6 +18,7 @@ import {
   type FormValidator,
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
+import { FORM_FIELD_SAVED_KEY } from "../../composables/form/types/field-saved";
 import {
   FORM_HANDLE_KEY,
   linkedFieldId,
@@ -59,6 +60,7 @@ import {
 } from "../../build/composables/form/formSections";
 import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/formControlErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
+import { fieldSavedMarker } from "../../build/composables/form/fieldSaved";
 import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
 import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
@@ -537,6 +539,15 @@ provide(FORM_HANDLE_KEY, {
   revealField,
 });
 provide(FORM_FIELD_LOADING_KEY, setFieldLoading);
+provide(
+  FORM_FIELD_SAVED_KEY,
+  fieldSavedMarker({
+    hasField: (id) => toValue(allFields).some((field) => field.id === id),
+    initialValues,
+    dirty: formDirty,
+    instantSave,
+  }),
+);
 provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 
 allFields.value.forEach((field) => {
