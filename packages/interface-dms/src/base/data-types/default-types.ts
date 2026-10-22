@@ -37,7 +37,10 @@ import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
 import * as FieldTypes from "./field-types";
-import { absolutizeJoinedSchemas } from "./internal/compare-types";
+import {
+  absolutizeJoinedSchemas,
+  whenValueSet,
+} from "./internal/compare-types";
 import { DefaultDataCompareTypes } from "./compare-types";
 /** How a `SelectType` shows its options. */
 export const SELECT_DISPLAYS = [
@@ -203,6 +206,13 @@ export namespace DefaultDataTypes {
   export type UrlTypeOptions = {
     placeholder?: string;
     fallback?: string;
+    /**
+     * Shown read-only (a table cell, an expanded row, a record's details),
+     * the URL is drawn as the image it points to instead of a link: `avatar`
+     * a round thumbnail, `image` a framed one. A remote photo (a profile
+     * picture) then reads as a picture; the form still edits it as text.
+     */
+    preview?: "avatar" | "image";
   };
 
   export type PhoneTypeOptions = {
@@ -338,6 +348,25 @@ export namespace DefaultDataTypes {
     less_than: (stored, instant) => stored.lt(instant),
   };
 
+  /**
+   * Before or after a whole day, as `is` and `is_between` read a day:
+   * "greater than" starts at the next day, "less than" ends before it.
+   */
+  const DAY_COMPARISONS: Record<
+    string,
+    (stored: ValueProxy<Date>, dayStart: Date) => ValueProxyOrValue<boolean>
+  > = {
+    greater_than: (stored, dayStart) => {
+      const nextDay = new Date(dayStart);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      return stored.ge(nextDay);
+    },
+    less_than: (stored, dayStart) => stored.lt(dayStart),
+  };
+
+  /** A calendar day as the date picker sends it, without a time. */
+  const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
   @RegisterDataType("date")
   export class DateType extends DataType {
     constructor(public readonly options: DateTypeOptions = {}) {
@@ -380,11 +409,13 @@ export namespace DefaultDataTypes {
         return this.sameDayFilter(proxy, value, mode === "is_not");
       }
       if (mode === "is_between") {
-        return this.dayRangeFilter(proxy, value);
+        return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
       }
-      const compareInstant = INSTANT_COMPARISONS[mode];
-      if (compareInstant) {
-        return compareInstant(proxy as ValueProxy<Date>, this.instant(value));
+      if (Object.hasOwn(INSTANT_COMPARISONS, mode)) {
+        return whenValueSet(
+          proxy,
+          this.orderFilter(proxy as ValueProxy<Date>, value, mode),
+        );
       }
       return super.filter(context, proxy, key, value, mode, row);
     }
@@ -397,6 +428,20 @@ export namespace DefaultDataTypes {
         throw new Error(`Date filter expects a date value. Got: ${value}`);
       }
       return parsed;
+    }
+
+    // A picked day stands for the whole day; an instant (a `{{now-7d}}`
+    // token) is compared as it is.
+    private orderFilter(
+      stored: ValueProxy<Date>,
+      value: string,
+      mode: string,
+    ): ValueProxyOrValue<boolean> {
+      const instant = this.instant(value);
+      if (CALENDAR_DAY.test(value.trim())) {
+        return DAY_COMPARISONS[mode](stored, this.startOfUtcDay(instant));
+      }
+      return INSTANT_COMPARISONS[mode](stored, instant);
     }
 
     private startOfUtcDay(date: Date): Date {
@@ -751,6 +796,7 @@ export namespace DefaultDataTypes {
     protected defaultInputComponent() {
       return FormComponents.InputText({
         placeholder: this.options.placeholder,
+        preview: this.options.preview,
       });
     }
 
@@ -790,6 +836,25 @@ export namespace DefaultDataTypes {
 
       return z.string();
     }
+  }
+
+  // A multiple relation stores an array of ids: `is` would compare the
+  // whole array, so it offers whether the array includes the picked id.
+  function relationCompareModes(multiple?: boolean) {
+    return [
+      multiple ? DefaultDataCompareTypes.Include : DefaultDataCompareTypes.Is,
+      multiple
+        ? DefaultDataCompareTypes.Exclude
+        : DefaultDataCompareTypes.IsNot,
+      DefaultDataCompareTypes.IsEmpty,
+      DefaultDataCompareTypes.IsNotEmpty,
+    ];
+  }
+
+  function relationDefaultCompareMode(multiple?: boolean) {
+    return multiple
+      ? DefaultDataCompareTypes.Include
+      : DefaultDataCompareTypes.Is;
   }
 
   @RegisterDataType("relation")
@@ -842,18 +907,22 @@ export namespace DefaultDataTypes {
       },
     ) {
       super(
-        [
-          DefaultDataCompareTypes.Is,
-          DefaultDataCompareTypes.IsNot,
-          DefaultDataCompareTypes.IsEmpty,
-          DefaultDataCompareTypes.IsNotEmpty,
-        ],
-        DefaultDataCompareTypes.Is,
+        relationCompareModes(options.multiple),
+        relationDefaultCompareMode(options.multiple),
         options,
       );
     }
 
     protected defaultInputComponent() {
+      return this.relationInput(this.options.multiple);
+    }
+
+    // A multiple relation is filtered on one id at a time (`include`).
+    override filterComponents() {
+      return { default: this.relationInput(false) };
+    }
+
+    private relationInput(multiple: boolean | undefined) {
       const tableViewMeta = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -869,7 +938,7 @@ export namespace DefaultDataTypes {
 
       return FormComponents.InputRelation({
         placeholder: this.options.placeholder,
-        multiple: this.options.multiple,
+        multiple,
         deselectable: this.options.deselectable,
         searchUrl: location,
         keyMapping: this.options.keyMapping,
@@ -972,18 +1041,22 @@ export namespace DefaultDataTypes {
       },
     ) {
       super(
-        [
-          DefaultDataCompareTypes.Is,
-          DefaultDataCompareTypes.IsNot,
-          DefaultDataCompareTypes.IsEmpty,
-          DefaultDataCompareTypes.IsNotEmpty,
-        ],
-        DefaultDataCompareTypes.Is,
+        relationCompareModes(options.multiple),
+        relationDefaultCompareMode(options.multiple),
         options,
       );
     }
 
     protected defaultInputComponent() {
+      return this.cascaderInput(this.options.multiple);
+    }
+
+    // A multiple relation is filtered on one id at a time (`include`).
+    override filterComponents() {
+      return { default: this.cascaderInput(false) };
+    }
+
+    private cascaderInput(multiple: boolean | undefined) {
       const { config } = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -995,7 +1068,7 @@ export namespace DefaultDataTypes {
 
       return FormComponents.InputCascader({
         placeholder: this.options.placeholder,
-        multiple: this.options.multiple,
+        multiple,
         deselectable: this.options.deselectable,
         searchUrl: `${config.location}/${endpoints.select.endpoint || "select"}`,
         keyMapping: this.options.keyMapping,

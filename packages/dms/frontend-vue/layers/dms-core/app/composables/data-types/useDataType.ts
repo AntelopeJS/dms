@@ -37,6 +37,14 @@ export type DataTypeValueComparer = (
 ) => boolean;
 
 /**
+ * The value a filter chip's editor holds for a filter value a view declared
+ * as text (`"0"`, `"2026-10-01,2026-10-15"`), under a compare mode: a number
+ * input refuses `"0"`, a date range wants its two days. The filter itself
+ * keeps its text, so the query is unchanged.
+ */
+export type DataTypeFilterEditorValue = (text: string, mode: string) => unknown;
+
+/**
  * Where the rows a value names are read: the `select` route of the table a
  * relation points to, and the keys its rows carry their label and value under
  * (`label` and `value` unless mapped).
@@ -56,6 +64,8 @@ export interface DataType {
    * or whose order does not count. Without it, values compare deeply.
    */
   isSameValue?: DataTypeValueComparer;
+  /** Without it, a filter's editor reads a declared text value as is. */
+  filterEditorValue?: DataTypeFilterEditorValue;
   /**
    * For a type whose value holds the ids of rows another table serves (a
    * relation): where those rows are read, from the options of the type's

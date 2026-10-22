@@ -21,6 +21,7 @@ import {
   parseValue,
 } from "../../utils/internal/value-parser";
 import { isNumber } from "../../utils/internal/type-check";
+import { whenValueSet } from "./internal/compare-types";
 // Import from the defining leaf, not the table-view barrel: the barrel pulls
 // in the assembled routes, whose composition runs at module evaluation — and
 // this module sits on the import path of the pieces being composed.
@@ -92,9 +93,9 @@ export namespace DefaultDataCompareTypes {
 
       const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.gt(parsedValue.getTime());
+        return whenValueSet(proxy, dbVal.gt(parsedValue.getTime()));
       }
-      return dbVal.gt(parsedValue);
+      return whenValueSet(proxy, dbVal.gt(parsedValue));
     }
   }
 
@@ -117,9 +118,9 @@ export namespace DefaultDataCompareTypes {
 
       const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.lt(parsedValue.getTime());
+        return whenValueSet(proxy, dbVal.lt(parsedValue.getTime()));
       }
-      return dbVal.lt(parsedValue);
+      return whenValueSet(proxy, dbVal.lt(parsedValue));
     }
   }
 
@@ -142,9 +143,9 @@ export namespace DefaultDataCompareTypes {
 
       const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.ge(parsedValue.getTime());
+        return whenValueSet(proxy, dbVal.ge(parsedValue.getTime()));
       }
-      return dbVal.ge(parsedValue);
+      return whenValueSet(proxy, dbVal.ge(parsedValue));
     }
   }
 
@@ -167,9 +168,9 @@ export namespace DefaultDataCompareTypes {
 
       const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.le(parsedValue.getTime());
+        return whenValueSet(proxy, dbVal.le(parsedValue.getTime()));
       }
-      return dbVal.le(parsedValue);
+      return whenValueSet(proxy, dbVal.le(parsedValue));
     }
   }
 
@@ -228,7 +229,10 @@ export namespace DefaultDataCompareTypes {
       const [min, max] = parsedArray;
       const dbVal = proxy as unknown as ValueProxy<number>;
 
-      return dbVal.ge(min as number).and(dbVal.le(max as number));
+      return whenValueSet(
+        proxy,
+        dbVal.ge(min as number).and(dbVal.le(max as number)),
+      );
     }
   }
 

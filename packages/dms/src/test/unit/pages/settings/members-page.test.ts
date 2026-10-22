@@ -87,16 +87,11 @@ describe("[unit] pages/settings/users members page", () => {
       }
     });
 
-    it("reads a legacy single email as a one-address list", () => {
+    it("refuses a single email instead of the emails list", () => {
       const { emails: _emails, ...rest } = invitePayload;
-      const result = memberInviteSchema.safeParse({
-        ...rest,
-        email: "ada@test.local",
-      });
-      expect(result.success).to.equal(true);
-      if (result.success) {
-        expect(result.data.emails).to.deep.equal(["ada@test.local"]);
-      }
+      expect(issuePaths({ ...rest, email: "ada@test.local" })).to.include(
+        "emails",
+      );
     });
 
     it("rejects an empty list and an invalid address", () => {

@@ -1,5 +1,4 @@
-// Two-factor operations shared by the Security page and the legacy profile
-// routes, so both URL families keep one behaviour.
+// Two-factor operations of the Security page.
 
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";

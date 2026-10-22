@@ -104,7 +104,7 @@ there too); `RoleModel`, `UserInviteModel`, `TenantModel`, `TenantMemberModel` u
 The DMS is **multi-tenant by default** (single-tenant apps live in the `default` tenant).
 Primitives, covered in `docs/03.auth-and-tenancy/03.multi-tenant.md`: `@TenantScopedModel`
 (`dms/tenant-scoped-model`) scopes a model to the request's tenant, `getRequestTenantId`
-(`dms/request-tenant`) reads it, `applyTenantOwnership`
+(`dms/request-tenant`) reads it (the verified credential's tenant, `default` without one), `applyTenantOwnership`
 (`dms/tenant-ownership`) upserts a user's tenant membership (roles + owner flag),
 `inviteUserToTenant` (`dms/invites`, expiry `INVITE_EXPIRY_DAYS`), and `CROSS_INSTANCE`
 (`@antelopejs/interface-database`) for cross-tenant queries. SaaS mode (Stripe billing,

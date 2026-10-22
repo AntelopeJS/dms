@@ -94,8 +94,11 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
-// Components that render a backend block under a name of their own: the block
-// names (`dms-xxx-block`) resolve to the same component as the template name.
+// Not a compatibility path: two current contracts name these components.
+// Templates use the component's own name (`<DmsSection>`, `<DmsFieldRow>`,
+// `<DmsActivityFeed>`), while the backend blocks follow the `dms-xxx-block`
+// vocabulary that `block-vocabulary.test.ts` enforces. Each entry maps the
+// template name to the block name, so both resolve to one component.
 const COMPONENT_ALIASES: Record<string, string> = {
   ActivityFeed: "ActivityFeedBlock",
   Section: "SectionBlock",
