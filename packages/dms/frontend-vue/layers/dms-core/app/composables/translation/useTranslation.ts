@@ -5,42 +5,6 @@ export type I18nTranslate = (
   params: Record<string, unknown>,
 ) => string;
 
-/** The message a key holds, as its locale declares it (vue-i18n's `tm`). */
-export type I18nRawMessage = (key: string) => unknown;
-
-// Each message that does not compile is reported once, not on every render.
-const reportedBrokenMessages = new Set<string>();
-
-function reportBrokenMessage(key: string, error: unknown): void {
-  if (!import.meta.env?.DEV || reportedBrokenMessages.has(key)) return;
-  reportedBrokenMessages.add(key);
-  console.warn(
-    `[dms] The translation "${key}" does not compile and is shown as written. Escape its special characters ({'@'}, {'{'}, {'|'}) as literal interpolations.`,
-    error,
-  );
-}
-
-/**
- * `translate`, refusing to throw: a message vue-i18n cannot compile — a raw
- * `@`, read as a linked message, in "first.last@example.com" — is shown as
- * written (the key when its text cannot be read) instead of failing the
- * render of everything around it, a whole form among them.
- */
-export function tolerantTranslate(
-  translate: I18nTranslate,
-  rawMessage?: I18nRawMessage,
-): I18nTranslate {
-  return (key, params) => {
-    try {
-      return translate(key, params);
-    } catch (error) {
-      reportBrokenMessage(key, error);
-      const raw = rawMessage?.(key);
-      return typeof raw === "string" ? raw : key;
-    }
-  };
-}
-
 /**
  * i18n access for DMS app plugins, where `useI18n()` is unavailable: returns the
  * global composer plus an {@link I18nTranslate} bound to it. Inside
@@ -48,10 +12,7 @@ export function tolerantTranslate(
  */
 export function getPluginI18n() {
   const { $i18n: i18n } = useDmsApp();
-  const translate = tolerantTranslate(
-    (key, params) => i18n.t(key, params),
-    (key) => i18n.tm(key),
-  );
+  const translate: I18nTranslate = (key, params) => i18n.t(key, params);
   return { i18n, translate };
 }
 
@@ -128,8 +89,7 @@ export function resolveOptionalI18nKey(
 }
 
 export const useTranslation = () => {
-  const { t: translate, tm } = useI18n();
-  const t = tolerantTranslate(translate, tm);
+  const { t } = useI18n();
 
   function processI18n(key: string, params?: Record<string, unknown> | null) {
     return resolveI18nKey(t, key, params);
