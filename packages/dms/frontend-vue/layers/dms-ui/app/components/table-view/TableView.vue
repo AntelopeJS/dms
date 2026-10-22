@@ -700,6 +700,7 @@ const tableRows = useTableRows<T>({
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
 // filter like the filters row does.
+const { getDataType } = useDataTypes();
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 // Relation values load after mount: until then their buttons hold their place.
 const relationQuickFiltersLoaded = ref(false);
@@ -712,7 +713,7 @@ const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
     column,
     mode: quickFilterMode(column, filter.mode),
     items: staticQuickFilterItems(column, processI18n),
-    source: relationQuickFilterSource(column),
+    source: relationQuickFilterSource(column, getDataType),
   };
 });
 
@@ -726,7 +727,9 @@ const loadRelationQuickFilters = async () => {
         try {
           const response = await $authFetch<
             TableViewListResponse<Record<string, unknown>>
-          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          >(source!.searchUrl, {
+            query: { limit: RELATION_QUICK_FILTER_LIMIT },
+          });
           relationQuickFilterValues.value = {
             ...relationQuickFilterValues.value,
             [filter.field]: relationQuickFilterItems(response.results, source!),
