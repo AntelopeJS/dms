@@ -94,8 +94,8 @@ export type LayerAccessDecision = "allow" | "refuse" | "degrade";
  * `frontend.requireBootstrap` says: an operator who sets a credential has asked
  * for these routes to be private, and a credential that is collected but never
  * enforced is worse than none — it reads as protection while
- * `GET /dms/frontend/modules` still streams the source of every frontend
- * module to anyone who can reach the backend. `requireBootstrap` therefore only
+ * `GET /dms/frontend` still serves every module's layer paths and private
+ * options to anyone who can reach the backend. `requireBootstrap` therefore only
  * decides the no-credential case, where `enforce` closes the routes to
  * everyone and the default `warn` serves them stripped.
  *
