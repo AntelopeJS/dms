@@ -86,7 +86,7 @@
     "@antelopejs/interface-database-decorators": ">=0.1.9 <1.0.0",
     "@antelopejs/interface-dms": ">=0.7.4 <0.8.0",
     "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
-    "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
+    "@antelopejs/interface-file-storage": ">=0.1.4 <0.2.0",
     "archiver": "^7.0.1",
     "csv-stringify": "^6.7.0",
     "defu": "^6.1.4",
