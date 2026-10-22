@@ -1,4 +1,3 @@
-import path from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
@@ -29,8 +28,6 @@ import {
 import {
   applyConfig,
   type Config,
-  getAuthConfig,
-  getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
   isDocsPreviewEnabled,
@@ -73,9 +70,8 @@ import {
   stopPendingExtensionReport,
 } from "./page-extensions/pending-report";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
-import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
+import { frontendModule } from "./frontend-module";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
@@ -85,7 +81,6 @@ import {
   ensureDefaultTenantExists,
   registerExistingTenantInstances,
 } from "./utils";
-import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 
 export * from "./config";
 
@@ -119,7 +114,7 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
-  await registerDmsFrontend();
+  await registerDmsFrontend(config, dev);
 
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
@@ -136,10 +131,9 @@ async function setupFrontendBootstrap(dev: boolean): Promise<void> {
 
   if (!getFrontendConfig().bootstrapSecret?.trim()) {
     Logging.Warn(
-      "[DMS] frontend.bootstrapSecret is not configured, so GET /dms/frontend and GET /dms/frontend/modules " +
-        "are open to anyone who can reach this backend — /dms/frontend/modules streams the full source " +
-        "of every registered frontend module. Configure frontend.bootstrapSecret and set the same value " +
-        "as DMS_BOOTSTRAP_SECRET where the frontend is built.",
+      "[DMS] frontend.bootstrapSecret is not configured, so GET /dms/frontend and POST /dms/frontend/ready " +
+        "are open to anyone who can reach this backend. Configure frontend.bootstrapSecret and set the same " +
+        "value as DMS_BOOTSTRAP_SECRET on the frontend server.",
     );
   }
 }
@@ -235,29 +229,18 @@ async function implementInterfaces(): Promise<void> {
   );
 }
 
-async function registerDmsFrontend(): Promise<void> {
-  const config = getConfig();
-  const authConfig = getAuthConfig();
-  const sharedOptions = {
-    configKey: "dms",
-    priority: 0,
-    options: {
-      baseURL: config.apiBaseUrl ?? "",
-      clientBaseUrl: config.clientBaseUrl ?? "",
-      mustValidateEmail: false,
-      token: {
-        maxAgeInSeconds:
-          authConfig.accessTokenLifetime / MILLISECONDS_PER_SECOND,
-      },
-      homepage: config.homepage ?? "/",
-      oauthProviders: listEnabledOAuthProviders().map(
-        ({ id, label, icon }) => ({
-          id,
-          label,
-          icon,
-        }),
-      ),
-    },
+/**
+ * The registration `frontendModule` computes from the configuration, plus the
+ * private options, which never leave the backend and the frontend server.
+ */
+async function registerDmsFrontend(
+  config: Config,
+  dev: boolean,
+): Promise<void> {
+  const registration = frontendModule(config, { dev });
+  if (!registration) return;
+  await AddFrontendModule({
+    ...registration,
     privateOptions: {
       htmlRender: {
         serviceSecret: getHtmlRenderConfig().serviceSecret ?? null,
@@ -266,14 +249,6 @@ async function registerDmsFrontend(): Promise<void> {
         relaySecret: deriveOAuthRelaySecret(),
       },
     },
-  };
-
-  await AddFrontendModule({
-    ...sharedOptions,
-    name: "@antelopejs/dms-frontend-vue",
-    sourcePath: path.join(__dirname, "../frontend-vue"),
-    renderer: { name: "vue", version: "3" },
-    authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
   });
 }
 

@@ -148,11 +148,12 @@ export type BootstrapEnforcement = "warn" | "enforce";
 
 export interface FrontendConfig {
   /**
-   * Credential the frontend build tool presents on `GET /dms/frontend` and
-   * `GET /dms/frontend/modules`.
+   * Credential the frontend tool presents on `GET /dms/frontend` (read by
+   * `ajs dms dev`) and `POST /dms/frontend/ready` (sent by a frontend server
+   * once it serves).
    *
    * Deliberately independent of `auth.jwtSecret` rather than derived from it:
-   * this value lives on the build host, so it must not be a function of the
+   * this value lives on the frontend server, so it must not be a function of the
    * secret that signs session tokens, and it must be rotatable without
    * invalidating every session. Left unset in development, an ephemeral
    * per-process value is generated and published to the project's
@@ -204,12 +205,13 @@ export interface Config {
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
+export const DEFAULT_ACCESS_TOKEN_LIFETIME = MILLISECONDS_PER_HOUR;
 
 let globalAuthConfig: AuthConfig = {
   jwtSecret: "",
   emailValidationTokenLifetime: MILLISECONDS_PER_DAY,
   passwordRecoverTokenLifetime: MILLISECONDS_PER_DAY,
-  accessTokenLifetime: MILLISECONDS_PER_HOUR,
+  accessTokenLifetime: DEFAULT_ACCESS_TOKEN_LIFETIME,
   refreshTokenLifetime: REFRESH_TOKEN_LIFETIME_DAYS * MILLISECONDS_PER_DAY,
   userSensitiveKeys: [],
   mustValidateEmail: false,
@@ -240,10 +242,11 @@ let globalFrontendConfig: FrontendConfig = {
 };
 
 export const DEFAULT_CLIENT_BASE_URL = "http://localhost:3001";
+export const DEFAULT_API_BASE_URL = "http://127.0.0.1:5010";
 
 let globalConfig: Config = {
   clientBaseUrl: DEFAULT_CLIENT_BASE_URL,
-  apiBaseUrl: "http://127.0.0.1:5010",
+  apiBaseUrl: DEFAULT_API_BASE_URL,
 };
 
 let devClientBaseUrl: string | undefined;
