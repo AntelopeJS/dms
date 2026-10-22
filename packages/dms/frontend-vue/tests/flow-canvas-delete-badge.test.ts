@@ -58,6 +58,7 @@ function mountCanvas(props: Record<string, unknown>) {
         onDeleteNodes: (ids: string[]) => deleted.push(ids),
       }),
   });
+  app.config.globalProperties.$t = (key: string) => key;
   const container = document.createElement("div");
   app.mount(container);
   return { root: container.firstElementChild as HTMLElement, deleted };

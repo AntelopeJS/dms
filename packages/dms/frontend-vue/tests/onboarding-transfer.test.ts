@@ -2,7 +2,9 @@
 /**
  * The onboarding status the global middleware reads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
- * data: the browser's run of the middleware asks nothing.
+ * data: the server reads it inside an async data handler (no
+ * untransferred-read warning), and the browser's run of the middleware asks
+ * nothing.
  */
 import { createApp, createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -20,7 +22,14 @@ vi.stubGlobal("navigateDms", engine.navigateDms);
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: true } }));
 vi.stubGlobal("useHomepage", () => "/dashboard");
 
-const $authFetch = vi.fn(async () => ({ has_onboarded: true }));
+// Whether the code running is an async data handler's, as the server
+// renderer tracks it: what the runtime's untransferred-read warning checks.
+let inHandler = false;
+const readsInHandler: boolean[] = [];
+const $authFetch = vi.fn(async () => {
+  readsInHandler.push(inHandler);
+  return { has_onboarded: true };
+});
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch }));
 const { useApiData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"
@@ -55,6 +64,7 @@ function attach(app: App, runtime: DmsFrontendRuntime): void {
 
 beforeEach(async () => {
   $authFetch.mockClear();
+  readsInHandler.length = 0;
   await engine.setupFrontendModules([
     {
       options: { public: {} },
@@ -75,10 +85,20 @@ afterEach(() => {
 
 it("hands the onboarding status the server read to the browser", async () => {
   const server = engine.createDmsFrontendRuntime(undefined, {}, true);
+  server.runAsyncDataHandler = (run) => {
+    inHandler = true;
+    try {
+      return run();
+    } finally {
+      inHandler = false;
+    }
+  };
+  server.inAsyncDataHandler = () => inHandler;
   const serverApp = createSSRApp(Page);
   attach(serverApp, server);
   expect(await renderToString(serverApp)).toBe("<p>onboarded</p>");
   expect($authFetch).toHaveBeenCalledTimes(1);
+  expect(readsInHandler).toEqual([true]);
   const payload = structuredClone(engine.serializeDmsPayload(server));
   expect(payload.data["dms-onboarding"]).toEqual({ hasOnboarded: true });
 
