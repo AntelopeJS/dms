@@ -2,6 +2,7 @@ import {
   currentRegionalPreferences,
   regionalDateTimeFormat,
   regionalDayNumber,
+  type RegionalOptionsSettings,
 } from "./regional";
 import { isNumber } from "./type-check";
 
@@ -180,30 +181,85 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
   second: "2-digit",
 };
 
+// Node's ICU and Chrome's disagree on the spaces of a date range: Node joins
+// the two dates with thin spaces (U+2009 around the dash, U+202F before
+// AM/PM) where Chrome prints plain ones. The date helpers below write plain
+// spaces only, so a date rendered on the server reads, character for
+// character, what the browser writes at hydration.
+const ICU_SPACES = /[\u2009\u202f]/g;
+const PLAIN_SPACE = " ";
+
+function plainSpaces(text: string): string {
+  return text.replace(ICU_SPACES, PLAIN_SPACE);
+}
+
+function toValidDate(value: unknown): Date | null {
+  if (value === undefined || value === null) return null;
+  try {
+    const date =
+      value instanceof Date ? value : new Date(value as string | number);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A date written for `locale` with the user's preferences applied; `null`
+ * when `date` is not one (or Intl refuses the options).
+ *
+ * @param settings `keepLocalZone` for a calendar day computed in the browser
+ */
 export function formatDate(
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
+  settings?: RegionalOptionsSettings,
 ): string | null {
-  if (date === undefined || date === null) {
+  const validDate = toValidDate(date);
+  if (!validDate) return null;
+  try {
+    const formatter = regionalDateTimeFormat(
+      locale,
+      options || defaultDateFormatterOptions,
+      settings,
+    );
+    return plainSpaces(formatter.format(validDate));
+  } catch {
     return null;
   }
+}
 
-  let validDate: Date;
-  const formatOptions = options || defaultDateFormatterOptions;
-
+/**
+ * "Oct 31 – Nov 30": two dates as one span, written for `locale` with the
+ * user's preferences applied (`Intl.DateTimeFormat#formatRange`, which
+ * leaves out what both dates share). Use it rather than calling
+ * `formatRange` on a formatter of your own: the spaces it writes differ
+ * between the server and the browser. Without a valid `to`, or with one
+ * before `from`, it writes `from` alone; `null` when `from` is not a date.
+ *
+ * @param settings `keepLocalZone` for calendar days computed in the browser
+ */
+export function formatDateRange(
+  from: unknown,
+  to: unknown,
+  locale: string = DEFAULT_LOCALE,
+  options?: Intl.DateTimeFormatOptions,
+  settings?: RegionalOptionsSettings,
+): string | null {
+  const start = toValidDate(from);
+  if (!start) return null;
+  const end = toValidDate(to);
+  if (!end || end.getTime() < start.getTime()) {
+    return formatDate(start, locale, options, settings);
+  }
   try {
-    if (date instanceof Date) {
-      validDate = date;
-    } else {
-      validDate = new Date(date as string | number);
-    }
-
-    if (Number.isNaN(validDate.getTime())) {
-      return null;
-    }
-
-    return regionalDateTimeFormat(locale, formatOptions).format(validDate);
+    const formatter = regionalDateTimeFormat(
+      locale,
+      options || defaultDateFormatterOptions,
+      settings,
+    );
+    return plainSpaces(formatter.formatRange(start, end));
   } catch {
     return null;
   }

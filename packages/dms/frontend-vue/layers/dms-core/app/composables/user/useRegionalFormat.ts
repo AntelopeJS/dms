@@ -1,6 +1,7 @@
 import { computed } from "vue";
 import {
   formatDate,
+  formatDateRange,
   formatDateTime,
   formatNumber,
   formatPercentage,
@@ -85,7 +86,9 @@ export function useRegionalFormat(options: RegionalFormatOptions = {}) {
     formatLocale,
     /**
      * `new Intl.DateTimeFormat` in the user's language with their
-     * preferences applied, for a format the helpers below do not cover.
+     * preferences applied, for a format the helpers below do not cover. For
+     * a span between two dates, use `formatDateRange`: this formatter's own
+     * `formatRange` writes other spaces on the server than in the browser.
      *
      * @param options What the screen asks for; explicit options win
      * @param settings `keepLocalZone` for calendar days computed in the browser
@@ -97,6 +100,19 @@ export function useRegionalFormat(options: RegionalFormatOptions = {}) {
     /** A date ("1 October 2026" in `en-GB`), `null` when it is not one. */
     formatDate: (date: unknown, dateOptions?: Intl.DateTimeFormatOptions) =>
       formatDate(date, writeIn(), dateOptions),
+    /**
+     * Two dates as one span ("31 Oct – 30 Nov" in `en-GB`), written the same
+     * on the server as in the browser; `from` alone without a valid `to`,
+     * `null` when `from` is not a date.
+     *
+     * @param settings `keepLocalZone` for calendar days computed in the browser
+     */
+    formatDateRange: (
+      from: unknown,
+      to: unknown,
+      dateOptions?: Intl.DateTimeFormatOptions,
+      settings?: RegionalOptionsSettings,
+    ) => formatDateRange(from, to, writeIn(), dateOptions, settings),
     /** A time ("14:05:00" in `en-GB`), `null` when it is not a date. */
     formatTime: (date: DateInput, dateOptions?: Intl.DateTimeFormatOptions) =>
       formatTime(date, writeIn(), dateOptions),

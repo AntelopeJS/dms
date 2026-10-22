@@ -13,7 +13,7 @@ import {
   MS_PER_HOUR,
   type PeriodRange,
 } from "#dms-core/app/composables/period/types";
-import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
+import { formatDate, formatDateRange } from "#dms-core/app/utils/formatter";
 import { readerClock } from "#dms-core/app/composables/period/periodClock";
 
 /** A day range as the range calendar reads and writes it. */
@@ -132,16 +132,10 @@ function hasTimeBounds(range: PeriodRange): boolean {
 
 type FormatOptions = Intl.DateTimeFormatOptions;
 
-// Node's ICU and Chrome's disagree on the spaces of a range: Node joins with
-// thin spaces (U+2009 around the dash, U+202F before AM/PM) where Chrome
-// prints plain ones. One spelling on both sides keeps the server-rendered
-// label from mismatching at hydration.
-const ICU_SPACES = /[\u2009\u202f]/g;
-const PLAIN_SPACE = " ";
-
-function normalizeSpaces(text: string): string {
-  return text.replace(ICU_SPACES, PLAIN_SPACE);
-}
+// A period's bounds are computed in the browser's zone: only the clock
+// follows the user's preference. The shared formatters write the same spaces
+// on the server as in the browser, so the label hydrates as rendered.
+const LOCAL_ZONE = { keepLocalZone: true };
 
 const DAY_FORMAT: FormatOptions = { month: "short", day: "numeric" };
 const TIME_FORMAT: FormatOptions = { hour: "2-digit", minute: "2-digit" };
@@ -151,15 +145,9 @@ function formatRangeWith(
   locale: string,
   options: FormatOptions,
 ): string {
-  // A period's bounds are computed in the browser's zone: only the clock
-  // follows the user's preference.
-  const formatter = regionalDateTimeFormat(locale, options, {
-    keepLocalZone: true,
-  });
-  if (range.to.getTime() < range.from.getTime()) {
-    return normalizeSpaces(formatter.format(range.from));
-  }
-  return normalizeSpaces(formatter.formatRange(range.from, range.to));
+  return (
+    formatDateRange(range.from, range.to, locale, options, LOCAL_ZONE) ?? ""
+  );
 }
 
 /**
@@ -221,10 +209,7 @@ function daysBefore(date: Date, now: Date): number {
 }
 
 function formatWith(date: Date, locale: string, options: FormatOptions) {
-  const formatter = regionalDateTimeFormat(locale, options, {
-    keepLocalZone: true,
-  });
-  return normalizeSpaces(formatter.format(date));
+  return formatDate(date, locale, options, LOCAL_ZONE) ?? "";
 }
 
 function relativeDayPrefix(date: Date, now: Date, locale: string): string {

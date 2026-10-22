@@ -148,6 +148,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
+- Write a span between two dates with `formatDateRange` — never a raw `Intl` `formatRange`, whose
+  server text (thin spaces) does not match the browser's at hydration.
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.
 - Show code with `DmsCodeSnippet` (`language`, `title`, `maxLines` or `maxHeight`, `wrap`) — never a
   `<pre>` and a copy button of your own.
