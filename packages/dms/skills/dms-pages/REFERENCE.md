@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata; a `GridRow` inside a cell, e.g. in a `Section`, spreads its own children rather than the grid's columns), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata; a `GridRow` inside a cell, e.g. in a `Section`, spreads its own children rather than the grid's columns), `HStack` / `VStack` / `Spacer`, `PageToolbar` (`pageToolbar()`), `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
@@ -38,7 +38,8 @@ gets `navigation` (J / K, `index` / `total` in the order shown) —
 A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
 (`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), a label's
 translation takes the page's route and query parameters (`"Download {locale}.json"`), and an
-`availability` reads `context.query`, asked again when the query changes — no need to build
+`availability` reads `context.query` and the route parameters in `context.params` (`:id`),
+asked again when either changes (a detail page hides "Edit" for a missing record) — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
 `packages/interface-dms/docs/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
 answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
@@ -101,7 +102,7 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
   `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
-- `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each
+- `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
   `PublishMessage`.
 
 ### Live pages
@@ -110,6 +111,22 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   options (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"`
   to share the choice; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
+- A page with a period or live data starts with `pageToolbar({ leading, live, period })`
+  (`base/page-toolbar`): the same bar on every page — leading blocks, then "Updated N s ago",
+  Live / Pause, the window and the 1H / 24H / 7D / 30D presets, at one `size` and one height
+  (24 / 28 / 32 px, with live or not). `live: false` or `period: false` drops a control; without
+  `live` it shows the last read and a refresh button. A module's leading chip takes the toolbar's
+  height from `usePageToolbarSize().heightClass`. More than one comparison offered
+  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a menu naming the compared window ("vs 16 – 17 Oct ▾", the range label then
+  without its "vs …"); a single one
+  stays on without a control. A `custom` preset shows as a calendar icon, named in full.
+  `live` / `period` also take `childId` (keep an id roles already grant, `live` / `period` by
+  default) and `meta` (roles-editor name), so a page never builds the toolbar by hand for that;
+  `transformOptions` changes a child's options at each registration (a setting read in
+  `construct()`) — never patch the toolbar's children afterwards;
+  an editor reads the default children from the block type's `initialChildren`.
+  A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
+  of its own: neither needs a `componentId` or `pageId` there.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
@@ -120,6 +137,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
   held while paused. A table view's write (row/bulk action, its form saved) already
   calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
+- Making a block live: a built-in data block names a `realtimeTopic` (its builder registers the
+  topic on the page) and the backend calls `PublishMessage`; a table view follows its controller's
+  row events by itself. A block without a topic reads only on `refreshLivePageBlocks()`, the
+  polling while the stream is down and `refreshPageBlocks()` — no timer while the stream is up. A
+  custom component's own topic needs `RegisterPageTopic(pageId, topic)` in the backend.
+- Pause (user, hold, hidden tab) freezes every block of the page at once: realtime events, row
+  events, page-topic events behind `useApiData`, `refreshLivePageBlocks()`, `idleRefresh`, the
+  stream-down polling and a component's `useApiData` `refreshInterval`. Each block that missed
+  something reads once on resume. User actions and inputs (period, filter, search, sort, page)
+  still read; notifications, presence and the menu are not the page and keep updating.
 
 ### Texts
 
@@ -157,6 +184,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- Conditional fields on a `TableView`'s generated forms go in `forms: { new?, edit?, view? }`, each a
+  callback receiving the form's builder: `new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)` —
+  they run in a drawer, a modal or a form page alike; no custom page just to add a watch.
 - A table of more than a few columns that phones will read offers the cards and opens them there:
   `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
   saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
@@ -170,7 +200,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 
 ### Forms
 
-- A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
+- A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
+  cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
@@ -182,7 +213,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Custom components
 
 - Name the record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`. A hidden detail page next to its
+  list (`project/:id` beside `projects`) declares `parent: ProjectsPage` in its menu options so
+  the breadcrumb shows the list before the record — `docs/02.building/04.navigation.md`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.

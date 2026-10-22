@@ -206,3 +206,26 @@ describe("search shortcuts metadata", () => {
     }
   });
 });
+
+describe("Shortcuts page groups", () => {
+  // The page reads a group's title and description under its lowercased
+  // component name, and writes the raw name in capitals when the title is missing.
+  it.each(["en-GB", "fr-FR"])("are all named in %s", (locale) => {
+    const messages = JSON.parse(
+      readFileSync(
+        resolve(
+          __dirname,
+          `../layers/dms-layout/i18n/locales/layout-${locale}.json`,
+        ),
+        "utf8",
+      ),
+    );
+    const groups = messages.page.settings.shortcuts.groups;
+    for (const { component } of registry) {
+      expect(groups[component.toLowerCase()]).toEqual({
+        title: expect.any(String),
+        description: expect.any(String),
+      });
+    }
+  });
+});

@@ -6,6 +6,8 @@ import {
   RegisterBlockType,
   ui,
 } from "./block-registry";
+import { blockRealtimeTopicOption } from "./display";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import {
   type ChartColorValue,
   VALUE_FORMATS,
@@ -28,6 +30,12 @@ export interface KpiCardProps extends BaseComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
+  /**
+   * Topics the backend publishes on (`PublishMessage`) when the figure moves:
+   * the card reads `fetchUrl` again on each event, keeping what it shows,
+   * through the page's `live` gate. The page registers them.
+   */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -58,12 +66,15 @@ const KPI_CARD_COMPONENT_NAME = "dms-kpi-card";
 export function KpiCard(
   options?: KpiCardProps,
 ): ComponentBuilder<KpiCardProps> {
-  return new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-    .options({ ...options } as KpiCardProps)
-    .meta({
-      name: options?.title || "KPI card",
-      icon: options?.icon || "i-ph-trend-up",
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
+      .options({ ...options } as KpiCardProps)
+      .meta({
+        name: options?.title || "KPI card",
+        icon: options?.icon || "i-ph-trend-up",
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 /** The options `KpiCard` accepts. */
@@ -110,6 +121,7 @@ export const KpiCardSchema = z.object({
       .describe("Id of the PeriodSelector driving this card."),
     { label: "Period scope", group: "advanced" },
   ),
+  realtimeTopic: blockRealtimeTopicOption(),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",
     group: "appearance",
