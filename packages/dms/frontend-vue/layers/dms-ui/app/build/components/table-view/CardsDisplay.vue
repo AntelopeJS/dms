@@ -36,7 +36,6 @@ interface CardsDisplayProps {
 
 const props = defineProps<CardsDisplayProps>();
 
-const INITIALS_LENGTH = 2;
 
 const { processI18n } = useTranslation();
 const { processText } = useComposedText();
