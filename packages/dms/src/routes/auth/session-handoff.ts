@@ -12,12 +12,6 @@ import type { AuthResponse } from "./types";
 const HTTP_UNAUTHORIZED = 401;
 
 /**
- * Where the frontend server opens the session a credential change handed back
- * (`/auth/establish`). Declared as an establish endpoint of the DMS frontend.
- */
-export const SESSION_HANDOFF_ENDPOINT = "/api/auth/session-handoff";
-
-/**
  * Trades a session handoff token for a fresh token pair of its session. The
  * handoff sits in the session's refresh slot, so the trade rotates it out and
  * the same token buys nothing twice.

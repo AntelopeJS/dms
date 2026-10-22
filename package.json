@@ -19,5 +19,10 @@
     "format": "pnpm --filter @antelopejs/interface-dms format && pnpm --filter @antelopejs/dms format",
     "knip": "pnpm --filter @antelopejs/dms knip",
     "test": "pnpm --filter @antelopejs/dms test"
+  },
+  "pnpm": {
+    "overrides": {
+      "@antelopejs/core": "github:AntelopeJS/antelopejs#7f2de73"
+    }
   }
 }

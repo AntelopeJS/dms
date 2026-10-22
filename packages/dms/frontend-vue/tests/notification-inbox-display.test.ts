@@ -21,6 +21,14 @@ const notifications = vi.hoisted(() => ({
   deleteNotification: vi.fn(async () => {}),
 }));
 
+const confirmDialog = vi.hoisted(() => ({
+  confirm: vi.fn(async (_options: Record<string, unknown>) => true),
+}));
+
+vi.mock("#dms-ui/app/composables/confirm", () => ({
+  useConfirm: () => confirmDialog,
+}));
+
 // The bell's state the display watches, shared like `useDmsState`.
 const bell = vi.hoisted(() => ({
   unreadCount: undefined as unknown as Ref<number>,
@@ -173,6 +181,33 @@ describe("notifications inbox display", () => {
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(3));
     expect(notifications.markAsUnread).toHaveBeenCalledWith("n2");
     expect(notifications.deleteNotification).toHaveBeenCalledWith("n2");
+  });
+
+  it("asks before deleting a notification, and keeps it when the dialog is cancelled", async () => {
+    const refresh = vi.fn(async () => {});
+    const container = mount(NotificationInboxDisplay as Component, {
+      context: contextOf(refresh),
+    });
+    const remove = () =>
+      container.querySelector<HTMLButtonElement>("article .remove")!.click();
+
+    confirmDialog.confirm.mockResolvedValueOnce(false);
+    remove();
+    await vi.waitFor(() =>
+      expect(confirmDialog.confirm).toHaveBeenCalledTimes(1),
+    );
+    await new Promise((done) => setTimeout(done, 0));
+    expect(notifications.deleteNotification).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(confirmDialog.confirm.mock.calls[0]![0]).toMatchObject({
+      title: "page.settings.notifications.delete_one_title",
+      color: "error",
+      initialFocus: "cancel",
+    });
+
+    remove();
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(notifications.deleteNotification).toHaveBeenCalledWith("n1");
   });
 
   it("lists the feed again once per change made here, though the change moves the counts", async () => {

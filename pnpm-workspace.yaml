@@ -7,6 +7,7 @@ packages:
   - packages/dms/playground
 
 onlyBuiltDependencies:
+  - "@antelopejs/core"
   - sharp
   - "@parcel/watcher"
   - esbuild

@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.9.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.7...v0.9.8)
+
+### 🩹 Fixes
+
+- **startup:** Answer 503 with Retry-After until the DMS schemas are bound ([#369](https://github.com/AntelopeJS/dms/pull/369))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
+## v0.9.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.6...v0.9.7)
+
+### 🩹 Fixes
+
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#368](https://github.com/AntelopeJS/dms/pull/368))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
+## v0.9.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.5...v0.9.6)
+
+### 🚀 Enhancements
+
+- **tenant-lifecycle:** Pause producer admission and evaluate every tenant access gate ([#366](https://github.com/AntelopeJS/dms/pull/366))
+
+### 🩹 Fixes
+
+- **frontend:** Read the onboarding status and permissions through the data layer ([#357](https://github.com/AntelopeJS/dms/pull/357))
+- **deps:** Require the tenant admission barrier and access evaluation contract ([#367](https://github.com/AntelopeJS/dms/pull/367))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.7.4 ([9577327b](https://github.com/AntelopeJS/dms/commit/9577327b))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.9.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.3...v0.9.5)

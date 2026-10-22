@@ -434,6 +434,7 @@ const addFormOptions = computed(() => {
     :portal="false"
     :ignore-filter="true"
     :ui="{ content: 'z-50' }"
+    :aria-label="t('dms.a11y.show_options')"
     @update:open="onOpen"
     @update:model-value="handleUpdateModelValue"
   >

@@ -2,16 +2,20 @@ import { strict as assert } from "node:assert";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/internal/tenantLifecycle.model";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
+  RoleModel,
   TenantMemberModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import {
   ExecuteHooks,
   Hook,
+  type MemberChangeHookPayload,
   RegisterHook,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
+import type { AxiosInstance } from "axios";
 import {
   completeInviteResolution,
   decideInvite,
@@ -19,16 +23,26 @@ import {
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
 import {
   closeTenantLifecycleAdmission,
+  observeTenantLifecycle,
+  pauseTenantLifecycleAdmission,
+  resumeTenantLifecycleAdmission,
   runTenantLifecycleOperation,
 } from "@antelopejs/interface-dms/tenant-lifecycle";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import {
+  authorizedClient,
+  type RegisteredUser,
+  registerUser,
+} from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { setMemberOwnership } from "../../pages/settings/users/member-management";
 
 const TENANT = "tenant-lifecycle-test";
 const OTHER_TENANT = "tenant-lifecycle-other";
 const LEGACY_LIFECYCLE_ID = "membership-and-invites";
 const HTTP_PAYMENT_REQUIRED = 402;
+const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_ERROR = 500;
 
 async function createTenantProducers(tenantId: string): Promise<void> {
@@ -51,6 +65,186 @@ async function createTenantProducers(tenantId: string): Promise<void> {
 
 describe("Tenant lifecycle admission (MongoDB adapter)", () => {
   beforeEach(resetDatabase);
+
+  it("drains an old ownership writer before validating, refusing new policy reads", async () => {
+    await applyTenantOwnership(GetModel(UserModel), "member", TENANT, {
+      roleIds: [],
+      isTenantOwner: false,
+    });
+    const member = await GetModel(TenantMemberModel, TENANT).getByUser(
+      "member",
+    );
+    assert.ok(member);
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const guard = async () => {
+      entered.resolve();
+      await release.promise;
+    };
+    RegisterHook(Hook.MEMBER_BEING_CHANGED, guard);
+    const writer = setMemberOwnership(TENANT, member._id, true);
+    try {
+      await entered.promise;
+      const before = await observeTenantLifecycle(TENANT);
+      assert.equal(before.activeAttemptIds.length, 1);
+      assert.equal(
+        await pauseTenantLifecycleAdmission(TENANT, "prepare", before.revision),
+        true,
+      );
+      let policyReads = 0;
+      await assert.rejects(
+        runTenantLifecycleOperation(TENANT, async () => {
+          policyReads++;
+        }),
+        (error: HTTPResult) => error.getStatus() === HTTP_CONFLICT,
+      );
+      assert.equal(policyReads, 0);
+      assert.deepEqual(
+        (await observeTenantLifecycle(TENANT)).activeAttemptIds,
+        before.activeAttemptIds,
+      );
+      release.resolve();
+      await writer;
+      const drained = await observeTenantLifecycle(TENANT);
+      assert.equal(drained.barrierId, "prepare");
+      assert.deepEqual(drained.activeAttemptIds, []);
+      assert.equal(
+        (await GetModel(TenantMemberModel, TENANT).get(member._id))
+          ?.isTenantOwner,
+        true,
+      );
+      assert.equal(
+        await resumeTenantLifecycleAdmission(TENANT, "prepare"),
+        true,
+      );
+    } finally {
+      release.resolve();
+      await writer;
+      UnregisterHook(Hook.MEMBER_BEING_CHANGED, guard);
+    }
+  });
+
+  it("revokes delayed acquisitions, rejects foreign release and never reopens deletion", async () => {
+    const initial = await observeTenantLifecycle(TENANT);
+    assert.equal(await resumeTenantLifecycleAdmission(TENANT, "aborted"), true);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(TENANT, "aborted", initial.revision),
+      false,
+    );
+    const next = await observeTenantLifecycle(TENANT);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(TENANT, "current", next.revision),
+      true,
+    );
+    assert.equal(
+      await resumeTenantLifecycleAdmission(TENANT, "foreign"),
+      false,
+    );
+    assert.equal((await observeTenantLifecycle(TENANT)).barrierId, "current");
+    assert.equal(await resumeTenantLifecycleAdmission(TENANT, "current"), true);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(TENANT, "current", next.revision),
+      false,
+    );
+    await closeTenantLifecycleAdmission(TENANT);
+    assert.equal(
+      await resumeTenantLifecycleAdmission(TENANT, "current"),
+      false,
+    );
+    const closed = await observeTenantLifecycle(TENANT);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(TENANT, "late", closed.revision),
+      false,
+    );
+    await assert.rejects(
+      runTenantLifecycleOperation(TENANT, async () => undefined),
+      /closed/,
+    );
+  });
+
+  it("aborts preparation without retiring uncertain effects or freezing compatible work", async () => {
+    await assert.rejects(
+      runTenantLifecycleOperation(TENANT, async () => {
+        throw new Error("uncertain write");
+      }),
+    );
+    const before = await observeTenantLifecycle(TENANT);
+    assert.equal(before.activeAttemptIds.length, 1);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(TENANT, "prepare", before.revision),
+      true,
+    );
+    assert.deepEqual(
+      (await observeTenantLifecycle(TENANT)).activeAttemptIds,
+      before.activeAttemptIds,
+    );
+    await resumeTenantLifecycleAdmission(TENANT, "prepare");
+    await runTenantLifecycleOperation(TENANT, async () => undefined);
+    assert.deepEqual(
+      (await observeTenantLifecycle(TENANT)).activeAttemptIds,
+      before.activeAttemptIds,
+    );
+  });
+
+  it("vetoes ownership and invite acceptance before persistence, including delivery replay", async () => {
+    await applyTenantOwnership(GetModel(UserModel), "member", TENANT, {
+      roleIds: [],
+      isTenantOwner: false,
+    });
+    const member = await GetModel(TenantMemberModel, TENANT).getByUser(
+      "member",
+    );
+    assert.ok(member);
+    const created = await createUserInviteToken({
+      tenantId: TENANT,
+      email: "veto@example.test",
+      language: "en",
+      roleIds: [],
+      asTenantOwner: false,
+    });
+    const invite = await GetModel(UserInviteModel, TENANT).get(
+      created.inviteId,
+    );
+    assert.ok(invite);
+    const resolution = await decideInvite({
+      tenantId: TENANT,
+      invite,
+      reason: "accepted",
+      userId: "recipient",
+    });
+    const veto = () => {
+      throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "pending Free");
+    };
+    RegisterHook(Hook.MEMBER_BEING_CHANGED, veto);
+    try {
+      await assert.rejects(setMemberOwnership(TENANT, member._id, true));
+      await assert.rejects(
+        applyTenantOwnership(GetModel(UserModel), "member", TENANT, {
+          roleIds: [],
+          isTenantOwner: true,
+        }),
+      );
+      await assert.rejects(completeInviteResolution(resolution));
+      await assert.rejects(completeInviteResolution(resolution));
+      assert.equal(
+        (await GetModel(TenantMemberModel, TENANT).get(member._id))
+          ?.isTenantOwner,
+        false,
+      );
+      assert.equal(
+        await GetModel(TenantMemberModel, TENANT).getByUser("recipient"),
+        undefined,
+      );
+      assert.deepEqual(
+        (await observeTenantLifecycle(TENANT)).activeAttemptIds,
+        [],
+      );
+    } finally {
+      UnregisterHook(Hook.MEMBER_BEING_CHANGED, veto);
+    }
+    await completeInviteResolution(resolution);
+    assert.ok(await GetModel(TenantMemberModel, TENANT).getByUser("recipient"));
+  });
 
   it("isolates membership, invites and closure across tenants", async () => {
     await createTenantProducers(TENANT);
@@ -351,6 +545,106 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
     assert.equal(
       await GetModel(TenantMemberModel, TENANT).getByUser("late-member"),
       undefined,
+    );
+  });
+});
+
+describe("Every membership write goes through changeTenantMembers", () => {
+  const MEMBERS_API = "/api/tables/members";
+  const ROLES_TABLE = "/api/tables/roles";
+  const ACCOUNT_DELETION = "/dms/pages/settings/user/profile/account-deletion";
+  const HTTP_OK = 200;
+  let owner: AxiosInstance;
+  let member: RegisteredUser;
+  let memberRowId: string;
+  let roleId: string;
+
+  const editRoles = (roleIds: string[]) =>
+    owner.put(
+      `${MEMBERS_API}/edit`,
+      { roleIds },
+      { params: { id: memberRowId } },
+    );
+  const storedRoles = async () =>
+    (await GetModel(TenantMemberModel, DEFAULT_TENANT_ID).get(memberRowId))
+      ?.roleIds;
+
+  beforeEach(async () => {
+    await resetDatabase();
+    owner = authorizedClient((await registerUser({ owner: true })).accessToken);
+    [roleId] = await GetModel(RoleModel, DEFAULT_TENANT_ID).insert({
+      name: "Support",
+      permissions: [],
+    });
+    member = await registerUser({ roles_ids: [roleId] });
+    const row = await GetModel(TenantMemberModel, DEFAULT_TENANT_ID).getByUser(
+      member.userId,
+    );
+    assert.ok(row);
+    memberRowId = row._id;
+  });
+
+  it("refuses role changes and an account deletion with 409 while a barrier is held, writing nothing", async () => {
+    const { revision } = await observeTenantLifecycle(DEFAULT_TENANT_ID);
+    assert.equal(
+      await pauseTenantLifecycleAdmission(DEFAULT_TENANT_ID, "free", revision),
+      true,
+    );
+    try {
+      assert.equal((await editRoles([])).status, HTTP_CONFLICT);
+      const roleDeleted = await owner.delete(`${ROLES_TABLE}/delete`, {
+        params: { id: roleId },
+        data: { reassignTo: null },
+      });
+      assert.equal(roleDeleted.status, HTTP_CONFLICT);
+      assert.ok(await GetModel(RoleModel, DEFAULT_TENANT_ID).get(roleId));
+      assert.deepEqual(await storedRoles(), [roleId]);
+
+      const accountDeleted = await authorizedClient(member.accessToken).post(
+        ACCOUNT_DELETION,
+        { password: member.password, confirmation: member.email },
+      );
+      assert.equal(accountDeleted.status, HTTP_CONFLICT);
+      assert.ok(await GetModel(UserModel).get(member.userId));
+      assert.ok(
+        await GetModel(TenantMemberModel, DEFAULT_TENANT_ID).get(memberRowId),
+      );
+      assert.deepEqual(
+        (await observeTenantLifecycle(DEFAULT_TENANT_ID)).activeAttemptIds,
+        [],
+      );
+    } finally {
+      await resumeTenantLifecycleAdmission(DEFAULT_TENANT_ID, "free");
+    }
+    assert.equal((await editRoles([])).status, HTTP_OK);
+    assert.deepEqual(await storedRoles(), []);
+  });
+
+  it("lets the policy hook veto a role change, announced as such", async () => {
+    const announced: MemberChangeHookPayload[] = [];
+    const veto = (payload: MemberChangeHookPayload) => {
+      announced.push(payload);
+      throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "no role changes");
+    };
+    RegisterHook(Hook.MEMBER_BEING_CHANGED, veto);
+    try {
+      assert.equal((await editRoles([])).status, HTTP_PAYMENT_REQUIRED);
+    } finally {
+      UnregisterHook(Hook.MEMBER_BEING_CHANGED, veto);
+    }
+    assert.deepEqual(await storedRoles(), [roleId]);
+    assert.deepEqual(JSON.parse(JSON.stringify(announced)), [
+      {
+        tenantId: DEFAULT_TENANT_ID,
+        kind: "roles",
+        userId: member.userId,
+        roleIds: [],
+        previousRoleIds: [roleId],
+      },
+    ]);
+    assert.deepEqual(
+      (await observeTenantLifecycle(DEFAULT_TENANT_ID)).activeAttemptIds,
+      [],
     );
   });
 });

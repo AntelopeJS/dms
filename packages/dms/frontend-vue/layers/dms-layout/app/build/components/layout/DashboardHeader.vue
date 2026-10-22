@@ -11,6 +11,7 @@ import {
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import type { CategoryInfo } from "../../../types/page";
 import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
+import { foldBreadcrumb, isFoldedCrumbs } from "../../../utils/breadcrumb";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
@@ -183,32 +184,25 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
   return crumbs;
 });
 
+// The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
+// deep page still fits a phone without losing the way back up.
 const mobileBreadcrumb = computed(
-  (): (BreadcrumbItem & { children?: DropdownMenuItem[] })[] => {
-    if (breadcrumb.value.length <= 2) {
-      return breadcrumb.value;
-    }
-
-    // The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
-    // deep page still fits a phone without losing the way back up.
-    return [
-      breadcrumb.value[0]!,
-      {
-        slot: MOBILE_ELLIPSIS_SLOT,
-        children: breadcrumb.value.slice(1, -1).map((x) => ({
-          label: x.label,
-          to: x.to,
-        })),
-      },
-      breadcrumb.value.slice(-1)[0]!,
-    ];
-  },
+  (): (BreadcrumbItem & { children?: DropdownMenuItem[] })[] =>
+    foldBreadcrumb(breadcrumb.value, MOBILE_ELLIPSIS_SLOT).map((crumb) => {
+      if (!isFoldedCrumbs(crumb)) return crumb;
+      return {
+        slot: crumb.slot,
+        children: crumb.children.map((x) => ({ label: x.label, to: x.to })),
+      };
+    }),
 );
 </script>
 
 <template>
   <div data-dms-persistent-header>
-    <UDashboardNavbar>
+    <!-- The phone toggle below is the only one: the navbar's own would sit
+         next to it. -->
+    <UDashboardNavbar :toggle="false">
       <template #leading>
         <UButton
           class="lg:hidden"
