@@ -48,12 +48,13 @@ export class AuthController extends Controller("/api/auth") {
   declare requestContext: RequestContext;
 
   private get clientIp(): string {
-    return authRoutes.resolveClientIp(
+    return authRoutes.resolveRequestClientIp(
       {
         socketAddress: this.requestContext.rawRequest.socket.remoteAddress,
         forwardedFor: this.forwardedFor,
+        headers: this.requestContext.rawRequest.headers,
       },
-      authRoutes.trustedProxyCount(getAuthConfig()),
+      getAuthConfig(),
     );
   }
 

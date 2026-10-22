@@ -84,6 +84,7 @@ export function usePeriodDraft(period: UsePeriodReturn): UsePeriodDraftReturn {
       comparison.value,
       range.value,
       period.customCompareRange.value,
+      { preset: preset.value, now: new Date() },
     ),
   );
 
