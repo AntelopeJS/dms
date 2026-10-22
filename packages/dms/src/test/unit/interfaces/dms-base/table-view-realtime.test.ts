@@ -7,6 +7,7 @@ import {
 import { internal as runtime } from "@antelopejs/interface-core/internal";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
+import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { internal as dmsTableView } from "../../../../implementations/dms-base/table-view";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -32,18 +33,16 @@ const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
 const TENANT = "table-view-realtime-tenant";
 
-const encodeSegment = (value: Record<string, unknown>): string =>
-  Buffer.from(JSON.stringify(value)).toString("base64url");
-
-// Without a bound principal the tenant is decoded from the bearer token.
+// The route's auth decorator binds the verified user and tenant to the
+// request; the handler reads the tenant from that binding.
 const REQUEST_CONTEXT = {
-  rawRequest: {
-    headers: {
-      authorization: `Bearer ${encodeSegment({ alg: "none" })}.${encodeSegment({ tenantId: TENANT })}.`,
-    },
-  },
+  rawRequest: { headers: { authorization: "Bearer table-view-realtime" } },
 } as unknown as RequestContext;
 const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
+bindVerifiedRequestPrincipal(REQUEST_CONTEXT, {
+  userId: USER._id,
+  tenantId: TENANT,
+});
 const REMOVED_SETTERS = [
   "setRealtimeMutationHook",
   "setRealtimePresenceHook",
