@@ -36,7 +36,6 @@ interface CardsDisplayProps {
 
 const props = defineProps<CardsDisplayProps>();
 
-
 const { processI18n } = useTranslation();
 const { processText } = useComposedText();
 const { renderField } = useCardFields();
