@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import {
   buildCardProps,
+  cardAvatar,
   cardFieldColumns,
+  cardIdentity,
+  cardSubtitle,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/card";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type {
@@ -17,6 +20,12 @@ vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
 }));
 vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
   default: { render: () => null },
+}));
+vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
+  useFileReadUrls: () => ({
+    getUrl: (key: string) => `/files/${key}`,
+    resolve: async () => {},
+  }),
 }));
 
 const rows = [
@@ -165,6 +174,118 @@ describe("the default cards", () => {
     expect(opened).toEqual([rows[1]]);
     cards[0]!.querySelector("button")!.dispatchEvent(enter());
     expect(opened).toEqual([rows[1]]);
+  });
+
+  it("show the title column's subtitle and avatar, never the database id", () => {
+    const { context } = createContext();
+    context.options = {};
+    app = createApp({ render: () => h(CardsDisplay, { context }) });
+    app.component("UCheckbox", { render: () => null });
+    app.component(
+      "UAvatar",
+      defineComponent({
+        props: { src: String },
+        setup: (props) => () => h("img", { src: props.src }),
+      }),
+    );
+    const container = document.createElement("div");
+    app.mount(container);
+    expect(container.textContent).not.toContain("t1");
+    expect(container.querySelector("img")).toBeNull();
+    app.unmount();
+
+    context.columns = [
+      {
+        id: "name",
+        accessorKey: "name",
+        display: {
+          type: "identity",
+          options: { subtitleField: "email", avatarField: "photo" },
+        },
+      } as TableViewColumn,
+    ];
+    context.items = [
+      { ...rows[0]!, email: "ann@example.com", photo: { key: "ann.png" } },
+      rows[1]!,
+    ];
+    app = createApp({ render: () => h(CardsDisplay, { context }) });
+    app.component("UCheckbox", { render: () => null });
+    app.component(
+      "UAvatar",
+      defineComponent({
+        props: { src: String },
+        setup: (props) => () => h("img", { src: props.src }),
+      }),
+    );
+    const next = document.createElement("div");
+    app.mount(next);
+    const [first, second] = [...next.querySelectorAll("article")];
+    expect(first!.textContent).toContain("ann@example.com");
+    expect(first!.querySelector("img")?.getAttribute("src")).toBe(
+      "/files/ann.png",
+    );
+    // Without an avatar, the title's initials stand in.
+    expect(second!.querySelector("img")).toBeNull();
+    expect(second!.textContent).toContain("SI");
+  });
+});
+
+describe("card subtitle and avatar", () => {
+  const identityColumn = {
+    id: "name",
+    accessorKey: "name",
+    display: {
+      type: "identity",
+      options: { subtitleField: "email", avatarField: "avatar", storage: "s" },
+    },
+  } as TableViewColumn;
+
+  it("reads them off the title column's identity display", () => {
+    expect(cardIdentity([identityColumn], "name")).toEqual({
+      subtitleField: "email",
+      avatarField: "avatar",
+      storage: "s",
+    });
+    expect(cardIdentity([identityColumn], undefined)).toEqual({});
+    expect(
+      cardIdentity([{ ...identityColumn, display: { type: "mono" } }], "name"),
+    ).toEqual({});
+  });
+
+  it("never shows the database id, but a key the table names its rows by", () => {
+    const row = { _id: "proj-074", code: "CH-0155", name: "Roof" };
+    const byId = { labelKey: "name", rowIdKey: "_id" };
+    expect(cardSubtitle(row, {}, byId)).toBeUndefined();
+    expect(cardSubtitle(row, {}, { labelKey: "name", rowIdKey: "code" })).toBe(
+      "CH-0155",
+    );
+    // The title is the id already: no second line repeats it.
+    expect(
+      cardSubtitle(
+        { code: "CH-0155" },
+        {},
+        { labelKey: "name", rowIdKey: "code" },
+      ),
+    ).toBeUndefined();
+    expect(
+      cardSubtitle(
+        { ...row, email: "a@b.c" },
+        { subtitleField: "email" },
+        byId,
+      ),
+    ).toBe("a@b.c");
+  });
+
+  it("takes an image value or a URL as the avatar", () => {
+    const identity = { avatarField: "avatar" };
+    expect(cardAvatar({ avatar: { key: "k" } }, identity)).toEqual({
+      key: "k",
+    });
+    expect(cardAvatar({ avatar: "https://x/a.png" }, identity)).toBe(
+      "https://x/a.png",
+    );
+    expect(cardAvatar({ avatar: "" }, identity)).toBeUndefined();
+    expect(cardAvatar({ avatar: { key: "k" } }, {})).toBeUndefined();
   });
 });
 
