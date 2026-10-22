@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { AuthConfig } from "../../config";
 import {
   resolveClientIp,
+  resolveRequestClientIp,
   trustedProxyCount,
 } from "../../routes/auth/client-ip";
 
@@ -120,5 +121,66 @@ describe("[unit] trustedProxyCount", () => {
   it("ignores a value that is not a non-negative integer", () => {
     expect(trustedProxyCount(authConfig({ trustedProxies: -1 }))).to.equal(0);
     expect(trustedProxyCount(authConfig({ trustedProxies: 1.5 }))).to.equal(0);
+  });
+});
+
+describe("[unit] resolveRequestClientIp", () => {
+  const platform = authConfig({
+    clientIpHeader: "X-Client-IP",
+    trustedProxies: 2,
+  });
+
+  it("takes the platform header, whatever x-forwarded-for and trustedProxies say", () => {
+    expect(
+      resolveRequestClientIp(
+        {
+          socketAddress: SOCKET_ADDRESS,
+          forwardedFor: STAGING_CHAIN,
+          headers: { "x-client-ip": "2001:db8::7" },
+        },
+        platform,
+      ),
+    ).to.equal("2001:db8::7");
+  });
+
+  it("falls back to the socket peer, not x-forwarded-for, without the header", () => {
+    expect(
+      resolveRequestClientIp(
+        {
+          socketAddress: SOCKET_ADDRESS,
+          forwardedFor: STAGING_CHAIN,
+          headers: {},
+        },
+        platform,
+      ),
+    ).to.equal(SOCKET_ADDRESS);
+  });
+
+  it("falls back to the socket peer when the header holds no single IP", () => {
+    for (const value of ["not-an-ip", "6.6.6.6, 7.7.7.7", ""]) {
+      expect(
+        resolveRequestClientIp(
+          {
+            socketAddress: SOCKET_ADDRESS,
+            forwardedFor: STAGING_CHAIN,
+            headers: { "x-client-ip": value },
+          },
+          platform,
+        ),
+      ).to.equal(SOCKET_ADDRESS);
+    }
+  });
+
+  it("ignores a forged header when the option is unset", () => {
+    expect(
+      resolveRequestClientIp(
+        {
+          socketAddress: SOCKET_ADDRESS,
+          forwardedFor: STAGING_CHAIN,
+          headers: { "x-client-ip": "6.6.6.6" },
+        },
+        authConfig({ trustedProxies: 1 }),
+      ),
+    ).to.equal(CDN_EDGE);
   });
 });

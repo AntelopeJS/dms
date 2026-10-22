@@ -45,6 +45,11 @@ export default defineConfig({
           // warns about the missing file.
           signInCountry: { database: false },
         },
+        // Signs the backend's calls to the frontend's HTML renderer. The
+        // development value is refused by a production start.
+        htmlRender: {
+          serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
+        },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,
         frontend: {
@@ -100,7 +105,6 @@ export default defineConfig({
           allowedOrigins: [
             "http://localhost:3001",
             /^https:\/\/[a-z0-9-]+\.onamp\.dev$/,
-            ...(dmsClientUrl ? [dmsClientUrl] : []),
           ],
         },
       },
