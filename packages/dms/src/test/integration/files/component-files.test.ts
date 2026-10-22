@@ -51,12 +51,7 @@ describe("[integration] native component file security", () => {
     const roles = GetModel(RoleModel, DEFAULT_TENANT_ID);
     const [role] = await roles.insert({
       name: "File reader",
-      // The table view is served only with its list.
-      permissions: [
-        claims.pageId,
-        claims.componentId,
-        `${claims.componentId}.list`,
-      ],
+      permissions: [claims.pageId, claims.componentId],
     });
     const reader = await registerUser({ roles_ids: [role] });
     const other = authorizedClient(reader.accessToken);

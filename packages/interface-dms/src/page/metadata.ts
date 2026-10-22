@@ -859,9 +859,6 @@ export class PageMetadata {
         title: component.metadata.name,
         icon: component.metadata.icon,
         description: component.metadata.description,
-        requires: component.metadata.requiredActions?.map(
-          (actionId) => `${permissionId}.${actionId}`,
-        ),
         defaultGranted: opensToMembers(this.pageInfo?.memberAccess),
       });
     }

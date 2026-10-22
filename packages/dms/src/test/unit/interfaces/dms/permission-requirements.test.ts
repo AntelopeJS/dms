@@ -18,6 +18,8 @@ const PAGE = "prq-crm.contacts";
 const TABLE = `${PAGE}.table`;
 const EDIT = `${TABLE}.edit`;
 const VIEW = `${TABLE}.view`;
+const LIST = `${TABLE}.list`;
+const VIEW_ARCHIVED = `${TABLE}.viewArchived`;
 const EXPORT = `${TABLE}.export`;
 const AUDIT_PAGE = "prq-audit.log";
 const AUDIT_TABLE = `${AUDIT_PAGE}.table`;
@@ -46,19 +48,13 @@ const TABLE_CAPABILITIES = {
   archiveMode: false,
   isExportEnabled: true,
   formsArePages: false,
-  isListRequired: true,
 };
 
 type TableCapabilities = typeof TABLE_CAPABILITIES;
 
-function tableBuilder(capabilities: Partial<TableCapabilities> = {}) {
+function tableActions(capabilities: Partial<TableCapabilities> = {}) {
   const builder = new ComponentBuilder("prq-table");
   registerTableViewActions(builder, { ...TABLE_CAPABILITIES, ...capabilities });
-  return builder;
-}
-
-function tableActions(capabilities: Partial<TableCapabilities> = {}) {
-  const builder = tableBuilder(capabilities);
   permissionMap.set(builder, TABLE);
   const permissions = Object.fromEntries(
     Object.values(builder.actions).map((action) => [
@@ -123,14 +119,11 @@ describe("[unit] interfaces/dms/internal/permission-requirements", () => {
   });
 });
 
-const LIST = `${TABLE}.list`;
-const VIEW_ARCHIVED = `${TABLE}.viewArchived`;
-
 describe("[unit] interfaces/dms-base/table-view — the actions that read a row need the view", () => {
   it("declares the view as a dependency of the edit and the export", () => {
-    const permissions = tableActions({ isListRequired: false });
+    const permissions = tableActions({ formsArePages: true });
     expect(permissions.edit?.dependencies).to.deep.equal([VIEW]);
-    expect(permissions.export?.dependencies).to.deep.equal([VIEW]);
+    expect(permissions.export?.dependencies).to.deep.equal([VIEW, LIST]);
     expect(permissions.view?.dependencies).to.equal(undefined);
   });
 
@@ -141,10 +134,10 @@ describe("[unit] interfaces/dms-base/table-view — the actions that read a row 
   it("declares none when the table has no view form to read the row", () => {
     const permissions = tableActions({
       hasViewForm: false,
-      isListRequired: false,
+      formsArePages: true,
     });
     expect(permissions.edit?.dependencies).to.equal(undefined);
-    expect(permissions.export?.dependencies).to.equal(undefined);
+    expect(permissions.export?.dependencies).to.deep.equal([LIST]);
     expect(permissions).to.not.have.property("view");
   });
 });
@@ -182,23 +175,5 @@ describe("[unit] interfaces/dms-base/table-view — the actions reached from the
     expect(select?.dependencies).to.equal(undefined);
     expect(select?.defaultGranted).to.equal(true);
     expect(list?.dependencies).to.equal(undefined);
-  });
-
-  it("requires the list of the table itself, without granting it along", () => {
-    expect(tableBuilder().metadata.requiredActions).to.deep.equal(["list"]);
-  });
-
-  it("drops every list dependency of a table opting out", () => {
-    const permissions = tableActions({
-      archiveMode: true,
-      isListRequired: false,
-    });
-    for (const action of ["add", "view", "delete", "archive", "restore"]) {
-      expect(permissions[action]?.dependencies, action).to.equal(undefined);
-    }
-    expect(permissions.viewArchived?.dependencies).to.equal(undefined);
-    expect(
-      tableBuilder({ isListRequired: false }).metadata.requiredActions,
-    ).to.equal(undefined);
   });
 });

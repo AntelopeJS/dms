@@ -16,12 +16,6 @@ export interface Permission {
    * them with it, and a role is saved with them and the ids they sit under.
    */
   dependencies?: string[];
-  /**
-   * Permission ids this one grants nothing without, enforced like
-   * `dependencies` but never granted along with it: a table block is withheld
-   * from a role lacking its `list`, yet ticking the block grants no `list`.
-   */
-  requires?: string[];
   defaultGranted?: boolean;
 }
 
@@ -124,10 +118,9 @@ export async function GetEffectiveUserPermissions(
 /**
  * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
  * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
- * it sits under), `dependencies` and `requires` are held too — a table's
- * delete action grants nothing without its table, its page and its list, its
- * edit nothing without the view that loads the row, and the table itself
- * nothing without its list.
+ * it sits under) and `dependencies` are held too — a table's delete action
+ * grants nothing without its table, its page and its list, its edit nothing
+ * without the view that loads the row.
  */
 export async function HasPermission(
   permissions: Set<string>,
@@ -176,19 +169,14 @@ async function holdsAncestors(
   return true;
 }
 
-// A dependency, or a requirement, counts like an ancestor: granted with its
-// own ancestors and dependencies, `defaultGranted`, or not a registered
-// permission at all.
+// A dependency counts like an ancestor: granted with its own ancestors and
+// dependencies, `defaultGranted`, or not a registered permission at all.
 async function holdsDependencies(
   permissions: Set<string>,
   permission: Permission | undefined,
   checked: Set<string>,
 ): Promise<boolean> {
-  const needed = [
-    ...(permission?.dependencies ?? []),
-    ...(permission?.requires ?? []),
-  ];
-  for (const dependencyId of needed) {
+  for (const dependencyId of permission?.dependencies ?? []) {
     if (checked.has(dependencyId)) continue;
     if (!(await GetPermission(dependencyId))) continue;
     if (!(await grantsPermission(permissions, dependencyId, checked))) {

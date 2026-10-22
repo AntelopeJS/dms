@@ -890,17 +890,6 @@ export interface TableViewLiveHoldOptions {
   missedLabel?: string;
 }
 
-/** How a table view's actions depend on its `list` (see `TableViewOptions.permissions`). */
-export interface TableViewPermissionOptions {
-  /**
-   * `false` for a table whose actions are used without its rows — an API
-   * writing by id, a role editing only rows it is sent to: no action depends
-   * on `list` nor `restore` on `viewArchived`, and the table is served without
-   * `list`. Defaults to `true`.
-   */
-  listRequired?: boolean;
-}
-
 export interface TableViewOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -993,13 +982,6 @@ export interface TableViewOptions<
    * @example { type: "drawer", pages: { new: { displayName: "$tasks.form.new_title" } } }
    */
   formContainer?: FormContainer;
-  /**
-   * How the table view's actions depend on its `list`. By default an action
-   * only reached from the rows (delete, archive, export, a form opening over
-   * the table) needs `list`, and the table is withheld without it.
-   * @example { listRequired: false }
-   */
-  permissions?: TableViewPermissionOptions;
   /**
    * Enable archive mode: replaces delete action with archive/restore
    */

@@ -179,11 +179,6 @@ export interface TableViewCapabilities {
    * by URL, rather than over the table (a drawer, a modal, a side panel).
    */
   formsArePages: boolean;
-  /**
-   * Whether the actions reached from the table's rows need its `list`, and
-   * the table itself is withheld without it (`permissions.listRequired`).
-   */
-  isListRequired: boolean;
 }
 
 /**
@@ -200,16 +195,12 @@ export interface TableViewCapabilities {
  * notification leads a member to the one record they may edit — and does not.
  * `select` serves the relation pickers of other pages and depends on nothing;
  * `restore` is pressed from the archived rows, so it depends on
- * `viewArchived`, and through it on `list`. A table view opting out with
- * `permissions.listRequired: false` keeps only the read dependencies.
+ * `viewArchived`, and through it on `list`.
  */
 function tableViewActionDependencies(
   capabilities: TableViewCapabilities,
 ): Record<string, string[] | undefined> {
-  const listed = capabilities.isListRequired ? [LIST_ACTION] : [];
-  const archiveListed = capabilities.isListRequired
-    ? [VIEW_ARCHIVED_ACTION]
-    : [];
+  const listed = [LIST_ACTION];
   const formListed = capabilities.formsArePages ? [] : listed;
   const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : [];
   const orUndefined = (ids: string[]) => (ids.length > 0 ? ids : undefined);
@@ -217,11 +208,11 @@ function tableViewActionDependencies(
     add: orUndefined(formListed),
     edit: orUndefined([...readsRow, ...formListed]),
     [VIEW_ACTION]: orUndefined(formListed),
-    delete: orUndefined(listed),
-    archive: orUndefined(listed),
-    restore: orUndefined(archiveListed),
-    [VIEW_ARCHIVED_ACTION]: orUndefined(listed),
-    export: orUndefined([...readsRow, ...listed]),
+    delete: listed,
+    archive: listed,
+    restore: [VIEW_ARCHIVED_ACTION],
+    [VIEW_ARCHIVED_ACTION]: listed,
+    export: [...readsRow, ...listed],
   };
 }
 
@@ -239,11 +230,6 @@ export function registerTableViewActions<T>(
   capabilities: TableViewCapabilities,
 ): void {
   const dependencies = tableViewActionDependencies(capabilities);
-  // A table without its list shows an error panel where its rows would be:
-  // it is withheld instead, like a table the caller was never granted.
-  if (capabilities.isListRequired) {
-    builder.meta({ requiredActions: [LIST_ACTION] });
-  }
   builder.action(LIST_ACTION, {
     title: "$dms.table.action_list",
     icon: "i-ph-list",

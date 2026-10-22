@@ -183,7 +183,6 @@ export function TableView<T extends ControllerClass>(
     hasViewForm: !!viewForm,
     isExportEnabled,
     formsArePages: isPageMode,
-    isListRequired: options.permissions?.listRequired !== false,
   });
 
   recordTableView(meta, builder, access, options);

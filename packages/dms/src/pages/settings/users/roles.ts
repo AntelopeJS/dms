@@ -109,7 +109,6 @@ registerTableViewActions(rolesEditor, {
   isExportEnabled: true,
   // A role opens in the editor, over its list.
   formsArePages: false,
-  isListRequired: true,
 });
 
 // The data routes (`/api/tables/roles`, behind the member and invite role

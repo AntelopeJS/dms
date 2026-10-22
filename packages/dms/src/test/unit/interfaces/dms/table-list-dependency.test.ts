@@ -1,18 +1,11 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
-import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
-import {
-  type ComponentNodeMap,
-  filterComponents,
-} from "@antelopejs/interface-dms/page/layout-filter";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { HasPermission } from "@antelopejs/interface-dms/permissions";
-import { classifyPreviewBlocks } from "../../../../pages/settings/users/role-preview";
 
-// The actions a table's rows lead to depend on its `list`, and the table
-// itself is withheld without it.
+// The actions a table's rows lead to depend on its `list`.
 
 const CATEGORY = "tld-sales";
 const PAGE = `${CATEGORY}.invoices`;
@@ -25,13 +18,12 @@ const DELETE = `${TABLE}.delete`;
 const VIEW_ARCHIVED = `${TABLE}.viewArchived`;
 const RESTORE = `${TABLE}.restore`;
 const PAGE_EDIT = `${TABLE}.page-edit`;
-const NOTES = `${PAGE}.notes`;
 const CHAIN = [CATEGORY, PAGE, TABLE];
 
 const REGISTERED = [
   { id: CATEGORY, title: "Sales" },
   { id: PAGE, title: "Invoices" },
-  { id: TABLE, title: "Table", requires: [LIST] },
+  { id: TABLE, title: "Table" },
   { id: LIST, title: "List" },
   { id: SELECT, title: "Select", defaultGranted: true },
   { id: VIEW, title: "View", dependencies: [LIST] },
@@ -41,28 +33,7 @@ const REGISTERED = [
   { id: RESTORE, title: "Restore", dependencies: [VIEW_ARCHIVED] },
   // An edit form opening as its own page: reached by URL, not from the rows.
   { id: PAGE_EDIT, title: "Edit (page)" },
-  { id: NOTES, title: "Notes" },
 ];
-
-const CONTEXT = { tenantId: "tenant", user: undefined };
-const table = new ComponentBuilder("tld-table").options({});
-const notes = new ComponentBuilder("tld-notes").options({});
-const componentMap: ComponentNodeMap = new Map([
-  [TABLE, { component: table, permissionId: TABLE, depth: 0, access: "own" }],
-  [NOTES, { component: notes, permissionId: NOTES, depth: 0, access: "own" }],
-]);
-
-/** The blocks of the page a permission set is served. */
-async function servedBlocks(permissions: string[]): Promise<string[]> {
-  const served = await filterComponents(
-    { table: await table.serialize(), notes: await notes.serialize() },
-    PAGE,
-    new Set(permissions),
-    componentMap,
-    CONTEXT,
-  );
-  return Object.keys(served);
-}
 
 describe("[unit] interfaces/dms/permissions — table actions need the list", () => {
   before(() => {
@@ -91,17 +62,10 @@ describe("[unit] interfaces/dms/permissions — table actions need the list", ()
       expect(await HasPermission(new Set(CHAIN), SELECT)).to.equal(true);
     });
 
-    it("withholds a table granted without its list", async () => {
-      expect(await HasPermission(new Set(CHAIN), TABLE)).to.equal(false);
-      expect(await HasPermission(new Set([...CHAIN, LIST]), TABLE)).to.equal(
-        true,
-      );
-    });
-
-    it("grants a page-mode edit without the list, whose table stays withheld", async () => {
-      const permissions = new Set([...CHAIN, PAGE_EDIT]);
-      expect(await HasPermission(permissions, PAGE_EDIT)).to.equal(true);
-      expect(await HasPermission(permissions, TABLE)).to.equal(false);
+    it("grants a page-mode edit without the list", async () => {
+      expect(
+        await HasPermission(new Set([...CHAIN, PAGE_EDIT]), PAGE_EDIT),
+      ).to.equal(true);
     });
 
     it("refuses a restore without the archived view, and that without the list", async () => {
@@ -109,42 +73,6 @@ describe("[unit] interfaces/dms/permissions — table actions need the list", ()
       expect(await HasPermission(withArchive, RESTORE)).to.equal(true);
       const withoutList = new Set([...CHAIN, VIEW_ARCHIVED, RESTORE]);
       expect(await HasPermission(withoutList, RESTORE)).to.equal(false);
-    });
-  });
-
-  describe("serving the page", () => {
-    it("leaves out a table granted without its list, and keeps the rest", async () => {
-      expect(await servedBlocks([...CHAIN, NOTES, EDIT, VIEW])).to.deep.equal([
-        "notes",
-      ]);
-      expect(await servedBlocks([...CHAIN, NOTES, LIST])).to.deep.equal([
-        "table",
-        "notes",
-      ]);
-    });
-
-    it("previews that table as hidden", async () => {
-      const preview = new Set([...CHAIN, NOTES, VIEW]);
-      const granted = async (id: string) =>
-        (await HasPermission(preview, id)) ? [id] : [];
-      const ids = [TABLE, LIST, VIEW, NOTES];
-      const blocks = classifyPreviewBlocks(
-        [
-          {
-            path: "table",
-            permissionId: TABLE,
-            actionIds: [LIST, VIEW],
-            children: [],
-          },
-          { path: "notes", permissionId: NOTES, actionIds: [], children: [] },
-        ],
-        {
-          real: new Set(ids),
-          preview: new Set((await Promise.all(ids.map(granted))).flat()),
-        },
-        false,
-      );
-      expect(blocks).to.deep.equal({ table: { state: "hidden" } });
     });
   });
 
@@ -162,10 +90,6 @@ describe("[unit] interfaces/dms/permissions — table actions need the list", ()
         VIEW_ARCHIVED,
         LIST,
       ]);
-    });
-
-    it("does not grant the list a table requires", async () => {
-      expect(await withRequiredPermissions([TABLE])).to.not.include(LIST);
     });
   });
 });

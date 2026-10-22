@@ -250,13 +250,6 @@ export interface ComponentMetadata {
   name: string;
   description?: string;
   icon?: string;
-  /**
-   * Its own actions, by id, the component shows nothing useful without: a
-   * caller lacking one is not served the component, as if it lacked the
-   * component itself. A table view requires its `list`. Unlike an action's
-   * `dependencies`, they are not granted with the component.
-   */
-  requiredActions?: string[];
 }
 
 export type ComponentInfoPromise<T = unknown> = MaybePromise<
