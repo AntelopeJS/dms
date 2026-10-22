@@ -40,8 +40,9 @@ function stubLayerGlobals() {
   ]) {
     vi.stubGlobal(name, () => "");
   }
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text.replace(/^\$/, "i18n:"),
+  // The formatters read the application's composer, not `useI18n()`.
+  vi.stubGlobal("useDmsApp", () => ({
+    $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en" } },
   }));
   vi.stubGlobal("useDataTypes", () => ({
     registerDataType: (dataType: DataType) =>

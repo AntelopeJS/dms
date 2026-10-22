@@ -1,6 +1,7 @@
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type { BlockAction } from "#dms-ui/app/build/components/blocks/BlockActions.vue";
 import type { PageLiveOptions } from "#dms-ui/app/types/live";
+import type { ModuleSourceKind } from "./module-store";
 
 export type MenuItemType = "label" | "link";
 // MenuItemVariant / MenuItemStatus / MenuItemQuery live in dms-core, the layer
@@ -88,12 +89,19 @@ export type ModuleCatalogEntry = ModuleWithAccess & {
   landingSlug: string;
   status?: ModuleStatus;
   readout?: ModuleReadoutLine[];
+  /**
+   * Where its code comes from, read from the module store; absent for a
+   * module the store does not list.
+   */
+  source?: ModuleSourceKind;
 };
 
 export const MODULE_URL_PREFIX = "/modules";
 
 export interface PageInfo extends Omit<CategoryInfo, "category"> {
   layoutUrl: string;
+  /** Full slug of the page this one is a detail of (`MenuOptions.parent`). */
+  parentSlug?: string;
 }
 
 export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {

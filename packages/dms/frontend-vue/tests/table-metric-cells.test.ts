@@ -74,12 +74,9 @@ describe("metric cells", () => {
   };
 
   beforeEach(() => {
-    vi.stubGlobal("useTranslation", () => ({
-      processI18n: (text: string) => text.replace(/^\$/, "i18n:"),
-    }));
-    vi.stubGlobal("useI18n", () => ({
-      t: (key: string) => `i18n:${key}`,
-      locale: { value: "en-GB" },
+    // The formatters read the application's composer, not `useI18n()`.
+    vi.stubGlobal("useDmsApp", () => ({
+      $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en-GB" } },
     }));
   });
 
