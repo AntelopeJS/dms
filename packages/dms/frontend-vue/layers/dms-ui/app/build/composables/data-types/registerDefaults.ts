@@ -18,6 +18,7 @@ import {
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import { withNumberSuffix } from "./numberSuffix";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
@@ -770,7 +771,7 @@ const registerPrimitiveTypes = (
 ) => {
   registerDataType({
     id: "number",
-    formatter: { default: formatNumber as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatNumber) },
   });
   registerDataType({
     id: "string",
@@ -778,11 +779,11 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "price",
-    formatter: { default: formatPrice as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatPrice) },
   });
   registerDataType({
     id: "percentage",
-    formatter: { default: formatPercentage as DataTypeFormatter },
+    formatter: { default: withNumberSuffix(formatPercentage) },
   });
   registerDataType({
     id: "string_time",
