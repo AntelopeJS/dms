@@ -46,7 +46,10 @@ async function upsertTenantMembership(
   }
 }
 
-/** @internal Caller must hold a confirmed tenant lifecycle admission until this resolves. */
+/**
+ * @internal The write of a `changeTenantMembers` call, which has already
+ * announced the change; never call it from anywhere else.
+ */
 export async function applyAdmittedTenantOwnership(
   userModel: UserModel,
   userId: string,
@@ -56,15 +59,6 @@ export async function applyAdmittedTenantOwnership(
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const existing = await memberModel.getByUser(userId);
   const isNewMember = !existing;
-  // Invite delivery checks policy before its durable applying phase, not here.
-  if (!patch.deliveryId) {
-    await ExecuteHooks(Hook.MEMBER_BEING_CHANGED, {
-      tenantId,
-      userId,
-      isTenantOwner: patch.isTenantOwner,
-      previousIsTenantOwner: existing ? existing.isTenantOwner === true : null,
-    });
-  }
   if (isNewMember && !patch.deliveryId) {
     const payload = {
       tenantId,
