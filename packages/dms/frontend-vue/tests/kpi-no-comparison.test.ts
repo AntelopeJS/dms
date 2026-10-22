@@ -4,14 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 
 const response = ref<Record<string, unknown> | null>(null);
+const loading = ref(false);
+const fetchOptions = vi.hoisted(() => [] as Record<string, unknown>[]);
 
 vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: response,
-    isLoading: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  }),
+  useChartFetch: (options: Record<string, unknown>) => {
+    fetchOptions.push(options);
+    return {
+      data: response,
+      isLoading: loading,
+      error: ref(null),
+      refresh: async () => {},
+    };
+  },
 }));
 
 const Slot = defineComponent({
@@ -21,8 +26,9 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-const TREND_LINE = 'class="flex h-6 items-center"';
-const STAT_TREND_PLACEHOLDER = 'class="h-4"';
+const TREND_LINE = 'class="flex h-6 min-w-0 items-center gap-2"';
+const STAT_TREND_PLACEHOLDER = 'class="flex h-4 items-center gap-1.5"';
+const FOOTNOTE_PLACEHOLDER = 'class="block h-4"';
 // The trend badge's own classes (the sparkline's gradient carries "%" too).
 const TREND_BADGE = "whitespace-nowrap tabular-nums transition-colors";
 
@@ -48,9 +54,15 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+    ref(initial()),
+  );
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  loading.value = false;
+});
 
 describe("a KPI card with no comparison period", () => {
   it("shows no change at all, not a 0% stand-in", async () => {
@@ -58,7 +70,28 @@ describe("a KPI card with no comparison period", () => {
     const html = await render();
     expect(html).not.toContain(TREND_BADGE);
     expect(html).not.toContain("●");
+  });
+
+  it("drops the comparison label, which names a period it does not compare", async () => {
+    response.value = { value: 1535 };
+    const html = await render();
+    expect(html).not.toContain("vs previous month");
+    // Its line is held, so toggling a comparison moves nothing.
+    expect(html).toContain(FOOTNOTE_PLACEHOLDER);
+  });
+
+  it("shows the description in its place", async () => {
+    response.value = { value: 1535 };
+    const html = await render({ description: "Paid orders" });
+    expect(html).not.toContain("vs previous month");
+    expect(html).toContain("Paid orders");
+  });
+
+  it("keeps the comparison label while comparing", async () => {
+    response.value = { value: 1535, previousValue: 1616, delta: -5 };
+    const html = await render({ description: "Paid orders" });
     expect(html).toContain("vs previous month");
+    expect(html).not.toContain(FOOTNOTE_PLACEHOLDER);
   });
 
   it("keeps the trend's line, so toggling a comparison moves nothing", async () => {
@@ -88,5 +121,40 @@ describe("a KPI card with no comparison period", () => {
     response.value = { value: 1535 };
     const html = await render({ showDelta: false, compareLabel: undefined });
     expect(html).not.toContain(TREND_LINE);
+  });
+});
+
+describe("a stat KPI card loading its first value", () => {
+  // The sparkline's 24px box, beside the trend's line: the aside is taller
+  // than the value column, so it sets the card's height.
+  const SPARKLINE_BOX = 'class="h-6 w-16"';
+
+  it("holds the sparkline's box, so the card keeps its height when it lands", async () => {
+    loading.value = true;
+    response.value = null;
+    const loadingHtml = await render({ variant: "stat", showSparkline: true });
+    loading.value = false;
+    response.value = { value: 1535, delta: 4, sparkline: [1, 2, 3] };
+    const loadedHtml = await render({ variant: "stat", showSparkline: true });
+    expect(loadingHtml).toContain(SPARKLINE_BOX);
+    expect(loadedHtml).toContain(SPARKLINE_BOX);
+  });
+
+  it("keeps the box when the value comes without a sparkline", async () => {
+    response.value = { value: 1535 };
+    const html = await render({ variant: "stat", showSparkline: true });
+    expect(html).toContain(SPARKLINE_BOX);
+  });
+});
+
+describe("a live KPI card", () => {
+  it("reads on its realtimeTopic and follows its period scope at once", async () => {
+    fetchOptions.length = 0;
+    response.value = { value: 1535, previousValue: 1616, delta: -5 };
+    await render({ periodScope: "api", realtimeTopic: "api:requests" });
+    expect(fetchOptions.at(-1)).toMatchObject({
+      periodScope: "api",
+      realtimeTopic: "api:requests",
+    });
   });
 });

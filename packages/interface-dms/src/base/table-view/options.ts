@@ -4,7 +4,7 @@ import type {
   Component,
   ComponentInfoSerialized,
 } from "../../component";
-import type { FormPropsSerialized } from "../form-types";
+import type { FormBuilder, FormPropsSerialized } from "../form-types";
 import type { BlockLinkAction } from "../display";
 import type { Tone } from "../types/tone";
 import type { ColorValue } from "../types";
@@ -206,7 +206,9 @@ export interface TableViewView extends TableViewViewState {
   dot?: Tone;
   /**
    * Shows the number of rows the view lists, counted by the controller's
-   * `countBatch` route like the tab counters.
+   * `countBatch` route like the tab counters: what opening it would list,
+   * under the open tab and the page's URL filters. The open view counts the
+   * rows listed, its filters and search as the user edited them.
    */
   count?: boolean;
   /**
@@ -299,6 +301,8 @@ export interface TableViewTab {
    * server when the menu loads, with the caller's own `list` permission; a
    * count of zero shows no badge. `true` draws it neutral; `{ tone }` draws
    * it in that tone (`{ tone: "warning" }` for a tab of rows to check).
+   * The badge counts the tab over the whole page, whatever view, filters,
+   * search or URL filters narrow the tab's own counter.
    */
   navBadge?: boolean | TableViewTabNavBadge;
 }
@@ -350,12 +354,12 @@ export type TableViewQuickFilterMode =
 
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
- * values of a column: a select's items, a boolean's two labels, or the rows
- * a relation points to. The picked value is the column's filter, the very one
- * the filters row edits: kept with the table's state, counted as an active
- * filter and cleared by "Reset filters". In the `compact` layout, which has
- * no filters row, the button names the column and its value ("Role: Admin")
- * next to a clear button.
+ * values of a column: a select's items, a boolean's two labels, a tags
+ * column's `suggestions`, or the rows a relation points to. The picked value
+ * is the column's filter, the very one the filters row edits: kept with the
+ * table's state, counted as an active filter and cleared by "Reset filters".
+ * In the `compact` layout, which has no filters row, the button names the
+ * column and its value ("Role: Admin") next to a clear button.
  */
 export interface TableViewQuickFilter {
   /** Filterable column the control filters on. */
@@ -368,7 +372,8 @@ export interface TableViewQuickFilter {
   allLabel?: string;
   /**
    * Compare mode of the filter. Defaults to `array_contains_string` for a
-   * multiple relation or select, `is` otherwise.
+   * multiple relation or select and for a type whose default compare mode it
+   * is (tags), `is` otherwise.
    */
   mode?: TableViewQuickFilterMode;
 }
@@ -544,12 +549,29 @@ export interface TableViewCardOptions {
    * `v-bind` on a button).
    */
   component?: Component;
+  /**
+   * `cards` display only: the narrowest a card gets, as a CSS length
+   * (`"300px"`, `"20rem"`). Defaults to `"230px"`. The row fits as many
+   * cards of that width as it can and stretches them to fill it; a list too
+   * short to fill a row stretches its cards up to twice that width.
+   */
+  minWidth?: string;
+  /**
+   * `cards` display only: the height of a placeholder card while the page
+   * loads, as a CSS length (`"260px"`). Left out, a placeholder is as tall as
+   * the built-in card. A `component` taller than that sets it to its own
+   * height, so the pagination footer below the grid stands where the loaded
+   * cards put it. The cards themselves keep their own height.
+   */
+  skeletonHeight?: string;
 }
 
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
 export interface TableViewCardOptionsSerialized {
   fields?: string[];
   component?: ComponentInfoSerialized;
+  minWidth?: string;
+  skeletonHeight?: string;
 }
 
 /** The kanban options as its display entry carries them. */
@@ -672,6 +694,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "kanban"
   | "displays"
   | "formSlots"
+  | "forms"
   | "expandable"
   | "tabs"
   | "views"
@@ -765,6 +788,13 @@ export type FormContainer =
       type: "page";
       pages?: FormContainerPages;
     };
+
+/**
+ * Settles one of the forms a table view generates, as a module writes its own
+ * `Form`: it receives the builder, and what it declares on it (`.watch()`…)
+ * holds wherever the form opens.
+ */
+export type TableViewFormSetup = (form: FormBuilder) => void;
 
 /**
  * Page-mode form URLs, resolved against the slug of the page the table view is
@@ -987,6 +1017,15 @@ export interface TableViewOptions<
    */
   archiveMode?: boolean;
   /**
+   * The count the caption shows while the archived rows are listed, naming
+   * them: an i18n key with `$` receiving `{ count }` and pluralized on it
+   * ("13 factures archivées"), or a text with `{count}`. Defaults to
+   * "Archived: {count}" ("Archives : {count}" in French), which agrees with
+   * no noun.
+   * @example "$invoices.archived_count"
+   */
+  archivedCountLabel?: string;
+  /**
    * Default filters to apply when the table view is opened
    */
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;
@@ -1054,17 +1093,23 @@ export interface TableViewOptions<
   /**
    * On a page declared with `live`, keeps the rows on screen while the page is
    * paused, through the user's own search, sort and pagination too, and shows
-   * a "N new · Show" banner counting the events the table received since.
-   * Show reads the rows once without leaving the pause.
+   * a "N new · Show" banner counting the rows the table would add since:
+   * how many more rows its tab, search and filters match now than it holds,
+   * asked of its count route (the events received, if that count fails).
+   * Show reads the rows once without leaving the pause. The page in Direct,
+   * the table also keeps its rows while they are on screen or scrolled past:
+   * a new row at the top would push down the rows the user reads, so new ones
+   * wait behind a "N new · Show" pill laid over the rows, which moves nothing.
+   * A table still below the screen follows the feed.
    *
    * A `TableView.fromSource` route receives the moment the rows were frozen
    * as `liveHeldAt` (ISO 8601) on every list and count request made while
    * paused, so it can answer the rows as they stood then; a data controller's
    * rows are held against the realtime only. Ignored on a page without `live`.
    *
-   * An object holds the table alone, the rest of the page staying live, in
-   * more cases (see {@link TableViewLiveHoldOptions}); `true` and `{}` hold it
-   * only while the page is paused.
+   * An object also names why the table holds, the rest of the page staying
+   * live, in more cases (see {@link TableViewLiveHoldOptions}); `true` and
+   * `{}` hold it while the page is paused or its rows are on screen.
    *
    * ```ts
    * liveHold: { whileRowOpen: true, whileScrolled: true, whileSearching: true }
@@ -1126,6 +1171,17 @@ export interface TableViewOptions<
    */
   defaultDisplay?: string;
   /**
+   * Display a phone opens on (a viewport narrower than 768px) when the user
+   * has no saved choice and the open view sets no `display` of its own (a
+   * `views.defaultView` without one opens on it too): `cards` gives a narrow screen a
+   * card per row instead of a grid cut after its first columns. One of the
+   * displays offered, so the switcher still leads back to the grid. Applied
+   * once mounted (the server cannot see the viewport) and not saved: the same
+   * user on a wide screen keeps `defaultDisplay`.
+   * @example { displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards" }
+   */
+  mobileDisplay?: string;
+  /**
    * Server-side guards that run before mutating actions (edit/delete/archive/
    * restore/new). Throw with `assert(...)` from `@antelopejs/interface-api-util`
    * to abort the operation with an HTTP error and an i18n message key.
@@ -1140,6 +1196,26 @@ export interface TableViewOptions<
    * reach the data routes only if the controller reads them.
    */
   formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
+  /**
+   * Settles the forms the table view generates, by form kind: each callback
+   * receives the form's builder before the table view embeds it, and declares
+   * on it what a module's own `Form` would — conditional fields with
+   * `.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, …)`,
+   * without replacing the generated form by a custom page. What it declares
+   * holds in a drawer, a modal or a form page alike; the `new` form's also on
+   * a duplicated row. A watch's `requirePermission` is checked per request,
+   * as on a page's own components.
+   *
+   * @example
+   * forms: {
+   *   new: (form) =>
+   *     form.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
+   *       params: { targetField: "companyName", setHidden: false },
+   *       onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
+   *     }),
+   * }
+   */
+  forms?: Partial<Record<"new" | "edit" | "view", TableViewFormSetup>>;
   /**
    * Skip the tenant access gate on every data route of this table view, the
    * table-view mirror of the guards' `bypassTenantAccessGate` option. Reserved

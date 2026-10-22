@@ -1,8 +1,12 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
+import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { Table } from "@tanstack/vue-table";
 import TablePagination from "../table/Pagination.vue";
 import TableEmpty from "../table/Empty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
+import CardAvatar from "./CardAvatar.vue";
+import CardRowActions from "./CardRowActions.vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
   TableViewCardConfig,
@@ -11,8 +15,15 @@ import type {
 } from "../../../composables/table-view/types/display";
 import {
   buildCardProps,
+  CARD_GRID_CLASS,
+  cardAvatar,
   cardFieldColumns,
+  cardGridStyle,
+  cardIdentity,
+  cardSubtitle,
 } from "../../composables/table-view/utils/card";
+import { readSubline } from "../../composables/data-types/cellHelpers";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
@@ -28,6 +39,7 @@ const props = defineProps<CardsDisplayProps>();
 const INITIALS_LENGTH = 2;
 
 const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 const { renderField } = useCardFields();
 
 const rowId = (item: T): string =>
@@ -42,13 +54,20 @@ const titleOf = (item: T): string => {
     : rowId(item);
 };
 
-const initialsOf = (item: T): string =>
-  titleOf(item)
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, INITIALS_LENGTH)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
+// The subtitle and avatar the title column's identity display declares.
+const identity = computed(() =>
+  cardIdentity(props.context.columns, props.context.labelKey),
+);
+
+// An id or an address is data: only a composed text is translated.
+const subtitleOf = (item: T): string | undefined =>
+  readSubline(
+    cardSubtitle(item, identity.value, {
+      labelKey: props.context.labelKey,
+      rowIdKey: props.context.rowIdKey,
+    }),
+    { processText, isStringTranslated: false },
+  )?.text;
 
 const card = computed(
   () =>
@@ -75,6 +94,28 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
 
 const openItem = (item: T) => props.context.actions.open(item);
 
+// A custom card draws its row's actions where it likes, as a component: one
+// per row, kept across renders so an open menu is not remounted shut.
+const rowActionsComponents = new Map<string, Component>();
+const rowActionsFor = (id: string): Component => {
+  let component = rowActionsComponents.get(id);
+  if (!component) {
+    component = markRaw(
+      defineComponent({
+        name: "CardRowActionsOf",
+        render: () =>
+          h(CardRowActions, {
+            // `h` cannot carry the display's row type to a generic component.
+            table: props.context.table as Table<Record<string, unknown>>,
+            rowId: id,
+          }),
+      }),
+    );
+    rowActionsComponents.set(id, component);
+  }
+  return component;
+};
+
 // A hand-ordered table (backend `reorder`): each card carries a move handle,
 // and is where another card dragged by its handle drops.
 const { draggedIndex, handleFor, drop, allowDrop } = useReorderHandles({
@@ -94,12 +135,14 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 
 <template>
   <div>
-    <!-- v2 cards display: an auto-fill grid inside the table card, sharing
+    <!-- v2 cards display: an auto-fit grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
       v-if="props.context.firstPageLoading"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
+      :min-width="card?.minWidth"
+      :card-height="card?.skeletonHeight"
     />
 
     <TableEmpty
@@ -107,11 +150,15 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
       :can-add-row="props.context.actions.canAdd"
     />
 
-    <div
-      v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
-    >
-      <template v-if="cardComponent">
+    <!-- A custom card loads lazily, and so may the components it draws (a
+         record card, a pill): the skeleton stays until every one of them is
+         there, rather than an empty grid lifting the footer for a beat. A
+         server render and a hydration draw the cards at once. -->
+    <Suspense v-else-if="cardComponent">
+      <div
+        :class="CARD_GRID_CLASS"
+        :style="cardGridStyle(card?.minWidth, props.context.items.length)"
+      >
         <!-- A wrapper out of the grid's layout, catching the drop on the
              card whatever its root element. -->
         <div
@@ -127,82 +174,97 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
               ...(card?.component?.options ?? {}),
               ...buildCardProps(item, props.context),
               reorder: cardReorder(index),
+              rowActions: rowActionsFor(rowId(item)),
             }"
           />
         </div>
+      </div>
+      <template #fallback>
+        <CardGridSkeleton
+          :count="props.context.pagination.pageSize"
+          :fields="fieldColumns.length"
+          :min-width="card?.minWidth"
+          :card-height="card?.skeletonHeight"
+        />
       </template>
-      <template v-else>
-        <article
-          v-for="(item, index) in props.context.items"
-          :key="rowId(item)"
-          class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
-          :class="{
-            'border-primary ring-primary ring-1':
-              props.context.selection.isSelected(rowId(item)),
-            'opacity-50': draggedIndex === index,
-          }"
-          tabindex="0"
-          @click="openItem(item)"
-          @keydown.enter.self="openItem(item)"
-          @dragover="allowDrop"
-          @drop="drop(index)"
-        >
-          <header class="flex items-center gap-2.5">
-            <button
-              v-if="props.context.reorder"
-              v-bind="handleFor(index)"
-              :class="['-ms-1.5', REORDER_HANDLE_CLASS]"
-            >
-              <UIcon name="i-ph-dots-six-vertical" />
-            </button>
-            <span
-              class="bg-accented text-default grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
-            >
-              {{ initialsOf(item) }}
-            </span>
-            <div class="min-w-0 flex-1">
-              <div
-                class="text-highlighted truncate text-[13px] font-semibold"
-                :title="titleOf(item)"
-              >
-                {{ titleOf(item) }}
-              </div>
-              <div class="text-dimmed truncate font-mono text-[11px]">
-                {{ rowId(item) }}
-              </div>
-            </div>
-            <UCheckbox
-              :model-value="props.context.selection.isSelected(rowId(item))"
-              :aria-label="titleOf(item)"
-              @click.stop
-              @update:model-value="
-                props.context.selection.toggle(rowId(item), !!$event)
-              "
-            />
-          </header>
+    </Suspense>
 
-          <!-- A phone-narrow card stacks its fields: two columns would clip
-          every value. -->
-          <dl
-            class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+    <div
+      v-else
+      :class="CARD_GRID_CLASS"
+      :style="cardGridStyle(card?.minWidth, props.context.items.length)"
+    >
+      <article
+        v-for="(item, index) in props.context.items"
+        :key="rowId(item)"
+        class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
+        :class="{
+          'border-primary ring-primary ring-1':
+            props.context.selection.isSelected(rowId(item)),
+          'opacity-50': draggedIndex === index,
+        }"
+        tabindex="0"
+        @click="openItem(item)"
+        @keydown.enter.self="openItem(item)"
+        @dragover="allowDrop"
+        @drop="drop(index)"
+      >
+        <header class="flex items-center gap-2.5">
+          <button
+            v-if="props.context.reorder"
+            v-bind="handleFor(index)"
+            :class="['-ms-1.5', REORDER_HANDLE_CLASS]"
           >
+            <UIcon name="i-ph-dots-six-vertical" />
+          </button>
+          <CardAvatar
+            :avatar="cardAvatar(item, identity)"
+            :storage="identity.storage"
+            :label="titleOf(item)"
+          />
+          <div class="min-w-0 flex-1">
             <div
-              v-for="column in fieldColumns"
-              :key="column.id"
-              class="min-w-0"
+              class="text-highlighted truncate text-[13px] font-semibold"
+              :title="titleOf(item)"
             >
-              <DmsEyebrow
-                as="dt"
-                truncate
-                :label="processI18n(column.header)"
-              />
-              <dd class="text-default mt-0.5 flex min-w-0">
-                <FieldValue :column="column" :item="item" />
-              </dd>
+              {{ titleOf(item) }}
             </div>
-          </dl>
-        </article>
-      </template>
+            <div
+              v-if="subtitleOf(item)"
+              class="text-dimmed truncate font-mono text-[11px]"
+              :title="subtitleOf(item)"
+            >
+              {{ subtitleOf(item) }}
+            </div>
+          </div>
+          <UCheckbox
+            :model-value="props.context.selection.isSelected(rowId(item))"
+            :aria-label="titleOf(item)"
+            @click.stop
+            @update:model-value="
+              props.context.selection.toggle(rowId(item), !!$event)
+            "
+          />
+          <CardRowActions
+            :table="props.context.table"
+            :row-id="rowId(item)"
+            class="-me-1.5"
+          />
+        </header>
+
+        <!-- A phone-narrow card stacks its fields: two columns would clip
+          every value. -->
+        <dl
+          class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+        >
+          <div v-for="column in fieldColumns" :key="column.id" class="min-w-0">
+            <DmsEyebrow as="dt" truncate :label="processI18n(column.header)" />
+            <dd class="text-default mt-0.5 flex min-w-0">
+              <FieldValue :column="column" :item="item" />
+            </dd>
+          </div>
+        </dl>
+      </article>
     </div>
 
     <TablePagination />

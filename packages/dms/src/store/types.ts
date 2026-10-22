@@ -40,11 +40,23 @@ export interface PackageRelease {
   implements?: string[];
 }
 
+/**
+ * Where a module's code comes from, as its tile names it: an npm package, a
+ * GitHub or GitLab repository, another git host, or a local folder.
+ */
+export type ModuleSourceKind = "npm" | "github" | "gitlab" | "git" | "local";
+
 /** A module loaded in the runtime, reduced to what the store compares. */
 export interface RuntimeModule {
   id: string;
+  /** The npm package of its source, or the name its manifest gives. */
   packageName?: string;
+  /** The version its manifest gives. */
   version?: string;
+  /** Loaded from npm, rather than from a local folder or git. */
+  isPackageSource: boolean;
+  /** Where its code comes from; absent when the runtime does not say. */
+  sourceKind?: ModuleSourceKind;
   status: string;
   localPath: string;
 }
@@ -114,6 +126,14 @@ export interface MissingInterface {
   candidates: InterfaceImplementation[];
 }
 
+/** What keeps a running module from being paused or removed. */
+export interface ModuleDependents {
+  /** Other running modules, by package name: they can be removed first. */
+  modules: string[];
+  /** The project's own code needs it: only a change to that code frees it. */
+  usedByProject: boolean;
+}
+
 /** A frontend layer that would stop loading on another dms-frontend. */
 export interface FrontendBreak {
   /** Name of the frontend layer. */
@@ -153,6 +173,17 @@ export interface StoreListingEntry {
   state: StoreModuleState;
   /** The version the runtime loaded, or the declared range when not loaded. */
   installedVersion?: string;
+  /**
+   * Where the module's code comes from: npm for what the store installs or
+   * would, the working copy's own source otherwise.
+   */
+  source: ModuleSourceKind;
+  /**
+   * The module runs from a local folder or git working copy that
+   * antelope.config.ts declares: it counts as active, but the store offers
+   * no action on it, the developer owns that entry.
+   */
+  isWorkingCopy?: boolean;
   /** The range antelope.config.ts declares. */
   declaredRange?: string;
   latestVersion?: string;
@@ -171,9 +202,15 @@ export interface StoreListingEntry {
   missingInterfaces: MissingInterface[];
   /**
    * Running modules that need an interface only this one implements: it
-   * cannot be paused or removed while they run.
+   * cannot be paused or removed while they run. The project is never one of
+   * them, it is `usedByProject`.
    */
   dependents: string[];
+  /**
+   * The project's own code needs an interface only this module implements:
+   * it cannot be paused or removed until that code stops using it.
+   */
+  usedByProject: boolean;
 }
 
 /** `GET /dms/store/listing`. */

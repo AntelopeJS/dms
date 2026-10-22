@@ -58,9 +58,19 @@ export interface StatGroupProps extends BaseComponentProps, BlockItemsSource {
   layout?: StatGroupLayout;
   /** Columns on wide screens (1–6); defaults to the number of items. */
   columns?: number;
+  /**
+   * The group's own width from which all `columns` sit side by side, as a
+   * container size: `sm` 24rem, `md` 28rem, `lg` 32rem, `xl` 36rem. Below
+   * it, one column (`joined`) or the narrow count of `cards`. Defaults to the
+   * group's usual steps for its column count (`xl` for three).
+   */
+  columnsFrom?: StatGroupColumnsFrom;
   /** Accessible name of the group. */
   label?: string;
 }
+
+/** The container sizes {@link StatGroupProps.columnsFrom} takes. */
+export type StatGroupColumnsFrom = "sm" | "md" | "lg" | "xl";
 
 const STAT_GROUP_COMPONENT_NAME = "dms-stat-group-block";
 const STAT_GROUP_ICON = "i-ph-squares-four";
@@ -154,6 +164,20 @@ export const StatGroupSchema = z.object({
       .optional()
       .describe("How many columns on a wide screen; by default, one per cell."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 6 },
+  ),
+  columnsFrom: ui(
+    z
+      .enum(["sm", "md", "lg", "xl"])
+      .optional()
+      .describe(
+        "The group's width from which all columns sit side by side (sm 24rem, md 28rem, lg 32rem, xl 36rem).",
+      ),
+    {
+      label: "All columns from",
+      group: "layout",
+      widget: "segmented",
+      advanced: true,
+    },
   ),
   label: ui(z.string().optional().describe("Accessible name of the group."), {
     label: "Accessible name",

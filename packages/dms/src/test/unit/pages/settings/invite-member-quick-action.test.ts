@@ -9,6 +9,7 @@ import * as permissionsResolverInterface from "@antelopejs/interface-dms/permiss
 import { internal as quickActionsInterface } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
   buildSiteLayoutPayload,
   internal as pageImplInternal,
@@ -47,10 +48,14 @@ function invitePermission(): string {
   return permissionId;
 }
 
+// The role as the roles editor stores it: completed with what each grant
+// depends on (the invite button sits on the members table, so its `list`).
 async function actionsFor(
   grantedPermissions: string[],
 ): Promise<Record<string, unknown>> {
-  const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
+  const { memberModel, roleModel } = stubPageAccessModels(
+    await withRequiredPermissions(grantedPermissions),
+  );
   const payload = await buildSiteLayoutPayload(
     { _id: "invite-quick-action-member" } as User,
     memberModel,

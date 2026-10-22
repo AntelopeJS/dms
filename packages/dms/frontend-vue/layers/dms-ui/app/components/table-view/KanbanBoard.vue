@@ -17,7 +17,11 @@ import type { TableViewDisplayContext } from "../../composables/table-view/types
 import {
   buildCardProps,
   cardFieldColumns,
+  cardIdentity,
+  cardSubtitle,
 } from "../../build/composables/table-view/utils/card";
+import { readSubline } from "../../build/composables/data-types/cellHelpers";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import { useCardFields } from "../../build/composables/table-view/useCardFields";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
@@ -70,6 +74,10 @@ const props = defineProps<KanbanBoardProps>();
 const emit = defineEmits<{
   "card-click": [item: T];
   "card-delete": [item: T];
+  /** A card moved to another column and the change was saved. */
+  moved: [item: T, column: KanbanColumnDef];
+  /** The cards shown, column by column: what a row's drawer steps through. */
+  "rows-shown": [items: T[]];
 }>();
 
 const groupByField = defineModel<string>("groupByField", { required: true });
@@ -78,6 +86,7 @@ const { $authFetch } = useAuthFetch();
 const { processI18n, processApiMessage } = useTranslation();
 const { getDataType } = useDataTypes();
 const { t } = useI18n();
+const { processText } = useComposedText();
 const toast = useToast();
 
 const rowIdKey = computed(() => props.rowIdKey ?? DEFAULT_ROW_ID_KEY);
@@ -171,6 +180,14 @@ watch(
   },
   { immediate: true },
 );
+
+// The cards in the order the board reads, column by column and top to
+// bottom in each: a card's drawer steps through them (J / K), and through the
+// cards a "load more" or a drag adds or moves.
+const shownRows = computed(() =>
+  boardColumns.value.flatMap((col) => cells.value[col.value]?.items ?? []),
+);
+watch(shownRows, (rows) => emit("rows-shown", rows), { immediate: true });
 
 const loadMore = async (col: KanbanColumnDef) => {
   const cell = cells.value[col.value];
@@ -349,6 +366,7 @@ const onColumnChange = async (
 
   try {
     await queued;
+    emit("moved", item, target);
     toast.add({
       color: Color.success,
       title: t("dms.table.kanban.move_success", { column: target.label }),
@@ -385,13 +403,18 @@ const cardColumns = computed(() =>
   }),
 );
 
-// The id line only adds something when the title is a label, not the id.
-const getCardId = (item: T): string | undefined => {
-  if (!props.labelKey) return undefined;
-  const label = get(item, props.labelKey);
-  if (label === undefined || label === null || label === "") return undefined;
-  return getRowId(item);
-};
+// The line above the title: the title column's identity subtitle, or the
+// row's own id key (`rowIdKey: "code"`) under a label — never the database
+// `_id`, which tells the reader nothing.
+const identity = computed(() => cardIdentity(props.columns, props.labelKey));
+const getCardLine = (item: T): string | undefined =>
+  readSubline(
+    cardSubtitle(item, identity.value, {
+      labelKey: props.labelKey,
+      rowIdKey: props.rowIdKey ?? DEFAULT_ROW_ID_KEY,
+    }),
+    { processText, isStringTranslated: false },
+  )?.text;
 
 const getCardTitle = (item: T): string => {
   if (props.labelKey) {
@@ -518,7 +541,9 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
                   @edit="emit('card-click', element)"
                   @delete="emit('card-delete', element)"
                 />
-                <!-- v2 card: id line (with its delete or lock), title, fields. -->
+                <!-- v2 card: subtitle line (with its delete or lock), title, fields.
+                     Each line shrinks below a long word: a UUID truncates
+                     rather than overflowing the card. -->
                 <div
                   v-else
                   class="border-default group hover:border-primary/35 grid cursor-pointer gap-2 rounded-lg border bg-(--dms-surface-card) px-3 pt-2.5 pb-[11px] text-[12.5px] shadow-xs transition-colors"
@@ -526,17 +551,18 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
                 >
                   <div
                     v-if="
-                      getCardId(element) ||
+                      getCardLine(element) ||
                       canDeleteItem(element) ||
                       isItemLocked(element)
                     "
                     class="-mb-0.5 flex min-h-5 items-center gap-2"
                   >
                     <span
-                      v-if="getCardId(element)"
-                      class="text-muted truncate font-mono text-[11.5px] font-medium"
+                      v-if="getCardLine(element)"
+                      class="text-muted min-w-0 truncate font-mono text-[11.5px] font-medium"
+                      :title="getCardLine(element)"
                     >
-                      #{{ getCardId(element) }}
+                      {{ getCardLine(element) }}
                     </span>
                     <UIcon
                       v-if="isItemLocked(element)"
@@ -557,7 +583,7 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
                     />
                   </div>
                   <p
-                    class="text-highlighted truncate text-[13px] leading-[1.3] font-semibold"
+                    class="text-highlighted min-w-0 truncate text-[13px] leading-[1.3] font-semibold"
                   >
                     {{ getCardTitle(element) }}
                   </p>

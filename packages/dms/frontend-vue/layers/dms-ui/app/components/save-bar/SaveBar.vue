@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, useTemplateRef } from "vue";
 import { tv } from "tailwind-variants";
 import {
   type FormKind,
   saveBarState,
 } from "../../build/composables/form/formFooter";
 import { trackFloatingSaveBar } from "../../build/composables/form/floatingSaveBars";
+import { trackToasterClearance } from "../../build/composables/form/toasterClearance";
 import DmsUnsavedStatus from "../../build/components/form/UnsavedStatus.vue";
 
 /**
@@ -64,6 +65,7 @@ const emit = defineEmits<{
 
 const SECONDARY_LABELS: Record<FormKind, string> = {
   record: "dms.save_bar.discard",
+  create: "dms.save_bar.discard",
   action: "dms.button.reset",
 };
 
@@ -136,6 +138,15 @@ const buttons = computed(() => BUTTONS[props.variant]);
 trackFloatingSaveBar(
   () => props.variant === "floating" && !state.value.isHidden,
 );
+// Toasts stack in the bottom corner the floating bar and a drawer's footer
+// band reach: they rise above the bar rather than cover its buttons. The
+// band's surface is its root, the floating card its inner bar.
+const rootElement = useTemplateRef<HTMLElement>("root");
+const barElement = useTemplateRef<HTMLElement>("bar");
+trackToasterClearance(
+  () => (props.variant === "floating" ? barElement.value : rootElement.value),
+  () => !state.value.isHidden,
+);
 
 // Empty while there is nothing to save: the hidden bar keeps its one line.
 const statusText = computed(() => {
@@ -154,11 +165,12 @@ const saveText = computed(() => {
 
 <template>
   <div
+    ref="root"
     :class="ui.root()"
     :inert="state.isHidden || undefined"
     :aria-hidden="state.isHidden || undefined"
   >
-    <div :class="ui.bar()">
+    <div ref="bar" :class="ui.bar()">
       <DmsUnsavedStatus
         v-if="state.showsStatus"
         :text="statusText"

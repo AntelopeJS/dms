@@ -52,6 +52,11 @@ export const INVOICE_STATUSES = [
   { value: "paid", label: "Paid", textColor: "success" },
 ];
 
+export const INVOICE_LABELS = [
+  { value: "urgent", label: "Urgent" },
+  { value: "export", label: "Export" },
+];
+
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 export class Invoice extends Table {
   @Field("string") declare number: string;
@@ -61,6 +66,7 @@ export class Invoice extends Table {
   @Field("string") declare ownerId?: string;
   @Field("date") declare dueAt?: Date;
   @Field("object") declare period?: { start: Date; end: Date };
+  @Field(["string"]) declare labels?: string[] | null;
 }
 
 export class InvoiceModel extends BasicDataModel(Invoice, TABLE) {}
@@ -121,6 +127,19 @@ export class CapabilityInvoiceController extends DataController(
   })
   @Access(AccessMode.ReadWrite)
   declare ownerId: string;
+
+  // Optional, so a row saved without labels holds null or no field at all.
+  @Listable()
+  @Column({
+    name: "Labels",
+    type: new DefaultDataTypes.SelectType({
+      items: INVOICE_LABELS,
+      multiple: true,
+    }),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadWrite)
+  declare labels: string[];
 
   @Column({ name: "Due", type: new DefaultDataTypes.DateType() })
   @Access(AccessMode.ReadWrite)

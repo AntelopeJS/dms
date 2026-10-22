@@ -5,6 +5,7 @@ import {
   buildPermissionIndex,
   diffPermissions,
   grantPermission,
+  keepGrantedAutoAdded,
   revokePermission,
 } from "./role-permissions";
 import {
@@ -173,7 +174,7 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
     } else {
       selection.value = revokePermission(index.value, selection.value, id);
     }
-    autoAdded.value = nextAutoAdded;
+    autoAdded.value = keepGrantedAutoAdded(nextAutoAdded, selection.value);
   }
 
   const payload = computed<RoleDraft>(() => ({

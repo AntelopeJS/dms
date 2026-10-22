@@ -14,13 +14,10 @@ import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlat
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
 
-const SETTINGS_PATH = "/settings";
 const MODULES_PATH = "/modules";
-// Registered ids of the footer entries, so "Preview as role" can lock them.
-const SETTINGS_FULL_ID = "settings";
+// Registered id of the Modules entry, so "Preview as role" can lock it.
 const MODULES_FULL_ID = "modules";
 const MODULES_TREE_KEY = "modules";
-const SETTINGS_ICON = "i-ph-gear-six-light";
 const MODULES_ICON = "i-ph-squares-four-light";
 const BACK_ICON = "i-ph-arrow-left-light";
 const ESCAPE_KEY = "Escape";
@@ -254,21 +251,9 @@ const footerItems = computed((): NavigationMenuItem[] => {
     });
   }
 
-  // Settings highlights its sub-pages; Back and Modules only highlight their
-  // destinations, regardless of the router's default prefix matching.
-  result.push(
-    addActiveStateToMenuItem(
-      {
-        fullId: SETTINGS_FULL_ID,
-        label: t("menu.section.settings"),
-        to: SETTINGS_PATH,
-        icon: SETTINGS_ICON,
-      } as DmsMenuItem,
-      currentFullId.value,
-      currentRoute.value,
-    ),
-  );
-
+  // The settings are reached from the account menu, not from here. Back and
+  // Modules only highlight their destinations, regardless of the router's
+  // default prefix matching.
   if (isOwner.value) {
     result.push({
       fullId: MODULES_FULL_ID,

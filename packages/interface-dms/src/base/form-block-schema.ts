@@ -59,6 +59,11 @@ const FormFieldSchema = ui(
       widget: "json",
       advanced: true,
     }),
+    showEmptyOnCreate: ui(z.boolean().optional(), {
+      label: "Shown empty on create",
+      widget: "switch",
+      advanced: true,
+    }),
     required: ui(z.boolean().optional(), {
       label: "Required",
       widget: "switch",
@@ -67,6 +72,11 @@ const FormFieldSchema = ui(
       label: "Default value",
       widget: "json",
       typedBy: "type",
+    }),
+    offersDefault: ui(z.boolean().optional(), {
+      label: "Offer the default",
+      widget: "switch",
+      advanced: true,
     }),
     localized: ui(z.boolean().optional(), {
       label: "Translatable",
@@ -241,13 +251,13 @@ export const FormSchema = z.object({
       .enum(FORM_KINDS)
       .optional()
       .describe(
-        "A record keeps its values once saved; an action (send, invite, run) empties after a submit.",
+        "A record keeps its values once saved; a create form makes a new record; an action (send, invite, run) empties after a submit.",
       ),
     {
       label: "Form kind",
       group: "behavior",
       widget: "segmented",
-      valueLabels: { record: "Record", action: "Action" },
+      valueLabels: { record: "Record", create: "Create", action: "Action" },
     },
   ),
   backTo: ui(

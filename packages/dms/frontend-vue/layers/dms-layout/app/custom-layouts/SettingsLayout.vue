@@ -18,6 +18,8 @@ interface Props {
    * when one declares an `availability` (`headerActionsQuery`).
    */
   headerActionsQuery?: Record<string, string>;
+  /** The route parameters (`:id`) they were resolved for, likewise. */
+  headerActionsParams?: Record<string, string>;
   /** The record the page shows, which header buttons may act on (`record`). */
   record?: PageRecordSource;
 }
@@ -30,6 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   headerActions: () => [],
   headerActionsQuery: undefined,
+  headerActionsParams: undefined,
   record: undefined,
 });
 </script>
@@ -44,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
         :description="props.description"
         :header-actions="props.headerActions"
         :header-actions-query="props.headerActionsQuery"
+        :header-actions-params="props.headerActionsParams"
         :record="props.record"
         header-class="pb-5"
       >

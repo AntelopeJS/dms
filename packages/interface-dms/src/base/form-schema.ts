@@ -22,6 +22,7 @@ import {
   FormSection,
   FormSectionSerialized,
   isFieldGroup,
+  type SetFieldValueParams,
 } from "./form-types";
 import { serializeFormField } from "./internal/form-schema";
 
@@ -201,6 +202,16 @@ export const Form = (options?: FormProps): FormBuilder => {
 };
 
 export namespace FormComponents {
+  /**
+   * How wide a single-line input sits in its row. `"compact"` sizes it for a
+   * short value (a count, a code: 11rem) from the `sm` breakpoint up, while a
+   * phone keeps the full row; `"full"` fills the row. Left out, the input is
+   * compact when its bounds keep the value short -- a number whose `min` /
+   * `max` fit in 6 digits, a text whose `maxLength` is 16 or less -- and
+   * fills the row otherwise.
+   */
+  export type InputWidth = "compact" | "full";
+
   export interface RichTextOptions {
     placeholder?: string;
   }
@@ -342,6 +353,8 @@ export namespace FormComponents {
      * blocks the submit; the steppers still stop at the bounds.
      */
     clamp?: boolean;
+    /** See {@link InputWidth}: `"compact"` for a short number with no `max`. */
+    width?: InputWidth;
   }
 
   export interface InputTimeOptions {
@@ -361,6 +374,13 @@ export namespace FormComponents {
     minLength?: number;
     /** Shows the characters typed, out of `maxLength` when set ("4 / 60"). */
     showCount?: boolean;
+    /** See {@link InputWidth}. */
+    width?: InputWidth;
+    /**
+     * How the value reads where it is shown, not edited: a URL as the image
+     * it points to (`UrlType`'s `preview`). The input itself ignores it.
+     */
+    preview?: "avatar" | "image";
   }
 
   export interface RadioGroupOptions {
@@ -375,9 +395,31 @@ export namespace FormComponents {
     deselectable?: boolean;
   }
 
+  /**
+   * Narrows a relation picker to the related rows matching another field of
+   * the same form: the related table's `field` must equal the form's current
+   * value of `from` (a ticket's site among its customer's sites).
+   */
+  export interface RelationFilterBy {
+    /**
+     * Field of the related table to match. It must be filterable there
+     * (`filterable: true` or `@Filter`): the search route honors only the
+     * filters the related controller declares.
+     */
+    field: string;
+    /** Id of the form field whose value the related `field` must equal. */
+    from: string;
+  }
+
   export interface RelationOptions {
     placeholder?: string;
     searchUrl: string;
+    /**
+     * Lists only the related rows matching another field of the form. The
+     * picker searches again when that field changes and clears a pick made
+     * for its previous value. While it is empty, every row is offered.
+     */
+    filterBy?: RelationFilterBy;
     multiple?: boolean;
     deselectable?: boolean;
     keyMapping?: {
@@ -460,6 +502,11 @@ export namespace FormComponents {
      * enabled). Set `url` to use a self-hosted / alternative provider.
      */
     autocomplete?: DefaultDataTypes.AddressAutocomplete;
+    /**
+     * ISO 3166-1 alpha-2 code shown while the address has no country, and
+     * whose places the suggestions list first.
+     */
+    defaultCountry?: string;
   }
 
   export interface FileOptions {
@@ -771,5 +818,6 @@ declare module "./types/watch" {
       targetField: string;
       setRequired: boolean;
     };
+    [FormFunctions.SET_FIELD_VALUE]: SetFieldValueParams;
   }
 }

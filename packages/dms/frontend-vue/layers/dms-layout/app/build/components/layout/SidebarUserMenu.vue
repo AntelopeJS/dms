@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UserIdentity from "./UserIdentity.vue";
+import { useSidebarState } from "./sidebarState";
 import type { DropdownMenuItem } from "@nuxt/ui";
 
 interface Props {
@@ -27,11 +28,32 @@ const COLOR_MODE_ENTRIES: ColorModeEntry[] = [
 ];
 
 const { t, locale } = useI18n();
+const route = useDmsRoute();
 const { user } = useCurrentUser();
 const { logout } = useLogout();
 const colorModePreference = useColorModePreference();
 const { uniqueLocales } = useUniqueLocales();
 const { changeLanguage } = useUserLanguage();
+const { open: sidebarOpen } = useSidebarState();
+
+// The picture the profile saved, read from the session user: a profile save
+// refreshes that user, so a new picture shows here at once.
+const avatarUrls = useFileReadUrls();
+const avatarKey = computed(() => user.value?.avatar?.key);
+const avatarSrc = computed(() =>
+  avatarKey.value ? avatarUrls.getUrl(avatarKey.value) : undefined,
+);
+watch(avatarKey, (key) => key && void avatarUrls.resolve(key), {
+  immediate: true,
+});
+
+// The settings have no sidebar entry: their only way in is this menu, so its
+// trigger is drawn active while a settings page is open.
+const isOnSettings = computed(
+  () =>
+    route.path === SETTINGS_ROUTE ||
+    route.path.startsWith(`${SETTINGS_ROUTE}/`),
+);
 
 // v2 user menu: account links, then the per-user preferences as submenus,
 // then logging out.
@@ -67,6 +89,11 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     label: t(entry.labelKey),
     icon: entry.icon,
     to: entry.to,
+    // The menu renders in a portal, outside the sidebar whose link clicks
+    // close the phone drawer: its own entries close it themselves.
+    onSelect: () => {
+      sidebarOpen.value = false;
+    },
   })),
   preferenceItems.value,
   [
@@ -91,12 +118,25 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     <button
       type="button"
       class="hover:bg-elevated data-[state=open]:bg-elevated flex w-full items-center gap-2.5 rounded-md p-1.5 text-start transition-colors"
-      :class="{ 'justify-center': props.collapsed }"
+      :class="{
+        'justify-center': props.collapsed,
+        'bg-elevated': isOnSettings,
+      }"
       :aria-label="user?.name"
+      :data-active="isOnSettings || undefined"
     >
-      <UAvatar v-if="props.collapsed" :alt="user?.name" size="sm" />
+      <UAvatar
+        v-if="props.collapsed"
+        :src="avatarSrc"
+        :alt="user?.name"
+        size="sm"
+      />
       <template v-else>
-        <UserIdentity :name="user?.name" :email="user?.email" />
+        <UserIdentity
+          :name="user?.name"
+          :email="user?.email"
+          :avatar-src="avatarSrc"
+        />
         <UIcon :name="TRIGGER_ICON" class="text-dimmed size-4 shrink-0" />
       </template>
     </button>
@@ -105,6 +145,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
       <UserIdentity
         :name="user?.name"
         :email="user?.email"
+        :avatar-src="avatarSrc"
         avatar-size="md"
         class="border-default border-b px-2.5 py-2.5"
       />

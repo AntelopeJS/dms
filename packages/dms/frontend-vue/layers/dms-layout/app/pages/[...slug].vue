@@ -5,6 +5,7 @@ import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHol
 import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
 import { usePageDataRefresh } from "#dms-ui/app/build/composables/live/usePageDataRefresh";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
+import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
 
 defineOptions({ inheritAttrs: false });
 
@@ -215,9 +216,10 @@ if (import.meta.env.DEV) {
 
 const { pageLayout } = await usePageLayout();
 
-watch(pageLayout, (layout) => preloadPageLayoutComponents(layout), {
-  immediate: true,
-});
+// A client navigation shows the page once its blocks' code is there: a lazy
+// block draws nothing until its chunk lands, then pushes the page down.
+await preloadPageLayoutComponents(pageLayout.value);
+watch(pageLayout, (layout) => void preloadPageLayoutComponents(layout));
 
 const { refreshIfStale: refreshPermissionsIfStale } = usePermissions();
 
@@ -345,24 +347,6 @@ watch(
 onMounted(runPageSetup);
 onUnmounted(tearDownPageSetup);
 
-const processChildren = (
-  children: ComponentChild[],
-): ResolvedComponentInfo[] => {
-  return children.map((child) => {
-    const { id, component, ...additionalProps } = child;
-    return {
-      id,
-      options: component.options,
-      component: component.componentName
-        ? resolveDmsComponent(component.componentName) || "div"
-        : "div",
-      componentName: component.componentName,
-      children: component.children ? processChildren(component.children) : [],
-      ...additionalProps,
-    };
-  });
-};
-
 const components = computed(() =>
   Object.keys(pageLayout.value?.components || {}).map((field) => {
     const componentInfo = pageLayout.value?.components[field];
@@ -374,7 +358,7 @@ const components = computed(() =>
         : "div",
       componentName: componentInfo?.componentName,
       children: componentInfo?.children
-        ? processChildren(componentInfo.children)
+        ? resolveComponentChildren(componentInfo.children)
         : [],
     } as ResolvedComponentInfo;
   }),

@@ -91,6 +91,7 @@ export {
   type TableViewEmptyStateSerialized,
   type TableViewEmptyStatesSerialized,
   type TableViewFooterOptions,
+  type TableViewFormSetup,
   type TableViewFooterSerialized,
   type TableViewFooterSummary,
   type TableViewFooterSummarySerialized,

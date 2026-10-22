@@ -53,7 +53,11 @@ export const newUserViewId = (): string =>
     .toString(ID_RADIX)
     .slice(ID_RANDOM_START)}`;
 
-function viewFilters(
+/**
+ * The filters opening `view` sets: the table's pinned filters, at the view's
+ * value for those it names, then the view's other filters.
+ */
+export function viewFilters(
   view: TableViewViewStateConfig,
   pinned: TableFilter[],
 ): TableFilter[] {
@@ -179,6 +183,8 @@ export interface TableUrlScope {
 /** What reading a key off the URL found. */
 export interface UrlKeyReading {
   value?: string;
+  /** The key is there, empty (`?view=`): it names nothing, explicitly. */
+  isCleared?: boolean;
   /** A short key named something the table may not claim. */
   ignoredShortKey?: boolean;
 }
@@ -208,14 +214,24 @@ export function writeTableUrlKey(
   const scopedKey = tableUrlKey(scope, key);
   if (value) url.searchParams.set(scopedKey, value);
   else url.searchParams.delete(scopedKey);
+  // The only table reads its prefixed key first (`readTableUrlKey`): a link
+  // naming it (`content.tab=`) would otherwise outlive the short key written
+  // over it, and win again on reload.
+  if (scope.tableId && scopedKey === key) {
+    url.searchParams.delete(`${scope.tableId}.${key}`);
+  }
   window.history.replaceState(window.history.state, "", url);
   return url;
 }
 
+const readUrlValue = (value: string): UrlKeyReading =>
+  value ? { value } : { isCleared: true };
+
 /**
  * The value the URL gives `key` (`view`, `tab`) for this table: under its
  * prefixed key (`content.view`) or, when it is its page's only table, the
- * short one. A short key on a page with several tables is ignored.
+ * short one. A short key on a page with several tables is ignored. A key
+ * left empty reads as cleared, not as absent.
  */
 export function readTableUrlKey(
   query: Record<string, unknown>,
@@ -223,9 +239,9 @@ export function readTableUrlKey(
   key: string,
 ): UrlKeyReading {
   const prefixed = scope.tableId ? query[`${scope.tableId}.${key}`] : undefined;
-  if (typeof prefixed === "string" && prefixed) return { value: prefixed };
+  if (typeof prefixed === "string") return readUrlValue(prefixed);
   const short = query[key];
-  if (typeof short !== "string" || !short) return {};
-  if (scope.isSoleTableView) return { value: short };
-  return { ignoredShortKey: true };
+  if (typeof short !== "string") return {};
+  if (scope.isSoleTableView) return readUrlValue(short);
+  return short ? { ignoredShortKey: true } : {};
 }

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type {
   ColumnSizingState,
   ExpandedState,
@@ -128,16 +129,32 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
-import { useTableViews } from "../../build/composables/table-view/useTableViews";
+import {
+  keptViewId,
+  useTableViews,
+} from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import type { RowStep } from "../../build/composables/actions/rowNavigation";
+import { rowLocator } from "../../build/composables/table-view/utils/locateRow";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import {
+  isLinkedArrival,
+  linkedArrivalPreferences,
+  linkFollowingPreferences,
+  linkKeyScope,
+  urlFilterScope,
+} from "../../build/composables/table-view/utils/linkedArrival";
+import { pageArrivalKind } from "../../build/composables/table-view/utils/pageArrival";
+import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
+import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { refreshPageBlocks } from "../../utils/blockRefresh";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
@@ -155,6 +172,14 @@ import {
   readTableUrlTab,
   useTableUrlTab,
 } from "../../build/composables/table-view/useTableUrlTab";
+import {
+  buildTableCountQueries,
+  isCountNarrowed,
+  navBadgeCount,
+  VIEW_COUNT_ID_PREFIX,
+  type TableCountState,
+} from "../../build/composables/table-view/utils/tableCounts";
+import { viewFilters } from "../../build/composables/table-view/utils/views";
 import { useTableRecordLink } from "../../build/composables/table-view/useTableRecordLink";
 import TableViews, {
   type TableViewItem,
@@ -190,6 +215,7 @@ interface RealtimePresenceActor {
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
 /** A kept field of the table, its state, and its default. */
+// The default may move once mounted (a phone's display): read when written.
 type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
 // The backend options of a table view, declared here as well so the
@@ -197,6 +223,8 @@ type TableStatePreference = [TableField, Ref<unknown>, unknown];
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
+  /** Caption count while the archived rows show (backend `archivedCountLabel`). */
+  archivedCountLabel?: string;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
@@ -257,7 +285,51 @@ const {
   defaultDisplay,
 } = useTableViewConfig<T>(props);
 
-const tablePreferences = useTablePreferences(componentId, pageId);
+const route = useDmsRoute();
+const urlScope = {
+  tableId: props.tableId,
+  isSoleTableView: props.isSoleTableView,
+};
+const ALL_TAB_ID = "all";
+
+const keptPreferences = useTablePreferences(componentId, pageId);
+// A link naming a view, a tab, a record or a URL filter opens on the table's
+// defaults plus what it names, never over the state kept from the last visit
+// (which stays kept for the next plain visit), until the user makes the
+// state shown their own: a view, a tab, a filter or a sort they pick. Only a
+// reload (or Back) of the URL the table wrote for that state restores it.
+const isLinked = isLinkedArrival({
+  query: route.query,
+  urlScope,
+  queryParamFilters,
+  isVisit: pageArrivalKind() === "visit",
+  rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
+  keptLinkScope: keptPreferences.get<string | undefined>(
+    "linkScope",
+    undefined,
+  ),
+  shownLink: keptPreferences.get<string | undefined>("shownLink", undefined),
+});
+const tablePreferences = linkFollowingPreferences(
+  isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,
+  {
+    isLinkedArrival: isLinked,
+    urlScope,
+    linkScope: () => urlFilterScope(route.query, queryParamFilters),
+    linkKeys: () => linkKeyScope(route.query, urlScope, queryParamFilters),
+    // Read once the table is mounted, past the declarations below. A page
+    // kept without its scope is restored as it is (`usePersistedPagination`).
+    listingState: () => [
+      ["activeView", keptViewId(activeViewId.value), undefined],
+      ["activeTab", activeTabId.value, ALL_TAB_ID],
+      ["columnFilters", columnFilters.value, []],
+      ["sorting", sorting.value, defaultSortState],
+      ["pagination", paginationState.value, DEFAULT_PAGINATION],
+      ["paginationScope", undefined, undefined],
+    ],
+  },
+);
+onMounted(() => void tablePreferences.settleArrival());
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
 
@@ -397,8 +469,6 @@ const resolvedChrome = resolveTableChrome(props.layout, {
 });
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
-const route = useDmsRoute();
-
 const DEFAULT_FILTER_MODE = "is";
 
 const queryParamHiddenFilters = computed<TableFilter[]>(() => {
@@ -514,12 +584,16 @@ const defaultSortKind = tableDefaultSort
         ?.type?.id,
     )
   : undefined;
+// A hand-ordered table has no sort to pick: a sort saved before it was
+// ordered by hand is not read back.
 const sorting = ref<SortingState>(
-  sortingOrDefault(
-    tablePreferences.get<SortingState>("sorting", defaultSortState),
-    declaredSortableIds,
-    defaultSortState,
-  ),
+  reorderConfig
+    ? defaultSortState
+    : sortingOrDefault(
+        tablePreferences.get<SortingState>("sorting", defaultSortState),
+        declaredSortableIds,
+        defaultSortState,
+      ),
 );
 
 const savedFilters = tablePreferences.get<TableFilter[]>("columnFilters", []);
@@ -541,6 +615,16 @@ const manualFilters = savedFilters
   .filter((f) => !pinnedKeys.has(f.accessorKey))
   .map((f) => ({ ...f, pinned: false }));
 const initialFilters = [...buildPinnedFilters(), ...manualFilters];
+// The pinned filters at their declared value: what a view leaves out of them.
+const pinnedDefaultFilters: TableFilter[] = (defaultFilters || []).map(
+  (filter) => ({
+    accessorKey: filter.accessorKey,
+    mode: filter.mode,
+    value: filter.value,
+    pinned: true,
+    initialValue: filter.value,
+  }),
+);
 
 const columnFilters = ref<TableFilter[]>(initialFilters);
 const columnVisibility = ref<VisibilityState>(
@@ -562,18 +646,21 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
-const urlScope = {
-  tableId: props.tableId,
-  isSoleTableView: props.isSoleTableView,
-};
+// The display the table counts as its default: the phone's `mobileDisplay`
+// once applied (see `useMobileDisplay` below).
+const displayDefault = ref(
+  offeredDisplayIds.has(defaultDisplay) ? defaultDisplay : fallbackDisplayId,
+);
 
 // Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
   activeViewId,
+  activeView,
   isModified: isViewModified,
   canSaveViews,
-  openView,
+  selectView,
+  openLinkedView,
   resetView,
   saveView,
   saveAsNewView,
@@ -581,21 +668,16 @@ const {
 } = useTableViews({
   views: props.views,
   defaults: {
-    pinnedFilters: (defaultFilters || []).map((filter) => ({
-      accessorKey: filter.accessorKey,
-      mode: filter.mode,
-      value: filter.value,
-      pinned: true,
-      initialValue: filter.value,
-    })),
+    pinnedFilters: pinnedDefaultFilters,
     sorting: defaultSortState,
     visibility: initialVisibility,
     columnOrder: listableColumns.map(
       (column) => column.id ?? column.accessorKey,
     ),
-    display: offeredDisplayIds.has(defaultDisplay)
-      ? defaultDisplay
-      : fallbackDisplayId,
+    // Read when a view opens: a phone's `mobileDisplay` once applied.
+    get display() {
+      return displayDefault.value;
+    },
     density: props.density ?? DEFAULT_DENSITY,
     displays: offeredDisplayIds,
   },
@@ -613,7 +695,20 @@ const {
   urlScope,
 });
 
-const ALL_TAB_ID = "all";
+// A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
+// after its first columns) unless a display was chosen: saved, fixed by the
+// open view, or the only way in.
+useMobileDisplay({
+  mobileDisplay: props.mobileDisplay,
+  defaultDisplay: displayDefault,
+  offered: offeredDisplayIds,
+  display: activeDisplayId,
+  activeView,
+  isDisplayChosen: () =>
+    isDefaultDisplayStandalone ||
+    tablePreferences.get<string | undefined>("viewMode", undefined) !==
+      undefined,
+});
 
 const { t, te, locale } = useI18n();
 
@@ -671,12 +766,33 @@ const activeTabFilters = computed<TableFilter[]>(() => {
   return tab?.filters || [];
 });
 
+const isOpenableTab = (tabId: string) =>
+  resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId);
+
 useTableUrlTab({
   route,
   urlScope,
   activeTabId,
-  isOpenable: (tabId) =>
-    resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId),
+  isOpenable: isOpenableTab,
+});
+
+// A link to this page while it is shown opens like a linked arrival: on the
+// table's defaults plus what it names, leaving the kept state as it was.
+useTableLinkedVisit({
+  route,
+  urlScope,
+  queryParamFilters,
+  activeView: () => activeViewId.value,
+  activeTab: () => activeTabId.value,
+  canOpenView: (id) => tableViewItems.value.some((view) => view.id === id),
+  canOpenTab: isOpenableTab,
+  follow: (query) => {
+    void tablePreferences.followLink(() => {
+      openLinkedView(query);
+      const tab = readTableUrlTab(query, urlScope);
+      activeTabId.value = tab && isOpenableTab(tab) ? tab : ALL_TAB_ID;
+    });
+  },
 });
 
 watch(resolvedTabs, (next) => {
@@ -703,6 +819,7 @@ const tableRows = useTableRows<T>({
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
 // filter like the filters row does.
+const { getDataType } = useDataTypes();
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 // Relation values load after mount: until then their buttons hold their place.
 const relationQuickFiltersLoaded = ref(false);
@@ -715,7 +832,7 @@ const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
     column,
     mode: quickFilterMode(column, filter.mode),
     items: staticQuickFilterItems(column, processI18n),
-    source: relationQuickFilterSource(column),
+    source: relationQuickFilterSource(column, getDataType),
   };
 });
 
@@ -729,7 +846,9 @@ const loadRelationQuickFilters = async () => {
         try {
           const response = await $authFetch<
             TableViewListResponse<Record<string, unknown>>
-          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          >(source!.searchUrl, {
+            query: { limit: RELATION_QUICK_FILTER_LIMIT },
+          });
           relationQuickFilterValues.value = {
             ...relationQuickFilterValues.value,
             [filter.field]: relationQuickFilterItems(response.results, source!),
@@ -860,6 +979,7 @@ const openRowId = computed(() =>
 
 // The gate is set up with the other refresh triggers below; the hold only
 // reads it once the table is on screen.
+const NEW_ROWS_COUNT_ID = "liveHold:new";
 const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
 const liveHold = useTableLiveHold({
   liveHold: props.liveHold,
@@ -870,6 +990,32 @@ const liveHold = useTableLiveHold({
     isSearching: () => !!effectiveGlobalFilter.value,
     isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
     tableElement: () => tableRoot.value?.$el ?? null,
+  },
+  // The pill counts the rows the table would list, on its own count route:
+  // the rows its tab, search and filters match now, less those it holds.
+  newRows: {
+    heldList: () => data.value,
+    countNow: async (signal) => {
+      const counts = await tableRows.countBatch(
+        [
+          {
+            id: NEW_ROWS_COUNT_ID,
+            query: {
+              ...buildTableQuery({
+                pagination: { pageIndex: 0, pageSize: 0 },
+                sorting: [],
+                columnFilters: effectiveColumnFilters.value,
+                hiddenFilters: hiddenFilters.value,
+                globalFilter: effectiveGlobalFilter.value,
+              }),
+              ...archiveQuery.value,
+            },
+          },
+        ],
+        signal,
+      );
+      return counts[NEW_ROWS_COUNT_ID];
+    },
   },
 });
 
@@ -1017,28 +1163,46 @@ watch(
   },
 );
 
-// A view's counter shares the tab counters' request, under its own id.
-const VIEW_COUNT_ID_PREFIX = "view:";
-const countQuery = (filters: TableFilter[], search?: string) =>
-  buildTableQuery({
-    pagination: { pageIndex: 0, pageSize: 0 },
-    sorting: [],
-    columnFilters: filters,
-    hiddenFilters: queryParamHiddenFilters.value,
-    globalFilter: search,
-  });
-
-const tabCountsQuery = computed(() => [
-  ...resolvedTabs.value
-    .filter((tab) => !tab.to)
-    .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
-  ...tableViewItems.value
-    .filter((view) => view.count)
-    .map((view) => ({
-      id: `${VIEW_COUNT_ID_PREFIX}${view.id}`,
-      query: countQuery(view.filters ?? [], view.search),
-    })),
+const scopeFilters = computed<TableFilter[]>(() => [
+  ...queryParamHiddenFilters.value,
+  ...routeParamHiddenFilters.value,
 ]);
+const countState = computed<TableCountState>(() => ({
+  scopeFilters: scopeFilters.value,
+  tabFilters: activeTabFilters.value,
+  columnFilters: effectiveColumnFilters.value,
+  search: effectiveGlobalFilter.value,
+}));
+const isCountStateNarrowed = computed(() => isCountNarrowed(countState.value));
+
+// Each counter counts what a click on it would list, so the counters follow
+// the filters, the search, the view and the tab: picks made in a row (quick
+// filters toggled one after the other) are counted once, when they settle.
+const COUNTS_DEBOUNCE_MS = 200;
+const debouncedCountsQuery = refDebounced(
+  computed(() =>
+    buildTableCountQueries({
+      ...countState.value,
+      tabs: resolvedTabs.value
+        .filter((tab) => !tab.to)
+        .map((tab) => ({
+          id: tab.id,
+          filters: tab.filters,
+          hasNavBadge: !!tab.navBadge,
+        })),
+      views: tableViewItems.value
+        .filter((view) => view.count)
+        .map((view) => ({
+          id: view.id,
+          filters: viewFilters(view, pinnedDefaultFilters),
+          search: view.search,
+        })),
+      activeViewId: activeViewId.value,
+    }),
+  ),
+  COUNTS_DEBOUNCE_MS,
+);
+const tabCountsQuery = computed(() => debouncedCountsQuery.value);
 
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
@@ -1109,6 +1273,83 @@ const hasMoreRows = computed(
 const loadMoreRows = () => {
   if (hasMoreRows.value && !isListLoading.value) loadNextPage();
 };
+// A row's drawer or side panel steps through every row the table lists: past
+// the rows loaded, it turns the table's page (or grows its feed) and steps
+// onto the rows that arrive. A display reading its own rows keeps to them.
+const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
+const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
+// What a display reading its own rows shows (`setShownRows`), in its order:
+// the rows its row's container steps through. Another display, another set.
+const selfManagedRows = shallowRef<Data[]>([]);
+const setSelfManagedRows = (rows: T[]) => {
+  selfManagedRows.value = rows as Data[];
+};
+watch(activeDisplayId, () => {
+  selfManagedRows.value = [];
+});
+const navigableRows = (): Data[] =>
+  listsServerPages.value
+    ? ((shownResults.value ?? []) as Data[])
+    : selfManagedRows.value;
+const loadedRowsOffset = () => {
+  if (isAccumulating || !listsServerPages.value) return 0;
+  const { pageIndex, pageSize } = paginationState.value;
+  return pageSize > 0 ? pageIndex * pageSize : 0;
+};
+const turnPage = (step: RowStep): boolean => {
+  if (isAccumulating) {
+    if (step < 0 || !hasMoreRows.value) return false;
+    loadNextPage();
+    return true;
+  }
+  const { pageIndex, pageSize } = paginationState.value;
+  const next = pageIndex + step;
+  const total = data.value?.total ?? 0;
+  if (pageSize <= 0 || next < 0 || next * pageSize >= total) return false;
+  paginationState.value = { ...paginationState.value, pageIndex: next };
+  return true;
+};
+let adjacentRowsLoad: Promise<boolean> | undefined;
+const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
+  // A second J while the page loads waits for the same page.
+  if (adjacentRowsLoad) return adjacentRowsLoad;
+  if (!listsServerPages.value || isListLoading.value || !turnPage(step)) {
+    return Promise.resolve(false);
+  }
+  const before = shownResults.value;
+  adjacentRowsLoad = until(
+    () => shownResults.value !== before && !isListLoading.value,
+  )
+    .toBe(true, { timeout: ADJACENT_ROWS_TIMEOUT_MS })
+    .then(() => !listLoadError.value && shownResults.value !== before)
+    .finally(() => {
+      adjacentRowsLoad = undefined;
+    });
+  return adjacentRowsLoad;
+};
+// A row past the rows loaded (a deep link, a row live rows pushed out) is
+// found in the table's whole result, under the query the list reads: its
+// position, and its neighbours for the steps. Its rows read in the order
+// the table shows them: pinned rows lead each page it reads, not the result.
+const locateRow = rowLocator({
+  list: async (offset, limit) => {
+    if (!listsServerPages.value) return null;
+    const page = await tableRows.listAsShown(
+      {
+        ...queryRequest.value,
+        ...archiveQuery.value,
+        ...liveHold.heldQuery(),
+        offset,
+        limit,
+      },
+      requestedPagination.value.pageSize,
+    );
+    return page && { results: page.results as Data[], total: page.total };
+  },
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  isWholeRead: () => !!props.source && !props.source.capabilities.paginate,
+});
+
 const accumulation = computed<TableAccumulation | undefined>(() =>
   isAccumulating
     ? {
@@ -1174,6 +1415,7 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   groupByField: kanbanGroupBy,
   editAction: tableProps.value.rowActions?.edit,
   deleteAction: tableProps.value.rowActions?.delete,
+  onCardMoved: () => void refreshCounts(),
 });
 
 // A link tab counts the rows of the list it opens; a list the caller may not
@@ -1212,14 +1454,19 @@ const refreshLinkTabCounts = async () => {
 // event) or a refresh: what summarises them elsewhere (a navigation count)
 // is told to read its figure again.
 const { notifyTableDataChanged } = useTableDataChanges();
-const refreshAll = async () => {
+const refreshCounts = async () => {
   notifyTableDataChanged(location);
   await Promise.all([
-    refresh(),
     refreshTabCounts(),
     refreshLinkTabCounts(),
     refreshGroupCounts(),
     refreshSummaries(),
+  ]);
+};
+const refreshAll = async () => {
+  await Promise.all([
+    refresh(),
+    refreshCounts(),
     activeDisplayRef.value?.refresh?.(),
   ]);
 };
@@ -1236,6 +1483,11 @@ const refreshByUser = () => {
   liveGate.acknowledge();
   return refreshAll();
 };
+// A write of the user's (a row or bulk action, a form saved) can move what
+// the rest of the page shows of the same records — a KPI, a tab's badge,
+// another list: every block of the page reads its data again, this table
+// among them, at once even on a paused live page.
+const refreshAfterWrite = () => refreshPageBlocks();
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1273,19 +1525,27 @@ const tabsWithCount = computed(() =>
 
 // A tab declared with `navBadge` keeps the navigation badge the server
 // counted for the page it stands for (the linked page, or this one) up to
-// date with its own counter; an empty badge stands for zero.
+// date: with the tab's own counter while nothing narrows it, else with a
+// count of the tab alone, since the badge stands for the whole page. An
+// empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
+const tabNavBadgeCount = (tab: ResolvedTab, count: number | undefined) =>
+  tab.to
+    ? count
+    : navBadgeCount(tabCountsData.value, tab.id, isCountStateNarrowed.value);
 watch(
   tabsWithCount,
   (next) => {
     for (const tab of next) {
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
-      if (!source?.navBadge || tab.count === undefined) continue;
+      if (!source?.navBadge) continue;
+      const count = tabNavBadgeCount(source, tab.count);
+      if (count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
       const tone =
         typeof source.navBadge === "object" ? source.navBadge.tone : undefined;
       if (fullId) {
-        setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "", tone);
+        setNavBadge(fullId, count > 0 ? String(count) : "", tone);
       }
     }
   },
@@ -1313,7 +1573,7 @@ const {
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
-  refreshCallback: refreshByUser,
+  refreshCallback: refreshAfterWrite,
   formComponents,
   formContainer,
   formPages,
@@ -1322,9 +1582,16 @@ const {
   pageId: pageId!,
   queryParamFilters,
   rowNavigation: {
-    rows: () => (shownResults.value ?? []) as Data[],
+    rows: navigableRows,
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
     getRow: (id) => tableRows.getRow(id) as Promise<Data | undefined>,
+    total: () =>
+      listsServerPages.value
+        ? (shownData.value?.total ?? undefined)
+        : undefined,
+    offset: loadedRowsOffset,
+    loadAdjacent: loadAdjacentRows,
+    locate: locateRow,
   },
   recordScope: urlScope,
   onRecordShown: (id) => recordLink?.shown(id),
@@ -1396,12 +1663,14 @@ const deselectRows = (ids: string[]) => {
 };
 
 // From the archive, a delete is a permanent one: its confirmation says so.
-const deleteRows = async (ids: string[]) => {
+// A display holding the rows (a kanban card) hands them for its wording.
+const deleteRows = async (ids: string[], rows?: T[]) => {
   const done = await deleteRowsAction(
     ids,
     tableProps.value.rowActions?.delete,
     {
       permanently: !!archiveMode && showArchived.value,
+      rows,
     },
   );
   if (done) deselectRows(ids);
@@ -1428,12 +1697,18 @@ const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
   tableProps.value.rowActions?.[key];
 const handleRowClick = (item: T) =>
   runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
-const handleRowDuplicate = (itemId: string) =>
-  runConfirmedBuiltIn(
+// Its dialog words the row shown (`{name}`), else only its id.
+const handleRowDuplicate = (itemId: string) => {
+  const idKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
+  const shown = shownResults.value?.find(
+    (row) => String(get(row, idKey)) === itemId,
+  );
+  return runConfirmedBuiltIn(
     rowActionConfig("duplicate"),
-    { [props.rowIdKey ?? ROW_ID_DEFAULT_KEY]: itemId },
+    shown ?? { [idKey]: itemId },
     () => duplicateRow(itemId),
   );
+};
 const handleRowAdd = () =>
   runConfirmedBuiltIn(rowActionConfig("add"), undefined, () =>
     newRow(queryParamDefaults.value),
@@ -1498,12 +1773,14 @@ const realtimeEventHandlers: Record<
     return refreshAll();
   },
   [REALTIME_EVENT_TYPE.CREATED]: () => refreshAll(),
+  // An edited row can change tab, group or column: the counts are read again
+  // with it.
   [REALTIME_EVENT_TYPE.UPDATED]: async (ids) => {
     if (isActiveDisplaySelfManaged.value) {
-      await activeDisplayRef.value?.refresh?.();
+      await Promise.all([activeDisplayRef.value?.refresh?.(), refreshCounts()]);
       return;
     }
-    await Promise.all(ids.map((id) => patchRowLocal(id)));
+    await Promise.all([...ids.map((id) => patchRowLocal(id)), refreshCounts()]);
   },
 };
 
@@ -1910,6 +2187,7 @@ const displayContext = computed(
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
     refresh: refreshByUser,
+    setShownRows: setSelfManagedRows,
     reorder: reorderState.value,
     table: displayTable.value,
   }),
@@ -2007,13 +2285,16 @@ defineShortcuts(
 );
 
 // Each kept field with its default: a value back to it is forgotten.
+// A hand-ordered table keeps no sort.
 const tableStatePreferences: TableStatePreference[] = [
-  ["sorting", sorting, defaultSortState],
+  ...(reorderConfig
+    ? []
+    : [["sorting", sorting, defaultSortState] as TableStatePreference]),
   ["columnFilters", columnFilters, []],
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
   ["activeTab", activeTabId, ALL_TAB_ID],
-  ["viewMode", activeDisplayId, defaultDisplay],
+  ["viewMode", activeDisplayId, displayDefault],
   ["columnOrder", columnOrder, []],
   ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
   ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
@@ -2024,7 +2305,7 @@ tableStatePreferences.forEach(([field, state, defaultValue]) => {
   watch(
     state,
     (newValue) => {
-      tablePreferences.set(field, newValue, defaultValue);
+      tablePreferences.set(field, newValue, unref(defaultValue));
     },
     { deep: true },
   );
@@ -2146,6 +2427,7 @@ onMounted(() => {
     :url-filters="shownUrlFilters"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
+    :archived-count-label="props.archivedCountLabel"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"
@@ -2157,7 +2439,10 @@ onMounted(() => {
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
-    :sorting-options="{ manualSorting: true }"
+    :sorting-options="{
+      manualSorting: true,
+      enableSorting: activeCapabilities.sorting,
+    }"
     :default-sort="tableDefaultSort"
     :default-sort-label="defaultSortLabel"
     :default-sort-kind="defaultSortKind"
@@ -2185,10 +2470,7 @@ onMounted(() => {
     @remove-url-filter="removeUrlFilter"
     @edit="handleRowEdit"
   >
-    <template
-      v-if="liveHold.newCount.value > 0 || liveHold.reason.value"
-      #notice
-    >
+    <template v-if="liveHold.reason.value" #notice>
       <LiveHoldBanner
         :count="liveHold.newCount.value"
         :reason="liveHold.reason.value"
@@ -2196,6 +2478,27 @@ onMounted(() => {
         :detail="liveHold.missedDetail.value"
         @show="liveHold.showNew"
       />
+    </template>
+    <!-- What came in while the rows were read or the page paused: a pill
+         over the first rows, under the column header band (the table sets
+         its height; a sticky one stays put above a scrolled area, so the pill
+         stays under it), taking no room, so the rows stay where they are.
+         Above the pinned columns and the presence rail it overlaps. -->
+    <template v-else-if="liveHold.newCount.value > 0" #notice>
+      <div class="relative z-30 h-0">
+        <div
+          class="pointer-events-none absolute inset-x-0 top-[calc(var(--dms-table-head-height,0px)+0.5rem)] flex justify-center px-4"
+        >
+          <LiveHoldBanner
+            floating
+            class="pointer-events-auto"
+            :count="liveHold.newCount.value"
+            :missed-label="liveHold.missedLabel"
+            :detail="liveHold.missedDetail.value"
+            @show="liveHold.showNew"
+          />
+        </div>
+      </div>
     </template>
     <template v-if="hasViews" #views>
       <TableViews
@@ -2205,7 +2508,7 @@ onMounted(() => {
         :modified="isViewModified"
         :can-save-as="canSaveViews"
         :divided="tabsWithCount.length === 0"
-        @open="openView"
+        @open="selectView"
         @reset="resetView"
         @save="saveView"
         @save-as="saveAsNewView"

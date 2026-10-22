@@ -18,8 +18,10 @@ import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/per
 import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host";
+import livePauseSourcePlugin from "./layers/dms-ui/app/plugins/live-pause-source";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
+import closingLayersPlugin from "./layers/dms-ui/app/plugins/closing-layers.client";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -92,8 +94,11 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
-// Components that render a backend block under a name of their own: the block
-// names (`dms-xxx-block`) resolve to the same component as the template name.
+// Not a compatibility path: two current contracts name these components.
+// Templates use the component's own name (`<DmsSection>`, `<DmsFieldRow>`,
+// `<DmsActivityFeed>`), while the backend blocks follow the `dms-xxx-block`
+// vocabulary that `block-vocabulary.test.ts` enforces. Each entry maps the
+// template name to the block name, so both resolve to one component.
 const COMPONENT_ALIASES: Record<string, string> = {
   ActivityFeed: "ActivityFeedBlock",
   Section: "SectionBlock",
@@ -159,11 +164,21 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
     sdk.registerPlugin(async (context) => {
-      const plugin = await import(
-        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
-      );
+      const plugin =
+        await import("./layers/dms-layout/app/plugins/dms-dev-reload.client");
       await plugin.default(context);
     }, clientOnly);
+    // Browser only: the server already logs a render that fails, with its
+    // stack. First, so an error a later plugin's work raises is logged too.
+    sdk.registerPlugin(
+      async (context) => {
+        const plugin = await import(
+          "./layers/dms-core/app/plugins/dev-error-log"
+        );
+        await plugin.default(context);
+      },
+      { ...clientOnly, enforce: "pre" },
+    );
   }
   // Before any data is read, a higher-priority module's plugins included:
   // every key lives in the session's scope, and a new scope aborts the reads
@@ -183,6 +198,10 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(faviconPlugin);
   sdk.registerPlugin(sidePanelHostPlugin);
+  // Not deferred: a page's first poll reads it.
+  sdk.registerPlugin(livePauseSourcePlugin, clientOnly);
+  // Not deferred: the first dialog the user closes needs it.
+  sdk.registerPlugin(closingLayersPlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);

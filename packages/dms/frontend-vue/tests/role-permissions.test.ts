@@ -10,6 +10,7 @@ import {
   expandOneLevel,
   grantPermission,
   highlightSegments,
+  keepGrantedAutoAdded,
   nextCollapseDepth,
   nextExpandDepth,
   openDepth,
@@ -483,6 +484,96 @@ describe("role permissions", () => {
       added: ["c"],
       removed: ["a"],
     });
+  });
+});
+
+const INVOICES = "pages.billing.invoices.table";
+const LIST_TREE: RolePermissionNode[] = [
+  {
+    id: "pages.billing.invoices",
+    label: "Invoices",
+    children: [
+      {
+        id: INVOICES,
+        label: "Table",
+        children: [
+          { id: `${INVOICES}.list`, label: "List" },
+          { id: `${INVOICES}.select`, label: "Select" },
+          {
+            id: `${INVOICES}.view`,
+            label: "View",
+            dependencies: [`${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.edit`,
+            label: "Edit",
+            dependencies: [`${INVOICES}.view`, `${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.delete`,
+            label: "Delete",
+            dependencies: [`${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.export`,
+            label: "Export",
+            dependencies: [`${INVOICES}.view`, `${INVOICES}.list`],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+describe("table actions depending on the list", () => {
+  const listIndex = buildPermissionIndex(LIST_TREE, identity);
+
+  it("ticks the list with an edit", () => {
+    const grant = grantPermission(
+      listIndex,
+      new Set(),
+      `${INVOICES}.edit`,
+      anyone,
+    );
+    expect(grant.selection.has(`${INVOICES}.list`)).toBe(true);
+    expect(grant.autoAdded).toContain(`${INVOICES}.list`);
+  });
+
+  it("unticks the actions reached from the rows with the list, and keeps the table", () => {
+    const all = new Set(listIndex.allIds);
+    const revoked = revokePermission(listIndex, all, `${INVOICES}.list`);
+    for (const action of ["view", "edit", "delete", "export"]) {
+      expect(revoked.has(`${INVOICES}.${action}`), action).toBe(false);
+    }
+    expect(revoked.has(`${INVOICES}.select`)).toBe(true);
+    // The table only requires its list: the preview shows it hidden.
+    expect(revoked.has(INVOICES)).toBe(true);
+  });
+
+  it("clears the hints of what a revoked list took with it", () => {
+    const edit = grantPermission(
+      listIndex,
+      new Set([INVOICES]),
+      `${INVOICES}.edit`,
+      anyone,
+    );
+    const hints = new Map([[`${INVOICES}.edit`, edit.autoAdded]]);
+    const revoked = revokePermission(
+      listIndex,
+      edit.selection,
+      `${INVOICES}.list`,
+    );
+    expect(keepGrantedAutoAdded(hints, revoked).size).toBe(0);
+  });
+
+  it("keeps a granted node's hint, naming only what is still granted", () => {
+    const hints = new Map([
+      ["a", ["b", "c"]],
+      ["d", ["c"]],
+      ["e", ["f"]],
+    ]);
+    const kept = keepGrantedAutoAdded(hints, new Set(["a", "b", "d", "f"]));
+    expect([...kept]).toEqual([["a", ["b"]]]);
   });
 });
 

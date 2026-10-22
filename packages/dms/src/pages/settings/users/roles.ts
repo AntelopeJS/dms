@@ -36,7 +36,6 @@ import {
   GetPermissions,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
-import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
   type PermissionPreviewGrants,
@@ -44,6 +43,7 @@ import {
   type PreviewPageLossCheck,
   notifyMenuAccessChanged,
   resolvePermissionPreviewAccess,
+  resolvePreviewPermissions,
 } from "../../../implementations/dms/page";
 import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
 import {
@@ -107,6 +107,8 @@ registerTableViewActions(rolesEditor, {
   hasDeleteEndpoint: true,
   archiveMode: false,
   isExportEnabled: true,
+  // A role opens in the editor, over its list.
+  formsArePages: false,
 });
 
 // The data routes (`/api/tables/roles`, behind the member and invite role
@@ -278,7 +280,7 @@ async function previewRole(
   path: string | undefined,
 ): Promise<RolePreviewResult> {
   const actor = await resolveActor(ctx, user);
-  const preview = await ApplyPermissionsResolvers(
+  const preview = await resolvePreviewPermissions(
     user._id,
     actor.tenantId,
     sanitizePreviewPermissions(rolePermissions),

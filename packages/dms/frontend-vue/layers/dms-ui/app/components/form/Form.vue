@@ -19,6 +19,7 @@ import {
   type FormValidator,
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
+import { FORM_FIELD_SAVED_KEY } from "../../composables/form/types/field-saved";
 import {
   FORM_HANDLE_KEY,
   linkedFieldId,
@@ -43,6 +44,7 @@ import {
   fieldErrorPattern,
 } from "../../build/composables/form/formEntryContext";
 import {
+  CONTAINER_LAYOUT_CLASSES,
   FORM_LAYOUT_CLASSES,
   FORM_SURFACE_CLASSES,
   type FormSurface,
@@ -59,7 +61,15 @@ import {
   sectionState,
 } from "../../build/composables/form/formSections";
 import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/formControlErrors";
+import {
+  changedServerErrorFields,
+  keptServerErrors,
+  serverErrorValue,
+  type KeptServerError,
+  type PlacedServerError,
+} from "../../build/composables/form/serverFieldErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
+import { fieldSavedMarker } from "../../build/composables/form/fieldSaved";
 import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
 import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
@@ -71,6 +81,8 @@ import {
 } from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
+import { scrollWithin } from "../../build/utils/scrollWithin";
+import { isHiddenOnCreate } from "../../build/composables/form/createFormFields";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -98,10 +110,11 @@ const FormWrapper =
 
 const { processI18n, processApiMessage } = useTranslation();
 
-// Server errors stay on their field until its value changes (UForm only
-// re-validates a field once it was left, and its schema knows nothing of
-// them): the value each field's were raised against, by field id.
-const serverErrorValues = new Map<string, string>();
+// Server errors stay on their field until its value changes or the form is
+// saved, whatever re-validates the field in between: UForm's `validate`
+// answers them with its schema's (see `keptServerErrors`). Each one shown,
+// with the value it was raised against, by field id.
+const serverErrors = new Map<string, KeptServerError>();
 
 /** The control of a field, by its id, inside this form only. */
 function fieldControl(name: string | undefined): HTMLElement | null {
@@ -172,13 +185,14 @@ async function focusField(name: string | undefined): Promise<void> {
     target.focus();
     return;
   }
-  row?.scrollIntoView({ block: "center" });
+  if (row) scrollWithin(row, { block: "center" });
 }
 
 /** Brings a field into view and focuses it: a link's anchor, a field's request. */
 async function revealField(fieldId: string): Promise<void> {
   await formSettled();
-  fieldRow(fieldId)?.scrollIntoView({ block: "center" });
+  const row = fieldRow(fieldId);
+  if (row) scrollWithin(row, { block: "center" });
   await focusField(fieldId);
 }
 
@@ -194,14 +208,19 @@ function showFieldErrors(errors: FormServerFieldError[]): boolean {
   // instant form) replaces its own only.
   if (!isInstant) {
     target.setErrors([]);
-    serverErrorValues.clear();
+    serverErrors.clear();
   }
   for (const error of errors) placeServerError(target, error);
   const shown = errors.filter(
     (error) => target.getErrors(fieldErrorPattern(error.name)).length,
   );
   for (const error of shown) {
-    serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
+    serverErrors.set(error.name, {
+      value: serverErrorValue(state.value[error.name]),
+      errors: target
+        .getErrors(fieldErrorPattern(error.name))
+        .map(({ name, message }: PlacedServerError) => ({ name, message })),
+    });
   }
   showsErrorSummary.value = shown.length > 0;
   void focusField(target.errors[0]?.name);
@@ -230,7 +249,9 @@ function onValidationError(event: { errors: Array<{ name?: string }> }): void {
 }
 
 // Once a submit is refused, the form lists what to fix above its fields
-// until it is saved.
+// until it is saved. The last fix empties the list, not the place it holds:
+// the fields, and the submit button with them, would move up under the
+// pointer on its way to it, and the click would land beside it.
 const showsErrorSummary = ref(false);
 
 const {
@@ -252,20 +273,32 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
+  createsRecord,
   effectiveSubmitDefaults,
 } = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
 watch(
   state,
   (current) => {
-    for (const [name, value] of serverErrorValues) {
-      if (JSON.stringify(current[name]) === value) continue;
-      serverErrorValues.delete(name);
+    for (const name of changedServerErrorFields(serverErrors, current)) {
+      serverErrors.delete(name);
       form.value?.clear(fieldErrorPattern(name));
     }
   },
   { deep: true },
 );
+
+// UForm is busy while it validates a submit: the kept errors stay out of it.
+const validateServerErrors = (current: Record<string, unknown>) =>
+  keptServerErrors(serverErrors, current, !!form.value?.loading);
+
+/** A saved form: what the server refused before no longer stands. */
+function clearServerErrors(): void {
+  for (const name of serverErrors.keys()) {
+    form.value?.clear(fieldErrorPattern(name));
+  }
+  serverErrors.clear();
+}
 
 const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
@@ -337,7 +370,7 @@ watch(
       const previous = fieldValueSnapshots.get(field.id);
       fieldValueSnapshots.set(field.id, snapshot);
       if (previous === undefined || previous === snapshot) continue;
-      if (!form.value || serverErrorValues.has(field.id)) continue;
+      if (!form.value || serverErrors.has(field.id)) continue;
       const pattern = fieldErrorPattern(field.id);
       if (!form.value.getErrors(pattern).length) continue;
       void form.value.validate({ name: errorNames(field), silent: true });
@@ -348,10 +381,12 @@ watch(
 
 const { t, locale, locales } = useI18n();
 
+// A new row is created, not "changes" saved.
+const DEFAULT_SUBMIT_LABEL = createsRecord
+  ? "dms.button.create"
+  : "dms.button.save_changes";
 const submitButtonLabel = computed(() =>
-  props.submitLabel
-    ? processI18n(props.submitLabel)
-    : t("dms.button.save_changes"),
+  props.submitLabel ? processI18n(props.submitLabel) : t(DEFAULT_SUBMIT_LABEL),
 );
 
 watch(disabledFields, (newDisabled, oldDisabled) => {
@@ -415,6 +450,7 @@ onMounted(() => {
 function markFormClean(): void {
   isTouched = false;
   showsErrorSummary.value = false;
+  clearServerErrors();
   formDirty.markClean();
   instantSave?.start();
 }
@@ -443,11 +479,20 @@ const isDirty = computed(
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
-// A form offers Cancel while clean when it has somewhere to go back to: its
-// drawer or modal, or `backTo` on a page. An action form (send, invite, run)
-// saves from its footer band, never from the floating bar.
+// A form offers Cancel when it has somewhere to go back to: its drawer or
+// modal, `backTo` on a page, or the page of the app the user came from. An
+// action form (send, invite, run) saves from its footer band, never from the
+// floating bar.
 const isActionForm = props.kind === "action";
-const canCancel = inFormContainer || !!container || !!props.backTo;
+// Read once mounted: the server renders no history.
+const cameFromAppPage = ref(false);
+onMounted(() => {
+  cameFromAppPage.value = !!previousAppPage();
+});
+const canCancel = computed(
+  () =>
+    inFormContainer || !!container || !!props.backTo || cameFromAppPage.value,
+);
 const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
 
 /** Validates one field alone: whether it holds no error. */
@@ -481,19 +526,30 @@ const hasChangeableFields = computed(() =>
 const router = useDmsRouter();
 const route = useDmsRoute();
 /**
- * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
- * form for the page the user came from (its list, when opened from one), or
- * its `backTo` when the form was opened directly.
+ * The page of the app this one was reached from, which the router records
+ * in the history entry: none for a page opened from a link outside the app,
+ * a bookmark or a new tab, where going back would leave the app.
+ */
+function previousAppPage(): string | undefined {
+  const back = (window.history.state as { back?: unknown } | null)?.back;
+  return typeof back === "string" ? back : undefined;
+}
+
+/**
+ * Cancel: drops what was changed, then closes the drawer or modal, or leaves
+ * a page form for the page of the app the user came from (its list, when
+ * opened from one), or its `backTo` when the form was opened directly.
+ * Discarding first means leaving never asks about changes the user just chose
+ * to drop.
  */
 function cancelForm(): void {
+  if (isDirty.value) discardChanges();
   if (container) {
     void container.close();
     return;
   }
-  const navigation = (window as { navigation?: { canGoBack?: boolean } })
-    .navigation;
-  if (navigation?.canGoBack ?? window.history.length > 1) {
-    window.history.back();
+  if (previousAppPage()) {
+    router.back();
     return;
   }
   if (props.backTo) void router.push(pageLink(props.backTo));
@@ -539,6 +595,15 @@ provide(FORM_HANDLE_KEY, {
   revealField,
 });
 provide(FORM_FIELD_LOADING_KEY, setFieldLoading);
+provide(
+  FORM_FIELD_SAVED_KEY,
+  fieldSavedMarker({
+    hasField: (id) => toValue(allFields).some((field) => field.id === id),
+    initialValues,
+    dirty: formDirty,
+    instantSave,
+  }),
+);
 provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 
 allFields.value.forEach((field) => {
@@ -659,7 +724,10 @@ function layoutClasses(inSectionCard: boolean) {
   if ((inSectionCard || inSection) && isHorizontal) {
     return SECTION_LAYOUT_CLASSES;
   }
-  return FORM_LAYOUT_CLASSES[isHorizontal ? "horizontal" : "vertical"];
+  const orientation = isHorizontal ? "horizontal" : "vertical";
+  return inFormContainer
+    ? CONTAINER_LAYOUT_CLASSES[orientation]
+    : FORM_LAYOUT_CLASSES[orientation];
 }
 
 function isFieldDisabled(field: FormField): boolean {
@@ -668,7 +736,8 @@ function isFieldDisabled(field: FormField): boolean {
 }
 
 function isFieldHidden(field: FormField): boolean {
-  return hiddenFields.value?.has(field.id) ?? false;
+  if (hiddenFields.value?.has(field.id)) return true;
+  return createsRecord && isHiddenOnCreate(field, state.value[field.id]);
 }
 
 function isFieldRequired(field: FormField): boolean {
@@ -695,7 +764,10 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
-  showsChanges: !isInstant && !isActionForm,
+  isReadOnly: computed(() => !hasChangeableFields.value),
+  // A new row has no earlier value to compare with: "Changed · was empty"
+  // on every field it fills would say nothing.
+  showsChanges: !isInstant && !isActionForm && !createsRecord,
   isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
   baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
   fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",
@@ -748,10 +820,6 @@ const sectionOfField = computed(() => {
     for (const id of section.fieldIds) owners.set(id, section.label);
   }
   return owners;
-});
-
-watch(invalidFields, (invalid) => {
-  if (invalid.size === 0) showsErrorSummary.value = false;
 });
 
 // One entry per row to fix: the unlabelled fields of a group share its
@@ -927,6 +995,7 @@ onUnmounted(async () => {
       ref="form"
       :state
       :schema="localizedSchema"
+      :validate="validateServerErrors"
       :disabled="allFields.every((field) => field.disabled)"
       @submit="onSubmit"
       @error="onValidationError"
@@ -974,7 +1043,7 @@ onUnmounted(async () => {
         />
 
         <DmsFormErrorSummary
-          v-if="errorSummaryItems.length"
+          v-if="showsErrorSummary"
           :items="errorSummaryItems"
           :class="hasSections ? 'mb-5' : 'mt-4'"
           @select="focusField"
@@ -1025,7 +1094,9 @@ onUnmounted(async () => {
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
-        :save-label="usesSaveBar ? props.submitLabel : submitButtonLabel"
+        :save-label="
+          usesSaveBar && !createsRecord ? props.submitLabel : submitButtonLabel
+        "
         :cancellable="canCancel"
         :resettable="hasChangeableFields"
         :class="usesSaveBar ? 'mx-3' : surfaceClasses.foot"

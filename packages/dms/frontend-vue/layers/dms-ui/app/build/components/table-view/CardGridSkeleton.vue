@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { MAX_PAGE_SIZE } from "../../composables/table/constants";
+import {
+  CARD_GRID_CLASS,
+  cardGridStyle,
+} from "../../composables/table-view/utils/card";
+
 /**
  * Placeholder of a table view card grid while its first page loads: cards
  * built like the cards display's (same frame, same line boxes), so nothing
@@ -11,13 +17,22 @@ interface CardGridSkeletonProps {
   fields: number;
   /** Size classes of a field label, to match the real card's line box. */
   labelClass?: string;
+  /** The narrowest card, a CSS length: the table's `card.minWidth`. */
+  minWidth?: string;
+  /**
+   * The height of a card, a CSS length: the table's `card.skeletonHeight`,
+   * for a custom card taller than the built-in one.
+   */
+  cardHeight?: string;
 }
 
 const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
   labelClass: "text-[10.5px] leading-[1.2]",
 });
 
-const MAX_CARD_COUNT = 12;
+// A full page of cards, as for the rows of a table: the pagination footer
+// below them stands where the loaded page puts it.
+const MAX_CARD_COUNT = MAX_PAGE_SIZE;
 const cardCount = computed(() =>
   Math.max(1, Math.min(props.count, MAX_CARD_COUNT)),
 );
@@ -28,12 +43,14 @@ const { t } = useI18n();
 <template>
   <div
     aria-hidden="true"
-    class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+    :class="CARD_GRID_CLASS"
+    :style="cardGridStyle(props.minWidth, cardCount)"
   >
     <div
       v-for="n in cardCount"
       :key="n"
       class="border-default @container rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px]"
+      :style="props.cardHeight ? { minHeight: props.cardHeight } : undefined"
     >
       <div class="flex items-center gap-2.5">
         <USkeleton

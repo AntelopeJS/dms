@@ -1,3 +1,4 @@
+import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
@@ -44,6 +45,7 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
   vi.stubGlobal("useToast", () => ({ add: addToast }));

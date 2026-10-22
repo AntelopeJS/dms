@@ -301,9 +301,12 @@ describe("the cadence", () => {
     const poll = vi.fn();
     const live = install({ maxRate: 5 }, { poll });
     live.setStreamConnected(false);
-    expect(live.isPolling.value).toBe(true);
+    // Not polling before the first tick: a stream still connecting is not
+    // reported down.
+    expect(live.isPolling.value).toBe(false);
 
     vi.advanceTimersByTime(5000);
+    expect(live.isPolling.value).toBe(true);
     vi.advanceTimersByTime(5000);
     expect(poll).toHaveBeenCalledTimes(2);
 

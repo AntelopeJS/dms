@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import DmsSegmented from "../segmented/Segmented.vue";
 import { usePageLive } from "../../composables/live/usePageLive";
-import { formatElapsed } from "../../build/composables/live/formatElapsed";
+import { useUpdatedLabel } from "../../build/composables/live/useUpdatedLabel";
 import { useLiveToggleShortcut } from "../../build/composables/live/useLiveToggleShortcut";
 import { HIDDEN_TAB_NOTE } from "../../build/composables/live/pageLiveController";
 import type { ConfirmTranslate } from "../../build/composables/confirm/confirmDialogTexts";
@@ -10,14 +10,24 @@ import {
   missedRowsText,
   showLiveNote,
 } from "../../build/composables/live/liveNotes";
+import {
+  type PageToolbarSize,
+  usePageToolbar,
+  useToolbarLiveToggle,
+} from "../../build/composables/page-toolbar/pageToolbarContext";
+import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-interface LiveToggleBlockProps extends DefaultComponentProps {
+// Its ids are optional: it reads the page's live state, not its own, and a
+// component may draw it by hand inside its own `PageToolbar`.
+interface LiveToggleBlockProps extends Partial<DefaultComponentProps> {
   align?: "left" | "center" | "right";
   /** Shows "updated N s ago". */
   showUpdatedAt?: boolean;
   /** `segmented` (Live / Pause segments) or `pill` (a pulsing Live pill). */
   variant?: "segmented" | "pill";
+  /** How large it is drawn; the holding `PageToolbar`'s size, else `sm`. */
+  size?: PageToolbarSize;
   /** What the paused toggle calls the missed events, given `{count}`. */
   missedLabel?: string;
 }
@@ -26,12 +36,13 @@ const props = withDefaults(defineProps<LiveToggleBlockProps>(), {
   align: "right",
   showUpdatedAt: true,
   variant: "segmented",
+  size: undefined,
   missedLabel: undefined,
 });
 
 const DIRECT = "direct";
 const PAUSE = "pause";
-const TICK_MS = 1000;
+const DEFAULT_SIZE: PageToolbarSize = "sm";
 const ALIGN_CLASSES: Record<
   NonNullable<LiveToggleBlockProps["align"]>,
   string
@@ -41,26 +52,53 @@ const ALIGN_CLASSES: Record<
   right: "justify-end",
 };
 const PILL_BUTTON_CLASS =
-  "focus-visible:outline-primary flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] font-medium transition-colors focus-visible:outline-2";
+  "focus-visible:outline-primary flex h-full items-center rounded-[5px] font-medium transition-colors focus-visible:outline-2";
 const PILL_IDLE_CLASS = "text-muted hover:text-default hover:bg-elevated";
+
+/** What each size changes: the texts and the pill's buttons. */
+interface LiveToggleSizeClasses {
+  text: string;
+  pillButton: string;
+}
+
+// The pill takes the toolbar's one height (its buttons fill it), as the
+// period selector's segments beside it and the Resume button do.
+const SIZE_CLASSES: Record<PageToolbarSize, LiveToggleSizeClasses> = {
+  xs: {
+    text: "text-[11.5px]",
+    pillButton: "gap-1 px-1.5 text-[11px]",
+  },
+  sm: {
+    text: "text-[12.5px]",
+    pillButton: "gap-1.5 px-2 text-[12px]",
+  },
+  md: {
+    text: "text-[13px]",
+    pillButton: "gap-1.5 px-2.5 text-[13px]",
+  },
+};
 
 const { t } = useI18n();
 const translate = t as ConfirmTranslate;
 const live = usePageLive();
+const toolbar = usePageToolbar();
+useToolbarLiveToggle(toolbar);
+const size = computed(() => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE);
+const sizeClasses = computed(() => SIZE_CLASSES[size.value]);
+const heightClass = computed(
+  () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[size.value],
+);
 
-// The state lives in the browser (its storage, its clock): the server and the
-// hydrating render draw nothing, the mounted block draws the real state.
+// The toggle is drawn from the server on, live (the remembered pause applies
+// once mounted), so it takes its place before the page paints. Only the
+// "updated N s ago" text waits for the browser's clock: the server's would
+// not match the hydrating render's.
 const isMounted = ref(false);
-const now = ref(Date.now());
-let ticker: ReturnType<typeof setInterval> | undefined;
-
-onMounted(() => {
-  isMounted.value = true;
-  if (props.showUpdatedAt) {
-    ticker = setInterval(() => (now.value = Date.now()), TICK_MS);
-  }
-});
-onBeforeUnmount(() => clearInterval(ticker));
+onMounted(() => (isMounted.value = true));
+const updatedText = useUpdatedLabel(
+  () => live.lastUpdatedAt.value,
+  props.showUpdatedAt,
+);
 
 const mode = computed({
   get: () => (live.isPaused.value ? PAUSE : DIRECT),
@@ -75,15 +113,9 @@ const items = computed(() => [
   { value: PAUSE, label: t("dms.live.pause"), icon: "i-ph-pause" },
 ]);
 
-const updatedLabel = computed(() => {
-  const at = live.lastUpdatedAt.value;
-  if (at === null) return "";
-  const { unit, count } = formatElapsed(now.value - at);
-  const updated = t(`dms.live.updated_${unit}`, { count }, count);
-  return live.isPolling.value
-    ? `${updated} · ${t("dms.live.polling")}`
-    : updated;
-});
+// The browser's clock only: the server's text would not match the hydrating
+// render's.
+const updatedLabel = computed(() => (isMounted.value ? updatedText.value : ""));
 
 const missedText = computed(() => {
   const count = live.missedCount.value;
@@ -122,13 +154,14 @@ useLiveToggleShortcut(() => live.toggle());
 
 <template>
   <div
-    v-if="isMounted && live.isEnabled.value"
+    v-if="live.isEnabled.value"
     class="dms-live-toggle flex flex-wrap items-center gap-x-2.5 gap-y-1"
     :class="[ALIGN_CLASSES[align], `dms-live-toggle--${variant}`]"
   >
     <span
       v-if="live.isPaused.value"
-      class="dms-live-toggle__status text-muted min-w-0 text-[12.5px] tabular-nums"
+      class="dms-live-toggle__status text-muted min-w-0 tabular-nums"
+      :class="sizeClasses.text"
       aria-live="polite"
     >
       {{ pausedText }}
@@ -136,16 +169,28 @@ useLiveToggleShortcut(() => live.toggle());
     </span>
     <span
       v-else-if="showUpdatedAt"
-      class="text-muted text-[12.5px] tabular-nums"
+      class="text-muted inline-flex items-center gap-1.5 tabular-nums"
+      :class="sizeClasses.text"
       aria-live="off"
     >
       {{ updatedLabel }}
+      <!-- The polling hint, its box always kept: showing it never widens the
+           toggle, which would wrap the toolbar and move the page. -->
+      <UIcon
+        name="i-ph-wifi-slash"
+        class="dms-live-toggle__polling size-3.5 shrink-0"
+        :class="!live.isPolling.value && 'invisible'"
+        :title="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-label="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-hidden="!live.isPolling.value || undefined"
+      />
     </span>
     <div
       v-if="variant === 'pill'"
       role="group"
       :aria-label="t('dms.live.aria_label')"
-      class="border-default bg-default inline-flex shrink-0 items-center gap-0.5 rounded-md border p-0.5"
+      class="border-default bg-default inline-flex shrink-0 items-stretch gap-0.5 rounded-md border p-0.5"
+      :class="heightClass"
     >
       <button
         type="button"
@@ -153,6 +198,7 @@ useLiveToggleShortcut(() => live.toggle());
         :aria-pressed="live.isLive.value"
         :class="[
           PILL_BUTTON_CLASS,
+          sizeClasses.pillButton,
           live.isLive.value ? 'bg-success/10 text-success' : PILL_IDLE_CLASS,
         ]"
         @click="live.resume()"
@@ -173,6 +219,7 @@ useLiveToggleShortcut(() => live.toggle());
         :aria-pressed="live.isPaused.value"
         :class="[
           PILL_BUTTON_CLASS,
+          sizeClasses.pillButton,
           live.isPaused.value
             ? 'bg-elevated text-highlighted'
             : PILL_IDLE_CLASS,
@@ -188,12 +235,13 @@ useLiveToggleShortcut(() => live.toggle());
       v-model="mode"
       :items="items"
       :aria-label="t('dms.live.aria_label')"
-      size="sm"
+      :size="size"
     />
     <UButton
       v-if="variant === 'pill' && canResume"
       data-action="resume"
-      size="xs"
+      :size="size"
+      :class="heightClass"
       color="neutral"
       variant="soft"
       icon="i-ph-play-fill"

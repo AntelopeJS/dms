@@ -24,10 +24,12 @@ const defaultValue = computed(() => props.field.defaultValue);
 const showsChange = computed(
   () => context.showsChanges && context.isFieldChanged(props.field.id),
 );
-// "Module default · Use default" on a value that is not the default, unless
-// the change line already says what it was.
+// "Module default · Use default" on a value that is not the default, for a
+// field that offers it (a setting, not a record's initial value), unless the
+// change line already says what it was.
 const showsDefault = computed(
   () =>
+    !!props.field.offersDefault &&
     defaultValue.value !== undefined &&
     !context.isFieldDisabled(props.field) &&
     !sameFormValue(value.value, defaultValue.value) &&
@@ -51,7 +53,26 @@ function wordValue(raw: unknown): VNodeChild | undefined {
   return undefined;
 }
 
-const wordedBaseline = computed(() => wordValue(baseline.value));
+/**
+ * The baseline as the form loaded it. A type keeping less in the form than
+ * it reads (a relation keeps the ids of the rows the server joined) words
+ * the loaded value, its label, while that is still the baseline.
+ */
+const loadedBaseline = computed(() => {
+  const loaded = context.initialValues.value[props.field.id];
+  const dataType = props.field.type ? getDataType(props.field.type) : undefined;
+  if (!dataType?.beforeStateMapper || isEmptyFormValue(loaded)) {
+    return baseline.value;
+  }
+  const options = props.field.component.options;
+  const mapped = dataType.beforeStateMapper(loaded, options);
+  const isSame = dataType.isSameValue
+    ? dataType.isSameValue(mapped, baseline.value, options)
+    : sameFormValue(mapped, baseline.value);
+  return isSame ? loaded : baseline.value;
+});
+
+const wordedBaseline = computed(() => wordValue(loadedBaseline.value));
 
 function useDefault(): void {
   context.state.value[props.field.id] = JSON.parse(
@@ -61,7 +82,10 @@ function useDefault(): void {
 </script>
 
 <template>
-  <div v-if="showsChange || showsDefault" class="grid gap-0.5 text-xs">
+  <div
+    v-if="showsChange || showsDefault"
+    class="grid min-w-0 gap-0.5 text-xs break-words"
+  >
     <p
       v-if="showsChange"
       class="text-muted flex flex-wrap items-center gap-1.5"
@@ -88,7 +112,7 @@ function useDefault(): void {
         color="primary"
         variant="link"
         size="xs"
-        class="p-0"
+        class="p-0 text-start whitespace-normal"
         @click="useDefault"
       />
     </p>

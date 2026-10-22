@@ -393,6 +393,25 @@ export function revokePermission(
   return remaining;
 }
 
+/**
+ * The "added automatically" hints still true of a selection: a node no
+ * longer granted loses its hint, and a hint stops naming what is no longer
+ * granted, so a revoke that cascades (unticking a list takes the edit that
+ * had added it) leaves no hint on an unticked row.
+ */
+export function keepGrantedAutoAdded(
+  autoAdded: Map<string, string[]>,
+  selection: Set<string>,
+): Map<string, string[]> {
+  const kept = new Map<string, string[]>();
+  for (const [id, added] of autoAdded) {
+    if (!selection.has(id)) continue;
+    const granted = added.filter((addedId) => selection.has(addedId));
+    if (granted.length > 0) kept.set(id, granted);
+  }
+  return kept;
+}
+
 function matchesQuery(
   node: RolePermissionNode,
   query: string,

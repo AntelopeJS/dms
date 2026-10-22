@@ -47,8 +47,11 @@ async function editNotes(form: ReturnType<typeof setupForm>) {
   await form.onSubmit({ data: edited } as never);
 }
 
+/** What the save sent: the record is read back after it. */
 function sentBody(): unknown {
-  return authFetch.mock.calls.at(-1)?.[1]?.body;
+  return authFetch.mock.calls.findLast(
+    ([url]) => url === "/api/rows/edit?id=row-1",
+  )?.[1]?.body;
 }
 
 beforeEach(() => {

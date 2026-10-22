@@ -78,7 +78,7 @@ RegisterPermission("cookbook.edit", {
   title: "$dms_cookbook.perm.edit",   // i18n key — add to every locale file
   icon: "i-ph-pencil",
   defaultGranted: false,
-  // dependencies: ["cookbook.view"],  // declarative metadata only — not enforced or auto-granted
+  // dependencies: ["cookbook.view"],  // enforced by HasPermission; granted with it by the roles editor and on save
 });
 ```
 
@@ -86,7 +86,9 @@ Then gate with `@AuthUserWithPermission(...)` or the page/component permission o
 check imperatively, use `dms/permissions`: `GetEffectiveUserPermissions`, `HasPermission`,
 `GetPermission` / `GetPermissions` (`GetUserPermissions` for the base set). Two extension
 points reshape the model: `RegisterPermissionsResolver` (`dms/permissions-resolver`) rewrites
-a user's effective set, and `RegisterTenantAccessGate` (`dms/tenant-access`, checked via
+a user's effective set (the role preview also runs it, with `context.preview` set on the
+resolver's fourth argument and the viewer's user id: shape the set as for an ordinary
+member there, never from the viewer's standing), and `RegisterTenantAccessGate` (`dms/tenant-access`, checked via
 `CheckTenantAccess` / `AssertTenantAccess`) can block a whole tenant. The `dms/guards`
 decorators also run the tenant access gate; routes that must stay reachable for a denied
 tenant (billing, recovery) opt out with `@AuthTenantOwner({ bypassTenantAccessGate: true })`.
@@ -102,7 +104,7 @@ there too); `RoleModel`, `UserInviteModel`, `TenantModel`, `TenantMemberModel` u
 The DMS is **multi-tenant by default** (single-tenant apps live in the `default` tenant).
 Primitives, covered in `docs/03.auth-and-tenancy/03.multi-tenant.md`: `@TenantScopedModel`
 (`dms/tenant-scoped-model`) scopes a model to the request's tenant, `getRequestTenantId`
-(`dms/request-tenant`) reads it, `applyTenantOwnership`
+(`dms/request-tenant`) reads it (the verified credential's tenant, `default` without one), `applyTenantOwnership`
 (`dms/tenant-ownership`) upserts a user's tenant membership (roles + owner flag),
 `inviteUserToTenant` (`dms/invites`, expiry `INVITE_EXPIRY_DAYS`), and `CROSS_INSTANCE`
 (`@antelopejs/interface-database`) for cross-tenant queries. SaaS mode (Stripe billing,

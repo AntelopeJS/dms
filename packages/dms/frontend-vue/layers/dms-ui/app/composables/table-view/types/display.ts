@@ -87,7 +87,11 @@ export interface TableViewDisplayActions<T> {
   canDeleteRow: (item: T) => boolean;
   add: () => void;
   edit: (item: T) => void;
-  delete: (ids: string[]) => void;
+  /**
+   * Deletes the rows once confirmed. A display drawing rows the grid does not
+   * list (a kanban card) hands them in `rows`, so a dialog can name them.
+   */
+  delete: (ids: string[], rows?: T[]) => void;
   duplicate: (id: string) => void;
   details: (item: T) => void;
   /** What a click on the row does in the grid: its default action. */
@@ -150,6 +154,10 @@ export interface TableViewCardReorder {
 export interface TableViewCardConfig {
   fields?: string[];
   component?: ComponentInfo;
+  /** `cards` only: the narrowest a card gets, a CSS length (`230px` left out). */
+  minWidth?: string;
+  /** `cards` only: the height of a placeholder card, a CSS length. */
+  skeletonHeight?: string;
 }
 
 /**
@@ -180,6 +188,13 @@ export interface TableViewCardProps<T = Record<string, unknown>> {
    * caller who may edit: the card's move handle, to draw somewhere on it.
    */
   reorder?: TableViewCardReorder;
+  /**
+   * `cards` only: the row's actions as the grid row offers them (its inline
+   * buttons and its … menu, with their rules and confirmations), to draw
+   * with `<component :is="rowActions" />`. It draws nothing for a table with
+   * no row action, and stops its clicks from reaching the card.
+   */
+  rowActions?: Component;
 }
 
 /**
@@ -239,6 +254,14 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
   options?: Record<string, unknown>;
+  /**
+   * A self-managed display hands the rows it shows, in the order the user
+   * reads them (a board: column by column), each time they change: a row
+   * opened from it steps through them in its drawer or side panel ("3 of
+   * 12", previous / next, J and K). Without it, a self-managed display's row
+   * opens without steps. The shared list's displays need not call it.
+   */
+  setShownRows?: (rows: T[]) => void;
   /** Re-fetch the table view (shared list + tab counts + active display). */
   refresh: () => Promise<void> | void;
   /**

@@ -6,6 +6,7 @@ import {
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
+import DmsRepeaterTable from "./RepeaterTable.vue";
 
 /** A field of the rows: one column. */
 interface RepeaterColumn {
@@ -72,21 +73,43 @@ const FLUID_COLUMN = "minmax(0,1fr)";
 const COLUMN_WIDTHS: Record<string, string> = { boolean: "20px" };
 const HANDLE_COLUMN = "20px";
 const REMOVE_COLUMN = "28px";
+
+/** The columns of a row: the handle, the given cell columns, the remove button. */
+function rowTemplate(cellColumns: string[]): string {
+  return [props.sortable ? HANDLE_COLUMN : "", ...cellColumns, REMOVE_COLUMN]
+    .filter(Boolean)
+    .join(" ");
+}
+
+// Below 480px of the field's own width (a drawer, a phone), columns side by
+// side would each be a few characters wide: each row stacks its cells in one
+// column instead, a labelled field under another, as a card, and the column
+// heads hide.
+const STACKED_HIDDEN_CLASS = "@max-[30rem]:hidden";
+const STACKED_ROW_CLASSES = {
+  row: "@max-[30rem]:grid-cols-(--dms-repeater-stacked-columns) @max-[30rem]:items-start @max-[30rem]:rounded-md @max-[30rem]:border @max-[30rem]:border-default @max-[30rem]:p-2.5",
+  // Side by side, each cell is a column of the row itself.
+  cells: "contents @max-[30rem]:grid @max-[30rem]:min-w-0 @max-[30rem]:gap-2.5",
+  cell: "grid min-w-0 gap-1",
+  label: `${EYEBROW_CLASS} text-dimmed hidden truncate @max-[30rem]:block`,
+};
 const gridTemplate = computed(() => ({
-  gridTemplateColumns: [
-    props.sortable ? HANDLE_COLUMN : "",
-    ...props.columns.map(
+  "--dms-repeater-columns": rowTemplate(
+    props.columns.map(
       (column) => COLUMN_WIDTHS[column.type ?? ""] ?? FLUID_COLUMN,
     ),
-    REMOVE_COLUMN,
-  ]
-    .filter(Boolean)
-    .join(" "),
+  ),
+  "--dms-repeater-stacked-columns": rowTemplate([FLUID_COLUMN]),
 }));
 
-function emitRows(next: RepeaterRow[]): void {
+/**
+ * Sets the rows; `shouldValidate: false` leaves the form's validation alone: a row
+ * just added is empty, and is only checked once filled or on submit, never
+ * flagged "required" the moment it appears.
+ */
+function emitRows(next: RepeaterRow[], shouldValidate = true): void {
   model.value = next;
-  emitFormChange();
+  if (shouldValidate) emitFormChange();
 }
 
 function setCell(index: number, column: string, value: unknown): void {
@@ -99,7 +122,7 @@ function setCell(index: number, column: string, value: unknown): void {
 
 function addRow(): void {
   rowKeys.value.push(nextKey++);
-  emitRows([...rows.value, {}]);
+  emitRows([...rows.value, {}], false);
 }
 
 function removeRow(index: number): void {
@@ -176,10 +199,21 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
 </script>
 
 <template>
-  <div :id="props.id" class="grid gap-1.5" role="group">
+  <!-- Read-only, the rows are values to read, not controls: a table. -->
+  <DmsRepeaterTable
+    v-if="props.disabled"
+    :id="props.id"
+    :columns="props.columns"
+    :rows="rows"
+  />
+  <div v-else :id="props.id" class="@container grid gap-1.5" role="group">
     <div
       v-if="hasHeaders && rows.length"
-      :class="[EYEBROW_CLASS, 'text-dimmed grid items-end gap-2']"
+      :class="[
+        EYEBROW_CLASS,
+        'text-dimmed grid grid-cols-(--dms-repeater-columns) items-end gap-2',
+        STACKED_HIDDEN_CLASS,
+      ]"
       :style="gridTemplate"
       aria-hidden="true"
     >
@@ -193,8 +227,11 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
     <div
       v-for="(row, index) in rows"
       :key="rowKeys[index]"
-      class="grid items-center gap-2"
-      :class="draggedIndex === index && 'opacity-50'"
+      :class="[
+        'grid grid-cols-(--dms-repeater-columns) items-center gap-2',
+        STACKED_ROW_CLASSES.row,
+        draggedIndex === index && 'opacity-50',
+      ]"
       :style="gridTemplate"
       @dragover.prevent
       @drop.prevent="onDrop(index)"
@@ -212,22 +249,35 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
       >
         <UIcon name="i-ph-dots-six-vertical" class="size-4" />
       </button>
-      <Component
-        :is="cellComponent(column)"
-        v-for="column in props.columns"
-        :id="cellName(index, column.id)"
-        :key="column.id"
-        :model-value="row[column.id]"
-        size="sm"
-        class="w-full min-w-0"
-        :disabled="props.disabled"
-        :aria-label="column.label"
-        :aria-invalid="isCellInvalid(index, column.id) || undefined"
-        :color="isCellInvalid(index, column.id) ? 'error' : undefined"
-        :highlight="isCellInvalid(index, column.id) || undefined"
-        v-bind="column.component.options || {}"
-        @update:model-value="setCell(index, column.id, $event)"
-      />
+      <div :class="STACKED_ROW_CLASSES.cells">
+        <div
+          v-for="column in props.columns"
+          :key="column.id"
+          :class="STACKED_ROW_CLASSES.cell"
+        >
+          <span
+            v-if="column.label"
+            :class="STACKED_ROW_CLASSES.label"
+            aria-hidden="true"
+          >
+            {{ column.label }}
+          </span>
+          <Component
+            :is="cellComponent(column)"
+            :id="cellName(index, column.id)"
+            :model-value="row[column.id]"
+            size="sm"
+            class="w-full min-w-0"
+            :disabled="props.disabled"
+            :aria-label="column.label"
+            :aria-invalid="isCellInvalid(index, column.id) || undefined"
+            :color="isCellInvalid(index, column.id) ? 'error' : undefined"
+            :highlight="isCellInvalid(index, column.id) || undefined"
+            v-bind="column.component.options || {}"
+            @update:model-value="setCell(index, column.id, $event)"
+          />
+        </div>
+      </div>
       <UButton
         icon="i-ph-x"
         color="neutral"

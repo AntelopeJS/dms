@@ -93,3 +93,26 @@ it("words the count with missedLabel and adds the paused page's breakdown", asyn
   expect(detail?.textContent?.trim()).toBe("api.live.in_5xx:2");
   expect(detail?.classList.contains("text-error")).toBe(true);
 });
+
+it("draws a pill over the rows when floating, in place of the strip", async () => {
+  const onShow = vi.fn();
+  const host = await mountBanner({ count: 6, floating: true, onShow });
+  const pill = host.querySelector(".dms-live-hold-banner")!;
+
+  expect(pill.className).toContain("rounded-full");
+  expect(pill.className).not.toContain("border-b");
+  expect(host.textContent).toContain("dms.live.new_rows:6");
+  host.querySelector("button")?.click();
+  expect(onShow).toHaveBeenCalledTimes(1);
+});
+
+it("draws the pill opaque and lifted, announced, its Show a real button", async () => {
+  const host = await mountBanner({ count: 4, floating: true });
+  const pill = host.querySelector(".dms-live-hold-banner")!;
+
+  expect(pill.getAttribute("role")).toBe("status");
+  expect(pill.getAttribute("aria-live")).toBe("polite");
+  expect(pill.className).toContain("bg-(--ui-bg)");
+  expect(pill.className).toContain("shadow-(--dms-shadow-pop)");
+  expect(pill.querySelector("button")?.tagName).toBe("BUTTON");
+});

@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata; a `GridRow` inside a cell, e.g. in a `Section`, spreads its own children rather than the grid's columns), `HStack` / `VStack` / `Spacer`, `PageToolbar` (`pageToolbar()`), `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
@@ -38,7 +38,8 @@ gets `navigation` (J / K, `index` / `total` in the order shown) —
 A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
 (`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), a label's
 translation takes the page's route and query parameters (`"Download {locale}.json"`), and an
-`availability` reads `context.query`, asked again when the query changes — no need to build
+`availability` reads `context.query` and the route parameters in `context.params` (`:id`),
+asked again when either changes (a detail page hides "Edit" for a missing record) — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
 `packages/interface-dms/docs/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
 answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
@@ -48,13 +49,42 @@ component's client-side ones (default `0`, served first on a tie: `order: -1` pu
 "Export" before a served "Add key") — `packages/interface-dms/docs/3.base/6.layout.md#ordering-the-header`.
 
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
-points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
-`direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your
-own drawer in a `CustomComponent`.
-To read rows one after the other next to the table (a request log), use a `sidePanel`
-target instead: a non-modal panel docked on the right whose header the DMS draws (title,
-`rowTitle` naming the row from its fields, `positionLabel` "x of y", previous / next, J / K, close), `?record=` kept by default (`deepLink: false` opts out), a "not found" state on a 404 (`notFound: { title, description }`) and the table's
-`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+points at an `ActionTarget`. A detail or record panel (an inspector, a request, a run) is a
+`drawer` target — never a `sidePanel`, and never your own drawer hosted in a
+`CustomComponent`. It opens from the bottom; `direction: "right"` makes it a side sheet,
+600px wide from `lg` (`size: "3xl"` opens it at a modal's width instead), which the user
+resizes by its inner edge and which opens again at that size. On a row it takes the side
+panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
+fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
+with previous / next next to close; J / K step in place, through every row the table lists
+(the position counts them all, a step past the page loaded turns the page, a step goes to
+the open row's neighbour by id so live rows never make it skip or revisit one, and a
+deep-linked row past the page loaded is located in the table's result, in the order
+the table shows, pinned rows leading their own page); `deepLink:
+true` on the target keeps
+`?record=`; `notFound: { title, description }` draws the 404 state — with the table's
+`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
+page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+`docs/04.components/08.tables/8.row-drawers.md#detail-drawers`.
+A drawer a module opens itself through `useDrawer()` keeps the size the user gives it under
+its `sizeKey`, by default its `containerId`, else its component's name — pass `sizeKey` only
+when one component opens drawers that must not share a size, or when the component is
+anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`. On a row of a list the module draws
+itself, `rowHeader: { title, positionLabel, navigation }` draws the DMS's row header (position,
+previous / next, J and K; `titleClass`, `titleBreakAfter`, `subtitle`, `subtitleClass` and
+`component` / `componentOptions` under the position line shape it — never a header component of
+the module's own); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
+import the layer's `RowHeader` component —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
+A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
+fills it and ends with `<DmsContainerFooter>` for its buttons — never measure the drawer nor use
+`--dms-form-foot-*`; a code editor taking the height left (`DmsInputCode fill`, in a stacked
+`DmsFieldRow fill`) — never count its lines from the drawer's size —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
+A `useDrawer()` body injects what the component calling `useDrawer()` (in its setup) provides —
+never pass a context as a prop to provide it again in the body.
+A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
+page-independent panels such as an assistant dock —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
 target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
@@ -76,9 +106,15 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)` makes the page's data blocks
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
-  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
-- `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each
-  `PublishMessage`.
+  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`). Its selected
+  comparison drives the cards: `KpiCard` names it ("vs previous year", leave `compareLabel`
+  unset) and prints the route's `previousValue`; "No comparison" hides the change, the value
+  compared against and the label on `KpiCard`, `ChartCard` and `TopListCard`.
+- `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
+  `PublishMessage`. Publish tenant data with the tenant id (`{ tenantId }`): without it the message
+  is global and refetches the page in every workspace. A `TableView` needs no option: the DMS
+  publishes to every tenant for a table of the shared schema, and a platform (module) page receives
+  every tenant's changes.
 
 ### Live pages
 
@@ -86,7 +122,24 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   options (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"`
   to share the choice; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
-- `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
+- A page with a period or live data starts with `pageToolbar({ leading, live, period })`
+  (`base/page-toolbar`): the same bar on every page — leading blocks, then "Updated N s ago",
+  Live / Pause, the window and the 1H / 24H / 7D / 30D presets, at one `size` and one height
+  (24 / 28 / 32 px, with live or not). `live: false` or `period: false` drops a control; without
+  `live` it shows the last read and a refresh button. A module's leading chip takes the toolbar's
+  height from `usePageToolbarSize().heightClass`. More than one comparison offered
+  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a menu naming the compared window ("vs 16 – 17 Oct ▾", the range label then
+  without its "vs …"); a single one
+  stays on without a control. A `custom` preset shows as a calendar icon, named in full.
+  `live` / `period` also take `childId` (keep an id roles already grant, `live` / `period` by
+  default) and `meta` (roles-editor name), so a page never builds the toolbar by hand for that;
+  `transformOptions` changes a child's options at each registration (a setting read in
+  `construct()`) — never patch the toolbar's children afterwards;
+  an editor reads the default children from the block type's `initialChildren`.
+  A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
+  of its own: neither needs a `componentId` or `pageId` there.
+- `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
+  rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
   publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
@@ -94,7 +147,18 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `setMissedDetail()`); one that reads its own data on a topic calls
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
-  held while paused.
+  held while paused. A table view's write (row/bulk action, its form saved) already
+  calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
+- Making a block live: a built-in data block names a `realtimeTopic` (its builder registers the
+  topic on the page) and the backend calls `PublishMessage`; a table view follows its controller's
+  row events by itself. A block without a topic reads only on `refreshLivePageBlocks()`, the
+  polling while the stream is down and `refreshPageBlocks()` — no timer while the stream is up. A
+  custom component's own topic needs `RegisterPageTopic(pageId, topic)` in the backend.
+- Pause (user, hold, hidden tab) freezes every block of the page at once: realtime events, row
+  events, page-topic events behind `useApiData`, `refreshLivePageBlocks()`, `idleRefresh`, the
+  stream-down polling and a component's `useApiData` `refreshInterval`. Each block that missed
+  something reads once on resume. User actions and inputs (period, filter, search, sort, page)
+  still read; notifications, presence and the menu are not the page and keep updating.
 
 ### Texts
 
@@ -103,6 +167,13 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A layout banner (`RegisterLayoutBanner`) shows on the application's pages only by default, never
+  inside `/modules` (modules page, module store, module pages). Give `scope:
+  LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
+  maintenance) that must follow the user into modules; leave the default for anything about the
+  application's own data.
+- A route that must word a text reads the request's `x-content-language` header (the language on
+  screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
   `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`) or
   `null` for no banner.
@@ -110,13 +181,20 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Blocks
 
 - `StatGroup` details and `NavCardGrid` card titles take up to two lines before their ellipsis.
+- `StatGroup({ columnsFrom: "md" })` (`DmsStatGroup columns-from`) sets all `columns` side by side from
+  that group width — never a class forcing the group's grid (`[&>div]:grid-cols-*`).
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).
+- A fetched list block draws `skeletonCount` placeholders until its first answer in a client
+  navigation (a server render waits for the data): set it to the usual number of items so the page
+  does not move when they land. A refresh keeps the items on screen until the new ones land.
 - `TopListCard({ actions })` puts link buttons in its head; `Tab({ fit: true })` keeps pill tabs to
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
   chart's `legendPosition`) — never a raw Apex `legend` in `rawOptions`.
+- A chart route sends series names, categories (`x`) and point labels as `$` keys, bare chart or
+  `ChartCard` alike: the browser translates them, so donut slices are `{ x: "$app.plan.pro", y }`.
 
 ### Tables
 
@@ -128,13 +206,42 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- Conditional fields on a `TableView`'s generated forms go in `forms: { new?, edit?, view? }`, each a
+  callback receiving the form's builder: `new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)` —
+  they run in a drawer, a modal or a form page alike; no custom page just to add a watch.
+- A table of more than a few columns that phones will read offers the cards and opens them there:
+  `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
+  saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
+  still opens phones on the cards.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
+- A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
+  default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A `cards` display whose `card.component` is taller than the built-in card sets
+  `card.skeletonHeight` to its height (a CSS length): the loading placeholder takes it, so the
+  pagination footer does not drop when the cards land.
+- A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
+  rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
 ### Forms
 
-- A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
+- A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
+  cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
+- A relation picker depending on another field of the form takes `filterBy: { field, from }`:
+  `RelationType({ dataApiController: SiteController, filterBy: { field: "customer", from: "customer" } })`
+  lists only the picked customer's sites, searches again when it changes and clears a pick made for
+  the previous one — no custom picker. `field` must be filterable on the related controller (it
+  throws at registration otherwise) — `docs/04.components/10.data-types.md`.
+- A field whose value follows another one (stage → probability) takes a watch running
+  `FormFunctions.SET_FIELD_VALUE` with `{ targetField, valueMap: { won: 100, lost: 0 } }` (or a fixed
+  `value`) on `FIELD_CHANGE` keyed on the source `fieldId` — never a custom component. It writes on a
+  change only, never over the values a record opens with; a rule that must hold stays in the write
+  route — `docs/04.components/07.forms/0.index.md#setting-a-value-from-another-field`.
+- A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
+  `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
+  `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
+  full row.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with
@@ -145,7 +252,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Custom components
 
 - Name the record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`. A hidden detail page next to its
+  list (`project/:id` beside `projects`) declares `parent: ProjectsPage` in its menu options so
+  the breadcrumb shows the list before the record — `docs/02.building/04.navigation.md`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.

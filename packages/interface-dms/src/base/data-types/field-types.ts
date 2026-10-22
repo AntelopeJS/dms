@@ -56,9 +56,10 @@ export type SecretTypeOptions = {
   copyable?: boolean;
   /**
    * POSTed after a confirmation, answering `{ value }`: "Rotate…" replaces
-   * the secret with a new one. Takes the page URL tokens (`{{params.X}}`,
-   * `{{query.X}}`), so an edit form names its record; nothing is offered
-   * while one has no value.
+   * the secret with a new one, which the route stores itself, so the form
+   * does not read it as a change to save. Takes the page URL tokens
+   * (`{{params.X}}`, `{{query.X}}`), so an edit form names its record;
+   * nothing is offered while one has no value.
    */
   rotateUrl?: string;
   placeholder?: string;
@@ -275,17 +276,32 @@ export class CodeType extends DataType {
 
 /**
  * A list of short texts typed as tags: a pill per item, duplicates ignored.
- * With `itemType: "email"`, an item that is no address is refused.
+ * With `itemType: "email"`, an item that is no address is refused. A filter
+ * keeps the rows holding a tag (`array_contains_string`, the text typed
+ * matched inside each tag, case aside), or with none or some.
  */
 @RegisterDataType("tags")
 export class TagsType extends DataType {
   constructor(public readonly options: TagsTypeOptions = {}) {
-    super(PRESENCE_COMPARE_MODES, undefined, { ...options });
+    super(
+      [DefaultDataCompareTypes.ArrayContainsString, ...PRESENCE_COMPARE_MODES],
+      DefaultDataCompareTypes.ArrayContainsString,
+      { ...options },
+    );
   }
 
   protected defaultInputComponent() {
     const { fallback: _fallback, ...options } = this.options;
     return FormComponents.InputTags(options);
+  }
+
+  // A filter keeps the rows holding a tag, typed in: one text, not a list.
+  override filterComponents() {
+    return {
+      default: FormComponents.InputText({
+        placeholder: this.options.placeholder,
+      }),
+    };
   }
 
   getValidation() {

@@ -265,3 +265,29 @@ export function groupedOptionsFor(
     grouped.by && grouped.by !== "value" ? grouped.by : DEFAULT_DATE_GROUP_BY;
   return { ...grouped, groupByField: field, by };
 }
+
+/** The rows of one group, under its key. */
+export interface RowGroup<T> {
+  key: string;
+  rows: T[];
+}
+
+/**
+ * The rows filed under their group, each group once, in the order its first
+ * row comes. The list is sorted on the grouped column, but rows listed in
+ * another order — the previous sort, still shown while the grouped one loads
+ * — must not open a group twice: two headers under one key.
+ */
+export function groupRows<T>(
+  rows: readonly T[],
+  keyOf: (row: T) => string,
+): RowGroup<T>[] {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+  return [...groups].map(([key, grouped]) => ({ key, rows: grouped }));
+}

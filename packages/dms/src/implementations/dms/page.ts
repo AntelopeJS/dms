@@ -1,4 +1,3 @@
-import type { PassThrough } from "node:stream";
 import {
   Context,
   Controller,
@@ -7,7 +6,6 @@ import {
   Parameter,
   Post,
   type RequestContext,
-  WriteStream,
 } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
@@ -50,6 +48,10 @@ import {
   HasPermission,
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
+import {
+  ApplyPermissionsResolvers,
+  type PermissionsResolverContext,
+} from "@antelopejs/interface-dms/permissions-resolver";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -74,10 +76,7 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
 import { acknowledgeFrontendReady } from "./frontend-ready";
 import { assertPageSessionAccepted } from "./stale-session";
-import {
-  buildFrontendManifest,
-  writeFrontendModules,
-} from "./frontend-modules";
+import { buildFrontendManifest } from "./frontend-modules";
 import { BOOTSTRAP_HEADER } from "./frontend-bootstrap";
 import type { FrontendManifest, ManifestModuleEntry } from "./manifest";
 import {
@@ -114,11 +113,7 @@ import {
 } from "./permission-preview";
 import { runInBatches } from "../../utils/run-in-batches";
 
-export {
-  AddFrontendModule,
-  createIgnoreFilter,
-  GetFrontendModules,
-} from "./frontend-modules";
+export { AddFrontendModule, GetFrontendModules } from "./frontend-modules";
 
 type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   children: Record<string, SiteLayoutTree>;
@@ -193,6 +188,15 @@ function findEntryByFullId<T extends { fullId: string }>(
 
 function findPageByFullId(fullId: string): PageInfo | undefined {
   return findEntryByFullId(pagesBySlug, fullId);
+}
+
+/**
+ * Whether `fullId` is a platform page: a module's, owner-only, listing the
+ * data of every tenant.
+ */
+export function isPlatformPage(fullId: string): boolean {
+  const info = findPageByFullId(fullId);
+  return info !== undefined && isInsideModule(info);
 }
 
 function findNavigationEntryByFullId(
@@ -804,20 +808,6 @@ export class DMSController extends Controller("/dms") {
     );
   }
 
-  @Get("/frontend/modules")
-  async frontendModules(
-    @WriteStream("application/zip") out: PassThrough,
-    @Parameter("renderer", "query") renderer: string | undefined,
-    @Parameter("rendererVersion", "query") rendererVersion: string | undefined,
-  ) {
-    await writeFrontendModules(
-      out,
-      renderer,
-      rendererVersion,
-      this.bootstrapHeader,
-    );
-  }
-
   @Post("/frontend/ready")
   frontendReady(@JSONBody() body: unknown): void {
     acknowledgeFrontendReady(body, this.bootstrapHeader);
@@ -903,13 +893,13 @@ export class DMSController extends Controller("/dms") {
     const handler = GetPageLayoutBySlug(normalizedSlug);
     assert(handler, 404, "error.page_not_found");
 
-    return handler(
+    return handler({
       user,
       memberModel,
       roleModel,
-      getRequestTenantId(requestContext),
-      pageQueryOf(requestContext),
-    );
+      tenantId: getRequestTenantId(requestContext),
+      query: pageQueryOf(requestContext),
+    });
   }
 
   @Get("/page")
@@ -1032,6 +1022,29 @@ function matchesPagePattern(pattern: string, path: string): boolean {
   );
 }
 
+/**
+ * The route parameters `path` gives the page registered at `pattern`
+ * (`/projects/project/p1` is `{ id: "p1" }` for `/projects/project/:id`),
+ * empty when it does not match.
+ */
+export function pageParamsOf(
+  pattern: string,
+  path: string,
+): Record<string, string> {
+  if (!matchesPagePattern(pattern, path)) return {};
+  const pathSegments = path.split("/").filter(Boolean);
+  return Object.fromEntries(
+    pattern
+      .split("/")
+      .filter(Boolean)
+      .flatMap((segment, index) =>
+        segment.startsWith(":")
+          ? [[segment.slice(1), pathSegments[index]!]]
+          : [],
+      ),
+  );
+}
+
 function resolveRegisteredPageSlug(path: string): string | undefined {
   if (pagesBySlug[path]) return path;
   return Object.keys(pagesBySlug).find(
@@ -1107,13 +1120,15 @@ export async function buildPagePayload(
   const [layout, navBadges] = await Promise.all([
     // Header buttons resolve against the page URL's query, as `/pagelayout`
     // does: the layout then matches the one the browser would read again.
-    handler(
+    handler({
       user,
       memberModel,
       roleModel,
       tenantId,
-      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
-    ),
+      query:
+        requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+      params: pageParamsOf(registeredSlug, normalizedSlug),
+    }),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
@@ -1328,6 +1343,33 @@ const PREVIEW_PAGE_CONCURRENCY = 4;
 
 const PREVIEW_ROLE_ID = "dms-permission-preview";
 
+/** What the resolvers are told when they shape a previewed role's set. */
+function previewResolverContext(
+  rolePermissions: ReadonlySet<string>,
+): PermissionsResolverContext {
+  return { preview: { rolePermissions } };
+}
+
+/**
+ * The effective permissions of a member holding only `rolePermissions`, as
+ * `viewerId` previews them: the registered resolvers run over the set with
+ * the preview context, which tells them to shape it as for an ordinary
+ * member, never from the viewer's standing. Without any resolver, the set as
+ * given.
+ */
+export function resolvePreviewPermissions(
+  viewerId: string,
+  tenantId: string,
+  rolePermissions: Set<string>,
+): Promise<Set<string>> {
+  return ApplyPermissionsResolvers(
+    viewerId,
+    tenantId,
+    rolePermissions,
+    previewResolverContext(rolePermissions),
+  );
+}
+
 async function findPreviewHeaderActions(
   handler: PageLayoutHandler,
   layout: PageLayout,
@@ -1339,17 +1381,20 @@ async function findPreviewHeaderActions(
   const { memberModel, roleModel } = previewMemberModels(
     request.previewPermissions,
   );
-  // Never an owner: the previewed set is the role's, without the wildcard.
-  // The viewer stays the prototype, so everything else reads through.
+  // Never an owner: the previewed set is the role's. The layout runs the
+  // resolvers again for the viewer, told it is a preview, so a resolver
+  // shapes the role's set rather than the viewer's standing. The viewer stays
+  // the prototype, so everything else reads through.
   const previewUser: User = Object.assign(Object.create(request.user), {
     owner: false,
   });
-  const previewLayout = await handler(
-    previewUser,
+  const previewLayout = await handler({
+    user: previewUser,
     memberModel,
     roleModel,
-    request.tenantId,
-  );
+    tenantId: request.tenantId,
+    resolverContext: previewResolverContext(request.previewPermissions),
+  });
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,
     quickActions: quickActions.real,
@@ -1381,7 +1426,7 @@ function readViewerLayout(
   const known = layouts.get(route.fullId);
   if (known) return known;
   const { user, memberModel, roleModel, tenantId } = request;
-  const layout = handler(user, memberModel, roleModel, tenantId);
+  const layout = handler({ user, memberModel, roleModel, tenantId });
   layouts.set(route.fullId, layout);
   layout.catch(() => layouts.delete(route.fullId));
   return layout;

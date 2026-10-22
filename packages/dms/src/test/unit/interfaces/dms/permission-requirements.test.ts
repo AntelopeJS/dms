@@ -18,6 +18,8 @@ const PAGE = "prq-crm.contacts";
 const TABLE = `${PAGE}.table`;
 const EDIT = `${TABLE}.edit`;
 const VIEW = `${TABLE}.view`;
+const LIST = `${TABLE}.list`;
+const VIEW_ARCHIVED = `${TABLE}.viewArchived`;
 const EXPORT = `${TABLE}.export`;
 const AUDIT_PAGE = "prq-audit.log";
 const AUDIT_TABLE = `${AUDIT_PAGE}.table`;
@@ -45,11 +47,14 @@ const TABLE_CAPABILITIES = {
   hasDeleteEndpoint: true,
   archiveMode: false,
   isExportEnabled: true,
+  formsArePages: false,
 };
 
-function tableActions(hasViewForm: boolean) {
+type TableCapabilities = typeof TABLE_CAPABILITIES;
+
+function tableActions(capabilities: Partial<TableCapabilities> = {}) {
   const builder = new ComponentBuilder("prq-table");
-  registerTableViewActions(builder, { ...TABLE_CAPABILITIES, hasViewForm });
+  registerTableViewActions(builder, { ...TABLE_CAPABILITIES, ...capabilities });
   permissionMap.set(builder, TABLE);
   const permissions = Object.fromEntries(
     Object.values(builder.actions).map((action) => [
@@ -116,20 +121,59 @@ describe("[unit] interfaces/dms/internal/permission-requirements", () => {
 
 describe("[unit] interfaces/dms-base/table-view — the actions that read a row need the view", () => {
   it("declares the view as a dependency of the edit and the export", () => {
-    const permissions = tableActions(true);
+    const permissions = tableActions({ formsArePages: true });
     expect(permissions.edit?.dependencies).to.deep.equal([VIEW]);
-    expect(permissions.export?.dependencies).to.deep.equal([VIEW]);
+    expect(permissions.export?.dependencies).to.deep.equal([VIEW, LIST]);
     expect(permissions.view?.dependencies).to.equal(undefined);
   });
 
-  it("leaves the delete free, since it reads nothing", () => {
-    expect(tableActions(true).delete?.dependencies).to.equal(undefined);
+  it("leaves the delete free of the view, since it reads nothing", () => {
+    expect(tableActions().delete?.dependencies).to.deep.equal([LIST]);
   });
 
   it("declares none when the table has no view form to read the row", () => {
-    const permissions = tableActions(false);
+    const permissions = tableActions({
+      hasViewForm: false,
+      formsArePages: true,
+    });
     expect(permissions.edit?.dependencies).to.equal(undefined);
-    expect(permissions.export?.dependencies).to.equal(undefined);
+    expect(permissions.export?.dependencies).to.deep.equal([LIST]);
     expect(permissions).to.not.have.property("view");
+  });
+});
+
+describe("[unit] interfaces/dms-base/table-view — the actions reached from the rows need the list", () => {
+  it("makes every action of a table whose forms open over it depend on its list", () => {
+    const permissions = tableActions({ archiveMode: true });
+    expect(permissions.add?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.edit?.dependencies).to.deep.equal([VIEW, LIST]);
+    expect(permissions.view?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.delete?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.archive?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.viewArchived?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.export?.dependencies).to.deep.equal([VIEW, LIST]);
+  });
+
+  it("makes restore depend on the archived view it is pressed from", () => {
+    expect(
+      tableActions({ archiveMode: true }).restore?.dependencies,
+    ).to.deep.equal([VIEW_ARCHIVED]);
+  });
+
+  it("leaves the forms opening as their own page reachable without the list", () => {
+    const permissions = tableActions({ formsArePages: true });
+    expect(permissions.add?.dependencies).to.equal(undefined);
+    expect(permissions.edit?.dependencies).to.deep.equal([VIEW]);
+    expect(permissions.view?.dependencies).to.equal(undefined);
+    // Pressed from the rows whatever the forms do.
+    expect(permissions.delete?.dependencies).to.deep.equal([LIST]);
+    expect(permissions.export?.dependencies).to.deep.equal([VIEW, LIST]);
+  });
+
+  it("keeps select, which relation pickers of other pages use, independent", () => {
+    const { select, list } = tableActions();
+    expect(select?.dependencies).to.equal(undefined);
+    expect(select?.defaultGranted).to.equal(true);
+    expect(list?.dependencies).to.equal(undefined);
   });
 });

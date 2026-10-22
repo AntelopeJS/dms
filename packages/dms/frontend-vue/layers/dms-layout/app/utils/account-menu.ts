@@ -5,6 +5,8 @@ export interface AccountMenuEntry {
 }
 
 export const PROFILE_ROUTE = "/settings/user/profile";
+// The account menu is the only way to the settings: the sidebar footer has no
+// Settings entry, so this one opens all of them, not just the user's own.
 export const SETTINGS_ROUTE = "/settings";
 export const SWITCH_ACCOUNT_ROUTE = "/auth/accounts";
 
@@ -26,3 +28,12 @@ export const ACCOUNT_MENU_ENTRIES: AccountMenuEntry[] = [
     to: SWITCH_ACCOUNT_ROUTE,
   },
 ];
+
+/**
+ * Whether `to` is the destination of an account menu entry. The command
+ * palette lists those entries in its session group, so its navigation group
+ * skips their pages instead of offering the same destination twice.
+ */
+export function isAccountMenuRoute(to: string): boolean {
+  return ACCOUNT_MENU_ENTRIES.some((entry) => entry.to === to);
+}

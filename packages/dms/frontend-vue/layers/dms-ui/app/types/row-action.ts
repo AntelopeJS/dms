@@ -24,8 +24,6 @@ export interface CustomRowAction {
   rule?: RowActionRule;
   /** Inline button instead of a menu entry (the backend serializes `isVisible`). */
   isVisible?: boolean;
-  /** Legacy spelling of `isVisible`, still honoured. */
-  visible?: boolean;
   /**
    * Preferred row-click target when its rule accepts the row: a double-click,
    * or a single click on a table with `rowClick: "single"`.

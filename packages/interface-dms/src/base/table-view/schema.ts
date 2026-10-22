@@ -11,7 +11,7 @@ import { toneEnum } from "../internal/display";
 import { TONES } from "../types/tone";
 import type { CustomButton } from "../types/custom-button";
 import type { TableViewGuards } from "../types/guards";
-import type { CustomRowAction, RowActionRule } from "../types/row-action";
+import type { RowActionRule } from "../types/row-action";
 import type { ModalSize } from "../types/size";
 import {
   DEFAULT_ROW_ID_FIELD,
@@ -26,84 +26,12 @@ import {
   type TableViewExpandableOptions,
   type TableViewQuickFilter,
   type TableViewOptions,
-  type TableViewRowActionOptions,
   type TableViewTab,
 } from "./options";
 import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import { rowActionsSchema } from "./internal/row-actions-schema";
 
 const DEFAULT_KANBAN_COLUMN_MAX_HEIGHT = "60vh";
-
-const rowActionConfigSchema = z.object({
-  isEnabled: z.boolean().optional(),
-  isVisible: z.boolean().optional(),
-  rule: ui(opaqueOption<RowActionRule>().optional(), {
-    label: "Rule",
-    widget: "json",
-  }),
-});
-
-interface RowActionDefaults {
-  /**
-   * Whether the table offers the action when nothing turns it off, to whoever
-   * holds its permission. The factory reads an absent action as on, and says so
-   * here so an editor's switch does not show a feature the table has as off.
-   */
-  offered?: boolean;
-  /** When the action is offered at all, for one that depends on another. */
-  note?: string;
-}
-
-const rowActionOption = (
-  label: string,
-  order: number,
-  { offered = true, note }: RowActionDefaults = {},
-) => {
-  const action = z.union([z.boolean(), rowActionConfigSchema]);
-  const described = note ? action.describe(note) : action;
-  return ui(offered ? described.default(true) : described.optional(), {
-    label,
-    order,
-    group: "features",
-    widget: "switch",
-  });
-};
-
-const rowActionsSchema = z.object({
-  add: rowActionOption("Adding data", 1),
-  edit: rowActionOption("Editing data", 2),
-  delete: rowActionOption("Deleting data", 3),
-  // Turned off whenever editing is on without a rule: editing opens the row
-  // already, so the factory drops the second way in.
-  details: rowActionOption("View details", 6, {
-    offered: false,
-    note: "Offered while editing is off: editing already opens the row.",
-  }),
-  duplicate: rowActionOption("Duplicate", 7),
-  archive: rowActionOption("Archive", 8, {
-    note: "Offered while ghost delete is on.",
-  }),
-  restore: rowActionOption("Restore", 9, {
-    note: "Offered while ghost delete is on.",
-  }),
-  copyLink: rowActionOption("Copy link", 10),
-  hasSelection: ui(z.boolean().optional(), {
-    label: "Row selection",
-    order: 11,
-    group: "features",
-    widget: "switch",
-  }),
-  custom: ui(opaqueOption<CustomRowAction[]>().optional(), {
-    label: "Custom actions",
-    hidden: true,
-  }),
-  menuLabel: ui(
-    z
-      .string()
-      .optional()
-      .describe("Accessible name of a row's ⋯ menu, e.g. Actions for {name}."),
-    { label: "Row menu label", order: 12, group: "features", advanced: true },
-  ),
-}) satisfies BlockOptionsFor<TableViewRowActionOptions>;
 
 const tabFilterSchema = z.object({
   accessorKey: ui(z.string(), {
@@ -309,6 +237,10 @@ const expandableSchema = z.union([
   }),
 ]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
+/** An option naming one of the displays offered. */
+const displayIdOption = (label: string) =>
+  ui(z.string().optional(), { label, group: "advanced" });
+
 /** The options `TableView` accepts, after its controller argument. */
 export const TableViewSchema = z.object({
   caption: ui(z.string().optional().describe("Heading above the table."), {
@@ -432,6 +364,15 @@ export const TableViewSchema = z.object({
       ),
     { label: "Ghost delete", order: 4, group: "features", widget: "switch" },
   ),
+  archivedCountLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        'Count shown while the archive is listed, with {count} ("13 archived invoices").',
+      ),
+    { label: "Archived count", group: "content" },
+  ),
   defaultFilters: ui(z.array(tabFilterSchema).optional(), {
     label: "Default filters",
     group: "advanced",
@@ -498,7 +439,7 @@ export const TableViewSchema = z.object({
       ])
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also holds them in Direct, `missedLabel` words the new rows.",
+        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
       ),
     {
       label: "Hold rows while paused",
@@ -516,10 +457,8 @@ export const TableViewSchema = z.object({
     label: "Displays",
     group: "advanced",
   }),
-  defaultDisplay: ui(z.string().optional(), {
-    label: "Default display",
-    group: "advanced",
-  }),
+  defaultDisplay: displayIdOption("Default display"),
+  mobileDisplay: displayIdOption("Display on phones"),
   guards: ui(opaqueOption<TableViewGuards>().optional(), {
     label: "Guards",
     hidden: true,

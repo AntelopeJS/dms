@@ -28,9 +28,13 @@ export interface FormField {
   disabled?: boolean;
   /** Shown, not edited: `true`, or with a pill and a link. */
   readonly?: boolean | FormFieldReadonly;
+  /** A create form shows it read-only and empty, rather than leaving it out. */
+  showEmptyOnCreate?: boolean;
   required?: boolean;
   type?: string;
   defaultValue?: FormFieldValue;
+  /** "Module default · Use default" while it holds something else. */
+  offersDefault?: boolean;
   localized?: boolean;
 }
 

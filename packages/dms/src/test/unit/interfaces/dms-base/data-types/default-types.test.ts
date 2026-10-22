@@ -273,6 +273,29 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(filtering.defaultCompareMode).to.equal(DefaultDataCompareTypes.Is);
     });
 
+    it("filters a multiple relation on whether its ids include the picked one", () => {
+      const crew = new DefaultDataTypes.RelationType({
+        dataApiController: UnregisteredController as never,
+        keyMapping: { label: "name", value: "_id" },
+        multiple: true,
+      });
+      expect(crew.compareModes).to.deep.equal([
+        DefaultDataCompareTypes.Include,
+        DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.IsEmpty,
+        DefaultDataCompareTypes.IsNotEmpty,
+      ]);
+      expect(crew.defaultCompareMode).to.equal(DefaultDataCompareTypes.Include);
+
+      const tree = new DefaultDataTypes.CascaderRelationType({
+        dataApiController: UnregisteredController as never,
+        keyMapping: { label: "name", value: "_id", parent: "parentId" },
+        multiple: true,
+      });
+      expect(tree.compareModes).to.include(DefaultDataCompareTypes.Include);
+      expect(tree.compareModes).to.not.include(DefaultDataCompareTypes.Is);
+    });
+
     it("skips the Foreign join when filterOnly is set (raw scalar stays in /list)", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
@@ -307,6 +330,37 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(() =>
         rel.decorateField(Target.prototype, "procedureId", {}),
       ).to.throw();
+    });
+  });
+
+  describe("RelationType filterBy", () => {
+    class SiteController {}
+    GetMetadata(SiteController, DataAPIMeta).filters.customer = () => true;
+
+    it("accepts a filterBy field the related controller can filter on", () => {
+      class Target {}
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController as never,
+        filterBy: { field: "customer" as never, from: "customer" },
+        filterOnly: true,
+      });
+
+      expect(() =>
+        rel.decorateField(Target.prototype, "site", {}),
+      ).to.not.throw();
+    });
+
+    it("refuses a filterBy field the search route would drop", () => {
+      class Target {}
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController as never,
+        filterBy: { field: "region" as never, from: "region" },
+        filterOnly: true,
+      });
+
+      expect(() => rel.decorateField(Target.prototype, "site", {})).to.throw(
+        /filterBy\.field "region" is not filterable on SiteController/,
+      );
     });
   });
 
