@@ -54,6 +54,7 @@ export {
   LayoutBannerComponentInfo,
   LayoutBannerContext,
   LayoutBannerInfo,
+  LayoutBannerScope,
   LayoutBannerTextInfo,
   LayoutBannerVariant,
   LayoutBannerVisibility,
@@ -68,8 +69,11 @@ export {
   DynamicMenuItem,
   DynamicMenuProviderInfo,
   DynamicMenuResolver,
+  FrontendModuleContext,
+  FrontendModuleFunction,
   FrontendModuleMetadata,
   FrontendModuleOptions,
+  FrontendModuleRegistration,
   FrontendModuleValue,
   FrontendRendererMetadata,
   GetComponentPermissionIds,
@@ -97,6 +101,7 @@ export {
   PageInfo,
   PageLayout,
   PageLayoutHandler,
+  PageLayoutRequest,
   PageMetadata,
   PageSetupCleanup,
   PageSetupContext,
@@ -131,8 +136,10 @@ export {
 } from "./permissions";
 export {
   ApplyPermissionsResolvers,
+  PermissionsResolverContext,
   PermissionsResolverFn,
   PermissionsResolverInfo,
+  PermissionsResolverPreview,
   RegisterPermissionsResolver,
 } from "./permissions-resolver";
 export {

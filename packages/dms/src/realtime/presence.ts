@@ -1,5 +1,11 @@
 import { runInBatches } from "../utils/run-in-batches";
-import type { KvStore, RealtimeBroker, RealtimeEvent } from "./broker";
+import {
+  isEventForTenant,
+  type KvStore,
+  type RealtimeBroker,
+  type RealtimeEvent,
+  type TenantView,
+} from "./broker";
 
 export const PRESENCE_EVENT_TYPE = {
   ACQUIRED: "acquired",
@@ -17,10 +23,21 @@ export interface PresenceActor {
   avatarUrl?: string;
 }
 
+/** Who holds a row: the actor, and the tenant the row was opened in. */
+export interface PresenceHolder {
+  actor: PresenceActor;
+  /**
+   * Scopes the entry and its events to the sessions of this tenant; absent,
+   * they reach every session on the topic.
+   */
+  tenantId?: string;
+}
+
 export interface PresenceEntry {
   topic: string;
   rowId: string;
   actor: PresenceActor;
+  tenantId?: string;
   sessionId: string;
   instanceId: string;
   since: number;
@@ -54,6 +71,7 @@ const presenceEvent = (
     since: entry.since,
   },
   actorId: entry.actor.id,
+  tenantId: entry.tenantId,
   ts: Date.now(),
 });
 
@@ -89,7 +107,7 @@ export class PresenceTracker {
     sessionId: string,
     topic: string,
     rowId: string,
-    actor: PresenceActor,
+    { actor, tenantId }: PresenceHolder,
   ): Promise<void> {
     const key = buildKey(topic, rowId, sessionId);
     if (this.entries.has(key)) return;
@@ -98,6 +116,7 @@ export class PresenceTracker {
       topic,
       rowId,
       actor,
+      tenantId,
       sessionId,
       instanceId: this.localInstanceId,
       since: Date.now(),
@@ -225,11 +244,20 @@ export class PresenceTracker {
     return remoteEntries;
   }
 
-  async snapshotForTopic(topic: string): Promise<PresenceEntry[]> {
+  /**
+   * The entries held on `topic` that a session viewing `view` may see: those
+   * of its tenant and those scoped to none, or all of them.
+   */
+  async snapshotForTopic(
+    topic: string,
+    view?: TenantView,
+  ): Promise<PresenceEntry[]> {
+    const isVisible = (entry: PresenceEntry): boolean =>
+      isEventForTenant(entry, view);
     if (!this.kv) {
       const result: PresenceEntry[] = [];
       for (const entry of this.entries.values()) {
-        if (entry.topic === topic) result.push(entry);
+        if (entry.topic === topic && isVisible(entry)) result.push(entry);
       }
       return result;
     }
@@ -237,7 +265,7 @@ export class PresenceTracker {
     const result: PresenceEntry[] = [];
     for (const value of Object.values(raw)) {
       const parsed = parsePresenceEntry(value);
-      if (parsed) result.push(parsed);
+      if (parsed && isVisible(parsed)) result.push(parsed);
     }
     return result;
   }

@@ -1,7 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
-import type { PassThrough } from "node:stream";
-import { buffer } from "node:stream/consumers";
+import { readFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative } from "node:path";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
@@ -13,8 +11,7 @@ import type {
   FrontendModuleOptions,
   FrontendModuleValue,
 } from "@antelopejs/interface-dms/page";
-import archiver from "archiver";
-import ignore from "ignore";
+import { FrontendModulesChanged } from "@antelopejs/interface-dms/page";
 import { coerce, major } from "semver";
 import { getConfig, setDevApiBaseUrl, setDevClientBaseUrl } from "../../config";
 import { scheduleBroadcast } from "./dev-reload";
@@ -27,6 +24,7 @@ import {
 } from "./frontend-bootstrap";
 import {
   applyDevManifestUrls,
+  FRONTEND_MANIFEST_VERSION,
   type FrontendManifest,
   type ManifestFieldPolicy,
   type ManifestModuleEntry,
@@ -49,7 +47,6 @@ import {
 
 interface FrontendModule {
   name: string;
-  archiveName: string;
   path: string;
   priority: number;
   options?: FrontendModuleOptions;
@@ -59,6 +56,8 @@ interface FrontendModule {
   authEstablishEndpoints: string[];
   publicEndpoints: Required<FrontendPublicEndpoint>[];
   backendProxies: Required<FrontendBackendProxy>[];
+  /** Version of the package shipping it, `undefined` when unreadable. */
+  packageVersion?: string;
 }
 
 interface FrontendSelection {
@@ -77,41 +76,6 @@ type ServedModule = Omit<
   backendProxies?: Required<FrontendBackendProxy>[];
 };
 
-const BUILD_ARTIFACT_PATTERNS = [
-  "node_modules/",
-  "dist/",
-  ".output/",
-  ".next/",
-  "*.log",
-  ".DS_Store",
-  "tsconfig.json",
-  "tsconfig.*.json",
-];
-const SECRET_BEARING_PATTERNS = [
-  ".git/",
-  ".env*",
-  "*.pem",
-  "*.key",
-  "*.crt",
-  "*.cer",
-  "*.der",
-  "*.p12",
-  "*.pfx",
-  "*.jks",
-  "*.keystore",
-  "id_rsa",
-  "id_dsa",
-  "id_ecdsa",
-  "id_ed25519",
-  "*.ppk",
-  "credentials*.json",
-  "secrets*",
-  "*.secret",
-  "*.secrets",
-  ".npmrc",
-  ".netrc",
-  ".pgpass",
-];
 /**
  * Absolute backend API paths only: no scheme, no authority, no query string,
  * and no segment that could climb out of `/api/`. Kept character-for-character
@@ -125,21 +89,7 @@ const DEFAULT_RENDERER = "vue";
 const DEFAULT_RENDERER_VERSION = "3";
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
-const cachedModulesArchives = new Map<string, Promise<Buffer>>();
 const modules: Record<string, FrontendModule> = {};
-
-export function createIgnoreFilter(modulePath: string) {
-  const filter = ignore();
-  const gitignorePath = join(modulePath, ".gitignore");
-  if (existsSync(gitignorePath)) {
-    filter.add(readFileSync(gitignorePath, "utf-8"));
-  }
-  filter.add([...BUILD_ARTIFACT_PATTERNS, ...SECRET_BEARING_PATTERNS]);
-  return (entryData: any) => {
-    if (filter.ignores(entryData.name)) return false;
-    return entryData;
-  };
-}
 
 function rendererMajor(version: string): number | null {
   const parsedVersion = coerce(version);
@@ -203,26 +153,6 @@ function selectedModules(selection: FrontendSelection): FrontendModule[] {
   return compatibleModules;
 }
 
-function selectionKey(selection: FrontendSelection): string {
-  return `${selection.renderer}:${selection.rendererMajor}`;
-}
-
-async function createModuleArchive(
-  selection: FrontendSelection,
-): Promise<void> {
-  const archive = archiver("zip");
-  for (const module of selectedModules(selection)) {
-    archive.directory(
-      module.path,
-      module.archiveName,
-      createIgnoreFilter(module.path),
-    );
-  }
-  const bufferPromise = buffer(archive);
-  await archive.finalize();
-  cachedModulesArchives.set(selectionKey(selection), bufferPromise);
-}
-
 /**
  * The session-opening endpoints a module declares, checked and de-duplicated.
  *
@@ -257,7 +187,6 @@ function resolveAuthEstablishEndpoints(
 }
 
 export function AddFrontendModule(config: AddFrontendModuleOptions): void {
-  cachedModulesArchives.clear();
   const identity = moduleIdentity(config);
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
   const publicEndpoints = resolvePublicEndpoints(config);
@@ -268,7 +197,6 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   }
   modules[identity] = {
     name: config.name,
-    archiveName: config.name.replaceAll(/[/]/g, "-"),
     path: config.sourcePath,
     priority: config.priority ?? 0,
     options: config.options || {},
@@ -278,8 +206,36 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     authEstablishEndpoints,
     publicEndpoints,
     backendProxies,
+    packageVersion: shippingPackageVersion(config.sourcePath),
   };
   scheduleBroadcast();
+  FrontendModulesChanged.emit();
+}
+
+/**
+ * The version of the package a frontend module ships in, read from the
+ * package.json above its source directory, as `@antelopejs/dms-frontend`
+ * reads it when it reports what it serves.
+ */
+function shippingPackageVersion(sourcePath: string): string | undefined {
+  try {
+    const manifest = JSON.parse(
+      readFileSync(join(dirname(sourcePath), "package.json"), "utf-8"),
+    ) as { version?: unknown };
+    return typeof manifest.version === "string" ? manifest.version : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The package version of each registered frontend module, by name. */
+export function frontendModuleVersions(): Map<string, string | undefined> {
+  return new Map(
+    Object.values(modules).map((module) => [
+      module.name,
+      module.packageVersion,
+    ]),
+  );
 }
 
 function isInsideFolder(candidate: string, folder: string): boolean {
@@ -310,8 +266,8 @@ export function removeFrontendModulesUnder(folder: string): string[] {
     delete modules[identity];
   }
   if (removed.length > 0) {
-    cachedModulesArchives.clear();
     scheduleBroadcast();
+    FrontendModulesChanged.emit();
   }
   return removed.map(([, module]) => module.name);
 }
@@ -415,12 +371,7 @@ export async function buildFrontendManifest(
   const selection = resolveFrontendSelection(renderer, rendererVersion);
   const { dev } = await GetRuntimeInfo();
   let shaped: ModuleManifestShape<ServedModule> = stripPrivateManifestFields(
-    {
-      pack:
-        `/dms/frontend/modules?renderer=${encodeURIComponent(selection.renderer)}` +
-        `&rendererVersion=${encodeURIComponent(selection.rendererVersion)}`,
-      modules: selectedModules(selection),
-    },
+    { modules: selectedModules(selection) },
     resolveManifestFieldPolicy(outcome, dev),
   );
   if (dev) {
@@ -432,30 +383,8 @@ export async function buildFrontendManifest(
     );
   }
   return {
-    version: 1,
-    archive: shaped.pack,
+    version: FRONTEND_MANIFEST_VERSION,
     modules: shaped.modules,
     settling: isStoreOperationRunning(),
   };
-}
-
-export async function writeFrontendModules(
-  out: PassThrough,
-  renderer: string | undefined,
-  rendererVersion: string | undefined,
-  bootstrapHeader: string | undefined,
-): Promise<void> {
-  enforceLayerAccess(
-    resolveBootstrapOutcome(bootstrapHeader),
-    "GET /dms/frontend/modules",
-  );
-  const selection = resolveFrontendSelection(renderer, rendererVersion);
-  const key = selectionKey(selection);
-  if (
-    !cachedModulesArchives.has(key) ||
-    process.env.NODE_ENV !== "production"
-  ) {
-    await createModuleArchive(selection);
-  }
-  out.end(await cachedModulesArchives.get(key));
 }

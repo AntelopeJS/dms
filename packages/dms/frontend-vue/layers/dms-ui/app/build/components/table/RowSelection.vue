@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { isActionEnabled } from "#dms-core/app/utils/row-action-rule-evaluator";
 import type { RowSelectionState } from "@tanstack/vue-table";
 import type { TableRowActionOptions, Data } from "./Table.vue";
@@ -142,7 +143,7 @@ const exportShown = () => {
 };
 
 const formattedTotal = computed(() =>
-  new Intl.NumberFormat(locale.value).format(matchingTotal.value),
+  readableNumberFormat(locale.value).format(matchingTotal.value),
 );
 
 const uiTableRowSelectionVariant = tv({

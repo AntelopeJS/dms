@@ -12,6 +12,8 @@ const SETTINGS = "/blocks/blocks-settings";
 const CODE = "/blocks/blocks-code";
 const GUARD = "/blocks/blocks-guard";
 const LIVE = "/blocks/blocks-live";
+const PAGE_TOOLBAR = "/blocks/blocks-page-toolbar";
+const PAGE_TOOLBAR_REPORT = "/blocks/blocks-page-toolbar-report";
 const RECORD = "/blocks/blocks-record";
 const CATALOG = "/blocks/blocks-catalog";
 const CHART_DASHBOARD = "/charts/chart-dashboard";
@@ -1262,6 +1264,24 @@ const LIVE_FEATURES: PlaygroundFeature[] = [
     "0.7.10",
   ),
   feature("Page opened paused", "?live=0", `${LIVE}?live=0`, "0.7.8"),
+  feature(
+    "Page context bar: scope, live and period",
+    "pageToolbar({ leading, live, period })",
+    PAGE_TOOLBAR,
+    "0.9.6",
+  ),
+  feature(
+    "Toolbar size for the toggle and the period",
+    'PageToolbar({ size: "xs" }), LiveToggle({ size })',
+    PAGE_TOOLBAR,
+    "0.9.6",
+  ),
+  feature(
+    "Last update and refresh without live",
+    "pageToolbar({ live: false, showUpdatedAt, refresh })",
+    PAGE_TOOLBAR_REPORT,
+    "0.9.6",
+  ),
   feature(
     "Live gate on list blocks",
     "StatGroup / ActivityFeed realtimeTopic on a live page",

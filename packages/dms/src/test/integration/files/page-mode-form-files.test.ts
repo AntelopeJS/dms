@@ -97,7 +97,7 @@ describe("[integration] native files submitted from page-mode TableView forms", 
     const edited = await client.put(
       `${LOCATION}/edit`,
       { file: editedKey },
-      { params: { id: created.data[0] } },
+      { params: { id: created.data._id } },
     );
     expect(edited.status, JSON.stringify(edited.data)).to.equal(200);
     await storedUrl(client, editedKey);

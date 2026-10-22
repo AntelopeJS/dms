@@ -1,4 +1,4 @@
-import { pageQueryValues } from "../../utils/pageQuery";
+import { fillRouteParams, pageQueryValues } from "../../utils/pageQuery";
 
 /**
  * Reads the same page cache that Inertia hydrates before navigation. Missing
@@ -8,8 +8,9 @@ export async function usePageLayout() {
   const route = useDmsRoute();
   const siteLayout = useSiteLayout();
 
+  const match = computed(() => siteLayout.findMatchingRoute(route.path));
   const layoutUrl = computed(() => {
-    const metadata = siteLayout.findMatchingRoute(route.path)?.metadata;
+    const metadata = match.value?.metadata;
     return metadata?.hasAccess === false ? undefined : metadata?.layoutUrl;
   });
   const pageLayout = computed(() =>
@@ -24,6 +25,7 @@ export async function usePageLayout() {
       await siteLayout.loadPageLayout(
         layoutUrl.value,
         pageQueryValues(route.query),
+        fillRouteParams(layoutUrl.value, match.value?.params ?? {}),
       );
     }
   };

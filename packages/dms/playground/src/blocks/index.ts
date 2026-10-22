@@ -13,6 +13,7 @@ export * from "./live";
 export * from "./live-api";
 export * from "./meters";
 export * from "./nav-cards";
+export * from "./page-toolbar";
 export * from "./record";
 export * from "./record-api";
 export * from "./settings";

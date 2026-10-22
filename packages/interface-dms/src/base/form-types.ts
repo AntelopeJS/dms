@@ -63,11 +63,16 @@ export interface FormField {
    */
   readonly?: boolean | FormFieldReadonly;
   required?: boolean;
-  /**
-   * The value of a new record. On a loaded one, a field holding something
-   * else offers "Use default", showing it.
-   */
+  /** The value of a new record: the field starts with it. */
   defaultValue?: DefaultValue;
+  /**
+   * `defaultValue` is the module's default for a setting, not only a new
+   * record's starting value: while the field holds something else, it shows
+   * "Module default: X" with "Use default", which puts it back. Off unless
+   * set, so a record form (a table view's) never presents a column's initial
+   * value as a default the user strayed from.
+   */
+  offersDefault?: boolean;
   localized?: boolean;
 }
 

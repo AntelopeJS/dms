@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  CARD_GRID_CLASS,
+  cardGridStyle,
+} from "../../composables/table-view/utils/card";
+
 /**
  * Placeholder of a table view card grid while its first page loads: cards
  * built like the cards display's (same frame, same line boxes), so nothing
@@ -11,6 +16,8 @@ interface CardGridSkeletonProps {
   fields: number;
   /** Size classes of a field label, to match the real card's line box. */
   labelClass?: string;
+  /** The narrowest card, a CSS length: the table's `card.minWidth`. */
+  minWidth?: string;
 }
 
 const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
@@ -28,7 +35,8 @@ const { t } = useI18n();
 <template>
   <div
     aria-hidden="true"
-    class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+    :class="CARD_GRID_CLASS"
+    :style="cardGridStyle(props.minWidth, cardCount)"
   >
     <div
       v-for="n in cardCount"
