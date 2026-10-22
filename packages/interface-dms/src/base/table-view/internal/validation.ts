@@ -235,14 +235,18 @@ export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
 }
 
 /**
- * A table view offers at least one display, and its default display is one
- * of them. Left out, the default is the first display offered.
+ * A table view offers at least one display, and its default display and its
+ * display on phones are among them. Left out, the default is the first
+ * display offered.
  *
  * @internal
  */
 export function validateDefaultDisplay(
   controllerName: string,
-  options: DisplayDeclarations & { defaultDisplay?: string },
+  options: DisplayDeclarations & {
+    defaultDisplay?: string;
+    mobileDisplay?: string;
+  },
 ): void {
   const offered = offeredDisplayIds(options);
   if (offered.size === 0) {
@@ -254,6 +258,12 @@ export function validateDefaultDisplay(
   if (defaultDisplay && !offered.has(defaultDisplay)) {
     throw new Error(
       `TableView on ${controllerName} defaults to display "${defaultDisplay}" which is not declared in displays`,
+    );
+  }
+  const { mobileDisplay } = options;
+  if (mobileDisplay && !offered.has(mobileDisplay)) {
+    throw new Error(
+      `TableView on ${controllerName} opens phones on display "${mobileDisplay}" which is not declared in displays`,
     );
   }
 }

@@ -11,6 +11,7 @@ import {
 import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
+import { readonlyFieldValue } from "../../composables/form/readonlyValue";
 
 interface FormFieldControlProps {
   field: FormField;
@@ -37,6 +38,17 @@ const hasError = computed(() => {
   const pattern = fieldErrorPattern(props.field.id);
   return !!formErrors?.value.some((error) => pattern.test(error.name ?? ""));
 });
+// A read-only relation shows the row the server joined (its label, its
+// avatar), as a table cell does, rather than the id its state holds.
+const { getDataType } = useDataTypes();
+const readonlyValue = computed(() =>
+  readonlyFieldValue(
+    state.value[props.field.id],
+    initialValues.value?.[props.field.id],
+    props.field.type ? getDataType(props.field.type) : undefined,
+    props.field.component.options,
+  ),
+);
 // What a read-only field shows beside its value: a pill, a link.
 const readonly = computed<FormFieldReadonly>(() =>
   typeof props.field.readonly === "object" ? props.field.readonly : {},
@@ -67,7 +79,7 @@ const readonly = computed<FormFieldReadonly>(() =>
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
         <DmsDisplay
-          :model-value="state[field.id]"
+          :model-value="readonlyValue"
           :type="field.type"
           :loading
           class="min-w-0"
