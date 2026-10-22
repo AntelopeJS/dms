@@ -5,4 +5,3 @@ export * from "./onboarding";
 export * from "./realtime";
 export * from "./system-state";
 export * from "./store";
-export * from "./startup-gate";
