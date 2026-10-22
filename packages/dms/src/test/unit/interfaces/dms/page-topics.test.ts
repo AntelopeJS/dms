@@ -28,6 +28,7 @@ import * as realtimeImpl from "../../../../implementations/dms/realtime";
 import { Banner } from "@antelopejs/interface-dms/base/banner";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
+import { KpiCard } from "@antelopejs/interface-dms/base/kpi-card";
 import { Guard } from "@antelopejs/interface-dms/base/guard";
 import { TopListCard } from "@antelopejs/interface-dms/base/top-list-card";
 import { Meter } from "@antelopejs/interface-dms/base/meter";
@@ -65,6 +66,7 @@ const CHART_TOPICS = ["page-topics:first", "page-topics:second"];
 const OWN_TOPIC = "page-topics:own";
 const OTHER_TOPIC = "page-topics:other";
 const BANNER_TOPIC = "page-topics:banner";
+const KPI_TOPIC = "page-topics:kpi";
 const GUARD_TOPIC = "page-topics:guard";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
@@ -244,7 +246,7 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     }
   });
 
-  it("registers the topics a chart card or a top list card refetches on", () => {
+  it("registers the topics a chart, KPI or top list card refetches on", () => {
     const owner = moduleContext("page-topics-cards");
     const meta = GetMetadata(SharedPage, PageMetadata);
     const cards = [
@@ -260,12 +262,22 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
         realtimeTopic: [OTHER_TOPIC],
       }),
       TopListCard({ title: "Quiet", fetchUrl: "/api/quiet" }),
+      KpiCard({
+        title: "Requests",
+        fetchUrl: "/api/requests",
+        realtimeTopic: KPI_TOPIC,
+      }),
+      KpiCard({ title: "Quiet", fetchUrl: "/api/quiet-kpi" }),
     ];
     RunWithModuleContext(owner, () => {
       for (const card of cards) card.onPageCreated?.(meta);
     });
     try {
-      expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);
+      expect(topicsOf(SharedPage)).to.have.members([
+        OWN_TOPIC,
+        OTHER_TOPIC,
+        KPI_TOPIC,
+      ]);
     } finally {
       destroyModule(owner);
     }

@@ -47,7 +47,12 @@ async function inviteButtonFor(
   const handler = GetPageLayoutBySlug(membersPageSlug());
   if (!handler) throw new Error("The members page serves no layout");
   const { memberModel, roleModel } = stubPageAccessModels(["*"]);
-  const layout = await handler(INVITER, memberModel, roleModel, tenantId);
+  const layout = await handler({
+    user: INVITER,
+    memberModel,
+    roleModel,
+    tenantId,
+  });
   const table = layout.components
     .table as ComponentInfoSerialized<MembersTableOptions>;
   return table.options?.customButtons?.find(

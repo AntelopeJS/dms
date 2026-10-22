@@ -515,7 +515,7 @@
       },
       "livetoggle": {
         "l": {
-          "description": "Switch the page between Direct and Pause"
+          "description": "Switch the page between Live and Pause"
         }
       }
     },
@@ -753,6 +753,7 @@
       "show_new": "Show",
       "paused": "Paused",
       "resume": "Resume",
+      "refresh": "Refresh",
       "reason_hidden": "tab hidden",
       "polling": "no realtime, polling",
       "table_held": "Table on hold",
@@ -774,6 +775,9 @@
       "invalid_state": "The preview state could not be read.",
       "empty": "Nothing to preview yet.",
       "unsafe_method": "{name} was not drawn: a preview only reads its data, and {value} writes."
+    },
+    "drawer": {
+      "resize": "Resize the drawer"
     }
   }
 }

@@ -653,6 +653,10 @@
           "tab": {
             "title": "Onglets",
             "description": "Pages découpées en onglets."
+          },
+          "livetoggle": {
+            "title": "Direct / Pause",
+            "description": "Pages avec un bouton Direct / Pause."
           }
         }
       },
@@ -728,6 +732,7 @@
     "open": "Ouvrir",
     "owner_badge": "Propriétaires de la plateforme",
     "refresh": "Actualiser",
+    "browse_store": "Accéder au store",
     "empty": {
       "title": "Aucun module n’est encore installé",
       "description": "Les modules s’ajoutent au projet avec la CLI AntelopeJS, puis apparaissent ici après un redémarrage."
@@ -740,11 +745,15 @@
     },
     "installed": {
       "title": "Installés",
-      "description": "L’état et un relevé en direct de chaque module. Ouvrez un module pour reprendre là où vous en étiez."
+      "description": "L’état, un relevé en direct et les actions du store de chaque module, ceux en pause compris. Ouvrez un module pour arriver sur sa page d’accueil."
     },
     "store": {
       "title": "Store de modules",
-      "description": "Les modules officiels AntelopeJS : installez-les, mettez-les à jour, mettez-les en pause ou retirez-les sans toucher au code du projet.",
+      "description": "Les modules officiels AntelopeJS, à découvrir et à installer. Un module installé se gère depuis sa tuile parmi les modules installés.",
+      "back": "Modules installés",
+      "installed": "Installé",
+      "view_installed": "Voir dans les modules installés",
+      "update_available": "Mise à jour disponible",
       "scope": {
         "label": "Afficher",
         "all": "Tous · {count}",
@@ -755,16 +764,16 @@
         "available": "Disponible",
         "busy": "En cours",
         "active": "Actif",
-        "disabled": "En pause",
-        "error": "Échec",
+        "disabled": "Inactif",
+        "error": "Erreur",
         "pending": "Non appliqué",
-        "update_available": "Mise à jour"
+        "update_available": "Mise à jour disponible"
       },
       "actions": {
         "install": "Installer",
         "update": "Mettre à jour",
         "enable": "Reprendre",
-        "disable": "Mettre en pause",
+        "disable": "Mettre en pause (garder la configuration)",
         "uninstall": "Désinstaller",
         "apply": "Appliquer",
         "manage": "Gérer"
@@ -789,9 +798,10 @@
       "no_release": "Le registre npm ne propose aucune version lisible depuis cette plateforme",
       "locked": "Un autre module est en cours de modification",
       "pending_hint": "antelope.config.ts et la plateforme ne concordent pas : Appliquer les remet d’accord.",
+      "working_copy_hint": "Copie locale déclarée dans antelope.config.ts.",
       "uninstall_confirm": {
         "title": "Désinstaller {module} ?",
-        "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."
+        "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez. Son bloc de configuration est retiré d’antelope.config.ts."
       },
       "action_failed": "{module} n’a pas pu être modifié",
       "errors": {
@@ -799,8 +809,10 @@
         "store_module_unknown": "Ce module n’est pas dans le catalogue.",
         "store_disabled": "Le store est en lecture seule sur cette plateforme.",
         "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
+        "store_working_copy": "Ce module tourne depuis une copie locale déclarée dans antelope.config.ts : modifiez-le là.",
         "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules.",
-        "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord."
+        "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord.",
+        "store_module_used_by_project": "Le code du projet utilise ce module : retirez cet usage avant de le désinstaller."
       },
       "frontend": {
         "dev": {
@@ -829,15 +841,17 @@
       },
       "all_installed": {
         "title": "Tous les modules officiels sont installés",
-        "description": "Les nouveaux modules du catalogue AntelopeJS apparaîtront ici."
+        "description": "Il ne reste rien à installer. Les nouveaux modules du catalogue AntelopeJS apparaîtront ici.",
+        "show_all": "Afficher tous les modules"
       },
       "category": {
         "ai": "IA",
+        "analytics": "Mesure d'audience",
         "business": "Business",
+        "communication": "Communication",
         "content": "Contenu",
         "data": "Données",
         "developer": "Développement",
-        "growth": "Croissance",
         "operations": "Opérations"
       },
       "catalog": {
@@ -897,6 +911,8 @@
       "requires": "Requiert : {interfaces}",
       "requires_first": "Demande {interfaces}, qu’aucun module en cours d’exécution n’implémente : installez d’abord un module qui le fait.",
       "used_by": "Utilisé par : {modules}. Retirez-les d’abord.",
+      "used_by_project": "Le code du projet utilise ce module : retirez cet usage avant de le désinstaller.",
+      "dependents": "Utilisé par : {modules}",
       "frontend_version": {
         "label": "dms-frontend {version}",
         "reported": "Indiquée par le serveur frontend en cours d’exécution",
@@ -934,10 +950,17 @@
     "status": {
       "live": "Actif",
       "beta": "Bêta",
-      "update": "Mise à jour",
-      "attention": "Attention"
+      "update": "Mise à jour disponible",
+      "attention": "Attention",
+      "restart_required": "Redémarrage requis"
     },
-    "update_available": "mise à jour disponible",
+    "source": {
+      "npm": "npm",
+      "github": "GitHub",
+      "gitlab": "GitLab",
+      "git": "Git",
+      "local": "Local"
+    },
     "no_result": {
       "title": "Aucun module installé ne correspond à « {query} »",
       "title_filtered": "Aucun module installé ne correspond à ces filtres",
