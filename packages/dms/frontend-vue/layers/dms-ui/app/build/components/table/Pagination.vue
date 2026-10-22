@@ -10,10 +10,14 @@ import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
 import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
 import { toneTextClass } from "../../utils/tone";
 
-// v2 footer band: count and page size on the left, pager on the right.
+// v2 footer band, left to right: count | page size, the summaries, the
+// legend, then the hint and the pager on the right.
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-x-4 gap-y-2.5 border-t border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5 text-[12.5px] text-muted",
+    // Count and page size wrap as one, so a narrow band keeps them together
+    // on its first line.
+    lead: "flex shrink-0 items-center gap-x-4",
     info: "shrink-0",
     count: "font-mono font-semibold tabular-nums text-default",
     pageSize: "flex items-center gap-2",
@@ -32,7 +36,7 @@ const theme = tv({
     placeholderCount: "h-3 w-20 rounded-[4px]",
     placeholderPager: "ms-auto h-3 w-24 rounded-[4px]",
     placeholderRoot: "min-h-[49px]",
-    // Figures computed over the listed rows, after the count.
+    // Figures computed over the listed rows, after the page size.
     summary: "inline-flex items-center gap-1.5 whitespace-nowrap",
     summarySeparator: "text-dimmed",
     summaryValue: "font-mono font-semibold tabular-nums text-default",
@@ -145,40 +149,55 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
     :class="uiTablePagination.root()"
     :aria-label="t('dms.pagination.label')"
   >
-    <i18n-t
-      v-if="accumulation"
-      keypath="dms.pagination.shown_of"
-      scope="global"
-      tag="span"
-      :class="uiTablePagination.info()"
-    >
-      <template #shown>
-        <span :class="uiTablePagination.count()">
-          {{ numberFormat.format(accumulation.shown) }}
-        </span>
+    <span :class="uiTablePagination.lead()">
+      <i18n-t
+        v-if="accumulation"
+        keypath="dms.pagination.shown_of"
+        scope="global"
+        tag="span"
+        :class="uiTablePagination.info()"
+      >
+        <template #shown>
+          <span :class="uiTablePagination.count()">
+            {{ numberFormat.format(accumulation.shown) }}
+          </span>
+        </template>
+        <template #count>
+          <span :class="uiTablePagination.count()">
+            {{ numberFormat.format(rowCount) }}
+          </span>
+        </template>
+      </i18n-t>
+      <span v-else-if="countLabelKey" :class="uiTablePagination.info()">
+        {{ t(countLabelKey, { count: rowCount }, rowCount) }}
+      </span>
+      <i18n-t
+        v-else
+        keypath="dms.pagination.count"
+        scope="global"
+        tag="span"
+        :class="uiTablePagination.info()"
+      >
+        <template #count>
+          <span :class="uiTablePagination.count()">
+            {{ numberFormat.format(rowCount) }}
+          </span>
+        </template>
+      </i18n-t>
+
+      <template v-if="showPageSize && !accumulation">
+        <span aria-hidden="true" :class="uiTablePagination.separator()" />
+        <label :class="uiTablePagination.pageSize()">
+          {{ t("dms.table.page_size_title") }}
+          <USelect
+            v-model="pageSize"
+            :items="pageSizeItems"
+            size="xs"
+            :class="uiTablePagination.pageSizeSelect()"
+          />
+        </label>
       </template>
-      <template #count>
-        <span :class="uiTablePagination.count()">
-          {{ numberFormat.format(rowCount) }}
-        </span>
-      </template>
-    </i18n-t>
-    <span v-else-if="countLabelKey" :class="uiTablePagination.info()">
-      {{ t(countLabelKey, { count: rowCount }, rowCount) }}
     </span>
-    <i18n-t
-      v-else
-      keypath="dms.pagination.count"
-      scope="global"
-      tag="span"
-      :class="uiTablePagination.info()"
-    >
-      <template #count>
-        <span :class="uiTablePagination.count()">
-          {{ numberFormat.format(rowCount) }}
-        </span>
-      </template>
-    </i18n-t>
 
     <span
       v-for="summary in summaries"
@@ -239,31 +258,12 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </div>
     </template>
 
-    <span
-      v-if="showPageSize && !accumulation"
-      aria-hidden="true"
-      :class="uiTablePagination.separator()"
-    />
-
     <span v-if="hint" :class="uiTablePagination.hint()">
       <UIcon name="i-ph-info" :class="uiTablePagination.hintIcon()" />
       <span :class="uiTablePagination.hintText()" :title="hint">
         {{ hint }}
       </span>
     </span>
-
-    <label
-      v-if="showPageSize && !accumulation"
-      :class="uiTablePagination.pageSize()"
-    >
-      {{ t("dms.table.page_size_title") }}
-      <USelect
-        v-model="pageSize"
-        :items="pageSizeItems"
-        size="xs"
-        :class="uiTablePagination.pageSizeSelect()"
-      />
-    </label>
 
     <div
       v-if="showPager && !accumulation"
