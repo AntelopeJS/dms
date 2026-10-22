@@ -4,10 +4,20 @@ import type {
   InputNumberEmits,
   InputNumberSlots,
 } from "@nuxt/ui";
+import { computed } from "vue";
+import {
+  type InputWidth,
+  isCompactNumberInput,
+} from "../../../build/utils/inputWidth";
+
+interface InputPercentageProps extends InputNumberProps {
+  /** As on `InputNumber`; left out, the 0-100 bounds make it compact. */
+  width?: InputWidth;
+}
 
 const PERCENTAGE_MULTIPLIER = 100;
 
-const props = defineProps<InputNumberProps>();
+const props = defineProps<InputPercentageProps>();
 const emits = defineEmits<InputNumberEmits>();
 defineSlots<InputNumberSlots>();
 
@@ -25,13 +35,23 @@ const displayValue = computed({
   },
 });
 
+const bounds = computed(() => ({
+  min: props.min ?? 0,
+  max: props.max ?? PERCENTAGE_MULTIPLIER,
+}));
+const isCompact = computed(() =>
+  isCompactNumberInput({ width: props.width, ...bounds.value }),
+);
+
 const forwardedProps = computed(() => {
+  const { width: _width, ...rest } = props;
   return {
-    ...props,
+    ...rest,
+    ...bounds.value,
     modelValue: displayValue.value,
-    min: props.min ?? 0,
-    max: props.max ?? PERCENTAGE_MULTIPLIER,
     step: props.step ?? 0.01,
+    // The step drives the steppers only: a stored 12.345 % stays as it is.
+    stepSnapping: props.stepSnapping ?? false,
     // The wrapper takes the caller's class, so the field fills it.
     class: "w-full",
     ui: { ...props.ui, base: ["pe-7", props.ui?.base] },
@@ -40,7 +60,10 @@ const forwardedProps = computed(() => {
 </script>
 
 <template>
-  <div class="relative inline-flex" :class="props.class">
+  <div
+    class="relative inline-flex"
+    :class="[props.class, isCompact && 'sm:max-w-44']"
+  >
     <UInputNumber
       v-bind="forwardedProps"
       @update:model-value="displayValue = $event"

@@ -22,7 +22,7 @@ import {
 
 type FormRoutes = Pick<
   FormProps,
-  "fetchUrl" | "fetchUrlMethod" | "submitUrl" | "submitUrlMethod"
+  "fetchUrl" | "fetchUrlMethod" | "submitUrl" | "submitUrlMethod" | "kind"
 >;
 
 function formRoutes(
@@ -39,6 +39,7 @@ function formRoutes(
         fetchUrlMethod: HttpMethod.get,
         submitUrl: `${location}/new`,
         submitUrlMethod: HttpMethod.post,
+        kind: "create",
       };
     case "edit":
       return {

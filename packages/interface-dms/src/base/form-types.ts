@@ -62,6 +62,12 @@ export interface FormField {
    * link to where it is changed (`link`).
    */
   readonly?: boolean | FormFieldReadonly;
+  /**
+   * A form creating a record leaves out a read-only field (`disabled` or
+   * `readonly`) that holds nothing yet, a value the server sets once the
+   * record exists: `true` shows it empty all the same.
+   */
+  showEmptyOnCreate?: boolean;
   required?: boolean;
   /** The value of a new record: the field starts with it. */
   defaultValue?: DefaultValue;
@@ -155,7 +161,7 @@ export interface FormSectionSerialized extends Omit<FormSection, "fields"> {
 }
 
 /** What a form edits: see `FormProps.kind`. */
-export const FORM_KINDS = ["record", "action"] as const;
+export const FORM_KINDS = ["record", "create", "action"] as const;
 
 export type FormKind = (typeof FORM_KINDS)[number];
 
@@ -206,18 +212,26 @@ export interface FormProps extends BaseComponentProps {
   saveMode?: FormSaveMode;
   /**
    * What the form edits. `record` (the default): a record, a settings page,
-   * a table view's form; it keeps its values once saved, and offers Cancel
-   * while clean when it has somewhere to go back to (`backTo`, or the drawer
-   * or modal it sits in). `action`: a form that does something each time it
-   * is sent — send a message, invite someone, run a job; its `submitLabel`
+   * a table view's edit form; it keeps its values once saved, and offers
+   * Cancel when it has somewhere to go back to (`backTo`, the drawer or
+   * modal it sits in, or the page of the app the user came from): changes or
+   * not, Cancel drops them and leaves, in one click. `create`: a form that
+   * makes a new record (a table view's add form and the duplicate it opens,
+   * a relation's add form); its submit reads "Create" and shows from the
+   * start, and its fields list no changes, since all it holds is new.
+   * Declared, never guessed from the method: a settings page posting the
+   * record it read stays a `record`. `action`: a form that does something
+   * each time it is sent — send a message, invite someone, run a job; its `submitLabel`
    * shows from the start, so its defaults can be sent as they are, with
    * Reset once a value changes (in a drawer or a modal, Cancel before that),
    * and it empties after a successful submit.
    */
   kind?: FormKind;
   /**
-   * Where Cancel leads a `record` form placed on a page; without it the form
-   * offers no Cancel. Table views set it on their form pages, to the list.
+   * Where Cancel leads a `record` form placed on a page opened directly (a
+   * link from outside the app, a bookmark); reached from another page of the
+   * app, Cancel goes back to it. Without either, the form offers no Cancel.
+   * Table views set it on their form pages, to the list.
    * Takes the page URL tokens (`{{params.X}}`, `{{query.X}}`).
    */
   backTo?: string;

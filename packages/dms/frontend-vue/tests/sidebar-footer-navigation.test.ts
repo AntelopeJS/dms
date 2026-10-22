@@ -103,7 +103,7 @@ afterEach(() => {
 });
 
 it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
-  "keeps exact footer destinations and Settings prefix highlighting on %s",
+  "keeps exact footer destinations and no Settings entry on %s",
   (path) => {
     route.path = path;
     app = createApp(Sidebar);
@@ -129,10 +129,8 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     modules.forEach((link) =>
       expect(link.getAttribute("data-exact")).toBe("true"),
     );
-    const settings = host.querySelector('a[href="/settings"]')!;
-    expect(settings.getAttribute("data-exact")).not.toBe("true");
-    expect(settings.getAttribute("data-active") === "true").toBe(
-      path.startsWith("/settings"),
-    );
+    // The settings are reached from the account menu only.
+    expect(host.querySelector('a[href^="/settings"]')).toBeNull();
+    expect(host.querySelector('[data-active="true"]')).toBeNull();
   },
 );

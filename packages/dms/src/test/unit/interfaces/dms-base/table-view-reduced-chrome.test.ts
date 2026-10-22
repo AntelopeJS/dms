@@ -169,7 +169,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(carrier).to.include({ isVisible: false });
   });
 
-  it("passes the layout, search, quick filter, page size and footer through", () => {
+  it("passes the layout, search, quick filter, page size, footer and archived count through", () => {
     const options = optionsOf(
       TableView(OrderAPI, {
         realtime: false,
@@ -179,9 +179,11 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         quickFilters: [{ field: "status" }],
         pageSize: 25,
         footer: { countLabel: "$orders.count", hint: "$orders.hint" },
+        archivedCountLabel: "$orders.archived_count",
       }),
     );
     expect(options.layout).to.equal("compact");
+    expect(options.archivedCountLabel).to.equal("$orders.archived_count");
     expect(options.searchable).to.equal(false);
     expect(options.searchPlaceholder).to.equal("$orders.search");
     expect(options.searchShortcut).to.equal("/");
@@ -296,6 +298,23 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     );
     expect(options.displays?.[0]?.options).to.deep.equal({
       card: { fields: undefined, component: undefined, minWidth: "320px" },
+    });
+  });
+
+  it("hands the cards display the card's skeleton height", () => {
+    const options = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        card: { skeletonHeight: "260px" },
+        displays: [{ id: "cards" }],
+      }),
+    );
+    expect(options.displays?.[0]?.options).to.deep.equal({
+      card: {
+        fields: undefined,
+        component: undefined,
+        skeletonHeight: "260px",
+      },
     });
   });
 

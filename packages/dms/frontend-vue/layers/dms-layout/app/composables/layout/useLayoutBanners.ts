@@ -28,10 +28,36 @@ export const resolveLayoutBannerPresentation = (
 };
 
 /**
+ * Whether a path is in the module area: the modules page, the module store
+ * and every module's own pages, all under `MODULE_URL_PREFIX`.
+ */
+export const isModuleAreaPath = (path: string): boolean =>
+  path === MODULE_URL_PREFIX || path.startsWith(`${MODULE_URL_PREFIX}/`);
+
+const SCOPE_MATCHERS: Record<
+  LayoutBannerScope,
+  (isModuleArea: boolean) => boolean
+> = {
+  app: (isModuleArea) => !isModuleArea,
+  modules: (isModuleArea) => isModuleArea,
+  everywhere: () => true,
+};
+
+/** Whether a banner's scope, as the backend serves it, covers a page. */
+export const isLayoutBannerInScope = (
+  banner: LayoutBanner,
+  path: string,
+): boolean => SCOPE_MATCHERS[banner.scope](isModuleAreaPath(path));
+
+/**
  * The global banners rendered under the dashboard header, as resolved by the
  * server for this request (see `RegisterLayoutBanner` in
- * `@antelopejs/interface-dms/layout-banners`), minus the ones the user
- * dismissed.
+ * `@antelopejs/interface-dms/layout-banners`), keeping the ones whose scope
+ * covers the current route, minus the ones the user dismissed.
+ *
+ * The site layout is shared by every page, so the scope is applied here
+ * against the route: on the server-rendered page and again on each
+ * client-side navigation, without re-fetching the layout.
  *
  * Dismissals are kept in a session cookie rather than in local storage so the
  * server-rendered page already leaves a dismissed banner out, instead of
@@ -39,6 +65,7 @@ export const resolveLayoutBannerPresentation = (
  */
 export const useLayoutBanners = () => {
   const { siteLayout } = useSiteLayout();
+  const route = useDmsRoute();
   const dismissed = useDmsCookie<string[]>(DISMISSED_BANNERS_COOKIE, {
     default: () => [],
     sameSite: "lax",
@@ -46,7 +73,9 @@ export const useLayoutBanners = () => {
 
   const banners = computed<LayoutBanner[]>(() =>
     (siteLayout.value?.banners ?? []).filter(
-      (banner) => !banner.dismissible || !dismissed.value.includes(banner.key),
+      (banner) =>
+        isLayoutBannerInScope(banner, route.path) &&
+        (!banner.dismissible || !dismissed.value.includes(banner.key)),
     ),
   );
 

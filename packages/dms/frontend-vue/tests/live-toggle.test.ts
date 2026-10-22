@@ -35,7 +35,7 @@ async function createToggle(
     render: () =>
       h(LiveToggleBlock, { componentId: "live", pageId: "api.logs", ...props }),
   });
-  toggle.component("UIcon", () => h("i"));
+  toggle.component("UIcon", (_props, { attrs }) => h("i", attrs));
   toggle.component("UButton", (buttonProps: { label?: string }, { attrs }) =>
     h("button", { ...attrs, type: "button" }, buttonProps.label),
   );
@@ -119,6 +119,28 @@ it("counts the seconds since the last update, every second", async () => {
   vi.advanceTimersByTime(60_000);
   await nextTick();
   expect(host.textContent).toContain("dms.live.updated_minutes:1");
+});
+
+it("shows the polling hint once the stream stayed down, in a box always kept", async () => {
+  const controller = installLive();
+  await mountToggle();
+  const hint = () => host.querySelector(".dms-live-toggle__polling")!;
+  expect(hint().classList.contains("invisible")).toBe(true);
+
+  // A stream still connecting (every full load) is not reported down.
+  controller.setStreamConnected(false);
+  await nextTick();
+  expect(hint().classList.contains("invisible")).toBe(true);
+
+  vi.advanceTimersByTime(2000);
+  await nextTick();
+  expect(hint().classList.contains("invisible")).toBe(false);
+  expect(hint().getAttribute("title")).toBe("dms.live.polling");
+  expect(host.textContent).not.toContain("dms.live.polling");
+
+  controller.setStreamConnected(true);
+  await nextTick();
+  expect(hint().classList.contains("invisible")).toBe(true);
 });
 
 it("hides the time when asked to", async () => {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
@@ -48,7 +49,7 @@ interface KeyValueListProps {
   items?: KeyValueItem[];
   /** Tighter rows (32px instead of 38px) for side panels. */
   dense?: boolean;
-  /** Columns on wide screens (1–3); one on phones. */
+  /** Columns once the list is wide enough (1–3); one when narrow. */
   columns?: number;
   /** Loading: values turn to skeletons, or `skeletonCount` rows are drawn. */
   loading?: boolean;
@@ -76,11 +77,13 @@ const EMPTY_VALUE = "—";
 const MAX_COLUMNS = 3;
 
 // v2 .c-dl: label left, value right, rows split by a muted hairline. Each
-// column's first row drops its line, at every breakpoint.
+// column's first row drops its line, at every breakpoint. The columns follow
+// the list's own width (a drawer, a card), not the window's: each keeps its
+// 120px label and room for a value.
 const COLUMN_CLASSES: Record<number, string> = {
   1: "[&>div:first-child]:border-t-0",
-  2: "gap-x-8 sm:grid-cols-2 [&>div:first-child]:border-t-0 sm:[&>div:nth-child(2)]:border-t-0",
-  3: "gap-x-8 sm:grid-cols-2 lg:grid-cols-3 [&>div:first-child]:border-t-0 sm:[&>div:nth-child(2)]:border-t-0 lg:[&>div:nth-child(3)]:border-t-0",
+  2: "gap-x-8 @min-[560px]:grid-cols-2 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0",
+  3: "gap-x-8 @min-[560px]:grid-cols-2 @min-[840px]:grid-cols-3 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0 @min-[840px]:[&>div:nth-child(3)]:border-t-0",
 };
 
 const { locale, t } = useI18n();
@@ -105,13 +108,13 @@ type ValueFormatter = (item: KeyValueItem, value: string | number) => string;
 
 function formatNumber(_item: KeyValueItem, value: string | number): string {
   if (typeof value !== "number") return value;
-  return new Intl.NumberFormat(locale.value).format(value);
+  return readableNumberFormat(locale.value).format(value);
 }
 
 function formatMoney(item: KeyValueItem, value: string | number): string {
   if (typeof value !== "number") return value;
   try {
-    return new Intl.NumberFormat(locale.value, {
+    return readableNumberFormat(locale.value, {
       style: "currency",
       currency: item.currency ?? props.currency,
     }).format(value);
@@ -178,70 +181,76 @@ function keyOf(item: KeyValueItem, index: number): string {
 <template>
   <!-- grid-cols-1: minmax(0, 1fr) tracks, so a long value truncates instead
        of widening the list past a narrow screen. -->
-  <dl
-    class="grid grid-cols-1"
-    :class="[columnClass, props.dense ? 'text-[12.5px]' : 'text-[13px]']"
-    :aria-busy="props.loading || undefined"
-  >
-    <template v-if="showPlaceholders">
-      <div v-for="index in props.skeletonCount" :key="index" :class="rowClass">
-        <dt class="min-w-[120px] flex-none">
-          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-20" />
-        </dt>
-        <dd class="ms-auto">
-          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-24" />
-        </dd>
-      </div>
-    </template>
-    <template v-else>
-      <div
-        v-for="(item, index) in props.items"
-        :key="keyOf(item, index)"
-        :class="rowClass"
-      >
-        <dt class="text-muted min-w-[120px] flex-none">{{ item.label }}</dt>
-        <dd
-          class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
+  <div class="@container">
+    <dl
+      class="grid grid-cols-1"
+      :class="[columnClass, props.dense ? 'text-[12.5px]' : 'text-[13px]']"
+      :aria-busy="props.loading || undefined"
+    >
+      <template v-if="showPlaceholders">
+        <div
+          v-for="index in props.skeletonCount"
+          :key="index"
+          :class="rowClass"
         >
-          <USkeleton
-            :aria-label="t('dms.a11y.loading')"
-            v-if="props.loading || item.loading"
-            class="h-3 w-24"
-          />
-          <slot
-            v-else-if="slots.value"
-            name="value"
-            :item="item"
-            :formatted="format(item)"
-          />
-          <template v-else>
-            <component
-              :is="item.to ? DmsAutoLink : 'span'"
-              :to="pageLink(item.to)"
-              class="min-w-0"
-              :class="item.to && item.type !== 'status' && 'hover:underline'"
-            >
-              <DmsStatusPill
-                v-if="item.type === 'status'"
-                :tone="item.tone ?? 'neutral'"
-                :label="format(item)"
-              />
-              <span v-else class="block" :class="valueClass(item)">
-                {{ format(item) }}
+          <dt class="min-w-[120px] flex-none">
+            <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-20" />
+          </dt>
+          <dd class="ms-auto">
+            <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-24" />
+          </dd>
+        </div>
+      </template>
+      <template v-else>
+        <div
+          v-for="(item, index) in props.items"
+          :key="keyOf(item, index)"
+          :class="rowClass"
+        >
+          <dt class="text-muted min-w-[120px] flex-none">{{ item.label }}</dt>
+          <dd
+            class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
+          >
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              v-if="props.loading || item.loading"
+              class="h-3 w-24"
+            />
+            <slot
+              v-else-if="slots.value"
+              name="value"
+              :item="item"
+              :formatted="format(item)"
+            />
+            <template v-else>
+              <component
+                :is="item.to ? DmsAutoLink : 'span'"
+                :to="pageLink(item.to)"
+                class="min-w-0"
+                :class="item.to && item.type !== 'status' && 'hover:underline'"
+              >
+                <DmsStatusPill
+                  v-if="item.type === 'status'"
+                  :tone="item.tone ?? 'neutral'"
+                  :label="format(item)"
+                />
+                <span v-else class="block" :class="valueClass(item)">
+                  {{ format(item) }}
+                </span>
+              </component>
+              <span v-if="item.detail" class="text-dimmed truncate text-xs">
+                {{ item.detail }}
               </span>
-            </component>
-            <span v-if="item.detail" class="text-dimmed truncate text-xs">
-              {{ item.detail }}
-            </span>
-          </template>
-          <!-- -my-1: the button is taller than a dense row's text line. -->
-          <DmsCopyButton
-            v-if="!props.loading && !item.loading && copyTextOf(item)"
-            :value="copyTextOf(item)!"
-            class="-my-1"
-          />
-        </dd>
-      </div>
-    </template>
-  </dl>
+            </template>
+            <!-- -my-1: the button is taller than a dense row's text line. -->
+            <DmsCopyButton
+              v-if="!props.loading && !item.loading && copyTextOf(item)"
+              :value="copyTextOf(item)!"
+              class="-my-1"
+            />
+          </dd>
+        </div>
+      </template>
+    </dl>
+  </div>
 </template>

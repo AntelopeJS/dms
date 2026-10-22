@@ -23,13 +23,30 @@ const { state, initialValues, loading } = context;
 const { processI18n } = useTranslation();
 
 const isDisabled = computed(() => context.isFieldDisabled(props.field));
+// A list of rows reads best as its rows, its own control disabled: the
+// display of a cell only counts them. An empty one still reads "empty".
+const READS_AS_CONTROL = new Set(["array", "key_value"]);
+const hasRows = (value: unknown): boolean =>
+  !!value && typeof value === "object" && Object.keys(value).length > 0;
+const showsDisplay = computed(
+  () =>
+    isDisabled.value &&
+    !!props.field.type &&
+    !(
+      READS_AS_CONTROL.has(props.field.type) &&
+      hasRows(state.value[props.field.id])
+    ),
+);
 const component = computed(() => {
   const name = props.field.component.componentName;
   return name ? resolveDmsComponent(name) || name : null;
 });
-// The hint under the control, which describes it (`aria-describedby`).
+// The hint under the control, which describes it (`aria-describedby`): a
+// read-only field has no control to fill, and no hint telling how.
 const hint = computed(() =>
-  props.field.hint ? processI18n(props.field.hint) : undefined,
+  props.field.hint && !isDisabled.value
+    ? processI18n(props.field.hint)
+    : undefined,
 );
 // UFormField shows its error slot whenever one is given, in the hint's
 // place: it gets one only while the field holds an error.
@@ -56,7 +73,9 @@ const readonly = computed<FormFieldReadonly>(() =>
 </script>
 
 <template>
-  <div class="grid min-w-0 gap-1.5">
+  <!-- One explicit column (minmax(0, 1fr)): an implicit one grows to its
+       widest content, a long date or select label, past a narrow card. -->
+  <div class="grid min-w-0 grid-cols-1 gap-1.5">
     <DmsLocalizedField
       v-if="field.localized"
       v-model="state[field.id] as Record<string, string> | undefined"
@@ -75,13 +94,15 @@ const readonly = computed<FormFieldReadonly>(() =>
       :help="hint"
     >
       <div
-        v-if="isDisabled && !!field.type"
+        v-if="showsDisplay"
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
         <DmsDisplay
           :model-value="readonlyValue"
           :type="field.type"
           :loading
+          :label="field.label ? processI18n(field.label) : undefined"
+          :row="state"
           class="min-w-0"
           v-bind="field.component.options || {}"
         />

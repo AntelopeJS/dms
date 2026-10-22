@@ -350,12 +350,12 @@ export type TableViewQuickFilterMode =
 
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
- * values of a column: a select's items, a boolean's two labels, or the rows
- * a relation points to. The picked value is the column's filter, the very one
- * the filters row edits: kept with the table's state, counted as an active
- * filter and cleared by "Reset filters". In the `compact` layout, which has
- * no filters row, the button names the column and its value ("Role: Admin")
- * next to a clear button.
+ * values of a column: a select's items, a boolean's two labels, a tags
+ * column's `suggestions`, or the rows a relation points to. The picked value
+ * is the column's filter, the very one the filters row edits: kept with the
+ * table's state, counted as an active filter and cleared by "Reset filters".
+ * In the `compact` layout, which has no filters row, the button names the
+ * column and its value ("Role: Admin") next to a clear button.
  */
 export interface TableViewQuickFilter {
   /** Filterable column the control filters on. */
@@ -368,7 +368,8 @@ export interface TableViewQuickFilter {
   allLabel?: string;
   /**
    * Compare mode of the filter. Defaults to `array_contains_string` for a
-   * multiple relation or select, `is` otherwise.
+   * multiple relation or select and for a type whose default compare mode it
+   * is (tags), `is` otherwise.
    */
   mode?: TableViewQuickFilterMode;
 }
@@ -551,6 +552,14 @@ export interface TableViewCardOptions {
    * short to fill a row stretches its cards up to twice that width.
    */
   minWidth?: string;
+  /**
+   * `cards` display only: the height of a placeholder card while the page
+   * loads, as a CSS length (`"260px"`). Left out, a placeholder is as tall as
+   * the built-in card. A `component` taller than that sets it to its own
+   * height, so the pagination footer below the grid stands where the loaded
+   * cards put it. The cards themselves keep their own height.
+   */
+  skeletonHeight?: string;
 }
 
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
@@ -558,6 +567,7 @@ export interface TableViewCardOptionsSerialized {
   fields?: string[];
   component?: ComponentInfoSerialized;
   minWidth?: string;
+  skeletonHeight?: string;
 }
 
 /** The kanban options as its display entry carries them. */
@@ -1003,6 +1013,15 @@ export interface TableViewOptions<
    */
   archiveMode?: boolean;
   /**
+   * The count the caption shows while the archived rows are listed, naming
+   * them: an i18n key with `$` receiving `{ count }` and pluralized on it
+   * ("13 factures archivées"), or a text with `{count}`. Defaults to
+   * "Archived: {count}" ("Archives : {count}" in French), which agrees with
+   * no noun.
+   * @example "$invoices.archived_count"
+   */
+  archivedCountLabel?: string;
+  /**
    * Default filters to apply when the table view is opened
    */
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;
@@ -1070,17 +1089,23 @@ export interface TableViewOptions<
   /**
    * On a page declared with `live`, keeps the rows on screen while the page is
    * paused, through the user's own search, sort and pagination too, and shows
-   * a "N new · Show" banner counting the events the table received since.
-   * Show reads the rows once without leaving the pause.
+   * a "N new · Show" banner counting the rows the table would add since:
+   * how many more rows its tab, search and filters match now than it holds,
+   * asked of its count route (the events received, if that count fails).
+   * Show reads the rows once without leaving the pause. The page in Direct,
+   * the table also keeps its rows while they are on screen or scrolled past:
+   * a new row at the top would push down the rows the user reads, so new ones
+   * wait behind a "N new · Show" pill laid over the rows, which moves nothing.
+   * A table still below the screen follows the feed.
    *
    * A `TableView.fromSource` route receives the moment the rows were frozen
    * as `liveHeldAt` (ISO 8601) on every list and count request made while
    * paused, so it can answer the rows as they stood then; a data controller's
    * rows are held against the realtime only. Ignored on a page without `live`.
    *
-   * An object holds the table alone, the rest of the page staying live, in
-   * more cases (see {@link TableViewLiveHoldOptions}); `true` and `{}` hold it
-   * only while the page is paused.
+   * An object also names why the table holds, the rest of the page staying
+   * live, in more cases (see {@link TableViewLiveHoldOptions}); `true` and
+   * `{}` hold it while the page is paused or its rows are on screen.
    *
    * ```ts
    * liveHold: { whileRowOpen: true, whileScrolled: true, whileSearching: true }

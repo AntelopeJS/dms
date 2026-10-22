@@ -63,6 +63,7 @@ const context = {
   isFieldHidden: (entry: FormField) => entry.id === "hidden",
   isFieldDisabled: () => false,
   isFieldRequired: (entry: FormField) => REQUIRED.has(entry.id),
+  isReadOnly: ref(false),
   showsChanges: false,
   isFieldChanged: () => false,
   baselineValue: () => undefined,

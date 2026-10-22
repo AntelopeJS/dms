@@ -10,5 +10,6 @@ export interface TableQueryParams {
   sortKey?: string;
   sortDirection?: SortDirection;
   showArchived?: boolean;
-  [key: `filter_${string}`]: string | number | undefined;
+  /** A list sends the key once per filter, which a row must all pass. */
+  [key: `filter_${string}`]: string | string[] | number | undefined;
 }

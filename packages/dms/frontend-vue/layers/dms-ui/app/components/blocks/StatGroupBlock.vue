@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import DmsStatGroup, {
+  type StatGroupColumnsFrom,
   type StatGroupItem,
   type StatGroupLayout,
 } from "../stat-group/StatGroup.vue";
@@ -27,6 +28,8 @@ interface StatGroupBlockProps extends DefaultComponentProps {
   items?: StatGroupBlockItem[];
   layout?: StatGroupLayout;
   columns?: number;
+  /** The group's width from which all `columns` sit side by side. */
+  columnsFrom?: StatGroupColumnsFrom;
   /** Accessible name of the group. */
   label?: string;
   fetchUrl?: string;
@@ -48,6 +51,7 @@ const props = withDefaults(defineProps<StatGroupBlockProps>(), {
   items: () => [],
   layout: "joined",
   columns: undefined,
+  columnsFrom: undefined,
   label: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
@@ -100,6 +104,7 @@ const resolvedItems = computed<StatGroupItem[]>(() =>
     :items="resolvedItems"
     :layout="props.layout"
     :columns="props.columns"
+    :columns-from="props.columnsFrom"
     :loading="isPending"
     :skeleton-count="
       props.skeletonCount ?? props.columns ?? DEFAULT_SKELETON_COUNT

@@ -8,6 +8,12 @@ export interface SessionInfo {
   user?: User;
   tenantId?: string;
   pageId?: string;
+  /**
+   * Whether `pageId` is a platform page (a module's, owner-only): it lists the
+   * data of every tenant, so its topics bring the session every tenant's
+   * events, whichever tenant the session was opened in.
+   */
+  isOnPlatformPage?: boolean;
   /** The browser connection the session rides on, shared by its tabs. */
   connectionId: string;
   send: SessionSend;
@@ -63,10 +69,12 @@ export function getSessionInfo(sessionId: string): SessionInfo | undefined {
 export function setSessionPage(
   sessionId: string,
   pageId: string | undefined,
+  isPlatformPage = false,
 ): boolean {
   const state = sessions.get(sessionId);
   if (!state) return false;
   state.info.pageId = pageId;
+  state.info.isOnPlatformPage = pageId !== undefined && isPlatformPage;
   return true;
 }
 

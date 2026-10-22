@@ -1,7 +1,8 @@
-import type {
-  LayoutBannerContext,
-  LayoutBannerInfo,
-  LayoutBannerVariant,
+import {
+  type LayoutBannerContext,
+  type LayoutBannerInfo,
+  LayoutBannerScope,
+  type LayoutBannerVariant,
 } from "@antelopejs/interface-dms/layout-banners";
 import type { BlockLinkAction } from "@antelopejs/interface-dms/base/display";
 import type { BlockText } from "@antelopejs/interface-dms/base/types/composed-text";
@@ -28,12 +29,15 @@ export namespace internal {
 
 /**
  * A banner as the browser receives it: its content and chrome, with the
- * resolvers already applied — they never leave the server.
+ * resolvers already applied — they never leave the server. The scope travels
+ * with it because the site layout is shared by every page: the dashboard
+ * applies it against the current route, server-side and on each navigation.
  */
 export interface LayoutBannerSerialized {
   key: string;
   variant: LayoutBannerVariant;
   order: number;
+  scope: LayoutBannerScope;
   dismissible: boolean;
   icon?: string;
   text?: BlockText;
@@ -56,6 +60,19 @@ function staticBody(banner: LayoutBannerInfo): LayoutBannerBody {
   };
 }
 
+const LAYOUT_BANNER_SCOPES: ReadonlySet<string> = new Set(
+  Object.values(LayoutBannerScope),
+);
+
+// An untyped registration may name a scope that does not exist: it reads as
+// the default, `app`, so the dashboard only ever receives a known one.
+function resolveScope(banner: LayoutBannerInfo): LayoutBannerScope {
+  const { scope } = banner;
+  return scope && LAYOUT_BANNER_SCOPES.has(scope)
+    ? scope
+    : LayoutBannerScope.APP;
+}
+
 function serializeLayoutBanner(
   banner: LayoutBannerInfo,
   body: LayoutBannerBody,
@@ -64,6 +81,7 @@ function serializeLayoutBanner(
     key: banner.key,
     variant: banner.variant,
     order: banner.order ?? DEFAULT_BANNER_ORDER,
+    scope: resolveScope(banner),
     dismissible: banner.dismissible === true,
     icon: banner.icon,
     ...body,

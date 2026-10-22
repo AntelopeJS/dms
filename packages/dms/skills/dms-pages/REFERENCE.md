@@ -56,8 +56,11 @@ points at an `ActionTarget`. A detail or record panel (an inspector, a request, 
 resizes by its inner edge and which opens again at that size. On a row it takes the side
 panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
 fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
-with previous / next next to close; J / K step in place through the rows the table shows;
-`deepLink:
+with previous / next next to close; J / K step in place, through every row the table lists
+(the position counts them all, a step past the page loaded turns the page, a step goes to
+the open row's neighbour by id so live rows never make it skip or revisit one, and a
+deep-linked row past the page loaded is located in the table's result, in the order
+the table shows, pinned rows leading their own page); `deepLink:
 true` on the target keeps
 `?record=`; `notFound: { title, description }` draws the 404 state — with the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
@@ -75,7 +78,9 @@ import the layer's `RowHeader` component —
 `docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
 fills it and ends with `<DmsContainerFooter>` for its buttons — never measure the drawer nor use
-`--dms-form-foot-*` — `docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
+`--dms-form-foot-*`; a code editor taking the height left (`DmsInputCode fill`, in a stacked
+`DmsFieldRow fill`) — never count its lines from the drawer's size —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
 A `useDrawer()` body injects what the component calling `useDrawer()` (in its setup) provides —
 never pass a context as a prop to provide it again in the body.
 A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
@@ -101,9 +106,15 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)` makes the page's data blocks
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
-  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
+  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`). Its selected
+  comparison drives the cards: `KpiCard` names it ("vs previous year", leave `compareLabel`
+  unset) and prints the route's `previousValue`; "No comparison" hides the change, the value
+  compared against and the label on `KpiCard`, `ChartCard` and `TopListCard`.
 - `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
-  `PublishMessage`.
+  `PublishMessage`. Publish tenant data with the tenant id (`{ tenantId }`): without it the message
+  is global and refetches the page in every workspace. A `TableView` needs no option: the DMS
+  publishes to every tenant for a table of the shared schema, and a platform (module) page receives
+  every tenant's changes.
 
 ### Live pages
 
@@ -127,7 +138,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   an editor reads the default children from the block type's `initialChildren`.
   A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
   of its own: neither needs a `componentId` or `pageId` there.
-- `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
+- `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
+  rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
   publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
@@ -155,6 +167,11 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A layout banner (`RegisterLayoutBanner`) shows on the application's pages only by default, never
+  inside `/modules` (modules page, module store, module pages). Give `scope:
+  LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
+  maintenance) that must follow the user into modules; leave the default for anything about the
+  application's own data.
 - A route that must word a text reads the request's `x-content-language` header (the language on
   screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
@@ -164,9 +181,14 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Blocks
 
 - `StatGroup` details and `NavCardGrid` card titles take up to two lines before their ellipsis.
+- `StatGroup({ columnsFrom: "md" })` (`DmsStatGroup columns-from`) sets all `columns` side by side from
+  that group width — never a class forcing the group's grid (`[&>div]:grid-cols-*`).
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).
+- A fetched list block draws `skeletonCount` placeholders until its first answer in a client
+  navigation (a server render waits for the data): set it to the usual number of items so the page
+  does not move when they land. A refresh keeps the items on screen until the new ones land.
 - `TopListCard({ actions })` puts link buttons in its head; `Tab({ fit: true })` keeps pill tabs to
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
@@ -195,6 +217,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 - A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
   default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A `cards` display whose `card.component` is taller than the built-in card sets
+  `card.skeletonHeight` to its height (a CSS length): the loading placeholder takes it, so the
+  pagination footer does not drop when the cards land.
 - A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
   rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
@@ -203,6 +228,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
   cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
+- A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
+  `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
+  `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
+  full row.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

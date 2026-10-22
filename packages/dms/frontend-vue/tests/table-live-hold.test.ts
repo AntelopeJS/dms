@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * A `liveHold` table on a paused live page keeps its rows: its events are
- * counted into a "N new · Show" banner, a source route is told when the rows
+ * A `liveHold` table on a paused live page, or with its rows on screen, keeps
+ * its rows: its events are counted into a "N new · Show" banner, a source route is told when the rows
  * were frozen on every list it is asked for (the user's search, sort and
  * pagination included), and Show reads the rows once without leaving the
  * pause.
@@ -22,6 +22,7 @@ import {
 import type {
   TableLiveHold,
   TableLiveHoldSignals,
+  TableNewRowsCounter,
 } from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
 
@@ -52,6 +53,7 @@ interface MountedTableOptions {
   liveHold: boolean | TableViewLiveHoldOptions;
   isSource?: boolean;
   signals?: TableLiveHoldSignals;
+  newRows?: TableNewRowsCounter;
 }
 
 function mountTable(options: MountedTableOptions) {
@@ -66,6 +68,7 @@ function mountTable(options: MountedTableOptions) {
           isSource: options.isSource ?? true,
           gate: () => gate,
           signals: options.signals,
+          newRows: options.newRows,
         });
         return () => h("div");
       },
@@ -230,40 +233,71 @@ it("keeps today's hold when liveHold is true: an open row changes nothing", asyn
   expect(hold.isHolding.value).toBe(false);
 });
 
-it("holds the table while its first row is scrolled out of view", async () => {
+// A table whose top stands at `tableTop` and its first row's bottom at
+// `rowBottom`, in a 768px tall window; `scroll` moves them.
+function placedTable(tableTop: number, rowBottom: number) {
   const element = document.createElement("div");
   element.innerHTML = "<table><tbody><tr><td>1</td></tr></tbody></table>";
   document.body.append(element);
   const row = element.querySelector("tr")!;
-  const rect = (bottom: number) => ({ bottom, top: bottom - 40 }) as DOMRect;
-  row.getBoundingClientRect = () => rect(120);
+  const place = (top: number, bottom: number) => {
+    element.getBoundingClientRect = () =>
+      ({ top, bottom: top + 400 }) as DOMRect;
+    row.getBoundingClientRect = () => ({ bottom, top: bottom - 40 }) as DOMRect;
+  };
+  place(tableTop, rowBottom);
   vi.stubGlobal("requestAnimationFrame", (run: () => void) =>
     setTimeout(run, 16),
   );
-  const scroll = async () => {
+  const scroll = async (top: number, bottom: number) => {
+    place(top, bottom);
     window.dispatchEvent(new Event("scroll"));
     vi.advanceTimersByTime(16);
     await nextTick();
   };
+  return { element, scroll };
+}
 
+it("holds the rows on screen still, the page staying live, without a reason", async () => {
+  const { element, scroll } = placedTable(80, 160);
+  const { refresh, hold } = mountTable({
+    liveHold: true,
+    signals: { tableElement: () => element },
+  });
+  await nextTick();
+  publish();
+  publish();
+  expect(live.isPaused.value).toBe(false);
+  expect(refresh).not.toHaveBeenCalled();
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.newCount.value).toBe(2);
+  expect(hold.reason.value).toBe(null);
+
+  // Out of reach below the screen, new rows move nothing in view: the table
+  // reads what it missed and follows the feed again.
+  await scroll(1200, 1280);
+  expect(refresh).toHaveBeenCalledTimes(1);
+  publish();
+  expect(refresh).toHaveBeenCalledTimes(2);
+  element.remove();
+});
+
+it("names the scroll as its reason while its first row is out of view", async () => {
+  const { element, scroll } = placedTable(80, 160);
   const { refresh, hold } = mountTable({
     liveHold: { whileScrolled: true },
     signals: { tableElement: () => element },
   });
   await nextTick();
   publish();
-  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(refresh).not.toHaveBeenCalled();
+  expect(hold.reason.value).toBe(null);
 
-  row.getBoundingClientRect = () => rect(-200);
-  await scroll();
+  await scroll(-400, -200);
   publish();
-  expect(hold.isHolding.value).toBe(true);
-  expect(hold.newCount.value).toBe(1);
-  expect(refresh).toHaveBeenCalledTimes(1);
-
-  row.getBoundingClientRect = () => rect(120);
-  await scroll();
-  expect(refresh).toHaveBeenCalledTimes(2);
+  expect(hold.reason.value).toBe("scrolled");
+  expect(hold.newCount.value).toBe(2);
+  expect(refresh).not.toHaveBeenCalled();
   element.remove();
 });
 
@@ -337,4 +371,72 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   live.resume();
   await nextTick();
   expect(hold.missedDetail.value).toBe(null);
+});
+
+// A table whose list holds `held` rows, its route matching `now()` rows now.
+function countedRows(held: number, now: () => number | Promise<number>) {
+  const heldList = ref<{ total: number } | null>({ total: held });
+  const countNow = vi.fn(async () => now());
+  return { heldList, newRows: { heldList: () => heldList.value, countNow } };
+}
+
+it("counts the new rows the table would list, not every event", async () => {
+  // A "4xx" tab: of three requests, one is a 4xx.
+  const { newRows } = countedRows(10, () => 11);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  publish();
+  publish();
+  await nextTick();
+  expect(hold.newCount.value).toBe(0);
+
+  // One count for the burst, once it has settled.
+  await vi.advanceTimersByTimeAsync(500);
+  expect(newRows.countNow).toHaveBeenCalledTimes(1);
+  expect(hold.newCount.value).toBe(1);
+});
+
+it("shows no pill when no new event matches the table's query", async () => {
+  const { newRows } = countedRows(10, () => 10);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(0);
+});
+
+it("counts again when the held list changes, and forgets on Show", async () => {
+  let now = 12;
+  const { heldList, newRows } = countedRows(10, () => now);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(2);
+
+  // The user's search lists other rows, bounded: fewer of them are new.
+  heldList.value = { total: 3 };
+  now = 4;
+  await nextTick();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(1);
+
+  hold.showNew();
+  await nextTick();
+  expect(hold.newCount.value).toBe(0);
+});
+
+it("falls back to the events when the count fails", async () => {
+  const { newRows } = countedRows(10, () => Promise.reject(new Error("503")));
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(2);
 });

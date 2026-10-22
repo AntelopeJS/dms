@@ -32,8 +32,8 @@ import {
 import {
   listenRowSteps,
   type RowNavigationSource,
-  rowNavigation,
   type ShowRow,
+  trackRowNavigation,
 } from "./rowNavigation";
 import type { RowNavigation } from "../../../types/row-navigation";
 import {
@@ -67,6 +67,7 @@ import {
   resolveTextVariables,
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
+import { readBulkCount } from "../table-view/utils/bulkActions";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 import {
   interpolateRowText,
@@ -220,12 +221,17 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const { handleApiError } = config;
   const fetchRaw = useAuthFetch().$authFetch.raw as unknown as DownloadFetch;
 
-  /** Calls an `api` target and tells how it went (rejects on a failure). */
+  /**
+   * Calls an `api` target and tells how it went (rejects on a failure). On a
+   * selection, the toast counts the rows the route says it changed, or every
+   * selected row when it does not say.
+   */
   const requestApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
     rowData?: Data,
     values: ConfirmValues = {},
+    selection?: BulkSelection,
   ) => {
     // The confirmation's values join the declared body, the input winning.
     const body = { ...target.body, ...values };
@@ -239,6 +245,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
     if (target.copy) {
       await copyToClipboard(String(response?.[target.copy] ?? ""));
     }
+    const toastParams = selection
+      ? { ...rowData, count: readBulkCount(response) ?? selection.count }
+      : (rowData ?? {});
     toast.add(
       resolveResponseToast(
         response,
@@ -247,7 +256,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
           // Pluralized on a bulk action's `{ count }`, like its dialog.
           title: resolveConfirmText(
             target.successMessage,
-            rowData ?? {},
+            toastParams,
             t as ConfirmTranslate,
           ),
         },
@@ -265,9 +274,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     url: string,
     label: string,
     rowData?: Data,
+    selection?: BulkSelection,
   ) => {
     try {
-      await requestApiTarget(target, url, rowData);
+      await requestApiTarget(target, url, rowData, {}, selection);
     } catch (error: unknown) {
       handleApiError(error, label ? processI18n(label, rowData) : undefined);
     }
@@ -527,7 +537,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
         row,
         rowKey: rowIdOf(row),
         source: row ? config.rowNavigation : undefined,
-        showRow,
+        // A step that loads a page first lands after it: not on a panel
+        // closed or replaced meanwhile.
+        showRow: whileShown(session, showRow),
       });
       recordId(rowIdOf(row));
     }
@@ -560,15 +572,40 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const withRowHeader = hasRowHeader(run.target) && !run.selection;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
+    let stopNavigation: (() => void) | undefined;
     // Set once the container closes: a row read that resolves later neither
     // writes `?record=` back nor patches the closed container.
     let closed = false;
-    const showRowById = rowShower((row) => {
+    const showRowOpen = (row: Data) => {
       if (!closed) showRow(row);
-    });
+    };
+    const showRowById = rowShower(showRowOpen);
+    // The position and the steps follow the table (a reload, live rows, the
+    // row located past the page loaded): the open container is patched with
+    // them.
+    const trackNavigation = (row?: Data) => {
+      stopNavigation?.();
+      stopNavigation = undefined;
+      navigation = undefined;
+      if (!row || !source) return;
+      // The first navigation goes out with the row's own options.
+      let isShowing = true;
+      // A step that loads a page first lands after it, maybe closed by then.
+      stopNavigation = trackRowNavigation(source, row, showRowOpen, (next) => {
+        navigation = next;
+        if (isShowing || !instance || closed) return;
+        instance.patch({
+          componentOptions: optionsOf(row),
+          ...(withRowHeader && { headerComponentOptions: headerFor(row) }),
+        });
+      });
+      isShowing = false;
+    };
     const optionsFor = (row?: Data) => {
-      navigation =
-        row && source ? rowNavigation(source, row, showRow) : undefined;
+      trackNavigation(row);
+      return optionsOf(row);
+    };
+    const optionsOf = (row?: Data) => {
       return {
         ...targetOptionsFor(run.target, row),
         pageId: config.pageId,
@@ -619,6 +656,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const settle = () => {
       closed = true;
       stopSteps?.();
+      stopNavigation?.();
       recordRow(undefined);
     };
     instance.result.then(settle, settle);
@@ -685,10 +723,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
       }
       window.location.href = url;
     },
-    api: async (target, label, rowData) => {
+    api: async (target, label, rowData, extras) => {
       const apiTarget = target as ActionTarget & { type: "api" };
       const url = targetUrl(apiTarget.url, rowData);
-      await handleApiTarget(apiTarget, url, label, rowData);
+      await handleApiTarget(apiTarget, url, label, rowData, extras?.selection);
     },
     exportJob: async (target, _label, rowData) => {
       const jobTarget = target as ActionTarget & { type: "exportJob" };
@@ -718,16 +756,21 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const confirmedRuns: Partial<
     Record<
       ActionTarget["type"],
-      (target: ActionTarget, rowData?: Data) => ConfirmedRun
+      (
+        target: ActionTarget,
+        rowData?: Data,
+        extras?: TargetRunExtras,
+      ) => ConfirmedRun
     >
   > = {
-    api: (target, rowData) => (values) => {
+    api: (target, rowData, extras) => (values) => {
       const apiTarget = target as ActionTarget & { type: "api" };
       return requestApiTarget(
         apiTarget,
         targetUrl(apiTarget.url, rowData),
         rowData,
         values,
+        extras?.selection,
       );
     },
   };
@@ -758,7 +801,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       await handler(target, label, rowData, extras);
       return;
     }
-    const runInside = confirmedRuns[target.type]?.(target, rowData);
+    const runInside = confirmedRuns[target.type]?.(target, rowData, extras);
     const isConfirmed = await confirmAction(declared, {
       row: extras?.textParams ? { ...rowData, ...extras.textParams } : rowData,
       urlParams: rowUrlParams(rowData),

@@ -134,6 +134,7 @@ function archive(ids: string[]) {
     context(""),
     ids,
     USER,
+    context(""),
     SESSION,
     USER,
   );
@@ -145,6 +146,7 @@ function restore(ids: string[]) {
     context(""),
     ids,
     USER,
+    context(""),
     SESSION,
     USER,
   );
@@ -156,6 +158,7 @@ function remove(ids: string[]) {
     context(""),
     { id: ids },
     USER,
+    context(""),
     SESSION,
     USER,
   );

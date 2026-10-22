@@ -61,3 +61,45 @@ describe("NavCard title", () => {
     expect(title).not.toContain("truncate");
   });
 });
+
+describe("StatGroup columnsFrom", () => {
+  const items = ["Template", "Locale", "Latency"].map((eyebrow) => ({
+    eyebrow,
+    value: "—",
+  }));
+  // The column classes of the group's grid, whatever their order.
+  const columnClasses = (html: string) =>
+    (/<div class="([^"]*\bgrid\b[^"]*)"/.exec(html)?.[1] ?? "")
+      .split(" ")
+      .filter((name) => name.includes("grid-cols-"))
+      .sort();
+
+  it("sets all the columns side by side from the given group width", async () => {
+    const html = await render(StatGroup, {
+      layout: "joined",
+      columns: 3,
+      columnsFrom: "md",
+      items,
+    });
+    expect(columnClasses(html)).toEqual(["@md:grid-cols-3", "grid-cols-1"]);
+  });
+
+  it("keeps the usual steps without it", async () => {
+    const html = await render(StatGroup, {
+      layout: "joined",
+      columns: 3,
+      items,
+    });
+    expect(columnClasses(html)).toEqual(["@xl:grid-cols-3", "grid-cols-1"]);
+  });
+
+  it("keeps the narrow count of cards", async () => {
+    const html = await render(StatGroup, {
+      layout: "cards",
+      columns: 4,
+      columnsFrom: "lg",
+      items: [...items, { eyebrow: "Opens", value: 3 }],
+    });
+    expect(columnClasses(html)).toEqual(["@lg:grid-cols-4", "grid-cols-2"]);
+  });
+});

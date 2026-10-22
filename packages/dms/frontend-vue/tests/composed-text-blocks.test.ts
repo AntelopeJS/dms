@@ -5,6 +5,7 @@
  * reader's language, and keep drawing plain strings as before.
  */
 import {
+  Suspense,
   createApp,
   defineComponent,
   h,
@@ -96,9 +97,15 @@ const SETTLE_MS = 50;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 const mounted: Array<{ unmount: () => void }> = [];
 
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+// Under a Suspense, as the page renders its blocks: a Banner's setup waits
+// for its first answer.
 function render(component: Component, props: Record<string, unknown>) {
   const root = document.createElement("div");
-  const app = createApp(component, props);
+  const app = createApp(() =>
+    h(Suspense, null, { default: () => h(component, props) }),
+  );
   app.mount(root);
   mounted.push(app);
   return () =>
@@ -192,7 +199,7 @@ describe("KeyValueListBlock", () => {
 });
 
 describe("BannerBlock", () => {
-  it("composes its title and description", () => {
+  it("composes its title and description", async () => {
     const read = render(BannerBlock, {
       title: { key: "saas.failed" },
       description: {
@@ -200,6 +207,7 @@ describe("BannerBlock", () => {
         params: { date: { type: "date", value: "2026-10-10", format: "day" } },
       },
     });
+    await flushPromises();
 
     expect(read()).toEqual({
       title: "Payment failed",
@@ -207,7 +215,9 @@ describe("BannerBlock", () => {
     });
   });
 
-  it("keeps a plain title as written", () => {
-    expect(render(BannerBlock, { title: "Beta" })().title).toBe("Beta");
+  it("keeps a plain title as written", async () => {
+    const read = render(BannerBlock, { title: "Beta" });
+    await flushPromises();
+    expect(read().title).toBe("Beta");
   });
 });

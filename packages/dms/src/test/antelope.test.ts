@@ -20,7 +20,7 @@ const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
-const API_GATE_COMMIT = "bfec71c873e582bb4c04202e823ba876d989a13b";
+const API_GATE_COMMIT = "5361540552fdccc1541133bfd9de2bad525dc6c9";
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
 // The loader runs a local module's install command on every start. CI has
@@ -101,7 +101,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.4.3",
+        "1.4.4",
       ),
     },
     "auth-jwt": {
@@ -134,7 +134,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.9",
+        "0.1.11",
       ),
     },
     nodemailer: {

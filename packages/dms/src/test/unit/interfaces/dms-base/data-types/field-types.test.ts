@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { serializeType } from "@antelopejs/interface-dms/base/data-types";
 
 const ITEMS = [
   { label: "Low", value: "low", description: "When there is time" },
@@ -206,6 +207,23 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
   });
 });
 
+describe("[unit] interfaces/dms-base — TagsType filter", () => {
+  it("filters the rows holding a tag, typed as a text", () => {
+    const tags = serializeType(new DefaultDataTypes.TagsType())!;
+    expect(tags.compareModes).to.deep.equal([
+      "array_contains_string",
+      "is_empty",
+      "is_not_empty",
+    ]);
+    expect(tags.defaultCompareMode).to.equal("array_contains_string");
+    expect(tags.filterComponents.default).to.include({
+      componentName: "dms-input-text",
+    });
+    expect(tags.filterComponents.is_empty).to.equal("noInput");
+    expect(tags.inputComponent.componentName).to.equal("dms-input-tags");
+  });
+});
+
 describe("[unit] interfaces/dms-base — a number's unit and a text's counter", () => {
   it("hands a number field its unit, and leaves the value a number", () => {
     const days = new DefaultDataTypes.NumberType({
@@ -236,5 +254,17 @@ describe("[unit] interfaces/dms-base — a number's unit and a text's counter", 
     });
     expect(notes.inputComponent().componentName).to.equal("dms-textarea");
     expect(notes.inputComponent().options).to.include({ showCount: true });
+  });
+
+  it("hands a number, a percentage and a text field their width", () => {
+    const estimate = new DefaultDataTypes.NumberType({ width: "compact" });
+    expect(estimate.inputComponent().options).to.include({ width: "compact" });
+    const share = new DefaultDataTypes.PercentageType({ width: "full" });
+    expect(share.inputComponent().options).to.include({ width: "full" });
+    const code = new DefaultDataTypes.StringType({ width: "compact" });
+    expect(code.inputComponent().options).to.include({ width: "compact" });
+    expect(
+      new DefaultDataTypes.NumberType().inputComponent().options,
+    ).to.include({ width: undefined });
   });
 });

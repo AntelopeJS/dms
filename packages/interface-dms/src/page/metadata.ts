@@ -6,7 +6,6 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import { Model } from "@antelopejs/interface-database-decorators";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import { AuthOwnerOnly, AuthUser } from "../auth";
 // Import from the defining leaf, not the dms-base barrel: the barrel pulls in
@@ -31,7 +30,7 @@ import {
   RegisterPermission,
   UnregisterPermission,
 } from "../permissions";
-import { getRequestTenantId } from "../request-tenant";
+import { TenantScopedModel } from "../tenant-scoped-model";
 import { AssertTenantAccess } from "../tenant-access";
 import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
@@ -571,6 +570,7 @@ export class PageMetadata {
       tenantId,
       query,
       params,
+      resolverContext,
     }: PageLayoutRequest,
     // Only for the by-slug entry, which has no guard of its own.
     { enforceTenantAccessGate = false } = {},
@@ -613,7 +613,13 @@ export class PageMetadata {
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+      return GetEffectiveUserPermissions(
+        user,
+        tenantId,
+        roleIds,
+        roleModel,
+        resolverContext,
+      );
     };
 
     // Header actions declaring a permission are filtered on every page, even
@@ -1085,15 +1091,8 @@ export class PageMetadata {
 
     if (authOnly) return;
 
-    Model(RoleModel, (ctx) => getRequestTenantId(ctx))(
-      this.target.prototype,
-      "roleModel",
-    );
-
-    Model(TenantMemberModel, (ctx) => getRequestTenantId(ctx))(
-      this.target.prototype,
-      "memberModel",
-    );
+    TenantScopedModel(RoleModel)(this.target.prototype, "roleModel");
+    TenantScopedModel(TenantMemberModel)(this.target.prototype, "memberModel");
 
     RequestTenantIdProperty()(this.target.prototype, "tenantId");
   }

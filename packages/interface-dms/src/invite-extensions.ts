@@ -19,8 +19,6 @@
  * this barrel is what opens the modal and the edit form to extensions.
  */
 import "./invite-extensions/internal/form-slot";
-import * as availability from "./invite-extensions/internal/availability";
-import { internal as registry } from "./invite-extensions/registry";
 
 export {
   type InviteAvailabilityResolver,
@@ -28,17 +26,3 @@ export {
 } from "./invite-extensions/availability";
 export * from "./invite-extensions/registry";
 export * from "./invite-extensions/types";
-
-// Shadows the namespace registry.ts declares: the same proxy, plus
-// `ResolveInviteAvailability`, which module tests reach through it.
-
-/**
- * @internal
- */
-export namespace internal {
-  export const RegisterInviteExtension = registry.RegisterInviteExtension;
-
-  /** Kept for module compatibility; the DMS imports it from `internal/availability`. */
-  export const ResolveInviteAvailability =
-    availability.ResolveInviteAvailability;
-}

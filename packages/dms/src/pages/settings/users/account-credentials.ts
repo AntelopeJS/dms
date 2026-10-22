@@ -1,5 +1,5 @@
-// Sign-in credentials and sessions of the signed-in user, shared by the
-// Security page and the legacy profile routes.
+// Sign-in credentials and sessions of the signed-in user, for the Security
+// page and the password reset.
 
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type {

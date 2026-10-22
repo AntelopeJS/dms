@@ -364,6 +364,15 @@ export const TableViewSchema = z.object({
       ),
     { label: "Ghost delete", order: 4, group: "features", widget: "switch" },
   ),
+  archivedCountLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        'Count shown while the archive is listed, with {count} ("13 archived invoices").',
+      ),
+    { label: "Archived count", group: "content" },
+  ),
   defaultFilters: ui(z.array(tabFilterSchema).optional(), {
     label: "Default filters",
     group: "advanced",
@@ -430,7 +439,7 @@ export const TableViewSchema = z.object({
       ])
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also holds them in Direct, `missedLabel` words the new rows.",
+        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
       ),
     {
       label: "Hold rows while paused",

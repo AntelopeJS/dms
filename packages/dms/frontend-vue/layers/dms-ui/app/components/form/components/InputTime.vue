@@ -10,6 +10,7 @@ interface InputTimeProps extends Omit<InputProps, "modelValue" | "type"> {
 
 const props = defineProps<InputTimeProps>();
 const { report } = useControlError();
+const { locale } = useI18n();
 const UNREADABLE_DURATION = "$dms.field_errors.invalid_duration";
 const emits = defineEmits<{
   "update:modelValue": [value: number | null];
@@ -21,7 +22,7 @@ const isUserTyping = ref(false);
 const updateDisplayValue = () => {
   if (isUserTyping.value) return;
   if (props.modelValue !== undefined && props.modelValue !== null) {
-    displayValue.value = formatTimeSpan(props.modelValue);
+    displayValue.value = formatDuration(props.modelValue, locale.value);
   } else {
     displayValue.value = "";
   }

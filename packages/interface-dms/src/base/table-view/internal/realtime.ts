@@ -1,9 +1,18 @@
-import { Parameter } from "@antelopejs/interface-api";
+import {
+  Context,
+  type ControllerClass,
+  Parameter,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import { GetMetadata } from "@antelopejs/interface-core";
 import { AuthUser } from "../../../auth";
+import { CORE_SCHEMA_NAME } from "../../../constants";
 import type { User } from "../../../auth/db";
 import { RegisterPageTopic } from "../../../realtime";
+import { getRequestTenantId } from "../../../request-tenant";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 import { realtimeMutationListeners } from "./realtime-listeners";
 import {
@@ -105,6 +114,21 @@ export const extractBulkArgIds: IdExtractor = (args) => {
 const isRealtimeEnabled = (target: unknown): boolean =>
   getTableViewMetaFor(target).options.realtime !== false;
 
+/**
+ * The tenant a table's realtime events are published for: the request's,
+ * unless the table's rows live in the schema every tenant shares.
+ */
+const realtimeTenantOf = (
+  target: unknown,
+  ctx: RequestContext,
+): string | undefined =>
+  GetMetadata(
+    (target as { constructor: ControllerClass }).constructor,
+    DataAPIMeta,
+  ).schemaName === CORE_SCHEMA_NAME
+    ? undefined
+    : getRequestTenantId(ctx);
+
 // The counts the bulk routes answer with: delete sends the number of deleted
 // rows (or `{ deleted }`), archive and restore `{ archivedCount }` and
 // `{ restoredCount }`.
@@ -139,12 +163,14 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
     method: baseRoute.method,
     args: [
       ...baseRoute.args,
+      Context(),
       Parameter(REALTIME_SESSION_HEADER, "header"),
       AuthUser(),
     ],
     func: async function (this: unknown, ...allArgs: unknown[]) {
       const user = allArgs.pop() as User;
       const sessionId = allArgs.pop() as string | undefined;
+      const ctx = allArgs.pop() as RequestContext;
       const result = await (
         baseRoute.func as (...a: unknown[]) => unknown
       ).apply(this, allArgs);
@@ -163,6 +189,7 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
         ids,
         sessionId,
         actor: { id: user._id, displayName: user.name || user.email },
+        tenantId: realtimeTenantOf(this, ctx),
       });
       return result;
     },
@@ -177,6 +204,7 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
     method: baseRoute.method,
     args: [
       ...baseRoute.args,
+      Context(),
       Parameter(REALTIME_SESSION_HEADER, "header"),
       Parameter(REALTIME_PRESENCE_QUERY, "query"),
       AuthUser(),
@@ -185,6 +213,7 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
       const user = allArgs.pop() as User;
       const presenceFlag = allArgs.pop() as string | undefined;
       const sessionId = allArgs.pop() as string | undefined;
+      const ctx = allArgs.pop() as RequestContext;
       const result = await (
         baseRoute.func as (...a: unknown[]) => unknown
       ).apply(this, allArgs);
@@ -204,6 +233,7 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
         sessionId,
         rowId: params.id,
         actor: { id: user._id, displayName: user.name || user.email },
+        tenantId: realtimeTenantOf(this, ctx),
       });
       return result;
     },

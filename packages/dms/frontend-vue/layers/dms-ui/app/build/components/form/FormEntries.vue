@@ -7,6 +7,8 @@ import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
 import {
   GROUP_FIELDS_CLASSES,
+  entryFields,
+  entryRowLayout,
   GROUP_MEMBER_CLASSES,
 } from "../../composables/form/formLayout";
 import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
@@ -26,6 +28,11 @@ const { processI18n } = useTranslation();
 
 const classes = computed(() => context.layoutClasses(props.inSection));
 
+/** The row's layout: a wide field takes the full width under its label. */
+function rowOf(entry: FormFieldOrGroup) {
+  return entryRowLayout(classes.value.row, entryFields(entry));
+}
+
 function groupFieldsClass(group: FieldGroup): string {
   return GROUP_FIELDS_CLASSES[
     group.orientation === "vertical" ? "vertical" : "horizontal"
@@ -34,6 +41,12 @@ function groupFieldsClass(group: FieldGroup): string {
 
 function isGroupVisible(group: FieldGroup): boolean {
   return group.fields.some((field) => !context.isFieldHidden(field));
+}
+
+// A description tells how to fill the field ("Left empty, the default rate
+// applies"): a form where nothing can be changed shows only the values.
+function descriptionOf(entry: FormFieldOrGroup): string | undefined {
+  return context.isReadOnly.value ? undefined : entry.description;
 }
 
 function isGroupRequired(group: FieldGroup): boolean {
@@ -55,9 +68,9 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
       <template v-if="isFieldGroup(entry)">
         <DmsFieldRow
           v-if="isGroupVisible(entry)"
-          v-bind="classes.row"
+          v-bind="rowOf(entry)"
           :label="entry.label || ''"
-          :description="entry.description"
+          :description="descriptionOf(entry)"
           :required="isGroupRequired(entry)"
         >
           <template v-if="saveStateOf(entry) !== 'idle'" #details>
@@ -100,10 +113,10 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
 
       <DmsFieldRow
         v-else-if="!context.isFieldHidden(entry)"
-        v-bind="classes.row"
+        v-bind="rowOf(entry)"
         :label="entry.label || ''"
         :label-for="entry.id"
-        :description="entry.description"
+        :description="descriptionOf(entry)"
         :required="context.isFieldRequired(entry)"
       >
         <template v-if="saveStateOf(entry) !== 'idle'" #details>
