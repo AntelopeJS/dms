@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata; a `GridRow` inside a cell, e.g. in a `Section`, spreads its own children rather than the grid's columns), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
