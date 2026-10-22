@@ -341,7 +341,7 @@ const ACCESS_FEATURES: PlaygroundFeature[] = [
 const CHROME_FEATURES: PlaygroundFeature[] = [
   {
     area: AREA,
-    feature: "A text banner on every page",
+    feature: "A text banner on the application's pages",
     api: "RegisterLayoutBanner({ text, actions, dismissible, visible })",
     demo: "/layout-banners",
   },
@@ -356,6 +356,13 @@ const CHROME_FEATURES: PlaygroundFeature[] = [
     area: AREA,
     feature: "A banner mounting a Vue component",
     api: "RegisterLayoutBanner({ component, props })",
+    demo: "/layout-banners",
+  },
+  {
+    area: AREA,
+    feature:
+      "A banner kept out of, or following the user into, the module area",
+    api: "RegisterLayoutBanner({ scope: LayoutBannerScope.EVERYWHERE })",
     demo: "/layout-banners",
   },
   {

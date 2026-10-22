@@ -1,4 +1,8 @@
 import type { Parameters } from "@antelopejs/interface-data-api/components";
+import {
+  type FilterValue,
+  FilterValuesOf,
+} from "@antelopejs/interface-data-api/metadata";
 
 type ListFilters = NonNullable<Parameters.ListParameters["filters"]>;
 
@@ -48,13 +52,14 @@ export function resolveFilterTokens(
 ): Parameters.ListParameters["filters"] {
   if (!filters) return filters;
   const resolved: ListFilters = {};
-  for (const [field, [value, mode]] of Object.entries(filters)) {
-    resolved[field] = [
+  for (const [field, filter] of Object.entries(filters)) {
+    const values = FilterValuesOf(filter).map(([value, mode]): FilterValue => [
       typeof value === "string"
         ? resolveFilterValueTokens(value, context)
         : value,
       mode,
-    ];
+    ]);
+    resolved[field] = values.length === 1 ? values[0] : values;
   }
   return resolved;
 }

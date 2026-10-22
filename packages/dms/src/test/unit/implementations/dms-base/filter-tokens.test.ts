@@ -10,8 +10,9 @@ const CONTEXT = { userId: "user-42", now: NOW };
 
 // A request's filters as the list route parses them: `filter_<field>` gives
 // the value and the compare mode as written, which the type does not know.
-const asFilters = (filters: Record<string, [string, string]>) =>
-  filters as unknown as Parameters.ListParameters["filters"];
+const asFilters = (
+  filters: Record<string, [string, string] | [string, string][]>,
+) => filters as unknown as Parameters.ListParameters["filters"];
 
 describe("[unit] dms-base — filter tokens", () => {
   it("replaces the caller's id", () => {
@@ -65,5 +66,24 @@ describe("[unit] dms-base — filter tokens", () => {
       status: ["open", "is"],
     });
     expect(resolveFilterTokens(undefined, CONTEXT)).to.equal(undefined);
+  });
+
+  it("resolves each filter of a field filtered several times", () => {
+    expect(
+      resolveFilterTokens(
+        asFilters({
+          dueAt: [
+            ["{{now-7d}}", "greater_than"],
+            ["{{now}}", "less_than"],
+          ],
+        }),
+        CONTEXT,
+      ),
+    ).to.deep.equal({
+      dueAt: [
+        ["2026-09-28T09:30:00.000Z", "greater_than"],
+        ["2026-10-05T09:30:00.000Z", "less_than"],
+      ],
+    });
   });
 });

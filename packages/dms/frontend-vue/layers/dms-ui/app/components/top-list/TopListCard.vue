@@ -13,6 +13,7 @@ import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
 import { usePeriodScopePreset } from "#dms-core/app/composables/period/usePeriodScope";
+import { usePeriodComparisonDisplay } from "../../build/composables/period/periodComparison";
 import {
   hasUrlVariables,
   resolveLinkVariables,
@@ -226,6 +227,11 @@ const badgeLabel = computed<string | null>(() => {
   return t(`${PRESET_LABEL_KEY_PREFIX}.${preset}`, preset);
 });
 
+// With no comparison selected on the scope, the rows show no change: their
+// trend column goes rather than staying blank.
+const comparison = usePeriodComparisonDisplay(props.periodScope);
+const showRowDelta = computed(() => props.showDelta && !comparison.isOff.value);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 // New inputs (a period applied) are on their way: the rows on screen still
 // belong to the previous ones, so they dim like the KPI values do.
@@ -262,7 +268,7 @@ function columnsTemplate(sparkline: boolean, icon: boolean): string {
   columns.push(TITLE_COLUMN_WIDTH);
   columns.push(VALUE_COLUMN_WIDTH);
   if (sparkline && props.showSparkline) columns.push(SPARKLINE_COLUMN_WIDTH);
-  if (props.showDelta) columns.push(TREND_COLUMN_WIDTH);
+  if (showRowDelta.value) columns.push(TREND_COLUMN_WIDTH);
   columns.push(EDGE_COLUMN_WIDTH);
   return columns.join(" ");
 }
@@ -338,7 +344,7 @@ const gridStyle = computed(() => ({
           :has-any-icon="hasAnyIcon"
           :show-sparkline="showSparkline"
           :sparkline-accent="sparklineAccentFor(item)"
-          :show-delta="showDelta"
+          :show-delta="showRowDelta"
           :invert="invert"
           :formatted-value="formattedValue(item)"
           :bar-percent="barPercent(item)"
@@ -379,7 +385,7 @@ const gridStyle = computed(() => ({
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-14" />
           <USkeleton
             :aria-label="t('dms.a11y.loading')"
-            v-if="showDelta"
+            v-if="showRowDelta"
             class="h-3 w-[46px]"
           />
         </div>

@@ -37,7 +37,7 @@ export class LayoutBannersPage extends PageController(
     category: chromeSection,
     order: 10,
     description:
-      "Demonstrates: RegisterLayoutBanner as a text, a resolved and a component banner, refreshed with NotifyMenuChanged. Toggle them from the header: they show on every page.",
+      "Demonstrates: RegisterLayoutBanner as a text, a resolved and a component banner, refreshed with NotifyMenuChanged. Toggle them from the header: the text banner shows on the application's pages, the past-due and suspended ones everywhere, module pages included.",
   },
   DefaultLayout({ headerActions: BANNER_KEYS.map(toggleButton) }),
 ) {
@@ -65,6 +65,12 @@ export class LayoutBannersPage extends PageController(
         value: "component, props, isTenantAccessDenied",
         detail:
           "Mounts PlaygroundSuspendedBanner; also shows while the Tenancy page suspends the workspace.",
+      },
+      {
+        label: "Scope",
+        value: "scope: app (default), everywhere",
+        detail:
+          "Open a module page: the text banner stays out of the module area, the workspace-wide ones follow you in.",
       },
       {
         label: "Stack order",

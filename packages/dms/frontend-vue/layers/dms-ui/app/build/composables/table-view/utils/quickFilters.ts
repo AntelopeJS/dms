@@ -30,6 +30,8 @@ export interface ResolvedQuickFilter {
 
 interface ColumnInputOptions {
   items?: Array<{ value: unknown; label: string }>;
+  /** A tags column's suggested tags: the values it offers. */
+  suggestions?: string[];
   multiple?: boolean;
 }
 
@@ -41,20 +43,24 @@ const inputOptions = (column: TableViewColumn | undefined) =>
 
 /**
  * The compare mode a quick filter applies: the declared one, else "contains"
- * for a multiple select or relation (the row holds a list) and equality
- * otherwise.
+ * when the row holds a list -- a multiple select or relation, or a type that
+ * filters on "contains" by default (tags) -- and equality otherwise.
  */
 export function quickFilterMode(
   column: TableViewColumn | undefined,
   declared?: TableViewQuickFilterMode,
 ): TableViewQuickFilterMode {
   if (declared) return declared;
-  return inputOptions(column).multiple ? ARRAY_MODE : SCALAR_MODE;
+  const holdsList =
+    inputOptions(column).multiple ||
+    column?.type?.defaultCompareMode === ARRAY_MODE;
+  return holdsList ? ARRAY_MODE : SCALAR_MODE;
 }
 
 /**
- * The values a select or boolean column offers, known from its declaration;
- * `undefined` for a column that declares none (a relation's are fetched).
+ * The values a select, boolean or tags column offers (a select's items, a
+ * tags column's `suggestions`), known from its declaration; `undefined` for a
+ * column that declares none (a relation's are fetched).
  */
 export function staticQuickFilterItems(
   column: TableViewColumn | undefined,
@@ -71,10 +77,17 @@ export function staticQuickFilterItems(
       },
     ];
   }
-  return inputOptions(column).items?.map((item) => ({
-    value: String(item.value),
-    label: translate(item.label),
-  }));
+  const { items, suggestions } = inputOptions(column);
+  if (items) {
+    return items.map((item) => ({
+      value: String(item.value),
+      label: translate(item.label),
+    }));
+  }
+  if (suggestions) {
+    return suggestions.map((tag) => ({ value: tag, label: tag }));
+  }
+  return undefined;
 }
 
 /**

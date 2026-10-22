@@ -15,7 +15,12 @@ import {
   readTranslationKey,
   resolveI18nKey,
 } from "../composables/translation/useTranslation";
-import { formatDate, formatNumber, formatRelativeDistance } from "./formatter";
+import {
+  formatDate,
+  formatNumber,
+  formatRelativeDistance,
+  readableNumberFormat,
+} from "./formatter";
 
 /** `t` as vue-i18n takes it: the key, the named values, the plural count. */
 export type ComposedTextTranslate = (
@@ -103,7 +108,7 @@ function formatMoney(
   { locale }: ComposedTextContext,
 ): string {
   try {
-    const format = new Intl.NumberFormat(locale, {
+    const format = readableNumberFormat(locale, {
       style: "currency",
       currency: param.currency,
     });

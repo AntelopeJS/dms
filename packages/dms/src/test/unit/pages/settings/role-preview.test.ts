@@ -72,10 +72,17 @@ function without(...ids: string[]): Set<string> {
 
 describe("[unit] pages/settings/users/role-preview", () => {
   describe("sanitizePreviewPermissions", () => {
-    it("drops the owner wildcard, empty ids and duplicates", () => {
+    it("drops empty ids and duplicates", () => {
       expect([
-        ...sanitizePreviewPermissions(["*", "a", "", "a", "b"]),
+        ...sanitizePreviewPermissions(["a", "", "a", "b"]),
       ]).to.deep.equal(["a", "b"]);
+    });
+
+    it("keeps the wildcard of a role granting everything", () => {
+      expect([...sanitizePreviewPermissions(["*", "a"])]).to.deep.equal([
+        "*",
+        "a",
+      ]);
     });
 
     it("previews the ids a permission sits under, as saving stores them", () => {
