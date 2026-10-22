@@ -38,7 +38,8 @@ gets `navigation` (J / K, `index` / `total` in the order shown) —
 A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
 (`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), a label's
 translation takes the page's route and query parameters (`"Download {locale}.json"`), and an
-`availability` reads `context.query`, asked again when the query changes — no need to build
+`availability` reads `context.query` and the route parameters in `context.params` (`:id`),
+asked again when either changes (a detail page hides "Edit" for a missing record) — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
 `packages/interface-dms/docs/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
 answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
@@ -146,7 +147,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 
 ### Forms
 
-- A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
+- A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
+  cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
@@ -158,7 +160,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Custom components
 
 - Name the record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`. A hidden detail page next to its
+  list (`project/:id` beside `projects`) declares `parent: ProjectsPage` in its menu options so
+  the breadcrumb shows the list before the record — `docs/02.building/04.navigation.md`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.

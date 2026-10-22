@@ -56,4 +56,6 @@ export interface DefaultLayoutSerializedOptions extends Omit<
    * buttons again when the page URL's query no longer matches it.
    */
   headerActionsQuery?: Readonly<Record<string, string>>;
+  /** The route parameters (`:id`) of the page URL, likewise. */
+  headerActionsParams?: Readonly<Record<string, string>>;
 }

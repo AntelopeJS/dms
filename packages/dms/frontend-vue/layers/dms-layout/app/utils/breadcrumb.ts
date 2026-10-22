@@ -79,3 +79,30 @@ export function foldBreadcrumb<T>(
     crumbs.at(-1)!,
   ];
 }
+
+/** What a crumb is compared on: the URL it opens. */
+interface LinkedCrumb {
+  to?: unknown;
+}
+
+/**
+ * `crumbs` with the crumb of the page the current one is a detail of
+ * (`MenuOptions.parent`) before the last, unless a crumb already opens it:
+ * a hidden detail page then leads back to its list.
+ */
+export function withParentCrumb<T extends object>(
+  crumbs: readonly T[],
+  parent: T | null | undefined,
+): T[] {
+  if (!parent || crumbs.length < 2) return [...crumbs];
+  const parentTo = (parent as LinkedCrumb).to;
+  if (
+    crumbs.some(
+      (crumb) =>
+        parentTo !== undefined && (crumb as LinkedCrumb).to === parentTo,
+    )
+  ) {
+    return [...crumbs];
+  }
+  return [...crumbs.slice(0, -1), parent, crumbs.at(-1)!];
+}

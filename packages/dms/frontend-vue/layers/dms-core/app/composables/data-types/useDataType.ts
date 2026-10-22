@@ -36,6 +36,16 @@ export type DataTypeValueComparer = (
   options?: unknown,
 ) => boolean;
 
+/**
+ * Where the rows a value names are read: the `select` route of the table a
+ * relation points to, and the keys its rows carry their label and value under
+ * (`label` and `value` unless mapped).
+ */
+export interface DataTypeSelectSource {
+  searchUrl: string;
+  keyMapping?: { label?: string; value?: string };
+}
+
 export interface DataType {
   id: string;
   formatter?: RecordWithDefault<DataTypeFormatter>;
@@ -46,6 +56,12 @@ export interface DataType {
    * or whose order does not count. Without it, values compare deeply.
    */
   isSameValue?: DataTypeValueComparer;
+  /**
+   * For a type whose value holds the ids of rows another table serves (a
+   * relation): where those rows are read, from the options of the type's
+   * control. A filter chip or a read-only list names the ids through it.
+   */
+  selectSource?: (options: unknown) => DataTypeSelectSource | undefined;
   displayComponent?: Component;
 }
 const dataTypes: Record<string, DataType> = {};

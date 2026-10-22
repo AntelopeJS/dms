@@ -25,6 +25,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   ArchiveField,
   Column,
+  Select,
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -32,6 +33,7 @@ import {
 // Notes in archive mode. A note is created without its archive field, which
 // only archive and restore write: the active list keeps it through the `ne`
 // filter, the database adapter matching a missing field as "not archived".
+// Its `select` route serves a relation picker's reads (table-view-select-ids).
 
 const TABLE = "archive-notes";
 
@@ -54,10 +56,12 @@ export class ArchiveNoteController extends DataController(
   declare model: ArchiveNoteModel;
 
   @Listable()
+  @Select()
   @Access(AccessMode.ReadOnly)
   declare _id: string;
 
   @Listable()
+  @Select()
   @Column({ name: "Title", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite)
   declare title: string;
