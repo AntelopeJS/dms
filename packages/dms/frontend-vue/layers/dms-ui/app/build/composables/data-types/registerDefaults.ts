@@ -18,7 +18,7 @@ import {
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
 import { registerTwoLineCellType } from "./twoLineCell";
-import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
   type StatusPillVariant,
 } from "../../../components/status-pill/StatusPill.vue";
@@ -29,6 +29,7 @@ import {
   formatDayMonth,
   formatRelativeDate,
 } from "../../utils/relativeDate";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const FilePreview = defineAsyncComponent(
   () => import("../../../components/table-view/FilePreview.vue"),
@@ -145,7 +146,7 @@ const convertToBoolean = (value: unknown): boolean =>
   parse(String(value)) === true;
 
 const getBooleanLabel = (value: unknown): string => {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   return convertToBoolean(value)
     ? processI18n("$dms.table.filter.boolean.checked")
     : processI18n("$dms.table.filter.boolean.unchecked");
@@ -160,7 +161,7 @@ function renderBoolean(value: unknown) {
 }
 
 function formatDateBetween(value: unknown, locale: string): string {
-  const { t } = useI18n();
+  const { t } = getAppTranslation();
   const [rawStart, rawEnd] = Array.isArray(value)
     ? value
     : [
@@ -174,7 +175,7 @@ function formatDateBetween(value: unknown, locale: string): string {
 
 // v2 .status pill, tinted with the configured online/offline color.
 function renderStatus(value: unknown, options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = options as StatusOptions | undefined;
   const isOnline = Boolean(value);
   const onlineLabel = opts?.onlineLabel || "$common.status.online";
@@ -194,7 +195,7 @@ function renderStatusPill(label: string, color: string) {
 }
 
 function renderSelectItem(item: SelectItem) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const label = processI18n(item.label);
   if (!item.icon && !item.iconColor && !item.textColor) return label;
 
@@ -253,7 +254,7 @@ function renderSelect(value: unknown, options?: unknown) {
 function formatAddress(value: unknown): string {
   if (!value || typeof value !== "object") return " ";
 
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const addr = value as Record<string, string>;
   const countryName = addr.countryCode
     ? processI18n(`$country.${addr.countryCode}`)
@@ -283,7 +284,7 @@ function renderRelationBadge(label: string, title?: string) {
 }
 
 function renderRelationBadges(values: unknown[], labelKey: string) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const { visible, hidden } = buildRelationBadges(values, labelKey);
   const badges = visible.map((label) =>
     renderRelationBadge(processI18n(label)),
@@ -354,7 +355,7 @@ function renderImage(value: unknown, options: unknown) {
 }
 
 function renderFile(value: unknown, options: unknown) {
-  const { t } = useI18n();
+  const { t } = getAppTranslation();
   const opts = options as FileOptions | undefined;
 
   if (opts?.multiple && Array.isArray(value)) {
@@ -408,8 +409,8 @@ const matchesBadge = (badge: IdentityBadgeOption, value: unknown): boolean =>
  * `emptyIcon` stand for a row without a value.
  */
 function renderIdentity(value: unknown, options: unknown, row: Row) {
-  const { processI18n } = useTranslation();
-  const { processText } = useComposedText();
+  const { processI18n } = getAppTranslation();
+  const { processText } = getAppComposedText();
   const opts = (options ?? {}) as IdentityOptions;
   const badges = (opts.badges ?? [])
     .filter((badge) => matchesBadge(badge, readRowField(row, badge.field)))
@@ -526,7 +527,7 @@ function renderPill(pill: PillItem) {
  * a relation could not resolve (a deleted row) is skipped.
  */
 function renderPills(value: unknown, options: unknown, row: Row) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as PillsOptions;
   if (opts.exclusive && isSet(readRowField(row, opts.exclusive.field))) {
     return h("span", { class: [PILL_CLASS, PILL_FILLED_CLASS] }, [
@@ -605,7 +606,7 @@ function renderRelativeDate(
   options: unknown,
   row: Row,
 ) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as RelativeDateOptions;
   const date = new Date(value as string);
   if (Number.isNaN(date.getTime())) return String(value);
@@ -644,7 +645,7 @@ function renderRelativeDate(
 }
 
 function renderMissingDate(options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as RelativeDateOptions;
   if (!opts.emptyLabel) return "-";
   return h(
@@ -670,7 +671,7 @@ interface IndicatorOptions {
  * on for a set flag or a non-empty list.
  */
 function renderIndicator(value: unknown, options: unknown) {
-  const { processI18n } = useTranslation();
+  const { processI18n } = getAppTranslation();
   const opts = (options ?? {}) as IndicatorOptions;
   const isOn = isSet(value);
   const icon = isOn ? opts.onIcon : opts.offIcon;
@@ -801,11 +802,11 @@ const registerDateType = (registerDataType: (dataType: DataType) => void) => {
     id: "date",
     formatter: {
       default: (value: unknown, locale: string) => {
-        const { t } = useI18n();
+        const { t } = getAppTranslation();
         return formatDate(value, locale) ?? t("dms.date.undefined");
       },
       cell: (value: unknown, locale: string) => {
-        const { t } = useI18n();
+        const { t } = getAppTranslation();
         return (
           formatDate(value, locale, CELL_DATE_FORMAT) ?? t("dms.date.undefined")
         );
