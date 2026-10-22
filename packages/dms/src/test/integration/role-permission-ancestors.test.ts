@@ -11,7 +11,7 @@ import { pageRoutePath } from "@antelopejs/interface-dms/page";
 // routes store a grant with every id above it, and a role stored without
 // them — saved before the routes completed it — is refused the action. A
 // table's edit is stored with its view too, the read its form loads the row
-// through.
+// through, and its delete with the list it is pressed from.
 
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
@@ -62,6 +62,7 @@ describe("[integration] role permissions and their ancestors", () => {
 
     expect(await storedPermissions(created.data.id)).to.have.members([
       DELETE_ACTION,
+      LIST_ACTION,
       ...DELETE_ANCESTORS,
     ]);
   });
@@ -81,6 +82,7 @@ describe("[integration] role permissions and their ancestors", () => {
 
     expect(await storedPermissions(created.data.id)).to.have.members([
       DELETE_ACTION,
+      LIST_ACTION,
       ...DELETE_ANCESTORS,
     ]);
   });
@@ -97,6 +99,7 @@ describe("[integration] role permissions and their ancestors", () => {
     );
     expect(role?.permissions).to.have.members([
       DELETE_ACTION,
+      LIST_ACTION,
       ...DELETE_ANCESTORS,
     ]);
   });
