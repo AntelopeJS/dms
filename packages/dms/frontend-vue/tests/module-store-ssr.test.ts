@@ -26,7 +26,6 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { useModuleStore } from "../layers/dms-layout/app/composables/page/useModuleStore";
-import { isHydratingComponent } from "../layers/dms-core/app/composables/hydration/isHydratingComponent";
 import ModuleTileSkeleton from "../layers/dms-layout/app/build/components/pages/modules/ModuleTileSkeleton.vue";
 
 const idleListing = {
@@ -39,19 +38,12 @@ const authFetch = vi.fn();
 const isOwner = ref(true);
 const mounted: App[] = [];
 
-/** Whether each setup of the store awaited its listing. */
-const awaitedListing: boolean[] = [];
-
 const Store = defineComponent({
-  async setup() {
+  setup() {
     const store = useModuleStore();
-    const isHydrating = isHydratingComponent();
-    // Before the await, as a compiled <script setup> keeps it.
+    // As the Modules pages: nothing awaits the listing, the server render
+    // waits for it on its own and the browser adopts its answer.
     onMounted(() => store.start());
-    // As the Modules pages: a hydration awaits nothing, the server's answer
-    // is adopted before the first render.
-    awaitedListing.push(!isHydrating);
-    if (!isHydrating) await store.ready();
     return () =>
       h(
         "p",
@@ -73,7 +65,6 @@ async function settle(): Promise<void> {
 
 beforeEach(() => {
   isOwner.value = true;
-  awaitedListing.length = 0;
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
@@ -102,9 +93,6 @@ it("renders the store listing on the server, and the browser does not read it ag
   await settle();
   expect(authFetch).not.toHaveBeenCalled();
   expect(container.innerHTML).toBe(html);
-  // An await on hydration would resume the setup with the page as Vue's
-  // current instance while the app's first flush renders the layout's slots.
-  expect(awaitedListing).toEqual([true, false]);
   expect(warn).not.toHaveBeenCalled();
 });
 
@@ -114,6 +102,16 @@ it("reads nothing for a member", async () => {
   const { html } = await serverRender(Page);
   expect(html).toBe("<main><p>loading:false</p></main>");
   expect(authFetch).not.toHaveBeenCalled();
+});
+
+it("reads the listing once on a client navigation, the setup awaiting nothing", async () => {
+  authFetch.mockResolvedValue(structuredClone(idleListing));
+  const { app, container } = mountInBrowser(Page);
+  mounted.push(app);
+  expect(container.innerHTML).toBe("<main><p>loading:false</p></main>");
+  for (let tick = 0; tick < 4; tick++) await settle();
+  expect(authFetch).toHaveBeenCalledTimes(1);
+  expect(container.innerHTML).toBe("<main><p>orders</p></main>");
 });
 
 it("reads again once mounted when the first read failed", async () => {

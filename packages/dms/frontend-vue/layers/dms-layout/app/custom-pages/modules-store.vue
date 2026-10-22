@@ -5,7 +5,6 @@ import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
-import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
 import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
@@ -41,7 +40,6 @@ const { processI18n } = useTranslation();
 const isOwner = useIsOwner();
 const siteLayout = useSiteLayout();
 const moduleStore = useModuleStore();
-const isHydrating = isHydratingComponent();
 
 // Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
@@ -90,12 +88,8 @@ if (!isOwner.value) {
   });
 }
 
-// Read with the page, like the Modules page: the server renders the tiles,
-// and the browser only follows what moves. A hydration awaits nothing, as
-// on the Modules page: the read adopts the server's answer before the first
-// render.
-if (!isHydrating) await moduleStore.ready();
-
+// Read with the page, like the Modules page (`useApiData`): the server
+// renders the tiles and hands the listing over; nothing awaits it here.
 onMounted(() => moduleStore.start());
 onBeforeUnmount(() => moduleStore.stop());
 

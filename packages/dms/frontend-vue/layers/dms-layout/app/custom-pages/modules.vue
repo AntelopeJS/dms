@@ -10,7 +10,6 @@ import DmsStatGroup, {
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
 import type { Tone } from "#dms-ui/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
-import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
@@ -55,7 +54,6 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const modulesListing = useModulesListing();
 const moduleHistory = useModuleHistory();
-const isHydrating = isHydratingComponent();
 
 // Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
@@ -114,21 +112,10 @@ if (!isOwner.value) {
 // source a registration leaves out from it, and the store actions.
 const moduleStore = useModuleStore();
 
-// Read with the page, which the server renders and hands over: the
-// hydration reuses the listing the server rendered (read again, its live
-// readouts, an uptime a minute on, would no longer match the markup). The
-// store listing comes with it: the tiles' source, version and state, and the
-// installed modules that register nothing, would otherwise move the grid and
-// its category counts once it answers.
-//
-// A hydration awaits nothing: both reads adopt the server's answer before the
-// first render. An await there would resume this setup a few microtasks
-// later, and Vue keeps the page as its current instance until the setup
-// settles: the app's first flush ran in that gap, and every layout slot it
-// rendered warned that it was "invoked outside of the render function".
-if (!isHydrating) {
-  await Promise.all([modulesListing.loadModulesListing(), moduleStore.ready()]);
-}
+// Both listings are read with the page (`useApiData`): a server render waits
+// for them and hands them to the browser, which hydrates on them without
+// reading again. Nothing awaits them here: a client navigation shows the
+// tile skeletons, sized like the tiles, until they answer.
 
 const isForbidden = computed(
   () =>

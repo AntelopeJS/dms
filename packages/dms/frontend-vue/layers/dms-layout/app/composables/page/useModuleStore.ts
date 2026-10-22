@@ -17,9 +17,9 @@ const FOLLOW_INTERVAL_MS = 1000;
  * the owner started here reloads the page once the frontend serves its
  * result, so a new module's pages appear without a manual refresh.
  *
- * The first read comes with the page, like the settings pages' data: a
- * server render waits for it (`await store.ready()`) and hands it over, so
- * the tiles render with their store details and never move once mounted.
+ * The first read comes with the page (`useApiData`): a server render waits
+ * for it and hands it over, so the tiles render with their store details and
+ * never move once mounted.
  */
 export const useModuleStore = () => {
   // Taken once, in setup: the follow-up reads the listing from a timer,
@@ -68,16 +68,21 @@ export const useModuleStore = () => {
     scheduleFollow();
   }
 
-  /** Waits for the first read, the one the server renders. */
-  async function ready(): Promise<void> {
-    await initial;
-  }
+  let isStopped = false;
 
   /**
    * Starts following once mounted: reads again only when the first read
    * failed, or something moves; a listing already on screen stays as is.
+   * A first read still in flight (a client navigation) is waited for.
    */
   function start(): void {
+    isStopped = false;
+    if (initial.pending.value) {
+      void Promise.resolve(initial).then(() => {
+        if (!isStopped) start();
+      });
+      return;
+    }
     if (!listing.value) {
       void load();
       return;
@@ -133,6 +138,7 @@ export const useModuleStore = () => {
   }
 
   function stop(): void {
+    isStopped = true;
     if (followTimer) clearTimeout(followTimer);
     followTimer = undefined;
   }
@@ -143,7 +149,6 @@ export const useModuleStore = () => {
     isFollowing,
     awaitingReload,
     load,
-    ready,
     start,
     run,
     stop,
