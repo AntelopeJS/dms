@@ -106,11 +106,15 @@ export const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
   row: { layout: "form", inset: true, spacing: "row" },
 };
 
-// Grouped controls sit side by side once the row is wide enough for its
-// label column (FieldRow's 560px container step), whatever the viewport: a
-// narrow modal or drawer form stacks them.
+// Grouped controls share the row while each keeps a usable width (11rem: a
+// date, a select showing its value), and wrap onto the next line once they
+// would shrink below it, so a group of five in a modal, a drawer or on a
+// phone wraps instead of drawing its controls over one another. A member
+// alone on its line takes the whole width; `min(100%, ...)` keeps a row
+// narrower than the minimum from overflowing.
 export const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
-  horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
+  horizontal:
+    "grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-x-3 gap-y-2.5",
   vertical: "flex flex-col gap-2.5",
 };
 
@@ -173,3 +177,17 @@ export function entryRowLayout(
 export function entryFields(entry: FormFieldOrGroup): FormField[] {
   return isFieldGroup(entry) ? entry.fields : [entry];
 }
+
+/** Classes of a grouped field: its own label above its control. */
+export interface GroupMemberClasses {
+  root: string;
+  label: string;
+}
+
+// A member's label is a step below the group's (FieldRow's 13px semibold
+// label), which heads the cluster.
+export const GROUP_MEMBER_CLASSES: GroupMemberClasses = {
+  root: "grid min-w-0 flex-1 content-start gap-1.5",
+  label:
+    "flex flex-wrap items-center gap-1 text-[12.5px] font-medium text-toned",
+};
