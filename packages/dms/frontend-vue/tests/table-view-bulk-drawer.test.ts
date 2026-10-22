@@ -2,6 +2,7 @@
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import TargetComponentTree from "../layers/dms-ui/app/build/components/containers/TargetComponentTree.vue";
 import {
   bulkSelectionQuery,
   isAllMatchingAction,
@@ -19,6 +20,7 @@ import {
   writeRecordId,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 
 describe("bulk selection requests", () => {
   it("sends the ids, or the filters of every matching row", () => {
@@ -52,6 +54,36 @@ describe("bulk selection requests", () => {
       component: { componentName: "RunDrawer" },
     };
     expect(targetWithSelection(drawer, { ids: ["a"] })).toBe(drawer);
+  });
+
+  it("keeps a URL's own query as written, its tokens still to fill", () => {
+    expect(
+      withQuery("/api/runs/rerun?site={{query.site}}", { ids: ["a"] }),
+    ).toBe("/api/runs/rerun?site={{query.site}}&ids=a");
+    expect(withQuery("/rerun?", { ids: ["a"] })).toBe("/rerun?ids=a");
+    expect(withQuery("/rerun#top", { ids: ["a"] })).toBe("/rerun?ids=a#top");
+    expect(withQuery("/rerun?x=1", {})).toBe("/rerun?x=1");
+  });
+
+  it("takes a row token out of a URL the selection bar sends, as an unresolved page token", () => {
+    expect(
+      targetWithSelection(
+        { type: "api", url: "/rerun?ids={{row._id}}&force=1" },
+        { ids: ["a", "b"] },
+      ),
+    ).toEqual({ type: "api", url: "/rerun?force=1&ids=a&ids=b" });
+    expect(
+      targetWithSelection(
+        { type: "download", url: "/export?ids={{ row._id }}" },
+        { ids: ["a"] },
+      ),
+    ).toEqual({ type: "download", url: "/export?ids=a" });
+    expect(
+      targetWithSelection(
+        { type: "page", url: "/runs/{{row._id}}/compare?mode=x" },
+        { ids: ["a"] },
+      ),
+    ).toEqual({ type: "page", url: "/runs//compare?mode=x&ids=a" });
   });
 
   it("tells actions reaching every matching row", () => {
@@ -239,6 +271,104 @@ describe("action targets on a selection and on a listed row", () => {
     vi.unstubAllGlobals();
   });
 
+  describe("a bulk action run on one row", () => {
+    const bulkApi = (url: string): CustomRowAction => ({
+      label: "Re-run",
+      bulk: true,
+      target: { type: "api", url },
+    });
+
+    beforeEach(() => vi.stubGlobal("interpolateUrl", interpolateUrl));
+
+    it("sends that row's id as the selection bar sends the selection's", async () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(bulkApi("/api/runs/rerun"), { _id: "r 1" });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?ids=r+1");
+    });
+
+    it("reads the id through the table's rowIdKey", async () => {
+      const targets = mountTargets({ rowIdKey: "code" });
+      targets.handleCustomRowAction(bulkApi("/api/runs/rerun?force=1"), {
+        _id: "x",
+        code: "R-7",
+      });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?force=1&ids=R-7");
+    });
+
+    it("fills a URL naming the row itself rather than adding ids, and the bar drops it", async () => {
+      const targets = mountTargets();
+      const action = bulkApi("/api/runs/rerun?ids={{row._id}}");
+      targets.handleCustomRowAction(action, { _id: "r1" });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?ids=r1");
+
+      targets.handleBulkCustomAction(action, { ids: ["a", "b"], count: 2 });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+      expect(api.mock.calls[1]?.[0]).toBe("/api/runs/rerun?ids=a&ids=b");
+    });
+
+    it("counts one row in its confirmation and its success toast", async () => {
+      // Confirmed: the dialog runs the request inside it.
+      const confirm = vi.fn(
+        async (options: { onConfirm?: (values: object) => unknown }) => {
+          await options.onConfirm?.({});
+          return true;
+        },
+      );
+      vi.stubGlobal("useConfirm", () => ({ confirm }));
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        {
+          label: "Resolve",
+          bulk: true,
+          confirm: { title: "$tickets.resolve_confirm" },
+          target: {
+            type: "api",
+            url: "/api/tickets/bulk/resolve",
+            successMessage: "$tickets.resolved",
+          },
+        },
+        { _id: "t7", subject: "Noisy fan" },
+      );
+      await vi.waitFor(() => expect(toasts).toHaveLength(1));
+      expect(confirm.mock.calls[0]?.[0]).toMatchObject({
+        title: "tickets.resolve_confirm(1|1)",
+      });
+      expect(toasts[0]?.title).toBe("tickets.resolved(1|1)");
+      expect(api.mock.calls[0]?.[0]).toBe("/api/tickets/bulk/resolve?ids=t7");
+    });
+
+    it("leaves an action that is not bulk as it is", async () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        { label: "Run", target: { type: "api", url: "/api/runs/run" } },
+        { _id: "r1" },
+      );
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/run");
+    });
+
+    it("hands a drawer its row and the selection of that row", () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        {
+          label: "Inspect",
+          bulk: true,
+          target: { type: "drawer", component: { componentName: "RunDrawer" } },
+        },
+        { _id: "r1" },
+      );
+      const options = drawers[0]?.options.componentOptions as Record<
+        string,
+        unknown
+      >;
+      expect(options.rowData).toEqual({ _id: "r1" });
+      expect(options.selection).toEqual({ ids: ["r1"], count: 1 });
+    });
+  });
+
   it("calls an api bulk action with the selection, its toast counting the rows", async () => {
     const targets = mountTargets();
     const action: CustomRowAction = {
@@ -266,6 +396,143 @@ describe("action targets on a selection and on a listed row", () => {
     expect(api.mock.calls[1]?.[0]).toBe(
       "/api/runs/rerun?allMatching=true&filter_status=is%3Aopen",
     );
+  });
+
+  it("fills a row drawer's component options with each row it steps to", () => {
+    const rows = [{ _id: "r1" }, { _id: "r2" }];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id" },
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        target: {
+          type: "drawer",
+          component: {
+            componentName: "dms-form",
+            options: {
+              fetchUrl: "/api/runs/get?id={{row._id}}",
+              submitUrl: "/api/runs/edit?id={{row.id}}",
+              rowActions: {
+                custom: [{ target: { type: "page", url: "/s/{{row._id}}" } }],
+              },
+              fetchRowUrl: "/api/steps/{{row.id}}",
+            },
+          },
+        },
+      },
+      rows[0],
+    );
+    const opened = drawers[0]?.options.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(opened.fetchUrl).toBe("/api/runs/get?id=r1");
+    expect(opened.submitUrl).toBe("/api/runs/edit?id=r1");
+    expect(opened.rowActions).toEqual({
+      custom: [{ target: { type: "page", url: "/s/{{row._id}}" } }],
+    });
+    expect(opened.fetchRowUrl).toBe("/api/steps/{{row.id}}");
+    (opened.navigation as { next: () => void }).next();
+    const patched = drawers[0]?.patches[0]?.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(patched.fetchUrl).toBe("/api/runs/get?id=r2");
+    expect(patched.submitUrl).toBe("/api/runs/edit?id=r2");
+  });
+
+  it("hands a bulk drawer its options as declared, with no row to fill them", () => {
+    const targets = mountTargets();
+    targets.handleBulkCustomAction(
+      {
+        label: "Inspect",
+        bulk: true,
+        target: {
+          type: "drawer",
+          component: {
+            componentName: "RunDrawer",
+            options: { fetchUrl: "/api/runs/get?id={{row._id}}" },
+          },
+        },
+      },
+      { ids: ["a"], count: 1 },
+    );
+    const opened = drawers[0]?.options.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(opened.fetchUrl).toBe("/api/runs/get?id={{row._id}}");
+  });
+
+  // `Card().child("facts", KeyValueList({ fetchUrl }))` as a drawer's
+  // component: the Card is drawn with its children, which read the row.
+  const cardTarget = {
+    type: "drawer" as const,
+    component: {
+      componentName: "Card",
+      options: { title: "{{row.name}}" },
+      children: [
+        {
+          id: "facts",
+          component: {
+            componentName: "KeyValueList",
+            options: { fetchUrl: "/x/{{row._id}}" },
+          },
+        },
+      ],
+    },
+  };
+  interface OpenedTree {
+    targetTree: {
+      componentName: string;
+      children: Array<{ id: string; options: Record<string, unknown> }>;
+    };
+    title: string;
+  }
+
+  it("draws a container drawer with its children, filled with each row", () => {
+    const rows = [
+      { _id: "r1", name: "First" },
+      { _id: "r2", name: "Second" },
+    ];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id" },
+    });
+    targets.handleCustomRowAction(
+      { label: "Facts", target: cardTarget },
+      rows[0],
+    );
+    expect(drawers[0]?.options.component).toBe(TargetComponentTree);
+    const opened = drawers[0]?.options
+      .componentOptions as unknown as OpenedTree & {
+      navigation: { next: () => void };
+    };
+    expect(opened.title).toBe("First");
+    expect(opened.targetTree.componentName).toBe("Card");
+    expect(opened.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/r1" } },
+    ]);
+    opened.navigation.next();
+    const patched = drawers[0]?.patches[0]
+      ?.componentOptions as unknown as OpenedTree;
+    expect(patched.title).toBe("Second");
+    expect(patched.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/r2" } },
+    ]);
+  });
+
+  it("hands a bulk container drawer its children as declared", () => {
+    const targets = mountTargets();
+    targets.handleBulkCustomAction(
+      { label: "Facts", bulk: true, target: cardTarget },
+      { ids: ["a"], count: 1 },
+    );
+    const opened = drawers[0]?.options
+      .componentOptions as unknown as OpenedTree;
+    expect(opened.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/{{row._id}}" } },
+    ]);
   });
 
   it("steps a row's drawer through the rows shown and keeps it in the URL", async () => {

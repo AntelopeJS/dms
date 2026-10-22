@@ -54,6 +54,7 @@ const options = computed(() => [
     :filter-fields="['label', 'value', 'offset']"
     :search-input="{ placeholder: t('page.settings.region.time_zone_search') }"
     :virtualize="{ estimateSize: ITEM_HEIGHT }"
+    :aria-label="t('dms.a11y.show_options')"
   >
     <template #item-trailing="{ item }">
       <span class="text-dimmed font-mono text-[11px]">{{ item.offset }}</span>

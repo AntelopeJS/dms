@@ -1,4 +1,5 @@
 import type {
+  TenantAccessDenial,
   TenantAccessGateInfo,
   TenantAccessResult,
 } from "@antelopejs/interface-dms/tenant-access";
@@ -32,4 +33,18 @@ export async function CheckTenantAccess(
     if (!result.allowed) return result;
   }
   return { allowed: true };
+}
+
+export async function EvaluateTenantAccess(
+  userId: string | undefined,
+  tenantId: string,
+): Promise<TenantAccessDenial[]> {
+  const denials: TenantAccessDenial[] = [];
+  // Unregistration during an awaited gate must not shift an unevaluated entry.
+  const registeredGates = gates.slice();
+  for (const { id, gate } of registeredGates) {
+    const result = await gate(userId, tenantId);
+    if (!result.allowed) denials.push({ gateId: id, code: result.code });
+  }
+  return denials;
 }
