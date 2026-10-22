@@ -14,7 +14,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 // table-view, which imports the page interface back — entering through the
 // barrel would then call DefaultLayout() while the barrel is still
 // mid-evaluation.
-import { getRequestTenantId } from "../../request-tenant";
+import { resolveRequestTenantId } from "../../request-tenant";
 // Deliberate and documented above: categories resolve controller
 // classes through PageMetadata, and metadata registers pages
 // through the proxies declared in categories. Neither module
@@ -25,7 +25,7 @@ import { MODULE_URL_PREFIX, type PageInfo } from "../types";
 export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(
   (target, key, index) => {
     SetParameterProvider(target, key, index, (ctx: RequestContext) =>
-      getRequestTenantId(ctx),
+      resolveRequestTenantId(ctx),
     );
   },
 );

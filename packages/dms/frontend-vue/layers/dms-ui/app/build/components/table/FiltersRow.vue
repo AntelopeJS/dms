@@ -13,6 +13,7 @@ import type {
 } from "./Table.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
+import { filterEditorValue } from "../../composables/table/utils/filterEditorValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 import {
   type RelationFilterSource,
@@ -159,6 +160,16 @@ const addFilterOpen = ref(false);
 const { locale } = useI18n();
 const { getDataType } = useDataTypes();
 
+// What a chip's editor holds: a view's text value read as its column's type.
+const editorValue = (filter: TableFilter): unknown => {
+  const typeId = getColumn(filter.accessorKey)?.type?.id;
+  return filterEditorValue(
+    typeId ? getDataType(typeId) : undefined,
+    filter.mode,
+    filter.value,
+  );
+};
+
 // Select-like filters show the option labels, not the raw stored values
 // (their formatter renders a pill, which a chip can't hold).
 const itemLabels = (filter: TableFilter): string | undefined => {
@@ -277,7 +288,7 @@ const chipTitle = (filter: TableFilter, label?: string): string =>
                     )
                   "
                   v-if="resolveFilterComponent(filter)"
-                  :model-value="filter.value"
+                  :model-value="editorValue(filter)"
                   :class="ui.inputWrapper()"
                   v-bind="
                     JSON.parse(

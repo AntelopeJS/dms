@@ -1,19 +1,32 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import {
+  ControllerMeta,
+  HTTPResult,
+  type RequestContext,
+  computeParameter,
+} from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import { decode, sign } from "jsonwebtoken";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { generateAccessToken } from "../../implementations/dms-auth";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { authenticateTenantRequest } from "@antelopejs/interface-dms/guards";
-import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
+import {
+  getRequestTenantId,
+  resolveRequestTenantId,
+} from "@antelopejs/interface-dms/request-tenant";
 import {
   RegisterTenantAccessGate,
   internal as tenantAccessInternal,
 } from "@antelopejs/interface-dms/tenant-access";
 import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import {
+  AuthUser,
   authenticateRequestUser,
+  IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -60,6 +73,29 @@ async function refusalOf(action: () => Promise<unknown>): Promise<unknown> {
     return (error as HTTPResult).getBody();
   }
   return expect.fail("Expected guard rejection");
+}
+
+/** A token claiming `tenantId`, signed with a key the DMS never issued. */
+function forgedToken(genuine: string, tenantId: string): string {
+  const {
+    iat: _iat,
+    exp: _exp,
+    ...claims
+  } = decode(genuine) as Record<string, unknown>;
+  return sign({ ...claims, tenantId }, "not-the-user-secret");
+}
+
+/** Runs the provider an auth decorator installs on a controller property. */
+async function provided(
+  decorator: ReturnType<typeof AuthUser>,
+  ctx: RequestContext,
+): Promise<unknown> {
+  class Probe {
+    static location = "/probe";
+  }
+  decorator(Probe.prototype, "user");
+  const meta = GetMetadata(Probe, ControllerMeta);
+  return computeParameter(ctx, meta.computed_props.user, new Probe());
 }
 
 function translationOf(locale: string, key: string): unknown {
@@ -119,6 +155,46 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
     expect(
       (await authenticateTenantRequest(context(jwt), options))._id,
     ).to.equal(USER_ID);
+  });
+
+  it("never reads the tenant of a token whose signature fails", async () => {
+    const forged = forgedToken(jwt, OTHER_TENANT);
+
+    const plain = context(forged);
+    expect(getRequestTenantId(plain)).to.equal(DEFAULT_TENANT_ID);
+    expect(await resolveRequestTenantId(plain)).to.equal(DEFAULT_TENANT_ID);
+    expect(getRequestTenantId(plain)).to.equal(DEFAULT_TENANT_ID);
+
+    const anonymous = context(forged);
+    expect(await provided(IfAuthUser(), anonymous)).to.equal(undefined);
+    expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
+
+    const guarded = context(forged);
+    await expectStatus(() => provided(AuthUser(), guarded), HTTP_UNAUTHORIZED);
+    expect(getRequestTenantId(guarded)).to.equal(DEFAULT_TENANT_ID);
+  });
+
+  it("binds the tenant of a verified token, through the decorators or on demand", async () => {
+    const other = generateAccessToken(OTHER_TENANT, user).token;
+
+    const anonymous = context(other);
+    expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
+    expect(
+      ((await provided(IfAuthUser(), anonymous)) as User | undefined)?._id,
+    ).to.equal(USER_ID);
+    expect(getRequestTenantId(anonymous)).to.equal(OTHER_TENANT);
+
+    const guarded = context(other);
+    await provided(AuthUser(), guarded);
+    expect(getRequestTenantId(guarded)).to.equal(OTHER_TENANT);
+
+    const modelFirst = context(other);
+    expect(await resolveRequestTenantId(modelFirst)).to.equal(OTHER_TENANT);
+    expect(getRequestTenantId(modelFirst)).to.equal(OTHER_TENANT);
+
+    const direct = context(other);
+    await authenticateRequestUser(direct);
+    expect(getRequestTenantId(direct)).to.equal(OTHER_TENANT);
   });
 
   it("rejects tampered JWT signatures and auth-key revocation", async () => {

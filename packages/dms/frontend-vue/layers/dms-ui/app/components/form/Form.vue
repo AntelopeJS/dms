@@ -724,6 +724,7 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
+  isReadOnly: computed(() => !hasChangeableFields.value),
   showsChanges: !isInstant && !isActionForm,
   isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
   baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
