@@ -9,7 +9,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/db";
 import { notifyPasswordChanged } from "../../../utils/account-notifications";
 import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
-import { SESSION_HANDOFF_ENDPOINT } from "../../../routes/auth/session-handoff";
+import { SESSION_HANDOFF_ENDPOINT } from "../../../frontend-module";
 import { generateAuthKey } from "../../../utils/auth-key";
 import { securitySchema } from "../../../validation/security.schema";
 import { assertCurrentPasswordIfSet } from "./current-password";

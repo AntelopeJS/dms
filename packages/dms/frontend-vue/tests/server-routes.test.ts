@@ -284,7 +284,7 @@ describe("the DMS's server routes", () => {
     expect(moduleRoutes.warnings).toEqual([]);
   });
 
-  it("proxies the backend's /api and /dms prefixes with the session, and nothing else", () => {
+  it("proxies /api and /dms with the session, the storage's signed URLs without, and nothing else", () => {
     const proxies = moduleRoutes.modules.proxies.map(
       (proxy: { path: string; auth: string; owner: string }) => ({
         path: proxy.path,
@@ -295,9 +295,11 @@ describe("the DMS's server routes", () => {
       expect.arrayContaining([
         { path: "/api/**", auth: "session" },
         { path: "/dms/**", auth: "session" },
+        { path: "/file-storage/upload/**", auth: "none" },
+        { path: "/file-storage/files/**", auth: "none" },
       ]),
     );
-    expect(proxies).toHaveLength(2);
+    expect(proxies).toHaveLength(4);
   });
 
   it("signs in for the browser session only, unless asked to keep it", async () => {
