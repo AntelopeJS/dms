@@ -1,4 +1,5 @@
-import type { SortingState } from "@tanstack/vue-table";
+import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { ColumnSort, SortingState } from "@tanstack/vue-table";
 import {
   regionalDateTimeFormat,
   regionalDayKey,
@@ -13,6 +14,7 @@ import type {
   TableViewGroupedConfig,
 } from "../../../../composables/table-view/types";
 import type { TableFilter } from "../../../components/table/Table.vue";
+import { compareValues } from "./compareValues";
 import { sortValueKind } from "./sortableColumns";
 
 /** Key of the group of rows without a value. */
@@ -144,6 +146,91 @@ export function groupedSorting(
   const { groupByField, by = "value" } = grouped;
   const own = sorting.find((entry) => entry.id === groupByField);
   return [{ id: groupByField, desc: own ? !!own.desc : by !== "value" }];
+}
+
+/**
+ * The sort a group's rows follow on the grouped display. The list route sorts
+ * on one field, the grouped column, so the sort picked on another column —
+ * by the user or a view, or the hand order of a `reorder` table — orders each
+ * group's rows in the browser instead, over the page listed.
+ */
+export function withinGroupSort(
+  picked: SortingState,
+  grouped: TableViewGroupedConfig,
+): ColumnSort | undefined {
+  return picked.find((entry) => entry.id !== grouped.groupByField);
+}
+
+/** What decides the order a table view lists its rows in. */
+export interface TableSortingInput {
+  /** The order field of a hand-ordered table (`reorder`). */
+  reorderField?: string;
+  /** The grouped options, while the grouped display shows. */
+  grouped?: TableViewGroupedConfig;
+  /** The display shown offers the sort picker. */
+  canSort: boolean;
+  /** The sort the user picked or a view opened with. */
+  sorting: SortingState;
+  /** The table's default sort. */
+  defaultSorting: SortingState;
+}
+
+/**
+ * The order the rows are wanted in: the hand order of a `reorder` table,
+ * else the picked sort. The grouped display hides the sort picker but keeps
+ * the sort a view opened it with: it orders the rows of each group.
+ */
+export function pickedTableSorting(input: TableSortingInput): SortingState {
+  if (input.reorderField) return [{ id: input.reorderField, desc: false }];
+  return input.canSort || input.grouped ? input.sorting : input.defaultSorting;
+}
+
+/**
+ * The sort the list route is asked for (the route sorts on one field): on the
+ * grouped display, the grouped column, so that a group's rows follow each
+ * other — the picked order then sorts each group, see
+ * {@link orderGroupedRows}; else the picked order.
+ */
+export function listTableSorting(input: TableSortingInput): SortingState {
+  const picked = pickedTableSorting(input);
+  if (input.grouped) return groupedSorting(picked, input.grouped);
+  return picked;
+}
+
+/**
+ * The rows of a page listed on the grouped column, each group's rows in the
+ * order `picked` gives them (see {@link withinGroupSort}). The groups keep
+ * the order the list gave them; rows the sort cannot tell apart keep theirs.
+ */
+export function orderGroupedRows<T>(
+  rows: T[],
+  grouped: TableViewGroupedConfig,
+  picked: SortingState,
+  locale: string,
+): T[] {
+  const sort = withinGroupSort(picked, grouped);
+  if (!sort) return rows;
+  const by = grouped.by ?? "value";
+  const groupOf = new Map<string, number>();
+  const entries = rows.map((row, index) => {
+    const key = rowGroupKey(
+      get(row as Record<string, unknown>, grouped.groupByField),
+      by,
+      locale,
+    );
+    if (!groupOf.has(key)) groupOf.set(key, groupOf.size);
+    return { row, index, group: groupOf.get(key)! };
+  });
+  const direction = sort.desc ? -1 : 1;
+  const valueOf = (row: T) => get(row as Record<string, unknown>, sort.id);
+  return entries
+    .sort(
+      (a, b) =>
+        a.group - b.group ||
+        direction * compareValues(valueOf(a.row), valueOf(b.row)) ||
+        a.index - b.index,
+    )
+    .map((entry) => entry.row);
 }
 
 /** How a date column picked in the options menu is cut, unless configured. */

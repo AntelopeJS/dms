@@ -112,6 +112,18 @@ describe("confirmation dialog texts", () => {
       resolveConfirmText("{nested} {constructor}", { nested: {} }, t),
     ).toBe("{nested} {constructor}");
   });
+
+  it("asks to type the text the row fills in, or a translated one", () => {
+    const typed = (confirmText: string) =>
+      resolveConfirmDialog(
+        { title: "Remove {name}?", confirmText },
+        { name: "Editors" },
+        t,
+      ).confirmText;
+    expect(typed("{name}")).toBe("Editors");
+    expect(typed("$roles.delete_title")).toBe("Delete Editors?");
+    expect(typed("DELETE")).toBe("DELETE");
+  });
 });
 
 describe("ConfirmModal fields", () => {

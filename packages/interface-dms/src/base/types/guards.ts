@@ -12,6 +12,11 @@ export interface EditGuardArgs<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   id: string;
+  /**
+   * The fields the edit writes. The guard may amend it in place (stamp a
+   * field, drop one): the route writes the body as the guard leaves it, and
+   * validates it as it would the request's.
+   */
   body: Partial<T>;
   current: T;
 }
@@ -36,6 +41,11 @@ export interface BulkGuardArgs {
 export interface NewGuardArgs<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
+  /**
+   * The row the request creates. The guard may amend it in place (fill a
+   * generated number, a default): the route writes the body as the guard
+   * leaves it, and validates it as it would the request's.
+   */
   body: Partial<T>;
 }
 

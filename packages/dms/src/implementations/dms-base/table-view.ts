@@ -152,7 +152,8 @@ async function buildIdsExportQuery(
     }
   }
 
-  return { query, queryTotal: query.count(), model };
+  // Read without `Query.List`: no computed field is merged yet.
+  return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
 /** What the export reads from. */
@@ -182,6 +183,7 @@ async function buildExportQuery({
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
+    mergedBy: { filters: built.filters, sortKey: listParams.sortKey },
   };
 }
 
@@ -235,7 +237,7 @@ export async function generateTableViewExport({
 
   writer.writeHeaders(headers);
 
-  const { query, queryTotal, model } = await buildExportQuery({
+  const { query, queryTotal, model, mergedBy } = await buildExportQuery({
     controller,
     controllerMetadata,
     ctx,
@@ -247,16 +249,21 @@ export async function generateTableViewExport({
   const totalRecordsCount = await queryTotal;
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
-    // `Stream.slice` takes (offset, count), not (start, end): passing an end
-    // index grows every page and re-reads rows the previous one wrote.
-    let pendingRecordBatch = query.slice(i, EXPORT_BATCH_SIZE);
-
-    if (!listParams.noPluck && selectedFields) {
-      pendingRecordBatch = pendingRecordBatch.pluck(
-        "_internal",
-        ...selectedFields,
-      );
-    }
+    // A page of the list, its computed fields merged; the export writes the
+    // relations' keys, so no foreign lookup.
+    const pendingRecordBatch = Query.ListPage(
+      model.database,
+      controllerMetadata,
+      query,
+      {
+        offset: i,
+        limit: EXPORT_BATCH_SIZE,
+        filters: mergedBy?.filters,
+        sortKey: mergedBy?.sortKey,
+        pluck: listParams.noPluck ? undefined : selectedFields,
+        noForeign: true,
+      },
+    );
 
     await processBatch({
       controller,

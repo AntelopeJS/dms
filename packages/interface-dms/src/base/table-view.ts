@@ -25,6 +25,7 @@
 export {
   archiveRows,
   BULK_ALL_MATCHING_KEY,
+  type BulkRowSource,
   countWithSearch,
   MAX_BULK_MATCHING_ROWS,
   resolveBulkRowIds,

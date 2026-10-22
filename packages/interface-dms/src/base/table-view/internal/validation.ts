@@ -379,6 +379,17 @@ export function validateGroupedOptions(
       `TableView grouped on ${controllerName} groups "${groupByField}" by ${by}, which needs a DateType column (got "${typeId}")`,
     );
   }
+  // A group is counted with `filter_<column>`, which the count route ignores
+  // on a column without a filter: every header would read the whole total.
+  const filters = GetMetadata(
+    meta.target as ControllerClass,
+    DataAPIMeta,
+  ).filters;
+  if (grouped.count && !filters[groupByField]) {
+    Logging.Warn(
+      `[DMS] TableView grouped on ${controllerName} counts its groups, but "${groupByField}" is not filterable: every group would count every row. Declare the column \`filterable: true\`.`,
+    );
+  }
 }
 
 const NUMBER_TYPE_ID = "number";

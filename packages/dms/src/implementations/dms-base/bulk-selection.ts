@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view/internal/auth";
 import {
   BULK_ALL_MATCHING_KEY,
+  type BulkRowSource,
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
@@ -20,6 +21,44 @@ import { buildFilteredQuery } from "./search-route";
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
 
+function isBulkRowSource(table: unknown): table is BulkRowSource {
+  return (
+    typeof table === "object" &&
+    table !== null &&
+    "tableView" in table &&
+    "model" in table
+  );
+}
+
+/** A data controller as the list query reads it: its properties by key. */
+type ControllerReader = Record<PropertyKey, unknown>;
+
+/**
+ * What the list query reads a source's rows through, in place of a data
+ * controller: the controller's prototype, for its metadata and its methods,
+ * and the source's model under the controller's model key. Any other
+ * property, which the controller's own routes would have injected, throws
+ * rather than reading as missing.
+ */
+function sourceReader({ model, tableView }: BulkRowSource): ControllerReader {
+  const controller = tableView.target;
+  const { modelKey } = GetDataControllerMeta(
+    Object.create(controller.prototype as object),
+  );
+  assert(modelKey, 500, `${controller.name} declares no model.`);
+  const reader = Object.create(controller.prototype as object, {
+    [modelKey]: { value: model, enumerable: true },
+  }) as ControllerReader;
+  return new Proxy(reader, {
+    get(target, key) {
+      if (typeof key === "symbol" || key in target) return target[key];
+      throw new Error(
+        `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
+      );
+    },
+  });
+}
+
 /**
  * The rows a bulk custom action runs on: the selected ids, or every row the
  * table's filters, search and archive view match, read like the list reads
@@ -27,10 +66,11 @@ const HTTP_PAYLOAD_TOO_LARGE = 413;
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  thisObj: unknown,
+  table: unknown,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
+  const thisObj = isBulkRowSource(table) ? sourceReader(table) : table;
   const permissions = await authorizeAction(
     thisObj,
     LIST_ACTION,

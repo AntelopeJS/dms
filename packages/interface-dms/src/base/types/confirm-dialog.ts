@@ -86,7 +86,11 @@ export interface ConfirmDialog {
    * explains why, with a close button.
    */
   blocked?: boolean;
-  /** Text the user must type to confirm (type-to-confirm). */
+  /**
+   * Text the user must type to confirm (type-to-confirm). A `$`-prefixed i18n
+   * key is translated, and `{field}` reads the row like the other texts
+   * (`"{name}"`: the row's name).
+   */
   confirmText?: string;
   /**
    * Compares the typed text with `confirmText` ignoring case (`acme` matches

@@ -6,6 +6,7 @@ import {
 import { GetMetadata } from "@antelopejs/interface-core";
 import { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
+  Access,
   AccessMode,
   DataAPIMeta,
   Filter,
@@ -566,6 +567,11 @@ export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
   // Archive field need to be data-api filterable and listable to work properly
   Filter()(target, key as string);
   Listable()(target, key as string);
+  // ...and readable: the rows carry it, for the client to evaluate the
+  // archive rules. A field declaring its own access keeps it.
+  const field = GetMetadata(target.constructor as ControllerClass, DataAPIMeta)
+    .fields[key as string];
+  if (!field?.mode) Access(AccessMode.ReadOnly)(target, key as string);
 });
 
 export const Select = MakeMethodAndPropertyDecorator(

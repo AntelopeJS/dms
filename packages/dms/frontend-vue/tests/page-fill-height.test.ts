@@ -211,6 +211,8 @@ function installRuntime(): void {
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
     useDmsUserSession: () => ({ loggedIn: ref(true) }),
+    // The header's page record: these pages declare none, so nothing is read.
+    useApiData: () => ({ data: ref(null), error: ref(null) }),
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

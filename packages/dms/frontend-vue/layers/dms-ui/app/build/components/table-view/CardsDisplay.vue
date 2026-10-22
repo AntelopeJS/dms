@@ -28,6 +28,7 @@ import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
 } from "../../composables/table-view/useReorderHandles";
+import { useCardFields } from "../../composables/table-view/useCardFields";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -35,12 +36,9 @@ interface CardsDisplayProps {
 
 const props = defineProps<CardsDisplayProps>();
 
-const EMPTY_VALUE = "—";
-
-const { locale } = useI18n();
 const { processI18n } = useTranslation();
-const { getDataType } = useDataTypes();
 const { processText } = useComposedText();
+const { renderField } = useCardFields();
 
 const rowId = (item: T): string =>
   String(get(item, props.context.rowIdKey) ?? "");
@@ -87,25 +85,10 @@ const fieldColumns = computed<TableViewColumn[]>(() =>
   }),
 );
 
-// A field renders the same way a table cell does: through the formatter of
-// the column's data type (status pills, links, dates…).
-const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
-  const value = get(fieldProps.item, fieldProps.column.accessorKey);
-  if (value === null || value === undefined || value === "") {
-    return h("span", { class: "text-dimmed" }, EMPTY_VALUE);
-  }
-  const options = fieldProps.column.type.inputComponent?.options as
-    | Record<string, unknown>
-    | undefined;
-  const formatter = getDataType(fieldProps.column.type.id)?.formatter;
-  const rendered = formatter
-    ? formatter.default(value, locale.value, options)
-    : value;
-  if (typeof rendered === "string" || typeof rendered === "number") {
-    return h("span", { class: "truncate" }, String(rendered));
-  }
-  return rendered as ReturnType<typeof h>;
-};
+// A field renders the same way a table cell does: through its column's
+// display, else its data type (status pills, links, dates…).
+const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
+  renderField(fieldProps.column, fieldProps.item);
 
 const openItem = (item: T) => props.context.actions.open(item);
 
