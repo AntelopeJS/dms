@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { keepHyphenatedWords } from "../layers/dms-ui/app/build/utils/eyebrow";
-import { foldBreadcrumb } from "../layers/dms-layout/app/utils/breadcrumb";
+import {
+  foldBreadcrumb,
+  withParentCrumb,
+} from "../layers/dms-layout/app/utils/breadcrumb";
 
 const SLOT = "ellipsis";
 
@@ -35,5 +38,26 @@ describe("keepHyphenatedWords", () => {
   it("leaves a dash between words and numbers alone", () => {
     expect(keepHyphenatedWords("Q1 - Q2")).toBe("Q1 - Q2");
     expect(keepHyphenatedWords("2024-2025")).toBe("2024-2025");
+  });
+});
+
+describe("withParentCrumb", () => {
+  const home = { label: "Home", to: "/" };
+  const project = { label: "Solar farm" };
+  const projects = { label: "Projects", to: "/operations/projects" };
+
+  it("puts the parent page before the current one", () => {
+    expect(
+      withParentCrumb([home, { label: "Operations" }, project], projects),
+    ).toEqual([home, { label: "Operations" }, projects, project]);
+  });
+
+  it("adds nothing when a crumb already opens the parent, or without one", () => {
+    expect(withParentCrumb([home, projects, project], projects)).toEqual([
+      home,
+      projects,
+      project,
+    ]);
+    expect(withParentCrumb([home, project], null)).toEqual([home, project]);
   });
 });
