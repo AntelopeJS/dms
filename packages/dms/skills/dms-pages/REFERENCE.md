@@ -184,6 +184,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- Conditional fields on a `TableView`'s generated forms go in `forms: { new?, edit?, view? }`, each a
+  callback receiving the form's builder: `new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)` —
+  they run in a drawer, a modal or a form page alike; no custom page just to add a watch.
 - A table of more than a few columns that phones will read offers the cards and opens them there:
   `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
   saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
