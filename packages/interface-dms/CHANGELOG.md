@@ -4,6 +4,12 @@
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.4...v0.8.0)
 
+### Upgrade notes
+
+- `KpiCard`: `showPreviousValue` defaults to `true`, so a card whose data carries `previousValue` prints it beside the change; set `false` to keep a card compact ([#352](https://github.com/AntelopeJS/dms/pull/352)).
+- A `RelationType` / `CascaderRelationType` with `multiple: true` filters with `include` / `exclude` instead of `is` / `is_not`: a saved view or a link filtering it with `is:` lists nothing until saved again or rewritten as `include:` ([#363](https://github.com/AntelopeJS/dms/pull/363)).
+- See [Migrate from 0.7 to 0.8](https://github.com/AntelopeJS/dms/blob/main/packages/dms/docs/02.building/16.migration-0-7-to-0-8.md) for the removed compatibility paths.
+
 ### 🚀 Enhancements
 
 - **config:** Refuse a production start on public secrets or without the dashboard origin ([#401](https://github.com/AntelopeJS/dms/pull/401))
