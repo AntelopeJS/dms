@@ -222,7 +222,7 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
     const { default: container } = await load();
     await mountContainer(container, props);
     host
-      .querySelector<HTMLButtonElement>("button[aria-label='Close']")!
+      .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
       .click();
     await vi.advanceTimersByTimeAsync(0);
     // Still on the page, as during their exit animations.
@@ -253,7 +253,7 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
     try {
       await mountContainer(container, props);
       host
-        .querySelector<HTMLButtonElement>("button[aria-label='Close']")!
+        .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
         .click();
       await vi.advanceTimersByTimeAsync(0);
       expect(bodyPointerEvents()).toBe("none");
