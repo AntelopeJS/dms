@@ -53,7 +53,11 @@ export const newUserViewId = (): string =>
     .toString(ID_RADIX)
     .slice(ID_RANDOM_START)}`;
 
-function viewFilters(
+/**
+ * The filters opening `view` sets: the table's pinned filters, at the view's
+ * value for those it names, then the view's other filters.
+ */
+export function viewFilters(
   view: TableViewViewStateConfig,
   pinned: TableFilter[],
 ): TableFilter[] {

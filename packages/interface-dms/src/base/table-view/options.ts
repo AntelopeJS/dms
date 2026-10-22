@@ -206,7 +206,9 @@ export interface TableViewView extends TableViewViewState {
   dot?: Tone;
   /**
    * Shows the number of rows the view lists, counted by the controller's
-   * `countBatch` route like the tab counters.
+   * `countBatch` route like the tab counters: what opening it would list,
+   * under the open tab and the page's URL filters. The open view counts the
+   * rows listed, its filters and search as the user edited them.
    */
   count?: boolean;
   /**
@@ -299,6 +301,8 @@ export interface TableViewTab {
    * server when the menu loads, with the caller's own `list` permission; a
    * count of zero shows no badge. `true` draws it neutral; `{ tone }` draws
    * it in that tone (`{ tone: "warning" }` for a tab of rows to check).
+   * The badge counts the tab over the whole page, whatever view, filters,
+   * search or URL filters narrow the tab's own counter.
    */
   navBadge?: boolean | TableViewTabNavBadge;
 }
