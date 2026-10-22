@@ -103,7 +103,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
   `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
 - `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
-  `PublishMessage`.
+  `PublishMessage`. Publish tenant data with the tenant id (`{ tenantId }`): without it the message
+  is global and refetches the page in every workspace. A `TableView` needs no option: the DMS
+  publishes to every tenant for a table of the shared schema, and a platform (module) page receives
+  every tenant's changes.
 
 ### Live pages
 
