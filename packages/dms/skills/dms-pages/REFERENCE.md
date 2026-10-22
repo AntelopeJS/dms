@@ -38,7 +38,8 @@ gets `navigation` (J / K, `index` / `total` in the order shown) —
 A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
 (`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), a label's
 translation takes the page's route and query parameters (`"Download {locale}.json"`), and an
-`availability` reads `context.query`, asked again when the query changes — no need to build
+`availability` reads `context.query` and the route parameters in `context.params` (`:id`),
+asked again when either changes (a detail page hides "Edit" for a missing record) — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
 `packages/interface-dms/docs/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
 answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
@@ -48,13 +49,37 @@ component's client-side ones (default `0`, served first on a tie: `order: -1` pu
 "Export" before a served "Add key") — `packages/interface-dms/docs/3.base/6.layout.md#ordering-the-header`.
 
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
-points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
-`direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your
-own drawer in a `CustomComponent`.
-To read rows one after the other next to the table (a request log), use a `sidePanel`
-target instead: a non-modal panel docked on the right whose header the DMS draws (title,
-`rowTitle` naming the row from its fields, `positionLabel` "x of y", previous / next, J / K, close), `?record=` kept by default (`deepLink: false` opts out), a "not found" state on a 404 (`notFound: { title, description }`) and the table's
-`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+points at an `ActionTarget`. A detail or record panel (an inspector, a request, a run) is a
+`drawer` target — never a `sidePanel`, and never your own drawer hosted in a
+`CustomComponent`. It opens from the bottom; `direction: "right"` makes it a side sheet,
+600px wide from `lg` (`size: "3xl"` opens it at a modal's width instead), which the user
+resizes by its inner edge and which opens again at that size. On a row it takes the side
+panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
+fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
+with previous / next next to close; J / K step in place through the rows the table shows;
+`deepLink:
+true` on the target keeps
+`?record=`; `notFound: { title, description }` draws the 404 state — with the table's
+`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
+page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+`docs/04.components/08.tables/8.row-drawers.md#detail-drawers`.
+A drawer a module opens itself through `useDrawer()` keeps the size the user gives it under
+its `sizeKey`, by default its `containerId`, else its component's name — pass `sizeKey` only
+when one component opens drawers that must not share a size, or when the component is
+anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`. On a row of a list the module draws
+itself, `rowHeader: { title, positionLabel, navigation }` draws the DMS's row header (position,
+previous / next, J and K; `titleClass`, `titleBreakAfter`, `subtitle`, `subtitleClass` and
+`component` / `componentOptions` under the position line shape it — never a header component of
+the module's own); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
+import the layer's `RowHeader` component —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
+A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
+fills it and ends with `<DmsContainerFooter>` for its buttons — never measure the drawer nor use
+`--dms-form-foot-*` — `docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
+A `useDrawer()` body injects what the component calling `useDrawer()` (in its setup) provides —
+never pass a context as a prop to provide it again in the body.
+A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
+page-independent panels such as an assistant dock —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
 target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
@@ -162,6 +187,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- Conditional fields on a `TableView`'s generated forms go in `forms: { new?, edit?, view? }`, each a
+  callback receiving the form's builder: `new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)` —
+  they run in a drawer, a modal or a form page alike; no custom page just to add a watch.
 - A table of more than a few columns that phones will read offers the cards and opens them there:
   `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
   saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
@@ -175,7 +203,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 
 ### Forms
 
-- A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
+- A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
+  cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
@@ -187,7 +216,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Custom components
 
 - Name the record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`. A hidden detail page next to its
+  list (`project/:id` beside `projects`) declares `parent: ProjectsPage` in its menu options so
+  the breadcrumb shows the list before the record — `docs/02.building/04.navigation.md`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.

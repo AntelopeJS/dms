@@ -5,6 +5,7 @@ import { npmView } from "./registry";
 import type {
   InterfaceImplementation,
   MissingInterface,
+  ModuleDependents,
   PackageRelease,
   RuntimeModule,
 } from "./types";
@@ -213,25 +214,49 @@ export async function findMissingInterfaces(
 }
 
 /**
+ * Whether `module` is the project itself, the module antelope.config.ts
+ * loads from the project's own folder: no store action can remove it.
+ */
+export function isProjectModule(
+  module: RuntimeModule,
+  projectPath: string,
+): boolean {
+  return (
+    path.relative(path.resolve(projectPath), path.resolve(module.localPath)) ===
+    ""
+  );
+}
+
+/**
  * The running modules that need an interface `module` implements and no
  * other running module does: taking `module` down would leave them waiting.
+ * The project is told apart from the modules: they can be removed first,
+ * the project only changes in its code.
  */
 export async function findDependents(
   module: RuntimeModule,
   running: readonly RuntimeModule[],
-): Promise<string[]> {
+  projectPath: string,
+): Promise<ModuleDependents> {
+  const none: ModuleDependents = { modules: [], usedByProject: false };
   const provided = await implementedBy(module.localPath);
-  if (provided.length === 0) return [];
+  if (provided.length === 0) return none;
   const others = running.filter((other) => other.id !== module.id);
   const stillImplemented = await implementedInterfaces(others);
   const orphaned = provided.filter((name) => !stillImplemented.has(name));
-  if (orphaned.length === 0) return [];
+  if (orphaned.length === 0) return none;
   const packages = await Promise.all(
     others.map((other) => readModulePackage(other.localPath)),
   );
-  return others
-    .filter((_, index) =>
-      orphaned.some((name) => packages[index]?.dependencies?.[name]),
-    )
-    .map((other) => other.packageName ?? other.id);
+  const dependents = others.filter((_, index) =>
+    orphaned.some((name) => packages[index]?.dependencies?.[name]),
+  );
+  return {
+    modules: dependents
+      .filter((other) => !isProjectModule(other, projectPath))
+      .map((other) => other.packageName ?? other.id),
+    usedByProject: dependents.some((other) =>
+      isProjectModule(other, projectPath),
+    ),
+  };
 }

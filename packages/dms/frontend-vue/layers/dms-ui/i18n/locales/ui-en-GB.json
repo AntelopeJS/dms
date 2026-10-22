@@ -775,6 +775,9 @@
       "invalid_state": "The preview state could not be read.",
       "empty": "Nothing to preview yet.",
       "unsafe_method": "{name} was not drawn: a preview only reads its data, and {value} writes."
+    },
+    "drawer": {
+      "resize": "Resize the drawer"
     }
   }
 }

@@ -49,6 +49,20 @@ export const RequestQueryProperty = MakeParameterAndPropertyDecorator(
   },
 );
 
+/**
+ * The route parameters of the request (`:id` of a page's layout route), as a
+ * header button's `availability` reads them.
+ *
+ * @internal
+ */
+export const RequestRouteParametersProperty = MakeParameterAndPropertyDecorator(
+  (target, key, index) => {
+    SetParameterProvider(target, key, index, (ctx: RequestContext) => ({
+      ...ctx.routeParameters,
+    }));
+  },
+);
+
 /** @internal */
 export function isPageInsideModule(pageInfo: PageInfo): boolean {
   return pageInfo.fullSlug.startsWith(`${MODULE_URL_PREFIX}/`);

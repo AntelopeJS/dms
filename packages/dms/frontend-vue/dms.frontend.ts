@@ -164,6 +164,17 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
         await import("./layers/dms-layout/app/plugins/dms-dev-reload.client");
       await plugin.default(context);
     }, clientOnly);
+    // Browser only: the server already logs a render that fails, with its
+    // stack. First, so an error a later plugin's work raises is logged too.
+    sdk.registerPlugin(
+      async (context) => {
+        const plugin = await import(
+          "./layers/dms-core/app/plugins/dev-error-log"
+        );
+        await plugin.default(context);
+      },
+      { ...clientOnly, enforce: "pre" },
+    );
   }
   // Before any data is read, a higher-priority module's plugins included:
   // every key lives in the session's scope, and a new scope aborts the reads
