@@ -11,6 +11,7 @@ import type {
   FrontendModuleOptions,
   FrontendModuleValue,
 } from "@antelopejs/interface-dms/page";
+import { FrontendModulesChanged } from "@antelopejs/interface-dms/page";
 import { coerce, major } from "semver";
 import { getConfig, setDevApiBaseUrl, setDevClientBaseUrl } from "../../config";
 import { scheduleBroadcast } from "./dev-reload";
@@ -208,6 +209,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     packageVersion: shippingPackageVersion(config.sourcePath),
   };
   scheduleBroadcast();
+  FrontendModulesChanged.emit();
 }
 
 /**
@@ -265,6 +267,7 @@ export function removeFrontendModulesUnder(folder: string): string[] {
   }
   if (removed.length > 0) {
     scheduleBroadcast();
+    FrontendModulesChanged.emit();
   }
   return removed.map(([, module]) => module.name);
 }

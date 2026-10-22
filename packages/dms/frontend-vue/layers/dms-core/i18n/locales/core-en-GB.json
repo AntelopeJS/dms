@@ -463,6 +463,22 @@
         "all": "All time",
         "custom": "Custom"
       },
+      "short_presets": {
+        "last-hour": "1H",
+        "last-24h": "24H",
+        "today": "1D",
+        "yesterday": "-1D",
+        "last-7-days": "7D",
+        "last-30-days": "30D",
+        "last-90-days": "90D",
+        "this-month": "MTD",
+        "last-month": "-1M",
+        "this-quarter": "QTD",
+        "last-quarter": "-1Q",
+        "ytd": "YTD",
+        "last-year": "-1Y",
+        "all": "ALL"
+      },
       "comparisons": {
         "none": "No comparison",
         "previous-period": "vs previous period",

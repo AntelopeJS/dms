@@ -1,3 +1,5 @@
+import { markPageRead } from "../build/composables/live/pageReadClock";
+
 /**
  * The window event a data block (StatGroup, KeyValueList, NavCardGrid,
  * ActivityFeed, KPI, top list, meter, chart, a tab set's badges, table view)
@@ -43,7 +45,7 @@ export function refreshPageBlocks(): Promise<void> {
     waitUntil: (work) => void pending.push(work),
   };
   window.dispatchEvent(new CustomEvent(BLOCK_REFRESH_EVENT, { detail }));
-  return Promise.allSettled(pending).then(() => undefined);
+  return Promise.allSettled(pending).then(() => markPageRead());
 }
 
 /**

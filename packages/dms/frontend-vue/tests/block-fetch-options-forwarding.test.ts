@@ -52,6 +52,7 @@ const BLOCKS: Record<string, string> = {
   MeterBlock: "../layers/dms-ui/app/components/meter/MeterBlock.vue",
   ChartCard: "../layers/dms-ui/app/components/chart/ChartCard.vue",
   TopListCard: "../layers/dms-ui/app/components/top-list/TopListCard.vue",
+  KpiCard: "../layers/dms-ui/app/components/kpi/KpiCard.vue",
 };
 const GLOBAL_COMPONENTS = ["DmsCard", "UIcon", "USkeleton", "UButton", "ULink"];
 const SCOPE = "dashboard";

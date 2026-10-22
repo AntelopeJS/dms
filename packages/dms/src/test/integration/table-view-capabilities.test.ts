@@ -27,15 +27,29 @@ interface FooterSummary {
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
-    { number: "INV-1", customer: "Acme", status: "open", amount: 100, ownerId },
+    {
+      number: "INV-1",
+      customer: "Acme",
+      status: "open",
+      amount: 100,
+      ownerId,
+      labels: ["urgent", "export"],
+    },
     {
       number: "INV-2",
       customer: "Globex",
       status: "open",
       amount: 250,
       ownerId,
+      labels: ["export"],
     },
-    { number: "INV-3", customer: "Acme", status: "open", amount: 50 },
+    {
+      number: "INV-3",
+      customer: "Acme",
+      status: "open",
+      amount: 50,
+      labels: null,
+    },
     { number: "INV-4", customer: "Initech", status: "paid", amount: 500 },
     { number: "INV-5", customer: "Globex", status: "paid", amount: 75 },
   ];
@@ -200,6 +214,31 @@ describe("[integration] table view capabilities", () => {
     });
     expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({ all: 3, mine: 2 });
+  });
+
+  it("reads a null or missing array as empty in include and exclude filters", async () => {
+    const numbers = (rows: Invoice[]) => rows.map((row) => row.number).sort();
+    expect(await countRawDocuments(COLLECTION, { labels: null })).to.equal(3);
+
+    const included = await list(client, "&filter_labels=include:export");
+    expect(numbers(included)).to.deep.equal(["INV-1", "INV-2"]);
+    const excluded = await list(client, "&filter_labels=exclude:export");
+    expect(numbers(excluded)).to.deep.equal(["INV-3", "INV-4", "INV-5"]);
+
+    const summary = await client.get(
+      summaryQuery("&filter_labels=include:export"),
+    );
+    expect(summary.status, JSON.stringify(summary.data)).to.equal(HTTP_OK);
+    expect(summary.data[summaryIds[0]!]).to.equal(350);
+
+    const counts = await client.post(`${LOCATION}/count/batch`, {
+      queries: [
+        { id: "included", query: { filter_labels: "include:urgent" } },
+        { id: "excluded", query: { filter_labels: "exclude:urgent" } },
+      ],
+    });
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ included: 1, excluded: 4 });
   });
 
   it("hands a bulk route the selected ids, or every row the filters match", async () => {
