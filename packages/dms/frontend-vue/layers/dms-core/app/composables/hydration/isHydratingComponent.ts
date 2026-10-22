@@ -11,15 +11,16 @@ import { getCurrentInstance } from "vue";
  * and false in a client navigation, on a later re-render, on the server, and
  * outside a component.
  *
- * Read it where the browser must draw what the server drew: a value only the
- * browser knows (local storage, the clock) waits until mounted, and a setup
- * that would await data the runtime already transferred skips the await.
- * Call it before the setup's first `await`, while the component is still
- * Vue's current instance.
+ * Read it where the browser must draw what the server drew: a part drawn
+ * in the browser only, or a value only the browser knows (local storage, the
+ * clock), waits until mounted while hydrating, and shows at once anywhere
+ * else. Call it before the setup's first `await`, while the component is
+ * still Vue's current instance. Data needs no check: `useApiData` hands the
+ * server's answer to the browser on its own.
  *
  * ```ts
- * const isHydrating = isHydratingComponent();
- * if (!isHydrating) await listing.load();
+ * const isDrawn = ref(!import.meta.env.SSR && !isHydratingComponent());
+ * onMounted(() => (isDrawn.value = true));
  * ```
  */
 export function isHydratingComponent(): boolean {
