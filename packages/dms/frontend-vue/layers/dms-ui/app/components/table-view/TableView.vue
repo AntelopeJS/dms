@@ -59,9 +59,8 @@ import {
 } from "../../build/composables/table-view/utils/tableQuery";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
 import {
-  defaultExpandedRows,
+  expandedRowsOnListing,
   type ExpandedRowMap,
-  keepListedRows,
   nextExpandedRows,
 } from "../../build/composables/table-view/utils/expandedRows";
 import { resolveTableChrome } from "../../build/composables/table-view/utils/chrome";
@@ -1927,22 +1926,20 @@ const expandedModel = computed<ExpandedState>({
   },
 });
 
-let expandedQueryKey: string | undefined;
+let expandedListedKey: string | undefined;
 if (expandableConfig) {
   watch(
     shownResults,
     (rows) => {
-      const queryKey = JSON.stringify([queryRequest.value, archiveQuery.value]);
-      if (queryKey === expandedQueryKey) {
-        expanded.value = keepListedRows(expanded.value, rowIdsOf(rows));
-        return;
-      }
-      expandedQueryKey = queryKey;
-      expanded.value = defaultExpandedRows(
-        rowIdsOf(rows),
+      const next = expandedRowsOnListing(
+        { expanded: expanded.value, listedKey: expandedListedKey },
+        rows ? rowIdsOf(rows) : undefined,
+        JSON.stringify([queryRequest.value, archiveQuery.value]),
         expandableConfig.defaultExpanded,
         expandableConfig.single,
       );
+      expandedListedKey = next.listedKey;
+      expanded.value = next.expanded;
     },
     { immediate: true },
   );

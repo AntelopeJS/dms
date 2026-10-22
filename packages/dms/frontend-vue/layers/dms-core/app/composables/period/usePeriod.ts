@@ -25,7 +25,7 @@ import {
   resolvePresetRange,
 } from "./presetResolvers";
 import { resolveComparisonRange } from "./compareResolvers";
-import { periodRenderNow } from "./periodRenderNow";
+import { serverRenderNow } from "../../build/composables/renderNow";
 
 export interface UsePeriodOptions {
   defaultPreset?: PeriodPreset;
@@ -52,7 +52,7 @@ export interface UsePeriodReturn {
   state: ComputedRef<PeriodState>;
   /**
    * The instant `state` was resolved from: what a label relative to now
-   * reads, so it holds still with the period (see `periodRenderNow`).
+   * reads, so it holds still with the period (see `serverRenderNow`).
    */
   resolvedAt: ComputedRef<Date>;
   setPreset: (preset: PeriodPreset) => void;
@@ -185,7 +185,7 @@ function makeSetters(refs: PeriodRefs) {
  * comparisons and custom ranges resolved into a publishable `state`.
  *
  * A server render and the browser hydrating it resolve from the same instant
- * (`periodRenderNow`), so both render the same bounds.
+ * (`serverRenderNow`), so both render the same bounds.
  *
  * Relative presets (`last-hour`, `last-24h`) re-resolve every minute, and
  * calendar presets (`today`, `last-7-days`, `this-month`...) at each local
@@ -215,7 +215,8 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
   // The server render's instant, until the clock ticks or the period changes
   // once on screen: what the setup applies (the URL's period) the server
   // applied as well.
-  const renderNow = shallowRef(periodRenderNow());
+  const serverNow = serverRenderNow();
+  const renderNow = shallowRef(serverNow === null ? null : new Date(serverNow));
   if (renderNow.value) {
     onMounted(() => {
       watch(

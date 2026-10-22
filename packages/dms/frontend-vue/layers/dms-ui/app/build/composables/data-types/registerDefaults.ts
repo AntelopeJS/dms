@@ -37,6 +37,7 @@ import {
   formatDayMonth,
   formatRelativeDate,
 } from "../../utils/relativeDate";
+import { serverRenderNow } from "#dms-core/app/build/composables/renderNow";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const FilePreview = defineAsyncComponent(
@@ -664,7 +665,10 @@ function renderRelativeDate(
   const opts = (options ?? {}) as RelativeDateOptions;
   const date = new Date(value as string);
   if (Number.isNaN(date.getTime())) return String(value);
-  const deltaMs = date.getTime() - Date.now();
+  // Measured from the server render's instant while hydrating it: "3 min ago"
+  // written at 12:00:59 stays so in a browser hydrating at 12:01:01.
+  const now = serverRenderNow() ?? Date.now();
+  const deltaMs = date.getTime() - now;
   const isPast = deltaMs < 0;
   const title = formatDate(date, locale, RELATIVE_TITLE_FORMAT) ?? undefined;
 
@@ -679,8 +683,8 @@ function renderRelativeDate(
   const style = (isPast ? opts.pastStyle : undefined) ?? opts.style;
   let text =
     style === "day"
-      ? formatDayMonth(date, locale)
-      : formatRelativeDate(date, locale);
+      ? formatDayMonth(date, locale, now)
+      : formatRelativeDate(date, locale, now);
   const isSoon = !isPast && !!opts.soonWithinMs && deltaMs < opts.soonWithinMs;
   const tone = isPast
     ? (opts.pastTone ?? opts.tone)

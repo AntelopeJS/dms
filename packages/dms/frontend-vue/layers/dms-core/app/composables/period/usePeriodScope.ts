@@ -88,7 +88,7 @@ function readPeriodScope(
  * first render must match the HTML. It also answers `null` for a period the
  * browser could resolve to other bounds: before the browser's cookie names
  * its time zone. A relative preset resolves from the instant the server
- * hands the browser (`periodRenderNow`), so both read the same bounds.
+ * hands the browser (`serverRenderNow`), so both read the same bounds.
  */
 export function usePeriodScope(
   id: string | undefined,

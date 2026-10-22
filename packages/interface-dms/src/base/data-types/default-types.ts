@@ -942,15 +942,23 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return this.relationInput(this.options.multiple);
+      return this.relationInput(true, this.options.multiple);
     }
 
-    // A multiple relation is filtered on one id at a time (`include`).
+    // A filter picks among the rows there are: it never adds one. A multiple
+    // relation is filtered on one id at a time (`include`).
     override filterComponents() {
-      return { default: this.relationInput(false) };
+      return { default: this.relationInput(false, false) };
     }
 
-    private relationInput(multiple: boolean | undefined) {
+    public describedInputComponent() {
+      return this.relationInput(false, this.options.multiple);
+    }
+
+    // The picker, with the related table's "new" form when a row can be
+    // added through it: that form, nested relations included, is the bulk of
+    // the component, and only an editable field opens it.
+    private relationInput(canAdd: boolean, multiple: boolean | undefined) {
       const tableViewMeta = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -962,7 +970,9 @@ export namespace DefaultDataTypes {
       );
 
       const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
-      const addOptions = this.buildAddOptions(tableViewMeta, endpoints);
+      const addOptions = canAdd
+        ? this.buildAddOptions(tableViewMeta, endpoints)
+        : undefined;
 
       return FormComponents.InputRelation({
         placeholder: this.options.placeholder,
