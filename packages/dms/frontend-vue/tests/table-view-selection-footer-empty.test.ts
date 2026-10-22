@@ -343,6 +343,50 @@ describe("footer figures", () => {
     expect(dots.some((name) => name.includes("text-muted"))).toBe(true);
   });
 
+  it("reads count | page size, then the summaries, the legend and the pager", () => {
+    const { container } = mount(
+      TablePagination,
+      {},
+      {
+        rowCount: 38,
+        firstPageLoading: false,
+        paginationState: ref({ pageIndex: 0, pageSize: 25 }),
+        chrome: computed(() => ({ pageSize: true })),
+        table: {
+          getCanPreviousPage: () => false,
+          getCanNextPage: () => true,
+        },
+        footer: {
+          countLabel: "$invoices.count",
+          hint: "Hint",
+          summaries: [{ id: "0", label: "Billed", value: "1 200 €" }],
+          legend: [{ label: "Draft", color: "neutral" }],
+        },
+      },
+    );
+    // The footer's text, with the pager standing for its keypath.
+    const pager = container.querySelector(
+      '[data-keypath="dms.pagination.current_page"]',
+    )!;
+    pager.textContent = "PAGER";
+    const text = container.textContent ?? "";
+    const order = [
+      "invoices.count",
+      "dms.table.page_size_title",
+      "Billed",
+      "Draft",
+      "Hint",
+      "PAGER",
+    ].map((part) => text.indexOf(part));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Count, rule and page size wrap as one group.
+    const lead = container.querySelector("label")!.parentElement!;
+    expect(lead.textContent).toContain("invoices.count");
+    expect(lead.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(lead.textContent).not.toContain("Billed");
+  });
+
   it("shows how far a list growing by pages got, and loads the next page", () => {
     const load = vi.fn();
     const { container } = mount(
