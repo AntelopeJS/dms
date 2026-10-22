@@ -67,7 +67,8 @@ const Row = defineComponent({
 function stubNuxt(locale: string) {
   vi.stubGlobal("useI18n", () => ({
     locale: ref(locale),
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, string>) =>
+      params ? `${key} ${Object.values(params).join(" ")}` : key,
   }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
@@ -131,7 +132,9 @@ describe("card → nested chart → Apex format propagation", () => {
         currency,
       }).format(AMOUNT);
       const html = await renderCards(currency, "fr-FR", "native");
-      expect(html.split(expected)).toHaveLength(6);
+      // The card headline and its comparison, the KPI's comparison, the axis,
+      // the tooltip and the list row (the KPI's value is split in parts).
+      expect(html.split(expected)).toHaveLength(7);
       expect(html).toContain(`class="axis">${expected}`);
       expect(html).toContain(`class="tooltip">${expected}`);
       const numeric = new Intl.NumberFormat("fr-FR", {

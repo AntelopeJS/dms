@@ -101,7 +101,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)` makes the page's data blocks
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
-  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
+  `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`). Its selected
+  comparison drives the cards: `KpiCard` names it ("vs previous year", leave `compareLabel`
+  unset) and prints the route's `previousValue`; "No comparison" hides the change, the value
+  compared against and the label on `KpiCard`, `ChartCard` and `TopListCard`.
 - `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
   `PublishMessage`. Publish tenant data with the tenant id (`{ tenantId }`): without it the message
   is global and refetches the page in every workspace. A `TableView` needs no option: the DMS
