@@ -144,6 +144,20 @@ describe("the tab the user opens", () => {
     expect(window.location.search).toBe("?page=2&tab=all");
   });
 
+  it("replaces the prefixed key a link set on a single table view", async () => {
+    window.history.replaceState(null, "", "/runs?runs.tab=active");
+    const scope = { tableId: "runs", isSoleTableView: true };
+    const { activeTabId } = mountTable(scope, { "runs.tab": "active" });
+    activeTabId.value = "archived";
+    await nextTick();
+    expect(window.location.search).toBe("?tab=archived");
+    // A reload reads the tab the user opened, not the link's.
+    const reloaded = Object.fromEntries(
+      new URLSearchParams(window.location.search),
+    );
+    expect(readTableUrlTab(reloaded, scope)).toBe("archived");
+  });
+
   it("is written to the table's own key on a page with several tables", async () => {
     window.history.replaceState(null, "", "/runs?jobs.tab=late");
     const { activeTabId } = mountTable({ tableId: "runs" }, {});

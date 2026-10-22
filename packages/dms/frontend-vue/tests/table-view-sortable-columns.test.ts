@@ -129,7 +129,7 @@ describe("sortingOrDefault", () => {
       "utf8",
     );
     expect(tableView).toMatch(
-      /const sorting = ref<SortingState>\(\s*sortingOrDefault\(/,
+      /const sorting = ref<SortingState>\(\s*reorderConfig\s*\? defaultSortState\s*: sortingOrDefault\(/,
     );
     expect(tableView).toMatch(
       /const sanitized = sortingOrDefault\(\s*next,\s*sortableIds\.value,\s*defaultSortState,\s*\);/,

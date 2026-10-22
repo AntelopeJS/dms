@@ -34,6 +34,7 @@ import {
   validateDefaultDisplay,
   validateDisplayIds,
   validatePageSize,
+  warnIfQuickFiltersLackValues,
 } from "./internal/validation";
 
 /** A column of a source table: a `@Column`'s options, keyed by row field. */
@@ -259,7 +260,8 @@ function assertSourceFilters(
  * the display ids, a tab filtering or linking — and its own: tabs, quick
  * filters and `queryParamFilters` send column filters, which only a route
  * reading them can apply,
- * and every key an option names (card fields included) must be a column.
+ * and every key an option names (card fields included) must be a column. A
+ * quick filter on a column with no values to pick is warned about.
  */
 function assertSourceOptions(options: TableViewSourceOptions): void {
   const where = sourceName(options);
@@ -286,6 +288,7 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
       throw new Error(`${where} references unknown column "${key}"`);
     }
   }
+  warnIfQuickFiltersLackValues(where, options.columns, options.quickFilters);
 }
 
 /**

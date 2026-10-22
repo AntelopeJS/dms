@@ -89,7 +89,10 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
 
     expect(created.submitUrl).to.equal(`${LOCATION}/new`);
     expect(created.submitUrlMethod).to.equal(HttpMethod.post);
+    // Declared a create form: the client never guesses it from the method.
+    expect(created.kind).to.equal("create");
     const opened = table.formComponents.new?.options as FormPropsSerialized;
+    expect(opened.kind).to.equal("create");
     expect(created.fetchUrl).to.equal(opened.fetchUrl);
     expect(fieldIds(created)).to.deep.equal(fieldIds(opened));
   });
@@ -103,6 +106,7 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     );
     expect(edited.submitUrl).to.equal(`${LOCATION}/edit?id={{query.id}}`);
     expect(edited.submitUrlMethod).to.equal(HttpMethod.put);
+    expect(edited.kind).to.equal(undefined);
     expect(shown.fetchUrl).to.equal(`${LOCATION}/get?id={{query.id}}`);
   });
 

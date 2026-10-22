@@ -185,6 +185,15 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     },
   );
 
+  // A display that cannot sort (a hand-ordered table) leaves every header
+  // without its sort button, arrow and menu items.
+  watch(
+    () => props.tableProps.sortingOptions?.enableSorting,
+    (enableSorting) => {
+      table.setOptions((prev) => ({ ...prev, enableSorting }));
+    },
+  );
+
   const labeledColumns: ComputedRef<LabeledColumn<T>[]> = computed(() => {
     return table
       .getAllColumns()
