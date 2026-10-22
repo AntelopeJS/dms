@@ -432,24 +432,37 @@ const DURATION_UNITS = [
 const MS_FRACTION_DIGITS = 3;
 
 /**
- * A duration in milliseconds the way people write it, its figures in the
- * reader's locale: "910 ms", "1.8 s", "4 min 12 s", "7 h 30 min". The one
- * writer of a duration, for a field and a cell alike. Exact (hours and
- * minutes whole, the seconds carrying the milliseconds), its figures neither
- * grouped nor in another script, so {@link readTimeSpan} reads back the very
- * value it wrote.
+ * How exact a written duration is: `exact` (the default) keeps every
+ * millisecond, so a field shows the value it holds and {@link readTimeSpan}
+ * reads it back; `rounded` keeps two units at most, the smaller one rounded
+ * ("2.1 s", "4 min 12 s", "7 h 30 min"), for a cell read at a glance.
  */
-export function formatDuration(ms: number, locale: string): string {
-  const figure = (value: number, symbol: string, fractionDigits: number) =>
-    `${readableNumberFormat(locale, {
-      maximumFractionDigits: fractionDigits,
-      useGrouping: false,
-      numberingSystem: "latn",
-    }).format(value)} ${symbol}`;
-  const sign = ms < 0 ? "-" : "";
-  let remaining = Math.abs(ms);
+export type DurationPrecision = "exact" | "rounded";
+
+export interface DurationFormatOptions {
+  precision?: DurationPrecision;
+}
+
+const ROUNDED_SECONDS_FRACTION_DIGITS = 1;
+
+function durationFigure(
+  locale: string,
+  value: number,
+  symbol: string,
+  fractionDigits: number,
+): string {
+  const figure = readableNumberFormat(locale, {
+    maximumFractionDigits: fractionDigits,
+    useGrouping: false,
+    numberingSystem: "latn",
+  }).format(value);
+  return `${figure} ${symbol}`;
+}
+
+function exactDuration(ms: number, locale: string): string {
+  let remaining = ms;
   if (remaining < TIME_UNITS.s) {
-    return sign + figure(remaining, "ms", MS_FRACTION_DIGITS);
+    return durationFigure(locale, remaining, "ms", MS_FRACTION_DIGITS);
   }
   const parts: string[] = [];
   for (const { symbol, ms: unitMs, fractionDigits } of DURATION_UNITS) {
@@ -457,7 +470,50 @@ export function formatDuration(ms: number, locale: string): string {
       ? remaining / unitMs
       : Math.floor(remaining / unitMs);
     remaining -= amount * unitMs;
-    if (amount) parts.push(figure(amount, symbol, fractionDigits));
+    if (amount)
+      parts.push(durationFigure(locale, amount, symbol, fractionDigits));
   }
-  return sign + parts.join(" ");
+  return parts.join(" ");
+}
+
+function roundedDuration(ms: number, locale: string): string {
+  if (ms < TIME_UNITS.s) return durationFigure(locale, Math.round(ms), "ms", 0);
+  if (ms < TIME_UNITS.m) {
+    return durationFigure(
+      locale,
+      ms / TIME_UNITS.s,
+      "s",
+      ROUNDED_SECONDS_FRACTION_DIGITS,
+    );
+  }
+  const [major, majorSymbol, minor, minorSymbol] =
+    ms < TIME_UNITS.h
+      ? ([TIME_UNITS.m, "min", TIME_UNITS.s, "s"] as const)
+      : ([TIME_UNITS.h, "h", TIME_UNITS.m, "min"] as const);
+  // Rounded as a whole first, so 1 min 59.7 s reads "2 min", not "1 min 60 s".
+  const total = Math.round(ms / minor) * minor;
+  const whole = Math.floor(total / major);
+  const rest = (total - whole * major) / minor;
+  const head = durationFigure(locale, whole, majorSymbol, 0);
+  return rest
+    ? `${head} ${durationFigure(locale, rest, minorSymbol, 0)}`
+    : head;
+}
+
+/**
+ * A duration in milliseconds the way people write it, its figures in the
+ * reader's locale: "910 ms", "2.149 s", "4 min 12 s", "7 h 30 min". The one
+ * writer of a duration, for a field and a cell alike. Exact by default (hours
+ * and minutes whole, the seconds carrying the milliseconds), its figures
+ * neither grouped nor in another script, so {@link readTimeSpan} reads back
+ * the very value it wrote; `precision: "rounded"` for a cell.
+ */
+export function formatDuration(
+  ms: number,
+  locale: string,
+  { precision = "exact" }: DurationFormatOptions = {},
+): string {
+  const sign = ms < 0 ? "-" : "";
+  const write = precision === "rounded" ? roundedDuration : exactDuration;
+  return sign + write(Math.abs(ms), locale);
 }

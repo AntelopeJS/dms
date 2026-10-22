@@ -230,8 +230,12 @@ interface DurationOptions {
   toneField?: string;
 }
 
-const DURATION_FORMATS: Record<string, typeof formatDuration> = {
-  readable: formatDuration,
+type DurationWriter = (ms: number, locale: string) => string;
+
+// A cell is read at a glance: the readable duration is rounded there.
+const DURATION_FORMATS: Record<string, DurationWriter> = {
+  readable: (ms, locale) =>
+    formatDuration(ms, locale, { precision: "rounded" }),
   ms: formatMilliseconds,
 };
 
@@ -247,7 +251,8 @@ function renderDuration(
 ) {
   const opts = (options ?? {}) as DurationOptions;
   const ms = numberOf(value) * (DURATION_UNIT_MS[opts.unit ?? "ms"] ?? 1);
-  const format = DURATION_FORMATS[opts.format ?? "readable"] ?? formatDuration;
+  const format =
+    DURATION_FORMATS[opts.format ?? "readable"] ?? DURATION_FORMATS.readable!;
   return figure(
     format(ms, locale),
     rowToneTextClass(row, opts.toneField, FIGURE_TONE_CLASS),

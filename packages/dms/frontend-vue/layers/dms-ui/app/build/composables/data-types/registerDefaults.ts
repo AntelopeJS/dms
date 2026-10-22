@@ -785,10 +785,13 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "string_time",
-    // Written as the field writes it ("7 h 30 min"), in the reader's locale.
+    // Written as the field writes it ("7 h 30 min"), in the reader's locale,
+    // rounded as every duration cell is: the field keeps the exact value.
     formatter: {
       default: (value: unknown, locale: string) =>
-        isNumber(value) ? formatDuration(Number(value), locale) : value,
+        isNumber(value)
+          ? formatDuration(Number(value), locale, { precision: "rounded" })
+          : value,
     },
   });
 };

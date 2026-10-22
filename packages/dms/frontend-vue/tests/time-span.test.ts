@@ -45,6 +45,23 @@ describe("time spans", () => {
     expect(formatDuration(-90 * MINUTE, "en")).toBe("-1 h 30 min");
   });
 
+  // A cell rounds what a field keeps exact: the field's text reads back to
+  // the value it holds, the cell's to another.
+  it("rounds only when asked, and only the exact text reads back", () => {
+    const ms = 2149;
+    const exact = formatDuration(ms, "en");
+    const rounded = formatDuration(ms, "en", { precision: "rounded" });
+    expect(exact).toBe("2.149 s");
+    expect(rounded).toBe("2.1 s");
+    expect(readTimeSpan(exact)).toBe(ms);
+    expect(readTimeSpan(rounded)).toBe(2100);
+    const long = 7 * HOUR + 30 * MINUTE + 15_250;
+    expect(formatDuration(long, "fr")).toBe("7 h 30 min 15,25 s");
+    expect(formatDuration(long, "fr", { precision: "rounded" })).toBe(
+      "7 h 30 min",
+    );
+  });
+
   // Every value the field shows is the value it holds: focusing the field
   // and leaving it rewrites nothing, whatever the locale.
   it("reads back exactly what it writes", () => {

@@ -49,6 +49,12 @@ describe("string_time display", () => {
     expect(text.replace(/\s/g, " ")).toBe("7 h 30 min");
   });
 
+  it("rounds the duration a cell shows", () => {
+    const format = formatters.get("string_time")!;
+    const text = String(format(7 * HOUR + 30 * MINUTE + 15_250, "en"));
+    expect(text.replace(/\s/g, " ")).toBe("7 h 30 min");
+  });
+
   it("leaves a value that is no duration as it is", () => {
     expect(formatters.get("string_time")!(undefined, "en")).toBeUndefined();
   });
