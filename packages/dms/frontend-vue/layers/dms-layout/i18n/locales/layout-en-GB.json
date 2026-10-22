@@ -188,6 +188,8 @@
         "mark_unread": "Mark unread",
         "delete": "Delete",
         "delete_one": "Delete notification",
+        "delete_one_title": "Delete this notification?",
+        "delete_one_description": "It leaves your inbox for good. This can’t be undone.",
         "empty_title": "You’re all caught up",
         "empty_description": "New notifications land here. Choose what you receive in Preferences above.",
         "loading_more": "Loading older notifications · {count} more",
