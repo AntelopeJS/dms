@@ -14,6 +14,9 @@ const PAGE_ID = "watch-actions";
 const FORM_PERMISSION = `${pageCategory.fullId}.${PAGE_ID}.form`;
 const OWNER_FIELD = "isOwner";
 const LOCK_FIELD = "lockOwner";
+const PLAN_FIELD = "plan";
+// The seats a plan suggests: picking a plan writes them into Seats.
+const SEATS_BY_PLAN = { solo: 1, team: 5, enterprise: 50 };
 
 const whenField = (fieldId: string, value: boolean) => [
   { key: "fieldId", value: fieldId },
@@ -24,7 +27,8 @@ const whenLocked = (value: boolean) => whenField(LOCK_FIELD, value);
 
 /**
  * Watches: a form event (`FIELD_CHANGE`) runs a form function on another
- * field (disable, hide, require), optionally behind a permission. The page's
+ * field (disable, hide, require, set its value), optionally behind a
+ * permission. The page's
  * setup function (`setupId`) logs every form event to the browser console:
  * field changes, submit, success, error and reset.
  */
@@ -37,7 +41,7 @@ export class PageFormWatchActions extends PageController(
     category: pageCategory,
     order: 60,
     description:
-      "Toggle Is owner: other fields get disabled, hidden or required; Lock ownership disables Is owner. Open the browser console, then save or discard to see the form events logged.",
+      "Toggle Is owner: other fields get disabled, hidden or required; Lock ownership disables Is owner; picking a plan writes its seats. Open the browser console, then save or discard to see the form events logged.",
     setupId: "dms:demo:form-lifecycle",
   },
   FormPageLayout(),
@@ -91,6 +95,25 @@ export class PageFormWatchActions extends PageController(
         type: new DefaultDataTypes.DateType(),
         readonly: true,
       },
+      {
+        id: PLAN_FIELD,
+        label: "Plan",
+        description: "Picking one writes its seats: SET_FIELD_VALUE.",
+        type: new DefaultDataTypes.SelectType({
+          items: [
+            { value: "solo", label: "Solo" },
+            { value: "team", label: "Team" },
+            { value: "enterprise", label: "Enterprise" },
+          ],
+        }),
+      },
+      {
+        id: "seats",
+        label: "Seats",
+        description:
+          "Opens with the stored 12, not the plan's 5: only a change writes.",
+        type: new DefaultDataTypes.NumberType({ min: 1 }),
+      },
     ],
   })
     .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
@@ -126,6 +149,10 @@ export class PageFormWatchActions extends PageController(
       requirePermission: FORM_PERMISSION,
       params: { targetField: OWNER_FIELD, setDisabled: false },
       onParam: whenLocked(false),
+    })
+    .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_VALUE, {
+      params: { targetField: "seats", valueMap: SEATS_BY_PLAN },
+      onParam: { key: "fieldId", value: PLAN_FIELD },
     })
     .watchFilter((permissions, watches, permissionId) => {
       console.log(

@@ -228,6 +228,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
   cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
+- A relation picker depending on another field of the form takes `filterBy: { field, from }`:
+  `RelationType({ dataApiController: SiteController, filterBy: { field: "customer", from: "customer" } })`
+  lists only the picked customer's sites, searches again when it changes and clears a pick made for
+  the previous one — no custom picker. `field` must be filterable on the related controller (it
+  throws at registration otherwise) — `docs/04.components/10.data-types.md`.
+- A field whose value follows another one (stage → probability) takes a watch running
+  `FormFunctions.SET_FIELD_VALUE` with `{ targetField, valueMap: { won: 100, lost: 0 } }` (or a fixed
+  `value`) on `FIELD_CHANGE` keyed on the source `fieldId` — never a custom component. It writes on a
+  change only, never over the values a record opens with; a rule that must hold stays in the write
+  route — `docs/04.components/07.forms/0.index.md#setting-a-value-from-another-field`.
 - A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
   `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
   `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the

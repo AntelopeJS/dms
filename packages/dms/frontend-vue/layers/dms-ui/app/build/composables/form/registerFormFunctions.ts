@@ -1,3 +1,9 @@
+import {
+  type FieldChangePayload,
+  type SetFieldValueParams,
+  resolveFieldValueWrite,
+} from "./fieldValueRule";
+
 type FieldSetStateKey = "disabledFields" | "hiddenFields" | "requiredFields";
 
 function createFieldSetMutator(stateKey: FieldSetStateKey, flagKey: string) {
@@ -23,6 +29,25 @@ function createFieldSetMutator(stateKey: FieldSetStateKey, flagKey: string) {
   };
 }
 
+function setFieldValue(
+  action: WatchAction,
+  eventData: ComponentEventData,
+  componentState: Ref<Record<string, unknown>>,
+) {
+  const params = action.params as unknown as SetFieldValueParams;
+  const write = resolveFieldValueWrite(
+    params,
+    eventData.data as FieldChangePayload | undefined,
+  );
+  if (!write) return;
+  // A copy: a map entry holding a list or an object is shared by every write
+  // (and may reach here as a reactive proxy, which structuredClone refuses).
+  componentState.value[params.targetField] =
+    write.value === undefined
+      ? undefined
+      : JSON.parse(JSON.stringify(write.value));
+}
+
 export function registerFormFunctions() {
   const { registerFunction } = useDefinedFunctions();
 
@@ -40,4 +65,6 @@ export function registerFormFunctions() {
     FormFunctions.SET_FIELD_REQUIRED,
     createFieldSetMutator("requiredFields", "setRequired"),
   );
+
+  registerFunction(FormFunctions.SET_FIELD_VALUE, setFieldValue);
 }
