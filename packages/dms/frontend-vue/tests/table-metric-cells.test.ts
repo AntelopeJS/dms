@@ -2,9 +2,9 @@
 import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { formatDuration } from "../layers/dms-core/app/utils/formatter";
 import {
   formatBytes,
-  formatDuration,
   progressShares,
   registerMetricCellTypes,
 } from "../layers/dms-ui/app/build/composables/data-types/metricCells";

@@ -21,6 +21,7 @@ import {
   parseTypedNumber,
 } from "../layers/dms-ui/app/build/utils/numberAdjustment";
 import type { InputNumberAdjustment } from "../layers/dms-ui/app/types/input-number";
+import { NumberFieldInput, NumberFieldRoot } from "reka-ui";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -133,6 +134,14 @@ describe("parseTypedNumber", () => {
     expect(parseTypedNumber("1,020", "en")).toBe(1020);
     expect(parseTypedNumber(" -100 ", "en")).toBe(-100);
     expect(parseTypedNumber("1 020,5", "fr")).toBe(1020.5);
+    // The field draws French groups with a narrow space, the cells with a
+    // no-break one, and the keyboard types a plain one: each reads.
+    for (const space of [" ", "\u202F", "\u00A0"]) {
+      expect(parseTypedNumber(`1${space}234${space}567,5`, "fr-FR")).toBe(
+        1234567.5,
+      );
+    }
+    expect(parseTypedNumber("1.234,5", "es-ES")).toBe(1234.5);
     expect(parseTypedNumber("", "en")).toBeNull();
     expect(parseTypedNumber("abc", "en")).toBeNull();
   });
@@ -212,5 +221,39 @@ describe("DmsInputNumber adjust", () => {
     input.dispatchEvent(new FocusEvent("blur"));
     await settled();
     expect(adjustments).toEqual([]);
+  });
+});
+
+// The field itself is Nuxt UI's, over reka's number field, which writes and
+// reads the number with `Intl` on its own.
+describe("the number field Nuxt UI draws", () => {
+  it("reads a typed number grouped by any space", async () => {
+    for (const space of [" ", "\u202F", "\u00A0"]) {
+      const value = ref<number | undefined>();
+      app = createApp({
+        render: () =>
+          h(
+            NumberFieldRoot,
+            {
+              modelValue: value.value,
+              "onUpdate:modelValue": (next: number) => (value.value = next),
+              locale: "fr-FR",
+              stepSnapping: false,
+            },
+            () => h(NumberFieldInput),
+          ),
+      });
+      app.mount(host);
+      await nextTick();
+      const input = host.querySelector("input")!;
+      input.value = `1${space}234${space}567,5`;
+      input.dispatchEvent(new Event("input"));
+      input.dispatchEvent(new Event("change"));
+      input.dispatchEvent(new FocusEvent("blur"));
+      await nextTick();
+      expect(value.value, JSON.stringify(space)).toBe(1234567.5);
+      app?.unmount();
+      app = undefined;
+    }
   });
 });

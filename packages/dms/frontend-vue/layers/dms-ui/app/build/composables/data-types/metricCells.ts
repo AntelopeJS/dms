@@ -1,4 +1,7 @@
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
+import {
+  formatDuration,
+  readableNumberFormat,
+} from "#dms-core/app/utils/formatter";
 import { defineAsyncComponent, h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
@@ -176,10 +179,6 @@ function renderSparkline(options: unknown, row: Row) {
 }
 
 const MS_PER_SECOND = 1000;
-const SECONDS_PER_MINUTE = 60;
-const MINUTES_PER_HOUR = 60;
-const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE;
-const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR;
 const DURATION_UNIT_MS: Record<string, number> = { ms: 1, s: MS_PER_SECOND };
 
 // SI symbols read the same in every language; the figure follows the locale.
@@ -197,26 +196,6 @@ export function formatMilliseconds(ms: number, locale: string): string {
     maximumFractionDigits: 0,
   }).format(ms);
   return `${figure} ms`;
-}
-
-/**
- * A duration in its most readable unit: "910 ms", "1.8 s", "4 min 12 s",
- * "2 h 5 min".
- */
-export function formatDuration(ms: number, locale: string): string {
-  const absolute = Math.abs(ms);
-  if (absolute < MS_PER_SECOND) return withSymbol(locale, Math.round(ms), "ms");
-  if (absolute < MS_PER_MINUTE) {
-    return withSymbol(locale, ms / MS_PER_SECOND, "s", 1);
-  }
-  const [major, majorSymbol, minor, minorSymbol] =
-    absolute < MS_PER_HOUR
-      ? ([MS_PER_MINUTE, "min", MS_PER_SECOND, "s"] as const)
-      : ([MS_PER_HOUR, "h", MS_PER_MINUTE, "min"] as const);
-  const whole = Math.trunc(ms / major);
-  const rest = Math.round((ms - whole * major) / minor);
-  const head = withSymbol(locale, whole, majorSymbol);
-  return rest === 0 ? head : `${head} ${withSymbol(locale, rest, minorSymbol)}`;
 }
 
 const BYTE_SYMBOLS = ["B", "kB", "MB", "GB", "TB"];

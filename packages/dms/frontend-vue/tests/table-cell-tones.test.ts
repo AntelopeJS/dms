@@ -48,7 +48,6 @@ function stubLayerGlobals() {
     "formatNumber",
     "formatPrice",
     "formatPercentage",
-    "formatTimeSpan",
     "formatDate",
     "getBooleanLabel",
   ]) {
@@ -102,8 +101,8 @@ describe("milliseconds format", () => {
 });
 
 describe("duration cell", () => {
-  it("keeps its most readable unit by default and writes milliseconds with format ms", () => {
-    expect(render(cell("duration", 2149, {})).textContent).toBe("2.1 s");
+  it("writes the duration as a field does by default, in milliseconds with format ms", () => {
+    expect(render(cell("duration", 2149, {})).textContent).toBe("2.149 s");
     app?.unmount();
     expect(render(cell("duration", 2149, { format: "ms" })).textContent).toBe(
       "2,149 ms",

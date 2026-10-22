@@ -401,7 +401,6 @@ describe("identity sub-line", () => {
       "formatNumber",
       "formatPrice",
       "formatPercentage",
-      "formatTimeSpan",
       "formatDate",
       "getBooleanLabel",
     ]) {

@@ -49,9 +49,7 @@ const githubStarsSettled = ref(false);
 const formattedGithubStars = computed(() =>
   githubStars.value === null
     ? ""
-    : new Intl.NumberFormat(locale.value, { notation: "compact" }).format(
-        githubStars.value,
-      ),
+    : formatNumber(githubStars.value, locale.value, { notation: "compact" }),
 );
 
 function readCachedStars(): CachedStars | null {

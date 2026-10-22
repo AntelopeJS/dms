@@ -16,7 +16,8 @@ import {
   stringOf,
   toneClass,
 } from "./cellHelpers";
-import { formatDuration, registerMetricCellTypes } from "./metricCells";
+import { registerMetricCellTypes } from "./metricCells";
+import { formatDuration } from "#dms-core/app/utils/formatter";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
@@ -784,9 +785,7 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "string_time",
-    // A formatter is called with the locale second, which `formatTimeSpan`
-    // would take for its separator (`7hfr30m`): the readable duration of the
-    // metric cells reads it as the locale ("7 h 30 min").
+    // Written as the field writes it ("7 h 30 min"), in the reader's locale.
     formatter: {
       default: (value: unknown, locale: string) =>
         isNumber(value) ? formatDuration(Number(value), locale) : value,

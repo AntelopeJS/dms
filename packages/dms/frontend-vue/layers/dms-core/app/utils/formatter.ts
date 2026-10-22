@@ -20,8 +20,6 @@ const TIME_UNITS = {
   ms: 1,
 } as const;
 
-const TIME_UNIT_ORDER = ["y", "M", "w", "d", "h", "m", "s", "ms"] as const;
-
 type TranslateFunction = (
   key: string,
   params?: Record<string, unknown>,
@@ -404,13 +402,18 @@ function readUnitSpan(text: string): number | undefined {
 /**
  * A duration typed in, in milliseconds: a clock duration (`01:30`, `8:15`,
  * `26:00:30`), hours then minutes (`8h15`, `8h`) or units (`1h30m`,
- * `1h 30m`, `7 h 30 min`, `1.5h`), or `undefined` for a text that is
- * neither.
+ * `1h 30m`, `7 h 30 min`, `1.5h`), a `-` before any of them for a negative
+ * one, or `undefined` for a text that is neither. It reads all
+ * {@link formatDuration} writes.
  */
 export function readTimeSpan(value: string): number | undefined {
-  const text = value.trim();
+  const trimmed = value.trim();
+  const isNegative = trimmed.startsWith("-");
+  const text = isNegative ? trimmed.slice(1).trimStart() : trimmed;
   if (!text) return undefined;
-  return readClockSpan(text) ?? readHourMinuteSpan(text) ?? readUnitSpan(text);
+  const span =
+    readClockSpan(text) ?? readHourMinuteSpan(text) ?? readUnitSpan(text);
+  return span !== undefined && isNegative ? -span : span;
 }
 
 export function parseTimeSpan(value: string | number): number {
@@ -418,31 +421,43 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-// Units apart, so the text reads (and reads back) as `7h 30m`.
-const DEFAULT_SEPARATOR = " ";
-const ZERO_MS = "0ms";
+// Durations count in hours at most: a day or a month is a calendar span, not
+// a number of hours.
+const DURATION_UNITS = [
+  { symbol: "h", ms: TIME_UNITS.h, fractionDigits: 0 },
+  { symbol: "min", ms: TIME_UNITS.m, fractionDigits: 0 },
+  // The seconds carry the milliseconds, so nothing is rounded away.
+  { symbol: "s", ms: TIME_UNITS.s, fractionDigits: 3 },
+] as const;
+const MS_FRACTION_DIGITS = 3;
 
-export function formatTimeSpan(
-  ms: unknown,
-  separator: string = DEFAULT_SEPARATOR,
-): string {
-  if (!isNumber(ms)) return String(ms);
-
-  const totalMs = Number(ms);
-  if (totalMs === 0) return ZERO_MS;
-
-  const parts: string[] = [];
-  let remaining = Math.abs(totalMs);
-
-  for (const unit of TIME_UNIT_ORDER) {
-    const unitValue = TIME_UNITS[unit];
-    if (remaining >= unitValue) {
-      const value = Math.floor(remaining / unitValue);
-      parts.push(`${value}${unit}`);
-      remaining %= unitValue;
-    }
+/**
+ * A duration in milliseconds the way people write it, its figures in the
+ * reader's locale: "910 ms", "1.8 s", "4 min 12 s", "7 h 30 min". The one
+ * writer of a duration, for a field and a cell alike. Exact (hours and
+ * minutes whole, the seconds carrying the milliseconds), its figures neither
+ * grouped nor in another script, so {@link readTimeSpan} reads back the very
+ * value it wrote.
+ */
+export function formatDuration(ms: number, locale: string): string {
+  const figure = (value: number, symbol: string, fractionDigits: number) =>
+    `${readableNumberFormat(locale, {
+      maximumFractionDigits: fractionDigits,
+      useGrouping: false,
+      numberingSystem: "latn",
+    }).format(value)} ${symbol}`;
+  const sign = ms < 0 ? "-" : "";
+  let remaining = Math.abs(ms);
+  if (remaining < TIME_UNITS.s) {
+    return sign + figure(remaining, "ms", MS_FRACTION_DIGITS);
   }
-
-  const formatted = parts.join(separator);
-  return totalMs < 0 ? `-${formatted}` : formatted;
+  const parts: string[] = [];
+  for (const { symbol, ms: unitMs, fractionDigits } of DURATION_UNITS) {
+    const amount = fractionDigits
+      ? remaining / unitMs
+      : Math.floor(remaining / unitMs);
+    remaining -= amount * unitMs;
+    if (amount) parts.push(figure(amount, symbol, fractionDigits));
+  }
+  return sign + parts.join(" ");
 }
