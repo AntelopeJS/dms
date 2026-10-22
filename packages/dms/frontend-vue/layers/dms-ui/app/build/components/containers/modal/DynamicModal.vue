@@ -4,7 +4,11 @@ import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import type { ModalSize } from "../../../../types/modal";
 import type { ContainerColor } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
-import { CONTAINER_SKELETON_FIELDS } from "../constants";
+import {
+  CLOSING_OVERLAY_CLASS,
+  CONTAINER_SKELETON_CLASS,
+  CONTAINER_SKELETON_FIELDS,
+} from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
 
 interface DynamicModalProps {
@@ -78,6 +82,7 @@ const resolvedSize = computed(() => {
 // A divided head: the body below is a form, not a continuation of the title.
 const modalUi = computed(() => ({
   content: SIZE_CONTENT[resolvedSize.value],
+  overlay: CLOSING_OVERLAY_CLASS,
   header: "border-b border-default pb-4 shrink-0",
   // The body's bottom and side padding: a form's sticky footer sits flush
   // with the modal's edges (see Form.vue).
@@ -87,6 +92,11 @@ const modalUi = computed(() => ({
 const { executeGuards, clearGuards } = useLeaveGuard();
 
 const isOpen = defineModel<boolean>("open", { default: true });
+// Reka keeps the page's `pointer-events: none` on the body until the modal
+// has scaled out: released as soon as the close starts, a click lands.
+const contentProps = computed(() => ({
+  disableOutsidePointerEvents: isOpen.value,
+}));
 const isContentLoading = ref(true);
 let closePromise: Promise<void> | null = null;
 
@@ -148,6 +158,7 @@ const { t } = useI18n();
     :title="title"
     :dismissible="false"
     :ui="modalUi"
+    :content="contentProps"
     @close:prevent="tryClose"
   >
     <template #header>
@@ -185,37 +196,43 @@ const { t } = useI18n();
           variant="ghost"
           size="sm"
           square
-          aria-label="Close"
+          :aria-label="t('dms.a11y.close')"
           :disabled="isContentLoading"
           @click="tryClose"
         />
       </div>
     </template>
     <template #body>
-      <Suspense @pending="onContentPending" @resolve="onContentResolve">
-        <component
-          :is="component"
-          :key="componentKey"
-          v-bind="componentOptions"
-          :container-id="containerId"
-          @success="handleSuccess"
-        />
-        <template #fallback>
-          <div class="grid gap-4 sm:grid-cols-2" aria-busy="true">
-            <div
-              v-for="field in CONTAINER_SKELETON_FIELDS"
-              :key="field"
-              class="flex flex-col gap-2"
-            >
-              <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-24" />
-              <USkeleton
-                :aria-label="t('dms.a11y.loading')"
-                class="h-8 w-full"
-              />
+      <!-- A size container: the body lays out by the modal's width. -->
+      <div class="@container">
+        <Suspense @pending="onContentPending" @resolve="onContentResolve">
+          <component
+            :is="component"
+            :key="componentKey"
+            v-bind="componentOptions"
+            :container-id="containerId"
+            @success="handleSuccess"
+          />
+          <template #fallback>
+            <div :class="CONTAINER_SKELETON_CLASS" aria-busy="true">
+              <div
+                v-for="field in CONTAINER_SKELETON_FIELDS"
+                :key="field"
+                class="flex flex-col gap-2"
+              >
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-3 w-24"
+                />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-8 w-full"
+                />
+              </div>
             </div>
-          </div>
-        </template>
-      </Suspense>
+          </template>
+        </Suspense>
+      </div>
     </template>
   </UModal>
 </template>

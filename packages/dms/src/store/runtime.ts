@@ -7,7 +7,7 @@ import {
   LoadModule,
   StopModule,
 } from "@antelopejs/interface-core/modules";
-import type { RuntimeModule } from "./types";
+import type { ModuleSourceKind, RuntimeModule } from "./types";
 
 const PACKAGE_SOURCE_TYPE = "package";
 const PACKAGE_JSON = "package.json";
@@ -22,9 +22,21 @@ interface PackageSource {
   type: string;
   package?: string;
   version?: string;
+  /** A git source's repository URL. */
+  remote?: string;
 }
 
+const GIT_SOURCE_TYPE = "git";
+/** The hosts a git remote is named after, by a word of its host name. */
+const GIT_HOSTS: ReadonlyArray<[word: string, kind: ModuleSourceKind]> = [
+  ["github", "github"],
+  ["gitlab", "gitlab"],
+];
+/** The host of `https://host/…`, `ssh://user@host/…` or `user@host:path`. */
+const REMOTE_HOST = /^(?:[a-z+]+:\/\/)?(?:[^@/]+@)?([^/:]+)/i;
+
 interface PackageManifest {
+  name?: string;
   version?: string;
 }
 
@@ -35,19 +47,30 @@ export interface StoreModuleLoad {
   config?: unknown;
 }
 
+/**
+ * Where a source loads a module from: npm, a git host told by its remote
+ * (GitHub, GitLab, or plain git when the host says neither), or a local
+ * folder.
+ */
+export function sourceKindOf(source: PackageSource): ModuleSourceKind {
+  if (source.type === PACKAGE_SOURCE_TYPE) return "npm";
+  if (source.type !== GIT_SOURCE_TYPE) return "local";
+  const host = REMOTE_HOST.exec(source.remote ?? "")?.[1]?.toLowerCase() ?? "";
+  return GIT_HOSTS.find(([word]) => host.includes(word))?.[1] ?? "git";
+}
+
 export function isLive(module: RuntimeModule | undefined): boolean {
   return module !== undefined && LIVE_STATUSES.has(module.status);
 }
 
-/** The version of the package the module was loaded from, read from disk. */
-async function loadedVersion(localPath: string): Promise<string | undefined> {
+/** The manifest of the folder the module was loaded from, read from disk. */
+async function loadedManifest(localPath: string): Promise<PackageManifest> {
   try {
-    const manifest = JSON.parse(
+    return JSON.parse(
       await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
     ) as PackageManifest;
-    return manifest.version;
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -58,16 +81,36 @@ async function describeModule(
     const info = await GetModuleInfo(moduleId);
     const source = info.source as PackageSource;
     const isPackage = source.type === PACKAGE_SOURCE_TYPE;
+    const manifest = await loadedManifest(info.localPath);
     return {
       id: moduleId,
-      packageName: isPackage ? source.package : undefined,
-      version: isPackage ? await loadedVersion(info.localPath) : undefined,
+      // A local or git working copy names its package in its manifest.
+      packageName: isPackage ? source.package : manifest.name,
+      version: manifest.version,
+      isPackageSource: isPackage,
+      sourceKind: sourceKindOf(source),
       status: info.status,
       localPath: info.localPath,
     };
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The running module loaded from a local folder or git rather than npm whose
+ * manifest names `packageName`: a developer's working copy of a catalog
+ * module, which the store shows as running but leaves alone.
+ */
+export function findWorkingCopy(
+  packageName: string,
+  runtime: Iterable<RuntimeModule>,
+): RuntimeModule | undefined {
+  for (const module of runtime) {
+    if (module.isPackageSource || module.packageName !== packageName) continue;
+    if (isLive(module)) return module;
+  }
+  return undefined;
 }
 
 /** Every module the runtime holds, by runtime id. */

@@ -2,18 +2,29 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
-  AutomationSubject,
-  Notification,
-} from "@antelopejs/interface-dms/notifications";
+  GenerateHtml,
+  GetHtmlTemplate,
+} from "@antelopejs/interface-dms/html-render";
+import {
+  type InviteUserToTenantOptions,
+  inviteUserToTenant,
+} from "@antelopejs/interface-dms/invites";
+import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
+import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { sendNotificationAction } from "./send-notification";
+
+export const SEND_EMAIL_ACTION_ID = "dms.send-email";
+const SEND_EMAIL_TEXTS = "actions.sendEmail";
 
 interface SendEmailInput {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
+  template?: string;
+  props?: Record<string, unknown>;
+  language?: string;
 }
 
 interface SendEmailOutput {
@@ -22,33 +33,73 @@ interface SendEmailOutput {
   error?: string;
 }
 
+/** A user's language when the address belongs to one, for a rendered template. */
+async function recipientLanguage(email: string): Promise<string | undefined> {
+  const user = await GetModel(UserModel).getByEmail(email);
+  return user?.language || undefined;
+}
+
+/**
+ * The body to send: a registered template rendered in the given language (or
+ * the recipient's), else the literal HTML. A template name that no module
+ * registered fails the run rather than sending a blank email.
+ */
+async function emailBody(input: SendEmailInput): Promise<string> {
+  const template = input.template?.trim();
+  if (!template) {
+    if (typeof input.html === "string") return input.html;
+    throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
+  }
+  if (!(await GetHtmlTemplate(template))) {
+    throw new Error(
+      `${SEND_EMAIL_ACTION_ID}: no HTML template is registered as "${template}"`,
+    );
+  }
+  const language =
+    input.language?.trim() || (await recipientLanguage(input.to));
+  return GenerateHtml({ name: template }, input.props ?? {}, language);
+}
+
 const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
-  id: "dms.send-email",
-  name: "Send email",
-  description: "Send an HTML email through the configured email provider",
+  id: SEND_EMAIL_ACTION_ID,
+  name: nodeText(SEND_EMAIL_TEXTS, "name"),
+  description: nodeText(SEND_EMAIL_TEXTS, "description"),
   icon: "i-ph-envelope-simple",
   inputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       to: { type: "string" },
       subject: { type: "string" },
       html: { type: "string" },
-    },
-    required: ["to", "subject", "html"],
+      template: {
+        type: "string",
+        description: fieldHint(SEND_EMAIL_TEXTS, "template"),
+      },
+      props: {
+        type: "object",
+        description: fieldHint(SEND_EMAIL_TEXTS, "props"),
+      },
+      language: {
+        type: "string",
+        description: fieldHint(SEND_EMAIL_TEXTS, "language"),
+      },
+    }),
+    required: ["to", "subject"],
+    anyOf: [{ required: ["html"] }, { required: ["template"] }],
   },
   outputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       success: { type: "boolean" },
       messageId: { type: "string" },
       error: { type: "string" },
-    },
+    }),
   },
   async execute(input, ctx) {
     const result = await Send({
       to: input.to,
       subject: input.subject,
-      html: input.html,
+      html: await emailBody(input),
     });
     if (!result.success) {
       ctx.log("error", `email to "${input.to}" failed`, result.error?.message);
@@ -61,68 +112,8 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
   },
 };
 
-interface SendNotificationInput {
-  userIds?: string[];
-  roleIds?: string[];
-  title: string;
-  description: string;
-  icon?: string;
-  linkTo?: string;
-}
-
-interface SendNotificationOutput {
-  ok: boolean;
-}
-
-const DEFAULT_NOTIFICATION_ICON = "i-ph-bell";
-
-const sendNotificationAction: ActionType<
-  SendNotificationInput,
-  SendNotificationOutput
-> = {
-  id: "dms.send-notification",
-  name: "Send notification",
-  description:
-    "Send an in-app notification to specific users and/or every user holding one of the given roles",
-  icon: DEFAULT_NOTIFICATION_ICON,
-  inputSchema: {
-    type: "object",
-    properties: {
-      userIds: { type: "array", items: { type: "string" } },
-      roleIds: { type: "array", items: { type: "string" } },
-      title: { type: "string" },
-      description: { type: "string" },
-      icon: { type: "string" },
-      linkTo: { type: "string" },
-    },
-    required: ["title", "description"],
-    anyOf: [{ required: ["userIds"] }, { required: ["roleIds"] }],
-  },
-  outputSchema: {
-    type: "object",
-    properties: { ok: { type: "boolean" } },
-  },
-  async execute(input) {
-    const userIds = input.userIds ?? [];
-    const roleIds = input.roleIds ?? [];
-    if (userIds.length === 0 && roleIds.length === 0) {
-      throw new Error(
-        "dms.send-notification requires at least one of userIds / roleIds",
-      );
-    }
-    const base = Notification()
-      .icon(input.icon ?? DEFAULT_NOTIFICATION_ICON)
-      .title(input.title)
-      .description(input.description)
-      .subject(AutomationSubject);
-    const sendable = input.linkTo
-      ? base.linkTo(input.linkTo).build()
-      : base.build();
-    if (userIds.length > 0) await sendable.toUsers(userIds);
-    if (roleIds.length > 0) await sendable.toRoles(roleIds);
-    return { ok: true };
-  },
-};
+export const INVITE_USER_ACTION_ID = "dms.invite-user";
+const INVITE_USER_TEXTS = "actions.inviteUser";
 
 interface InviteUserInput {
   email: string;
@@ -130,6 +121,10 @@ interface InviteUserInput {
   roleIds?: string[];
   asTenantOwner?: boolean;
   sendEmail?: boolean;
+  language?: string;
+  firstname?: string;
+  lastname?: string;
+  inviterName?: string;
 }
 
 interface InviteUserOutput {
@@ -138,33 +133,62 @@ interface InviteUserOutput {
   inviteId?: string;
 }
 
+type InvitationDetails = Pick<
+  InviteUserToTenantOptions,
+  "language" | "firstname" | "lastname" | "inviterName"
+>;
+
+// Each detail is passed only when given, so an empty port keeps the defaults
+// of inviteUserToTenant (an English invitation, without names).
+function invitationDetails(input: InviteUserInput): InvitationDetails {
+  const details: InvitationDetails = {};
+  const language = input.language?.trim();
+  const firstname = input.firstname?.trim();
+  const lastname = input.lastname?.trim();
+  const inviterName = input.inviterName?.trim();
+  if (language) details.language = language;
+  if (firstname) details.firstname = firstname;
+  if (lastname) details.lastname = lastname;
+  if (inviterName) details.inviterName = inviterName;
+  return details;
+}
+
 const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
-  id: "dms.invite-user",
-  name: "Invite user",
-  description:
-    "Invite an email address to a tenant: existing users are added as members directly, otherwise an invite is created (and its signup email sent unless sendEmail is false)",
+  id: INVITE_USER_ACTION_ID,
+  name: nodeText(INVITE_USER_TEXTS, "name"),
+  description: nodeText(INVITE_USER_TEXTS, "description"),
   icon: "i-ph-user-plus",
   inputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       email: { type: "string" },
       tenantId: {
         type: "string",
-        description: "Tenant to invite into; defaults to the default tenant",
+        description: fieldHint(INVITE_USER_TEXTS, "tenantId"),
       },
       roleIds: { type: "array", items: { type: "string" } },
       asTenantOwner: { type: "boolean", default: false },
       sendEmail: { type: "boolean", default: true },
-    },
+      language: {
+        type: "string",
+        description: fieldHint(INVITE_USER_TEXTS, "language"),
+      },
+      firstname: { type: "string" },
+      lastname: { type: "string" },
+      inviterName: {
+        type: "string",
+        description: fieldHint(INVITE_USER_TEXTS, "inviterName"),
+      },
+    }),
     required: ["email"],
   },
   outputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       kind: { type: "string", enum: ["added", "invited", "already-member"] },
       userId: { type: "string" },
       inviteId: { type: "string" },
-    },
+    }),
   },
   async execute(input, ctx) {
     const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
@@ -189,6 +213,7 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       roleIds: input.roleIds ?? [],
       asTenantOwner: input.asTenantOwner ?? false,
       sendEmail: input.sendEmail ?? true,
+      ...invitationDetails(input),
     });
     if (result.kind === "added") {
       ctx.log(

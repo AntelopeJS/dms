@@ -128,3 +128,30 @@ async function verifyRequestPrincipal(
   requestPrincipals.set(request, { authorization, principal: snapshot });
   return principal;
 }
+
+/**
+ * @internal Records the identity a JWT auth decorator has just verified, so
+ * `getRequestTenantId` reads the tenant of a checked credential. A request
+ * already bound to another identity, or to a failed authentication, or whose
+ * credential changed since, is refused.
+ */
+export function bindVerifiedRequestPrincipal(
+  ctx: RequestContext,
+  identity: RequestIdentity,
+): void {
+  const request = ctx.rawRequest;
+  const authorization = request.headers.authorization;
+  const previous = requestPrincipals.get(request);
+  if (previous) {
+    if (
+      !previous.principal ||
+      previous.authorization !== authorization ||
+      previous.principal.userId !== identity.userId ||
+      previous.principal.tenantId !== identity.tenantId
+    ) {
+      throw unauthorized();
+    }
+    return;
+  }
+  requestPrincipals.set(request, { authorization, principal: { ...identity } });
+}

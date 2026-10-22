@@ -6,10 +6,8 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import { Model } from "@antelopejs/interface-database-decorators";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import { AuthOwnerOnly, AuthUser } from "../auth";
-import type { User } from "../auth/db";
 // Import from the defining leaf, not the dms-base barrel: the barrel pulls in
 // table-view, which imports the page interface back — entering through the
 // barrel would then call DefaultLayout() while the barrel is still
@@ -32,7 +30,7 @@ import {
   RegisterPermission,
   UnregisterPermission,
 } from "../permissions";
-import { getRequestTenantId } from "../request-tenant";
+import { TenantScopedModel } from "../tenant-scoped-model";
 import { AssertTenantAccess } from "../tenant-access";
 import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
@@ -82,6 +80,7 @@ import {
   type PageInfo,
   type PageLayout,
   type PageLayoutHandler,
+  type PageLayoutRequest,
 } from "./types";
 import {
   PageRegistration,
@@ -91,16 +90,9 @@ import {
   isPageInsideModule,
   logModuleRouteGated,
   RequestQueryProperty,
+  RequestRouteParametersProperty,
   RequestTenantIdProperty,
 } from "./internal/metadata-helpers";
-
-/** How one request asks for a page layout, besides its caller. */
-interface PageLayoutRequest {
-  /** Assert the tenant access gate: the by-slug entry has no guard of its own. */
-  enforceTenantAccessGate?: boolean;
-  /** The query of the page URL, for header-button availability. */
-  query?: Readonly<Record<string, string>>;
-}
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 
@@ -245,33 +237,34 @@ export class PageMetadata {
     menuOptions: MenuOptions,
     pageLayout?: ComponentInfo,
   ) {
-    const resolvedCategory = resolveCategoryInfo(menuOptions.category);
+    const { parent, ...menu } = menuOptions;
+    const resolvedCategory = resolveCategoryInfo(menu.category);
     const parentFullId = resolvedCategory?.fullId ?? "";
     const fullId = parentFullId ? `${parentFullId}.${id}` : id;
 
     const location = pageRoutePath(fullSlug, "/pagelayout");
 
     const pageInfo: PageInfo = {
-      ...menuOptions,
+      ...menu,
       category: resolvedCategory,
       id,
       fullId,
       fullSlug,
       layoutUrl: location,
-      hidden: menuOptions.hidden || resolvedCategory?.hidden,
-      publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
-      authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
+      parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
+      hidden: menu.hidden || resolvedCategory?.hidden,
+      publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
+      authOnly: menu.authOnly || resolvedCategory?.authOnly,
       memberAccess:
-        menuOptions.memberAccess ||
+        menu.memberAccess ||
         inheritedMemberAccess(resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
-        menuOptions.bypassTenantAccessGate ||
-        resolvedCategory?.bypassTenantAccessGate,
+        menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
     };
 
     this.layout =
       pageLayout ??
-      menuOptions.layout ??
+      menu.layout ??
       resolveInheritedLayout(resolvedCategory) ??
       DefaultLayout();
     this.pageInfo = pageInfo;
@@ -375,6 +368,7 @@ export class PageMetadata {
     this.ownRouteProperties();
     this.applyAuthDecorators(pageInfo);
     RequestQueryProperty()(this.target.prototype, "pageQuery");
+    RequestRouteParametersProperty()(this.target.prototype, "pageParams");
     this.registerLayoutRoute(pageInfo);
   }
 
@@ -529,42 +523,25 @@ export class PageMetadata {
 
   private registerLayoutRoute(pageInfo: PageInfo): void {
     const apimeta = GetMetadata(this.target, ControllerMeta);
-    const resolvePageLayout = (
-      user: User | undefined,
-      memberModel: TenantMemberModel,
-      roleModel: RoleModel,
-      tenantId: string,
-      query: Record<string, string>,
-    ): Promise<PageLayout> =>
-      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
-        query,
-      });
-
+    const resolvePageLayout = (request: PageLayoutRequest) =>
+      this.resolvePageLayout(request);
     // The by-slug entry carries no guard of its own, so it asks the resolver
     // to assert the gate; the route below is already guarded.
-    const handler: PageLayoutHandler = (
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-      query,
-    ) =>
-      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
-        enforceTenantAccessGate: true,
-        query,
-      });
+    const handler: PageLayoutHandler = (request) =>
+      this.resolvePageLayout(request, { enforceTenantAccessGate: true });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
 
     const routeId = RegisterRoute({
       location: pageInfo.layoutUrl,
       callback: async function (this: RouteCallbackContext) {
-        return resolvePageLayout(
-          this.user,
-          this.memberModel,
-          this.roleModel,
-          this.tenantId,
-          this.pageQuery,
-        );
+        return resolvePageLayout({
+          user: this.user,
+          memberModel: this.memberModel,
+          roleModel: this.roleModel,
+          tenantId: this.tenantId,
+          query: this.pageQuery,
+          params: this.pageParams,
+        });
       },
       method: "GET",
       mode: "handler",
@@ -586,11 +563,17 @@ export class PageMetadata {
   }
 
   private async resolvePageLayout(
-    user: User | undefined,
-    memberModel: TenantMemberModel,
-    roleModel: RoleModel,
-    tenantId: string,
-    { enforceTenantAccessGate = false, query }: PageLayoutRequest = {},
+    {
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      query,
+      params,
+      resolverContext,
+    }: PageLayoutRequest,
+    // Only for the by-slug entry, which has no guard of its own.
+    { enforceTenantAccessGate = false } = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
     if (!layout) {
@@ -630,12 +613,18 @@ export class PageMetadata {
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+      return GetEffectiveUserPermissions(
+        user,
+        tenantId,
+        roleIds,
+        roleModel,
+        resolverContext,
+      );
     };
 
     // Header actions declaring a permission are filtered on every page, even
     // one skipping component permissions: they name their own requirement.
-    const context = { tenantId, user, query };
+    const context = { tenantId, user, query, params };
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,
@@ -1102,15 +1091,8 @@ export class PageMetadata {
 
     if (authOnly) return;
 
-    Model(RoleModel, (ctx) => getRequestTenantId(ctx))(
-      this.target.prototype,
-      "roleModel",
-    );
-
-    Model(TenantMemberModel, (ctx) => getRequestTenantId(ctx))(
-      this.target.prototype,
-      "memberModel",
-    );
+    TenantScopedModel(RoleModel)(this.target.prototype, "roleModel");
+    TenantScopedModel(TenantMemberModel)(this.target.prototype, "memberModel");
 
     RequestTenantIdProperty()(this.target.prototype, "tenantId");
   }

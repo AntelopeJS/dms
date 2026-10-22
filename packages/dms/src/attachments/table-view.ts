@@ -85,10 +85,11 @@ export async function SaveTableViewAttachments(
         controller,
         context,
         params,
-        JSON.stringify(promoted),
+        promoted,
         ...args.slice(1),
       );
-      const id = documentId || (Array.isArray(result) ? result[0] : undefined);
+      // The data API's `new` answers the created row, with its `_id`.
+      const id = documentId || (result as { _id?: unknown } | undefined)?._id;
       if (typeof id !== "string" || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();

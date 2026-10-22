@@ -309,8 +309,13 @@ export interface TableViewDisplaySources {
 function serializeCard({
   card,
 }: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
-  if (!card?.fields && !card?.component) return undefined;
-  return { fields: card.fields, component: card.component?.serializeSync() };
+  if (!card?.fields && !card?.component && !card?.minWidth) return undefined;
+  const serialized: TableViewCardOptionsSerialized = {
+    fields: card.fields,
+    component: card.component?.serializeSync(),
+  };
+  if (card.minWidth) serialized.minWidth = card.minWidth;
+  return serialized;
 }
 
 /** The options a built-in display takes from the table view's own options. */
