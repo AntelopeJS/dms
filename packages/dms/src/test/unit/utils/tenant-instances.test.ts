@@ -5,13 +5,20 @@ import {
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
 import { RoleModel, TenantModel } from "@antelopejs/interface-dms/db";
-import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
+import {
+  Hook,
+  type HookHandler,
+  RegisterHook,
+  UnregisterHook,
+} from "@antelopejs/interface-dms/hooks";
+import { ProvisionTenant } from "@antelopejs/interface-dms/tenant-provisioning";
 import { expect } from "chai";
 import {
   registerExistingTenantInstances,
   registerTenantInstance,
 } from "../../../utils/tenant-instances";
 import { resetDatabase } from "../../helpers/db";
+import { reloadHostProvisionedTenants } from "../../helpers/reload-host";
 
 const EXISTING_TENANT = "instances-existing-tenant";
 const PROVISIONED_TENANT = "instances-provisioned-tenant";
@@ -55,13 +62,36 @@ describe("[unit] utils/tenant-instances", () => {
     expect(await roles.table.count().run()).to.equal(1);
   });
 
-  it("registers the instance of a tenant being provisioned", async () => {
-    await ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, {
-      tenantId: PROVISIONED_TENANT,
-      userId: PROVISIONING_USER,
-      extras: {},
-    });
+  it("registers the instance of a tenant being provisioned before any handler runs", async () => {
+    let listedByHandler: string[] = [];
+    const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = async () => {
+      listedByHandler = await listTenantInstances();
+      return undefined;
+    };
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    try {
+      await ProvisionTenant({
+        tenantId: PROVISIONED_TENANT,
+        userId: PROVISIONING_USER,
+        extras: {},
+      });
+    } finally {
+      UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    }
 
-    expect(await listTenantInstances()).to.include(PROVISIONED_TENANT);
+    expect(listedByHandler).to.include(PROVISIONED_TENANT);
+  });
+
+  // The harness booted the DMS on an empty database, so that start created
+  // the default tenant: the reload-host module saw it provisioned, once,
+  // without an owner, and only after its DATABASE_INITIALIZED handler ran.
+  it("provisions the default tenant once, after DATABASE_INITIALIZED", () => {
+    const defaults = reloadHostProvisionedTenants().filter(
+      (call) => call.tenantId === DEFAULT_TENANT_ID,
+    );
+
+    expect(defaults).to.have.length(1);
+    expect(defaults[0].userId).to.equal(undefined);
+    expect(defaults[0].afterDatabaseInitialized).to.equal(true);
   });
 });

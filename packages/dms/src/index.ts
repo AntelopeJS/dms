@@ -15,7 +15,6 @@ import "./pages";
 import "./routes";
 import {
   Hook,
-  RegisterHook,
   SettleHook,
   UnsettleHook,
 } from "@antelopejs/interface-dms/hooks";
@@ -48,7 +47,6 @@ import {
 } from "./dev/module-update-notifications";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
-import { registerTenantInstanceProvisioning } from "./hooks/tenant-instances";
 import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
 import {
   cancelScheduledBroadcast,
@@ -80,6 +78,7 @@ import {
 import { allowClientOrigin } from "./client-origin-cors";
 import {
   ensureDefaultTenantExists,
+  provisionDefaultTenant,
   registerExistingTenantInstances,
 } from "./utils";
 
@@ -103,13 +102,6 @@ export async function construct(config: Config): Promise<void> {
 
   await setupFrontendBootstrap(dev);
 
-  RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
-    await ensureDefaultTenantExists();
-    await registerExistingTenantInstances();
-    return undefined;
-  });
-
-  registerTenantInstanceProvisioning();
   registerTenantDeletedCleanup();
   registerInviteExtensionCleanup();
   registerWorkspaceNotifications();
@@ -272,7 +264,12 @@ export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
+  const defaultTenantCreated = await ensureDefaultTenantExists();
+  await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
+  // Only once every DATABASE_INITIALIZED handler has finished: the modules'
+  // tables and settings are ready when they write the tenant's default data.
+  if (defaultTenantCreated) await provisionDefaultTenant();
   // `start()` means ready to serve: the sweep scans every tenant and serves
   // no request, so it runs behind the open gate. `stop()` waits for it.
   staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
