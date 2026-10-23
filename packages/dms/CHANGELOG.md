@@ -1,5 +1,68 @@
 # Changelog
 
+## v0.11.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.10.0...v0.11.0)
+
+### 🚀 Enhancements
+
+- **frontend:** List the origins the dev manifest rewrites ([#434](https://github.com/AntelopeJS/dms/pull/434))
+- **store:** ⚠️  Changing modules from the store is reserved to development ([#418](https://github.com/AntelopeJS/dms/pull/418))
+- **relation:** "Not found" for unanswered ids, cascader read by ?ids=, lists need the Foreign join ([#421](https://github.com/AntelopeJS/dms/pull/421))
+- **tenants:** Provision the default tenant through TENANT_BEING_PROVISIONED ([#420](https://github.com/AntelopeJS/dms/pull/420))
+- **page:** Read the page's record with its layout, in PageLayoutRequest's context ([#426](https://github.com/AntelopeJS/dms/pull/426))
+- **page:** Leave a detail page whose record was deleted; 404 shown as not found ([#432](https://github.com/AntelopeJS/dms/pull/432))
+- **dms-layout:** ⚠️  Remove the GitHub star button from the footer ([#428](https://github.com/AntelopeJS/dms/pull/428))
+- **forms:** Require the fallback language of a localized field ([#427](https://github.com/AntelopeJS/dms/pull/427))
+- **table-view:** VisibleWhen and disabledWhen column conditions ([#431](https://github.com/AntelopeJS/dms/pull/431))
+- **errors:** Read the data API's { code, fields } field errors ([#433](https://github.com/AntelopeJS/dms/pull/433))
+
+### 🔥 Performance
+
+- **dms-ui:** Load each code snippet's grammar alone, without the editor ([#403](https://github.com/AntelopeJS/dms/pull/403))
+
+### 🩹 Fixes
+
+- **export:** Quote the CSV header line ([#419](https://github.com/AntelopeJS/dms/pull/419))
+- **format:** Draw the narrow no-break space in Geist, and keep the locale's ([#422](https://github.com/AntelopeJS/dms/pull/422))
+- **playground:** Hydration and invite-extension warnings of the playground pages ([#429](https://github.com/AntelopeJS/dms/pull/429))
+- **tabs:** Take the pill tabs' corners from the theme radius ([#359](https://github.com/AntelopeJS/dms/pull/359))
+- **modules:** Wait for the listing's background read on a return to the page ([#436](https://github.com/AntelopeJS/dms/pull/436))
+
+### 💅 Refactors
+
+- **i18n:** Translate outside setup through getAppTranslation only ([#423](https://github.com/AntelopeJS/dms/pull/423))
+- **hydration:** Read the runtime's isDmsHydrating, drop isHydratingComponent ([#424](https://github.com/AntelopeJS/dms/pull/424))
+
+### 📖 Documentation
+
+- **changelog:** Upgrade notes of dms 0.10.0 ([#417](https://github.com/AntelopeJS/dms/pull/417))
+- **deployment:** Require affinity on the realtime routes across instances ([#430](https://github.com/AntelopeJS/dms/pull/430))
+
+### 📦 Build
+
+- **deps:** Dms-frontend 0.9, interface-data-api 0.4, decorators 0.1.10 ([#437](https://github.com/AntelopeJS/dms/pull/437))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.9.0 ([555267de](https://github.com/AntelopeJS/dms/commit/555267de))
+
+### ✅ Tests
+
+- Run the backend tests without Ethereal ([#435](https://github.com/AntelopeJS/dms/pull/435))
+- **hydration:** Give the live tests isDmsHydrating ([#438](https://github.com/AntelopeJS/dms/pull/438))
+
+#### ⚠️ Breaking Changes
+
+- **store:** ⚠️  Changing modules from the store is reserved to development ([#418](https://github.com/AntelopeJS/dms/pull/418))
+- **dms-layout:** ⚠️  Remove the GitHub star button from the footer ([#428](https://github.com/AntelopeJS/dms/pull/428))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Glastis ([@Glastis](http://github.com/Glastis))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.10.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.8...v0.10.0)
