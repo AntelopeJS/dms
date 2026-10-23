@@ -4,16 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@antelopejs/core': github:AntelopeJS/antelopejs#7f2de73
-
 importers:
 
   .:
     devDependencies:
       '@antelopejs/core':
-        specifier: github:AntelopeJS/antelopejs#7f2de73
-        version: https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/tooling-configs':
         specifier: '>=0.0.9 <1.0.0'
         version: 0.0.9(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
@@ -32,9 +29,6 @@ importers:
       2fa:
         specifier: ^0.1.2
         version: 0.1.2
-      '@antelopejs/core':
-        specifier: github:AntelopeJS/antelopejs#7f2de73
-        version: https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73
       '@antelopejs/interface-api':
         specifier: '>=0.0.15 <1.0.0'
         version: 0.0.15(@antelopejs/interface-core@0.2.6)
@@ -96,6 +90,9 @@ importers:
         specifier: ~3.24.2
         version: 3.24.4
     devDependencies:
+      '@antelopejs/core':
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/tooling-configs':
         specifier: '>=0.0.9 <1.0.0'
         version: 0.0.9(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
@@ -327,11 +324,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: github:AntelopeJS/antelopejs#7f2de73
-        version: https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73
+        specifier: '>=1.16.0 <2'
+        version: 1.17.0
       '@antelopejs/dms-frontend':
         specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.0(@antelopejs/core@https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73)
+        version: 0.8.0(@antelopejs/core@1.17.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -421,11 +418,11 @@ importers:
         version: 3.24.4
     devDependencies:
       '@antelopejs/core':
-        specifier: github:AntelopeJS/antelopejs#7f2de73
-        version: https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/dms-frontend':
         specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.0(@antelopejs/core@https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73)
+        version: 0.8.0(@antelopejs/core@1.17.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -512,15 +509,13 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@antelopejs/core@https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73':
-    resolution: {tarball: https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73}
-    version: 1.16.0
+  '@antelopejs/core@1.17.0':
+    resolution: {integrity: sha512-wh+CDgDhydcybYzbbyA/Gly9X1f6DVqnnYcom7qhagkMVLF/d6wYecGMlTesUUwQC6HCZTPHiYwGyve4rKk+WA==}
     engines: {node: '>=20.19'}
     hasBin: true
 
   '@antelopejs/dms-frontend@0.8.0':
     resolution: {integrity: sha512-X3okh4WXtmsR2O3/jU7RZ8XCtZDB1X7AGErhjoDxE48NpCn5+fAztpaz5YDyKzQK4ckIBk+6wW1rB8Qg84/DEQ==}
-    version: 0.8.0
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -6422,7 +6417,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/core@https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73':
+  '@antelopejs/core@1.17.0':
     dependencies:
       '@antelopejs/interface-core': 0.2.6
       '@clack/prompts': 1.8.1
@@ -6437,9 +6432,9 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.8.0(@antelopejs/core@https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73)':
+  '@antelopejs/dms-frontend@0.8.0(@antelopejs/core@1.17.0)':
     dependencies:
-      '@antelopejs/core': https://codeload.github.com/AntelopeJS/antelopejs/tar.gz/7f2de73
+      '@antelopejs/core': 1.17.0
       chokidar: 4.0.3
       commander: 13.1.0
       ignore: 7.0.6
