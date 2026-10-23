@@ -2,9 +2,10 @@
 // as the generated forms do: whichever client writes, a hidden or disabled
 // field's value is ignored, and a hidden field is not mandatory.
 
-import type {
-  ControllerClass,
-  RequestContext,
+import {
+  type ControllerClass,
+  HTTPResult,
+  type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
@@ -131,11 +132,12 @@ export const withColumnConditions = (
         !disabled.includes(key) &&
         isEmptyValue(row[key]),
     );
-    throwHttpAssert(
-      missing.length === 0,
-      400,
-      `Missing mandatory fields: ${missing.join(", ")}`,
-    );
+    if (missing.length > 0) {
+      throw new HTTPResult(400, {
+        code: Validation.MISSING_MANDATORY_FIELDS,
+        fields: missing,
+      } satisfies Validation.FieldsErrorBody);
+    }
     return baseRoute.func.call(
       this,
       ctx,

@@ -62,7 +62,10 @@ describe("[integration] table view column conditions", () => {
   it("refuses a lost deal without its reason, and ignores its locked probability", async () => {
     const refused = await create({ title: "Lost", stage: "lost" });
     expect(refused.status).to.equal(HTTP_BAD_REQUEST);
-    expect(JSON.stringify(refused.data)).to.contain("lostReason");
+    expect(refused.data).to.deep.equal({
+      code: "missing_mandatory_fields",
+      fields: ["lostReason"],
+    });
 
     const created = await create({
       title: "Lost",
@@ -79,7 +82,10 @@ describe("[integration] table view column conditions", () => {
   it("still applies the mandatory fields without a condition", async () => {
     const refused = await create({ stage: "lead" });
     expect(refused.status).to.equal(HTTP_BAD_REQUEST);
-    expect(JSON.stringify(refused.data)).to.contain("title");
+    expect(refused.data).to.deep.equal({
+      code: "missing_mandatory_fields",
+      fields: ["title"],
+    });
   });
 
   it("reads an edit's conditions on the stored row under its body", async () => {
@@ -87,7 +93,10 @@ describe("[integration] table view column conditions", () => {
     // Moving to "lost" shows the reason, which the stored row lacks.
     const refused = await edit(open._id, { stage: "lost" });
     expect(refused.status).to.equal(HTTP_BAD_REQUEST);
-    expect(JSON.stringify(refused.data)).to.contain("lostReason");
+    expect(refused.data).to.deep.equal({
+      code: "missing_mandatory_fields",
+      fields: ["lostReason"],
+    });
 
     const lost = await edit(open._id, { stage: "lost", lostReason: "timing" });
     expect(lost.status, JSON.stringify(lost.data)).to.equal(HTTP_OK);
