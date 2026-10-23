@@ -1001,6 +1001,7 @@ const registerCascaderRelationType = (
     },
     beforeStateMapper: mapRelationBeforeState,
     isSameValue: sameRelationValue,
+    selectSource: relationSelectSource,
   });
 };
 

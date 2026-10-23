@@ -7,6 +7,7 @@ import {
   flattenCascaderTree,
   formatCascaderPath,
   isCascaderNodeSelectable,
+  readCascaderAncestry,
   resolveCascaderKeyMapping,
   searchCascaderTree,
   type CascaderKeyMapping,
@@ -201,6 +202,64 @@ describe("cascaderValuePath", () => {
   it("has no path for nothing picked", () => {
     expect(cascaderValuePath(null, keyMapping, categories)).toEqual([]);
     expect(cascaderValuePath({ name: "Loose" }, keyMapping)).toEqual(["Loose"]);
+  });
+});
+
+describe("readCascaderAncestry", () => {
+  // The select route narrowed with `?ids=`: only the rows asked for.
+  function selectRoute(rows: CategoryRow[]) {
+    const reads: string[][] = [];
+    const read = async (ids: string[]) => {
+      reads.push([...ids].sort());
+      return rows.filter((row) => ids.includes(row._id));
+    };
+    return { read, reads };
+  }
+
+  it("reads the picked rows, then each level of their ancestors once", async () => {
+    const { read, reads } = selectRoute(categories);
+    const { rows, notFound } = await readCascaderAncestry(read, keyMapping, [
+      "headphones",
+      "speakers",
+      "tv",
+    ]);
+    // One read per level, a shared parent asked once.
+    expect(reads).toEqual([
+      ["headphones", "speakers", "tv"],
+      ["audio", "video"],
+      ["electronics"],
+    ]);
+    expect(notFound).toEqual([]);
+    expect(buildCascaderPathLabels(rows, keyMapping, "headphones")).toEqual([
+      "Electronics",
+      "Audio",
+      "Headphones",
+    ]);
+  });
+
+  it("names the picked ids no row answers, and stops at a missing parent", async () => {
+    const { read, reads } = selectRoute(
+      categories.filter((row) => row._id !== "audio"),
+    );
+    const { rows, notFound } = await readCascaderAncestry(read, keyMapping, [
+      "headphones",
+      "gone",
+    ]);
+    expect(notFound).toEqual(["gone"]);
+    expect(reads).toEqual([["gone", "headphones"], ["audio"]]);
+    expect(buildCascaderPathLabels(rows, keyMapping, "headphones")).toEqual([
+      "Headphones",
+    ]);
+  });
+
+  it("ends on a parent cycle", async () => {
+    const cycle = [
+      { _id: "a", name: "A", parent_id: "b" },
+      { _id: "b", name: "B", parent_id: "a" },
+    ];
+    const { read, reads } = selectRoute(cycle);
+    await readCascaderAncestry(read, keyMapping, ["a"]);
+    expect(reads).toEqual([["a"], ["b"]]);
   });
 });
 
