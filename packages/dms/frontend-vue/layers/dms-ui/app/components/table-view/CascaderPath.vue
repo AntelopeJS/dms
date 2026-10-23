@@ -3,6 +3,7 @@ import {
   CASCADER_PATH_SEPARATOR,
   cascaderValueId,
   cascaderValuePath,
+  cascaderValueReads,
   readCascaderAncestry,
   resolveCascaderKeyMapping,
   type CascaderKeyMapping,
@@ -44,15 +45,13 @@ const keyMapping = computed(() =>
 const values = computed<unknown[]>(() =>
   Array.isArray(props.value) ? props.value : [props.value],
 );
-const ids = computed(() => [
-  ...new Set(
-    values.value
-      .map((item) => cascaderValueId(item, keyMapping.value))
-      .filter((id): id is string => id !== undefined),
-  ),
-]);
+const reads = computed(() =>
+  cascaderValueReads(values.value, keyMapping.value),
+);
+const ids = computed(() => reads.value.idsToRead);
 
-// The picked rows and their ancestors alone, read by `?ids=` level by level.
+// The ids a list did not join (and the parents of those it did), with their
+// ancestors, read by `?ids=` level by level.
 const { data } = await useDmsAsyncData(
   () => `cascader-path-${props.searchUrl}-${ids.value.join(",")}`,
   () =>
@@ -74,6 +73,11 @@ const { data } = await useDmsAsyncData(
   { lazy: true, refreshOnPageRefresh: false },
 );
 
+const pathRows = computed(() => [
+  ...reads.value.joinedRows,
+  ...(data.value?.rows ?? []),
+]);
+
 const notFound = computed(() => new Set(data.value?.notFound));
 
 function badgeOf(item: unknown): CascaderBadge | undefined {
@@ -85,7 +89,7 @@ function badgeOf(item: unknown): CascaderBadge | undefined {
       isNotFound: true,
     };
   }
-  const path = cascaderValuePath(item, keyMapping.value, data.value?.rows);
+  const path = cascaderValuePath(item, keyMapping.value, pathRows.value);
   if (path.length === 0) return undefined;
   return {
     label: path.at(-1) ?? "",

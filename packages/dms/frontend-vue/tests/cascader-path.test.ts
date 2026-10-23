@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * A cascader cell names its value by its path ("Electronics / Audio"), read
- * by `?ids=` for the picked rows and their ancestors, whatever the size of
- * the tree; a picked row the route does not answer reads "Not found", its id
+ * by `?ids=` for the picked rows the list did not join and the ancestors,
+ * whatever the size of the tree; a picked row the route does not answer reads "Not found", its id
  * on hover.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -81,11 +81,8 @@ async function mountCell(value: unknown) {
 }
 
 describe("a cascader cell", () => {
-  it("reads the picked row and its ancestors by ids, not a page of the route", async () => {
-    const { host, reads } = await mountCell({
-      _id: "speakers",
-      name: "Speakers",
-    });
+  it("reads a plain id and its ancestors by ids, not a page of the route", async () => {
+    const { host, reads } = await mountCell("speakers");
     expect(host.textContent?.trim()).toBe("Electronics / Audio / Speakers");
     expect(reads).toEqual([
       {
@@ -98,6 +95,24 @@ describe("a cascader cell", () => {
         params: { ids: ["electronics"], idKey: "_id", limit: 1 },
       },
     ]);
+  });
+
+  it("reads only the ancestors of a row the list joined, and nothing for a root", async () => {
+    const joined = await mountCell(ROWS.speakers);
+    expect(joined.host.textContent?.trim()).toBe(
+      "Electronics / Audio / Speakers",
+    );
+    expect(joined.reads).toEqual([
+      { url: SEARCH_URL, params: { ids: ["audio"], idKey: "_id", limit: 1 } },
+      {
+        url: SEARCH_URL,
+        params: { ids: ["electronics"], idKey: "_id", limit: 1 },
+      },
+    ]);
+    app?.unmount();
+    const root = await mountCell(ROWS.electronics);
+    expect(root.host.textContent?.trim()).toBe("Electronics");
+    expect(root.reads).toEqual([]);
   });
 
   it("reads a row the route does not answer as not found, its id on hover", async () => {

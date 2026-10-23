@@ -284,3 +284,37 @@ export function cascaderValueId(
   const row = asPickedRow(item);
   return row ? rowValue(row, keyMapping.value) : rowValue({ id: item }, "id");
 }
+
+/** What a cell already holds of its path, and the ids it still has to read. */
+export interface CascaderValueReads {
+  /** The rows the server joined: each one labels itself. */
+  joinedRows: CascaderRow[];
+  /** The picked ids sent plain, and the parents of the joined rows. */
+  idsToRead: string[];
+}
+
+/**
+ * Splits a cell's picked values into the rows the list joined and the ids it
+ * still reads: a plain id is read, a joined row only has its parent read
+ * (none for a root), so a list whose route joins the relation reads nothing
+ * for a pick at the top of the tree.
+ */
+export function cascaderValueReads(
+  values: unknown[],
+  keyMapping: CascaderKeyMapping,
+): CascaderValueReads {
+  const joinedRows = values
+    .map(asPickedRow)
+    .filter(
+      (row): row is CascaderRow =>
+        !!row && rowValue(row, keyMapping.value) !== undefined,
+    );
+  const plainIds = values
+    .filter((item) => !asPickedRow(item))
+    .map((item) => cascaderValueId(item, keyMapping))
+    .filter((id): id is string => id !== undefined);
+  const parents = joinedRows
+    .map((row) => rowValue(row, keyMapping.parent))
+    .filter((id): id is string => id !== undefined);
+  return { joinedRows, idsToRead: [...new Set([...plainIds, ...parents])] };
+}
