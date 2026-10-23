@@ -36,6 +36,8 @@ export interface FormField {
   /** "Module default · Use default" while it holds something else. */
   offersDefault?: boolean;
   localized?: boolean;
+  /** A localized field's fallback language: filled whenever any language is. */
+  fallbackLocale?: string;
 }
 
 export interface FieldGroup {

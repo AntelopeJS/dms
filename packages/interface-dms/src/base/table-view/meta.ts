@@ -345,6 +345,11 @@ export class TableViewMeta {
       this.isReadOnlyIn(meta, formMode) ||
       behavior === ReadonlyBehaviorType.disabled;
     const isRequired = this.getRequiredForMode(meta, formMode);
+    const isLocalized = localizedFields.includes(key);
+    const { tableClass } = GetMetadata(
+      this.target as ControllerClass,
+      DataAPIMeta,
+    );
 
     return {
       id: key,
@@ -360,7 +365,10 @@ export class TableViewMeta {
       showEmptyOnCreate: options.showEmptyOnCreate,
       required: isRequired,
       defaultValue: options.defaultValue,
-      localized: localizedFields.includes(key),
+      localized: isLocalized,
+      fallbackLocale: isLocalized
+        ? LocalizationModifier.fallbackLocaleOf(tableClass, key)
+        : undefined,
     };
   }
 
@@ -534,6 +542,12 @@ export const Column = MakeMethodAndPropertyDecorator(
       const zodSchema = adaptFieldValidationSchema(baseSchema, {
         localized: isLocalized,
         required: false,
+        fallbackLocale: isLocalized
+          ? LocalizationModifier.fallbackLocaleOf(
+              dataMeta.tableClass,
+              key as string,
+            )
+          : undefined,
       });
 
       // The parse result rather than its success flag: the data API writes

@@ -105,6 +105,11 @@ export interface FormField {
    */
   offersDefault?: boolean;
   localized?: boolean;
+  /**
+   * The language a localized field falls back to (its `@Localized`
+   * `fallbackLocale`): a value in any language requires one in this one.
+   */
+  fallbackLocale?: string;
 }
 
 export interface FormFieldSerialized extends Omit<

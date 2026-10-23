@@ -27,17 +27,54 @@ import {
 import { serializeFormField } from "./internal/form-schema";
 
 export * from "./form-block-schema";
+const REQUIRED_MESSAGE = "$dms.field_errors.required";
+
+/** Options of {@link adaptFieldValidationSchema}. */
+export interface FieldValidationOptions {
+  localized?: boolean;
+  required?: boolean;
+  /**
+   * The language a localized field falls back to: a value holding any
+   * language must hold this one, reported on `[fallbackLocale]`.
+   */
+  fallbackLocale?: string;
+}
+
+function isFilledText(value: unknown): boolean {
+  return typeof value === "string" ? value.trim() !== "" : value != null;
+}
+
+/** A localized value with some language filled must fill `fallbackLocale`. */
+function withFallbackLocale(
+  schema: z.ZodTypeAny,
+  fallbackLocale: string,
+): z.ZodTypeAny {
+  return schema.superRefine((value, context) => {
+    const languages = value as Record<string, unknown>;
+    const isAnyFilled = Object.values(languages).some(isFilledText);
+    if (!isAnyFilled || isFilledText(languages[fallbackLocale])) return;
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: REQUIRED_MESSAGE,
+      path: [fallbackLocale],
+    });
+  });
+}
+
 /**
  * Adapts a Zod schema to handle localization and optional/required state
  */
 export function adaptFieldValidationSchema(
   baseSchema: z.ZodTypeAny,
-  options: { localized?: boolean; required?: boolean },
+  options: FieldValidationOptions,
 ): z.ZodTypeAny {
   let schema = baseSchema;
 
   if (options.localized) {
     schema = z.record(z.string(), schema);
+    if (options.fallbackLocale) {
+      schema = withFallbackLocale(schema, options.fallbackLocale);
+    }
   }
 
   if (!options.required) {
@@ -74,6 +111,7 @@ function addFieldToSchema(
   shape[field.id] = adaptFieldValidationSchema(baseSchema, {
     localized: field.localized,
     required: field.required,
+    fallbackLocale: field.fallbackLocale,
   });
 }
 
