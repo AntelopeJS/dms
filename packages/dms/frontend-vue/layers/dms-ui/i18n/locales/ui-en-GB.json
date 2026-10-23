@@ -297,7 +297,8 @@
       "select_date": "Select date",
       "relation": {
         "selected_count": "{count} selected",
-        "add_new": "Add new entry"
+        "add_new": "Add new entry",
+        "not_found": "Not found"
       },
       "cascader": {
         "placeholder": "Select an item",

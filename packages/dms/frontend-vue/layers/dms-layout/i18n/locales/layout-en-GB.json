@@ -830,7 +830,7 @@
       },
       "disabled": {
         "title": "The store is read-only here",
-        "description": "Modules are installed from development, which writes them to antelope.config.ts; this platform loads what that file declares. Set store.enabled to true in the DMS configuration to change them from here."
+        "description": "Modules are installed from development, which writes them to antelope.config.ts; this platform loads what that file declares. Change them from development."
       },
       "load_error": "The module store could not be loaded",
       "search_placeholder": "Search the store",

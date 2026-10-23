@@ -2,8 +2,8 @@
 /**
  * A relation filter holds the related rows' ids: its chip names the rows
  * ("Acme"), read once from the relation's `select` route as its picker does,
- * rather than the raw id ("cust-060"). An id the route does not answer keeps
- * showing as is.
+ * rather than the raw id ("cust-060"). An id the route does not answer is
+ * named "Not found", with the id in the chip's tooltip.
  */
 import {
   computed,
@@ -150,7 +150,7 @@ describe("a relation filter chip", () => {
     expect(chipValues(container)).toEqual(["Acme"]);
   });
 
-  it("names each row of a multiple value, and keeps an unknown id", async () => {
+  it("names each row of a multiple value, and an unknown id not found", async () => {
     const container = await mount([
       {
         accessorKey: "customer",
@@ -158,7 +158,12 @@ describe("a relation filter chip", () => {
         value: ["cust-061", "cust-999"],
       },
     ]);
-    expect(chipValues(container)).toEqual(["Globex, cust-999"]);
+    expect(chipValues(container)).toEqual([
+      "Globex, dms.form.relation.not_found",
+    ]);
+    const chip = container.querySelector("li button[title]")!;
+    expect(chip.getAttribute("title")).toContain("cust-999");
+    expect(chip.getAttribute("title")).not.toContain("cust-061");
     expect(authFetch).toHaveBeenCalledTimes(1);
   });
 });

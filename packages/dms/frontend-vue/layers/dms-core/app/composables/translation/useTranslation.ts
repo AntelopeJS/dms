@@ -124,3 +124,6 @@ export const getAppTranslation = () => {
   const { t } = getPluginI18n().i18n;
   return { ...translationOf(t), t };
 };
+
+/** What {@link getAppTranslation} returns. */
+export type AppTranslation = ReturnType<typeof getAppTranslation>;

@@ -28,11 +28,21 @@ export interface ReloadHostCall {
   source: ReloadHostCallSource;
 }
 
+/** A `TENANT_BEING_PROVISIONED` call the reload-host module received. */
+export interface ReloadHostProvisionedTenant {
+  generation: string;
+  tenantId: string;
+  userId?: string;
+  /** Whether that generation's `DATABASE_INITIALIZED` handler had run. */
+  afterDatabaseInitialized: boolean;
+}
+
 interface ReloadHostProbe {
   generations: string[];
   calls: ReloadHostCall[];
   owners: string[];
   extendedPages: string[];
+  provisioned: ReloadHostProvisionedTenant[];
 }
 
 function probe(): ReloadHostProbe {
@@ -42,6 +52,7 @@ function probe(): ReloadHostProbe {
     calls: [],
     owners: [],
     extendedPages: [],
+    provisioned: [],
   };
   return holder[PROBE_KEY];
 }
@@ -49,6 +60,11 @@ function probe(): ReloadHostProbe {
 /** The generation constructed last: the only one a reload leaves running. */
 export function liveReloadHostGeneration(): string | undefined {
   return probe().generations.at(-1);
+}
+
+/** Every `TENANT_BEING_PROVISIONED` call received since the harness booted. */
+export function reloadHostProvisionedTenants(): ReloadHostProvisionedTenant[] {
+  return [...probe().provisioned];
 }
 
 /** The execution owner of the generation constructed last. */

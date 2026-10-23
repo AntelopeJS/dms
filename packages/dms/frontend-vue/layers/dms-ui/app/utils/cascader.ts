@@ -27,6 +27,7 @@ export interface CascaderTreeOptions {
 
 export const CASCADER_PATH_SEPARATOR = " / ";
 
+/** How many rows the picker's open menu lists to browse the tree. */
 export const CASCADER_FETCH_LIMIT = 1000;
 
 export const DEFAULT_CASCADER_KEY_MAPPING: CascaderKeyMapping = {
@@ -220,10 +221,100 @@ export function cascaderValuePath(
 ): string[] {
   const row = asPickedRow(item);
   const ownLabel = row ? rowValue(row, keyMapping.label) : undefined;
-  const id = row
-    ? rowValue(row, keyMapping.value)
-    : rowValue({ id: item }, "id");
+  const id = cascaderValueId(item, keyMapping);
   if (!id) return ownLabel ? [ownLabel] : [];
   const labels = rows ? buildCascaderPathLabels(rows, keyMapping, id) : [];
   return labels.length > 0 ? labels : [ownLabel ?? id];
+}
+
+/** Reads the rows of the given ids from the cascader's `select` route. */
+export type CascaderRowsReader = (ids: string[]) => Promise<CascaderRow[]>;
+
+/** The rows a path is drawn from, and the picked ids none of them answer. */
+export interface CascaderAncestry {
+  rows: CascaderRow[];
+  notFound: string[];
+}
+
+/**
+ * The rows of the picked ids and of every ancestor above them, read with
+ * `?ids=` one level at a time: the picked rows, then their parents, then
+ * theirs, until a level names no row not read yet. A tree is as many reads as
+ * it is deep (a level is one request for all its ids), whatever its size, and
+ * a parent cycle ends because a row is never asked twice. A picked id no row
+ * answers (deleted, out of reach) is returned as not found.
+ */
+export async function readCascaderAncestry(
+  read: CascaderRowsReader,
+  keyMapping: CascaderKeyMapping,
+  ids: string[],
+): Promise<CascaderAncestry> {
+  const rowsByValue = new Map<string, CascaderRow>();
+  const asked = new Set<string>();
+  let pending = [...new Set(ids)];
+  while (pending.length > 0) {
+    for (const id of pending) asked.add(id);
+    const rows = await read(pending);
+    for (const row of rows) {
+      const value = rowValue(row, keyMapping.value);
+      if (value !== undefined) rowsByValue.set(value, row);
+    }
+    pending = [
+      ...new Set(
+        rows
+          .map((row) => rowValue(row, keyMapping.parent))
+          .filter(
+            (parent): parent is string =>
+              parent !== undefined && !asked.has(parent),
+          ),
+      ),
+    ];
+  }
+  return {
+    rows: [...rowsByValue.values()],
+    notFound: ids.filter((id) => !rowsByValue.has(id)),
+  };
+}
+
+/** The id of a picked value: an id, or a row carrying its id. */
+export function cascaderValueId(
+  item: unknown,
+  keyMapping: CascaderKeyMapping,
+): string | undefined {
+  const row = asPickedRow(item);
+  return row ? rowValue(row, keyMapping.value) : rowValue({ id: item }, "id");
+}
+
+/** What a cell already holds of its path, and the ids it still has to read. */
+export interface CascaderValueReads {
+  /** The rows the server joined: each one labels itself. */
+  joinedRows: CascaderRow[];
+  /** The picked ids sent plain, and the parents of the joined rows. */
+  idsToRead: string[];
+}
+
+/**
+ * Splits a cell's picked values into the rows the list joined and the ids it
+ * still reads: a plain id is read, a joined row only has its parent read
+ * (none for a root), so a list whose route joins the relation reads nothing
+ * for a pick at the top of the tree.
+ */
+export function cascaderValueReads(
+  values: unknown[],
+  keyMapping: CascaderKeyMapping,
+): CascaderValueReads {
+  const joinedRows = values
+    .map(asPickedRow)
+    .filter(
+      (row): row is CascaderRow =>
+        !!row && rowValue(row, keyMapping.value) !== undefined,
+    );
+  const plainIds = values
+    .filter((item) => !asPickedRow(item))
+    .map((item) => cascaderValueId(item, keyMapping))
+    .filter((id): id is string => id !== undefined);
+  const parents = joinedRows
+    .map((row) => rowValue(row, keyMapping.parent))
+    .filter((id): id is string => id !== undefined);
+  return { joinedRows, idsToRead: [...new Set([...plainIds, ...parents])] };
 }
