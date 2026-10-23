@@ -85,6 +85,7 @@ function setVisibility(state: "visible" | "hidden") {
 }
 
 beforeEach(() => {
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
   topicHandlers.clear();
   window.localStorage.clear();

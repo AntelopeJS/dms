@@ -67,6 +67,7 @@ function installLive(maxRate?: number): PageLiveController {
 }
 
 beforeEach(() => {
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
   topicHandlers.clear();
   window.localStorage.clear();

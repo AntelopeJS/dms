@@ -62,6 +62,7 @@ const pressL = (target: EventTarget = document) =>
   );
 
 beforeEach(() => {
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
   vi.stubGlobal("useI18n", () => ({ t }));
   vi.stubGlobal("defineShortcuts", defineShortcuts);
