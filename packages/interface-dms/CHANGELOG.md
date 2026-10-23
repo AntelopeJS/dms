@@ -4,6 +4,15 @@
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.8.0...v0.9.0)
 
+### Upgrade notes
+
+- **Breaking:** `DefaultLayoutOptions.record` is a `PageRecordLoader` instead of `{ fetchUrl }`, and `PageRecordSource` is removed ([#426](https://github.com/AntelopeJS/dms/pull/426)). `record: { fetchUrl: "/api/sites/get?id={{params.id}}" }` becomes `record: ({ params }) => …` reading the row, in `PageLayoutRequest`'s context.
+- **Breaking:** the default tenant is provisioned through `TENANT_BEING_PROVISIONED` ([#420](https://github.com/AntelopeJS/dms/pull/420)). `TenantProvisioningHookPayload.userId` is now `string | undefined`, and an emitter calling `ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, …)` directly no longer gets the schema instance registered: use `ProvisionTenant`.
+- **Behavior change:** in generated forms, the fallback language of a `@Localized` field is required ([#427](https://github.com/AntelopeJS/dms/pull/427)). `FormField.fallbackLocale` carries it, and the column's server validator refuses a localized value that fills another language but not that one.
+- Table view columns take `visibleWhen` and `disabledWhen` conditions, carried to `FormField` ([#431](https://github.com/AntelopeJS/dms/pull/431)). The `new` and `edit` data routes enforce them: a hidden field is neither required nor written, an edit that hides a `visibleWhen` field clears its stored value, and a `disabledWhen` field keeps its stored value.
+- Relations answer "Not found" for unanswered ids; the cascader reads by `?ids=`; lists need the `Foreign` join ([#421](https://github.com/AntelopeJS/dms/pull/421)). The dev manifest lists the origins it rewrites (`originRewrites`, [#434](https://github.com/AntelopeJS/dms/pull/434)).
+- Requires `@antelopejs/interface-data-api` `>=0.4.0` (structured `400 { code, fields }`), `@antelopejs/interface-database-decorators` `>=0.1.10` and `@antelopejs/interface-database` `>=0.1.11`. Modules implementing interface-dms move to `>=0.9.0 <0.10.0`; `@antelopejs/dms` 0.11 implements it.
+
 ### 🚀 Enhancements
 
 - **frontend:** List the origins the dev manifest rewrites ([#434](https://github.com/AntelopeJS/dms/pull/434))
