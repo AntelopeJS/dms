@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/core": ">=1.16.0 <2",
+    "@antelopejs/core": ">=1.17.0 <2",
     "@antelopejs/tooling-configs": ">=0.0.9 <1.0.0",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
@@ -19,10 +19,5 @@
     "format": "pnpm --filter @antelopejs/interface-dms format && pnpm --filter @antelopejs/dms format",
     "knip": "pnpm --filter @antelopejs/dms knip",
     "test": "pnpm --filter @antelopejs/dms test"
-  },
-  "pnpm": {
-    "overrides": {
-      "@antelopejs/core": "github:AntelopeJS/antelopejs#7f2de73"
-    }
   }
 }
