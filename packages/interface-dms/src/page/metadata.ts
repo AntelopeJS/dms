@@ -16,6 +16,7 @@ import { DefaultLayout } from "../base/layouts";
 import {
   Action,
   type Component,
+  type ComponentFilterContext,
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
@@ -58,6 +59,7 @@ import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
 } from "./internal/layout-filter";
+import { readPageRecord } from "./internal/page-record";
 import {
   inheritedMemberAccess,
   opensToMembers,
@@ -624,7 +626,10 @@ export class PageMetadata {
 
     // Header actions declaring a permission are filtered on every page, even
     // one skipping component permissions: they name their own requirement.
-    const context = { tenantId, user, query, params };
+    // The page's record is read first, so every availability of the page
+    // reads it with the URL.
+    const context: ComponentFilterContext = { tenantId, user, query, params };
+    context.record = await readPageRecord(layout.layout, context);
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,

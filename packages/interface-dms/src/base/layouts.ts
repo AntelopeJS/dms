@@ -1,4 +1,5 @@
-import type { ComponentInfo } from "../component";
+import type { ComponentFilterContext, ComponentInfo } from "../component";
+import type { MaybePromise } from "../types";
 import { serializeActionConfirm } from "./internal/confirm-dialog";
 import { serializeActionTarget } from "./types/internal/action-target";
 import type { CustomButton } from "./types/custom-button";
@@ -20,24 +21,23 @@ export interface PageHeaderButton extends CustomButton {
   order?: number;
   /**
    * The button acts on the record the page shows (the layout's `record`): it
-   * is disabled while the record loads, and left out of a page whose record
-   * cannot be read (not found). A target naming `{{record.X}}` implies it.
+   * is left out of a page whose record was not found. A target naming
+   * `{{record.X}}` implies it.
    */
   requiresRecord?: boolean;
 }
 
 /**
- * The record a page shows, which its header buttons read: a target may name
- * its fields as `{{record.X}}` (an address in a maps link).
+ * Reads the record a page shows, each time its layout is served: the page
+ * URL names it (`context.params`, `context.query`), for the caller
+ * (`context.user`, `context.tenantId`). Answers `undefined` when there is
+ * none to show (not found, not the caller's).
+ *
+ * @example ({ params }) => GetModel(SiteModel).get(params?.id ?? "")
  */
-export interface PageRecordSource {
-  /**
-   * URL answering the record, typically its controller's `get` route;
-   * `{{params.X}}` and `{{query.X}}` are filled in from the page URL.
-   * @example "/api/sites/get?id={{params.id}}"
-   */
-  fetchUrl: string;
-}
+export type PageRecordLoader = (
+  context: ComponentFilterContext,
+) => MaybePromise<Record<string, unknown> | undefined>;
 
 export interface DefaultLayoutOptions {
   /**
@@ -68,11 +68,12 @@ export interface DefaultLayoutOptions {
    */
   headerActions?: PageHeaderButton[];
   /**
-   * The record the page shows, for the header buttons that act on it
-   * (`requiresRecord`, or a `{{record.X}}` in their target). Read once per
-   * page: a block reading the same `fetchUrl` shares the request.
+   * The record the page shows, read on the server with the layout: the
+   * header buttons acting on it (`requiresRecord`, or a `{{record.X}}` in
+   * their target) are left out without it, and every `availability` of the
+   * page reads it as `context.record`.
    */
-  record?: PageRecordSource;
+  record?: PageRecordLoader;
 }
 
 // A button without an id is keyed by its place in the header.
