@@ -207,7 +207,7 @@ const { labelsOf: relationLabels } = useRelationFilterLabels(() =>
 const displayValue = (filter: TableFilter): string => {
   const source = relationSource(filter);
   const names = source ? relationLabels(source) : [];
-  if (names.length) return names.join(", ");
+  if (names.length) return names.map((name) => name.label).join(", ");
   const labels = itemLabels(filter);
   if (labels) return labels;
   const formatted = formatFilterValue(
@@ -219,12 +219,22 @@ const displayValue = (filter: TableFilter): string => {
   return formatted || EMPTY_FILTER_VALUE;
 };
 
+// The ids of a relation filter its route did not answer, named on hover.
+const notFoundIds = (filter: TableFilter): string => {
+  const source = relationSource(filter);
+  if (!source) return "";
+  return relationLabels(source)
+    .flatMap((name) => (name.notFoundId ? [name.notFoundId] : []))
+    .join(", ");
+};
+
 // The whole filter in words, for a chip shrunk to an ellipsis.
 const chipTitle = (filter: TableFilter, label?: string): string =>
   [
     label ?? getColumn(filter.accessorKey)?.label,
     t(`dms.table.compare_mode.${filter.mode}`),
     displayValue(filter),
+    notFoundIds(filter),
   ]
     .filter(Boolean)
     .join(" · ");

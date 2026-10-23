@@ -11,6 +11,7 @@ import {
   useColumnValueRenderer,
 } from "../../../build/composables/data-types/useColumnValueRenderer";
 import {
+  type RelationColumnRows,
   type RelationLabelSource,
   type RepeaterTableColumn,
   joinRelationValue,
@@ -53,16 +54,22 @@ function useColumnRelationRows(columnId: string, source: RelationLabelSource) {
   );
   const { data } = useDmsAsyncData(
     `repeater-table-relation-${instanceId}-${columnId}`,
-    () => readRelationRows(source, ids.value),
+    async () => {
+      const readIds = ids.value;
+      return { readIds, rows: await readRelationRows(source, readIds) };
+    },
     // Names for the cells, not the page's data.
     { lazy: true, refreshOnPageRefresh: false, watch: [ids] },
   );
-  return computed(
-    () =>
-      new Map(
-        (data.value ?? []).map((row) => [relationRowValue(source, row), row]),
-      ),
-  );
+  return computed<RelationColumnRows>(() => ({
+    rowsByValue: new Map(
+      (data.value?.rows ?? []).map((row) => [
+        relationRowValue(source, row),
+        row,
+      ]),
+    ),
+    readIds: new Set(data.value?.readIds),
+  }));
 }
 
 const NO_LABELS: ReadonlySet<string> = new Set();

@@ -3,6 +3,7 @@ import type {
   DataTypeSelectSource,
 } from "#dms-core/app/composables/data-types/useDataType";
 import type { RenderableColumn } from "../data-types/useColumnValueRenderer";
+import { NotFoundRelation } from "../data-types/relationRows";
 
 /** A column of a read-only list: a field of its rows. */
 export interface RepeaterTableColumn {
@@ -49,17 +50,29 @@ export function relationLabelSource(
   return source ? { ...source, multiple: !!options?.multiple } : undefined;
 }
 
+/** The rows a relation column's read answered, by value, and the ids it asked. */
+export interface RelationColumnRows {
+  rowsByValue: ReadonlyMap<unknown, Record<string, unknown>>;
+  readIds: ReadonlySet<string>;
+}
+
 /**
  * A relation value as its formatter draws it: the related row in place of
- * each id it holds. An id no row matches (a deleted one) stays as it is; a
- * value the server already joined is kept.
+ * each id it holds. An id the read asked for and no row answers (deleted, out
+ * of reach) is not found; one not asked yet stays as it is, as does a value
+ * the server already joined.
  */
 export function joinRelationValue(
   value: unknown,
-  rowsByValue: ReadonlyMap<unknown, Record<string, unknown>>,
+  { rowsByValue, readIds }: RelationColumnRows,
   multiple: boolean,
 ): unknown {
-  const join = (item: unknown) => rowsByValue.get(item) ?? item;
+  const join = (item: unknown) => {
+    const row = rowsByValue.get(item);
+    if (row) return row;
+    const id = String(item);
+    return readIds.has(id) ? new NotFoundRelation(id) : item;
+  };
   if (multiple && Array.isArray(value)) return value.map(join);
   return join(value);
 }

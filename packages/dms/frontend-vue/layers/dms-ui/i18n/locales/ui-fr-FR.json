@@ -296,7 +296,8 @@
       "select_date": "Sélectionner une date",
       "relation": {
         "selected_count": "{count} sélectionné(s)",
-        "add_new": "Ajouter une nouvelle entrée"
+        "add_new": "Ajouter une nouvelle entrée",
+        "not_found": "Introuvable"
       },
       "cascader": {
         "placeholder": "Sélectionner un élément",
