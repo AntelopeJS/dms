@@ -107,7 +107,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.4.4",
+        "1.5.0",
       ),
     },
     "auth-jwt": {
@@ -121,7 +121,7 @@ export default defineConfig({
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.4.0 <2"),
+      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2"),
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
         servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],
@@ -131,7 +131,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.11",
+        "0.1.13",
       ),
     },
     nodemailer: {
