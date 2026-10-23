@@ -1,9 +1,12 @@
 import {
   computed,
   getCurrentScope,
+  onMounted,
   onScopeDispose,
+  shallowRef,
   type ComputedRef,
 } from "vue";
+import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import {
   currentPageLive,
   isServerPageLive,
@@ -75,7 +78,12 @@ export interface PageLiveState {
  * never paused, and its actions do nothing. A server render reads the page as
  * live and never paused too, but `isEnabled` says whether it declares `live`:
  * the browser hydrates the page's blocks with its controller installed, so
- * the server draws them as it will.
+ * the server draws them as it will. The rest of the state is born in the
+ * browser (the realtime stream, the page's reads, a pause): a component
+ * hydrating the server's HTML reads it as the server did (live, not polling,
+ * never read, nothing missed) until its own `onMounted`, then follows the
+ * page. A component mounted afresh, after a client navigation, reads the page
+ * at once.
  *
  * ```ts
  * const { isPaused, missedCount, resume, hold, release } = usePageLive();
@@ -86,26 +94,29 @@ export interface PageLiveState {
  * `realtimeTopic` are.
  */
 export function usePageLive(): PageLiveState {
-  const isPaused = computed(() => currentPageLive()?.isPaused.value ?? false);
+  // An async block hydrates after the page has installed its controller and
+  // read its data: until mounted, it draws the state the server drew.
+  const isHydrating = shallowRef(isHydratingComponent());
+  if (isHydrating.value) onMounted(() => (isHydrating.value = false));
+  const shown = () => (isHydrating.value ? null : currentPageLive());
+  const isPaused = computed(() => shown()?.isPaused.value ?? false);
   const hold = usePageLiveHold();
   const isServerLive = isServerPageLive();
   return {
     isEnabled: computed(() => currentPageLive() !== null || isServerLive),
     isLive: computed(() => !isPaused.value),
     isPaused,
-    pauseReason: computed(() => currentPageLive()?.pauseReason.value ?? null),
+    pauseReason: computed(() => shown()?.pauseReason.value ?? null),
     pause: () => currentPageLive()?.pause(),
     resume: () => currentPageLive()?.resume(),
     toggle: () => currentPageLive()?.toggle(),
     hold: hold.hold,
     release: hold.release,
-    lastUpdatedAt: computed(
-      () => currentPageLive()?.lastUpdatedAt.value ?? null,
-    ),
-    missedCount: computed(() => currentPageLive()?.missedCount.value ?? 0),
-    missedDetail: computed(() => currentPageLive()?.missedDetail.value ?? null),
+    lastUpdatedAt: computed(() => shown()?.lastUpdatedAt.value ?? null),
+    missedCount: computed(() => shown()?.missedCount.value ?? 0),
+    missedDetail: computed(() => shown()?.missedDetail.value ?? null),
     setMissedDetail: (detail) => currentPageLive()?.setMissedDetail(detail),
-    isPolling: computed(() => currentPageLive()?.isPolling.value ?? false),
+    isPolling: computed(() => shown()?.isPolling.value ?? false),
   };
 }
 
