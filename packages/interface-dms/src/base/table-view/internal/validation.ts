@@ -31,6 +31,31 @@ import {
 } from "../options";
 
 /**
+ * A column's `visibleWhen` and `disabledWhen` name another column of the
+ * controller and at least one value.
+ *
+ * @internal
+ */
+export function validateColumnConditions(
+  controllerName: string,
+  meta: Pick<TableViewMeta, "columns">,
+): void {
+  for (const [key, column] of Object.entries(meta.columns)) {
+    for (const option of ["visibleWhen", "disabledWhen"] as const) {
+      const condition = column[option];
+      if (!condition) continue;
+      const where = `${option} of column "${key}"`;
+      assertKnownColumns(controllerName, meta, where, [condition.field]);
+      if (condition.field === key || condition.in.length === 0) {
+        throw new Error(
+          `TableView ${where} on ${controllerName} must name another column and at least one value`,
+        );
+      }
+    }
+  }
+}
+
+/**
  * `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}.
  *
  * @internal
@@ -546,6 +571,7 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
   options: TableViewOptions<T>,
 ): void {
   validateKanbanOptions(controllerName, meta, options.kanban);
+  validateColumnConditions(controllerName, meta);
   assertKnownColumns(
     controllerName,
     meta,

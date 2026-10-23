@@ -30,6 +30,7 @@ import { serializeColumnDisplay } from "./internal/column-display";
 // oxlint-disable-next-line import/no-cycle
 import { type DataType, serializeType } from "../data-types";
 import {
+  type FieldCondition,
   type FieldGroup,
   type FormBuilder,
   type FormField,
@@ -125,6 +126,21 @@ export interface ColumnOptions {
    * @example new DefaultDisplays.IdentityDisplay({ subtitleField: "email" })
    */
   display?: ColumnDisplay<object>;
+  /**
+   * The column's form field shows only while another column holds one of
+   * the listed values, as each form opens and as it is filled in. The data
+   * routes hold to it too: a hidden field is not mandatory (`@Mandatory`
+   * applies while it shows) and the value sent for it is ignored. An edit
+   * reads the condition on the row as it will be stored.
+   * @example visibleWhen: { field: "stage", in: ["lost"] }
+   */
+  visibleWhen?: FieldCondition;
+  /**
+   * The column's form field is read-only while another column holds one of
+   * the listed values; the data routes ignore the value sent for it then.
+   * @example disabledWhen: { field: "stage", in: ["won", "lost"] }
+   */
+  disabledWhen?: FieldCondition;
 }
 
 /**
@@ -361,6 +377,8 @@ export class TableViewMeta {
       required: isRequired,
       defaultValue: options.defaultValue,
       localized: localizedFields.includes(key),
+      visibleWhen: options.visibleWhen,
+      disabledWhen: options.disabledWhen,
     };
   }
 

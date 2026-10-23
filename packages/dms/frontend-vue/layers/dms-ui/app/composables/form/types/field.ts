@@ -18,6 +18,12 @@ export interface FormFieldReadonly {
   link?: FormFieldLink;
 }
 
+/** Holds while the field `field` holds one of the values `in` lists. */
+export interface FieldCondition {
+  field: string;
+  in: unknown[];
+}
+
 export interface FormField {
   id: string;
   label?: string;
@@ -36,6 +42,10 @@ export interface FormField {
   /** "Module default · Use default" while it holds something else. */
   offersDefault?: boolean;
   localized?: boolean;
+  /** Shown only while the condition holds: hidden, neither required nor sent. */
+  visibleWhen?: FieldCondition;
+  /** Read-only while the condition holds: its value is not sent. */
+  disabledWhen?: FieldCondition;
 }
 
 export interface FieldGroup {
