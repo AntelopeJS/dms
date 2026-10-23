@@ -41,8 +41,8 @@ interface RenderedEmail {
 const rendered: RenderedEmail[] = [];
 
 // The harness has no render service: the emails are kept as the props they
-// were rendered from (the mail provider still sends them, to Ethereal, after
-// the request answered).
+// were rendered from (the mail provider still tries to send them, to a closed
+// local port, after the request answered).
 function captureRenderedEmails(): void {
   ImplementInterface(
     { GenerateHtml },

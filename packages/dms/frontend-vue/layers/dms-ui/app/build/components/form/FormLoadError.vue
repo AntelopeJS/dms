@@ -27,8 +27,12 @@ const { t } = useI18n();
 const VARIANTS: Record<FormLoadFailure, EmptyStateVariant> = {
   forbidden: "no-access",
   missing: "no-data",
+  not_found: "no-result",
   error: "error",
 };
+// A record the address names none of, or one that does not exist, is not
+// read again by trying.
+const RETRIES = new Set<FormLoadFailure>(["forbidden", "error"]);
 </script>
 
 <template>
@@ -38,7 +42,7 @@ const VARIANTS: Record<FormLoadFailure, EmptyStateVariant> = {
     :title="t(`dms.form.load_error.${props.failure}_title`)"
     :description="t(`dms.form.load_error.${props.failure}_description`)"
   >
-    <template v-if="props.failure !== 'missing'" #actions>
+    <template v-if="RETRIES.has(props.failure)" #actions>
       <UButton
         :label="t('dms.form.load_error.retry')"
         icon="i-ph-arrows-clockwise"

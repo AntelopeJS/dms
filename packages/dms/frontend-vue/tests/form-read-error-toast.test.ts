@@ -80,4 +80,13 @@ describe("a form whose record read fails", () => {
       description: "forbidden",
     });
   });
+
+  it("adds no toast for a record that is not found: the form says it", async () => {
+    vi.stubEnv("SSR", false);
+    authFetch.mockRejectedValue(
+      Object.assign(new Error("Not Found"), { statusCode: 404 }),
+    );
+    await expect(readRecord()).rejects.toThrow("Not Found");
+    expect(toastAdd).not.toHaveBeenCalled();
+  });
 });

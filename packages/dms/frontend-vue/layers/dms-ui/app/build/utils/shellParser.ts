@@ -1,4 +1,4 @@
-import type { StreamParser, StringStream } from "@codemirror/language";
+import type { StreamParser, StringStream } from "@codemirror/streamparser";
 
 // A shell snippet as read for highlighting only: the command of each
 // pipeline step, its flags, quoted strings, variables and comments.

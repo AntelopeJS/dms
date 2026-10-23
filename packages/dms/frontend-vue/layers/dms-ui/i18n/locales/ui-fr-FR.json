@@ -291,12 +291,15 @@
         "forbidden_description": "Votre rôle ne vous permet pas de voir cet élément, le formulaire ne peut donc pas s'ouvrir sur ses valeurs actuelles. Demandez l'accès à un administrateur.",
         "missing_title": "Aucun élément sélectionné",
         "missing_description": "Ce formulaire affiche un élément, et l'adresse n'en désigne aucun. Ouvrez-le depuis un élément pour voir ses valeurs.",
+        "not_found_title": "Introuvable",
+        "not_found_description": "Cet élément n'existe pas, ou plus : il a peut-être été supprimé.",
         "retry": "Réessayer"
       },
       "select_date": "Sélectionner une date",
       "relation": {
         "selected_count": "{count} sélectionné(s)",
-        "add_new": "Ajouter une nouvelle entrée"
+        "add_new": "Ajouter une nouvelle entrée",
+        "not_found": "Introuvable"
       },
       "cascader": {
         "placeholder": "Sélectionner un élément",

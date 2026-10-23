@@ -25,15 +25,24 @@ interface ProbeCall {
   source: ProbeSource;
 }
 
+interface ProvisionedTenant {
+  generation: string;
+  tenantId: string;
+  userId?: string;
+  afterDatabaseInitialized: boolean;
+}
+
 interface Probe {
   generations: string[];
   calls: ProbeCall[];
   owners: string[];
   extendedPages: string[];
+  provisioned: ProvisionedTenant[];
 }
 
 // Evaluated again by each reload, so it tells the generations apart.
 const generation = randomUUID();
+let databaseInitialized = false;
 
 function probe(): Probe {
   const holder = globalThis as Record<symbol, Probe | undefined>;
@@ -42,6 +51,7 @@ function probe(): Probe {
     calls: [],
     owners: [],
     extendedPages: [],
+    provisioned: [],
   };
   return holder[PROBE_KEY];
 }
@@ -76,7 +86,17 @@ export function construct(): void {
     return undefined;
   });
   RegisterHook(Hook.DATABASE_INITIALIZED, () => {
+    databaseInitialized = true;
     record("database-initialized");
+    return undefined;
+  });
+  RegisterHook(Hook.TENANT_BEING_PROVISIONED, ({ tenantId, userId }) => {
+    probe().provisioned.push({
+      generation,
+      tenantId,
+      userId,
+      afterDatabaseInitialized: databaseInitialized,
+    });
     return undefined;
   });
   registerRealtimeMutationListener((context) => {
