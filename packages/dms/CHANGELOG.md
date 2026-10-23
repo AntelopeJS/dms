@@ -4,6 +4,17 @@
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.10.0...v0.11.0)
 
+### Upgrade notes
+
+- Implements `@antelopejs/interface-dms` `>=0.9.0 <0.10.0` (see its 0.9.0 notes: `DefaultLayoutOptions.record` as a loader, tenant provisioning through `TENANT_BEING_PROVISIONED`).
+- **Breaking:** changing modules from the store is reserved to development ([#418](https://github.com/AntelopeJS/dms/pull/418)). A configuration that sets `store.enabled: true` in production no longer opens the store.
+- **Breaking:** the GitHub star button is removed from the footer ([#428](https://github.com/AntelopeJS/dms/pull/428)). `branding.footer.githubStar` no longer exists: a layer that sets it gets a TypeScript error on `DmsFooterConfig` and should delete the line.
+- **Breaking (layer API):** `isHydratingComponent` is removed, without an alias ([#424](https://github.com/AntelopeJS/dms/pull/424)). Use `isDmsHydrating()` from `@antelopejs/dms-frontend` ≥ 0.9: `ref(!import.meta.env.SSR && !isHydratingComponent())` becomes `ref(!import.meta.env.SSR && !isDmsHydrating())`.
+- **Behavior change:** forms read the data API's structured field errors, `400 { code, fields }` from `@antelopejs/interface-data-api` 0.4, and name each refused field by its column label ([#433](https://github.com/AntelopeJS/dms/pull/433)). Requires interface-data-api `>=0.4.0`.
+- **Behavior change:** the fallback language of a `@Localized` field is required in generated forms, client and server ([#427](https://github.com/AntelopeJS/dms/pull/427)).
+- Table view columns support `visibleWhen` and `disabledWhen`; the write routes ignore hidden or locked values, and an edit that hides a `visibleWhen` field clears it ([#431](https://github.com/AntelopeJS/dms/pull/431)).
+- Requires `@antelopejs/dms-frontend` `>=0.9.0 <0.10.0` (with `@antelopejs/api` ≥ 1.5.0), `@antelopejs/interface-database-decorators` `>=0.1.10` and `@antelopejs/interface-database` `>=0.1.11`. Modules move to `@antelopejs/dms` 0.11 and `@antelopejs/interface-dms` `>=0.9.0`.
+
 ### 🚀 Enhancements
 
 - **frontend:** List the origins the dev manifest rewrites ([#434](https://github.com/AntelopeJS/dms/pull/434))
