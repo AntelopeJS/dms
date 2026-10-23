@@ -32,9 +32,23 @@ function valueAt(record: PageRecord, path: string): unknown {
 }
 
 /**
+ * How the page's record was read for one request: `found`, `missing` when its
+ * loader answered none (not found, not the caller's), `error` when it threw.
+ * The frontend takes a record going from `found` to `missing` for one that
+ * was deleted.
+ */
+export type PageRecordStatus = "found" | "missing" | "error";
+
+/** What reading the page's record answered. */
+export interface PageRecordRead {
+  record?: PageRecord;
+  status: PageRecordStatus;
+}
+
+/**
  * The record the page's layout reads for one request, `undefined` when the
- * layout declares none or its loader finds none. A loader that throws counts
- * as finding none: the buttons acting on the record are left out, and the
+ * layout declares none. A loader that throws counts as finding none, with
+ * the `error` status: the buttons acting on the record are left out, and the
  * page still loads.
  *
  * @internal
@@ -42,14 +56,15 @@ function valueAt(record: PageRecord, path: string): unknown {
 export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
-): Promise<PageRecord | undefined> {
+): Promise<PageRecordRead | undefined> {
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!options?.record) return undefined;
   try {
-    return (await options.record(context)) ?? undefined;
+    const record = (await options.record(context)) ?? undefined;
+    return record ? { record, status: "found" } : { status: "missing" };
   } catch (error) {
     Logging.Error("[dms] the record of the page could not be read:", error);
-    return undefined;
+    return { status: "error" };
   }
 }
 

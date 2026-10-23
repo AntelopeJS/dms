@@ -629,7 +629,8 @@ export class PageMetadata {
     // The page's record is read first, so every availability of the page
     // reads it with the URL.
     const context: ComponentFilterContext = { tenantId, user, query, params };
-    context.record = await readPageRecord(layout.layout, context);
+    const read = await readPageRecord(layout.layout, context);
+    context.record = read?.record;
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,
@@ -639,6 +640,7 @@ export class PageMetadata {
             loadPermissions,
             context,
             this.pagePermissionId,
+            read?.status,
           ),
           components,
         ),
@@ -665,6 +667,7 @@ export class PageMetadata {
           async () => permissions,
           context,
           this.pagePermissionId,
+          read?.status,
         ),
         servedComponents,
       ),

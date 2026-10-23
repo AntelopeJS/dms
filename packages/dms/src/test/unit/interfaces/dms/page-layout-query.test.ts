@@ -39,6 +39,7 @@ interface ServedOptions {
   headerActions: PageHeaderButtonSerialized[];
   headerActionsQuery?: Record<string, string>;
   headerActionsParams?: Record<string, string>;
+  recordStatus?: string;
 }
 
 /**
@@ -105,6 +106,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
     const options = await serve({ workspace: "web" });
     expect(options.headerActions[0]).to.not.have.property("disabled");
     expect(options.headerActionsQuery).to.deep.equal({ workspace: "web" });
+    expect(options).to.not.have.property("recordStatus");
   });
 
   it("disables it for another query, and without one", async () => {
@@ -258,6 +260,7 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     locked: { address: "Gare", locked: true },
   };
   let pattern = "";
+  let notePattern = "";
 
   before(async () => {
     ImplementInterface(permissionsInterface, permissionsImpl);
@@ -306,14 +309,27 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     );
     cleanups.push(await registerTestPage(controller));
     pattern = GetMetadata(controller, PageMetadata).pageInfo?.fullSlug ?? "";
+
+    const note: ControllerClass = PageController(
+      "lq-note",
+      {
+        displayName: "Note",
+        category: pagesCategory,
+        urlSlug: "lq-notes/:id",
+        hidden: true,
+      },
+      DefaultLayout({ record: ({ params }) => SITES[params?.id ?? ""] }),
+    );
+    cleanups.push(await registerTestPage(note));
+    notePattern = GetMetadata(note, PageMetadata).pageInfo?.fullSlug ?? "";
   });
 
   after(() => {
     for (const cleanup of cleanups.splice(0)) cleanup();
   });
 
-  async function served(id: string) {
-    const path = pattern.replace(":id", id);
+  async function served(id: string, slug = pattern) {
+    const path = slug.replace(":id", id);
     const payload = await buildPagePayload(
       path,
       MEMBER,
@@ -369,5 +385,20 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       ]);
       expect(options.headerActionsParams).to.deep.equal({ id });
     }
+  });
+
+  // The page leaves a record that went missing under it: a loader that
+  // failed must not read as one that found none.
+  it("says whether it found the record, found none, or failed to read it", async () => {
+    expect((await served("s1")).recordStatus).to.equal("found");
+    expect((await served("missing")).recordStatus).to.equal("missing");
+    expect((await served("broken")).recordStatus).to.equal("error");
+  });
+
+  it("says it on a page without header buttons too, with the URL it read", async () => {
+    const options = await served("gone", notePattern);
+    expect(options).to.include({ recordStatus: "missing" });
+    expect(options.headerActionsParams).to.deep.equal({ id: "gone" });
+    expect(options).to.not.have.property("headerActions");
   });
 });

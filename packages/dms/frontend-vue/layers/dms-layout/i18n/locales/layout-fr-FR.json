@@ -100,6 +100,10 @@
       "no_content_title": "Aucun contenu disponible",
       "no_content_message": "Cette page n'a pas encore été configurée. Veuillez contacter l'administrateur."
     },
+    "record_deleted": {
+      "title": "Supprimé",
+      "description": "Ce que montrait cette page a été supprimé. Il n’est plus disponible."
+    },
     "no_visible_blocks": {
       "title": "Rien à afficher pour vous ici",
       "description": "Votre rôle ne vous permet de voir aucune partie de cette page. Demandez l’accès à un propriétaire de l’espace."

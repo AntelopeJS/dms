@@ -1,5 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import type {
   ColumnSizingState,
   ExpandedState,
@@ -1063,6 +1065,11 @@ const listLoadError = computed(() => {
     ? `error.${status}`
     : "error.500";
 });
+
+// A list answering 404 names a resource that does not exist (the workspace
+// its rows belong to was deleted): no retry fixes it, so the table gives way
+// to the not-found state blocks show, with what the 404 said.
+const listNotFound = computed(() => readFetchNotFound(settledError.value));
 
 // useDmsAsyncData keeps the previous result when a refetch fails, so rows kept
 // on screen would masquerade as the newly requested page/filter. Hide them
@@ -2391,7 +2398,13 @@ onMounted(() => {
 </script>
 
 <template>
+  <DmsBlockStatus
+    v-if="listNotFound"
+    state="not-found"
+    :not-found="listNotFound"
+  />
   <UTable
+    v-else
     ref="tableRoot"
     v-bind="tableProps"
     v-model:pagination="paginationState"

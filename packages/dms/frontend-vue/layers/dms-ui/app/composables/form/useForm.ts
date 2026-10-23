@@ -35,9 +35,11 @@ interface FormSubmitNotice {
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import {
   type ApiFieldError,
+  apiErrorStatus,
   apiErrorText,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
+import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
 import {
   isPlainObject,
@@ -686,7 +688,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       // A server render shows the failure in the form (FormLoadError) and
       // hands it to the browser; a toast it added would show in its HTML
       // alone, which the browser's toasts never hold.
-      if (!import.meta.env.SSR) showFetchErrorToast(error);
+      // A 404 is no error either: the form says the record is not found.
+      if (!import.meta.env.SSR && apiErrorStatus(error) !== HTTP_NOT_FOUND) {
+        showFetchErrorToast(error);
+      }
       throw error;
     }
   };
