@@ -27,6 +27,7 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
 vi.stubGlobal("useDmsState", engine.useDmsState);
+vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
 vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
 
 const requests: string[] = [];

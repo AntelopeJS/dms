@@ -55,6 +55,7 @@ function stubLayerGlobals() {
   // What getAppTranslation reads, outside a setup.
   vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: String } }));
   vi.stubGlobal("useDmsState", engine.useDmsState);
+  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
 }
 
 beforeAll(async () => {

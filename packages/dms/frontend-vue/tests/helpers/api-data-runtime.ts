@@ -18,6 +18,7 @@ export function stubApiData(authFetch: (...args: never[]) => unknown): void {
   vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
   vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
   vi.stubGlobal("useDmsState", engine.useDmsState);
+  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useApiData", useApiData);
 }
