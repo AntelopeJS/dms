@@ -67,8 +67,7 @@ describe("useRegionalFormat", () => {
 
   it("writes numbers in the user's language", () => {
     const { formatNumber, formatPrice } = useRegionalFormat();
-    // A no-break space wide enough to see, not French's narrow one.
-    expect(formatNumber(1234.5)).toBe("1 234,5");
+    expect(formatNumber(1234.5)).toBe("1\u202F234,5");
     expect(formatPrice(12)).toBe("12,00 €");
   });
 
@@ -85,7 +84,7 @@ describe("useRegionalFormat", () => {
       formatPrice(12),
     ];
     expect(written).toEqual([
-      "1 234,5",
+      "1\u202F234,5",
       new Intl.NumberFormat("fr-FR", { style: "percent" }).format(0.25),
       new Intl.NumberFormat("fr-FR", {
         style: "currency",

@@ -31,7 +31,12 @@
 }
 
 /* Self-hosted Geist (SIL OFL 1.1, files and LICENSE.txt in ../fonts).
-   Variable files cover weights 100–900 and keep builds deterministic offline. */
+   Variable files cover weights 100–900 and keep builds deterministic offline.
+   Geist has no narrow no-break space (U+202F), which French and a few other
+   locales group digits with: a fallback face drew it a fraction of a digit
+   wide, so "1 234" read as "1234". Each file here maps U+202F to its no-break
+   space glyph (fontTools: cmap[0x202F] = cmap[0xA0]); keep that mapping when
+   updating them. */
 @font-face {
   font-family: "Geist";
   font-style: normal;
@@ -155,6 +160,11 @@
      items, ~10px menus and 16px modals. */
     --ui-radius: calc(0.5rem / 1.5);
     --dms-radius-card: 0.875rem;
+    /* Pill tabs keep their v2 10px track, 7px tab and 4px count at the
+     default radius, and follow a theme that changes it. */
+    --dms-radius-tab-list: calc(var(--ui-radius) * 1.875);
+    --dms-radius-tab: calc(var(--ui-radius) * 1.3125);
+    --dms-radius-tab-badge: calc(var(--ui-radius) * 0.75);
 
     /* v2 shell metrics: 48px navbar, 56px sidebar brand row. */
     --ui-header-height: 3rem;

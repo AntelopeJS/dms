@@ -67,16 +67,14 @@ export function resolveApiErrorMessage(error: unknown): string {
 
 export function useApiError(error: unknown, options?: Options) {
   const toast = useToast();
-  const dmsApp = useDmsApp();
-  const { t } = dmsApp.$i18n;
-  const translate = (message: string) => resolveApiMessage(t, message);
+  const { processApiMessage } = getAppTranslation();
 
   const title = options?.title || resolveApiErrorTitle(error);
   const description = options?.description || resolveApiErrorMessage(error);
 
   toast.add({
-    title: translate(title),
-    description: translate(description),
+    title: processApiMessage(title),
+    description: processApiMessage(description),
     color: "error",
   });
 }

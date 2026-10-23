@@ -16,6 +16,8 @@ import SourceSnippet from "../showcase/SourceSnippet.vue";
 
 const { t } = useI18n();
 const sidePanel = useSidePanelDemo();
+// Sources register from `.client` plugins: the server never sees the
+// playground's, so what the registry holds is drawn once mounted.
 const { groups } = useCommandPaletteGroups();
 const isSourceRegistered = computed(() =>
   groups.value.some((group) =>
@@ -59,20 +61,28 @@ function toggleSource(): void {
         label="unregisterCommandPaletteSource(id) · registerCommandPaletteSource(source)"
       >
         <div class="flex flex-wrap items-center gap-2">
-          <DmsStatusPill
-            :tone="isSourceRegistered ? 'success' : 'neutral'"
-            :label="isSourceRegistered ? 'Registered' : 'Unregistered'"
-            dot="static"
-          />
-          <UButton
-            :label="
-              isSourceRegistered ? 'Unregister the source' : 'Register it again'
-            "
-            color="neutral"
-            variant="outline"
-            size="sm"
-            @click="toggleSource"
-          />
+          <DmsClientOnly>
+            <DmsStatusPill
+              :tone="isSourceRegistered ? 'success' : 'neutral'"
+              :label="isSourceRegistered ? 'Registered' : 'Unregistered'"
+              dot="static"
+            />
+            <UButton
+              :label="
+                isSourceRegistered
+                  ? 'Unregister the source'
+                  : 'Register it again'
+              "
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="toggleSource"
+            />
+            <template #fallback>
+              <USkeleton class="h-6 w-24 rounded-full" />
+              <USkeleton class="h-8 w-44" />
+            </template>
+          </DmsClientOnly>
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="The source" wide>

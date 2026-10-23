@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, shallowRef } from "vue";
+import { computed, onMounted, shallowRef, watch } from "vue";
 import DmsCopyButton from "../copy/CopyButton.vue";
 import {
   codeLanguageLabel,
   PLAIN_CODE_LANGUAGE,
   resolveCodeLanguage,
 } from "../../build/utils/codeLanguages";
-import type { CodeToken, highlightCode } from "../../build/utils/codeHighlight";
+import type {
+  CodeHighlighter,
+  CodeToken,
+} from "../../build/utils/codeHighlight";
 
 // Read-only code in the editor's look: a head with the title, the language
 // and a copy button, then the code highlighted by the editor's languages.
 // Without a title or a language there is no head: the copy button floats in
-// the code's corner. Until the highlighter loads (and on the server) the
-// code shows as is.
+// the code's corner. Until its language's grammar loads (and on the server)
+// the code shows as is.
 
 /**
  * How long lines break: `false` scrolls them sideways, `true` wraps them
@@ -63,7 +66,7 @@ const WRAP_CLASSES: Record<"false" | "true" | "anywhere", string> = {
   anywhere: "whitespace-pre-wrap [overflow-wrap:anywhere]",
 };
 
-const highlight = shallowRef<typeof highlightCode | null>(null);
+const highlight = shallowRef<CodeHighlighter | null>(null);
 
 const language = computed(() => resolveCodeLanguage(props.language));
 // A language given, even `text`, is named in a head; without a title either,
@@ -79,9 +82,7 @@ const wrapClass = computed(
   () => WRAP_CLASSES[String(props.wrap) as keyof typeof WRAP_CLASSES],
 );
 const tokens = computed<CodeToken[]>(() =>
-  highlight.value
-    ? highlight.value(props.code, language.value)
-    : [{ text: props.code }],
+  highlight.value ? highlight.value(props.code) : [{ text: props.code }],
 );
 const sizeStyle = computed(() => {
   if (props.maxLines)
@@ -91,10 +92,20 @@ const sizeStyle = computed(() => {
   return props.maxHeight ? { maxHeight: props.maxHeight } : undefined;
 });
 
-onMounted(async () => {
-  const module = await import("../../build/utils/codeHighlight");
-  highlight.value = module.highlightCode;
-});
+// Only the grammar of the language shown loads. A language changed while
+// one loads drops it: the code stays plain until its own grammar is in.
+async function loadHighlighter(): Promise<void> {
+  const requested = language.value;
+  highlight.value = null;
+  const { loadCodeHighlighter } = await import(
+    "../../build/utils/codeHighlight"
+  );
+  const highlighter = await loadCodeHighlighter(requested);
+  if (language.value === requested) highlight.value = highlighter;
+}
+
+onMounted(loadHighlighter);
+watch(language, loadHighlighter);
 </script>
 
 <template>

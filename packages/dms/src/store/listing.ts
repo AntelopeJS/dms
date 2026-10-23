@@ -1,6 +1,5 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { satisfies, valid, validRange } from "semver";
-import { isStoreEditable } from "../config";
 import { frontendModuleNamesUnder } from "../implementations/dms/frontend-modules";
 import {
   type FrontendAcknowledgement,
@@ -289,7 +288,7 @@ export async function buildStoreListing(): Promise<StoreListing> {
     sources.map((entry) => inspectRequirements(entry, platform)),
   );
   return {
-    enabled: isStoreEditable(dev) && !read.error,
+    enabled: dev && !read.error,
     modules: sources.map((entry, index) =>
       buildEntry(entry, requirements[index]),
     ),

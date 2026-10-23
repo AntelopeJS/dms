@@ -69,16 +69,22 @@ export const useModuleStore = () => {
   }
 
   let isStopped = false;
+  let stopWaiting: (() => void) | undefined;
 
   /**
    * Starts following once mounted: reads again only when the first read
    * failed, or something moves; a listing already on screen stays as is.
-   * A first read still in flight (a client navigation) is waited for.
+   * A read still in flight (a client navigation, or the background read of a
+   * return to the page) is waited for until it settles.
    */
   function start(): void {
     isStopped = false;
+    stopWaiting?.();
     if (initial.pending.value) {
-      void Promise.resolve(initial).then(() => {
+      stopWaiting = watch(initial.pending, (pending) => {
+        if (pending) return;
+        stopWaiting?.();
+        stopWaiting = undefined;
         if (!isStopped) start();
       });
       return;
@@ -139,6 +145,8 @@ export const useModuleStore = () => {
 
   function stop(): void {
     isStopped = true;
+    stopWaiting?.();
+    stopWaiting = undefined;
     if (followTimer) clearTimeout(followTimer);
     followTimer = undefined;
   }

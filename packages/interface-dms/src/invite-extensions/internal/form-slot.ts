@@ -38,8 +38,9 @@ interface InviteFormHost {
   isEditForm: boolean;
   /**
    * Invite-form field ids an extension may anchor on, as this form names
-   * them. The edit form lists the invitation's own columns, and the roles
-   * field there goes by its stored name.
+   * them. The edit form lists the invitation's own columns: the addresses
+   * field there is the one address it was sent to, and the roles field goes
+   * by its stored name.
    */
   anchorAliases: Record<string, string>;
 }
@@ -51,7 +52,7 @@ const INVITE_FORM_HOST: InviteFormHost = {
 
 const INVITE_EDIT_FORM_HOST: InviteFormHost = {
   isEditForm: true,
-  anchorAliases: { roles: "roles_ids" },
+  anchorAliases: { emails: "email", roles: "roles_ids" },
 };
 
 interface JsonSchemaObject {

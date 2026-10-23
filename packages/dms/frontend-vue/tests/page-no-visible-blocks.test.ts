@@ -28,6 +28,10 @@ vi.mock(
   () => ({ usePageDataRefresh: () => {} }),
 );
 vi.mock(
+  "../layers/dms-layout/app/composables/page/usePageRecordDeletion",
+  () => ({ usePageRecordDeletion: () => {} }),
+);
+vi.mock(
   "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
   () => ({ useVisitNavBadges: () => {} }),
 );
