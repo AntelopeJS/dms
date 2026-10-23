@@ -830,7 +830,7 @@
       },
       "disabled": {
         "title": "Le store est en lecture seule ici",
-        "description": "Les modules s’installent depuis le développement, qui les écrit dans antelope.config.ts ; cette plateforme charge ce que déclare ce fichier. Passez store.enabled à true dans la configuration du DMS pour les modifier d’ici."
+        "description": "Les modules s’installent depuis le développement, qui les écrit dans antelope.config.ts ; cette plateforme charge ce que déclare ce fichier. Modifiez-les depuis le développement."
       },
       "load_error": "Le store de modules n’a pas pu être chargé",
       "search_placeholder": "Rechercher dans le store",
