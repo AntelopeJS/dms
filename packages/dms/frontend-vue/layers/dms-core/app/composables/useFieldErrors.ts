@@ -1,5 +1,8 @@
 import { nextTick, reactive } from "vue";
-import { resolveApiMessage } from "./translation/useTranslation";
+import {
+  type I18nTranslate,
+  resolveApiMessage,
+} from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./useApiError";
 
 /**
@@ -116,24 +119,23 @@ const FIELD_ERROR_KEYS = {
 /** Issue types whose size is a count (characters, items), not a value. */
 const COUNTED_TYPES = new Set(["string", "array", "set"]);
 
-// The data API (`@antelopejs/interface-data-api`) words its refusals in
-// English and lists the fields after a colon.
-const DATA_API_MESSAGES: ReadonlyArray<{ pattern: RegExp; message: string }> = [
-  {
-    pattern: /^Missing mandatory fields:\s*(.+)$/,
-    message: FIELD_ERROR_KEYS.required,
-  },
-  {
-    pattern: /^Invalid field type\(s\):\s*(.+)$/,
-    message: FIELD_ERROR_KEYS.invalid,
-  },
-];
+// The codes the data API (`@antelopejs/interface-data-api`) refuses a body
+// with, `{ code, fields }`: the message each field shows.
+const DATA_API_CODES: Readonly<Record<string, string>> = {
+  missing_mandatory_fields: FIELD_ERROR_KEYS.required,
+  invalid_field_types: FIELD_ERROR_KEYS.invalid,
+};
+
+// The same, naming the field: "Loss reason is required".
+const NAMED_FIELD_ERROR_KEYS: Readonly<Record<string, string>> = {
+  [FIELD_ERROR_KEYS.required]: "dms.field_errors.named_required",
+  [FIELD_ERROR_KEYS.invalid]: "dms.field_errors.named_invalid",
+};
 
 // `name: String must contain…`: one validation issue prefixed with its field.
 const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
 // `error.invalid_2fa_code`, `page.settings.roles.error.name_taken`.
 const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
-const LIST_SEPARATOR = /\s*,\s*/;
 
 /** The HTTP status of a fetch error; undefined for a network failure. */
 export function apiErrorStatus(error: unknown): number | undefined {
@@ -265,16 +267,19 @@ function fromFieldObject(body: Record<string, unknown>): ApiFieldError[] {
   ];
 }
 
+/** `{ code, fields }`, the data API's refusal of a body; undefined otherwise. */
+function fromCodedFields(
+  body: Record<string, unknown>,
+): ApiFieldError[] | undefined {
+  const { code, fields } = body;
+  const message = typeof code === "string" ? DATA_API_CODES[code] : undefined;
+  if (!message || !Array.isArray(fields)) return undefined;
+  return fields
+    .filter((field): field is string => typeof field === "string")
+    .map((field) => ({ field, message }));
+}
+
 function fromText(text: string): ApiFieldError[] {
-  for (const { pattern, message } of DATA_API_MESSAGES) {
-    const match = pattern.exec(text);
-    if (match) {
-      return match[1]!
-        .split(LIST_SEPARATOR)
-        .filter(Boolean)
-        .map((field) => ({ field, message }));
-    }
-  }
   const prefixed = FIELD_PREFIXED_MESSAGE.exec(text);
   if (prefixed) {
     const [, field, message] = prefixed;
@@ -320,7 +325,7 @@ function fromBody(body: unknown): ApiFieldError[] {
   const record = body as Record<string, unknown>;
   if (isIssueList(record.issues)) return fromIssues(record.issues);
   if (isIssueList(record.errors)) return fromIssues(record.errors);
-  return fromFieldObject(record);
+  return fromCodedFields(record) ?? fromFieldObject(record);
 }
 
 function isClientError(status: number | undefined): status is number {
@@ -337,8 +342,8 @@ function isClientError(status: number | undefined): status is number {
  *
  * Read, in order: a code the form maps to a field (`codes`, for any 4xx), a
  * zod issue list (what `assertValidation` answers), a `{ field, message }`
- * body (with optional `values` and `params`), the data API's "Missing mandatory fields: a, b" / "Invalid field
- * type(s): a" and a `field: message` text. A network failure, a 403, a 429
+ * body (with optional `values` and `params`), the data API's
+ * `{ code, fields }` and a `field: message` text. A network failure, a 403, a 429
  * or a 5xx never resolves to a field.
  *
  * @returns The field errors, one per field (the first issue wins), and
@@ -369,6 +374,36 @@ export function resolveFieldErrors<F extends string>(
     fields.push(candidate);
   }
   return { fields, hasUnmatched: hasUnmatched || fields.length === 0 };
+}
+
+/**
+ * The data API's refusal of a body (`{ code, fields }`) as one sentence per
+ * field naming it, translated: "Loss reason is required." Undefined for any
+ * other error. `labelOf` gives a field's label, translated; the field's id
+ * stands in for one it does not know.
+ */
+export function describeFieldErrors(
+  error: unknown,
+  translate: I18nTranslate,
+  labelOf: (field: string) => string | undefined,
+): string | undefined {
+  const status = apiErrorStatus(error);
+  if (status === undefined || !VALIDATION_STATUSES.has(status)) {
+    return undefined;
+  }
+  const body = bodyOf(error);
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return undefined;
+  }
+  const entries = fromCodedFields(body as Record<string, unknown>);
+  if (!entries?.length) return undefined;
+  return entries
+    .map(({ field, message }) =>
+      translate(NAMED_FIELD_ERROR_KEYS[message]!, {
+        field: labelOf(field) ?? field,
+      }),
+    )
+    .join(" ");
 }
 
 /**

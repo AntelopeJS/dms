@@ -153,9 +153,10 @@ describe("[integration] table view capabilities", () => {
         { params: { id: invoice!._id } },
       );
       expect(response.status).to.equal(HTTP_BAD_REQUEST);
-      expect(JSON.stringify(response.data)).to.contain(
-        "Missing mandatory fields: number",
-      );
+      expect(response.data).to.deep.equal({
+        code: "missing_mandatory_fields",
+        fields: ["number"],
+      });
     }
     expect(
       await countRawDocuments(COLLECTION, { number: "INV-4", status: "paid" }),

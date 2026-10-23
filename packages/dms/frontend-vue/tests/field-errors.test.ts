@@ -155,7 +155,10 @@ describe("resolveFieldErrors", () => {
   it("reads the data API's missing and invalid field lists", () => {
     expect(
       resolveFieldErrors(
-        { statusCode: 400, data: "Missing mandatory fields: name, email" },
+        {
+          statusCode: 400,
+          data: { code: "missing_mandatory_fields", fields: ["name", "email"] },
+        },
         { fields: FIELDS },
       ).fields,
     ).toEqual([
@@ -164,7 +167,10 @@ describe("resolveFieldErrors", () => {
     ]);
     expect(
       resolveFieldErrors(
-        { statusCode: 400, data: "Invalid field type(s): password" },
+        {
+          statusCode: 400,
+          data: { code: "invalid_field_types", fields: ["password"] },
+        },
         { fields: FIELDS },
       ).fields,
     ).toEqual([{ field: "password", message: "$dms.field_errors.invalid" }]);
