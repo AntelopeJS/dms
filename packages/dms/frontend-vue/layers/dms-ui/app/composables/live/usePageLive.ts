@@ -6,7 +6,6 @@ import {
   shallowRef,
   type ComputedRef,
 } from "vue";
-import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import {
   currentPageLive,
   isServerPageLive,
@@ -96,7 +95,7 @@ export interface PageLiveState {
 export function usePageLive(): PageLiveState {
   // An async block hydrates after the page has installed its controller and
   // read its data: until mounted, it draws the state the server drew.
-  const isHydrating = shallowRef(isHydratingComponent());
+  const isHydrating = shallowRef(isDmsHydrating());
   if (isHydrating.value) onMounted(() => (isHydrating.value = false));
   const shown = () => (isHydrating.value ? null : currentPageLive());
   const isPaused = computed(() => shown()?.isPaused.value ?? false);
