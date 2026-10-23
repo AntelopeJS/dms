@@ -12,15 +12,12 @@
  */
 import {
   computed,
-  createApp,
-  createSSRApp,
   defineComponent,
   h,
   nextTick,
   shallowRef,
   type Component,
 } from "vue";
-import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   provideServerPageLive,
@@ -28,6 +25,12 @@ import {
 } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 import type { PageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
+import {
+  engine,
+  hydrate,
+  mountInBrowser,
+  serverRender,
+} from "./helpers/api-data-runtime";
 
 const LiveState = defineComponent({
   setup() {
@@ -65,6 +68,7 @@ function pollingController(): PageLiveController {
 let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
   warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
@@ -72,16 +76,21 @@ beforeEach(() => {
 afterEach(() => {
   setCurrentPageLive(null);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   document.body.replaceChildren();
 });
 
-/** Renders as the server does: no `window`, so no controller can be set. */
-async function renderOnServer(component: Component): Promise<string> {
+/**
+ * Renders as the server does, with its runtime: no `window`, so no controller
+ * can be set.
+ */
+async function renderOnServer(component: Component) {
+  const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);
   try {
-    return await renderToString(createSSRApp(component));
+    return await serverRender(component);
   } finally {
-    vi.unstubAllGlobals();
+    vi.stubGlobal("window", browserWindow);
   }
 }
 
@@ -93,17 +102,13 @@ function hydrationWarnings(): string[] {
 
 describe("usePageLive in a hydrating component", () => {
   it("reads the server's state until the component is mounted", async () => {
-    const serverHtml = await renderOnServer(ServerLivePage);
-    expect(serverHtml).toBe(
+    const { html, payload } = await renderOnServer(ServerLivePage);
+    expect(html).toBe(
       "<p><span>enabled</span><span>Direct</span><span>—</span></p>",
     );
 
     setCurrentPageLive(pollingController());
-    const container = document.createElement("div");
-    container.innerHTML = serverHtml;
-    document.body.append(container);
-    const app = createSSRApp(LiveState);
-    app.mount(container);
+    const { app, container } = hydrate(LiveState, html, payload);
 
     expect(hydrationWarnings()).toEqual([]);
     await nextTick();
@@ -113,9 +118,7 @@ describe("usePageLive in a hydrating component", () => {
 
   it("reads the page's state at once in a component mounted afresh", () => {
     setCurrentPageLive(pollingController());
-    const container = document.createElement("div");
-    const app = createApp(LiveState);
-    app.mount(container);
+    const { app, container } = mountInBrowser(LiveState);
     expect(container.textContent).toBe("enabledPollingread");
     app.unmount();
   });
