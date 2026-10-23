@@ -13,14 +13,14 @@ function isHiddenFromNavigation(node: SiteLayoutTree): boolean {
 function collectNavigationItems(
   node: SiteLayoutTree,
   ancestors: string[],
-  translate: I18nTranslate,
+  translation: AppTranslation,
   items: CommandPaletteItem[],
 ): void {
   for (const childId of node.childrenOrders) {
     const child = node.children[childId];
     if (!child || isHiddenFromNavigation(child)) continue;
 
-    const label = resolveI18nKey(translate, child.displayName);
+    const label = translation.processI18n(child.displayName);
     const to = buildMenuItemTarget(child);
     // The account entries (Settings, Profile) are the session group's.
     if (to && child.fullSlug && !isAccountMenuRoute(to)) {
@@ -33,40 +33,40 @@ function collectNavigationItems(
         icon: child.icon ?? DEFAULT_PAGE_ICON,
         to,
         [COMMAND_PALETTE_SEARCH_TEXT_KEY]: resolveOptionalI18nKey(
-          translate,
+          translation.t,
           child.description,
         ),
       });
     }
-    collectNavigationItems(child, [...ancestors, label], translate, items);
+    collectNavigationItems(child, [...ancestors, label], translation, items);
   }
 }
 
 function buildNavigationGroups(
   tree: SiteLayoutTree | undefined,
-  translate: I18nTranslate,
+  translation: AppTranslation,
 ): CommandPaletteGroup[] {
   if (!tree) return [];
 
   const items: CommandPaletteItem[] = [];
-  collectNavigationItems(tree, [], translate, items);
+  collectNavigationItems(tree, [], translation, items);
   if (items.length === 0) return [];
 
   return [
     {
       id: NAVIGATION_GROUP_ID,
-      label: translate("commandPalette.groups.navigation", {}),
+      label: translation.t("commandPalette.groups.navigation"),
       items,
     },
   ];
 }
 
 export default defineDmsPlugin(() => {
-  const { translate } = getPluginI18n();
+  const translation = getAppTranslation();
   const { siteLayoutTree } = useSiteLayout();
 
   const groups = computed<CommandPaletteGroup[]>(() =>
-    buildNavigationGroups(siteLayoutTree.value, translate),
+    buildNavigationGroups(siteLayoutTree.value, translation),
   );
 
   registerCommandPaletteSource({

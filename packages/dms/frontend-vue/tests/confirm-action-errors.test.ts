@@ -60,11 +60,24 @@ describe("resolveActionError", () => {
 
   it("shows the plain text of a 4xx as it came", () => {
     expect(
-      resolveActionError(
-        fetchError(400, "Missing mandatory fields: due_date"),
-        translate,
+      resolveActionError(fetchError(409, "Already archived"), translate),
+    ).toBe("Already archived");
+  });
+
+  it("names the fields the data API refused by their labels", () => {
+    const named = (key: string, params: Record<string, unknown>) =>
+      key === "dms.field_errors.named_required"
+        ? `${String(params.field)} is required.`
+        : key;
+    const refused = fetchError(400, {
+      code: "missing_mandatory_fields",
+      fields: ["due_date", "owner"],
+    });
+    expect(
+      resolveActionError(refused, named, (field) =>
+        field === "due_date" ? "Due date" : undefined,
       ),
-    ).toBe("Missing mandatory fields: due_date");
+    ).toBe("Due date is required. owner is required.");
   });
 
   it("words a refused permission for users, not the server's developer text", () => {

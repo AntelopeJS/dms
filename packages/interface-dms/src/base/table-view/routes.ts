@@ -38,6 +38,7 @@ import {
 } from "./data-functions";
 import type { RowBulkOperationParams } from "./internal/data-functions";
 import { withFilePromotion } from "./internal/files";
+import { withColumnConditions } from "./internal/column-conditions";
 import { createGuardedRoute, guardedGetRoute } from "./internal/guards";
 import {
   extractBulkArgIds,
@@ -265,8 +266,11 @@ function createEditRoute(
     { eventType: "updated", extractIds: extractSingleParamId },
     withActionCheck(
       "edit",
-      createGuardedRoute(
-        createValidatedRoute(withFilePromotion(baseRoute), "edit"),
+      withColumnConditions(
+        createGuardedRoute(
+          createValidatedRoute(withFilePromotion(baseRoute), "edit"),
+          "edit",
+        ),
         "edit",
       ),
     ),
@@ -315,7 +319,10 @@ export namespace TableViewRoutes {
     { eventType: "created", extractIds: extractFromResult },
     withActionCheck(
       "add",
-      createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
+      withColumnConditions(
+        createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
+        "new",
+      ),
     ),
   );
   /**

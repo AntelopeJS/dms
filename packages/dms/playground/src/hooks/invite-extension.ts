@@ -51,7 +51,7 @@ RegisterInviteExtension<Onboarding>({
     ],
   }),
   schema: onboardingSchema,
-  placement: { side: "after", anchorField: "email" },
+  placement: { side: "after", anchorField: "emails" },
   onAccept: (payload, _member, context) =>
     recordHookEvent({
       icon: "i-ph-puzzle-piece",

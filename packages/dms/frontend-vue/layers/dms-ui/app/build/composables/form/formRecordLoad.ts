@@ -1,15 +1,19 @@
 import { type Ref, ref, watch } from "vue";
 import { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
-import { HTTP_FORBIDDEN } from "#dms-core/app/utils/http-status";
+import {
+  HTTP_FORBIDDEN,
+  HTTP_NOT_FOUND,
+} from "#dms-core/app/utils/http-status";
 
 /**
  * Why a form could not load the record it edits: `forbidden` when the server
  * refused the caller the read (a role that may edit rows but not view them),
  * `missing` when its address lacks the record's id (a page reached without
- * its `?id=`), `error` for anything else (a network failure, a server error,
- * a row gone).
+ * its `?id=`), `not_found` when the server answered 404 (the record was
+ * deleted, or never existed), `error` for anything else (a network failure,
+ * a server error).
  */
-export type FormLoadFailure = "forbidden" | "missing" | "error";
+export type FormLoadFailure = "forbidden" | "missing" | "not_found" | "error";
 
 /** What a form knows of the record it is about, as far as `missing` goes. */
 export interface FormRecordAddress {
@@ -51,7 +55,9 @@ export interface FormRecordLoad {
 /** The failure a load error stands for; `null` when there is none. */
 export function formLoadFailure(error: unknown): FormLoadFailure | null {
   if (!error) return null;
-  return apiErrorStatus(error) === HTTP_FORBIDDEN ? "forbidden" : "error";
+  const status = apiErrorStatus(error);
+  if (status === HTTP_FORBIDDEN) return "forbidden";
+  return status === HTTP_NOT_FOUND ? "not_found" : "error";
 }
 
 /** How a form takes the answers of its record's later reads. */

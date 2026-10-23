@@ -2,6 +2,7 @@ import {
   readTranslationKey,
   type I18nTranslate,
 } from "#dms-core/app/composables/translation/useTranslation";
+import { describeFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
 /** Shown when the request never reached the server (offline, DNS, CORS…). */
 export const ACTION_ERROR_NETWORK_KEY = "error.network.description";
@@ -90,11 +91,14 @@ const translateKey = (translate: I18nTranslate, key: string) =>
  * threw: the server's own message when it is user-facing (an i18n key, or
  * plain text on a 4xx), else a translated fallback: the request never got
  * through, it was refused for lack of permission, or something went wrong.
- * Never a stack trace, raw JSON or an ofetch error line.
+ * Never a stack trace, raw JSON or an ofetch error line. A body the data API
+ * refused for some fields names them by `labelOf` ("Loss reason is
+ * required."): a table view's write passes its column labels.
  */
 export function resolveActionError(
   error: unknown,
   translate: I18nTranslate,
+  labelOf: (field: string) => string | undefined = () => undefined,
 ): string {
   if (isFetchError(error)) {
     const status = statusOf(error);
@@ -121,6 +125,7 @@ export function resolveActionError(
       );
     }
     return (
+      describeFieldErrors(error, translate, labelOf) ??
       userFacingText(raw, translate) ??
       translateKey(translate, ACTION_ERROR_GENERIC_KEY)
     );

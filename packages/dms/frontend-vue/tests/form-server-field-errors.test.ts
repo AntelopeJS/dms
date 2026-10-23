@@ -172,7 +172,7 @@ describe("DMS form server errors", () => {
     showFieldErrors.mockReturnValue(false);
     authFetch.mockRejectedValue({
       statusCode: 400,
-      data: "Missing mandatory fields: name",
+      data: { code: "missing_mandatory_fields", fields: ["name"] },
     });
     await submit(setupForm());
 
@@ -184,7 +184,7 @@ describe("DMS form server errors", () => {
     hiddenFields.add("name");
     authFetch.mockRejectedValue({
       statusCode: 400,
-      data: "Missing mandatory fields: name, code",
+      data: { code: "missing_mandatory_fields", fields: ["name", "code"] },
     });
     await submit(setupForm());
 
@@ -197,7 +197,10 @@ describe("resolveFormFieldErrors", () => {
   it("only resolves to the fields the form shows", () => {
     const error = {
       statusCode: 400,
-      data: "Missing mandatory fields: name, email, code",
+      data: {
+        code: "missing_mandatory_fields",
+        fields: ["name", "email", "code"],
+      },
     };
     expect(
       resolveFormFieldErrors(error, FIELDS, { hidden: new Set(["email"]) }),

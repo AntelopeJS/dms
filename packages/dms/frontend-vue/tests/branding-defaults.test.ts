@@ -21,7 +21,7 @@ describe("branding defaults", () => {
     // A clone keeps any object shared between the two places, like the
     // loader's merge keeps the objects no layer overrides.
     const merged = defu(
-      { branding: { footer: { githubStar: false } } },
+      { branding: { footer: { localeSwitcher: false } } },
       structuredClone(appConfig),
     );
 

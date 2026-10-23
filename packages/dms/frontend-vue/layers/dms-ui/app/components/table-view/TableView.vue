@@ -1,5 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import type {
   ColumnSizingState,
   ExpandedState,
@@ -53,6 +55,7 @@ import {
   KANBAN_DISPLAY_BRIDGE_KEY,
 } from "../../composables/table-view/kanban";
 import { useTableRowActions } from "../../build/composables/table-view/useTableViewRowActions";
+import { describeTableWriteError } from "../../build/composables/table-view/utils/writeError";
 import {
   buildTableQuery,
   isFilterEffective,
@@ -1064,6 +1067,11 @@ const listLoadError = computed(() => {
     : "error.500";
 });
 
+// A list answering 404 names a resource that does not exist (the workspace
+// its rows belong to was deleted): no retry fixes it, so the table gives way
+// to the not-found state blocks show, with what the 404 said.
+const listNotFound = computed(() => readFetchNotFound(settledError.value));
+
 // useDmsAsyncData keeps the previous result when a refetch fails, so rows kept
 // on screen would masquerade as the newly requested page/filter. Hide them
 // while the latest query is in error; the error panel takes their place.
@@ -1384,7 +1392,7 @@ const { reorderState } = useTableReorder<T>({
   onError: (failure) =>
     toast.add({
       title: t("dms.table.reorder.error"),
-      description: resolveApiErrorMessage(failure),
+      description: describeTableWriteError(failure, t, allColumns, processI18n),
       color: Color.error,
       icon: "i-ph-warning-circle",
     }),
@@ -1569,6 +1577,7 @@ const {
 } = useTableRowActions<T>({
   api: $authFetch,
   location,
+  columns: allColumns,
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
@@ -2391,7 +2400,13 @@ onMounted(() => {
 </script>
 
 <template>
+  <DmsBlockStatus
+    v-if="listNotFound"
+    state="not-found"
+    :not-found="listNotFound"
+  />
   <UTable
+    v-else
     ref="tableRoot"
     v-bind="tableProps"
     v-model:pagination="paginationState"

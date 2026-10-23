@@ -5,7 +5,10 @@ import {
   type FormPageUrls,
 } from "./useTableViewConfig";
 import type { FormProps } from "../../../composables/form/types";
-import type { QueryParamFilters } from "../../../composables/table-view/types";
+import type {
+  QueryParamFilters,
+  TableViewColumn,
+} from "../../../composables/table-view/types";
 import type { LocationQuery, LocationQueryValue } from "#dms/frontend-module";
 import {
   TableRowAction,
@@ -33,7 +36,7 @@ import {
   type BulkActionOutcome,
   type ConfirmedBulkAction,
 } from "./utils/bulkActions";
-import { resolveActionError } from "../confirm/actionError";
+import { describeTableWriteError } from "./utils/writeError";
 import {
   ConfirmActionError,
   type ConfirmOptions,
@@ -59,6 +62,8 @@ const getItemId = (
 interface TableRowActionsConfig {
   api: ReturnType<typeof $fetch.create>;
   location: string;
+  /** The columns, whose labels name the fields a refused write lacks. */
+  columns: ReadonlyArray<Pick<TableViewColumn, "accessorKey" | "header">>;
   caption?: string;
   labelKey?: string;
   rowIdKey?: string;
@@ -146,7 +151,12 @@ export const useTableRowActions = <T extends Data>(
       color: Color.error,
       icon: "i-ph-warning-circle",
       title: title || t("dms.form.error_title"),
-      description: resolveActionError(error, t),
+      description: describeTableWriteError(
+        error,
+        t,
+        config.columns,
+        processI18n,
+      ),
     });
   };
 

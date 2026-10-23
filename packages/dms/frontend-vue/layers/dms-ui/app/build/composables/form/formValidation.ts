@@ -22,6 +22,11 @@ export interface FormValidationField {
   type?: string;
   /** Holds one value per content language. */
   localized?: boolean;
+  /**
+   * The language a localized field falls back to: required as soon as the
+   * field holds any language, and where its required error goes.
+   */
+  fallbackLocale?: string;
   /** A box to tick: unticked, it is missing. */
   acceptance?: boolean;
   /**
@@ -61,6 +66,32 @@ const BOOLEAN_TYPE = "boolean";
 
 function issueField(issue: { path: PropertyKey[] }): PropertyKey | undefined {
   return issue.path[0];
+}
+
+/** Whether a localized value fills some language but not its fallback one. */
+function lacksFallbackLocale(
+  field: FormValidationField,
+  value: unknown,
+): boolean {
+  if (!field.localized || !field.fallbackLocale) return false;
+  if (typeof value !== "object" || value === null) return false;
+  const languages = value as Record<string, unknown>;
+  const isAnyFilled = Object.values(languages).some(
+    (text) => !isBlankValue(text, field.type),
+  );
+  return (
+    isAnyFilled && isBlankValue(languages[field.fallbackLocale], field.type)
+  );
+}
+
+/** Where a localized field's required error goes: the language to fill. */
+function requiredPath(
+  field: FormValidationField,
+  locale: string | undefined,
+): PropertyKey[] {
+  if (!field.localized) return [field.id];
+  const language = field.fallbackLocale ?? locale;
+  return language ? [field.id, language] : [field.id];
 }
 
 /** An issue saying the value is not of a branch's type at all. */
@@ -117,6 +148,10 @@ export async function validateFormState(
   for (const field of context.fields) {
     const value = state[field.id];
     if (reported.has(field.id)) continue;
+    if (lacksFallbackLocale(field, value)) {
+      missing.add(field.id);
+      continue;
+    }
     const isBlank = field.acceptance
       ? value !== true
       : isBlankValue(value, field.type);
@@ -159,10 +194,7 @@ export async function validateFormState(
     if (!missing.has(field.id)) continue;
     issues.push({
       message: context.requiredMessage,
-      path:
-        field.localized && context.locale
-          ? [field.id, context.locale]
-          : [field.id],
+      path: requiredPath(field, context.locale),
     });
   }
 

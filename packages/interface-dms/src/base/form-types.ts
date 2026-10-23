@@ -73,6 +73,16 @@ export interface FormFieldReadonly {
   link?: FormFieldLink;
 }
 
+/**
+ * Holds while another field of the same form holds one of the values `in`
+ * lists (a select's or status's value, a boolean; `null` for an empty
+ * field), compared as is: `{ field: "stage", in: ["lost"] }`.
+ */
+export interface FieldCondition {
+  field: string;
+  in: readonly unknown[];
+}
+
 export interface FormField {
   id: string;
   label?: string;
@@ -105,6 +115,23 @@ export interface FormField {
    */
   offersDefault?: boolean;
   localized?: boolean;
+  /**
+   * The language a localized field falls back to (its `@Localized`
+   * `fallbackLocale`): a value in any language requires one in this one.
+   */
+  fallbackLocale?: string;
+  /**
+   * Shown only while the condition holds, from the moment the form opens:
+   * hidden, the field is neither required nor sent. A table view's data
+   * routes hold to it as well (see `ColumnOptions.visibleWhen`).
+   */
+  visibleWhen?: FieldCondition;
+  /**
+   * Shown read-only while the condition holds, from the moment the form
+   * opens: its value is not sent. A table view's data routes hold to it as
+   * well (see `ColumnOptions.disabledWhen`).
+   */
+  disabledWhen?: FieldCondition;
 }
 
 export interface FormFieldSerialized extends Omit<

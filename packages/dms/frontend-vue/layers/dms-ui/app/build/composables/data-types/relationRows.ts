@@ -46,11 +46,32 @@ export function relationRowLabel(
 }
 
 /**
+ * An id a relation's `select` route did not answer: a deleted row, or one out
+ * of the reader's reach — it cannot tell which, so it is shown as "Not
+ * found", never as "Deleted", with the id itself in its tooltip.
+ */
+export class NotFoundRelation {
+  constructor(readonly id: string) {}
+}
+
+/** The ids of a read that its rows do not answer. */
+export function notFoundRelationIds(
+  source: DataTypeSelectSource,
+  ids: string[],
+  rows: RelationRow[],
+): string[] {
+  const answered = new Set(
+    rows.map((row) => String(relationRowValue(source, row))),
+  );
+  return ids.filter((id) => !answered.has(id));
+}
+
+/**
  * Reads the rows of a relation's ids from its `select` route, narrowed with
  * `?ids=` to those rows alone (matched on the mapped value key), whatever the
  * route's page size. The one way the picker, the filter chips and the
  * read-only lists name the ids they hold. A failed read answers no rows: the
- * ids then show as they are.
+ * ids then show as not found, as a row out of the reader's reach does.
  */
 export function useRelationRows() {
   const { $authFetch } = useAuthFetch();

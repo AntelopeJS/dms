@@ -6,7 +6,10 @@ import {
   findCascaderNode,
   formatCascaderPath,
   isCascaderNodeSelectable,
+  readCascaderAncestry,
   resolveCascaderKeyMapping,
+  buildCascaderPathLabels,
+  CASCADER_PATH_SEPARATOR,
   searchCascaderTree,
   type CascaderKeyMapping,
   type CascaderNode,
@@ -18,6 +21,7 @@ import {
   FIELD_TRIGGER_INVALID_CLASS,
   FIELD_TRIGGER_UI,
 } from "../../../build/utils/fieldTrigger";
+import { useRelationRows } from "../../../build/composables/data-types/relationRows";
 
 interface CascaderProps {
   searchUrl: string;
@@ -88,6 +92,36 @@ const { data, status, execute } = await useDmsAsyncData(
 );
 
 const keyMapping = computed(() => resolveCascaderKeyMapping(props.keyMapping));
+const selectedValues = computed<string[]>(() => {
+  if (Array.isArray(props.modelValue)) {
+    return props.modelValue.map(String);
+  }
+  return props.modelValue ? [String(props.modelValue)] : [];
+});
+
+// The picked rows and their ancestors, read by `?ids=` level by level: the
+// field names its value before the menu is opened, whatever the tree's size.
+const { readRelationRows } = useRelationRows();
+const { data: ancestry } = await useDmsAsyncData(
+  () => `cascader-value-${instanceId}-${selectedValues.value.join(",")}`,
+  () =>
+    selectedValues.value.length > 0
+      ? readCascaderAncestry(
+          (ids) =>
+            readRelationRows(
+              {
+                searchUrl: props.searchUrl,
+                keyMapping: { value: keyMapping.value.value },
+              },
+              ids,
+            ),
+          keyMapping.value,
+          selectedValues.value,
+        )
+      : Promise.resolve(undefined),
+  // The field's label, not the page's data.
+  { lazy: true, refreshOnPageRefresh: false },
+);
 const rows = computed(() => data.value?.results ?? []);
 const isPartial = computed(
   () => (data.value?.total ?? 0) > rows.value.length && rows.value.length > 0,
@@ -100,12 +134,6 @@ const selectionRules = computed(() => ({
   maxDepth: props.maxDepth,
 }));
 
-const selectedValues = computed<string[]>(() => {
-  if (Array.isArray(props.modelValue)) {
-    return props.modelValue.map(String);
-  }
-  return props.modelValue ? [String(props.modelValue)] : [];
-});
 const selectedSet = computed(() => new Set(selectedValues.value));
 
 const open = ref(false);
@@ -134,14 +162,11 @@ const columns = computed<CascaderNode[][]>(() => {
   return result;
 });
 
-function initialValueLabel(): string | undefined {
-  const source = Array.isArray(props.initialValue)
-    ? props.initialValue[0]
-    : props.initialValue;
-  if (!source || typeof source !== "object") return undefined;
-  const label = (source as Record<string, unknown>)[keyMapping.value.label];
-  return label === undefined || label === null ? undefined : String(label);
-}
+/** The picked id no row answers (deleted, out of reach), if it is one. */
+const notFoundValue = computed(() => {
+  const value = selectedValues.value[0];
+  return value && ancestry.value?.notFound.includes(value) ? value : undefined;
+});
 
 const triggerLabel = computed(() => {
   if (selectedValues.value.length === 0) return "";
@@ -151,9 +176,15 @@ const triggerLabel = computed(() => {
     });
   }
   const value = selectedValues.value[0]!;
+  if (notFoundValue.value) return t("dms.form.relation.not_found");
   const node = findCascaderNode(roots.value, value);
   if (node) return formatCascaderPath(node);
-  return initialValueLabel() ?? value;
+  const path = buildCascaderPathLabels(
+    ancestry.value?.rows ?? [],
+    keyMapping.value,
+    value,
+  );
+  return path.length > 0 ? path.join(CASCADER_PATH_SEPARATOR) : value;
 });
 
 const placeholderLabel = computed(() =>
@@ -339,12 +370,6 @@ watch(searchTerm, () => {
   };
 });
 
-onMounted(() => {
-  if (selectedValues.value.length > 0 || props.initialValue) {
-    void execute();
-  }
-});
-
 function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
   return [
     "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
@@ -383,7 +408,13 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
         :aria-label="placeholderLabel"
         v-bind="ariaAttrs"
       >
-        <span v-if="triggerLabel" class="truncate">{{ triggerLabel }}</span>
+        <span
+          v-if="triggerLabel"
+          :class="['truncate', notFoundValue && 'text-muted']"
+          :title="notFoundValue ?? triggerLabel"
+        >
+          {{ triggerLabel }}
+        </span>
         <span v-else class="text-dimmed truncate">{{ placeholderLabel }}</span>
       </UButton>
 

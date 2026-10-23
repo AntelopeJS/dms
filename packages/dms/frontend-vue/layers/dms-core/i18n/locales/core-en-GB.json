@@ -408,6 +408,8 @@
       "too_short": "This value is too short.",
       "too_small": "This value is too small.",
       "too_large": "This value is too large.",
+      "named_required": "{field} is required.",
+      "named_invalid": "{field} is not valid.",
       "with_values": "{message}: {values}",
       "code_incomplete": "Enter every digit of the code.",
       "password_rules": "The password doesn’t meet every rule.",

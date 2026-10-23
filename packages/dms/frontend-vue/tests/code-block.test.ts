@@ -23,9 +23,13 @@ let app: App | undefined;
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 let host: HTMLDivElement;
 
-async function mount(path: string, props: Record<string, unknown>) {
+type MountProps = Record<string, unknown> | (() => Record<string, unknown>);
+
+// Props given as a getter are read on each render: a test changes them live.
+async function mount(path: string, props: MountProps) {
   const { default: component } = await import(path);
-  app = createApp({ setup: () => () => h(component, props) });
+  const read = typeof props === "function" ? props : () => props;
+  app = createApp({ setup: () => () => h(component, read()) });
   for (const name of ["UIcon", "USkeleton", "UButton"]) {
     app.component(name, (_, { attrs }) =>
       h("i", { ...attrs, "data-stub": name }),
@@ -37,7 +41,7 @@ async function mount(path: string, props: Record<string, unknown>) {
   await flushPromises();
 }
 
-const mountSnippet = (props: Record<string, unknown>) =>
+const mountSnippet = (props: MountProps) =>
   mount("../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue", props);
 const mountBlock = (props: Record<string, unknown>) =>
   mount("../layers/dms-ui/app/components/blocks/CodeBlock.vue", {
@@ -80,6 +84,20 @@ describe("DmsCodeSnippet", () => {
     expect(host.textContent).toContain("Body");
     expect(host.textContent).toContain("JSON");
     expect(copyButton()).not.toBeNull();
+  });
+
+  it("colours with the grammar of a language set after it mounted", async () => {
+    const language = ref("json");
+    await mountSnippet(() => ({ code: "echo 1", language: language.value }));
+    expect(pre().querySelector('[style*="--ui-primary"]')).toBeNull();
+    language.value = "bash";
+    await flushPromises();
+    await vi.dynamicImportSettled();
+    await flushPromises();
+    expect(pre().dataset.language).toBe("shell");
+    expect(pre().querySelector('[style*="--ui-primary"]')?.textContent).toBe(
+      "echo",
+    );
   });
 
   it("reads an alias as its language", async () => {
