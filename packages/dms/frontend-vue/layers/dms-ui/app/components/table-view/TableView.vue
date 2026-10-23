@@ -55,6 +55,7 @@ import {
   KANBAN_DISPLAY_BRIDGE_KEY,
 } from "../../composables/table-view/kanban";
 import { useTableRowActions } from "../../build/composables/table-view/useTableViewRowActions";
+import { describeTableWriteError } from "../../build/composables/table-view/utils/writeError";
 import {
   buildTableQuery,
   isFilterEffective,
@@ -1391,7 +1392,7 @@ const { reorderState } = useTableReorder<T>({
   onError: (failure) =>
     toast.add({
       title: t("dms.table.reorder.error"),
-      description: resolveApiErrorMessage(failure),
+      description: describeTableWriteError(failure, t, allColumns, processI18n),
       color: Color.error,
       icon: "i-ph-warning-circle",
     }),
@@ -1576,6 +1577,7 @@ const {
 } = useTableRowActions<T>({
   api: $authFetch,
   location,
+  columns: allColumns,
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,

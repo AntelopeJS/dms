@@ -23,6 +23,7 @@ import {
 import { readSubline } from "../../build/composables/data-types/cellHelpers";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import { useCardFields } from "../../build/composables/table-view/useCardFields";
+import { describeTableWriteError } from "../../build/composables/table-view/utils/writeError";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -83,7 +84,7 @@ const emit = defineEmits<{
 const groupByField = defineModel<string>("groupByField", { required: true });
 
 const { $authFetch } = useAuthFetch();
-const { processI18n, processApiMessage } = useTranslation();
+const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
 const { t } = useI18n();
 const { processText } = useComposedText();
@@ -321,18 +322,11 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   }
 };
 
-interface MoveErrorPayload {
-  data?: { message?: string };
-  message?: string;
-}
-
 const notifyMoveError = (error: unknown) => {
-  const err = error as MoveErrorPayload;
-  const message = err?.data?.message || err?.message;
   toast.add({
     color: Color.error,
     title: t("dms.table.kanban.move_error"),
-    description: message ? processApiMessage(message) : undefined,
+    description: describeTableWriteError(error, t, props.columns, processI18n),
   });
 };
 
