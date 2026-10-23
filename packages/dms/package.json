@@ -100,7 +100,7 @@
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.16.0 <2",
+    "@antelopejs/core": ">=1.17.0 <2",
     "@antelopejs/tooling-configs": ">=0.0.9 <1.0.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
@@ -143,7 +143,7 @@
     "@antelopejs/interface-redis": ">=0.0.9 <1.0.0"
   },
   "peerDependencies": {
-    "@antelopejs/core": ">=1.16.0 <2"
+    "@antelopejs/core": ">=1.17.0 <2"
   },
   "peerDependenciesMeta": {
     "@antelopejs/core": {
