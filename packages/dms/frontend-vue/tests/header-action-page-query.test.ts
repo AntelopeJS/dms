@@ -30,6 +30,7 @@ import {
   usePageHeaderActions,
   type PageHeaderActionsOptions,
 } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 
 const handleCustomButton = vi.fn();
 vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
@@ -72,8 +73,6 @@ beforeEach(() => {
   handleCustomButton.mockClear();
   authFetch.mockReset();
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  // The header's page record: these pages declare none, so nothing is read.
-  vi.stubGlobal("useApiData", () => ({ data: ref(null), error: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string, params?: Record<string, unknown>) =>
@@ -404,10 +403,27 @@ describe("a header button's availability", () => {
     route.path = "/modules/lang/queue/de";
   });
 
+  // A write may change what the buttons were served for: the record they
+  // read, what their availability checks.
+  it("is asked again once a write refreshed the page", async () => {
+    authFetch.mockResolvedValue({
+      components: {},
+      layout: { options: { headerActions: [download(true)] } },
+    });
+    await mountOutlet({ workspace: "web" });
+    expect(authFetch).not.toHaveBeenCalled();
+
+    await refreshPageBlocks();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(authFetch).toHaveBeenCalledWith(`${LAYOUT_URL}?workspace=web`);
+    expect(buttons()[0]?.disabled).toBe(true);
+  });
+
   it("is never asked again when no button declares one", async () => {
     await mountOutlet(undefined);
     route.query = { workspace: "gone" };
     await nextTick();
+    await refreshPageBlocks();
     expect(authFetch).not.toHaveBeenCalled();
   });
 });

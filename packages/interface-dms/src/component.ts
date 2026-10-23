@@ -164,6 +164,12 @@ export interface ComponentFilterContext {
    * Caller-supplied, like `query`.
    */
   params?: Readonly<Record<string, string>>;
+  /**
+   * The record the page shows, as the layout's `record` read it for this
+   * request (`DefaultLayout({ record })`). Set while the layout of a page
+   * declaring one is served; undefined when it found none, and anywhere else.
+   */
+  record?: Readonly<Record<string, unknown>>;
 }
 
 /**

@@ -27,8 +27,6 @@ export interface PageHeaderButtonSerialized extends Omit<
   buttonId?: string;
   /** Place among the header's buttons (`PageHeaderButton.order`). */
   order?: number;
-  /** Acts on the page's record (`PageHeaderButton.requiresRecord`). */
-  requiresRecord?: boolean;
 }
 
 /**
@@ -37,6 +35,8 @@ export interface PageHeaderButtonSerialized extends Omit<
  * @internal
  */
 export interface PageHeaderButtonDeclared extends PageHeaderButtonSerialized {
+  /** Acts on the page's record (`PageHeaderButton.requiresRecord`). */
+  requiresRecord?: boolean;
   permission?: ButtonPermission;
   permissionId?: string;
   availability?: CustomButtonAvailability;
@@ -53,9 +53,10 @@ export interface DefaultLayoutSerializedOptions extends Omit<
 > {
   headerActions?: PageHeaderButtonDeclared[];
   /**
-   * The page query the header buttons' `availability` was resolved for, set
-   * only when one of them declares an `availability`: the header asks for its
-   * buttons again when the page URL's query no longer matches it.
+   * The page query the header buttons were served for, set only when one of
+   * them declares an `availability` or the layout reads a `record`: the
+   * header asks for its buttons again when the page URL's query no longer
+   * matches it.
    */
   headerActionsQuery?: Readonly<Record<string, string>>;
   /** The route parameters (`:id`) of the page URL, likewise. */
