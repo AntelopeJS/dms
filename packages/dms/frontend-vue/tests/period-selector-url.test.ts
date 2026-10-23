@@ -23,6 +23,8 @@ const route = reactive<{ query: Record<string, string> }>({ query: {} });
 const preferences = new Map<string, unknown>();
 
 vi.stubGlobal("useDmsRoute", () => route);
+// Mounted in the browser, never hydrating a server render.
+vi.stubGlobal("isDmsHydrating", () => false);
 // Inertia's client-side replace moves its page URL, which the DMS route
 // follows: the route then holds the query the browser shows.
 function followInertiaPage({ url }: { url: string }): void {

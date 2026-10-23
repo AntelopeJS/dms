@@ -19,6 +19,7 @@ const ENGINE_GLOBALS = {
   useDmsPagedData: engine.useDmsPagedData,
   useDmsState: engine.useDmsState,
   useDmsCookie: engine.useDmsCookie,
+  isDmsHydrating: engine.isDmsHydrating,
   useApiData,
   useApiPagedData,
 };

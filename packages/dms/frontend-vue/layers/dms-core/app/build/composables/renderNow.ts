@@ -1,5 +1,4 @@
 import { getCurrentInstance } from "vue";
-import { isHydratingComponent } from "../../composables/hydration/isHydratingComponent";
 
 /**
  * The instant a server render reads the clock at, handed to the browser with
@@ -25,7 +24,7 @@ export function serverRenderNow(): number | null {
       transfer: true,
     }).value;
   }
-  if (!isHydratingComponent()) return null;
+  if (!isDmsHydrating()) return null;
   const transferred = useDmsState<number | null>(
     RENDER_NOW_STATE_KEY,
     () => null,

@@ -153,6 +153,7 @@ beforeEach(() => {
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
   vi.stubGlobal("useDmsState", engine.useDmsState);
+  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
   vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
 });
 

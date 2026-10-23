@@ -111,6 +111,7 @@ beforeEach(() => {
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({}));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.stubGlobal("usePreferences", () => ({
     getPreference: <T>(_key: string, fallback?: T) => fallback,
     setPreference: () => undefined,
