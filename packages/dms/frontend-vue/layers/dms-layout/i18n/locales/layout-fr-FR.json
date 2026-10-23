@@ -1048,9 +1048,7 @@
     "footer": {
       "documentation": "Documentation",
       "website": "Site web",
-      "language": "Langue",
-      "github_star": "Star",
-      "github_star_label": "Mettre une étoile à AntelopeJS DMS sur GitHub"
+      "language": "Langue"
     }
   },
   "error": {

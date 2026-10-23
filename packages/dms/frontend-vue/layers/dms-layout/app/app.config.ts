@@ -215,7 +215,6 @@ export default {
     defaults: { logo: dmsLogo(), colors: dmsColors() },
     footer: {
       copyright: "Antelope",
-      githubStar: true,
       localeSwitcher: true,
     },
   },

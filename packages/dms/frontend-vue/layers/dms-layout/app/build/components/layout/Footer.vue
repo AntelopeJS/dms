@@ -1,17 +1,8 @@
 <script setup lang="ts">
 import type { SelectItem } from "@nuxt/ui";
-import {
-  GITHUB_REPOSITORY,
-  GITHUB_REPOSITORY_URL,
-} from "../../utils/github-repository";
 
 const EXTERNAL_LINK_PATTERN = /^https?:\/\//;
 const DEFAULT_COPYRIGHT = "Antelope";
-const GITHUB_REPOSITORY_API = `https://api.github.com/repos/${GITHUB_REPOSITORY}`;
-const GITHUB_STARS_CACHE_KEY = "dms-github-stars";
-// GitHub allows 60 anonymous API calls an hour per visitor: the count is
-// cached for the session and refreshed hourly.
-const GITHUB_STARS_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const { locale, setLocale, t } = useI18n();
 const { loggedIn: isLoggedIn } = useDmsUserSession();
@@ -25,7 +16,6 @@ const copyright = computed(() =>
     ? null
     : processI18n(footer.value.copyright ?? DEFAULT_COPYRIGHT),
 );
-const showsGithubStar = computed(() => footer.value.githubStar !== false);
 const showsLocaleSwitcher = computed(
   () => footer.value.localeSwitcher !== false,
 );
@@ -38,71 +28,6 @@ const localesOptions: SelectItem[] = uniqueLocales.value.map((lang) => ({
 function isExternal(to: string): boolean {
   return EXTERNAL_LINK_PATTERN.test(to);
 }
-
-interface CachedStars {
-  count: number;
-  fetchedAt: number;
-}
-
-const githubStars = ref<number | null>(null);
-// The count is fetched after mount: a placeholder holds its place until then,
-// and the segment only goes away if no count could be read.
-const githubStarsSettled = ref(false);
-const formattedGithubStars = computed(() =>
-  githubStars.value === null
-    ? ""
-    : formatNumber(githubStars.value, locale.value, { notation: "compact" }),
-);
-
-function readCachedStars(): CachedStars | null {
-  try {
-    const raw = sessionStorage.getItem(GITHUB_STARS_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as CachedStars) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedStars(count: number): void {
-  try {
-    sessionStorage.setItem(
-      GITHUB_STARS_CACHE_KEY,
-      JSON.stringify({ count, fetchedAt: Date.now() } satisfies CachedStars),
-    );
-  } catch {
-    /* storage unavailable: the count is fetched again next time */
-  }
-}
-
-// Starring itself happens on GitHub (it needs the visitor's GitHub session);
-// the button shows the live count and opens the repository.
-async function loadGithubStars(): Promise<void> {
-  const cached = readCachedStars();
-  if (cached && Date.now() - cached.fetchedAt < GITHUB_STARS_CACHE_TTL_MS) {
-    githubStars.value = cached.count;
-    return;
-  }
-  try {
-    const response = await fetch(GITHUB_REPOSITORY_API, {
-      headers: { Accept: "application/vnd.github+json" },
-    });
-    if (!response.ok) return;
-    const { stargazers_count: count } = (await response.json()) as {
-      stargazers_count?: unknown;
-    };
-    if (typeof count !== "number") return;
-    githubStars.value = count;
-    writeCachedStars(count);
-  } catch {
-    /* offline or rate-limited: the button shows without a count */
-  }
-}
-
-onMounted(async () => {
-  if (!showsGithubStar.value) return;
-  await loadGithubStars();
-  githubStarsSettled.value = true;
-});
 
 // A signed-in user on a page of this layout (the account switcher) switches
 // their profile's language too: the session applies that one on every load,
@@ -119,8 +44,8 @@ async function onLocaleChange(code: unknown) {
 
 <template>
   <!-- v2 .au-foot: one quiet 12.5px row, the locale switcher pushed right.
-       On phones the links get a taller invisible hit area and the star
-       button grows to 32px, so each stays easy to tap. -->
+       On phones the links get a taller invisible hit area, so each stays
+       easy to tap. -->
   <footer
     class="border-default text-dimmed flex flex-wrap items-center gap-x-[18px] gap-y-1.5 border-t px-5 py-3 text-[12.5px] max-sm:justify-center"
   >
@@ -143,35 +68,6 @@ async function onLocaleChange(code: unknown) {
         {{ t(link.label) }}
       </DmsLink>
     </template>
-
-    <!-- GitHub star button: icon + "Star" | live count, opens the repository. -->
-    <a
-      v-if="showsGithubStar"
-      :href="GITHUB_REPOSITORY_URL"
-      target="_blank"
-      rel="noopener noreferrer"
-      :aria-label="t('empty_layout.footer.github_star_label')"
-      :title="t('empty_layout.footer.github_star_label')"
-      class="border-default text-muted hover:text-highlighted hover:border-accented hover:bg-elevated inline-flex h-6 items-stretch overflow-hidden rounded-md border transition-colors max-sm:h-8"
-    >
-      <span class="flex items-center gap-1.5 px-2 font-medium">
-        <UIcon name="i-ph-github-logo" class="size-3.5" :aria-hidden="true" />
-        <UIcon name="i-ph-star" class="size-3" :aria-hidden="true" />
-        {{ t("empty_layout.footer.github_star") }}
-      </span>
-      <span
-        v-if="githubStars !== null || !githubStarsSettled"
-        class="border-default flex items-center border-s px-2 font-mono tabular-nums"
-      >
-        <USkeleton
-          :aria-label="t('dms.a11y.loading')"
-          v-if="githubStars === null"
-          aria-hidden="true"
-          class="h-2.5 w-6"
-        />
-        <template v-else>{{ formattedGithubStars }}</template>
-      </span>
-    </a>
 
     <USelect
       v-if="showsLocaleSwitcher"
