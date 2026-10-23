@@ -37,7 +37,8 @@ infrastructure it needs) and whose own `src/` is the `local` module. It provides
 its `package.json` has **no `antelopeJs.implements`** (that field marks a distributable module);
 deps are `@antelopejs/dms` + the interface libs, plus `@antelopejs/dms-frontend` (the
 `ajs dms` CLI) as a dependency — the template keeps it in `dependencies`; a devDependency also works
-since it is only a CLI. The frontend attaches at runtime with `AddFrontendModule`, and the DMS
+since it is only a CLI. The frontend attaches with `AddFrontendModule` and a `dmsFrontend`
+declaration in `package.json` (below), and the DMS
 **auto-registers its base dashboard layer** (shell, login, component vocabulary) — a pages-only
 project needs no `frontend-vue/` of its own.
 
@@ -133,8 +134,13 @@ export function stop(): void {}
 export function getConfig(): Config { return globalConfig; }
 ```
 
-Frontend wiring is the `AddFrontendModule` call alone — no DMS config entry. A **project** attaches the
-layer from `start()`; a **distributable module** attaches it in `construct` (see **dms-module**).
+Frontend wiring is the `AddFrontendModule` call plus `"dmsFrontend": "dist/frontend-module.js"` in
+the project's `package.json` — no DMS config entry. `ajs dms dev`, `build` and `start` read the project,
+not the backend's registrations, and leave out a frontend that is not declared:
+move the registration into a pure `export function frontendModule()` in `src/frontend-module.ts`
+(no runtime imports), call `AddFrontendModule(frontendModule())` from `start()`, and declare it. A
+**project** attaches the layer from `start()`; a **distributable module** attaches it in `construct`
+(see **dms-module**).
 Full layer authoring: `docs/02.building/08.frontend-layer.md`.
 
 ## What you register (delegates to the other skills)
