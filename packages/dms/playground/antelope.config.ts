@@ -96,7 +96,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/api",
-        version: "^1.4.0",
+        version: "^1.5.0",
       },
       config: {
         servers: [{ protocol: "http", port: preferredApiPort }],
@@ -113,7 +113,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/file-storage-local",
-        version: ">=0.1.9 <1.0.0",
+        version: ">=0.1.13 <1.0.0",
       },
       config: {
         storagePath: ".antelope/file-storage",
