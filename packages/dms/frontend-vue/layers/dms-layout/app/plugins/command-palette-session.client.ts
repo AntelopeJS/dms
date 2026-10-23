@@ -22,16 +22,17 @@ function uniqueByCode<T extends LocaleOption>(locales: T[]): T[] {
   });
 }
 
-function buildAccountItems(translate: I18nTranslate): CommandPaletteItem[] {
+function buildAccountItems(t: AppTranslation["t"]): CommandPaletteItem[] {
   return ACCOUNT_MENU_ENTRIES.map((entry) => ({
-    label: translate(entry.labelKey, {}),
+    label: t(entry.labelKey),
     icon: entry.icon,
     to: entry.to,
   }));
 }
 
 export default defineDmsPlugin(() => {
-  const { i18n, translate } = getPluginI18n();
+  const { $i18n: i18n } = useDmsApp();
+  const { t } = getAppTranslation();
   const toast = useToast();
   const { logout } = useLogout();
   const { changeLanguage } = useUserLanguage();
@@ -49,10 +50,10 @@ export default defineDmsPlugin(() => {
   async function copyCurrentUrl(): Promise<void> {
     try {
       await copy(window.location.href);
-      toast.add({ title: translate("commandPalette.session.urlCopied", {}) });
+      toast.add({ title: t("commandPalette.session.urlCopied") });
     } catch {
       toast.add({
-        title: translate("commandPalette.session.copyFailed", {}),
+        title: t("commandPalette.session.copyFailed"),
         color: "error",
       });
     }
@@ -61,23 +62,23 @@ export default defineDmsPlugin(() => {
   function buildSessionGroup(): CommandPaletteGroup {
     return {
       id: SESSION_GROUP_ID,
-      label: translate("commandPalette.groups.session", {}),
+      label: t("commandPalette.groups.session"),
       items: [
-        ...buildAccountItems(translate),
+        ...buildAccountItems(t),
         {
-          label: translate("commandPalette.session.changeLanguage", {}),
+          label: t("commandPalette.session.changeLanguage"),
           icon: LANGUAGE_ICON,
           children: localeItems(),
         },
         {
-          label: translate("commandPalette.session.copyUrl", {}),
+          label: t("commandPalette.session.copyUrl"),
           icon: COPY_URL_ICON,
           onSelect: () => {
             void copyCurrentUrl();
           },
         },
         {
-          label: translate("button.logout", {}),
+          label: t("button.logout"),
           icon: LOGOUT_ICON,
           onSelect: () => {
             void logout();

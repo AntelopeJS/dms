@@ -30,6 +30,7 @@ import { serializeColumnDisplay } from "./internal/column-display";
 // oxlint-disable-next-line import/no-cycle
 import { type DataType, serializeType } from "../data-types";
 import {
+  type FieldCondition,
   type FieldGroup,
   type FormBuilder,
   type FormField,
@@ -125,6 +126,22 @@ export interface ColumnOptions {
    * @example new DefaultDisplays.IdentityDisplay({ subtitleField: "email" })
    */
   display?: ColumnDisplay<object>;
+  /**
+   * The column's form field shows only while another column holds one of
+   * the listed values, as each form opens and as it is filled in. The data
+   * routes hold to it too: a hidden field is not mandatory (`@Mandatory`
+   * applies while it shows), the value sent for it is ignored, and an edit
+   * that hides it clears the value it stored. An edit reads the condition
+   * on the row as it will be stored.
+   * @example visibleWhen: { field: "stage", in: ["lost"] }
+   */
+  visibleWhen?: FieldCondition;
+  /**
+   * The column's form field is read-only while another column holds one of
+   * the listed values; the data routes ignore the value sent for it then.
+   * @example disabledWhen: { field: "stage", in: ["won", "lost"] }
+   */
+  disabledWhen?: FieldCondition;
 }
 
 /**
@@ -345,6 +362,11 @@ export class TableViewMeta {
       this.isReadOnlyIn(meta, formMode) ||
       behavior === ReadonlyBehaviorType.disabled;
     const isRequired = this.getRequiredForMode(meta, formMode);
+    const isLocalized = localizedFields.includes(key);
+    const { tableClass } = GetMetadata(
+      this.target as ControllerClass,
+      DataAPIMeta,
+    );
 
     return {
       id: key,
@@ -360,7 +382,12 @@ export class TableViewMeta {
       showEmptyOnCreate: options.showEmptyOnCreate,
       required: isRequired,
       defaultValue: options.defaultValue,
-      localized: localizedFields.includes(key),
+      localized: isLocalized,
+      fallbackLocale: isLocalized
+        ? LocalizationModifier.fallbackLocaleOf(tableClass, key)
+        : undefined,
+      visibleWhen: options.visibleWhen,
+      disabledWhen: options.disabledWhen,
     };
   }
 
@@ -534,6 +561,12 @@ export const Column = MakeMethodAndPropertyDecorator(
       const zodSchema = adaptFieldValidationSchema(baseSchema, {
         localized: isLocalized,
         required: false,
+        fallbackLocale: isLocalized
+          ? LocalizationModifier.fallbackLocaleOf(
+              dataMeta.tableClass,
+              key as string,
+            )
+          : undefined,
       });
 
       // The parse result rather than its success flag: the data API writes

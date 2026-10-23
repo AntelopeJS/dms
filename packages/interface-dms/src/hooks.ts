@@ -44,9 +44,13 @@ export enum Hook {
    * cleaned up along with the workspace, and make it idempotent so a retried
    * signup does not double it.
    *
-   * No DMS code fires this hook. Provisioning belongs to the signup flow of a
-   * SaaS module, and the contract above is what such an emitter owes its
-   * subscribers.
+   * It fires once per tenant, when the tenant is created, through
+   * `ProvisionTenant` (`@antelopejs/interface-dms/tenant-provisioning`): by
+   * the DMS for the `default` tenant, on the start that creates it, once
+   * `DATABASE_INITIALIZED` has settled; by the signup flow of a SaaS module
+   * for each workspace it creates. It is where a module writes the default
+   * data a tenant starts with: written once, that data then belongs to the
+   * tenant, and nothing writes it again on a later start.
    */
   TENANT_BEING_PROVISIONED = "tenant:being-provisioned",
   TENANT_DELETED = "tenant:deleted",
@@ -81,8 +85,12 @@ export enum Hook {
  */
 export interface TenantProvisioningHookPayload {
   tenantId: string;
-  /** Account the workspace is being provisioned for. */
-  userId: string;
+  /**
+   * Account the workspace is being provisioned for. Absent for the `default`
+   * tenant, which the DMS provisions on its first start, before any account
+   * exists: its owner arrives later, at onboarding.
+   */
+  userId?: string;
   /**
    * Data the caller of the provisioning flow attached to the request — an
    * acquisition source, a team size, a referral code, whatever that product

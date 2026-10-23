@@ -14,7 +14,10 @@ import {
   joinRelationValue,
   relationLabelSource,
 } from "../layers/dms-ui/app/build/composables/form/repeaterTable";
-import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import {
+  NotFoundRelation,
+  relationSelectSource,
+} from "../layers/dms-ui/app/build/composables/data-types/relationRows";
 
 // The relation data type, as it registers its `select` route.
 const RELATION_TYPE = { selectSource: relationSelectSource };
@@ -50,14 +53,21 @@ describe("a relation column of a read-only list", () => {
     expect(relationLabelSource(UNIT_PRICE, undefined)).toBeUndefined();
   });
 
-  it("puts the related row in place of each id it knows", () => {
-    const rows = new Map([["p1", { _id: "p1", name: "Panel" }]]);
-    expect(joinRelationValue("p1", rows, false)).toEqual(rows.get("p1"));
-    expect(joinRelationValue("gone", rows, false)).toBe("gone");
-    expect(joinRelationValue(["p1", "gone"], rows, true)).toEqual([
-      rows.get("p1"),
-      "gone",
+  it("puts the related row in place of each id it knows, and marks an unanswered one not found", () => {
+    const rowsByValue = new Map([["p1", { _id: "p1", name: "Panel" }]]);
+    const read = { rowsByValue, readIds: new Set(["p1", "gone"]) };
+    expect(joinRelationValue("p1", read, false)).toEqual(rowsByValue.get("p1"));
+    expect(joinRelationValue("gone", read, false)).toEqual(
+      new NotFoundRelation("gone"),
+    );
+    expect(joinRelationValue(["p1", "gone"], read, true)).toEqual([
+      rowsByValue.get("p1"),
+      new NotFoundRelation("gone"),
     ]);
+    // An id not read yet stays as it is: it is not known to be missing.
+    expect(
+      joinRelationValue("p2", { rowsByValue, readIds: new Set() }, false),
+    ).toBe("p2");
   });
 });
 

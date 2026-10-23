@@ -5,7 +5,11 @@ import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
-import type { FormField, FormFieldOrGroup } from "./types/field";
+import type {
+  FieldCondition,
+  FormField,
+  FormFieldOrGroup,
+} from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
@@ -35,9 +39,11 @@ interface FormSubmitNotice {
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import {
   type ApiFieldError,
+  apiErrorStatus,
   apiErrorText,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
+import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
 import {
   isPlainObject,
@@ -472,6 +478,34 @@ export function isFieldMarkedRequired(
   return !!field.required || (required?.has(field.id) ?? false);
 }
 
+const meetsCondition = (
+  condition: FieldCondition,
+  values: Record<string, unknown>,
+): boolean => condition.in.includes(values[condition.field] ?? null);
+
+/**
+ * The fields the values hide (`visibleWhen` not met) or disable
+ * (`disabledWhen` met), added to those the watches hide or disable: the
+ * conditions hold from the values the form opens with, without a watch.
+ */
+export function withConditionFields(
+  fields: ReadonlyArray<Pick<FormField, "id" | "visibleWhen" | "disabledWhen">>,
+  values: Record<string, unknown>,
+  watched: { disabled?: Set<string>; hidden?: Set<string> },
+): { disabled: Set<string>; hidden: Set<string> } {
+  const disabled = new Set(watched.disabled);
+  const hidden = new Set(watched.hidden);
+  for (const field of fields) {
+    if (field.visibleWhen && !meetsCondition(field.visibleWhen, values)) {
+      hidden.add(field.id);
+    }
+    if (field.disabledWhen && meetsCondition(field.disabledWhen, values)) {
+      disabled.add(field.id);
+    }
+  }
+  return { disabled, hidden };
+}
+
 function watchFieldChanges(
   state: Ref<Record<string, unknown>>,
   componentId: string | undefined,
@@ -612,13 +646,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     { deep: true },
   );
 
-  const disabledFields = computed(
-    () => state.value.disabledFields as Set<string> | undefined,
+  const inactiveFields = computed(() =>
+    withConditionFields(allFields.value, state.value, {
+      disabled: state.value.disabledFields as Set<string> | undefined,
+      hidden: state.value.hiddenFields as Set<string> | undefined,
+    }),
   );
 
-  const hiddenFields = computed(
-    () => state.value.hiddenFields as Set<string> | undefined,
-  );
+  const disabledFields = computed(() => inactiveFields.value.disabled);
+
+  const hiddenFields = computed(() => inactiveFields.value.hidden);
 
   const requiredFields = computed(
     () => state.value.requiredFields as Set<string> | undefined,
@@ -686,7 +723,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       // A server render shows the failure in the form (FormLoadError) and
       // hands it to the browser; a toast it added would show in its HTML
       // alone, which the browser's toasts never hold.
-      if (!import.meta.env.SSR) showFetchErrorToast(error);
+      // A 404 is no error either: the form says the record is not found.
+      if (!import.meta.env.SSR && apiErrorStatus(error) !== HTTP_NOT_FOUND) {
+        showFetchErrorToast(error);
+      }
       throw error;
     }
   };

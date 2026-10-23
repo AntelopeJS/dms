@@ -67,8 +67,6 @@ export interface DmsFooterConfig {
    * the copyright.
    */
   copyright?: string | false;
-  /** The GitHub "Star" button of the DMS repository. */
-  githubStar?: boolean;
   /** The language picker. */
   localeSwitcher?: boolean;
 }

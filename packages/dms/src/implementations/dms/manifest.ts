@@ -29,11 +29,39 @@ export interface FrontendManifest<T extends ManifestModuleEntry> {
    * frontend following the set waits for it to settle before rebuilding.
    */
   settling?: boolean;
+  /**
+   * In development, the origins substituted in every module's options:
+   * `ajs dms dev` computes the options from the project, as a build does,
+   * and applies the same substitution to them.
+   */
+  originRewrites?: OriginRewrite[];
 }
 
 export interface ManifestUrls {
   apiBaseUrl?: string;
   clientBaseUrl?: string;
+}
+
+/** A configured origin, and the one a dev frontend reaches it on. */
+export interface OriginRewrite {
+  from: string;
+  to: string;
+}
+
+/**
+ * The configured api and client base URLs a development manifest replaces,
+ * each with the override given for it.
+ */
+export function devOriginRewrites(
+  configured: ManifestUrls,
+  overrides: ManifestUrls,
+): OriginRewrite[] {
+  const keys = ["apiBaseUrl", "clientBaseUrl"] as const;
+  return keys.flatMap((key) => {
+    const from = configured[key];
+    const to = overrides[key];
+    return from && to ? [{ from, to }] : [];
+  });
 }
 
 const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
@@ -80,13 +108,9 @@ function buildOriginRewriter(
   configured: ManifestUrls,
   overrides: ManifestUrls,
 ): OriginRewriter | undefined {
-  const replacements = new Map<string, string>();
-  if (configured.apiBaseUrl && overrides.apiBaseUrl) {
-    replacements.set(configured.apiBaseUrl, overrides.apiBaseUrl);
-  }
-  if (configured.clientBaseUrl && overrides.clientBaseUrl) {
-    replacements.set(configured.clientBaseUrl, overrides.clientBaseUrl);
-  }
+  const replacements = new Map(
+    devOriginRewrites(configured, overrides).map(({ from, to }) => [from, to]),
+  );
   if (replacements.size === 0) return undefined;
 
   // Longest-first so a URL that is a prefix of another wins the match.

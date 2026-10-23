@@ -200,6 +200,43 @@ describe("validateFormState: a required field left empty", () => {
     expect(issues).toEqual([{ message: REQUIRED, path: ["title", "en"] }]);
   });
 
+  it("requires the fallback language of a localized field holding another one", async () => {
+    const field: FormValidationField = {
+      id: "title",
+      type: "string",
+      localized: true,
+      fallbackLocale: "fr",
+      required: false,
+    };
+    const shape = { title: z.record(z.string(), z.string()).optional() };
+    expect(
+      await issuesOf(shape, [field], { title: { en: "Range", fr: " " } }),
+    ).toEqual([{ message: REQUIRED, path: ["title", "fr"] }]);
+    expect(
+      await valueOf(shape, [field], { title: { en: "", fr: "Gamme" } }),
+    ).toEqual({ title: { en: "", fr: "Gamme" } });
+    expect(
+      await valueOf(shape, [field], { title: { en: "", fr: "" } }),
+    ).toBeDefined();
+  });
+
+  it("puts the error of a required localized field on its fallback language", async () => {
+    const issues = await issuesOf(
+      { title: z.record(z.string(), z.string()) },
+      [
+        {
+          id: "title",
+          type: "string",
+          localized: true,
+          fallbackLocale: "fr",
+          required: true,
+        },
+      ],
+      { title: { en: "", fr: "" } },
+    );
+    expect(issues).toEqual([{ message: REQUIRED, path: ["title", "fr"] }]);
+  });
+
   it("takes 0 as a value", async () => {
     const value = await valueOf(
       { count: z.number() },

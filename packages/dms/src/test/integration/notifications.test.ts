@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { MongoClient } from "mongodb";
 import {
@@ -239,8 +240,7 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     await sendable.toUsersIdempotently([USER], EVENT);
     const [row] = await model.table.run();
     await assert.rejects(model.table.insert(row).run(), (error: unknown) => {
-      assert.ok(error instanceof Error);
-      assert.match(error.message, /E11000/);
+      assert.ok(IsDuplicateKeyError(error));
       return true;
     });
     await new SendableNotification({

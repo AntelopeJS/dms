@@ -206,9 +206,13 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
-- Conditional fields on a `TableView`'s generated forms go in `forms: { new?, edit?, view? }`, each a
-  callback receiving the form's builder: `new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)` —
-  they run in a drawer, a modal or a form page alike; no custom page just to add a watch.
+- A field shown, required or locked by another column's value goes on its `@Column`:
+  `visibleWhen: { field: "stage", in: ["lost"] }`, `disabledWhen: { field: "stage", in: ["won"] }`.
+  The generated forms and the data routes both apply them (hidden: not mandatory, value ignored,
+  stored value cleared on edit; disabled: sent value ignored, stored one kept) — no watch, no custom page.
+- `forms: { new?, edit?, view? }` hands each generated form's builder to a callback
+  (`new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)`) for input comfort only — a value filled
+  in from another, a field one table's forms leave out. No data rule there: the routes never see it.
 - A table of more than a few columns that phones will read offers the cards and opens them there:
   `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
   saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display

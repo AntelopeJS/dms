@@ -6,10 +6,10 @@ const QUICK_ACTIONS_GROUP_PREFIX = "quick-actions";
 
 function buildActionItem(
   action: QuickActionInfo,
-  translate: I18nTranslate,
+  translation: AppTranslation,
 ): CommandPaletteItem {
   return {
-    label: resolveI18nKey(translate, action.displayName),
+    label: translation.processI18n(action.displayName),
     icon: action.icon,
     onSelect: () => {
       void dispatchQuickActionTarget(action.target);
@@ -19,21 +19,21 @@ function buildActionItem(
 
 function buildQuickActionGroups(
   categoryGroups: QuickActionCategoryGroup[],
-  translate: I18nTranslate,
+  translation: AppTranslation,
 ): CommandPaletteGroup[] {
   return categoryGroups.map((group) => ({
     id: `${QUICK_ACTIONS_GROUP_PREFIX}-${group.category.id}`,
-    label: resolveI18nKey(translate, group.category.displayName),
-    items: group.actions.map((action) => buildActionItem(action, translate)),
+    label: translation.processI18n(group.category.displayName),
+    items: group.actions.map((action) => buildActionItem(action, translation)),
   }));
 }
 
 export default defineDmsPlugin(() => {
-  const { translate } = getPluginI18n();
+  const translation = getAppTranslation();
   const { categoryGroups } = useQuickActions();
 
   const groups = computed<CommandPaletteGroup[]>(() =>
-    buildQuickActionGroups(categoryGroups.value, translate),
+    buildQuickActionGroups(categoryGroups.value, translation),
   );
 
   registerCommandPaletteSource({

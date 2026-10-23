@@ -85,7 +85,7 @@ module's frontend; without it the module is backend-only.
 
 `renderer` names the framework (Vue 3), not a loader release. The `@antelopejs/dms-frontend`
 releases the frontend module runs on go in the frontend module's own `package.json`, as
-`"engines": { "@antelopejs/dms-frontend": ">=0.8.0 <0.9.0" }`: the loader refuses the module
+`"engines": { "@antelopejs/dms-frontend": ">=0.9.0 <0.10.0" }`: the loader refuses the module
 outside that range. Cap it below the next loader minor while the loader is 0.x.
 
 An absolute link (a public file, a snippet to copy, a mail) is built on `await GetApiBaseUrl()`
