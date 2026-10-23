@@ -46,12 +46,14 @@ beforeEach(() => {
   const globals = {
     computed,
     defineDmsPlugin: (setup: () => void) => setup,
-    getPluginI18n: () => ({ translate: (key: string) => key }),
+    getAppTranslation: () => ({
+      processI18n: (value: string) => value,
+      t: (key: string) => key,
+    }),
     useSiteLayout: () => ({ siteLayoutTree: ref(TREE) }),
     registerCommandPaletteSource: (source: typeof registered) => {
       registered = source;
     },
-    resolveI18nKey: (_translate: unknown, value: string) => value,
     resolveOptionalI18nKey: () => undefined,
     isAccountMenuRoute,
     DEFAULT_PAGE_ICON: "i-page",
