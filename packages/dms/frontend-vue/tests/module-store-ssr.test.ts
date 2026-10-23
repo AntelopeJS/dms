@@ -15,6 +15,7 @@ import {
   ref,
   Suspense,
   createSSRApp,
+  watch,
   type App,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -67,6 +68,7 @@ beforeEach(() => {
   isOwner.value = true;
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
+  vi.stubGlobal("watch", watch);
   vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
   stubApiData(authFetch);
 });
@@ -120,6 +122,34 @@ it("reads again once mounted when the first read failed", async () => {
     .mockResolvedValue(structuredClone(idleListing));
   const { app, container } = mountInBrowser(Page);
   mounted.push(app);
+  for (let tick = 0; tick < 4; tick++) await settle();
+  expect(authFetch).toHaveBeenCalledTimes(2);
+  expect(container.innerHTML).toBe("<main><p>orders</p></main>");
+});
+
+it("waits for the background read of a return to the page, instead of looping on it", async () => {
+  authFetch.mockResolvedValue(structuredClone(idleListing));
+  const shown = ref(true);
+  const { app, container } = mountInBrowser(
+    defineComponent({
+      setup: () => () => (shown.value ? h(Page) : h("aside")),
+    }),
+  );
+  mounted.push(app);
+  for (let tick = 0; tick < 4; tick++) await settle();
+  expect(container.innerHTML).toBe("<main><p>orders</p></main>");
+
+  // Leaving and coming back: the listing is shown at once from the last
+  // visit and read again in the background, still in flight when it starts.
+  shown.value = false;
+  await settle();
+  let answer: (listing: typeof idleListing) => void = () => {};
+  authFetch.mockReturnValueOnce(new Promise((done) => (answer = done)));
+  shown.value = true;
+  for (let tick = 0; tick < 4; tick++) await settle();
+  expect(container.innerHTML).toBe("<main><p>orders</p></main>");
+
+  answer(structuredClone(idleListing));
   for (let tick = 0; tick < 4; tick++) await settle();
   expect(authFetch).toHaveBeenCalledTimes(2);
   expect(container.innerHTML).toBe("<main><p>orders</p></main>");
