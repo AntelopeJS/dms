@@ -34,6 +34,7 @@ import {
 // won or lost.
 
 const TABLE = "condition-deals";
+const CUSTOMER_TABLE = "condition-customers";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 export class ConditionDeal extends Table {
@@ -95,6 +96,67 @@ export class ConditionDealsPage extends RootPageController("condition-deals", {
   displayName: "Deals",
 }) {
   static content = TableView(ConditionDealController, {
+    realtime: false,
+    rowActions: { add: true, edit: true },
+  });
+}
+
+// Customers whose VAT number is a business's only: turned household, the
+// customer loses the number it stored.
+
+@RegisterTable(CUSTOMER_TABLE, CORE_SCHEMA_NAME)
+export class ConditionCustomer extends Table {
+  @Field("string") declare name: string;
+  @Field("string") declare kind: string;
+  @Field("string") declare vatNumber?: string;
+}
+
+export class ConditionCustomerModel extends BasicDataModel(
+  ConditionCustomer,
+  CUSTOMER_TABLE,
+) {}
+
+@RegisterDataController()
+export class ConditionCustomerController extends DataController(
+  ConditionCustomer,
+  TableViewRoutes.All,
+  Controller("/api/conditions/customers"),
+) {
+  @ModelReference()
+  @Model(ConditionCustomerModel)
+  declare model: ConditionCustomerModel;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare _id: string;
+
+  @Listable()
+  @Column({ name: "Name", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadWrite)
+  declare name: string;
+
+  @Listable()
+  @Column({ name: "Kind", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadWrite)
+  declare kind: string;
+
+  @Listable()
+  @Mandatory("new", "edit")
+  @Column({
+    name: "VAT number",
+    type: new DefaultDataTypes.StringType(),
+    visibleWhen: { field: "kind", in: ["business"] },
+  })
+  @Access(AccessMode.ReadWrite)
+  declare vatNumber: string;
+}
+
+@RegisterPage()
+export class ConditionCustomersPage extends RootPageController(
+  "condition-customers",
+  { displayName: "Customers" },
+) {
+  static content = TableView(ConditionCustomerController, {
     realtime: false,
     rowActions: { add: true, edit: true },
   });

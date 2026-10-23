@@ -1,12 +1,13 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
-import { resetDatabase } from "../helpers/db";
+import { countRawDocuments, resetDatabase } from "../helpers/db";
 
 // The data routes hold to the columns' `visibleWhen` / `disabledWhen`
 // (src/test/attachment-host/conditions.ts): the loss reason shows, and is
 // mandatory, on a lost deal only; the probability is locked on a won or lost
-// deal. A hidden or disabled field's value is ignored.
+// deal. A hidden or disabled field's value is ignored, and a field an edit
+// hides loses the value it stored.
 
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
@@ -97,5 +98,44 @@ describe("[integration] table view column conditions", () => {
     const deal = await read("Open");
     expect(deal).to.include({ stage: "lost", lostReason: "timing" });
     expect(deal.probability).to.equal(30);
+  });
+
+  it("clears the value a field stored once an edit hides it", async () => {
+    const customers = "/api/conditions/customers";
+    const created = await client.post(`${customers}/new`, {
+      name: "Acme",
+      kind: "business",
+      vatNumber: "BE0123456749",
+    });
+    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    const id = (created.data as { _id: string })._id;
+    expect(
+      await countRawDocuments("condition-customers", {
+        vatNumber: "BE0123456749",
+      }),
+    ).to.equal(1);
+
+    const household = await client.put(`${customers}/edit?id=${id}`, {
+      kind: "residential",
+    });
+    expect(household.status, JSON.stringify(household.data)).to.equal(HTTP_OK);
+    expect(
+      await countRawDocuments("condition-customers", { name: "Acme" }),
+    ).to.equal(1);
+    expect(
+      await countRawDocuments("condition-customers", {
+        vatNumber: { $nin: [null] },
+      }),
+    ).to.equal(0);
+  });
+
+  it("keeps the value a disabled field stored", async () => {
+    // The lost deal of the edit test kept its probability (30).
+    expect(
+      await countRawDocuments("condition-deals", {
+        title: "Open",
+        probability: 30,
+      }),
+    ).to.equal(1);
   });
 });

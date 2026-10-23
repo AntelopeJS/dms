@@ -57,7 +57,9 @@ const isEmptyValue = (value: unknown): boolean =>
 /**
  * Applies the columns' conditions to the body of a `new` or `edit` before
  * `baseRoute` writes it, read on the row as it will be stored (an edit's
- * stored row under its body). The fields hidden or disabled leave the body.
+ * stored row under its body). The fields hidden or disabled leave the body,
+ * and an edit clears the value a hidden field stored: a business turned
+ * household keeps no VAT number. A disabled field keeps the one it holds.
  * `@Mandatory` binds a field with `visibleWhen` while it shows: there, an
  * edit must leave it filled, not only not clear it.
  *
@@ -82,8 +84,9 @@ export const withColumnConditions = (
 
     const body = Validation.ParseBody(args[0] as Validation.WrittenBody);
     let row: Record<string, unknown> = body;
+    let current: Record<string, unknown> | undefined;
     if (mode === "edit") {
-      const current = await fetchRowForGuard(
+      current = await fetchRowForGuard(
         this as DataControllerCallback,
         String((params as Parameters.EditParameters).id),
         tableMeta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
@@ -95,6 +98,9 @@ export const withColumnConditions = (
     const { hidden, disabled } = inactiveColumns(columns, row);
     const written = { ...body };
     for (const key of [...hidden, ...disabled]) delete written[key];
+    for (const key of hidden) {
+      if (current && !isEmptyValue(current[key])) written[key] = null;
+    }
 
     if (params.noMandatory) {
       return baseRoute.func.call(this, ctx, params, written, ...args.slice(1));

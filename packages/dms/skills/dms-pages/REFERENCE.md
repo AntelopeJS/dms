@@ -208,8 +208,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
 - A field shown, required or locked by another column's value goes on its `@Column`:
   `visibleWhen: { field: "stage", in: ["lost"] }`, `disabledWhen: { field: "stage", in: ["won"] }`.
-  The generated forms and the data routes both apply them (hidden: not mandatory, value ignored;
-  disabled: value ignored) — no watch, no custom page.
+  The generated forms and the data routes both apply them (hidden: not mandatory, value ignored,
+  stored value cleared on edit; disabled: sent value ignored, stored one kept) — no watch, no custom page.
 - `forms: { new?, edit?, view? }` hands each generated form's builder to a callback
   (`new: (form) => form.watch(FormEvents.FIELD_CHANGE, …)`) for input comfort only — a value filled
   in from another, a field one table's forms leave out. No data rule there: the routes never see it.

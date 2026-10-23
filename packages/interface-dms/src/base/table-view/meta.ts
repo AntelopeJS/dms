@@ -130,8 +130,9 @@ export interface ColumnOptions {
    * The column's form field shows only while another column holds one of
    * the listed values, as each form opens and as it is filled in. The data
    * routes hold to it too: a hidden field is not mandatory (`@Mandatory`
-   * applies while it shows) and the value sent for it is ignored. An edit
-   * reads the condition on the row as it will be stored.
+   * applies while it shows), the value sent for it is ignored, and an edit
+   * that hides it clears the value it stored. An edit reads the condition
+   * on the row as it will be stored.
    * @example visibleWhen: { field: "stage", in: ["lost"] }
    */
   visibleWhen?: FieldCondition;
