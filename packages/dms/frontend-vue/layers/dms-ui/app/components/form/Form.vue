@@ -326,6 +326,7 @@ const localizedSchema = computed(() => {
     id: field.id,
     type: field.type,
     localized: field.localized,
+    fallbackLocale: field.fallbackLocale,
     required: isFieldRequired(field),
     acceptance: isAcceptanceField(field),
   }));
