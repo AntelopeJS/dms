@@ -1197,21 +1197,23 @@ export interface TableViewOptions<
    */
   formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
   /**
-   * Settles the forms the table view generates, by form kind: each callback
-   * receives the form's builder before the table view embeds it, and declares
-   * on it what a module's own `Form` would — conditional fields with
-   * `.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, …)`,
-   * without replacing the generated form by a custom page. What it declares
-   * holds in a drawer, a modal or a form page alike; the `new` form's also on
-   * a duplicated row. A watch's `requirePermission` is checked per request,
-   * as on a page's own components.
+   * Settles the forms the table view generates, by form kind, for input
+   * comfort only: each callback receives the form's builder before the table
+   * view embeds it, and declares on it what a module's own `Form` would — a
+   * value filled in from another (`SET_FIELD_VALUE`), a field one table's
+   * forms leave out. No data rule here: the data routes never see these
+   * watches. A field shown, required or locked by the value of another is a
+   * column's `visibleWhen` / `disabledWhen`, which the routes enforce too.
+   * What it declares holds in a drawer, a modal or a form page alike; the
+   * `new` form's also on a duplicated row. A watch's `requirePermission` is
+   * checked per request, as on a page's own components.
    *
    * @example
    * forms: {
    *   new: (form) =>
-   *     form.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
-   *       params: { targetField: "companyName", setHidden: false },
-   *       onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
+   *     form.watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_VALUE, {
+   *       params: { targetField: "probability", valueMap: { won: 100, lost: 0 } },
+   *       onParam: { key: "fieldId", value: "stage" },
    *     }),
    * }
    */

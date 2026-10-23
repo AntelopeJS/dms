@@ -23,6 +23,8 @@ export function serializeFormField(field: FormField): FormFieldSerialized {
     defaultValue: field.defaultValue,
     offersDefault: field.offersDefault,
     localized: field.localized,
+    visibleWhen: field.visibleWhen,
+    disabledWhen: field.disabledWhen,
     fallbackLocale: field.fallbackLocale,
   };
 }
