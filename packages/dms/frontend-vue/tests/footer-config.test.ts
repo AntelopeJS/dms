@@ -44,8 +44,6 @@ async function mountFooter(): Promise<void> {
       () =>
         h("a", { href: props.to }, slots.default?.()),
   });
-  app.component("UIcon", { render: () => null });
-  app.component("USkeleton", { render: () => null });
   app.component("USelect", SelectStub);
   app.mount(host);
   await nextTick();
@@ -102,13 +100,12 @@ afterEach(() => {
 });
 
 describe("footer", () => {
-  it("shows the copyright, the Antelope links, the star and the language picker by default", async () => {
+  it("shows the copyright, the Antelope links and the language picker by default", async () => {
     await mountFooter();
     expect(host.textContent).toContain("© Antelope");
     expect(linkTexts()).toEqual([
       "empty_layout.footer.documentation",
       "empty_layout.footer.website",
-      "empty_layout.footer.github_star",
     ]);
     expect(host.querySelector("[data-locale-switcher]")).not.toBeNull();
   });
@@ -127,27 +124,20 @@ describe("footer", () => {
     unregisterFooterLink("dms:website");
     unregisterFooterLink("never-registered");
     await mountFooter();
-    expect(linkTexts()).toEqual(["Status", "empty_layout.footer.github_star"]);
+    expect(linkTexts()).toEqual(["Status"]);
   });
 
-  it("names the copyright holder, or drops it, the star and the picker", async () => {
+  it("names the copyright holder, or drops it and the picker", async () => {
     footerConfig = { copyright: "$acme.name" };
     await mountFooter();
     expect(host.textContent).toContain("© t(acme.name)");
     app?.unmount();
     host.remove();
-    vi.mocked(fetch).mockClear();
 
-    footerConfig = {
-      copyright: false,
-      githubStar: false,
-      localeSwitcher: false,
-    };
+    footerConfig = { copyright: false, localeSwitcher: false };
     await mountFooter();
     expect(host.textContent).not.toContain("©");
-    expect(linkTexts()).not.toContain("empty_layout.footer.github_star");
     expect(host.querySelector("[data-locale-switcher]")).toBeNull();
-    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("switches only the screen's language for a visitor", async () => {
@@ -171,25 +161,13 @@ describe("footer", () => {
     expect(setLocale).not.toHaveBeenCalled();
   });
 
-  // The count is the only monospaced text of the public and auth pages: in
-  // Geist Mono it made every one of them download that font (~70 kB).
-  it("draws the star count in the page's font, with tabular figures", async () => {
-    sessionStorage.clear();
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ stargazers_count: 1234 }),
-    } as Response);
-    const { formatNumber } = await import(
-      "../layers/dms-core/app/utils/formatter"
-    );
-    vi.stubGlobal("formatNumber", formatNumber);
+  // The footer used to show a GitHub "Star" button with the DMS repository's
+  // live star count, read from api.github.com in every visitor's browser.
+  it("shows no GitHub star and asks nothing of GitHub", async () => {
     await mountFooter();
-    await vi.waitFor(() => expect(host.textContent).toContain("1.2K"));
-    const count = [...host.querySelectorAll("span")].find(
-      (span) => span.textContent?.trim() === "1.2K",
-    );
-    expect(count?.classList.contains("tabular-nums")).toBe(true);
-    expect(count?.classList.contains("font-mono")).toBe(false);
-    sessionStorage.clear();
+    await nextTick();
+    expect(host.querySelector('a[href*="github.com"]')).toBeNull();
+    expect(host.textContent).not.toContain("github_star");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

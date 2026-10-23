@@ -11,7 +11,7 @@ const DOCS_URL = "https://dms.antelopejs.com/docs/";
 const WEBSITE_URL = "https://dms.antelopejs.com/";
 const REPOSITORY_URL = "https://github.com/AntelopeJS/dms";
 const REPOSITORY_API = "https://api.github.com/repos/AntelopeJS/dms";
-// Shared with the auth footer's star button, so both read one cached count.
+// The repository's star count, cached for the session.
 const STARS_CACHE_KEY = "dms-github-stars";
 // GitHub allows 60 anonymous API calls an hour per visitor.
 const STARS_CACHE_TTL_MS = 60 * 60 * 1000;
