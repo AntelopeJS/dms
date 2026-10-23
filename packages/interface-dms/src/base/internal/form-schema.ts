@@ -25,5 +25,6 @@ export function serializeFormField(field: FormField): FormFieldSerialized {
     localized: field.localized,
     visibleWhen: field.visibleWhen,
     disabledWhen: field.disabledWhen,
+    fallbackLocale: field.fallbackLocale,
   };
 }

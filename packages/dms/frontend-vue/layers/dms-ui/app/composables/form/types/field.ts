@@ -46,6 +46,8 @@ export interface FormField {
   visibleWhen?: FieldCondition;
   /** Read-only while the condition holds: its value is not sent. */
   disabledWhen?: FieldCondition;
+  /** A localized field's fallback language: filled whenever any language is. */
+  fallbackLocale?: string;
 }
 
 export interface FieldGroup {

@@ -1,7 +1,6 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { isStoreEditable } from "../config";
 import { removeFrontendModulesUnder } from "../implementations/dms/frontend-modules";
 import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
@@ -392,7 +391,7 @@ export async function startStoreOperation(
   options: StoreOperationOptions = {},
 ): Promise<void> {
   const { dev } = await GetRuntimeInfo();
-  assert(isStoreEditable(dev), HTTP_FORBIDDEN, "error.store_disabled");
+  assert(dev, HTTP_FORBIDDEN, "error.store_disabled");
   assert(!current, HTTP_CONFLICT, "error.store_busy");
   setCurrent({ moduleId: id, kind, step: "resolve", startedAt: Date.now() });
   try {

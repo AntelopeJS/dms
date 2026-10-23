@@ -1,4 +1,11 @@
-import { computed, shallowRef, watch, type ComputedRef } from "vue";
+import {
+  computed,
+  onScopeDispose,
+  shallowRef,
+  watch,
+  type ComputedRef,
+} from "vue";
+import { onPageBlocksRefresh } from "#dms-ui/app/utils/blockRefresh";
 import type { LayoutHeaderAction } from "../../build/components/layout/PageHeaderActionBar.vue";
 import type { PageLayout } from "../../types/page";
 import {
@@ -13,8 +20,8 @@ interface ServedHeaderActionsOptions {
   /** The buttons the page layout was served with. */
   actions: () => LayoutHeaderAction[];
   /**
-   * The page query their availability was resolved for, set when one of them
-   * declares an `availability` (`headerActionsQuery`).
+   * The page query they were served for, set when one of them declares an
+   * `availability` or the page reads a `record` (`headerActionsQuery`).
    */
   servedQuery: () => Record<string, string> | undefined;
   /** The route parameters (`:id`) their availability was resolved for. */
@@ -29,7 +36,10 @@ interface ServedHeaderActionsOptions {
  * for that query and takes its buttons, keeping the last ones meanwhile. The
  * same goes for the route parameters: the layout of `/projects/project/:id`
  * is cached once for the page, whichever record it was first served for.
- * Buttons without an availability never cause a request.
+ * A write on the page (`refreshPageBlocks()`, after a header button or a
+ * form) asks again too: it may have changed the record the buttons read, or
+ * what their availability checks. Buttons without an availability, on a page
+ * reading no record, never cause a request.
  */
 export function useServedHeaderActions({
   actions,
@@ -81,12 +91,22 @@ export function useServedHeaderActions({
     void askFor(fillRouteParams(layoutUrl, params), current);
   }
 
+  function askAgain() {
+    const layoutUrl = pageRoute()?.metadata?.layoutUrl;
+    if (!servedQuery() || !layoutUrl) return;
+    void askFor(
+      fillRouteParams(layoutUrl, pageRoute()?.params ?? {}),
+      pageQueryValues(route.query as Record<string, unknown>),
+    );
+  }
+
   if (!import.meta.env.SSR) {
     watch(
       [() => route.query, () => route.path, servedQuery, servedParams],
       follow,
       { immediate: true },
     );
+    onScopeDispose(onPageBlocksRefresh(askAgain));
   }
 
   return computed(() => refreshed.value ?? actions());

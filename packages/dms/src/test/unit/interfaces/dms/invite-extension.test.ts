@@ -86,21 +86,28 @@ function textField(id: string, required = false) {
   };
 }
 
-/** Stands in for the DMS invite modal: a form that opens the invite slot. */
+/**
+ * Stands in for the DMS invite modal: a form that opens the invite slot, its
+ * addresses field under its real id (`member-invite-form.ts`).
+ */
 function inviteHostForm(): FormBuilder {
   return Form({
-    fields: [textField("email", true), textField("roles")],
+    fields: [textField("emails", true), textField("roles")],
     slotId: INVITE_FORM_SLOT_ID,
   });
 }
 
 /**
  * Stands in for the edit form of a pending invitation, which lists the
- * invitation's own columns — the roles field under its stored name.
+ * invitation's own columns — its address and roles under their stored names.
  */
 function inviteEditHostForm(): FormBuilder {
   return Form({
-    fields: [textField("firstname"), textField("roles_ids")],
+    fields: [
+      textField("email"),
+      textField("firstname"),
+      textField("roles_ids"),
+    ],
     slotId: INVITE_EDIT_FORM_SLOT_ID,
   });
 }
@@ -219,7 +226,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-merge");
 
       expect(fieldIds(await hostLayoutFields("/ie-merge"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
         "billing__costCenter",
       ]);
@@ -228,14 +235,14 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("reaches a page that registered before the extension did", async () => {
       await registerHostPage("ie-late");
       expect(fieldIds(await hostLayoutFields("/ie-late"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
       ]);
 
       register(recordingExtension("late", "answer").options);
 
       expect(fieldIds(await hostLayoutFields("/ie-late"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
         "late__answer",
       ]);
@@ -250,7 +257,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-anchored");
 
       expect(topLevelIds(await hostLayoutFields("/ie-anchored"))).to.deep.equal(
-        ["email", "onboarding", "roles"],
+        ["emails", "onboarding", "roles"],
       );
     });
 
@@ -264,7 +271,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-order");
 
       expect(topLevelIds(await hostLayoutFields("/ie-order"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
         "first",
         "alpha",
@@ -301,7 +308,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       dispose();
 
       expect(fieldIds(await hostLayoutFields("/ie-teardown"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
       ]);
     });
@@ -341,7 +348,28 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
 
       expect(
         topLevelIds(await hostLayoutFields("/ie-edit-anchor")),
-      ).to.deep.equal(["firstname", "roles_ids", "scope"]);
+      ).to.deep.equal(["email", "firstname", "roles_ids", "scope"]);
+    });
+
+    it("anchors a block placed after the addresses on the stored email column", async () => {
+      register({
+        ...recordingExtension("team", "name").options,
+        placement: { side: "after", anchorField: "emails" },
+      });
+      await registerHostPage("ie-edit-addresses", inviteEditHostForm);
+      await registerHostPage("ie-invite-addresses");
+      const warnings = captureWarnings();
+      try {
+        expect(
+          topLevelIds(await hostLayoutFields("/ie-edit-addresses")),
+        ).to.deep.equal(["email", "team", "firstname", "roles_ids"]);
+        expect(
+          topLevelIds(await hostLayoutFields("/ie-invite-addresses")),
+        ).to.deep.equal(["emails", "team", "roles"]);
+      } finally {
+        warnings.restore();
+      }
+      expect(warnings.messages).to.deep.equal([]);
     });
 
     it("leaves the invite modal's own blocks editable", async () => {
@@ -714,7 +742,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-reload");
 
       expect(fieldIds(await hostLayoutFields("/ie-reload"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
         "billing__b",
       ]);
@@ -740,12 +768,12 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         expect(warnings.messages).to.deep.equal([]);
         expect(
           fieldIds(await hostLayoutFields("/ie-generation")),
-        ).to.deep.equal(["email", "roles", "billing__b"]);
+        ).to.deep.equal(["emails", "roles", "billing__b"]);
       } finally {
         revokeInviteExtension(next);
       }
       expect(fieldIds(await hostLayoutFields("/ie-generation"))).to.deep.equal([
-        "email",
+        "emails",
         "roles",
       ]);
     });

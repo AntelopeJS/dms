@@ -7,7 +7,7 @@ import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
 import { buildRelationBadges } from "./relationBadges";
 import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
-import { relationSelectSource } from "./relationRows";
+import { NotFoundRelation, relationSelectSource } from "./relationRows";
 import {
   isSet,
   readRowField,
@@ -338,12 +338,31 @@ function renderRelationBadge(label: string, title?: string) {
   });
 }
 
-function renderRelationBadges(values: unknown[], labelKey: string) {
-  const { processI18n } = getAppTranslation();
-  const { visible, hidden } = buildRelationBadges(values, labelKey);
-  const badges = visible.map((label) =>
-    renderRelationBadge(processI18n(label)),
+// An id its `select` route did not answer: "Not found", the id on hover.
+function renderNotFoundRelation(relation: NotFoundRelation) {
+  const { t } = getAppTranslation();
+  return h(
+    "span",
+    { class: "text-muted", title: relation.id },
+    t("dms.form.relation.not_found"),
   );
+}
+
+function renderRelationBadges(values: unknown[], labelKey: string) {
+  const { processI18n, t } = getAppTranslation();
+  const notFound = values.filter(
+    (item): item is NotFoundRelation => item instanceof NotFoundRelation,
+  );
+  const { visible, hidden } = buildRelationBadges(
+    values.filter((item) => !(item instanceof NotFoundRelation)),
+    labelKey,
+  );
+  const badges = [
+    ...visible.map((label) => renderRelationBadge(processI18n(label))),
+    ...notFound.map((relation) =>
+      renderRelationBadge(t("dms.form.relation.not_found"), relation.id),
+    ),
+  ];
   if (hidden.length > 0) {
     const hiddenLabels = hidden.map((label) => processI18n(label)).join(", ");
     badges.push(renderRelationBadge(`+${hidden.length}`, hiddenLabels));
@@ -359,6 +378,7 @@ function renderRelation(value: unknown, options: unknown) {
     return renderRelationBadges(value, labelKey);
   }
 
+  if (value instanceof NotFoundRelation) return renderNotFoundRelation(value);
   if (!value || !isObject(value)) return value;
 
   const valueObject = value as Record<string, string>;
@@ -981,6 +1001,7 @@ const registerCascaderRelationType = (
     },
     beforeStateMapper: mapRelationBeforeState,
     isSameValue: sameRelationValue,
+    selectSource: relationSelectSource,
   });
 };
 

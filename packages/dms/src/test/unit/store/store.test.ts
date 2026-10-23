@@ -1,17 +1,20 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import { isStoreEditable } from "../../../config";
 import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
 import { findDependents, isProjectModule } from "../../../store/interfaces";
 import { packageDeclarationSource } from "../../../store/declarations";
 import { supportsFrontend } from "../../../store/frontend-compatibility";
 import { findWorkingCopy, isLive, sourceKindOf } from "../../../store/runtime";
+import { startStoreOperation } from "../../../store/operations";
 import { readTarFile } from "../../../store/tarball";
 import { storeInstallSchema } from "../../../validation/store.schema";
 import type { RuntimeModule } from "../../../store/types";
+
+const HTTP_FORBIDDEN = 403;
 
 function runtimeModule(status: string): RuntimeModule {
   return {
@@ -109,6 +112,22 @@ describe("[unit] store/runtime sources", () => {
   });
 });
 
+describe("[unit] store/production", () => {
+  // The harness runs the module outside development mode, as production does.
+  it("refuses to change a module outside development", async () => {
+    const refusal = await startStoreOperation(
+      "install",
+      "@antelopejs/dms-lang",
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(refusal).to.be.instanceOf(HTTPResult);
+    expect((refusal as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect((refusal as HTTPResult).getBody()).to.equal("error.store_disabled");
+  });
+});
+
 describe("[unit] store/declarations", () => {
   it("writes a package source at the given range", () => {
     expect(
@@ -118,13 +137,6 @@ describe("[unit] store/declarations", () => {
       package: "@antelopejs/dms-lang",
       version: "^0.1.1",
     });
-  });
-});
-
-describe("[unit] store/editable", () => {
-  it("follows the runtime mode by default", () => {
-    expect(isStoreEditable(true)).to.equal(true);
-    expect(isStoreEditable(false)).to.equal(false);
   });
 });
 

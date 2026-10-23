@@ -19,7 +19,10 @@ import DmsForm from "../Form.vue";
 import { dmsOwnDrawer } from "../../../build/composables/containers/context";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import { unlabeledRelationIds } from "../../../build/composables/data-types/relationValue";
-import { useRelationRows } from "../../../build/composables/data-types/relationRows";
+import {
+  notFoundRelationIds,
+  useRelationRows,
+} from "../../../build/composables/data-types/relationRows";
 import type { FormProps } from "../../../composables/form/types";
 import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
@@ -385,18 +388,35 @@ const labeledIds = computed(
 // keeps showing as is rather than being asked again.
 const requestedIds = new Set<string>();
 
+// The ids the route did not answer (deleted, out of reach), shown as "Not
+// found" with the id on hover.
+const notFoundIds: Ref<ReadonlySet<string>> = shallowRef(new Set());
+
 async function loadValueItems(ids: string[]) {
   for (const id of ids) requestedIds.add(id);
-  const rows = await readRelationRows(
-    { searchUrl: props.searchUrl, keyMapping: props.keyMapping },
-    ids,
-  );
-  if (!rows.length) return;
+  const source = { searchUrl: props.searchUrl, keyMapping: props.keyMapping };
+  const rows = await readRelationRows(source, ids);
+  const missing = notFoundRelationIds(source, ids, rows);
+  if (!rows.length && !missing.length) return;
+  notFoundIds.value = new Set([...notFoundIds.value, ...missing]);
   valueItems.value = [
     ...valueItems.value,
     ...rows.map((item) => mapData(item as Record<string, string>)),
+    // Kept pickable, so the value can still be deselected.
+    ...missing.map((id) => ({
+      label: t("dms.form.relation.not_found"),
+      value: id,
+    })),
   ];
 }
+
+const notFoundTitle = computed(() => {
+  const ids = [props.modelValue]
+    .flat()
+    .map(String)
+    .filter((id) => notFoundIds.value.has(id));
+  return ids.length ? ids.join(", ") : undefined;
+});
 
 // The picker shows a value through its item: an id no item carries yet is
 // labelled (and given its avatar) from its row before the picker is opened.
@@ -558,6 +578,7 @@ const addFormOptions = computed(() => {
     :ignore-filter="true"
     :ui="{ content: 'z-50' }"
     :aria-label="t('dms.a11y.show_options')"
+    :title="notFoundTitle"
     @update:open="onOpen"
     @update:model-value="handleUpdateModelValue"
   >

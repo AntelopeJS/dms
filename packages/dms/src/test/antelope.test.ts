@@ -19,6 +19,13 @@ const CLIENT_BASE_URL = "http://localhost:3001";
 const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
+// The harness sends no real email. nodemailer's `ethereal` option creates a
+// test account over the network when the module is constructed, so an Ethereal
+// outage failed the whole harness. A closed loopback port needs no network: a
+// send that reaches nodemailer is refused at once and reported as failed, and
+// the tests that check an email capture it before it is sent.
+const UNREACHABLE_SMTP_HOST = "127.0.0.1";
+const CLOSED_SMTP_PORT = 1;
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
@@ -100,7 +107,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.4.4",
+        "1.5.0",
       ),
     },
     "auth-jwt": {
@@ -114,7 +121,7 @@ export default defineConfig({
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.4.0 <2"),
+      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2"),
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
         servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],
@@ -124,7 +131,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.11",
+        "0.1.13",
       ),
     },
     nodemailer: {
@@ -134,7 +141,8 @@ export default defineConfig({
         version: "0.0.6",
       },
       config: {
-        ethereal: true,
+        host: UNREACHABLE_SMTP_HOST,
+        port: CLOSED_SMTP_PORT,
       },
     },
   },
