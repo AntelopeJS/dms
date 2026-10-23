@@ -31,7 +31,12 @@
 }
 
 /* Self-hosted Geist (SIL OFL 1.1, files and LICENSE.txt in ../fonts).
-   Variable files cover weights 100–900 and keep builds deterministic offline. */
+   Variable files cover weights 100–900 and keep builds deterministic offline.
+   Geist has no narrow no-break space (U+202F), which French and a few other
+   locales group digits with: a fallback face drew it a fraction of a digit
+   wide, so "1 234" read as "1234". Each file here maps U+202F to its no-break
+   space glyph (fontTools: cmap[0x202F] = cmap[0xA0]); keep that mapping when
+   updating them. */
 @font-face {
   font-family: "Geist";
   font-style: normal;
