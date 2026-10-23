@@ -12,7 +12,7 @@ import type {
   ComponentInfoSerialized,
 } from "../../component";
 import { childComponentClientId } from "./component-target";
-import { withPageRecord } from "./page-record";
+import { type PageRecordStatus, withPageRecord } from "./page-record";
 import {
   holdsPermissionGate,
   isPermissionGated,
@@ -54,7 +54,9 @@ async function serveHeaderButton(
  * `loadPermissions` is only called when a button declares a permission. When
  * one declares an `availability`, or the layout reads a record, the layout
  * says which page query it was served for (`headerActionsQuery`,
- * `headerActionsParams`), so the header asks again for another.
+ * `headerActionsParams`), so the header asks again for another. A layout
+ * reading a record also says how it read it (`recordStatus`), so the page
+ * leaves a record deleted under it.
  *
  * @internal
  */
@@ -63,13 +65,12 @@ export async function filterLayoutHeaderActions<T>(
   loadPermissions: () => Promise<Set<string>>,
   context: ComponentFilterContext,
   pagePermissionId: string | undefined,
+  recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
-  const { record, ...frame } = options;
-  const declaresRecord = record !== undefined;
-  const buttons = frame.headerActions;
-  if (!buttons) return { ...layout, options: frame as T };
+  const { record: _record, headerActions: buttons = [], ...frame } = options;
+  const declaresRecord = recordStatus !== undefined;
   let loaded: Promise<Set<string>> | undefined;
   const permissions = () => (loaded ??= loadPermissions());
   const served = await Promise.all(
@@ -83,14 +84,17 @@ export async function filterLayoutHeaderActions<T>(
       ),
     ),
   );
-  const servedOptions: DefaultLayoutSerializedOptions = {
-    ...frame,
-    headerActions: served.filter((button) => button !== undefined),
-  };
+  const servedOptions: DefaultLayoutSerializedOptions = { ...frame };
+  if (options.headerActions) {
+    servedOptions.headerActions = served.filter(
+      (button) => button !== undefined,
+    );
+  }
   if (declaresRecord || buttons.some((button) => button.availability)) {
     servedOptions.headerActionsQuery = context.query ?? {};
     servedOptions.headerActionsParams = context.params ?? {};
   }
+  if (declaresRecord) servedOptions.recordStatus = recordStatus;
   return { ...layout, options: servedOptions as T };
 }
 

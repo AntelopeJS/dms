@@ -290,6 +290,8 @@
         "forbidden_description": "Your role doesn't let you view this entry, so the form can't open on its current values. Ask an administrator for access.",
         "missing_title": "No entry selected",
         "missing_description": "This form shows one entry, and the address names none. Open it from an entry to see its values.",
+        "not_found_title": "Not found",
+        "not_found_description": "This entry does not exist, or no longer does: it may have been deleted.",
         "retry": "Try again"
       },
       "select_date": "Select date",

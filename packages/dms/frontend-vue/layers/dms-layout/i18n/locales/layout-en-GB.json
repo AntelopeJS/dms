@@ -100,6 +100,10 @@
       "no_content_title": "No content available",
       "no_content_message": "This page has not been configured yet. Please contact the administrator."
     },
+    "record_deleted": {
+      "title": "Deleted",
+      "description": "What this page showed was deleted. It is no longer available."
+    },
     "no_visible_blocks": {
       "title": "Nothing to show for you here",
       "description": "Your role doesn’t let you see any part of this page. Ask a workspace owner for access."

@@ -5,6 +5,7 @@ import type {
   CustomButtonSerialized,
 } from "../types/custom-button";
 import type { DefaultLayoutOptions } from "../layouts";
+import type { PageRecordStatus } from "../../page/internal/page-record";
 
 /**
  * A button of the page header as the layout serves it, right of the title.
@@ -61,4 +62,10 @@ export interface DefaultLayoutSerializedOptions extends Omit<
   headerActionsQuery?: Readonly<Record<string, string>>;
   /** The route parameters (`:id`) of the page URL, likewise. */
   headerActionsParams?: Readonly<Record<string, string>>;
+  /**
+   * How the layout's `record` was read for the page URL it was served for,
+   * set only when the layout reads one: the page leaves for its list once
+   * a record it showed is `missing`.
+   */
+  recordStatus?: PageRecordStatus;
 }

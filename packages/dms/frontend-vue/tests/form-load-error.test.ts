@@ -48,6 +48,14 @@ describe("a form's record load", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
+  it("reports a 404 as not found, apart from other failures", () => {
+    const apply = vi.fn();
+    const gone = Object.assign(new Error("Not Found"), { statusCode: 404 });
+    const load = trackFormRecordLoad(loadOf(ROW, gone), apply);
+    expect(load.failure.value).toBe("not_found");
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it("never applies the values an earlier opening left in the cache", () => {
     const apply = vi.fn();
     const load = trackFormRecordLoad(loadOf(ROW, new Error("network")), apply);
@@ -200,6 +208,12 @@ describe("the load error a form shows", () => {
     expect(html).toContain("dms.form.load_error.retry");
   });
 
+  it("says the entry is not found, with nothing to retry", async () => {
+    const html = await render("not_found");
+    expect(html).toContain("dms.form.load_error.not_found_title");
+    expect(html).not.toContain("dms.form.load_error.retry");
+  });
+
   it("says no entry is selected, with nothing to retry", async () => {
     const html = await render("missing");
     expect(html).toContain("dms.form.load_error.missing_title");
@@ -222,6 +236,8 @@ describe("the load error a form shows", () => {
         "forbidden_title",
         "missing_description",
         "missing_title",
+        "not_found_description",
+        "not_found_title",
         "retry",
       ]);
     }

@@ -4,6 +4,7 @@ import { holdPageHeaderActions } from "../composables/layout/usePageHeaderAction
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
 import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
 import { usePageDataRefresh } from "#dms-ui/app/build/composables/live/usePageDataRefresh";
+import { usePageRecordDeletion } from "../composables/page/usePageRecordDeletion";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
 
@@ -251,6 +252,12 @@ usePageLiveHost(
 );
 // The page's `useApiData` reads follow its refreshes and its realtime events.
 usePageDataRefresh(realtime);
+// A detail page leaves for its list once its record is deleted.
+usePageRecordDeletion({
+  pageLayout: () => pageLayout.value,
+  pageTopics: realtime.pageTopics,
+  subscribe: realtime.subscribe,
+});
 
 function buildPageSetupContext(
   pageInfo: PageInfo,
