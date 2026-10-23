@@ -1,8 +1,5 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import {
-  getPluginI18n,
-  resolveI18nKey,
-} from "../../../../../dms-core/app/composables/translation/useTranslation";
+import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 /** A formatter writing a number for a locale, with Intl's options. */
 type NumberFormatter = (
@@ -41,7 +38,7 @@ export function withNumberSuffix(format: NumberFormatter): DataTypeFormatter {
     if (!suffix || typeof value !== "number" || typeof formatted !== "string") {
       return formatted;
     }
-    const unit = resolveI18nKey(getPluginI18n().translate, suffix);
+    const unit = getAppTranslation().processI18n(suffix);
     return `${formatted}${UNIT_SEPARATOR}${unit}`;
   };
 }
