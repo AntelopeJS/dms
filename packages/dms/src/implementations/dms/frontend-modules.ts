@@ -24,12 +24,14 @@ import {
 } from "./frontend-bootstrap";
 import {
   applyDevManifestUrls,
+  devOriginRewrites,
   FRONTEND_MANIFEST_VERSION,
   type FrontendManifest,
   type ManifestFieldPolicy,
   type ManifestModuleEntry,
   listDroppedBackendProxies,
   type ModuleManifestShape,
+  type OriginRewrite,
   resolveClientOrigin,
   resolveRequestOrigin,
   stripPrivateManifestFields,
@@ -336,7 +338,7 @@ function applyDevManifestOverrides<T extends ManifestModuleEntry>(
   requestContext: RequestContext,
   clientUrl: string | undefined,
   outcome: BootstrapOutcome,
-): ModuleManifestShape<T> {
+): ModuleManifestShape<T> & { originRewrites: OriginRewrite[] } {
   const config = getConfig();
   const clientOrigin = resolveClientOrigin(clientUrl);
   const apiOrigin = resolveRequestOrigin(requestContext.rawRequest);
@@ -345,11 +347,15 @@ function applyDevManifestOverrides<T extends ManifestModuleEntry>(
     if (clientOrigin) setDevClientBaseUrl(clientOrigin);
     if (apiOrigin) setDevApiBaseUrl(apiOrigin);
   }
-  return applyDevManifestUrls(
-    manifest,
-    { apiBaseUrl: config.apiBaseUrl, clientBaseUrl: config.clientBaseUrl },
-    { apiBaseUrl: apiOrigin, clientBaseUrl: clientOrigin },
-  );
+  const configured = {
+    apiBaseUrl: config.apiBaseUrl,
+    clientBaseUrl: config.clientBaseUrl,
+  };
+  const overrides = { apiBaseUrl: apiOrigin, clientBaseUrl: clientOrigin };
+  return {
+    ...applyDevManifestUrls(manifest, configured, overrides),
+    originRewrites: devOriginRewrites(configured, overrides),
+  };
 }
 
 export async function buildFrontendManifest(
@@ -370,21 +376,18 @@ export async function buildFrontendManifest(
   );
   const selection = resolveFrontendSelection(renderer, rendererVersion);
   const { dev } = await GetRuntimeInfo();
-  let shaped: ModuleManifestShape<ServedModule> = stripPrivateManifestFields(
+  const shaped: ModuleManifestShape<ServedModule> = stripPrivateManifestFields(
     { modules: selectedModules(selection) },
     resolveManifestFieldPolicy(outcome, dev),
   );
-  if (dev) {
-    shaped = applyDevManifestOverrides(
-      shaped,
-      requestContext,
-      clientUrl,
-      outcome,
-    );
-  }
-  return {
+  const manifest: FrontendManifest<ServedModule> = {
     version: FRONTEND_MANIFEST_VERSION,
     modules: shaped.modules,
     settling: isStoreOperationRunning(),
+  };
+  if (!dev) return manifest;
+  return {
+    ...manifest,
+    ...applyDevManifestOverrides(shaped, requestContext, clientUrl, outcome),
   };
 }
