@@ -72,7 +72,9 @@ class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
 
   writeHeaders(headers: string[]): void {
-    fs.writeFileSync(this.filePath, `﻿${headers.join(",")}\n`);
+    // Quoted like the rows: a column named for a reader may hold a comma.
+    const headerLine = stringify([headers], { header: false });
+    fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
   appendRow(headers: string[], row: Record<string, unknown>): void {

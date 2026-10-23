@@ -24,7 +24,6 @@ import {
   findServedQuickAction,
 } from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
 import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "../../../composables/layout/usePageHeaderActions";
-import { type PageRecord, withPageRecord } from "../../../utils/pageRecord";
 
 /**
  * A button of the page header as the server serves it (`DefaultLayout({
@@ -44,8 +43,6 @@ export interface LayoutHeaderAction
   buttonId?: string;
   /** Place among the header's buttons, smallest first; `0` by default. */
   order?: number;
-  /** Acts on the page's record: disabled while it loads, gone without it. */
-  requiresRecord?: boolean;
 }
 
 interface PageHeaderActionBarProps {
@@ -55,8 +52,6 @@ interface PageHeaderActionBarProps {
    * among the buttons: after every button of an order up to this one.
    */
   slotOrder?: number;
-  /** The record the page shows, for the buttons acting on it. */
-  record?: PageRecord;
 }
 
 interface ResolvedHeaderAction {
@@ -71,7 +66,6 @@ interface ResolvedHeaderAction {
 
 const props = withDefaults(defineProps<PageHeaderActionBarProps>(), {
   slotOrder: DEFAULT_PAGE_HEADER_ACTIONS_ORDER,
-  record: undefined,
 });
 
 const { processI18n } = useTranslation();
@@ -279,8 +273,6 @@ function lockForPreview(action: ResolvedHeaderAction): ResolvedHeaderAction {
 
 const resolved = computed(() =>
   props.actions
-    .map((action) => withPageRecord(action, props.record))
-    .filter((action): action is LayoutHeaderAction => action !== null)
     .map(resolveAction)
     .filter((action): action is ResolvedHeaderAction => action !== null)
     .map(lockForPreview)

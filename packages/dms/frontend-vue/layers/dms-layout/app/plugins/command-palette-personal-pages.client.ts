@@ -11,15 +11,15 @@ const RECENT_MODULES_GROUP_ID = "recent-modules";
 
 function buildFavoritesGroup(
   favorites: FavoritePage[],
-  translate: I18nTranslate,
+  translation: AppTranslation,
 ): CommandPaletteGroup | null {
   if (favorites.length === 0) return null;
 
   return {
     id: FAVORITES_GROUP_ID,
-    label: translate("menu.favorites", {}),
+    label: translation.t("menu.favorites"),
     items: favorites.map((favorite) => ({
-      label: resolveI18nKey(translate, favorite.title),
+      label: translation.processI18n(favorite.title),
       icon: favorite.icon ?? DEFAULT_PAGE_ICON,
       to: favorite.path,
     })),
@@ -28,15 +28,15 @@ function buildFavoritesGroup(
 
 function buildRecentModulesGroup(
   modules: RecentModule[],
-  translate: I18nTranslate,
+  translation: AppTranslation,
 ): CommandPaletteGroup | null {
   if (modules.length === 0) return null;
 
   return {
     id: RECENT_MODULES_GROUP_ID,
-    label: translate("commandPalette.groups.recentModules", {}),
+    label: translation.t("commandPalette.groups.recentModules"),
     items: modules.map((module) => ({
-      label: resolveI18nKey(translate, module.title),
+      label: translation.processI18n(module.title),
       icon: module.icon,
       to: module.to,
     })),
@@ -44,17 +44,17 @@ function buildRecentModulesGroup(
 }
 
 export default defineDmsPlugin(() => {
-  const { translate } = getPluginI18n();
+  const translation = getAppTranslation();
   const { sortedFavorites } = useFavoritePages();
   const { entries } = useModuleHistory();
   const { modules, siteLayoutTree } = useSiteLayout();
 
   const groups = computed<CommandPaletteGroup[]>(() =>
     [
-      buildFavoritesGroup(sortedFavorites.value, translate),
+      buildFavoritesGroup(sortedFavorites.value, translation),
       buildRecentModulesGroup(
         recentModules(entries.value, modules.value, siteLayoutTree.value),
-        translate,
+        translation,
       ),
     ].filter((group): group is CommandPaletteGroup => group !== null),
   );

@@ -12,20 +12,25 @@ import type {
   ComponentInfoSerialized,
 } from "../../component";
 import { childComponentClientId } from "./component-target";
+import { withPageRecord } from "./page-record";
 import {
   holdsPermissionGate,
   isPermissionGated,
 } from "../../internal/permission-gate";
 
 async function serveHeaderButton(
-  button: PageHeaderButtonDeclared,
+  declared: PageHeaderButtonDeclared,
   permissions: () => Promise<Set<string>>,
   pagePermissionId: string | undefined,
   context: ComponentFilterContext,
+  declaresRecord: boolean,
 ): Promise<PageHeaderButtonSerialized | undefined> {
+  const button = withPageRecord(declared, declaresRecord, context.record);
+  if (!button) return undefined;
   const {
     permission: _permission,
     permissionId: _permissionId,
+    requiresRecord: _requiresRecord,
     availability,
     ...served
   } = button;
@@ -43,11 +48,13 @@ async function serveHeaderButton(
  * the header buttons whose gate the caller fails are left out — a `permission`
  * names an action of the page, relative to `pagePermissionId` — and those
  * whose `availability` refuses the request are disabled with its reason, or
- * left out when it hides them.
+ * left out when it hides them. The buttons acting on the page's record take
+ * its fields, or are left out without it (`context.record`, which
+ * `readPageRecord` read); the layout's `record` loader is not served.
  * `loadPermissions` is only called when a button declares a permission. When
- * one declares an `availability`, the layout says which page query it was
- * resolved for (`headerActionsQuery`, `headerActionsParams`), so the header
- * asks again for another.
+ * one declares an `availability`, or the layout reads a record, the layout
+ * says which page query it was served for (`headerActionsQuery`,
+ * `headerActionsParams`), so the header asks again for another.
  *
  * @internal
  */
@@ -58,20 +65,29 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
 ): Promise<ComponentInfo<T> | undefined> {
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
-  const buttons = options?.headerActions;
-  if (!layout || !buttons) return layout;
+  if (!layout || !options) return layout;
+  const { record, ...frame } = options;
+  const declaresRecord = record !== undefined;
+  const buttons = frame.headerActions;
+  if (!buttons) return { ...layout, options: frame as T };
   let loaded: Promise<Set<string>> | undefined;
   const permissions = () => (loaded ??= loadPermissions());
   const served = await Promise.all(
     buttons.map((button) =>
-      serveHeaderButton(button, permissions, pagePermissionId, context),
+      serveHeaderButton(
+        button,
+        permissions,
+        pagePermissionId,
+        context,
+        declaresRecord,
+      ),
     ),
   );
   const servedOptions: DefaultLayoutSerializedOptions = {
-    ...options,
+    ...frame,
     headerActions: served.filter((button) => button !== undefined),
   };
-  if (buttons.some((button) => button.availability)) {
+  if (declaresRecord || buttons.some((button) => button.availability)) {
     servedOptions.headerActionsQuery = context.query ?? {};
     servedOptions.headerActionsParams = context.params ?? {};
   }
