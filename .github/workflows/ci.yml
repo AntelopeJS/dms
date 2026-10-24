@@ -64,6 +64,10 @@ jobs:
       # The docs site builds its block reference from the committed catalog,
       # so a block option changed without regenerating it fails here.
       - run: pnpm --dir packages/dms docs:catalog:check
+      # `ajs dms dev`, `build` and `start` take a module's frontend from its
+      # `dmsFrontend` declaration, not from AddFrontendModule: a package
+      # without one loses its components, with a mere warning.
+      - run: pnpm --dir packages/dms check:frontend-declarations
 
   backend:
     runs-on: ubuntu-latest

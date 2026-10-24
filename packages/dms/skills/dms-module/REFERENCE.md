@@ -33,6 +33,7 @@ first-party modules follow `dms-<name>` purely for discoverability.
 ```jsonc
 {
   "main": "dist/index.js", "types": "dist/index.d.ts",
+  "dmsFrontend": "dist/frontend-module.js",          // exports frontendModule(config, { dev }) (omit if no frontend)
   "antelopeJs": {
     "baseUrl": "dist",
     "implements": ["<your-interface-package>"],  // the interface THIS module provides (omit/[] if none)
@@ -80,7 +81,8 @@ AntelopeJS — see the **ajs-author-interface** and **ajs-consume-interface** sk
    `frontend-vue/` (components registered from the root `dms.frontend.ts`), `skills/<name>/SKILL.md`,
    and the manifest (`antelopeJs` block with `skills`, plus the interface package's `exports`).
 4. **Wire the basics**: `RegisterModule({ id, title, icon, … })`, one `@RegisterPage()` page,
-   the `AddFrontendModule` call. Add the `$dms_<name>.*` keys to **every** locale file under
+   `src/frontend-module.ts` (`frontendModule`, declared as `dmsFrontend`) passed to
+   `AddFrontendModule`. Add the `$dms_<name>.*` keys to **every** locale file under
    `frontend-vue/i18n/locales/`.
 5. **Load and verify**: add the module to a consumer project's `antelope.config.ts` (the
    backend's `playground` is the reference consumer) as a `package`/`git`/local-path module,
