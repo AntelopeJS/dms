@@ -1,4 +1,10 @@
-import { computed, getCurrentInstance, onMounted, type Ref } from "vue";
+import {
+  computed,
+  getCurrentInstance,
+  onMounted,
+  shallowRef,
+  type Ref,
+} from "vue";
 
 /** How keyboard hints are printed: macOS/iOS symbols, or PC key names. */
 export type KeyboardPlatform = "mac" | "other";
@@ -10,6 +16,12 @@ export type KeyboardPlatform = "mac" | "other";
  */
 export const KEYBOARD_PLATFORM_COOKIE = "dms-keyboard-platform";
 const KEYBOARD_PLATFORM_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+/**
+ * The platform the server rendered the page's hints with, handed to the
+ * browser with the page: the cookie may change before every hint has
+ * hydrated.
+ */
+const RENDERED_KEYBOARD_PLATFORM_STATE = "dms-keyboard-platform-rendered";
 /** What the server renders before the browser has said otherwise. */
 export const DEFAULT_KEYBOARD_PLATFORM: KeyboardPlatform = "other";
 
@@ -91,12 +103,17 @@ function normalizePlatform(value: unknown): KeyboardPlatform {
 }
 
 /**
- * The keyboard platform every hint renders with, shared by all callers. The
- * server and the hydrating browser both start from the cookie, so their HTML
- * matches; once mounted, the browser detects its platform and, if the cookie
- * was wrong or missing, corrects it, which re-renders the hints in place and
- * lets the next server render get them right. Only labels follow it: the key
- * bindings themselves stay with `defineShortcuts`.
+ * The keyboard platform every hint renders with, shared by all callers.
+ *
+ * The server renders the cookie's platform and hands it to the browser with
+ * the page. A component the browser creates while it hydrates that page
+ * (`isDmsHydrating()`) renders it too, until its own `onMounted`: the first
+ * hint to mount corrects the cookie, and a hint hydrating after it (an async
+ * component) must still draw what the server drew. Once mounted, the browser
+ * detects its platform and, if the cookie was wrong or missing, corrects it,
+ * which re-renders the hints in place and lets the next server render get
+ * them right. Only labels follow it: the key bindings themselves stay with
+ * `defineShortcuts`.
  */
 export function useKeyboardPlatform() {
   const stored: Ref<KeyboardPlatform> = useDmsCookie<KeyboardPlatform>(
@@ -106,13 +123,23 @@ export function useKeyboardPlatform() {
       maxAge: KEYBOARD_PLATFORM_COOKIE_MAX_AGE,
     },
   );
-  if (getCurrentInstance()) {
+  const rendered = useDmsState<KeyboardPlatform>(
+    RENDERED_KEYBOARD_PLATFORM_STATE,
+    () => normalizePlatform(stored.value),
+    { transfer: true },
+  );
+  const inComponent = getCurrentInstance() !== null;
+  const hydrating = shallowRef(inComponent && isDmsHydrating());
+  if (inComponent) {
     onMounted(() => {
+      hydrating.value = false;
       const detected = detectKeyboardPlatform(window.navigator);
       if (stored.value !== detected) stored.value = detected;
     });
   }
-  const platform = computed(() => normalizePlatform(stored.value));
+  const platform = computed(() =>
+    normalizePlatform(hydrating.value ? rendered.value : stored.value),
+  );
   return {
     platform,
     isMac: computed(() => platform.value === "mac"),

@@ -70,6 +70,8 @@ function installRuntime(initialCookies: Record<string, unknown>) {
   vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
     ref(initial()),
   );
+  // Mounted without a server render: nothing to hydrate.
+  vi.stubGlobal("isDmsHydrating", () => false);
   // One ref per cookie, shared by every caller, as `useDmsCookie` does.
   vi.stubGlobal(
     "useDmsCookie",

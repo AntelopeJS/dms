@@ -65,6 +65,8 @@ function installRuntime() {
   vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
     ref(initial()),
   );
+  // Mounted without a server render: nothing to hydrate.
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.stubGlobal(
     "useDmsCookie",
     (_key: string, options: { default: () => unknown }) =>
