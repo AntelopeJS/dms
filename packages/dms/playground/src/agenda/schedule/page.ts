@@ -56,7 +56,7 @@ export class PageAgendaSchedule extends PageController(
     },
     {
       label: "Read the checks",
-      text: "The sidebar's notices: Noémie Leroy's Tuesday without a break, Virginie Defays past 9 hours, Manon Bertrand back after less than 11 hours of rest, NE1 two people short on Saturday. The route computes them again on each save: give NE1 a third person on Saturday, save, the line goes.",
+      text: "A shift's own problems are its issues (red edge, listed in the sidebar's checks): Noémie Leroy's Tuesday without a break, Virginie Defays past 9 hours, Manon Bertrand back after less than 11 hours of rest. The agenda's own problems are the route's notices: NE1 two people short on Saturday. The route computes both again on each save: give NE1 a third person on Saturday, save, the line goes.",
     },
     {
       label: "Try Monday at NE1",

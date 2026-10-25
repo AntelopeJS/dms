@@ -132,23 +132,6 @@ export function decorateShift(
   };
 }
 
-function shiftNotices(
-  events: AgendaEvent[],
-  from: string,
-  to: string,
-): AgendaNotice[] {
-  return events
-    .filter((shift) => dayOf(shift.start) >= from && dayOf(shift.start) <= to)
-    .flatMap((shift) =>
-      shiftIssues(shift, events).map((issue, index) => ({
-        id: `${shift.id}-${index}`,
-        tone: issue.tone,
-        message: `${shift.title} — ${dayLabel(dayOf(shift.start))} : ${issue.message}`,
-        eventId: shift.id,
-      })),
-    );
-}
-
 function staffingNotice(
   store: Store,
   day: string,
@@ -170,9 +153,11 @@ function staffingNotice(
 }
 
 /**
- * The checks of the days shown, the sidebar's notices: a shift past 6 hours
- * without a break, past 9 hours worked, less than 11 hours of rest, and the
- * stores under the staff they need. Errors first.
+ * The agenda's own problems of the days shown, the sidebar's notices: the
+ * stores under the staff they need, per day. A shift's own problems (a
+ * break, 9 hours, 11 hours of rest) are its `issues`, which mark its chip
+ * and are listed with the notices: answering them here too would list them
+ * twice.
  */
 export function scheduleNotices(
   state: AgendaState,
@@ -186,7 +171,7 @@ export function scheduleNotices(
   const staffing = STORES.flatMap((store) =>
     days.flatMap((day) => staffingNotice(store, day, state.events)),
   );
-  return [...shiftNotices(state.events, from, to), ...staffing];
+  return staffing;
 }
 
 function overlaps(shift: AgendaEvent, other: AgendaEvent): boolean {

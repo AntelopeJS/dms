@@ -21,7 +21,9 @@ export const ROSTER_PERIOD_SCOPE = "agenda-roster";
 const ONE_WEEK = 7;
 const THREE_WEEKS = 21;
 const RESOURCE_AREA_WIDTH = 230;
-const COLUMN_MIN_WIDTH = 88;
+// A day column holds a shift's hours ("09:30–18:30") in compact density;
+// three weeks scroll sideways past it.
+const COLUMN_MIN_WIDTH = 104;
 
 // The published weeks, in the period selector's URL keys.
 const PUBLISHED_WEEKS = `${agendaPagePath(AGENDA_ROSTER_SLUG)}?${ROSTER_PERIOD_SCOPE}.period=custom&${ROSTER_PERIOD_SCOPE}.from=${ROSTER_FIRST_DAY}&${ROSTER_PERIOD_SCOPE}.to=${ROSTER_LAST_DAY}`;
@@ -137,6 +139,7 @@ export class PageAgendaRoster extends PageController(
     create: false,
     // A shift's title is its hours; its type is its colour and the legend.
     eventContent: { time: false, subtitle: false },
+    density: "compact",
     height: "40rem",
   });
 }
