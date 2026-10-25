@@ -110,9 +110,10 @@ export interface AgendaView {
 /**
  * A named part of the day (a quarter day "S1" 08:00–10:00, a shift
  * "Morning"). With `slots`, a `timeline` by slot has a column per slot of
- * each day, time grids draw a line at each slot's start, and a drop snaps
- * to a slot start; an event spanning more slots than the day has left runs
- * on into the next day's first slots.
+ * each day, time grids draw a line at each slot's start (their drops still
+ * snap to `snapMinutes`), a drop on a timeline by slot snaps to a slot start,
+ * and an event spanning more slots than the day has left runs on into the
+ * next shown day's first slots.
  */
 export interface AgendaSlot {
   id: string;
@@ -244,6 +245,14 @@ export interface AgendaRecurrence {
   count?: number;
   /** Days left out of the series (moved or cancelled occurrences). */
   exceptions?: string[];
+  /**
+   * The zone the series keeps its wall clock and its days in (IANA): a 09:00
+   * standup stays at 09:00 there across clock changes, and `weekdays`,
+   * `until`, `exceptions` and an occurrence's day are days of that zone.
+   * Defaults to the block's `timeZone`, else the reader's — set it whenever
+   * readers may sit in another zone than the route.
+   */
+  timeZone?: string;
 }
 
 /** One event. See the time model at the top of this file. */
@@ -358,16 +367,20 @@ export type AgendaChangeKind =
   | "schedule"
   | "unschedule";
 
-/** The fields a change sets on an event. */
+/**
+ * The fields a change sets on an event. An absent field is kept; `null`
+ * clears it (a place emptied in the form, an `end` the event did not have,
+ * which Undo puts back). Under `data`, a key set to `null` is cleared.
+ */
 export interface AgendaEventPatch {
   title?: string;
   start?: string;
-  end?: string;
+  end?: string | null;
   allDay?: boolean;
-  calendarId?: string;
+  calendarId?: string | null;
   resourceIds?: string[];
-  location?: string;
-  description?: string;
+  location?: string | null;
+  description?: string | null;
   data?: Record<string, unknown>;
 }
 
@@ -401,8 +414,14 @@ export interface AgendaChange {
 export interface AgendaSaveRequest {
   /** One change in `immediate` mode, every staged one in `staged` mode. */
   changes: AgendaChange[];
-  /** The user confirmed what a `confirm` answer asked, or chose Overwrite on a conflict. */
+  /** The user confirmed what a `confirm` answer asked: the route writes without asking again. */
   force?: boolean;
+  /**
+   * The user chose Overwrite on a conflict: the route writes these changes
+   * over what moved meanwhile. It still asks its `confirm` questions unless
+   * `force` is set too.
+   */
+  overwrite?: boolean;
   /** The block's `conflicts` mode. */
   conflicts: AgendaConflictMode;
   /** The range and view shown, so the route can answer the notices that follow. */

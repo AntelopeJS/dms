@@ -248,6 +248,8 @@ export interface AgendaRecurrence {
   count?: number;
   /** Days left out of the series (moved or cancelled occurrences). */
   exceptions?: string[];
+  /** The zone the series keeps its wall clock and its days in. Defaults to the block's `timeZone`, else the reader's. */
+  timeZone?: string;
 }
 
 /** One event. See the time model at the top of this file. */
@@ -362,16 +364,16 @@ export type AgendaChangeKind =
   | "schedule"
   | "unschedule";
 
-/** The fields a change sets on an event. */
+/** The fields a change sets on an event. Absent: kept; `null`: cleared (also a `data` key set to `null`). */
 export interface AgendaEventPatch {
   title?: string;
   start?: string;
-  end?: string;
+  end?: string | null;
   allDay?: boolean;
-  calendarId?: string;
+  calendarId?: string | null;
   resourceIds?: string[];
-  location?: string;
-  description?: string;
+  location?: string | null;
+  description?: string | null;
   data?: Record<string, unknown>;
 }
 
@@ -405,8 +407,10 @@ export interface AgendaChange {
 export interface AgendaSaveRequest {
   /** One change in `immediate` mode, every staged one in `staged` mode. */
   changes: AgendaChange[];
-  /** The user confirmed what a `confirm` answer asked, or chose Overwrite on a conflict. */
+  /** The user confirmed what a `confirm` answer asked: the route writes without asking again. */
   force?: boolean;
+  /** The user chose Overwrite on a conflict; `confirm` questions are still asked unless `force`. */
+  overwrite?: boolean;
   /** The block's `conflicts` mode. */
   conflicts: AgendaConflictMode;
   /** The range and view shown, so the route can answer the notices that follow. */

@@ -6,7 +6,11 @@ import {
   RegisterBlockType,
   ui,
 } from "./block-registry";
-import { blockPeriodScopeOption, blockRealtimeTopicOption } from "./display";
+import {
+  blockFetchUrlMethodOption,
+  blockPeriodScopeOption,
+  blockRealtimeTopicOption,
+} from "./display";
 import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import type {
   AgendaBusinessHours,
@@ -81,7 +85,7 @@ export function FullAgenda(
 
 const timeOfDay = z
   .string()
-  .regex(/^([01]\d|2[0-4]):[0-5]\d$/, "A time of day, HH:MM");
+  .regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, "A time of day, HH:MM");
 
 /** The options `FullAgenda` accepts. */
 export const FullAgendaSchema = z.object({
@@ -97,11 +101,7 @@ export const FullAgendaSchema = z.object({
     z.string().optional().describe("Where the events are read from."),
     { label: "Data source", group: "data", widget: "dataSource" },
   ),
-  fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
-    label: "HTTP method",
-    group: "advanced",
-    widget: "select",
-  }),
+  fetchUrlMethod: blockFetchUrlMethodOption(),
   realtimeTopic: blockRealtimeTopicOption(),
   staticData: ui(opaqueOption<AgendaData>().optional(), {
     label: "Static data",
