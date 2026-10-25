@@ -12,6 +12,7 @@ export const DEMO_TIME_ZONE = "Europe/Brussels";
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
 const MS_PER_DAY = 86_400_000;
+const HALF_DAY_MS = MS_PER_DAY / 2;
 const DAYS_PER_WEEK = 7;
 const DAY_KEY_LENGTH = 10;
 const PAD = 2;
@@ -126,7 +127,23 @@ export function zonedInstant(
   const [year, month, date] = splitDay(day);
   const [hour = 0, minute = 0] = time.split(":").map(Number);
   const wall = Date.UTC(year, month - 1, date, hour, minute);
-  // Twice: the offset at the first guess may be the other side of a change.
+  // The zone's offsets around that day, largest first: a wall time the
+  // clock goes through twice (02:30 on the last Sunday of October) is its
+  // first, earlier instant, as the block takes it.
+  const offsets = [
+    ...new Set([
+      offsetMinutes(wall - HALF_DAY_MS, format),
+      offsetMinutes(wall + HALF_DAY_MS, format),
+    ]),
+  ].sort((left, right) => right - left);
+  for (const offset of offsets) {
+    const instant = wall - offset * MS_PER_MINUTE;
+    if (offsetMinutes(instant, format) === offset) {
+      return isoInstant(instant, timeZone);
+    }
+  }
+  // A wall time the clock skips (02:30 on the last Sunday of March): the
+  // offset after the change. Twice: the first guess may be either side.
   const guess = wall - offsetMinutes(wall, format) * MS_PER_MINUTE;
   return isoInstant(
     wall - offsetMinutes(guess, format) * MS_PER_MINUTE,

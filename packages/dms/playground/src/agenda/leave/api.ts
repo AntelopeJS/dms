@@ -20,7 +20,7 @@ import { badRequest } from "../../matrix/save";
 import { eventsFor, readAgendaQuery } from "../query";
 import { actionId, missing, readAgendaSave } from "../save";
 import { AgendaStore, type AgendaState, type RuleContext } from "../store";
-import { currentWeek, eventDays } from "../time";
+import { currentWeek, eventDays, todayKey } from "../time";
 import {
   asRequest,
   belgianHolidays,
@@ -121,7 +121,9 @@ function completeAbsence(event: AgendaEvent): AgendaEvent {
 
 const store = new AgendaStore(seedLeave, {
   idPrefix: "leave",
-  anchor: currentWeek,
+  // The seed is the year's absences and next weeks' requests: a new year
+  // or a new week reseeds it.
+  anchor: () => `${todayKey().slice(0, 4)}:${currentWeek()}`,
   refuse: refuseAbsence,
   complete: completeAbsence,
   decorate: (event) => ({ ...event, title: leaveLabel(event.calendarId) }),

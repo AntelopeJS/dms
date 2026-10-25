@@ -18,7 +18,7 @@ import { eventsFor, readAgendaQuery } from "../query";
 import { readAgendaSave } from "../save";
 import { AgendaStore, type RuleContext } from "../store";
 import { currentWeek, timeOf } from "../time";
-import { roomName, seedBookings } from "./data";
+import { onCallData, roomName, seedBookings } from "./data";
 import { AGENDA_EMBEDDED_API, PageAgendaEmbedded } from "./page";
 
 function overlaps(event: AgendaEvent, other: AgendaEvent): boolean {
@@ -77,6 +77,12 @@ export class AgendaEmbeddedController extends Controller(AGENDA_EMBEDDED_API) {
   @Post("save")
   save(@JSONBody() body: AgendaSaveRequest): AgendaSaveResponse {
     return store.save(readAgendaSave(body));
+  }
+
+  /** The IT on-call turns, read-only, computed from the current week on each read. */
+  @Get("on-call")
+  onCall(): AgendaData {
+    return onCallData();
   }
 
   @Post("reset")

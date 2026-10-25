@@ -50,8 +50,23 @@ export interface AgendaSaveInput {
   view: string;
 }
 
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const SCOPES = new Set(["occurrence", "series"]);
+
+/** An occurrence is a day (`YYYY-MM-DD`), a scope one of the two. */
+function hasValidOccurrence(change: AgendaChange): boolean {
+  const { occurrence, scope } = change;
+  if (occurrence !== undefined) {
+    if (typeof occurrence !== "string" || !DAY_PATTERN.test(occurrence)) {
+      return false;
+    }
+  }
+  return scope === undefined || SCOPES.has(scope);
+}
+
 function isChange(change: AgendaChange | null | undefined): boolean {
   if (!change || !CHANGE_KINDS.has(change.kind)) return false;
+  if (!hasValidOccurrence(change)) return false;
   if (KINDS_WITH_ID.has(change.kind)) return typeof change.id === "string";
   return true;
 }
@@ -69,7 +84,7 @@ export function readAgendaSave(
   const changes = body?.changes;
   if (!Array.isArray(changes) || !changes.every(isChange)) {
     throw badRequest(
-      "Expected { changes: [{ kind, id?, tempId?, patch?, previous? }], conflicts, from, to, view }.",
+      "Expected { changes: [{ kind, id?, tempId?, patch?, previous?, occurrence?: YYYY-MM-DD, scope?: occurrence | series }], conflicts, from, to, view }.",
     );
   }
   return {

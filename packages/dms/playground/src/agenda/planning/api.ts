@@ -96,6 +96,8 @@ function movesTask(change: AgendaChange): boolean {
 }
 
 function colleagueMoves(input: AgendaSaveInput): void {
+  // A new week reseeds first, giving the colleague's move back.
+  store.reanchor();
   if (colleagueMoved) return;
   // A remark edited on the task leaves the colleague's move for a real one.
   if (!input.changes.some(movesTask)) return;

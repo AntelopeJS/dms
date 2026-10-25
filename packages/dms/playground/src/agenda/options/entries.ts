@@ -36,7 +36,7 @@ export const DATA_OPTIONS: OptionEntry[] = [
   },
   {
     option: "staticData without saveUrl",
-    text: "A read-only agenda without a route.",
+    text: "A read-only agenda without a route, its data fixed when the page is declared.",
     page: AGENDA_OPTIONS_SLUG,
   },
   {

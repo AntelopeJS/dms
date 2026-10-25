@@ -334,9 +334,17 @@ export class AgendaStore {
    * demo relative to "this week" never shows last week's data.
    */
   private get state(): AgendaState {
-    const anchor = this.rules.anchor?.();
-    if (anchor !== undefined && anchor !== this.anchoredOn) this.reset();
+    this.reanchor();
     return this.stored;
+  }
+
+  /**
+   * Reseeds the demo when the week it was seeded for is over; a route calls
+   * it before reading what it keeps beside the store.
+   */
+  reanchor(): void {
+    const anchor = this.rules.anchor?.();
+    if (anchor !== undefined && anchor !== this.anchoredOn) this.reset(anchor);
   }
 
   get events(): AgendaEvent[] {
@@ -347,11 +355,16 @@ export class AgendaStore {
     return this.state.pending;
   }
 
-  /** Back to the seed, its dates computed again from today. */
-  reset(): void {
+  /**
+   * Back to the seed, its dates computed again from today. The anchor is
+   * read before the seed: across midnight on Sunday the seed may already be
+   * next week's, and the next read reseeds it once more, never the other
+   * way round.
+   */
+  reset(anchor = this.rules.anchor?.()): void {
+    this.anchoredOn = anchor;
     this.stored = this.seed();
     this.sequence = 0;
-    this.anchoredOn = this.rules.anchor?.();
     this.rules.onReset?.();
   }
 

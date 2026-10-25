@@ -122,7 +122,7 @@ export class PageAgendaOptions extends PageController(
   static week = FullAgenda({
     title: "Semaine du bureau",
     description:
-      "staticData: no route, nothing to save. A recurring point three days a week, an all-day seminar.",
+      "staticData: no route, nothing to save. A recurring point three days a week, an all-day seminar. Given in the options, its days are computed once, when the playground starts: they stay on that week until a restart.",
     staticData: officeWeek(),
     views: ["week", "month", "list"],
     weekStartsOn: 1,

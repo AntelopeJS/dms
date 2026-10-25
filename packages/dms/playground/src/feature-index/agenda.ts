@@ -209,4 +209,9 @@ export const AGENDA_FEATURES: PlaygroundFeature[] = [
     PAGES.embedded,
   ),
   feature("An agenda without a toolbar", "toolbar: false", PAGES.embedded),
+  feature(
+    "A read-only agenda from a route",
+    "FullAgenda({ fetchUrl }) without saveUrl",
+    PAGES.embedded,
+  ),
 ];

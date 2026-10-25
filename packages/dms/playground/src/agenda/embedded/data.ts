@@ -82,8 +82,8 @@ const ON_CALL: OnCallSeed[] = [
 ];
 
 /**
- * The IT on-call turns, given as static data (no route): computed once when
- * the playground starts, from that day's week.
+ * The IT on-call turns of this week and the next, read-only: computed on
+ * each read, from the current week.
  */
 export function onCallData(): AgendaData {
   const monday = mondayOf(todayKey());

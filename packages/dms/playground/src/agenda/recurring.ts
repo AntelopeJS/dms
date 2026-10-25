@@ -33,6 +33,8 @@ import {
  */
 
 const DAYS_PER_WEEK = 7;
+const DEFAULT_START = "09:00";
+const DEFAULT_MINUTES = 60;
 
 /** The start and end of one occurrence of a series. */
 interface Occurrence {
@@ -140,6 +142,14 @@ function movedSeries(
         ? undefined
         : addDays(firstDay, daysBetween(first, last));
     return { start: firstDay, end, allDay: true };
+  }
+  // An all-day series turned timed without times gets a one-hour slot.
+  if (isDayKey(patch.start ?? occurrence.start)) {
+    const seriesStart = zonedInstant(firstDay, DEFAULT_START, zone);
+    return {
+      start: seriesStart,
+      end: addMinutes(seriesStart, DEFAULT_MINUTES, zone),
+    };
   }
   const start = patch.start ?? occurrence.start;
   const seriesStart = zonedInstant(firstDay, timeOf(start, zone), zone);

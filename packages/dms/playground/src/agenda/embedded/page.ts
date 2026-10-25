@@ -7,7 +7,7 @@ import { demoGuide } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
 import { DEMO_TIME_ZONE } from "../time";
 import { TEAM_CALENDARS } from "../team/data";
-import { onCallData, ROOMS } from "./data";
+import { ROOMS } from "./data";
 
 export const AGENDA_EMBEDDED_SLUG = "agenda-embedded";
 export const AGENDA_EMBEDDED_API = `${AGENDA_API}/embedded`;
@@ -114,7 +114,7 @@ export class PageAgendaEmbedded extends PageController(
     },
     {
       label: "Read the on-call turns",
-      text: "staticData and no saveUrl: a read-only agenda without a route; toolbar: false hides the whole toolbar, the month view is its only view. It sets no timeZone, so it draws in your own zone (your regional preferences), unlike the Brussels agendas above.",
+      text: "A fetchUrl and no saveUrl: a read-only agenda (nothing is dragged, nothing created); toolbar: false hides the whole toolbar, the month view is its only view. It sets no timeZone, so it draws in your own zone (your regional preferences), unlike the Brussels agendas above. Data given in the options (staticData) is on the overview page.",
     },
   ]);
 
@@ -163,7 +163,9 @@ export class PageAgendaEmbedded extends PageController(
 
   static onCall = FullAgenda({
     title: "Astreintes IT",
-    staticData: onCallData(),
+    // Read-only: a route and no saveUrl. The turns are computed on each
+    // read, so they follow the current week.
+    fetchUrl: `${AGENDA_EMBEDDED_API}/on-call`,
     views: ["month"],
     weekStartsOn: 1,
     toolbar: false,

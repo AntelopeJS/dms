@@ -60,7 +60,7 @@ function refusePrestation(
       sameDays(event, other),
   );
   return clash
-    ? `Cette personne a déjà une prestation ce jour-là (${clash.title}).`
+    ? `Cette personne a déjà une prestation ce jour-là (${titledByHours(clash).title}).`
     : undefined;
 }
 
