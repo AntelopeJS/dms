@@ -399,6 +399,19 @@ export interface TableViewReorderOptions {
   field: string;
 }
 
+/**
+ * Which cells a table view edits in place (see
+ * {@link TableViewOptions.inlineEdit}).
+ */
+export interface TableViewInlineEditOptions {
+  /**
+   * The columns edited in place, by field id, among those that can be. Left
+   * out, every column that can be.
+   * @example ["price", "stock", "active"]
+   */
+  columns?: string[];
+}
+
 /** What a footer summary computes over the rows the table lists. */
 export type TableViewSummaryOperation = "sum" | "count";
 
@@ -1130,6 +1143,33 @@ export interface TableViewOptions<
    * filter or a tab narrows the rows. Needs the `edit` action.
    */
   reorder?: TableViewReorderOptions;
+  /**
+   * Lets the user edit a row's simple values in the grid, one cell at a
+   * time, each saved at once by a partial edit (`PUT <location>/edit` with
+   * that field alone): a click on a cell turns it into its field's input,
+   * Enter or leaving the cell saves, Esc cancels; a pick in a select or a
+   * date picker saves, and a switch or a checkbox saves as it toggles,
+   * without opening anything. The click edits the cell and does not open
+   * the row; a click anywhere else on the row still does.
+   *
+   * A cell is edited in place when its column is listed, is in the edit
+   * form and writable there, is not localized, and its input is a simple
+   * one: a text, email, phone or URL, a number, price or percentage, a
+   * switch or checkbox, a single select or segmented select, a single date,
+   * a time or a colour. Any other column (a relation, rich text, code,
+   * files, images, a list, an address, key-values, tags) keeps its display
+   * and is edited through the edit form. A row the `edit` action's `rule`
+   * refuses keeps its display, and so does a field its `disabledWhen` makes
+   * read-only or its `visibleWhen` hides, evaluated on the listed row.
+   *
+   * On the grid and the `grouped` display; the board and the cards are
+   * left as they are. Needs the `edit` action: a caller without it gets the
+   * read-only grid. Ignored by `TableView.fromSource`, which has no edit
+   * route.
+   * @example true
+   * @example { columns: ["price", "stock", "active"] }
+   */
+  inlineEdit?: boolean | TableViewInlineEditOptions;
   /**
    * Offers the `grouped` display: the grid's columns with a header row per
    * group of rows. A view may open in it (`display: "grouped"`).
