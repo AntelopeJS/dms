@@ -10660,12 +10660,12 @@
           }
         },
         "columnFilters": {
-          "type": "boolean",
+          "type": "unknown",
           "optional": true,
           "ui": {
             "label": "Column filters",
             "group": "features",
-            "widget": "switch"
+            "widget": "json"
           }
         },
         "urlState": {
@@ -10812,7 +10812,6 @@
           "selectable",
           "search",
           "sortable",
-          "columnFilters",
           "urlState",
           "crossHighlight",
           "columnsMenu",
