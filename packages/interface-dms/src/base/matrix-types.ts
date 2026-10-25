@@ -3,6 +3,7 @@ import type {
   ActionTarget,
   ActionTargetSerialized,
 } from "./types/action-target";
+import type { FieldCondition } from "./form-types";
 import type { BlockText } from "./types/composed-text";
 import type { HttpMethod } from "./types/http";
 import type { Tone } from "./types/tone";
@@ -386,6 +387,12 @@ export interface MatrixRowAction {
   icon?: string;
   tone?: MatrixTone;
   target: ActionTarget;
+  /**
+   * Offers the action only on the rows whose value in `field` is one of
+   * `in` (Revert on an overridden key, Override on the others). The route
+   * still checks it.
+   */
+  visibleWhen?: FieldCondition;
 }
 
 /** A row action as the block receives it, its target serialized. */
@@ -494,9 +501,11 @@ export interface MatrixProps extends BaseComponentProps {
   /**
    * A filter per column in its header (contains, is), sent as
    * `filter_<columnId>=<mode>:<value>` like a table view's, and shown as
-   * removable chips.
+   * removable chips. `true` for every column that can be filtered (text,
+   * number, date, select, tags, boolean); a list of column ids for those
+   * alone.
    */
-  columnFilters?: boolean;
+  columnFilters?: boolean | string[];
   /** Keeps page, search, status and facets in the page URL. Defaults to `true`. */
   urlState?: boolean;
 

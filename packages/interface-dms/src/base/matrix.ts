@@ -211,10 +211,10 @@ export const MatrixSchema = z.object({
     group: "features",
     widget: "switch",
   }),
-  columnFilters: ui(z.boolean().optional(), {
+  columnFilters: ui(opaqueOption<boolean | string[]>().optional(), {
     label: "Column filters",
     group: "features",
-    widget: "switch",
+    widget: "json",
   }),
   urlState: ui(z.boolean().optional(), {
     label: "Keep state in the URL",
