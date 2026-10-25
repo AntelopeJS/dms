@@ -19,15 +19,35 @@ const MONDAY = 1;
 // ISO 8601: week 1 holds the year's first Thursday.
 const THURSDAY = 4;
 
-const ZONE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  timeZone: DEMO_TIME_ZONE,
-  hourCycle: "h23",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+function zoneFormat(timeZone: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const ZONE_FORMAT = zoneFormat(DEMO_TIME_ZONE);
+const OTHER_ZONES = new Map<string, Intl.DateTimeFormat>();
+
+// The formats of the zones readers send (`tz`), built once each; an unknown
+// zone reads in the demo zone.
+function formatOf(timeZone: string | undefined): Intl.DateTimeFormat {
+  if (!timeZone || timeZone === DEMO_TIME_ZONE) return ZONE_FORMAT;
+  const known = OTHER_ZONES.get(timeZone);
+  if (known) return known;
+  try {
+    const format = zoneFormat(timeZone);
+    OTHER_ZONES.set(timeZone, format);
+    return format;
+  } catch {
+    return ZONE_FORMAT;
+  }
+}
 
 /** A wall-clock reading of an instant in the demo zone. */
 interface WallTime {
@@ -38,9 +58,9 @@ interface WallTime {
   minute: number;
 }
 
-function wallTime(ms: number): WallTime {
+function wallTime(ms: number, format = ZONE_FORMAT): WallTime {
   const parts: Record<string, number> = {};
-  for (const part of ZONE_FORMAT.formatToParts(new Date(ms))) {
+  for (const part of format.formatToParts(new Date(ms))) {
     if (part.type !== "literal") parts[part.type] = Number(part.value);
   }
   return {
@@ -104,10 +124,13 @@ export function isDayKey(value: string): boolean {
   return value.length === DAY_KEY_LENGTH;
 }
 
-/** The day an instant falls on in the demo zone; a day is its own. */
-export function dayOf(value: string): string {
+/**
+ * The day an instant falls on in a zone (the demo zone by default); a day
+ * is its own.
+ */
+export function dayOf(value: string, timeZone?: string): string {
   if (isDayKey(value)) return value;
-  return dayKeyOf(wallTime(Date.parse(value)));
+  return dayKeyOf(wallTime(Date.parse(value), formatOf(timeZone)));
 }
 
 /** Minutes since midnight of an instant, in the demo zone. */
@@ -185,18 +208,20 @@ export interface DayRange {
 }
 
 /**
- * The first and last day an event covers: an all-day event's `end` is its
- * last day, a timed event's `end` is exclusive (a shift ending at midnight
- * does not cover the next day).
+ * The first and last day an event covers, in a zone (the demo zone by
+ * default): an all-day event's `end` is its last day, a timed event's `end`
+ * is exclusive (a shift ending at midnight does not cover the next day).
  */
 export function eventDays(
   start: string,
-  end: string | undefined,
+  end: string | null | undefined,
   allDay: boolean | undefined,
+  timeZone?: string,
 ): DayRange {
   if (allDay || isDayKey(start)) return { from: start, to: end ?? start };
+  const first = dayOf(start, timeZone);
   if (!end || Date.parse(end) <= Date.parse(start)) {
-    return { from: dayOf(start), to: dayOf(start) };
+    return { from: first, to: first };
   }
-  return { from: dayOf(start), to: dayOf(addMinutes(end, -1)) };
+  return { from: first, to: dayOf(addMinutes(end, -1), timeZone) };
 }

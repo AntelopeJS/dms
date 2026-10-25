@@ -4,6 +4,7 @@ import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import type { AgendaEventAction } from "@antelopejs/interface-dms/base/full-agenda-types";
 import { demoGuide } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import { DEMO_TIME_ZONE } from "../time";
 import { LEAVE_CALENDARS, LEAVE_ENTITLEMENT_DAYS, LEAVE_PERSON } from "./data";
 
 export const AGENDA_LEAVE_SLUG = "agenda-leave";
@@ -92,6 +93,8 @@ export class PageAgendaLeave extends PageController(
       { id: "months", type: "year", yearLayout: "months", label: "12 mois" },
     ],
     weekStartsOn: 1,
+    // Days of the Belgian calendar, whatever the reader's zone.
+    timeZone: DEMO_TIME_ZONE,
     businessHours: [{ days: [1, 2, 3, 4, 5], start: "09:30", end: "18:30" }],
     rangeSelect: "twoClicks",
     create: {

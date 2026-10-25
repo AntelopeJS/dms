@@ -4,7 +4,16 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import type { AgendaData } from "@antelopejs/interface-dms/base/full-agenda-types";
 import { agendaCategory, agendaPagePath } from "../category";
-import { addDays, mondayOf, todayKey, zonedInstant } from "../time";
+import { stepList } from "../guide";
+import { AGENDA_PLANNING_SLUG, PLANNING_STEPS } from "../planning/page";
+import { AGENDA_TEAM_SLUG, TEAM_STEPS } from "../team/page";
+import {
+  addDays,
+  DEMO_TIME_ZONE,
+  mondayOf,
+  todayKey,
+  zonedInstant,
+} from "../time";
 import {
   AGENDA_OPTIONS_SLUG,
   DATA_OPTIONS,
@@ -46,7 +55,11 @@ function officeWeek(): AgendaData {
         calendarId: "team",
         start: at(0, "09:00"),
         end: at(0, "09:30"),
-        recurrence: { frequency: "weekly", weekdays: [1, 3, 5] },
+        recurrence: {
+          frequency: "weekly",
+          weekdays: [1, 3, 5],
+          timeZone: DEMO_TIME_ZONE,
+        },
       },
       {
         id: "o2",
@@ -122,6 +135,19 @@ export class PageAgendaOptions extends PageController(
     language: "typescript",
     code: DECLARATION,
   });
+
+  // The full-page demos keep one guide line, so their agenda keeps the
+  // height: their steps are listed here.
+  static teamSteps = stepList(
+    "Team calendar — what to try",
+    AGENDA_TEAM_SLUG,
+    TEAM_STEPS,
+  );
+  static planningSteps = stepList(
+    "Resource planning — what to try",
+    AGENDA_PLANNING_SLUG,
+    PLANNING_STEPS,
+  );
 
   static data = optionList("Data", DATA_OPTIONS);
   static views = optionList("Views and time", VIEW_OPTIONS);

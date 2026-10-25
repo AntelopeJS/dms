@@ -4,7 +4,13 @@ import type {
   AgendaEvent,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState } from "../store";
-import { addDays, mondayOf, todayKey, zonedInstant } from "../time";
+import {
+  addDays,
+  DEMO_TIME_ZONE,
+  mondayOf,
+  todayKey,
+  zonedInstant,
+} from "../time";
 
 /** The team's calendars, with the prototype's colours. */
 export const TEAM_CALENDARS: AgendaCalendar[] = [
@@ -89,7 +95,12 @@ function standup(monday: string): AgendaEvent {
     location: "Visio",
     description:
       "<p>Quinze minutes, debout : <strong>hier</strong>, <strong>aujourd'hui</strong>, ce qui bloque.</p>",
-    recurrence: { frequency: "weekly", weekdays: WEEKDAYS },
+    // The standup is at 09:00 in Brussels, whatever the reader's zone.
+    recurrence: {
+      frequency: "weekly",
+      weekdays: WEEKDAYS,
+      timeZone: DEMO_TIME_ZONE,
+    },
     avatar: OWNERS.design,
   };
 }

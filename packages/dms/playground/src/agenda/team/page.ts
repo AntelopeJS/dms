@@ -1,7 +1,8 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
-import { demoGuide } from "../../table-view/guide";
+import type { DemoStep } from "../../table-view/guide";
+import { compactGuide } from "../guide";
 import { AGENDA_API, agendaCategory } from "../category";
 import { TEAM_CALENDARS } from "./data";
 
@@ -13,6 +14,38 @@ export const TEAM_DAY_START = "07:00";
 export const TEAM_DAY_END = "21:00";
 
 const HOUR_HEIGHT = 56;
+
+/** What to try on the page, listed in full on the overview page. */
+export const TEAM_STEPS: DemoStep[] = [
+  {
+    label: "Drag a meeting, stretch its end",
+    text: 'dragMove and dragResize (on with saveUrl): a drop snaps to 15 minutes (snapMinutes) and is saved at once (saveMode "immediate"), with an Undo for 6 s. The route refuses a meeting outside 07:00–21:00: it goes back with the message.',
+  },
+  {
+    label: "Click an empty slot",
+    text: 'create: { trigger: "click" }: a one-hour meeting (defaultDurationMinutes) opens in the form, in the first calendar shown. The route answers it with its own id in place of the tempId.',
+  },
+  {
+    label: "Open a meeting",
+    text: 'details: { container: "drawer" }: the read view (time, calendar, place, description), Edit for the form (fields: title, calendar, start, end, place), Delete. The open meeting is in the URL: reload, it opens again.',
+  },
+  {
+    label: "Move one Design standup",
+    text: 'A weekly series on weekdays (recurrence), expanded by the agenda. Moving one asks this occurrence or the series (recurringEdit "ask"): the route leaves that day out of the series and writes the occurrence on its own, or shifts the whole series.',
+  },
+  {
+    label: "Hide a calendar",
+    text: "The sidebar's legend (Calendriers d'équipe) toggles each calendar and counts its meetings; the mini calendar jumps to a day and marks the days holding meetings; the tip is sidebar.tip.",
+  },
+  {
+    label: "Search, switch views, export",
+    text: 'search sends q to the route (try "sync"); the view switcher offers month, week, day and list; M W D L and T (today), ← → work from the keyboard; exportIcs downloads what is shown as an .ics file.',
+  },
+  {
+    label: "Squeeze the window",
+    text: "Below 640 px of width (responsive.compactBelow), the sidebar folds into a toolbar button and the week view becomes a day view (compactView).",
+  },
+];
 
 @RegisterPage()
 export class PageAgendaTeam extends PageController(
@@ -42,36 +75,9 @@ export class PageAgendaTeam extends PageController(
     ],
   }),
 ) {
-  static guide = demoGuide([
-    {
-      label: "Drag a meeting, stretch its end",
-      text: 'dragMove and dragResize (on with saveUrl): a drop snaps to 15 minutes (snapMinutes) and is saved at once (saveMode "immediate"), with an Undo for 6 s. The route refuses a meeting outside 07:00–21:00: it goes back with the message.',
-    },
-    {
-      label: "Click an empty slot",
-      text: 'create: { trigger: "click" }: a one-hour meeting (defaultDurationMinutes) opens in the form, in the first calendar shown. The route answers it with its own id in place of the tempId.',
-    },
-    {
-      label: "Open a meeting",
-      text: 'details: { container: "drawer" }: the read view (time, calendar, place, description), Edit for the form (fields: title, calendar, start, end, place), Delete. The open meeting is in the URL: reload, it opens again.',
-    },
-    {
-      label: "Move one Design standup",
-      text: 'A weekly series on weekdays (recurrence), expanded by the agenda. Moving one asks this occurrence or the series (recurringEdit "ask"): the route leaves that day out of the series and writes the occurrence on its own, or shifts the whole series.',
-    },
-    {
-      label: "Hide a calendar",
-      text: "The sidebar's legend (Calendriers d'équipe) toggles each calendar and counts its meetings; the mini calendar jumps to a day and marks the days holding meetings; the tip is sidebar.tip.",
-    },
-    {
-      label: "Search, switch views, export",
-      text: 'search sends q to the route (try "sync"); the view switcher offers month, week, day and list; M W D L and T (today), ← → work from the keyboard; exportIcs downloads what is shown as an .ics file.',
-    },
-    {
-      label: "Squeeze the window",
-      text: "Below 640 px of width (responsive.compactBelow), the sidebar folds into a toolbar button and the week view becomes a day view (compactView).",
-    },
-  ]);
+  static guide = compactGuide(
+    "Drag a meeting or stretch its end; click an empty slot to create one; move one Design standup: this occurrence or the whole series.",
+  );
 
   static agenda = FullAgenda({
     title: "Agenda de l'équipe",

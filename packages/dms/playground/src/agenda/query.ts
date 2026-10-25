@@ -1,6 +1,6 @@
 import type { AgendaEvent } from "@antelopejs/interface-dms/base/full-agenda-types";
 import { badRequest } from "../matrix/save";
-import { dayOf, eventDays } from "./time";
+import { addDays, dayOf, eventDays } from "./time";
 
 const FACET_PREFIX = "facet_";
 const LIST_SEPARATOR = ",";
@@ -64,16 +64,26 @@ export function readAgendaQuery(params: URLSearchParams): AgendaQuery {
 }
 
 /**
- * Whether an event shows in the days asked for. A recurring series is always
- * answered once it has started: the block expands it for the days it draws.
+ * Whether an event shows in the days asked for, days of the zone the agenda
+ * draws in (`tz`, the demo zone without it): an event at 01:00 in Brussels
+ * is the evening before for a reader in New York. A recurring series is
+ * answered once it has started, by the days of its own zone: the block
+ * expands it for the days it draws.
  */
-export function eventInRange(event: AgendaEvent, query: AgendaQuery): boolean {
+export function eventInRange(
+  event: AgendaEvent,
+  query: Pick<AgendaQuery, "from" | "to" | "tz">,
+): boolean {
   if (event.recurrence) {
     const until = event.recurrence.until;
-    const first = dayOf(event.start);
-    return first <= query.to && (!until || until >= query.from);
+    const first = dayOf(event.start, event.recurrence.timeZone);
+    // A day of slack each side: the series' days are not the reader's.
+    return (
+      first <= addDays(query.to, 1) &&
+      (!until || until >= addDays(query.from, -1))
+    );
   }
-  const days = eventDays(event.start, event.end, event.allDay);
+  const days = eventDays(event.start, event.end, event.allDay, query.tz);
   return days.from <= query.to && days.to >= query.from;
 }
 

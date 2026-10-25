@@ -17,11 +17,17 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { eventInRange, eventsFor, readAgendaQuery } from "../query";
 import { actionId, missing, readAgendaSave } from "../save";
 import { AgendaStore } from "../store";
-import { addDays, addMinutes, dayOf, isDayKey, weekdayOf } from "../time";
+import {
+  addDays,
+  dayOf,
+  isDayKey,
+  timeOf,
+  weekdayOf,
+  zonedInstant,
+} from "../time";
 import { BOXED_LOCATIONS, markedDone, seedBoxed } from "./data";
 import { AGENDA_BOXED_API, BOXED_FACET_FIELDS, PageAgendaBoxed } from "./page";
 
-const MINUTES_PER_WEEK = 7 * 24 * 60;
 const DAYS_PER_WEEK = 7;
 const SUNDAY = 0;
 const PLACES = new Set(BOXED_LOCATIONS.map((option) => option.value));
@@ -52,10 +58,12 @@ const store = new AgendaStore(seedBoxed, {
 });
 
 function nextWeek(event: AgendaEvent, id: string): AgendaEvent {
+  // Seven days later at the same wall time: a week across the end of
+  // summer time is 169 hours, not 168.
   const shift = (value: string) =>
     isDayKey(value)
       ? addDays(value, DAYS_PER_WEEK)
-      : addMinutes(value, MINUTES_PER_WEEK);
+      : zonedInstant(addDays(dayOf(value), DAYS_PER_WEEK), timeOf(value));
   return {
     ...event,
     id,
@@ -113,7 +121,7 @@ export class AgendaBoxedController extends Controller(AGENDA_BOXED_API) {
     const from = params.get("from") ?? "";
     const to = params.get("to") ?? "";
     const shown = store.events.filter((event) =>
-      eventInRange(event, { from, to, search: "", facets: {} }),
+      eventInRange(event, { from, to }),
     );
     return {
       message: `Récapitulatif de ${shown.length} rendez-vous envoyé à l'équipe`,

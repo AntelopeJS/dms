@@ -8,6 +8,7 @@ import {
 } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type {
+  AgendaChange,
   AgendaData,
   AgendaEvent,
   AgendaSaveRequest,
@@ -80,9 +81,18 @@ let colleagueMoved = false;
  * Plays the colleague: the first change naming the task moves it one slot
  * later before the save reads it, so a block detecting conflicts meets one.
  */
+function movesTask(change: AgendaChange): boolean {
+  if (change.id !== COLLEAGUE_TASK) return false;
+  if (change.kind === "move" || change.kind === "resize") return true;
+  return (
+    change.kind === "update" && !!(change.patch?.start || change.patch?.end)
+  );
+}
+
 function colleagueMoves(input: AgendaSaveInput): void {
   if (colleagueMoved) return;
-  if (!input.changes.some((change) => change.id === COLLEAGUE_TASK)) return;
+  // A remark edited on the task leaves the colleague's move for a real one.
+  if (!input.changes.some(movesTask)) return;
   const task = store.find(COLLEAGUE_TASK);
   if (!task?.end) return;
   const later = oneSlotLater(task.start, slotCount(task.start, task.end));

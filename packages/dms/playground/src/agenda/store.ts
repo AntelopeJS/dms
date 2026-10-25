@@ -9,6 +9,7 @@ import type {
   AgendaSaveError,
   AgendaSaveResponse,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
+import { applyPatch } from "./patch";
 import { recurringChange } from "./recurring";
 import {
   type AgendaSaveInput,
@@ -96,22 +97,6 @@ function normalized(change: AgendaChange): AgendaChange {
   const [id, day] = change.id?.split(OCCURRENCE_SEPARATOR) ?? [];
   if (!day) return change;
   return { ...change, id, occurrence: change.occurrence ?? day };
-}
-
-/** The fields of a patch set on an event, its `data` merged. */
-export function applyPatch(
-  event: AgendaEvent,
-  patch: AgendaEventPatch = {},
-): AgendaEvent {
-  const { data, ...fields } = patch;
-  const defined = Object.fromEntries(
-    Object.entries(fields).filter(([, value]) => value !== undefined),
-  );
-  return {
-    ...event,
-    ...defined,
-    ...(data && { data: { ...event.data, ...data } }),
-  };
 }
 
 function write(step: ChangeStep, event: AgendaEvent, tempId?: string): void {
@@ -263,7 +248,11 @@ function scheduleItem(store: AgendaStore, step: ChangeStep): void {
   }
   const patch = step.change.patch ?? {};
   const schedule = store.rules.schedule ?? defaultSchedule;
-  const next = schedule(item, patch, store.nextId());
+  const fresh = store.nextId();
+  const proposed = schedule(item, patch, fresh);
+  // An item never takes the place of an event still planned.
+  const taken = step.draft.events.some((event) => event.id === proposed.id);
+  const next = taken ? { ...proposed, id: fresh } : proposed;
   if (!rulesAllow(store, step, next)) return;
   step.draft.pending = step.draft.pending.filter(
     (candidate) => candidate.id !== item.id,
@@ -288,7 +277,11 @@ function unscheduleEvent(store: AgendaStore, step: ChangeStep): void {
   const current = targetOf(store, step);
   if (!current) return;
   const unschedule = store.rules.unschedule ?? defaultUnschedule;
-  step.draft.pending = [...step.draft.pending, unschedule(current)];
+  const item = unschedule(current);
+  step.draft.pending = [
+    ...step.draft.pending.filter((other) => other.id !== item.id),
+    item,
+  ];
   drop(step, current.id);
 }
 

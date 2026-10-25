@@ -31,8 +31,23 @@ import {
 const DELEGATED: AgendaBadge = { label: "⚡ Délégué", tone: "warning" };
 const BLOCKED_ICON = "i-ph-link";
 const MOVING_KINDS = new Set(["move", "resize", "update", "schedule"]);
+// Planned on the agenda: what a task id is made of when the dossier is
+// dropped for the first time.
+const FIRST_TASK_SUFFIX = "-DC-1-Dessin-AP1";
 const DRAGGED_KINDS = new Set(["move", "resize"]);
 const LOCKED_STATUSES = new Set(["termine", "annule"]);
+
+function readItemText(item: AgendaPendingItem, key: string): string {
+  const value = item.data?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function withoutTaskId(
+  data: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const { taskId: _taskId, ...rest } = data ?? {};
+  return rest;
+}
 
 function readText(event: AgendaEvent, key: string): string {
   const value = event.data?.[key];
@@ -175,9 +190,11 @@ function successorsOf(event: AgendaEvent, events: AgendaEvent[]) {
  */
 export function confirmTask(
   event: AgendaEvent,
-  { change, state }: RuleContext,
+  { change, state, before }: RuleContext,
 ): AgendaConfirm | undefined {
   if (!MOVING_KINDS.has(change.kind)) return undefined;
+  // A remark or a status edited on a task already out of order asks nothing.
+  if (before && !movedInTime(before, event)) return undefined;
   const pred = predecessorOf(event, state.events);
   if (pred && startsBefore(event, pred)) {
     return {
@@ -197,7 +214,20 @@ export function confirmTask(
   };
 }
 
-/** The task a dossier becomes once dropped on a dessinateur's slot. */
+/** Whether a change moved a task in time (its start or its end). */
+export function movedInTime(before: AgendaEvent, after: AgendaEvent): boolean {
+  return (
+    Date.parse(before.start) !== Date.parse(after.start) ||
+    Date.parse(before.end ?? before.start) !==
+      Date.parse(after.end ?? after.start)
+  );
+}
+
+/**
+ * The task a pending item becomes once dropped: a task dragged back keeps
+ * its id and its predecessor; a dossier waiting for its first drawing
+ * becomes its Dessin AP1.
+ */
 export function scheduleDossier(
   item: AgendaPendingItem,
   patch: AgendaEventPatch,
@@ -207,27 +237,31 @@ export function scheduleDossier(
     ? slotSpan(slot.day, slot.index, item.durationSlots ?? 1)
     : undefined;
   return {
-    id: `${item.id}-DC-1-Dessin-AP1`,
+    id: readItemText(item, "taskId") || `${item.id}${FIRST_TASK_SUFFIX}`,
     title: item.title,
     subtitle: item.subtitle,
     start: patch.start ?? "",
     end: patch.end ?? span?.end,
     resourceIds: patch.resourceIds,
     allowedResourceIds: item.allowedResourceIds,
-    data: { ...item.data, pred: "" },
+    data: { pred: "", ...withoutTaskId(item.data) },
   };
 }
 
-/** The dossier a task becomes once dragged back to the list. */
+/**
+ * The pending item a task becomes once dragged back to the list: named by
+ * the task (two tasks of one dossier are two items), which it gets back
+ * when dropped again.
+ */
 export function unscheduleTask(event: AgendaEvent): AgendaPendingItem {
   return {
-    id: readText(event, "dossier") || event.id,
+    id: event.id,
     title: event.title,
     subtitle: event.subtitle,
     calendarId: "en-planning",
     durationSlots: event.end ? slotCount(event.start, event.end) : 1,
     allowedResourceIds: event.allowedResourceIds,
-    data: event.data,
+    data: { ...event.data, taskId: event.id },
   };
 }
 

@@ -2,8 +2,10 @@ import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import type { AgendaEventAction } from "@antelopejs/interface-dms/base/full-agenda-types";
-import { demoGuide } from "../../table-view/guide";
+import type { DemoStep } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import { compactGuide } from "../guide";
+import { DEMO_TIME_ZONE } from "../time";
 import {
   PLANNING_CALENDARS,
   PLANNING_RESOURCES,
@@ -68,6 +70,42 @@ const STATUS_ACTIONS: StatusAction[] = [
   ],
 ];
 
+/** What to try on the page, listed in full on the overview page. */
+export const PLANNING_STEPS: DemoStep[] = [
+  {
+    label: "Drag Client_1 onto a draughtsman's slot",
+    text: "The sidebar's pending items (unscheduled, with a search) are dossiers waiting for their first drawing: a drop on QVerschelden, ACarré or JCGobbe plans it (schedule). Their allowedResourceIds refuse any other row while dragging.",
+  },
+  {
+    label: "Drag a task back to the list",
+    text: "unscheduled.acceptDrop: a task dropped on the pending list is unplanned (unschedule); the route answers the list again.",
+  },
+  {
+    label: "Move Peters' Devis Recap to Wednesday S1",
+    text: 'It would start before its predecessor (Dessin AP1) ends: the route answers confirm ("Peters : Devis Recap avant Dessin AP1 ?"); Planifier quand même posts it again with force, and the task then carries an issue, listed in the sidebar\'s checks.',
+  },
+  {
+    label: "Move Musin's Validation (Friday S1, Torrekens L.)",
+    text: 'conflicts: "detect": each change sends previous. A colleague moves that task meanwhile (the route simulates it on its first change): the save answers a conflict, Overwrite posts yours with force, Discard takes theirs.',
+  },
+  {
+    label: "Look at Lemaire (Monday S3, six slots)",
+    text: "A task longer than the day has left runs on into the next working day's first slots (slots, timeline by slot). Saturday and Sunday are left out (hiddenDays: [0, 6]).",
+  },
+  {
+    label: "Read the chips",
+    text: "The status is the calendar (En planning, Terminé, Stand by, Hors planning, Annulé); frozen tasks are dimmed and dashed (muted, style); 🔗 a predecessor is not finished (icon); ⚡ Délégué: a validation given to a draughtsman (badges).",
+  },
+  {
+    label: "Double-click an empty slot, open a task",
+    text: 'create: { trigger: "doubleClick" } creates a task there; a click opens the drawer: dossier, commune, type, status, remark (fields), and the status actions (eventActions, shown by status: visibleWhen).',
+  },
+  {
+    label: "Switch to Day",
+    text: 'The second view is "resources": a column per person for one day, the same tasks and slots.',
+  },
+];
+
 @RegisterPage()
 export class PageAgendaPlanning extends PageController(
   AGENDA_PLANNING_SLUG,
@@ -96,40 +134,9 @@ export class PageAgendaPlanning extends PageController(
     ],
   }),
 ) {
-  static guide = demoGuide([
-    {
-      label: "Drag Client_1 onto a draughtsman's slot",
-      text: "The sidebar's pending items (unscheduled, with a search) are dossiers waiting for their first drawing: a drop on QVerschelden, ACarré or JCGobbe plans it (schedule). Their allowedResourceIds refuse any other row while dragging.",
-    },
-    {
-      label: "Drag a task back to the list",
-      text: "unscheduled.acceptDrop: a task dropped on the pending list is unplanned (unschedule); the route answers the list again.",
-    },
-    {
-      label: "Move Peters' Devis Recap to Wednesday S1",
-      text: 'It would start before its predecessor (Dessin AP1) ends: the route answers confirm ("Peters : Devis Recap avant Dessin AP1 ?"); Planifier quand même posts it again with force, and the task then carries an issue, listed in the sidebar\'s checks.',
-    },
-    {
-      label: "Move Musin's Validation (Friday S1, Torrekens L.)",
-      text: 'conflicts: "detect": each change sends previous. A colleague moves that task meanwhile (the route simulates it on its first change): the save answers a conflict, Overwrite posts yours with force, Discard takes theirs.',
-    },
-    {
-      label: "Look at Lemaire (Monday S3, six slots)",
-      text: "A task longer than the day has left runs on into the next working day's first slots (slots, timeline by slot). Saturday and Sunday are left out (hiddenDays: [0, 6]).",
-    },
-    {
-      label: "Read the chips",
-      text: "The status is the calendar (En planning, Terminé, Stand by, Hors planning, Annulé); frozen tasks are dimmed and dashed (muted, style); 🔗 a predecessor is not finished (icon); ⚡ Délégué: a validation given to a draughtsman (badges).",
-    },
-    {
-      label: "Double-click an empty slot, open a task",
-      text: 'create: { trigger: "doubleClick" } creates a task there; a click opens the drawer: dossier, commune, type, status, remark (fields), and the status actions (eventActions, shown by status: visibleWhen).',
-    },
-    {
-      label: "Switch to Day",
-      text: 'The second view is "resources": a column per person for one day, the same tasks and slots.',
-    },
-  ]);
+  static guide = compactGuide(
+    "Drag Client_1 from the sidebar onto a draughtsman's slot; move Peters' Devis Recap to Wednesday S1 (the route asks); move Musin's Validation (a colleague moved it: conflict).",
+  );
 
   static agenda = FullAgenda({
     title: "Planning des ressources",
@@ -158,6 +165,8 @@ export class PageAgendaPlanning extends PageController(
     ],
     weekStartsOn: 1,
     hiddenDays: [0, 6],
+    // The office plans in its own hours, whatever the reader's zone.
+    timeZone: DEMO_TIME_ZONE,
     dayStart: "08:00",
     dayEnd: "17:00",
     resourceAreaWidth: RESOURCE_AREA_WIDTH,

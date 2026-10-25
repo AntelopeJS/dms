@@ -5,7 +5,11 @@ import {
 } from "@antelopejs/interface-dms/base/block-types";
 import { CodeBlock } from "@antelopejs/interface-dms/base";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
-import type { FullAgendaProps } from "@antelopejs/interface-dms/base/full-agenda-types";
+import type {
+  AgendaData,
+  AgendaSaveRequest,
+  FullAgendaProps,
+} from "@antelopejs/interface-dms/base/full-agenda-types";
 
 const COMPONENT_NAME = "dms-full-agenda-block";
 
@@ -116,6 +120,65 @@ const FULL_OPTIONS: FullAgendaProps = {
   density: "compact",
 };
 
+/** Events given in the options, for an agenda without a route. */
+const STATIC_DATA: AgendaData = {
+  calendars: [{ id: "it", label: "On call", color: "info" }],
+  events: [
+    {
+      id: "standup",
+      title: "Standup",
+      start: "2026-10-26T09:00:00+01:00",
+      end: "2026-10-26T09:15:00+01:00",
+      recurrence: {
+        frequency: "weekly",
+        weekdays: [1, 2, 3, 4, 5],
+        timeZone: "Europe/Brussels",
+      },
+    },
+    {
+      id: "oncall",
+      title: "On call",
+      calendarId: "it",
+      allDay: true,
+      start: "2026-10-26",
+      end: "2026-10-30",
+      short: "7,6",
+    },
+  ],
+  backgrounds: [{ start: "2026-11-11", allDay: true, kind: "holiday" }],
+};
+
+/**
+ * What a block posts once the user confirmed the route's question and chose
+ * Overwrite on a conflict: `force` and `overwrite` are two answers, and a
+ * `null` clears a field.
+ */
+const SAVE_REQUEST: AgendaSaveRequest = {
+  changes: [
+    {
+      kind: "move",
+      id: "45533-DC-1-Devis-Recap",
+      patch: {
+        start: "2026-10-21T08:00:00+02:00",
+        end: "2026-10-21T10:00:00+02:00",
+        location: null,
+        data: { remarque: null },
+      },
+      previous: {
+        start: "2026-10-22T13:00:00+02:00",
+        end: "2026-10-22T15:00:00+02:00",
+        location: null,
+      },
+    },
+  ],
+  force: true,
+  overwrite: true,
+  conflicts: "detect",
+  from: "2026-10-19",
+  to: "2026-10-25",
+  view: "week",
+};
+
 /**
  * The FullAgenda block: a calendar by month, week, day, list, year, resource
  * columns or timeline, edited by dragging. Its factory hands the options
@@ -141,6 +204,27 @@ describe("[unit] interfaces/dms-base — FullAgenda", () => {
     expect(serialized.options).to.deep.include(options);
     expect(serialized.options?.views).to.deep.equal(FULL_OPTIONS.views);
     expect(serialized.options?.sidebar).to.deep.equal(FULL_OPTIONS.sidebar);
+  });
+
+  it("hands static data through as written", () => {
+    const serialized = FullAgenda({
+      staticData: STATIC_DATA,
+      toolbar: false,
+    }).serializeSync();
+    expect(serialized.options?.staticData).to.deep.equal(STATIC_DATA);
+    expect(serialized.options?.toolbar).to.equal(false);
+    expect(
+      ValidateBlockOptions("FullAgenda", { staticData: STATIC_DATA }).valid,
+    ).to.equal(true);
+  });
+
+  it("keeps a save request's answers and cleared fields apart on the wire", () => {
+    const sent = JSON.parse(JSON.stringify(SAVE_REQUEST)) as AgendaSaveRequest;
+    expect(sent).to.deep.include({ force: true, overwrite: true });
+    const [change] = sent.changes;
+    expect(change?.patch).to.have.property("location", null);
+    expect(change?.patch?.data).to.deep.equal({ remarque: null });
+    expect(change?.previous).to.have.property("location", null);
   });
 
   it("serializes the component the event click opens", () => {
@@ -308,6 +392,8 @@ describe("[unit] interfaces/dms-base — FullAgenda", () => {
     expect(valid({ hiddenDays: [7] })).to.equal(false);
     expect(valid({ dayStart: "7h" })).to.equal(false);
     expect(valid({ dayEnd: "25:00" })).to.equal(false);
+    expect(valid({ dayEnd: "24:30" })).to.equal(false);
+    expect(valid({ dayEnd: "24:00" })).to.equal(true);
     expect(valid({ slotMinutes: 2 })).to.equal(false);
     expect(valid({ hourHeight: 8 })).to.equal(false);
   });

@@ -36,9 +36,13 @@ const KINDS_WITH_ID = new Set<AgendaChangeKind>([
 /** A save request checked for its shape. */
 export interface AgendaSaveInput {
   changes: AgendaChange[];
-  /** The user confirmed a question, or chose Overwrite on a conflict. */
+  /** The user confirmed the route's question: it is not asked again. */
   force: boolean;
-  /** Whether `previous` is checked: the block's `conflicts: "detect"`, unless forced. */
+  /**
+   * Whether `previous` is checked: the block's `conflicts: "detect"`, unless
+   * the user chose Overwrite (`overwrite`). Confirming a question (`force`)
+   * does not skip it.
+   */
   detectsConflicts: boolean;
   /** The days and view shown, for the notices answered. */
   from: string;
@@ -56,7 +60,8 @@ function isChange(change: AgendaChange | null | undefined): boolean {
  * The changes a `saveUrl` received, checked for their shape: a body that is
  * not an {@link AgendaSaveRequest} fails the whole request with a 400. A
  * route checks `previous` only when the block detects conflicts and the user
- * did not choose Overwrite.
+ * did not choose Overwrite (`overwrite`); it asks its questions unless the
+ * user confirmed them (`force`). Both may come together.
  */
 export function readAgendaSave(
   body: AgendaSaveRequest | undefined,
@@ -67,11 +72,10 @@ export function readAgendaSave(
       "Expected { changes: [{ kind, id?, tempId?, patch?, previous? }], conflicts, from, to, view }.",
     );
   }
-  const force = body?.force === true;
   return {
     changes,
-    force,
-    detectsConflicts: body?.conflicts === "detect" && !force,
+    force: body?.force === true,
+    detectsConflicts: body?.conflicts === "detect" && body.overwrite !== true,
     from: body?.from ?? "",
     to: body?.to ?? "",
     view: body?.view ?? "",
@@ -89,21 +93,32 @@ function sameList(left: string[] = [], right: string[] = []): boolean {
 
 type FieldCheck = (previous: AgendaEventPatch, current: AgendaEvent) => boolean;
 
+/** A text field as compared: `null`, absent and empty all mean none. */
+function text(value: string | null | undefined): string {
+  return value ?? "";
+}
+
 // Each field `previous` may hold, and how it compares with what is stored.
+// `previous` names a field `null` when the event did not have it.
 const PREVIOUS_CHECKS: Record<keyof AgendaEventPatch, FieldCheck> = {
   title: (previous, current) => previous.title === current.title,
   start: (previous, current) =>
     !previous.start || sameInstant(previous.start, current.start),
-  end: (previous, current) =>
-    !previous.end || !current.end || sameInstant(previous.end, current.end),
+  end: (previous, current) => {
+    if (previous.end === null) return !current.end;
+    return (
+      !previous.end || !current.end || sameInstant(previous.end, current.end)
+    );
+  },
   allDay: (previous, current) => !!previous.allDay === !!current.allDay,
-  calendarId: (previous, current) => previous.calendarId === current.calendarId,
+  calendarId: (previous, current) =>
+    text(previous.calendarId) === text(current.calendarId),
   resourceIds: (previous, current) =>
     sameList(previous.resourceIds, current.resourceIds),
   location: (previous, current) =>
-    (previous.location ?? "") === (current.location ?? ""),
+    text(previous.location) === text(current.location),
   description: (previous, current) =>
-    (previous.description ?? "") === (current.description ?? ""),
+    text(previous.description) === text(current.description),
   // The details form's own fields are checked by the fields the route owns.
   data: () => true,
 };
