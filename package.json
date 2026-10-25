@@ -6,6 +6,8 @@
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
     "@antelopejs/tooling-configs": "0.2.0",
+    "knip": "^6.34.0",
+    "lefthook": "^2.2.2",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001"
@@ -14,11 +16,19 @@
     "dev": "pnpm --dir packages/dms dev",
     "frontend:dev": "pnpm --dir packages/dms frontend:dev",
     "build": "pnpm --filter @antelopejs/dms build",
-    "typecheck": "pnpm --filter @antelopejs/dms typecheck",
-    "lint": "pnpm --filter @antelopejs/interface-dms lint && pnpm --filter @antelopejs/dms lint",
-    "lint:fix": "pnpm --filter @antelopejs/interface-dms lint:fix && pnpm --filter @antelopejs/dms lint:fix",
-    "format": "pnpm --filter @antelopejs/interface-dms format && pnpm --filter @antelopejs/dms format",
-    "knip": "pnpm --filter @antelopejs/dms knip",
-    "test": "pnpm --filter @antelopejs/dms test"
+    "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/dms typecheck",
+    "lint": "oxlint && pnpm --dir packages/dms/frontend-vue lint && pnpm --dir packages/dms exec antelopejs-check-interface-ranges",
+    "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
+    "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
+    "knip": "pnpm --dir packages/interface-dms knip && pnpm --dir packages/dms knip",
+    "test": "pnpm --dir packages/interface-dms test",
+    "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1; then lefthook install; fi",
+    "checks": "antelopejs-checks",
+    "size": "antelopejs-check-size",
+    "ratchet": "antelopejs-ratchet",
+    "sync": "antelopejs-sync",
+    "ratchet:update": "antelopejs-ratchet --update",
+    "sync:check": "antelopejs-sync --check",
+    "format:check": "oxfmt --check ."
   }
 }
