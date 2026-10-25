@@ -2,6 +2,7 @@
 // the drag the views feed, and the context `useAgenda` provides. Types only.
 
 import type { ComputedRef, Ref } from "vue";
+import type { BlockText } from "#dms-core/app/types/composed-text";
 import type {
   AgendaBackground,
   AgendaBusinessHours,
@@ -146,12 +147,24 @@ export interface AgendaDropTarget {
   slotIndex?: number;
   /** Over the sidebar's pending items (unschedule). */
   pending?: boolean;
+  /**
+   * Over the time grid's all-day row: a timed event dropped here becomes an
+   * all-day one. Over any other day alone (a month or year cell, a timeline
+   * by day) an event keeps its kind and its time of day.
+   */
+  asAllDay?: boolean;
 }
 
 /** What a view reports a point is over. Each view registers one surface per scrolling area. */
 export interface AgendaDropSurface {
   el: HTMLElement;
+  /**
+   * Where the pointer is. Report the raw time under it (`minutes` need not
+   * be snapped: the drag engine snaps, and keeps the grab point of a move).
+   */
   resolve: (clientX: number, clientY: number) => AgendaDropTarget | null;
+  /** The element that scrolls near its edges while dragging. Defaults to `el` or its first scrolling ancestor. */
+  scroller?: HTMLElement;
 }
 
 export type AgendaDragKind =
@@ -200,6 +213,19 @@ export interface AgendaDragController {
   /** pointerdown on a pending item of the sidebar. */
   startPending: (event: PointerEvent, item: AgendaPendingItem) => void;
   cancel: () => void;
+  /**
+   * The keyboard alternative on a focused event: Alt+↑/↓ moves it by the
+   * snap, Alt+←/→ by a day, Alt+Shift+↑/↓ changes its end. True when the
+   * key was one of them (the caller prevents its default).
+   */
+  nudge: (event: KeyboardEvent, occurrence: AgendaOccurrence) => boolean;
+  /** The last drag result or refusal, for a polite live region of the block. */
+  announcement: Ref<string>;
+  /**
+   * The occurrence being moved or resized, from the threshold to the drop:
+   * its chip dims. Changes twice per drag, so chips read it, not `preview`.
+   */
+  draggingKey: ComputedRef<string | null>;
 }
 
 /** A pending range of a `twoClicks` selection: the first day picked. */
@@ -358,4 +384,44 @@ export interface AgendaContext {
   runToolbarAction: (action: AgendaToolbarAction) => void;
   /** Keyboard focus among occurrences (arrows, Enter). */
   focusedKey: Ref<string | null>;
+
+  /** Added by the engine (dev A). */
+  /** A block text (`BlockText`) as a string, composed and translated. */
+  text: (value: BlockText | undefined) => string;
+  /** The current instant, moved every minute (the now line, "upcoming"). */
+  now: Ref<number>;
+  /** Something was read (or given): an empty agenda is not one still loading. */
+  hasData: ComputedRef<boolean>;
+  /** Editing is on (a `saveUrl`, `editable` not off). */
+  editable: ComputedRef<boolean>;
+  /** The polite live region's message: save results, a range step, a navigation. */
+  liveMessage: Ref<string>;
+  announce: (message: string) => void;
+  /** "Design standup, Monday 26 October 09:00 to 09:15, calendar Design": a chip's aria-label. */
+  describe: (occurrence: AgendaOccurrence) => string;
+  /** The toolbar's "+ New": a new event at the next hour of today (or of the range's first day). */
+  createNew: () => void;
+  /** Downloads the occurrences shown as an `.ics` file. */
+  exportIcs: () => void;
+  /** The changes not written yet with the event they change (`base`), for the review and the save bar. */
+  stagedEdits: ComputedRef<AgendaStagedEdit[]>;
+  /** Writes a refused change again (by its `AgendaStagedEdit.key`). */
+  retry: (key: string) => Promise<boolean>;
+  /** After a conflict: write over the route's version, or take it. */
+  resolveConflict: (
+    key: string,
+    choice: "overwrite" | "discard",
+  ) => Promise<unknown>;
+}
+
+/** A change not written yet, as the review lists it. */
+export interface AgendaStagedEdit {
+  key: string;
+  change: AgendaChange;
+  status: "staged" | "saving" | "error" | "conflict";
+  /** The event before the change (absent for a new one). */
+  base?: AgendaEvent;
+  message?: string;
+  /** After a conflict: the event as the route stores it. */
+  current?: AgendaEvent;
 }

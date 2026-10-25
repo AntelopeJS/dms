@@ -1,0 +1,343 @@
+// @vitest-environment jsdom
+/* eslint-disable vue/one-component-per-file -- stand-ins for Nuxt UI */
+/**
+ * The time grid and the month view mounted over a fake context: columns and
+ * headers (days, resources days first under groups, a folded group, a
+ * read-only resource), overlapping events side by side, the all-day row with
+ * its bars and a holiday, business hours shaded, week numbers, the drop
+ * surfaces they register, the drag preview with its refusal; the month's
+ * weeks, bars over weeks, "+N more", a day number and an empty day; the
+ * chip's styles, states, content toggles, click and keyboard.
+ */
+import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
+import type { Component } from "vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  AgendaContext,
+  AgendaOccurrence,
+} from "../layers/dms-ui/app/build/composables/agenda/agendaModel";
+import type {
+  AgendaViewType,
+  FullAgendaOptions,
+} from "../layers/dms-ui/app/types/full-agenda";
+import { fakeAgendaContext } from "./fixtures/agendaFakeContext";
+import { agendaDays, occurrence } from "./fixtures/agendaOccurrences";
+import AgendaTimeGrid from "../layers/dms-ui/app/build/components/agenda/AgendaTimeGrid.vue";
+import AgendaMonthView from "../layers/dms-ui/app/build/components/agenda/AgendaMonthView.vue";
+import AgendaEventChip from "../layers/dms-ui/app/build/components/agenda/AgendaEventChip.vue";
+
+const current: { ctx: AgendaContext | null } = { ctx: null };
+
+vi.mock("../layers/dms-ui/app/build/composables/agenda/useAgenda", () => ({
+  useAgendaContext: () => current.ctx!,
+}));
+vi.mock(
+  "../layers/dms-core/app/composables/translation/useComposedText",
+  () => ({
+    useComposedText: () => ({
+      processText: (value: unknown) => (typeof value === "string" ? value : ""),
+    }),
+  }),
+);
+
+const stub = (name: string, slotNames: string[] = ["default"]) =>
+  defineComponent({
+    name,
+    inheritAttrs: false,
+    props: {
+      label: { type: String, default: undefined },
+      name: { type: String, default: undefined },
+    },
+    setup:
+      (props, { attrs, slots }) =>
+      () =>
+        h("span", { ...attrs, "data-stub": name, "data-name": props.name }, [
+          props.label,
+          ...slotNames.map((slot) => slots[slot]?.()),
+        ]),
+  });
+
+const STUBS: Record<string, Component> = {
+  UTooltip: stub("UTooltip"),
+  UPopover: stub("UPopover", ["default", "content"]),
+  UBadge: stub("UBadge"),
+  UAvatar: stub("UAvatar"),
+  UIcon: stub("UIcon"),
+};
+
+const translate = (key: string, params?: Record<string, unknown>) =>
+  params && Object.keys(params).length
+    ? `${key}${JSON.stringify(params)}`
+    : key;
+
+beforeEach(() => {
+  vi.stubGlobal("useI18n", () => ({ t: translate, locale: ref("en-GB") }));
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  document.body.innerHTML = "";
+});
+
+interface GridSetup {
+  raw?: FullAgendaOptions;
+  view?: AgendaViewType;
+  from?: string;
+  dayCount?: number;
+  occurrences?: AgendaOccurrence[];
+}
+
+function contextFor(setup: GridSetup): AgendaContext {
+  const view = setup.view ?? "week";
+  const { ctx } = fakeAgendaContext({ ...setup.raw, views: [view] });
+  const days = agendaDays(setup.from ?? "2026-10-26", setup.dayCount ?? 7);
+  ctx.range = computed(() => ({
+    from: days[0]!.key,
+    to: days.at(-1)!.key,
+    days,
+    start: days[0]!.start,
+    end: days.at(-1)!.end,
+  }));
+  ctx.occurrences = computed(() => setup.occurrences ?? []);
+  current.ctx = ctx;
+  return ctx;
+}
+
+async function mount(
+  component: Component,
+  props: Record<string, unknown> = {},
+): Promise<HTMLElement> {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const app = createApp({ render: () => h(component, props) });
+  for (const [name, definition] of Object.entries(STUBS))
+    app.component(name, definition);
+  app.mount(host);
+  await nextTick();
+  return host;
+}
+
+const HOLIDAY = {
+  start: "2026-11-01",
+  kind: "holiday" as const,
+  label: "Toussaint",
+};
+
+describe("the time grid", () => {
+  it("draws a week: days, overlapping events side by side, the all-day row, a holiday", async () => {
+    const ctx = contextFor({
+      raw: {
+        weekNumbers: true,
+        staticData: { events: [], backgrounds: [HOLIDAY] },
+      },
+      occurrences: [
+        occurrence("sprint", "2026-10-26T09:00", "2026-10-26T11:00"),
+        occurrence("sync", "2026-10-26T10:00", "2026-10-26T10:30"),
+        occurrence("leave", "2026-10-28", "2026-10-29"),
+      ],
+    });
+    const root = await mount(AgendaTimeGrid);
+    const html = root.innerHTML;
+    expect(root.querySelector('[role="grid"]')).not.toBeNull();
+    expect(html.match(/weekdayShort:/g)).toHaveLength(7);
+    expect(html).toContain('dms.agenda.grid.week_short{"week":44}');
+    const boxOf = (key: string) =>
+      root
+        .querySelector(
+          `[data-agenda-day="2026-10-26"] [data-agenda-occurrence="${key}"]`,
+        )!
+        .closest("div")!
+        .getAttribute("style");
+    expect(boxOf("sprint")).toContain("left: calc(0% + 1px)");
+    expect(boxOf("sync")).toContain("left: calc(50% + 1px)");
+    expect(
+      root.querySelector(
+        '[data-agenda-all-day] [data-agenda-occurrence="leave"]',
+      ),
+    ).not.toBeNull();
+    expect(root.querySelector("[data-agenda-all-day]")!.textContent).toContain(
+      "Toussaint",
+    );
+    expect(vi.mocked(ctx.drag.registerSurface)).toHaveBeenCalledTimes(2);
+  });
+
+  it("shades the hours outside business hours and scrolls sideways under columnMinWidth", async () => {
+    const ctx = contextFor({ raw: { columnMinWidth: 120 } });
+    const base = ctx.options;
+    ctx.options = computed(() => ({
+      ...base.value,
+      businessHours: [{ days: [1, 2, 3, 4, 5], start: "09:00", end: "18:00" }],
+    }));
+    ctx.hoursOn = (weekday) =>
+      weekday === 0 || weekday === 6
+        ? []
+        : [{ days: [weekday], start: "09:00", end: "18:00" }];
+    const root = await mount(AgendaTimeGrid);
+    const monday = root.querySelector('[data-agenda-day="2026-10-26"]')!;
+    const sunday = root.querySelector('[data-agenda-day="2026-11-01"]')!;
+    // Before 09:00 and after 18:00 on Monday; all day on Sunday.
+    expect(monday.querySelectorAll('[style*="--ui-bg-elevated"]')).toHaveLength(
+      2,
+    );
+    expect(sunday.querySelectorAll('[style*="--ui-bg-elevated"]')).toHaveLength(
+      1,
+    );
+    expect(root.innerHTML).toContain(`min-width: ${56 + 7 * 120}px`);
+  });
+});
+
+describe("the time grid over resources and while dragging", () => {
+  it("lays resources days first under their groups, folds a group, locks a read-only resource", async () => {
+    const ctx = contextFor({
+      view: "resources",
+      dayCount: 2,
+      raw: {
+        resources: [
+          { id: "ana", label: "Ana", group: "ne1" },
+          { id: "bob", label: "Bob", group: "ne1", editable: false },
+          { id: "cid", label: "Cid", group: "lg4" },
+        ],
+        staticData: {
+          events: [],
+          resourceGroups: [
+            { id: "ne1", label: "NE1" },
+            { id: "lg4", label: "LG4" },
+          ],
+        },
+      },
+      occurrences: [
+        occurrence("shift", "2026-10-27T09:00", "2026-10-27T17:00", {
+          resourceIds: ["bob"],
+        }),
+      ],
+    });
+    const base = ctx.view;
+    ctx.view = computed(() => ({ ...base.value, resourceLayout: "daysFirst" }));
+    ctx.foldedGroups.value = new Set(["lg4"]);
+    const root = await mount(AgendaTimeGrid);
+    const columns = [
+      ...root.querySelectorAll("[data-agenda-grid-body] [role=gridcell]"),
+    ];
+    // Each day: Ana, Bob, then LG4 folded into one placeholder.
+    expect(
+      columns.map((column) => column.getAttribute("data-agenda-resource")),
+    ).toEqual(["ana", "bob", null, "ana", "bob", null]);
+    expect(
+      root.querySelector(
+        '[data-agenda-resource="bob"][data-agenda-day="2026-10-27"] [data-agenda-occurrence="shift"]',
+      ),
+    ).not.toBeNull();
+    const unfold = root.querySelector(
+      '[aria-label^="dms.agenda.grid.group_unfold"]',
+    );
+    expect(unfold?.getAttribute("aria-label")).toBe(
+      'dms.agenda.grid.group_unfold{"group":"LG4"}',
+    );
+    expect(unfold?.getAttribute("aria-expanded")).toBe("false");
+    expect(root.querySelector('[data-name="i-ph-lock-simple"]')).not.toBeNull();
+  });
+
+  it("draws the drag preview over the columns it crosses, with the refusal", async () => {
+    const ctx = contextFor({});
+    const root = await mount(AgendaTimeGrid);
+    ctx.drag.preview.value = {
+      kind: "create",
+      start: Date.parse("2026-10-27T08:00:00Z"),
+      end: Date.parse("2026-10-27T09:00:00Z"),
+      allDay: false,
+      resourceIds: [],
+      valid: false,
+      reason: "outside opening hours",
+      copy: false,
+      toPending: false,
+    };
+    await nextTick();
+    const ghost = root.querySelector(
+      "[data-agenda-grid-body] [data-agenda-ghost]",
+    );
+    expect(ghost).not.toBeNull();
+    expect(ghost!.textContent).toContain("outside opening hours");
+    expect(ghost!.textContent).toContain("dms.agenda.grid.new_event");
+  });
+});
+
+describe("the month view", () => {
+  it("draws six weeks, bars over weeks, +N more, and opens a day", async () => {
+    const busy = ["a", "b", "c", "d", "e"].map((key, index) =>
+      occurrence(
+        key,
+        `2026-10-28T0${index + 8}:00`,
+        `2026-10-28T0${index + 8}:30`,
+      ),
+    );
+    const ctx = contextFor({
+      view: "month",
+      from: "2026-09-28",
+      dayCount: 42,
+      raw: { weekNumbers: true },
+      occurrences: [...busy, occurrence("leave", "2026-10-23", "2026-10-27")],
+    });
+    const root = await mount(AgendaMonthView);
+    expect(root.querySelectorAll("[data-agenda-week]")).toHaveLength(6);
+    expect(
+      root.querySelectorAll('[data-agenda-occurrence="leave"]'),
+    ).toHaveLength(2);
+    expect(root.innerHTML).toContain('dms.agenda.month.more{"count":3}');
+    expect(root.innerHTML).toContain('dms.agenda.grid.week_short{"week":40}');
+    const day = root.querySelector(
+      '[data-agenda-day="2026-10-29"]',
+    ) as HTMLElement;
+    (day.querySelector("button") as HTMLButtonElement).click();
+    expect(ctx.goTo).toHaveBeenCalledWith("2026-10-29", "day");
+    day.click();
+    expect(ctx.clickEmpty).toHaveBeenCalledWith(
+      { day: "2026-10-29", allDay: true },
+      false,
+    );
+    expect(vi.mocked(ctx.drag.registerSurface)).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the event chip", () => {
+  it("shows its status, its save state and its issues, and hides what eventContent turns off", async () => {
+    contextFor({ raw: { eventContent: { time: false } } });
+    const tentative = occurrence("t", "2026-10-26T09:00", "2026-10-26T10:00", {
+      status: "tentative",
+      issues: [{ tone: "error", message: "Overlaps" }],
+    });
+    const root = await mount(AgendaEventChip, {
+      occurrence: { ...tentative, state: "saving" },
+      height: 60,
+    });
+    const chip = root.querySelector("button")!;
+    expect(chip.className).toContain("outline-dashed");
+    expect(chip.className).toContain("var(--ui-error)");
+    expect(chip.getAttribute("aria-label")).toContain(
+      "dms.agenda.grid.tentative",
+    );
+    expect(root.querySelector(".animate-spin")).not.toBeNull();
+    expect(chip.textContent).not.toContain("–");
+  });
+
+  it("opens on click and moves with Alt and an arrow", async () => {
+    const ctx = contextFor({});
+    const cancelled = occurrence("c", "2026-10-26T09:00", "2026-10-26T10:00", {
+      status: "cancelled",
+    });
+    const root = await mount(AgendaEventChip, {
+      occurrence: cancelled,
+      layout: "bar",
+    });
+    const chip = root.querySelector("button")!;
+    expect(chip.className).toContain("line-through");
+    chip.click();
+    expect(ctx.open).toHaveBeenCalledWith(cancelled);
+    chip.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        altKey: true,
+        bubbles: true,
+      }),
+    );
+    expect(ctx.drag.nudge).toHaveBeenCalled();
+  });
+});

@@ -1,0 +1,229 @@
+// Whether a placement may be dropped: the resource limits of the event and
+// of the agenda, the `constraints` of the block, the range navigation stops
+// at. The first broken rule names the refusal shown beside the preview.
+
+import type {
+  AgendaBackground,
+  AgendaBusinessHours,
+  AgendaConstraints,
+  AgendaResource,
+} from "../../../types/full-agenda";
+import type {
+  AgendaDayKey,
+  AgendaOccurrence,
+  AgendaPlacement,
+} from "./agendaModel";
+import {
+  MINUTES_PER_DAY,
+  MINUTE_MS,
+  addDays,
+  parseTimeOfDay,
+  weekdayOf,
+  zonedDayKey,
+  zonedMinutes,
+} from "./agendaTime";
+import { lastDayOf } from "./agendaDragMath";
+import { backgroundAppliesTo, backgroundSpans } from "./agendaBackgroundSpans";
+
+/** Why a drop is refused (`dms.agenda.drag.reason.<code>`). */
+export type AgendaDragRefusal =
+  | "resourceReadOnly"
+  | "resourceNotAllowed"
+  | "tooShort"
+  | "tooLong"
+  | "outsideHours"
+  | "closed"
+  | "overlap"
+  | "outOfRange";
+
+/** The drop to check. */
+export interface AgendaDropCheck {
+  placement: AgendaPlacement;
+  /** The occurrence moved or resized (left out of the overlap check unless copied). */
+  occurrence?: AgendaOccurrence;
+  copy: boolean;
+  /** The event's or pending item's own resource limit. */
+  allowedResourceIds?: string[];
+  /** A move or a resize that keeps the length: the duration limits are the resize's business. */
+  checkDuration: boolean;
+}
+
+/** What the rules read of the agenda. */
+export interface AgendaDropRules {
+  timeZone: string;
+  constraints: AgendaConstraints;
+  resources: Map<string, AgendaResource>;
+  /** The agenda's own business hours (the resources may carry theirs). */
+  businessHours: AgendaBusinessHours[];
+  hoursOn: (weekday: number, resourceId?: string) => AgendaBusinessHours[];
+  backgrounds: AgendaBackground[];
+  occurrences: AgendaOccurrence[];
+  minDate?: string;
+  maxDate?: string;
+}
+
+type Rule = (
+  check: AgendaDropCheck,
+  rules: AgendaDropRules,
+) => AgendaDragRefusal | null;
+
+/** Stops a walk over the days of a placement on a runaway length. */
+const MAX_CHECKED_DAYS = 62;
+
+/** The resources a placement is checked against; `[undefined]` for the agenda itself. */
+const checkedResources = (
+  placement: AgendaPlacement,
+): Array<string | undefined> =>
+  placement.resourceIds.length ? placement.resourceIds : [undefined];
+
+function readOnlyResource(check: AgendaDropCheck, rules: AgendaDropRules) {
+  return check.placement.resourceIds.some(
+    (id) => rules.resources.get(id)?.editable === false,
+  )
+    ? "resourceReadOnly"
+    : null;
+}
+
+function notAllowedResource(check: AgendaDropCheck) {
+  const allowed = check.allowedResourceIds;
+  if (!allowed) return null;
+  return check.placement.resourceIds.some((id) => !allowed.includes(id))
+    ? "resourceNotAllowed"
+    : null;
+}
+
+function duration(check: AgendaDropCheck, rules: AgendaDropRules) {
+  const { placement } = check;
+  if (!check.checkDuration || placement.allDay) return null;
+  const minutes = (placement.end - placement.start) / MINUTE_MS;
+  const { minDurationMinutes: min, maxDurationMinutes: max } =
+    rules.constraints;
+  if (min !== undefined && minutes < min) return "tooShort";
+  if (max !== undefined && minutes > max) return "tooLong";
+  return null;
+}
+
+function outOfRange(check: AgendaDropCheck, rules: AgendaDropRules) {
+  const first = zonedDayKey(check.placement.start, rules.timeZone);
+  const last = lastDayOf(check.placement, rules.timeZone);
+  if (rules.minDate && first < rules.minDate) return "outOfRange";
+  if (rules.maxDate && last > rules.maxDate) return "outOfRange";
+  return null;
+}
+
+/** The days a placement touches, first to last. */
+function placementDays(
+  placement: AgendaPlacement,
+  timeZone: string,
+): AgendaDayKey[] {
+  const days: AgendaDayKey[] = [];
+  const last = lastDayOf(placement, timeZone);
+  let day = zonedDayKey(placement.start, timeZone);
+  while (day <= last && days.length < MAX_CHECKED_DAYS) {
+    days.push(day);
+    day = addDays(day, 1);
+  }
+  return days;
+}
+
+const hasHours = (rules: AgendaDropRules, resourceId?: string) =>
+  rules.businessHours.length > 0 ||
+  (resourceId !== undefined &&
+    (rules.resources.get(resourceId)?.businessHours?.length ?? 0) > 0);
+
+/** The wall minutes of a timed placement on one of its days. */
+function dayPiece(
+  placement: AgendaPlacement,
+  day: AgendaDayKey,
+  timeZone: string,
+): [number, number] {
+  const startDay = zonedDayKey(placement.start, timeZone);
+  const endDay = zonedDayKey(placement.end, timeZone);
+  const from = day === startDay ? zonedMinutes(placement.start, timeZone) : 0;
+  const to =
+    day === endDay ? zonedMinutes(placement.end, timeZone) : MINUTES_PER_DAY;
+  return [from, to];
+}
+
+function withinHours(
+  hours: AgendaBusinessHours[],
+  from: number,
+  to: number,
+): boolean {
+  return hours.some(
+    (open) =>
+      parseTimeOfDay(open.start, 0) <= from &&
+      to <= parseTimeOfDay(open.end, MINUTES_PER_DAY),
+  );
+}
+
+function businessHours(check: AgendaDropCheck, rules: AgendaDropRules) {
+  if (!rules.constraints.withinBusinessHours) return null;
+  const { placement } = check;
+  for (const resourceId of checkedResources(placement)) {
+    if (!hasHours(rules, resourceId)) continue;
+    for (const day of placementDays(placement, rules.timeZone)) {
+      const hours = rules.hoursOn(weekdayOf(day), resourceId);
+      if (!hours.length) return "closed";
+      if (placement.allDay) continue;
+      const [from, to] = dayPiece(placement, day, rules.timeZone);
+      if (!withinHours(hours, from, to)) return "outsideHours";
+    }
+  }
+  return null;
+}
+
+function closedBackground(check: AgendaDropCheck, rules: AgendaDropRules) {
+  if (!rules.constraints.withinBusinessHours) return null;
+  const { placement } = check;
+  const isClosed = backgroundSpans(rules.backgrounds, rules.timeZone).some(
+    (span) => {
+      if (span.background.kind !== "closed") return false;
+      if (!(span.start < placement.end && placement.start < span.end))
+        return false;
+      return checkedResources(placement).some((id) =>
+        backgroundAppliesTo(span, id ?? null),
+      );
+    },
+  );
+  return isClosed ? "closed" : null;
+}
+
+function overlap(check: AgendaDropCheck, rules: AgendaDropRules) {
+  if (rules.constraints.allowOverlap !== false) return null;
+  const { placement, occurrence } = check;
+  const byResource =
+    rules.resources.size > 0 && placement.resourceIds.length > 0;
+  const clashes = rules.occurrences.some((other) => {
+    if (!check.copy && other.key === occurrence?.key) return false;
+    if (
+      byResource &&
+      !other.resourceIds.some((id) => placement.resourceIds.includes(id))
+    )
+      return false;
+    return other.start < placement.end && placement.start < other.end;
+  });
+  return clashes ? "overlap" : null;
+}
+
+const RULES: Rule[] = [
+  readOnlyResource,
+  notAllowedResource,
+  outOfRange,
+  duration,
+  businessHours,
+  closedBackground,
+  overlap,
+];
+
+/** The first rule a drop breaks, or `null` when it may land. */
+export function checkDrop(
+  check: AgendaDropCheck,
+  rules: AgendaDropRules,
+): AgendaDragRefusal | null {
+  for (const rule of RULES) {
+    const refusal = rule(check, rules);
+    if (refusal) return refusal;
+  }
+  return null;
+}

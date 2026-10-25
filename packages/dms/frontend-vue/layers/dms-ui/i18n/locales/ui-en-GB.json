@@ -904,43 +904,204 @@
     },
     "agenda": {
       "views": {
-        "_owner": "placeholder"
+        "day": "Day",
+        "week": "Week",
+        "days": "Days",
+        "month": "Month",
+        "year": "Year",
+        "list": "List",
+        "resources": "Resources",
+        "timeline": "Timeline"
       },
       "toolbar": {
-        "_owner": "placeholder"
+        "view": "View",
+        "today": "Today",
+        "previous": "Previous period",
+        "next": "Next period",
+        "pick_date": "Go to a date",
+        "search": "Search events",
+        "new": "New event",
+        "refresh": "Refresh",
+        "export_ics": "Export as .ics",
+        "sidebar": "Show or hide the sidebar",
+        "loading": "Loading events",
+        "empty": "No events in this period"
       },
       "sidebar": {
-        "_owner": "placeholder"
+        "label": "Agenda sidebar",
+        "close": "Close the sidebar",
+        "fold": "Fold the sidebar",
+        "mini_calendar": "Calendar",
+        "calendars": "Calendars",
+        "show_calendar": "Show {name}",
+        "hide_calendar": "Hide {name}",
+        "resources": "Resources",
+        "unscheduled": "To plan",
+        "unscheduled_empty": "Nothing left to plan",
+        "search_pending": "Search the items to plan",
+        "no_match": "No item matches",
+        "draggable": "draggable item",
+        "drop_to_unschedule": "Drop here to take it off the agenda",
+        "notices": "Checks",
+        "upcoming": "Upcoming",
+        "upcoming_empty": "Nothing coming up"
       },
       "details": {
-        "_owner": "placeholder"
+        "label": "Event details",
+        "new_event": "New event",
+        "close": "Close",
+        "when": "When",
+        "edit": "Edit",
+        "save": "Save",
+        "create": "Create",
+        "cancel": "Cancel",
+        "apply": "Apply",
+        "back": "Back",
+        "delete": "Delete",
+        "delete_title": "Delete this event?",
+        "delete_description": "“{title}” will be removed from the agenda.",
+        "recurring": "Repeats",
+        "recurring_title": "Recurring event",
+        "recurring_update": "Change this occurrence only, or every occurrence of the series?",
+        "recurring_delete": "Delete this occurrence only, or the whole series?",
+        "scope_occurrence": "This occurrence",
+        "scope_occurrence_hint": "The other occurrences stay as they are.",
+        "scope_series": "The whole series",
+        "scope_series_hint": "Every occurrence of the event changes.",
+        "status_tentative": "Tentative",
+        "status_cancelled": "Cancelled",
+        "status_error": "Not saved",
+        "status_conflict": "Changed by someone else meanwhile",
+        "retry": "Retry",
+        "overwrite": "Overwrite",
+        "take_theirs": "Take theirs",
+        "save_changes": "Save {count} change | Save {count} changes",
+        "review_changes": "Review and save {count} change | Review and save {count} changes",
+        "review_title": "Review the changes",
+        "review_description": "Nothing is written until you save.",
+        "change_create": "created",
+        "change_update": "edited",
+        "change_move": "moved",
+        "change_resize": "resized",
+        "change_delete": "deleted",
+        "change_schedule": "planned",
+        "change_unschedule": "taken off the agenda"
       },
       "form": {
-        "_owner": "placeholder"
+        "title": "Title",
+        "calendarId": "Calendar",
+        "resourceIds": "Resources",
+        "allDay": "All day",
+        "start": "Start",
+        "end": "End",
+        "location": "Place",
+        "description": "Description",
+        "time_of": "Time of {field}",
+        "required": "Required",
+        "invalid_date": "Not a valid date",
+        "end_before_start": "The end must come after the start"
       },
       "save": {
-        "_owner": "placeholder"
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saved_toast": "{count} change saved | {count} changes saved",
+        "not_saved_toast": "{count} change wasn't saved | {count} changes weren't saved",
+        "failed": "Couldn't save “{title}”",
+        "retry": "Retry",
+        "undo": "Undo",
+        "undone": "Changes undone",
+        "undo_failed": "Couldn't undo the changes",
+        "confirm": "Continue",
+        "conflict_title": "“{title}” was changed meanwhile",
+        "conflict_description": "Someone changed this event since you opened the agenda. Overwrite their change with yours, or discard yours.",
+        "overwrite": "Overwrite",
+        "discard": "Discard",
+        "gone": "“{title}” no longer exists",
+        "unresolved": "The save address of this agenda could not be built",
+        "save_label": "Save {count} change | Save {count} changes",
+        "review_label": "Review {count} change | Review {count} changes",
+        "staged_count": "{count} unsaved change | {count} unsaved changes"
       },
       "grid": {
-        "_owner": "placeholder"
+        "all_day": "All day",
+        "week_short": "W{week}",
+        "event": "Event",
+        "new_event": "New event",
+        "day_range": "{start} to {end}",
+        "tentative": "tentative",
+        "cancelled": "cancelled",
+        "issues": "issues: {count}",
+        "group_fold": "Fold {group}",
+        "group_unfold": "Unfold {group}",
+        "now": "Now"
       },
       "month": {
-        "_owner": "placeholder"
+        "more": "+{count} more",
+        "more_label": "{count} more events on {day}",
+        "day_label": "{day}, events: {count}",
+        "open_week": "Open week {week}",
+        "week_number": "Week number"
       },
       "timeline": {
-        "_owner": "placeholder"
+        "label": "Timeline",
+        "resources": "Resources",
+        "unassigned": "No resource",
+        "today": "Today",
+        "week": "Week {week}",
+        "expand_group": "Show {name}",
+        "collapse_group": "Fold {name}",
+        "read_only": "Read-only",
+        "continues_before": "Continues from an earlier day",
+        "continues_after": "Continues on a later day"
       },
       "year": {
-        "_owner": "placeholder"
+        "label": "Year",
+        "week": "Week {week}",
+        "pick_last_day": "Click the last day",
+        "from_day": "From {day}",
+        "cancel_range": "Cancel"
       },
       "list": {
-        "_owner": "placeholder"
+        "label": "Events by day",
+        "today": "Today",
+        "all_day": "All day",
+        "from": "From {time}",
+        "until": "Until {time}",
+        "empty": "No events in this period"
       },
       "drag": {
-        "_owner": "placeholder"
+        "started": "Dragging {title}. Escape cancels.",
+        "moved": "{title} moved to {when}",
+        "copied": "{title} copied to {when}",
+        "resized": "{title} now {when}",
+        "scheduled": "{title} planned on {when}",
+        "unscheduled": "{title} is back among the items to plan",
+        "picked": "Range picked: {when}",
+        "refused": "{title} cannot go there: {reason}",
+        "cancelled": "Drag cancelled",
+        "reason": {
+          "resourceReadOnly": "this resource is read-only",
+          "resourceNotAllowed": "not allowed on this resource",
+          "tooShort": "shorter than allowed",
+          "tooLong": "longer than allowed",
+          "outsideHours": "outside opening hours",
+          "closed": "closed then",
+          "overlap": "overlaps another event",
+          "outOfRange": "outside the dates allowed"
+        }
       },
       "a11y": {
-        "_owner": "placeholder"
+        "event": "{title}, {when}",
+        "event_calendar": "{title}, {when}, calendar {calendar}",
+        "timed": "{day} {start} to {end}",
+        "all_day": "{day}, all day",
+        "days": "{from} to {to}, all day",
+        "state_staged": "not saved yet",
+        "state_saving": "saving",
+        "state_error": "not saved",
+        "state_conflict": "changed meanwhile by someone else",
+        "range_started": "Range starts {day}. Pick its last day.",
+        "new_event": "New event"
       }
     }
   }
