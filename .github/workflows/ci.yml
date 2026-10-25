@@ -21,49 +21,20 @@ concurrency:
 # once, then sets DMS_PREBUILT so the package scripts and the test harness use
 # that build rather than compiling it again.
 jobs:
-  static:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      DMS_PREBUILT: "1"
-    steps:
-      - uses: actions/checkout@v4
-      # `dms lint` runs the Vue layer's ESLint too.
-      - uses: ./.github/actions/setup
-        with:
-          interface: "true"
-
-      - uses: AntelopeJS/tooling-configs/actions/docs@310e3d861b2da2244902854379176c91e1ebc68e
-        with:
-          files: |
-            README.md
-            packages/dms/README.md
-            packages/dms/docs
-            packages/interface-dms/README.md
-            packages/interface-dms/docs
-          typescript-project: packages/interface-dms/docs/tsconfig.json
-
-      - run: pnpm --dir packages/interface-dms lint
-      - run: pnpm --dir packages/interface-dms typecheck
-      - run: pnpm --dir packages/interface-dms knip
-      # Node does not fall back to a directory index inside an exports map, so
-      # a new interface folder is unreachable until the map lists it.
-      - run: pnpm --dir packages/interface-dms check:exports
-      # ImplementInterface binds only the proxies a subpath exports, and an
-      # unbound one never answers.
-      - run: pnpm --dir packages/interface-dms check:proxies
-
-      - run: pnpm --dir packages/dms lint
-      # oxlint's type-aware pass degrades to `any` on a broken tsconfig
-      # without failing, so the typecheck is what catches it.
-      - run: pnpm --dir packages/dms typecheck
-      # Unused dependencies only. `pnpm knip:all` also reports dead files and
-      # exports, which the interface architecture makes noisy enough to need a
-      # human, so they stay out of the gate.
-      - run: pnpm --dir packages/dms knip
-      # The docs site builds its block reference from the committed catalog,
-      # so a block option changed without regenerating it fails here.
-      - run: pnpm --dir packages/dms docs:catalog:check
+  checks:
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    with:
+      docs-files: |
+        README.md
+        packages/dms/README.md
+        packages/dms/docs
+        packages/interface-dms/README.md
+        packages/interface-dms/docs
+      docs-typescript-project: packages/interface-dms/docs/tsconfig.json
+      extra-commands: |
+        pnpm --dir packages/interface-dms check:exports
+        pnpm --dir packages/interface-dms check:proxies
+        pnpm --dir packages/dms docs:catalog:check
 
   backend:
     runs-on: ubuntu-latest
@@ -170,14 +141,14 @@ jobs:
   # on a pull request only.
   ubuntu:
     if: always()
-    needs: [static, backend, frontend-test, frontend-verify, docs-playground]
+    needs: [checks, backend, frontend-test, frontend-verify, docs-playground]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - if: >-
           contains(needs.*.result, 'failure') ||
           contains(needs.*.result, 'cancelled') ||
-          needs.static.result == 'skipped' ||
+          needs.checks.result == 'skipped' ||
           needs.backend.result == 'skipped' ||
           needs.frontend-test.result == 'skipped' ||
           needs.frontend-verify.result == 'skipped' ||
