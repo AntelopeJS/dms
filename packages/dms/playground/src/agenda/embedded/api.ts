@@ -17,7 +17,7 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { eventsFor, readAgendaQuery } from "../query";
 import { readAgendaSave } from "../save";
 import { AgendaStore, type RuleContext } from "../store";
-import { timeOf } from "../time";
+import { currentWeek, timeOf } from "../time";
 import { roomName, seedBookings } from "./data";
 import { AGENDA_EMBEDDED_API, PageAgendaEmbedded } from "./page";
 
@@ -46,6 +46,7 @@ function refuseBooking(
 
 const store = new AgendaStore(seedBookings, {
   idPrefix: "room",
+  anchor: currentWeek,
   refuse: refuseBooking,
   complete: (event) => ({
     ...event,

@@ -10,7 +10,7 @@ import type {
   AgendaSaveResponse,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import { applyPatch } from "./patch";
-import { recurringChange } from "./recurring";
+import { occurrenceEvent, recurringChange, withException } from "./recurring";
 import {
   type AgendaSaveInput,
   conflict,
@@ -62,6 +62,13 @@ export interface AgendaRules {
   related?: (event: AgendaEvent, state: AgendaState) => AgendaEvent[];
   /** The message of a conflict on an event moved since it was read. */
   conflictMessage?: (current: AgendaEvent) => string;
+  /**
+   * What the seed's dates hang on (the Monday of the current week): when it
+   * changes while the server runs, the demo reseeds before it is read again.
+   */
+  anchor?: () => string;
+  /** Called after each reset, for what a demo keeps beside its store. */
+  onReset?: () => void;
 }
 
 /** What the changes of one request did, gathered while they apply. */
@@ -277,12 +284,20 @@ function unscheduleEvent(store: AgendaStore, step: ChangeStep): void {
   const current = targetOf(store, step);
   if (!current) return;
   const unschedule = store.rules.unschedule ?? defaultUnschedule;
-  const item = unschedule(current);
+  const { occurrence } = step.change;
+  // One occurrence goes back to the list: its day leaves the series, the
+  // rest of the series stays planned.
+  const single =
+    occurrence && current.recurrence
+      ? occurrenceEvent(current, occurrence, `${current.id}-${occurrence}`)
+      : current;
+  const item = unschedule(single);
   step.draft.pending = [
     ...step.draft.pending.filter((other) => other.id !== item.id),
     item,
   ];
-  drop(step, current.id);
+  if (single === current) drop(step, current.id);
+  else write(step, withException(current, occurrence ?? ""));
 }
 
 const APPLIERS: Record<AgendaChangeKind, ChangeApplier> = {
@@ -302,14 +317,26 @@ const APPLIERS: Record<AgendaChangeKind, ChangeApplier> = {
  * again.
  */
 export class AgendaStore {
-  private state: AgendaState;
+  private stored: AgendaState;
   private sequence = 0;
+  private anchoredOn: string | undefined;
 
   constructor(
     private readonly seed: () => AgendaState,
     readonly rules: AgendaRules,
   ) {
-    this.state = seed();
+    this.stored = seed();
+    this.anchoredOn = rules.anchor?.();
+  }
+
+  /**
+   * The state, reseeded first when the week it was seeded for is over: a
+   * demo relative to "this week" never shows last week's data.
+   */
+  private get state(): AgendaState {
+    const anchor = this.rules.anchor?.();
+    if (anchor !== undefined && anchor !== this.anchoredOn) this.reset();
+    return this.stored;
   }
 
   get events(): AgendaEvent[] {
@@ -322,8 +349,10 @@ export class AgendaStore {
 
   /** Back to the seed, its dates computed again from today. */
   reset(): void {
-    this.state = this.seed();
+    this.stored = this.seed();
     this.sequence = 0;
+    this.anchoredOn = this.rules.anchor?.();
+    this.rules.onReset?.();
   }
 
   /** A fresh id for an event the route creates. */
@@ -368,7 +397,7 @@ export class AgendaStore {
       APPLIERS[change.kind](this, { change, index, input, draft, outcome });
     });
     if (outcome.confirm) return { confirm: outcome.confirm };
-    this.state = draft;
+    this.stored = draft;
     return {
       events: this.answerWritten(outcome),
       removed: [...outcome.removed],

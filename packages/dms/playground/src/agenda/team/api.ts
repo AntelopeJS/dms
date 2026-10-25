@@ -17,7 +17,7 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { eventsFor, readAgendaQuery } from "../query";
 import { readAgendaSave } from "../save";
 import { AgendaStore } from "../store";
-import { dayOf, isDayKey, minutesOfDay } from "../time";
+import { currentWeek, dayOf, isDayKey, minutesOfDay } from "../time";
 import { seedTeam } from "./data";
 import {
   AGENDA_TEAM_API,
@@ -62,6 +62,7 @@ function refuseMeeting(event: AgendaEvent): string | undefined {
 
 const store = new AgendaStore(seedTeam, {
   idPrefix: "team",
+  anchor: currentWeek,
   refuse: refuseMeeting,
   complete: (event) => ({ ...event, calendarId: event.calendarId ?? "design" }),
 });

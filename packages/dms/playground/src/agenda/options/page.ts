@@ -99,7 +99,9 @@ const DECLARATION = `static agenda = FullAgenda({
 
 // Editable: add a route receiving
 //   { changes: [{ kind, id?, tempId?, patch?, previous?, occurrence?, scope? }],
-//     force?, conflicts, from, to, view }
+//     force?, overwrite?, conflicts, from, to, view }
+// (a patch's null clears a field; force: the user confirmed the route's
+// question; overwrite: the user chose Overwrite on a conflict)
 // and answering { events?, removed?, errors?, confirm?, message?,
 //                 unscheduled?, notices?, backgrounds? }.
 static planning = FullAgenda({ fetchUrl, saveUrl, conflicts: "detect" });`;

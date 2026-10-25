@@ -19,6 +19,7 @@ import { readAgendaSave } from "../save";
 import { AgendaStore, type AgendaState } from "../store";
 import {
   addDays,
+  currentWeek,
   dayOf,
   isoWeekOf,
   minutesBetween,
@@ -51,6 +52,7 @@ function completeShift(shift: AgendaEvent): AgendaEvent {
 
 const store = new AgendaStore(seedSchedule, {
   idPrefix: "shift",
+  anchor: currentWeek,
   refuse: refuseShift,
   complete: completeShift,
   decorate: decorateShift,

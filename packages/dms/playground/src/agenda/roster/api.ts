@@ -17,13 +17,14 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { eventsFor, readAgendaQuery } from "../query";
 import { readAgendaSave } from "../save";
 import { AgendaStore, type RuleContext } from "../store";
-import { eventDays } from "../time";
+import { DEMO_TIME_ZONE, eventDays, timeOf } from "../time";
 import {
   READ_ONLY_STORE,
   ROSTER_FIRST_DAY,
   ROSTER_GROUPS,
   ROSTER_LAST_DAY,
   seedRoster,
+  shiftHours,
   storeOfPerson,
 } from "./data";
 import { AGENDA_ROSTER_API, PageAgendaRoster } from "./page";
@@ -63,6 +64,23 @@ function refusePrestation(
     : undefined;
 }
 
+/**
+ * A shift is titled by its hours ("09:30–18:30"), kept right after a move or
+ * a resize; the prestation type is its calendar. Absences keep their type.
+ */
+function titledByHours(event: AgendaEvent): AgendaEvent {
+  if (event.calendarId !== "travail" || event.allDay || !event.end) {
+    return event;
+  }
+  return {
+    ...event,
+    title: shiftHours(
+      timeOf(event.start, DEMO_TIME_ZONE),
+      timeOf(event.end, DEMO_TIME_ZONE),
+    ),
+  };
+}
+
 const store = new AgendaStore(seedRoster, {
   idPrefix: "roster",
   refuse: refusePrestation,
@@ -70,6 +88,7 @@ const store = new AgendaStore(seedRoster, {
     ...event,
     calendarId: event.calendarId ?? "travail",
   }),
+  decorate: titledByHours,
 });
 
 /**
@@ -85,7 +104,7 @@ export class AgendaRosterController extends Controller(AGENDA_ROSTER_API) {
   list(@Context() ctx: RequestContext): AgendaData {
     const query = readAgendaQuery(ctx.url.searchParams);
     return {
-      events: eventsFor(store.events, query),
+      events: store.answer(eventsFor(store.events, query)),
       resourceGroups: ROSTER_GROUPS,
     };
   }

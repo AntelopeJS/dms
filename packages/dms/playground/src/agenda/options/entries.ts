@@ -141,8 +141,8 @@ export const VIEW_OPTIONS: OptionEntry[] = [
     page: AGENDA_BOXED_SLUG,
   },
   {
-    option: "recurrence (events)",
-    text: "A repeating event expanded by the agenda; recurringEdit asks occurrence or series.",
+    option: "recurrence (events) / recurrence.timeZone",
+    text: "A repeating event expanded by the agenda, kept at its wall clock in its own zone (09:00 in Brussels across clock changes); recurringEdit asks occurrence or series.",
     page: AGENDA_TEAM_SLUG,
   },
   {
@@ -179,13 +179,18 @@ export const EDITING_OPTIONS: OptionEntry[] = [
     page: AGENDA_SCHEDULE_SLUG,
   },
   {
+    option: "Cleared fields (null in a patch)",
+    text: "A place, an end or a data field emptied in the form is sent as null; the route clears it.",
+    page: AGENDA_PLANNING_SLUG,
+  },
+  {
     option: "conflicts: detect",
-    text: "Each change sends previous; a conflict offers Overwrite or Discard.",
+    text: "Each change sends previous; a conflict offers Overwrite (posted with overwrite) or Discard.",
     page: AGENDA_PLANNING_SLUG,
   },
   {
     option: "confirm (answered)",
-    text: "The route asks before writing; the answer posts again with force.",
+    text: "The route asks before writing; the user's yes posts the changes again with force.",
     page: AGENDA_PLANNING_SLUG,
   },
   {

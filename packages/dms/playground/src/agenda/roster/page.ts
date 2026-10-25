@@ -72,7 +72,7 @@ export class PageAgendaRoster extends PageController(
     },
     {
       label: "Read a row",
-      text: "timeline with scale \"day\": a cell per person and day. Shifts are timed (09:30–18:30), absences all-day bars over several days (Manon Bertrand's leave, Charlotte Hubert's sickness).",
+      text: "timeline with scale \"day\": a cell per person and day. Shifts are timed and titled by their hours (09:30–18:30, eventContent.time: false), their type being the calendar (colour, legend); absences are all-day bars over several days titled by their type (Manon Bertrand's leave, Charlotte Hubert's sickness).",
     },
     {
       label: "Fold a store",
@@ -135,7 +135,8 @@ export class PageAgendaRoster extends PageController(
     legend: { position: "toolbar", toggles: true, counts: false },
     details: { container: "popover" },
     create: false,
-    eventContent: { time: true, subtitle: false },
+    // A shift's title is its hours; its type is its colour and the legend.
+    eventContent: { time: false, subtitle: false },
     height: "40rem",
   });
 }

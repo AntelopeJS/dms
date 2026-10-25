@@ -4,6 +4,7 @@ import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import type { DemoStep } from "../../table-view/guide";
 import { compactGuide } from "../guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import { DEMO_TIME_ZONE } from "../time";
 import { TEAM_CALENDARS } from "./data";
 
 export const AGENDA_TEAM_SLUG = "agenda-team";
@@ -87,6 +88,9 @@ export class PageAgendaTeam extends PageController(
     views: ["month", "week", "day", "list"],
     initialView: "week",
     weekStartsOn: 1,
+    // A Belgian team: its office hours (the route's 07:00–21:00) are
+    // Brussels hours, whatever the reader's zone.
+    timeZone: DEMO_TIME_ZONE,
     dayStart: TEAM_DAY_START,
     dayEnd: TEAM_DAY_END,
     hourHeight: HOUR_HEIGHT,

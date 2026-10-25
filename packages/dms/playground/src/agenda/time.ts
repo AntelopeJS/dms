@@ -76,9 +76,9 @@ function pad(value: number): string {
   return String(Math.abs(value)).padStart(PAD, "0");
 }
 
-/** Minutes the demo zone is ahead of UTC at an instant. */
-function offsetMinutes(ms: number): number {
-  const wall = wallTime(ms);
+/** Minutes a zone (the demo zone by default) is ahead of UTC at an instant. */
+function offsetMinutes(ms: number, format = ZONE_FORMAT): number {
+  const wall = wallTime(ms, format);
   const asUtc = Date.UTC(
     wall.year,
     wall.month - 1,
@@ -94,10 +94,14 @@ function dayKeyOf(wall: WallTime): string {
   return `${wall.year}-${pad(wall.month)}-${pad(wall.day)}`;
 }
 
-/** An instant written with the demo zone's offset ("2026-10-26T09:30:00+01:00"). */
-export function isoInstant(ms: number): string {
-  const offset = offsetMinutes(ms);
-  const wall = wallTime(ms);
+/**
+ * An instant written with a zone's offset, the demo zone's by default
+ * ("2026-10-26T09:30:00+01:00").
+ */
+export function isoInstant(ms: number, timeZone?: string): string {
+  const format = formatOf(timeZone);
+  const offset = offsetMinutes(ms, format);
+  const wall = wallTime(ms, format);
   const sign = offset < 0 ? "-" : "+";
   const hours = Math.floor(Math.abs(offset) / MINUTES_PER_HOUR);
   const minutes = Math.abs(offset) % MINUTES_PER_HOUR;
@@ -109,14 +113,25 @@ function splitDay(day: string): [number, number, number] {
   return [year, month, date];
 }
 
-/** The instant of a wall time ("09:30", "24:00") on a day, in the demo zone. */
-export function zonedInstant(day: string, time: string): string {
+/**
+ * The instant of a wall time ("09:30", "24:00") on a day, in a zone (the
+ * demo zone by default).
+ */
+export function zonedInstant(
+  day: string,
+  time: string,
+  timeZone?: string,
+): string {
+  const format = formatOf(timeZone);
   const [year, month, date] = splitDay(day);
   const [hour = 0, minute = 0] = time.split(":").map(Number);
   const wall = Date.UTC(year, month - 1, date, hour, minute);
   // Twice: the offset at the first guess may be the other side of a change.
-  const guess = wall - offsetMinutes(wall) * MS_PER_MINUTE;
-  return isoInstant(wall - offsetMinutes(guess) * MS_PER_MINUTE);
+  const guess = wall - offsetMinutes(wall, format) * MS_PER_MINUTE;
+  return isoInstant(
+    wall - offsetMinutes(guess, format) * MS_PER_MINUTE,
+    timeZone,
+  );
 }
 
 /** Whether a start or end is a day (`YYYY-MM-DD`), not an instant. */
@@ -133,21 +148,25 @@ export function dayOf(value: string, timeZone?: string): string {
   return dayKeyOf(wallTime(Date.parse(value), formatOf(timeZone)));
 }
 
-/** Minutes since midnight of an instant, in the demo zone. */
-export function minutesOfDay(value: string): number {
-  const wall = wallTime(Date.parse(value));
+/** Minutes since midnight of an instant, in a zone (the demo zone by default). */
+export function minutesOfDay(value: string, timeZone?: string): number {
+  const wall = wallTime(Date.parse(value), formatOf(timeZone));
   return wall.hour * MINUTES_PER_HOUR + wall.minute;
 }
 
-/** "HH:MM" of an instant, in the demo zone. */
-export function timeOf(value: string): string {
-  const minutes = minutesOfDay(value);
+/** "HH:MM" of an instant, in a zone (the demo zone by default). */
+export function timeOf(value: string, timeZone?: string): string {
+  const minutes = minutesOfDay(value, timeZone);
   return `${pad(Math.floor(minutes / MINUTES_PER_HOUR))}:${pad(minutes % MINUTES_PER_HOUR)}`;
 }
 
-/** The instant `minutes` after another one. */
-export function addMinutes(value: string, minutes: number): string {
-  return isoInstant(Date.parse(value) + minutes * MS_PER_MINUTE);
+/** The instant `minutes` after another one, written in a zone (the demo zone by default). */
+export function addMinutes(
+  value: string,
+  minutes: number,
+  timeZone?: string,
+): string {
+  return isoInstant(Date.parse(value) + minutes * MS_PER_MINUTE, timeZone);
 }
 
 /** Minutes from one instant to another. */
@@ -189,6 +208,11 @@ export function mondayOf(day: string): string {
 /** Today in the demo zone. */
 export function todayKey(): string {
   return dayKeyOf(wallTime(Date.now()));
+}
+
+/** The Monday of the current week: what the demos' dates hang on. */
+export function currentWeek(): string {
+  return mondayOf(todayKey());
 }
 
 /** The ISO week number of a day. */

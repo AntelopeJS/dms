@@ -87,8 +87,14 @@ function sameInstant(left: string, right: string): boolean {
   return Date.parse(left) === Date.parse(right);
 }
 
-function sameList(left: string[] = [], right: string[] = []): boolean {
-  return [...left].sort().join() === [...right].sort().join();
+// `previous` may hold anything a client sends: a list that is not one
+// compares as none (never a 500).
+function listOf(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function sameList(left: unknown, right: unknown): boolean {
+  return listOf(left).sort().join() === listOf(right).sort().join();
 }
 
 type FieldCheck = (previous: AgendaEventPatch, current: AgendaEvent) => boolean;

@@ -5,6 +5,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import { demoGuide } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import { DEMO_TIME_ZONE } from "../time";
 import { TEAM_CALENDARS } from "../team/data";
 import { onCallData, ROOMS } from "./data";
 
@@ -19,6 +20,8 @@ const BOOKINGS = {
   calendars: TEAM_CALENDARS,
   resources: ROOMS,
   weekStartsOn: 1 as const,
+  // The office's rooms are booked in Brussels time.
+  timeZone: DEMO_TIME_ZONE,
   dayStart: "08:00",
   dayEnd: "19:00",
 };
@@ -111,7 +114,7 @@ export class PageAgendaEmbedded extends PageController(
     },
     {
       label: "Read the on-call turns",
-      text: "staticData and no saveUrl: a read-only agenda without a route; toolbar: false hides the whole toolbar, the month view is its only view.",
+      text: "staticData and no saveUrl: a read-only agenda without a route; toolbar: false hides the whole toolbar, the month view is its only view. It sets no timeZone, so it draws in your own zone (your regional preferences), unlike the Brussels agendas above.",
     },
   ]);
 

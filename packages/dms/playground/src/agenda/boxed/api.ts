@@ -19,6 +19,7 @@ import { actionId, missing, readAgendaSave } from "../save";
 import { AgendaStore } from "../store";
 import {
   addDays,
+  currentWeek,
   dayOf,
   isDayKey,
   timeOf,
@@ -49,6 +50,7 @@ function refuseMeeting(event: AgendaEvent): string | undefined {
 
 const store = new AgendaStore(seedBoxed, {
   idPrefix: "boxed",
+  anchor: currentWeek,
   refuse: refuseMeeting,
   complete: (event) => ({
     ...event,

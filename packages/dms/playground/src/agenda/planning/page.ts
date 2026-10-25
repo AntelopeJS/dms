@@ -86,7 +86,7 @@ export const PLANNING_STEPS: DemoStep[] = [
   },
   {
     label: "Move Musin's Validation (Friday S1, Torrekens L.)",
-    text: 'conflicts: "detect": each change sends previous. A colleague moves that task meanwhile (the route simulates it on its first change): the save answers a conflict, Overwrite posts yours with force, Discard takes theirs.',
+    text: 'conflicts: "detect": each change sends previous. A colleague moves that task meanwhile (the route simulates it the first time you move it): the save answers a conflict with the task where it now is; Overwrite posts yours again with overwrite (the predecessor question is still asked unless confirmed: force), Discard takes theirs.',
   },
   {
     label: "Look at Lemaire (Monday S3, six slots)",

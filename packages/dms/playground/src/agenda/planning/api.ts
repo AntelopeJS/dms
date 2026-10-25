@@ -23,6 +23,7 @@ import {
   missing,
   readAgendaSave,
 } from "../save";
+import { currentWeek } from "../time";
 import { AgendaStore, type AgendaState } from "../store";
 import { PLANNING_GROUPS, STATUS_OPTIONS } from "./data";
 import { AGENDA_PLANNING_API, PageAgendaPlanning } from "./page";
@@ -62,8 +63,15 @@ function completeTask(event: AgendaEvent): AgendaEvent {
   };
 }
 
+let colleagueMoved = false;
+
 const store = new AgendaStore(seedPlanning, {
   idPrefix: "planning",
+  anchor: currentWeek,
+  // A reseeded week gives the colleague's move back to the demo.
+  onReset: () => {
+    colleagueMoved = false;
+  },
   refuse: refuseTask,
   confirm: confirmTask,
   complete: completeTask,
@@ -74,8 +82,6 @@ const store = new AgendaStore(seedPlanning, {
   conflictMessage: (current) =>
     `${COLLEAGUE} a replanifié cette tâche entre-temps : elle commence maintenant ${slotLabel(current.start)}.`,
 });
-
-let colleagueMoved = false;
 
 /**
  * Plays the colleague: the first change naming the task moves it one slot
@@ -149,7 +155,6 @@ export class AgendaPlanningController extends Controller(AGENDA_PLANNING_API) {
   @Post("reset")
   reset() {
     store.reset();
-    colleagueMoved = false;
     return { message: "Planning remis à zéro" };
   }
 }

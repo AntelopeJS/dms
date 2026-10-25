@@ -16,7 +16,8 @@ export const AGENDA_SCHEDULE_SLUG = "agenda-schedule";
 export const AGENDA_SCHEDULE_API = `${AGENDA_API}/schedule`;
 
 const ONE_WEEK = 7;
-const COLUMN_MIN_WIDTH = 64;
+// Wide enough for a first name and most of a last name under a column.
+const COLUMN_MIN_WIDTH = 96;
 const SNAP_MINUTES = 30;
 const SHIFT_MINUTES = 540;
 const HOUR_HEIGHT = 40;
@@ -71,7 +72,7 @@ export class PageAgendaSchedule extends PageController(
     },
     {
       label: "Switch views",
-      text: 'resources over a week with resourceLayout "daysFirst" (each day, then each person), one day per person, or the plain week grid; timeZone: "Europe/Brussels" draws the stores\' hours whatever the reader\'s zone.',
+      text: 'resources over a week with resourceLayout "resourcesFirst" (each person over their seven days, the name readable above them) or "daysFirst" (each day, then each person), one day per person, or the plain week grid; columnMinWidth: 96 keeps the names readable, the view scrolling sideways past it; timeZone: "Europe/Brussels" draws the stores\' hours whatever the reader\'s zone.',
     },
   ]);
 
@@ -88,8 +89,15 @@ export class PageAgendaSchedule extends PageController(
         id: "staff-week",
         type: "resources",
         duration: ONE_WEEK,
-        resourceLayout: "daysFirst",
+        resourceLayout: "resourcesFirst",
         label: "Semaine par personne",
+      },
+      {
+        id: "days-week",
+        type: "resources",
+        duration: ONE_WEEK,
+        resourceLayout: "daysFirst",
+        label: "Semaine par jour",
       },
       { id: "staff-day", type: "resources", duration: 1, label: "Jour" },
       "week",

@@ -59,6 +59,16 @@ export const AGENDA_FEATURES: PlaygroundFeature[] = [
     PAGES.team,
   ),
   feature(
+    "A series kept at its wall clock in its own zone",
+    'events[].recurrence.timeZone: "Europe/Brussels"',
+    PAGES.team,
+  ),
+  feature(
+    "A field emptied in the form is cleared by the route",
+    "AgendaEventPatch: null clears end, calendarId, location, description, data keys",
+    PAGES.planning,
+  ),
+  feature(
     "Sidebar: mini calendar, legend with toggles and counts, tip",
     "sidebar: { sections, tip }, legend: { toggles, counts }",
     PAGES.team,
@@ -110,12 +120,12 @@ export const AGENDA_FEATURES: PlaygroundFeature[] = [
   ),
   feature(
     "A question of the save route before it writes",
-    "AgendaSaveResponse.confirm → force",
+    "AgendaSaveResponse.confirm → AgendaSaveRequest.force",
     PAGES.planning,
   ),
   feature(
     "Conflicts detected on events moved meanwhile",
-    'conflicts: "detect" (previous → errors[{ code: "conflict", current }])',
+    'conflicts: "detect" (previous → errors[{ code: "conflict", current }] → overwrite)',
     PAGES.planning,
   ),
   feature(

@@ -172,6 +172,11 @@ function workDays(
   return rotated.slice(0, workDaysFor(hours)).sort();
 }
 
+/** "09:30–18:30": a shift's title, as the prototype's cells read. */
+export function shiftHours(start: string, end: string): string {
+  return `${start}–${end}`;
+}
+
 function shift(
   id: string,
   store: string,
@@ -183,7 +188,7 @@ function shift(
   const long = minutesOf(end) - minutesOf(start) > PAUSE_AFTER_MINUTES;
   return {
     id: `roster-${id}-${day}`,
-    title: "Travail",
+    title: shiftHours(start, end),
     calendarId: "travail",
     resourceIds: [id],
     start: zonedInstant(day, start),

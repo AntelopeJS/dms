@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import { demoGuide } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import { DEMO_TIME_ZONE } from "../time";
 import { BOXED_CALENDARS, BOXED_LOCATIONS } from "./data";
 
 export const AGENDA_BOXED_SLUG = "agenda-boxed";
@@ -84,6 +85,8 @@ export class PageAgendaBoxed extends PageController(
       "list",
     ],
     weekStartsOn: 1,
+    // The agency's hours and Sundays are Brussels ones.
+    timeZone: DEMO_TIME_ZONE,
     hiddenDays: [0],
     dayStart: "08:00",
     dayEnd: "19:00",
