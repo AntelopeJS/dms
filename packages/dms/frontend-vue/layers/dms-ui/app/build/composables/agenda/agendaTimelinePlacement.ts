@@ -184,8 +184,10 @@ export function placeSpan(
     safeEnd === start
       ? zeroHidden
       : isEndHidden(columns, safeEnd, columnPosition(columns, safeEnd));
-  const sliver = to - from < MIN_SPAN;
-  if (sliver) [from, to] = widen(columns, from, start, safeEnd);
+  // Only a span the shown hours or slots hide entirely is a lane-free
+  // sliver (M4): a short visible event (10:00–10:10) is widened but stacks.
+  const sliver = safeEnd === start ? zeroHidden : to - from <= EPSILON;
+  if (to - from < MIN_SPAN) [from, to] = widen(columns, from, start, safeEnd);
   return {
     from,
     to,

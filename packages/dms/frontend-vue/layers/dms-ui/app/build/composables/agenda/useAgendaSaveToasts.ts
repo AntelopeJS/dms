@@ -55,6 +55,19 @@ export function undoChanges(
     .filter((change): change is AgendaChange => change !== null);
 }
 
+/** The Retry button of a refusal toast. */
+function retryAction(label: string, onClick: () => void) {
+  return [
+    {
+      label,
+      icon: "i-ph-arrow-clockwise",
+      color: "neutral" as const,
+      variant: "outline" as const,
+      onClick,
+    },
+  ];
+}
+
 /**
  * What the agenda tells of its saves: Saved with Undo for `undoSeconds` (or
  * the route's message), a refusal with Retry, a conflict with Overwrite /
@@ -140,15 +153,9 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
       description: first.message,
       color: "error",
       icon: "i-ph-warning-circle",
-      actions: [
-        {
-          label: label("retry"),
-          icon: "i-ph-arrow-clockwise",
-          color: "neutral",
-          variant: "outline",
-          onClick: () => void retry(edits),
-        },
-      ],
+      actions: edits.every((edit) => edit.retryable !== false)
+        ? retryAction(label("retry"), () => void retry(edits))
+        : undefined,
     });
   }
 

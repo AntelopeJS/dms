@@ -90,8 +90,10 @@ export interface TimelinePlaced {
   to: number;
   segments: TimelineSegment[];
   /**
-   * Drawn as a sliver: too thin to see where it really falls (zero-length,
-   * or outside the shown hours). It takes no room in the lanes.
+   * A sliver of an event the shown hours or slots hide entirely (in a break,
+   * before dayStart, after dayEnd or the last slot). It takes no room in the
+   * lanes. A short visible event is widened to `MIN_SPAN` but is no sliver:
+   * it stacks like any other.
    */
   sliver: boolean;
 }

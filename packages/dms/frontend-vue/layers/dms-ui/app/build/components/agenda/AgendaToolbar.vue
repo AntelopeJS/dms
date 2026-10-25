@@ -115,18 +115,35 @@ const showsSaveStatus = computed(
   <div class="border-default border-b" data-agenda-toolbar>
     <div
       v-if="hasHeader"
-      class="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 pt-3"
+      :class="[
+        'flex items-start gap-x-3 gap-y-2 px-4 pt-3',
+        ctx.compact.value ? 'flex-col' : 'flex-wrap',
+      ]"
+      data-agenda-toolbar-header
     >
-      <div v-if="title || description" class="min-w-0 flex-1">
+      <div
+        v-if="title || description"
+        :class="ctx.compact.value ? 'w-full' : 'min-w-0 flex-1'"
+        data-agenda-toolbar-title
+      >
         <h2
           v-if="title"
-          class="text-highlighted truncate text-base font-semibold"
+          :class="[
+            'text-highlighted text-base font-semibold',
+            !ctx.compact.value && 'truncate',
+          ]"
         >
           {{ title }}
         </h2>
         <p v-if="description" class="text-muted text-sm">{{ description }}</p>
       </div>
-      <div class="ms-auto flex flex-wrap items-center gap-2">
+      <div
+        :class="[
+          'flex flex-wrap items-center gap-2',
+          ctx.compact.value ? 'w-full' : 'ms-auto',
+        ]"
+        data-agenda-toolbar-actions
+      >
         <UButton
           v-for="action in toolbarActions"
           :key="action.id"

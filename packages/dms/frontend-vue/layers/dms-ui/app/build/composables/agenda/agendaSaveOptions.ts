@@ -30,7 +30,12 @@ export interface AgendaSaveEngineOptions {
    * Puts an answer on screen: its events and removals, its lists, and the
    * changes it wrote (`written`) that it answers no event for, as sent.
    */
-  onAnswer: (response: AgendaSaveResponse, written: AgendaChange[]) => void;
+  onAnswer: (
+    response: AgendaSaveResponse,
+    written: AgendaChange[],
+    /** The range and view the request was made for (its lists belong to them). */
+    request?: AgendaRequestContext,
+  ) => void;
   /** The changes a request wrote, with its answer (Undo, its message). */
   onSaved?: (written: AgendaChange[], response: AgendaSaveResponse) => void;
   /**

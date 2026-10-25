@@ -46,6 +46,8 @@ export interface AgendaEdit {
   queued?: AgendaChange;
   /** It was written with `force` (a `confirm` answered): an Overwrite keeps it. */
   forced?: boolean;
+  /** `false`: a refusal no Retry can fix (a change of an event the route never named). */
+  retryable?: boolean;
 }
 
 /** How an occurrence shows its change. */

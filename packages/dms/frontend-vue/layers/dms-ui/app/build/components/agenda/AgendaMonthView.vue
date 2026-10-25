@@ -65,12 +65,42 @@ const layouts = computed(() =>
   ),
 );
 
+/** The roving element focused last (a day number, a piece, a "+N more"). */
+const lastRoving = ref<string | null>(null);
+
+/** Every roving element drawn now. */
+const drawnRoving = computed(() => {
+  const tokens = new Set<string>();
+  layouts.value.forEach((layout, index) => {
+    const week = weeks.value[index]!;
+    week.days.forEach((day, column) => {
+      tokens.add(rovingToken.day(day.key));
+      if ((layout.more[column] ?? 0) > 0) tokens.add(rovingToken.more(day.key));
+    });
+    for (const segment of layout.segments) {
+      tokens.add(rovingToken.chip(week.key, segment));
+    }
+  });
+  return tokens;
+});
+
+/** The roving tab stop follows the focus, whatever got it. */
+function onFocusIn(focus: FocusEvent): void {
+  const token = (focus.target as HTMLElement | null)?.closest<HTMLElement>(
+    "[data-agenda-roving]",
+  )?.dataset.agendaRoving;
+  if (token) lastRoving.value = token;
+}
+
 /**
- * The one element of the month in the tab order (roving focus): the first
- * piece of the focused event when it is drawn, else the first day number.
- * A bar across two weeks is one tab stop.
+ * The one element of the month in the tab order (roving focus): the one
+ * focused last when still drawn, else the first piece of the focused event,
+ * else the first day number. A bar across two weeks is one tab stop.
  */
 const entry = computed(() => {
+  if (lastRoving.value && drawnRoving.value.has(lastRoving.value)) {
+    return lastRoving.value;
+  }
   const focused = ctx.focusedKey.value;
   for (const [index, layout] of layouts.value.entries()) {
     const segment = layout.segments.find(
@@ -180,6 +210,7 @@ onBeforeUnmount(() => unregister?.());
       ref="bodyEl"
       class="grid min-h-0 flex-1 overflow-y-auto overscroll-contain select-none"
       @keydown="onKeydown"
+      @focusin="onFocusIn"
       :style="{
         gridTemplateRows: `repeat(${weeks.length}, minmax(${rowMin}px, 1fr))`,
       }"

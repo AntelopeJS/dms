@@ -35,8 +35,17 @@ export interface AgendaDropCommitDeps {
 
 type Announce = (message: string) => void;
 
-/** Gives the focus back to an event's chip once its change has settled. */
-type Refocus = (key: string) => void;
+/**
+ * Gives the focus back to an event's chip: at once (the change is drawn
+ * before the save answers), then again once it settles (a refusal draws the
+ * event back at its old place).
+ */
+interface Refocus {
+  now: (key: string) => void;
+  settled: (key: string) => void;
+}
+
+const NO_REFOCUS: Refocus = { now: () => {}, settled: () => {} };
 
 /** The save engine reports a refusal itself (toast, event put back): a rejection is not this drop's to handle. */
 const ignore = () => undefined;
@@ -45,7 +54,7 @@ export class AgendaDropCommitter {
   constructor(
     private readonly deps: AgendaDropCommitDeps,
     private readonly announce: Announce,
-    private readonly refocus: Refocus = () => {},
+    private readonly refocus: Refocus = NO_REFOCUS,
   ) {}
 
   /** Writes `dms.agenda.drag.<key>` to the live region. */
@@ -123,8 +132,9 @@ export class AgendaDropCommitter {
     const written = occurrence
       ? this.deps.apply(change, occurrence)
       : this.deps.apply(change);
+    if (refocusKey) this.refocus.now(refocusKey);
     void written.catch(ignore).finally(() => {
-      if (refocusKey) this.refocus(refocusKey);
+      if (refocusKey) this.refocus.settled(refocusKey);
     });
   }
 

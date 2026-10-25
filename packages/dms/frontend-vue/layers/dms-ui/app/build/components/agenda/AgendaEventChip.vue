@@ -235,8 +235,17 @@ watch(isFocusedKey, async (isFocused) => {
 function takeFocusBack(): void {
   const el = chipEl.value;
   if (!el || ctx.drag.refocusKey.value !== props.occurrence.key) return;
+  const active = document.activeElement;
+  // Still drawn here and focused: the drag engine clears the key once saved.
+  if (active === el) return;
   ctx.drag.refocusKey.value = null;
-  if (document.activeElement !== el) el.focus();
+  // The focus went elsewhere meanwhile (an input, a button): leave it there.
+  const isLost =
+    !active ||
+    active === document.body ||
+    Boolean(active.closest("[data-agenda-occurrence]"));
+  if (!isLost) return;
+  el.focus();
   ctx.focusedKey.value = props.occurrence.key;
 }
 onMounted(takeFocusBack);

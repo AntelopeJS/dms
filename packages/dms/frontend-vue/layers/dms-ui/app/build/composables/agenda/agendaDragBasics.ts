@@ -12,6 +12,7 @@ import type {
 } from "./agendaModel";
 import {
   addDays,
+  MINUTES_PER_DAY,
   MINUTE_MS,
   zonedMinutes,
   zonedDayKey,
@@ -96,7 +97,14 @@ export function snapInstant(
   const seconds = (((epoch % MINUTE_MS) + MINUTE_MS) % MINUTE_MS) / MINUTE_MS;
   const exact = zonedMinutes(epoch, timeZone) + seconds;
   const snapped = Math[mode](exact / step) * step;
-  return epoch + (snapped - exact) * MINUTE_MS;
+  const moved = epoch + (snapped - exact) * MINUTE_MS;
+  // Moving by the difference keeps a repeated hour's pass, but across a
+  // spring-forward gap (a step over an hour) the wall clock jumped: land on
+  // the snapped wall time itself, past the gap.
+  const wall =
+    ((snapped % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  if (zonedMinutes(moved, timeZone) === wall) return moved;
+  return zonedEpoch(zonedDayKey(epoch, timeZone), snapped, timeZone);
 }
 
 /** A run of `count` slots from a slot, running on into the next shown days. */

@@ -116,11 +116,12 @@ function useAgendaEngine(setup: AgendaSaveSetup, hooks: AgendaEngineHooks) {
       view: setup.view.value.id,
     }),
     confirm: useAskConfirm(text),
-    onAnswer: (response, written) => {
+    onAnswer: (response, written, request) => {
       source.applyAnswer(
         response,
         written,
         (change) => engine.editOf(agendaEditKey(change))?.seed,
+        request && { from: request.from, to: request.to, view: request.view },
       );
       // An id the route never named stays on screen: read its own ids.
       if (leavesLocalId(response, written)) void source.refresh();

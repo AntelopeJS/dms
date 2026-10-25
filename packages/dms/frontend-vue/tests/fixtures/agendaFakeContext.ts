@@ -4,6 +4,7 @@
  * read what the parts asked of it (`apply`, `goTo`, `startPending`...).
  */
 import { computed, ref, type Ref } from "vue";
+import { compactAgendaView } from "../../layers/dms-ui/app/build/composables/agenda/agendaRange";
 import { vi } from "vitest";
 import type {
   AgendaContext,
@@ -167,11 +168,15 @@ export function fakeAgendaContext(
       duration: (minutes) => `${minutes} min`,
     },
     views,
-    view: computed(
-      () =>
+    // The view drawn: the picked one, as a compact agenda draws it.
+    view: computed(() => {
+      const picked =
         views.value.find((item) => item.id === pickedViewId.value) ??
-        views.value[0]!,
-    ),
+        views.value[0]!;
+      return widthRef.value < options.value.compactBelow
+        ? compactAgendaView(picked, views.value, raw.responsive?.compactView)
+        : picked;
+    }),
     pickedViewId,
     setView: vi.fn((id: string) => {
       pickedViewId.value = id;

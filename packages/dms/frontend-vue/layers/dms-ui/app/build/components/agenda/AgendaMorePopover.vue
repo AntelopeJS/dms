@@ -20,10 +20,13 @@ interface AgendaMorePopoverProps {
   count: number;
   /** In the tab order (the month grid has one roving tab stop). */
   tabbable?: boolean;
+  /** Its name in the month's roving set. */
+  roving?: string;
 }
 
 const props = withDefaults(defineProps<AgendaMorePopoverProps>(), {
   tabbable: true,
+  roving: "",
 });
 
 const ctx = useAgendaContext();
@@ -52,7 +55,7 @@ function openDay(): void {
       type="button"
       class="text-muted hover:text-highlighted hover:bg-elevated w-full truncate rounded-md px-1.5 text-start text-xs font-medium"
       :tabindex="props.tabbable ? 0 : -1"
-      data-agenda-roving
+      :data-agenda-roving="props.roving"
       :aria-label="
         t(
           'dms.agenda.month.more_label',

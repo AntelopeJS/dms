@@ -431,20 +431,3 @@ describe("a lost pointerup (#32)", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 });
-
-describe("the focus after a keyboard move (N4)", () => {
-  it("names the moved event to refocus once its change settled", async () => {
-    vi.useRealTimers();
-    const { drag, apply } = setup({}, [meeting]);
-    const right = new KeyboardEvent("keydown", {
-      key: "ArrowRight",
-      altKey: true,
-    });
-    expect(drag.nudge(right, meeting)).toBe(true);
-    expect(apply).toHaveBeenCalled();
-    expect(drag.refocusKey.value).toBeNull();
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(drag.refocusKey.value).toBe("m");
-  });
-});

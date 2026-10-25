@@ -17,31 +17,51 @@ const props = defineProps<AgendaViewSwitcherProps>();
 const ctx = useAgendaContext();
 const { t } = useI18n();
 
-/** A view as the switcher offers it. */
+/** A view as the switcher offers it, and the view it draws. */
 interface ViewItem {
   label: string;
   value: string;
+  draws: string;
 }
 
-const offered = computed(() => {
+/**
+ * The views offered. Compact, a wide grid draws another view: one of the
+ * list is not offered twice; one made up for the width (a week drawn as
+ * its day) is offered under the name of what it draws ("Day"), once.
+ */
+const items = computed<ViewItem[]>(() => {
   const views = ctx.views.value;
-  if (!ctx.compact.value) return views;
+  if (!ctx.compact.value)
+    return views.map((view) => ({
+      label: view.label,
+      value: view.id,
+      draws: view.id,
+    }));
   const compactView = ctx.options.value.raw.responsive?.compactView;
-  return views.filter((view) => {
+  const seen = new Set<string>();
+  const result: ViewItem[] = [];
+  for (const view of views) {
     const drawn = compactAgendaView(view, views, compactView);
-    return drawn.id === view.id || !views.some((item) => item.id === drawn.id);
-  });
+    const isListed = views.some((item) => item.id === drawn.id);
+    if (drawn.id !== view.id && isListed) continue;
+    const madeUp = drawn.id !== view.id;
+    const key = madeUp ? `made-up:${drawn.type}` : view.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({
+      label: madeUp ? t(`dms.agenda.views.${drawn.type}`) : view.label,
+      value: view.id,
+      draws: drawn.id,
+    });
+  }
+  return result;
 });
-const items = computed<ViewItem[]>(() =>
-  offered.value.map((view) => ({ label: view.label, value: view.id })),
+/** The item of the view drawn, else the one picked. */
+const value = computed(
+  () =>
+    items.value.find((item) => item.draws === ctx.view.value.id)?.value ??
+    ctx.pickedViewId.value,
 );
-/** The view drawn when the switcher offers it, else the one picked (drawn compact). */
-const value = computed(() => {
-  const drawn = ctx.view.value.id;
-  return offered.value.some((view) => view.id === drawn)
-    ? drawn
-    : ctx.pickedViewId.value;
-});
 const label = computed(() => t("dms.agenda.toolbar.view"));
 </script>
 

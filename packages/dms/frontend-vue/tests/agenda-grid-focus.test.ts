@@ -198,3 +198,35 @@ describe("month plurals (N33)", () => {
     );
   });
 });
+
+describe("round 3: the roving stop and a focus elsewhere", () => {
+  it("moves the month's one tab stop to a focused day number (m13)", async () => {
+    contextFor({
+      ...MONTH,
+      occurrences: [occurrence("a", "2026-10-27T09:00", "2026-10-27T10:00")],
+    });
+    const root = await mount(AgendaMonthView);
+    const day = root.querySelector<HTMLElement>(
+      '[data-agenda-roving="day:2026-10-14"]',
+    )!;
+    day.focus();
+    await nextTick();
+    const stops = [...root.querySelectorAll<HTMLElement>("button")].filter(
+      (button) => button.tabIndex >= 0,
+    );
+    expect(stops).toEqual([day]);
+  });
+
+  it("does not take the focus from an input when an event is named for refocus (m6)", async () => {
+    const ctx = contextFor({});
+    const input = document.createElement("input");
+    document.body.append(input);
+    input.focus();
+    ctx.drag.refocusKey.value = "s";
+    await mount(AgendaEventChip, {
+      occurrence: occurrence("s", "2026-10-26T09:00", "2026-10-26T10:00"),
+    });
+    expect(document.activeElement).toBe(input);
+    expect(ctx.drag.refocusKey.value).toBeNull();
+  });
+});

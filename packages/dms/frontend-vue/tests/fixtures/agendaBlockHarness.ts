@@ -223,6 +223,8 @@ export interface AgendaMountPlace {
   container?: boolean;
   /** The page marks the parent as its filling block (`data-dms-page-fill`). Defaults to `true`. */
   pageFill?: boolean;
+  /** A wrapper between the parent and the block (a permission veil), with this CSS. */
+  veil?: string;
 }
 
 const FLEX_COLUMN = "display: flex; flex-direction: column";
@@ -250,7 +252,10 @@ export async function mountBlock(
     setup() {
       if (place.container)
         provide(DMS_CONTAINER_KEY, { id: "container", close: async () => {} });
-      return () => h(block, props);
+      return () =>
+        place.veil === undefined
+          ? h(block, props)
+          : h("div", { style: place.veil, "data-veil": "" }, [h(block, props)]);
     },
   });
   const app = createApp(root);

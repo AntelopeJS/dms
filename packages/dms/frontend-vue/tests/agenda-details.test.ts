@@ -352,43 +352,6 @@ describe("round 1", () => {
   });
 });
 
-describe("review", () => {
-  it("#23 shows before → after for a change of the end alone", async () => {
-    const { default: AgendaReviewList } = await import(
-      "../layers/dms-ui/app/build/components/agenda/AgendaReviewList.vue"
-    );
-    const { agenda } = details();
-    agenda.ctx.stagedEdits = {
-      value: [
-        {
-          key: "k1",
-          status: "staged",
-          base: { ...MEETING },
-          change: {
-            kind: "resize",
-            id: "e1",
-            patch: { end: "2026-10-26T11:00:00+01:00" },
-            previous: { end: "2026-10-26T10:00:00+01:00" },
-          },
-        },
-      ],
-    } as typeof agenda.ctx.stagedEdits;
-    const el = document.createElement("div");
-    const app = createApp(AgendaReviewList, { context: agenda.ctx });
-    app.mount(el);
-    apps.push(app);
-    const line = el.querySelector("[data-agenda-review] li")!;
-    const times = line.querySelectorAll("p")[1]!;
-    const texts = [...times.querySelectorAll("span")].map(
-      (span) => span.textContent,
-    );
-    expect(texts).toEqual([
-      "medium:2026-10-26 08:00 – medium:2026-10-26 09:00",
-      "medium:2026-10-26 08:00 – medium:2026-10-26 10:00",
-    ]);
-  });
-});
-
 describe("round 2", () => {
   it("N5 forgets a draft once the details leave its event or its form", async () => {
     const { syncAgendaDraft } = await import(
@@ -477,5 +440,54 @@ describe("round 2", () => {
     expect(api.errors.value._form).toBe("Locked by payroll");
     // The panel became a drawer: the new form shows it too.
     expect(detailsOn(agenda).errors.value._form).toBe("Locked by payroll");
+  });
+});
+
+describe("round 3", () => {
+  it("m11 saves a new event in the calendar its form showed, whatever the legend does", async () => {
+    const { api, agenda } = details({
+      calendars: [
+        { id: "design", label: "Design" },
+        { id: "eng", label: "Engineering" },
+      ],
+    });
+    const start = Date.parse("2026-10-26T13:00:00+01:00");
+    agenda.ctx.details.value = {
+      occurrence: null,
+      placement: {
+        start,
+        end: start + 3_600_000,
+        allDay: false,
+        resourceIds: [],
+      },
+      mode: "edit",
+      container: "drawer",
+    };
+    // The form opens on the first shown calendar.
+    expect(api.initialValues().calendarId).toBe("design");
+    // Design is hidden in the legend while the form is open.
+    agenda.ctx.hiddenCalendars.value = new Set(["design"]);
+    expect(await api.save(typeIn(api, { title: "Demo" }))).toBe(true);
+    expect(agenda.applied[0]).toMatchObject({
+      kind: "create",
+      patch: { calendarId: "design" },
+    });
+  });
+
+  it("m11 opens a new event in the calendar the engine took for it", () => {
+    const { api, agenda } = details({
+      calendars: [
+        { id: "design", label: "Design" },
+        { id: "eng", label: "Engineering" },
+      ],
+    });
+    agenda.ctx.details.value = {
+      occurrence: null,
+      placement: { start: 0, end: 3_600_000, allDay: false, resourceIds: [] },
+      calendarId: "eng",
+      mode: "edit",
+      container: "drawer",
+    };
+    expect(api.initialValues().calendarId).toBe("eng");
   });
 });

@@ -42,6 +42,33 @@ function localIdOf(change: AgendaChange): string | undefined {
   return undefined;
 }
 
+/** Whether a change makes a new event (its key is a temporary id the route never knew). */
+export const makesNewEvent = (change: AgendaChange) =>
+  change.kind === "create" || change.kind === "schedule";
+
+/**
+ * The change queued behind a refused one, sent on its own: for the fields
+ * both set, it reads from what the route still stores (the refused
+ * change's `previous`), not from the refused place it was drawn over.
+ */
+export function afterRefused(
+  refused: AgendaChange,
+  queued: AgendaChange,
+): AgendaChange {
+  const stored = refused.previous ?? {};
+  const shared = Object.keys(queued.patch ?? {}).filter(
+    (key) => key in stored,
+  ) as Array<keyof typeof stored>;
+  if (!shared.length) return queued;
+  return {
+    ...queued,
+    previous: {
+      ...queued.previous,
+      ...Object.fromEntries(shared.map((key) => [key, stored[key]])),
+    },
+  };
+}
+
 /**
  * Whether the change queued behind a written create names an event the
  * route answered no id for: it cannot be sent (the route never knew its

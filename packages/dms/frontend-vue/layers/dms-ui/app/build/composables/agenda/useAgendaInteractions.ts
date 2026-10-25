@@ -51,6 +51,8 @@ export interface AgendaInteractionSetup {
   format: AgendaFormat;
   occurrences: ComputedRef<AgendaOccurrence[]>;
   resources: () => AgendaResource[];
+  /** The calendar a new event starts in: `create.calendarId`, else the first shown. */
+  newEventCalendar: () => string | undefined;
   /** The data was read once and no read runs: a deep-linked event missing is gone. */
   isSettled: () => boolean;
   apply: AgendaContext["apply"];
@@ -115,6 +117,7 @@ function useAgendaCreate(
     parts.details.value = {
       occurrence: null,
       placement,
+      calendarId: setup.newEventCalendar(),
       mode: "edit",
       container: parts.containerFor(raw.details?.container ?? "drawer"),
     };

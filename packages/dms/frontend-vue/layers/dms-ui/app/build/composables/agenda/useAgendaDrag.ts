@@ -9,6 +9,7 @@ import {
   onScopeDispose,
   ref,
   shallowRef,
+  watch,
 } from "vue";
 import type { AgendaPendingItem } from "../../../types/full-agenda";
 import type {
@@ -50,8 +51,6 @@ const FRAME_MS = 16;
 
 interface DragSession {
   source: AgendaDragSource;
-  /** The chip dragged had the focus: it takes it back after the drop. */
-  hadFocus: boolean;
   title: string;
   pointerId: number;
   isTouch: boolean;
@@ -108,8 +107,11 @@ class AgendaDragEngine {
       (message) => {
         this.announcement.value = message;
       },
-      (key) => {
-        this.refocusKey.value = key;
+      {
+        now: (key) => {
+          this.refocusKey.value = key;
+        },
+        settled: (key) => this.refocusSettled(key),
       },
     );
   }
@@ -257,7 +259,8 @@ class AgendaDragEngine {
       current.source,
       current.title,
       dropped,
-      current.hadFocus,
+      // At the drop: a click on a chip focuses it after the pointerdown.
+      focusedChipKey() === current.source.occurrence?.key,
     );
   }
 
@@ -316,7 +319,6 @@ class AgendaDragEngine {
         : origin;
     this.session = {
       source: { ...source, origin: resolved },
-      hadFocus: focusedChipKey() === source.occurrence?.key,
       title,
       pointerId: event.pointerId,
       isTouch,
@@ -387,6 +389,14 @@ class AgendaDragEngine {
     return true;
   }
 
+  /**
+   * The change settled. Its chip has the focus already: done. Otherwise ask
+   * again, for a refusal that draws the event back at its old place.
+   */
+  refocusSettled(key: string): void {
+    this.refocusKey.value = focusedChipKey() === key ? null : key;
+  }
+
   registerSurface(surface: AgendaDropSurface): () => void {
     this.surfaces.push(surface);
     return () => {
@@ -400,6 +410,14 @@ class AgendaDragEngine {
 export function useAgendaDrag(deps: AgendaDragDeps): AgendaDragController {
   const engine = new AgendaDragEngine(deps);
   if (getCurrentScope()) onScopeDispose(engine.teardown);
+  // A refocus left for an event moved out of the range is forgotten when
+  // the range or the view changes: it never steals the focus later.
+  watch(
+    () => [deps.view.value.id, deps.range?.value.from, deps.range?.value.to],
+    () => {
+      engine.refocusKey.value = null;
+    },
+  );
   const options = () => deps.options.value;
   return {
     preview: engine.preview,

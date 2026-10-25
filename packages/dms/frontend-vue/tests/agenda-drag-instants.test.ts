@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { AgendaOccurrence } from "../layers/dms-ui/app/build/composables/agenda/agendaModel";
 import { placeDrag } from "../layers/dms-ui/app/build/composables/agenda/agendaDragMath";
 import type { AgendaDragConfig } from "../layers/dms-ui/app/build/composables/agenda/agendaDragBasics";
+import { snapInstant } from "../layers/dms-ui/app/build/composables/agenda/agendaDragBasics";
 import {
   AGENDA_KEY_STEPS,
   nudgeSource,
@@ -280,5 +281,30 @@ describe("Undo of an event stored without an end (N16)", () => {
       start: "2026-10-26T09:00:00+01:00",
       end: null,
     });
+  });
+});
+
+describe("snapping over the spring-forward gap (m14)", () => {
+  it("lands a two-hour snap on 03:00 CEST, past the gap of 29 March", () => {
+    // 03:05 CEST on 29/03/2026 is 01:05Z; floored to 2 h: 02:00 does not exist.
+    const floored = snapInstant(
+      Date.parse("2026-03-29T01:05:00Z"),
+      120,
+      BRUSSELS,
+      "floor",
+    );
+    expect(iso(floored)).toBe("2026-03-29T01:00:00.000Z");
+    const rounded = snapInstant(
+      Date.parse("2026-03-29T01:05:00Z"),
+      120,
+      BRUSSELS,
+    );
+    expect(iso(rounded)).toBe("2026-03-29T02:00:00.000Z");
+  });
+
+  it("still keeps the second pass of the repeated hour with a quarter hour step", () => {
+    expect(
+      iso(snapInstant(Date.parse("2026-10-25T01:37:00Z"), 15, BRUSSELS)),
+    ).toBe("2026-10-25T01:30:00.000Z");
   });
 });

@@ -3,19 +3,45 @@
 // same placement and rules as a drop. The first one allowed is written.
 
 import type { AgendaPendingItem } from "../../../types/full-agenda";
-import type { AgendaDayKey, AgendaDropTarget } from "./agendaModel";
+import type {
+  AgendaDayKey,
+  AgendaDropTarget,
+  AgendaPlacement,
+} from "./agendaModel";
 import type { AgendaDragSource } from "./agendaDragBasics";
-import { buildPreview, dropRules } from "./agendaDragPreview";
+import { placeDrag } from "./agendaDragMath";
+import { checkDrop } from "./agendaDragRules";
+import type { AgendaDragRefusal, AgendaDropRules } from "./agendaDragRules";
+import { dropRules, viewDragConfig } from "./agendaDragPreview";
 import type { AgendaDragDeps } from "./agendaDragPreview";
 import { scheduleChange } from "./agendaDragChange";
 import { parseSlots } from "./agendaSlots";
 import { addDays, parseTimeOfDay, weekdayOf, zonedDayKey } from "./agendaTime";
 
-/** Spots tried before giving up: a busy month of 60 resources stays quick. */
-const MAX_SPOTS = 4000;
+/**
+ * Spots checked before giving up. Refusals that hold for a whole day or row
+ * skip it at once, so this only bounds the times tried on open days.
+ */
+const MAX_CHECKS = 20_000;
 /** Days looked at without a range (the first two weeks from today). */
 const FALLBACK_DAYS = 14;
 const MINUTES_PER_DAY = 1440;
+
+/** Refusals that hold for every time of a day and row: the rest of it is skipped. */
+const ROW_REFUSALS: ReadonlySet<AgendaDragRefusal> = new Set([
+  "resourceReadOnly",
+  "resourceNotAllowed",
+  "outOfRange",
+  "closed",
+  "tooShort",
+  "tooLong",
+]);
+
+/** A row of spots: one resource (or none) on one day. */
+interface PlanRow {
+  day: AgendaDayKey;
+  row: Pick<AgendaDropTarget, "resourceId">;
+}
 
 /** The shown days, from the anchor day on, then the ones before it. */
 function plannedDays(deps: AgendaDragDeps): AgendaDayKey[] {
@@ -32,45 +58,55 @@ function plannedDays(deps: AgendaDragDeps): AgendaDayKey[] {
   ];
 }
 
-/** The rows a view plans on: its resources (the allowed ones), else none. */
+/**
+ * The rows a view plans on: its resources (the allowed ones) in a view of
+ * resource rows or columns; elsewhere the item's own allowed resources, or
+ * none.
+ */
 function plannedRows(
   deps: AgendaDragDeps,
   item: AgendaPendingItem,
 ): Array<Pick<AgendaDropTarget, "resourceId">> {
   const { type } = deps.view.value;
   const resources = deps.resources.value;
-  if ((type !== "resources" && type !== "timeline") || !resources.length) {
-    return [{}];
-  }
   const allowed = item.allowedResourceIds;
+  const isEditable = (id: string) =>
+    resources.find((resource) => resource.id === id)?.editable !== false;
+  if ((type !== "resources" && type !== "timeline") || !resources.length) {
+    if (!allowed?.length) return [{}];
+    return allowed.filter(isEditable).map((resourceId) => ({ resourceId }));
+  }
   return resources
     .filter((resource) => resource.editable !== false)
     .filter((resource) => !allowed || allowed.includes(resource.id))
     .map((resource) => ({ resourceId: resource.id }));
 }
 
-/** The times of a day a timed item may start at: the shown hours, by the snap. */
+/**
+ * The times of a day a timed item may start at, by the snap: from the
+ * scroll time to the day's end, then the earlier shown hours.
+ */
 function plannedMinutes(deps: AgendaDragDeps): number[] {
   const options = deps.options.value;
   const view = deps.view.value;
-  const first = Math.max(
-    parseTimeOfDay(view.dayStart, options.dayStartMinutes),
-    options.scrollMinutes,
-  );
+  const first = parseTimeOfDay(view.dayStart, options.dayStartMinutes);
   const last =
     parseTimeOfDay(view.dayEnd, options.dayEndMinutes) || MINUTES_PER_DAY;
+  const scroll = Math.min(Math.max(options.scrollMinutes, first), last);
   const step = Math.max(options.snapMinutes, 1);
-  const minutes: number[] = [];
-  for (let at = first; at < last; at += step) minutes.push(at);
-  return minutes;
+  const from = (start: number, end: number) => {
+    const minutes: number[] = [];
+    for (let at = start; at < end; at += step) minutes.push(at);
+    return minutes;
+  };
+  return [...from(scroll, last), ...from(first, scroll)];
 }
 
 /** Every spot of a day and row, in order. */
-function daySpots(
+function rowSpots(
   deps: AgendaDragDeps,
   item: AgendaPendingItem,
-  day: AgendaDayKey,
-  row: Pick<AgendaDropTarget, "resourceId">,
+  { day, row }: PlanRow,
 ): AgendaDropTarget[] {
   if (item.allDay) return [{ day, ...row, asAllDay: true }];
   const view = deps.view.value;
@@ -86,22 +122,58 @@ function daySpots(
   return plannedMinutes(deps).map((minutes) => ({ day, minutes, ...row }));
 }
 
-/** The spots a pending item may be planned on, in the order they are tried. */
-export function* planSpots(
+/** The rows of spots a pending item may be planned on, in the order they are tried. */
+function planRows(deps: AgendaDragDeps, item: AgendaPendingItem): PlanRow[] {
+  const rows = plannedRows(deps, item);
+  return plannedDays(deps).flatMap((day) => rows.map((row) => ({ day, row })));
+}
+
+/** A spot checked: its placement, or why it is refused. */
+interface PlanCheck {
+  placement: AgendaPlacement;
+  refusal: AgendaDragRefusal | null;
+}
+
+function checkSpot(
   deps: AgendaDragDeps,
   item: AgendaPendingItem,
-): Generator<AgendaDropTarget> {
-  const rows = plannedRows(deps, item);
-  let count = 0;
-  for (const day of plannedDays(deps)) {
-    for (const row of rows) {
-      for (const spot of daySpots(deps, item, day, row)) {
-        if (count >= MAX_SPOTS) return;
-        count += 1;
-        yield spot;
-      }
+  spot: AgendaDropTarget,
+  rules: AgendaDropRules,
+): PlanCheck {
+  const source: AgendaDragSource = { kind: "external", item, origin: null };
+  const placement = placeDrag(source, spot, viewDragConfig(deps));
+  const refusal = checkDrop(
+    {
+      placement,
+      copy: false,
+      allowedResourceIds: item.allowedResourceIds,
+      calendarId: item.calendarId,
+      checkDuration: true,
+    },
+    rules,
+  );
+  return { placement, refusal };
+}
+
+/** The first allowed placement, or `null` when none fits. */
+function firstPlacement(
+  deps: AgendaDragDeps,
+  item: AgendaPendingItem,
+  rules: AgendaDropRules,
+): AgendaPlacement | null {
+  let checks = 0;
+  for (const row of planRows(deps, item)) {
+    for (const spot of rowSpots(deps, item, row)) {
+      if (checks >= MAX_CHECKS) return null;
+      checks += 1;
+      const { placement, refusal } = checkSpot(deps, item, spot, rules);
+      if (refusal === null) return placement;
+      // A read-only calendar refuses everywhere; a row-wide refusal skips the row.
+      if (refusal === "calendarReadOnly") return null;
+      if (ROW_REFUSALS.has(refusal)) break;
     }
   }
+  return null;
 }
 
 /**
@@ -115,18 +187,14 @@ export async function planPendingItem(
 ): Promise<boolean> {
   if (!deps.options.value.editable) return false;
   const rules = dropRules(deps, "external");
-  const source: AgendaDragSource = { kind: "external", item, origin: null };
-  const spots = target ? [target] : planSpots(deps, item);
-  for (const spot of spots) {
-    const preview = buildPreview(deps, {
-      source,
-      target: spot,
-      alt: false,
-      rules,
-    });
-    if (!preview?.valid) continue;
-    const change = scheduleChange(item, preview, deps.options.value.timeZone);
-    return deps.apply(change).catch(() => false);
+  let placement: AgendaPlacement | null;
+  if (target) {
+    const checked = checkSpot(deps, item, target, rules);
+    placement = checked.refusal === null ? checked.placement : null;
+  } else {
+    placement = firstPlacement(deps, item, rules);
   }
-  return false;
+  if (!placement) return false;
+  const change = scheduleChange(item, placement, deps.options.value.timeZone);
+  return deps.apply(change).catch(() => false);
 }

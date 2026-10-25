@@ -164,7 +164,7 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
             :aria-label="ctx.format.day(day.key, 'long')"
             @pointerdown.stop
             :tabindex="tabIndexOf(rovingToken.day(day.key))"
-            data-agenda-roving
+            :data-agenda-roving="rovingToken.day(day.key)"
             @click.stop="openDay(day)"
             @dblclick.stop
           >
@@ -184,7 +184,7 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
           :continues-before="segment.continuesBefore"
           :continues-after="segment.continuesAfter"
           :tabbable="props.entry === rovingToken.chip(props.week.key, segment)"
-          data-agenda-roving
+          :data-agenda-roving="rovingToken.chip(props.week.key, segment)"
         />
       </div>
       <div
@@ -194,6 +194,7 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
       >
         <AgendaMorePopover
           :tabbable="props.entry === rovingToken.more(day.key)"
+          :roving="rovingToken.more(day.key)"
           :day="day"
           :occurrences="props.layout.dayEvents[index]!"
           :count="props.layout.more[index]!"

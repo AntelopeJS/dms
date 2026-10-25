@@ -28,6 +28,9 @@ import type { AgendaFacetValues } from "./agendaFilters";
 import {
   agendaFetchQuery,
   applySaveAnswer,
+  isSameRange,
+  withoutRangeLists,
+  type AgendaAnsweredRange,
   KEPT_ANSWER_LAYERS,
   layerAnswers,
   mergeById,
@@ -77,6 +80,8 @@ interface AgendaReadTarget {
   local: ShallowRef<AgendaData | null>;
   answers: AgendaAnswers;
   timeZone: () => string;
+  /** The range the reads are of. */
+  range: () => AgendaAnsweredRange;
 }
 
 /**
@@ -117,6 +122,7 @@ function keepReadsCurrent(
         answers.layers,
         from,
         target.timeZone(),
+        target.range(),
       );
       const mark = `${key}#${answers.writes}`;
       if (from >= answers.writes || isRunning || reread.has(mark)) return;
@@ -158,6 +164,11 @@ export function useAgendaData(setup: AgendaDataSetup) {
     });
 
   const answers: AgendaAnswers = { writes: 0, layers: [] };
+  const shownRange = (): AgendaAnsweredRange => ({
+    from: setup.range.value.from,
+    to: setup.range.value.to,
+    view: setup.view.value.id,
+  });
   let isLoading: ComputedRef<boolean> = computed(() => false);
   let error: ComputedRef<unknown> = computed(() => null);
   let refresh = async () => {};
@@ -177,7 +188,7 @@ export function useAgendaData(setup: AgendaDataSetup) {
     keepReadsCurrent(
       loaded,
       () => `${url.value ?? ""}?${JSON.stringify(query())}`,
-      { local, answers, timeZone: setup.timeZone },
+      { local, answers, timeZone: setup.timeZone, range: shownRange },
     );
     isLoading = computed(() => loaded.status.value === "pending");
     error = computed(() => loaded.error.value);
@@ -213,18 +224,30 @@ export function useAgendaData(setup: AgendaDataSetup) {
       response: AgendaSaveResponse,
       written: AgendaChange[],
       seedOf?: AgendaSeedOf,
+      /** The range the request was made for. */
+      range?: AgendaAnsweredRange,
     ) => {
+      const isShown = isSameRange(range, shownRange());
+      // An answer for a range no longer shown keeps its lists to itself:
+      // the range shown reads its own again.
+      if (!isShown) void refresh();
       answers.writes += 1;
       const seeds = new Map(
         written
           .map((change) => [change.tempId ?? "", seedOf?.(change)] as const)
           .filter((entry): entry is [string, AgendaEvent] => Boolean(entry[1])),
       );
-      answers.layers.push({ seq: answers.writes, response, written, seeds });
+      answers.layers.push({
+        seq: answers.writes,
+        response,
+        written,
+        seeds,
+        range,
+      });
       if (answers.layers.length > KEPT_ANSWER_LAYERS) answers.layers.shift();
       local.value = applySaveAnswer(
         data.value,
-        response,
+        isShown ? response : withoutRangeLists(response),
         written,
         seedOf,
         setup.timeZone(),

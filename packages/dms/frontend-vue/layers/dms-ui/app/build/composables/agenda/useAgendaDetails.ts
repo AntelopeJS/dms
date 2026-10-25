@@ -68,6 +68,12 @@ interface AgendaDraft {
   key: string;
   touched: AgendaFormValues;
   refusal?: string;
+  /**
+   * A new event's values as the form first showed them: its defaults (the
+   * first shown calendar) must not follow the legend once the form is open.
+   * An existing event's are read fresh (a move made meanwhile is kept).
+   */
+  base?: AgendaFormValues;
 }
 
 // One open form per agenda. Kept beside the context, not in the form: the
@@ -153,15 +159,24 @@ export function useAgendaDetails(ctx: AgendaContext) {
     if (!key) return;
     const draft = ownDraft();
     drafts.set(ctx, {
+      ...draft,
       key,
       touched: { ...draft?.touched, [fieldId]: value },
-      refusal: draft?.refusal,
     });
+  }
+
+  /** What the touched fields are laid over: a new event's first values, an existing one's current ones. */
+  function baseValues(): AgendaFormValues {
+    return ownDraft()?.base ?? freshValues();
   }
 
   /** The values the form opens with: the event's or the placement's, the touched fields over them. */
   function initialValues(): AgendaFormValues {
-    return { ...freshValues(), ...ownDraft()?.touched };
+    const key = draftKey.value;
+    // A new event's form starts its draft on what it shows first.
+    if (key && isNew.value && !ownDraft())
+      drafts.set(ctx, { key, touched: {}, base: freshValues() });
+    return { ...baseValues(), ...ownDraft()?.touched };
   }
 
   /** What a save sends: fresh values, only the fields the user touched taken from the form. */
@@ -170,7 +185,7 @@ export function useAgendaDetails(ctx: AgendaContext) {
     const picked = Object.fromEntries(
       Object.keys(touched).map((id) => [id, values[id] ?? touched[id]]),
     );
-    return { ...freshValues(), ...picked };
+    return { ...baseValues(), ...picked };
   }
 
   function rememberRefusal(message: string): void {
@@ -178,6 +193,7 @@ export function useAgendaDetails(ctx: AgendaContext) {
     const key = draftKey.value;
     if (key)
       drafts.set(ctx, {
+        ...ownDraft(),
         key,
         touched: ownDraft()?.touched ?? {},
         refusal: message,
@@ -193,7 +209,9 @@ export function useAgendaDetails(ctx: AgendaContext) {
         timeZone.value,
       );
     const create = ctx.options.value.raw.create;
+    // The calendar the engine took when the form opened, else the block's default.
     const calendarId =
+      open?.calendarId ??
       (typeof create === "object" ? create.calendarId : undefined) ??
       ctx.calendars.value.find(
         (calendar) => !ctx.hiddenCalendars.value.has(calendar.id),

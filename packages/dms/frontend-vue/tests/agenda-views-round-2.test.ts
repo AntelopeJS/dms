@@ -193,6 +193,44 @@ describe("N15 slivers take no lane", () => {
   });
 });
 
+describe("M4 short visible events still stack", () => {
+  it("gives two 10:00–10:10 meetings a lane each, and keeps a hidden one lane-free", () => {
+    const { columns, range, breaks } = timeline({
+      from: "2026-10-26",
+      count: 1,
+      scale: "hour",
+      dayStart: 480,
+      dayEnd: 1080,
+    });
+    const meeting = (key: string, start: string, end: string) =>
+      makeOccurrence({ key, start, end, resourceIds: ["ann"] });
+    const rows = buildTimelineRows({
+      resources: [{ id: "ann", label: "Ann" }],
+      groups: [],
+      folded: new Set(),
+      occurrences: [
+        meeting("a", "2026-10-26T10:00:00+01:00", "2026-10-26T10:10:00+01:00"),
+        meeting("b", "2026-10-26T10:00:00+01:00", "2026-10-26T10:10:00+01:00"),
+        meeting(
+          "late",
+          "2026-10-26T19:00:00+01:00",
+          "2026-10-26T20:00:00+01:00",
+        ),
+      ],
+      columns,
+      breaks,
+      metrics: METRICS,
+      ...range,
+    });
+    const ann = rows[0] as TimelineResourceRow;
+    expect(ann.laneCount).toBe(2);
+    const lanes = Object.fromEntries(
+      ann.items.map((item) => [item.key, [item.lane, item.sliver]]),
+    );
+    expect(lanes).toEqual({ a: [0, false], b: [1, false], late: [0, true] });
+  });
+});
+
 describe("N36 a zero-length event at dayEnd", () => {
   it("is shown at the edge, flagged on neither side", () => {
     const { columns, range } = timeline({

@@ -110,7 +110,10 @@ export function completeChange(input: AgendaCompleteInput): AgendaChange {
   const previous = isRemoval(next)
     ? eventFields(event)
     : previousOf(event, next.patch);
-  const bounds = own ? timesOf(own, next) : {};
+  // A series change always names the occurrence it moved from: a later
+  // change of the series is laid onto it (`rebaseSeriesChange`).
+  let bounds: AgendaEventPatch = {};
+  if (own) bounds = next.scope === "series" ? own : timesOf(own, next);
   // The caller's `previous` wins, but never with a value it left `undefined`.
   next.previous = { ...previous, ...withoutAbsent(next.previous), ...bounds };
   return next;

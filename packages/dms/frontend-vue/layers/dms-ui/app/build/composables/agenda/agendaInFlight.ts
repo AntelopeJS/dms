@@ -20,11 +20,21 @@ export class AgendaInFlight {
     return this.running.has(key);
   }
 
-  /** Resolves once no write of these keys runs any more. */
+  /**
+   * Resolves once no write of these keys runs any more, a write started
+   * meanwhile (a queued change sent as the first settles) included.
+   */
   async settled(keys: string[]): Promise<void> {
-    const running = keys
-      .map((key) => this.running.get(key))
-      .filter((promise): promise is Promise<unknown> => promise !== undefined);
-    if (running.length) await Promise.all(running);
+    for (;;) {
+      const running = keys
+        .map((key) => this.running.get(key))
+        .filter(
+          (promise): promise is Promise<unknown> => promise !== undefined,
+        );
+      if (!running.length) return;
+      await Promise.all(running);
+      // Let a queued change start its write before looking again.
+      await Promise.resolve();
+    }
   }
 }

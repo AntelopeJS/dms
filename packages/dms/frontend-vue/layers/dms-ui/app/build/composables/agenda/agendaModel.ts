@@ -291,6 +291,12 @@ export interface AgendaDetailsState {
   occurrence: AgendaOccurrence | null;
   /** A new event's placement. */
   placement?: AgendaPlacement;
+  /**
+   * A new event's calendar, taken when the form opens (`create.calendarId`,
+   * else the first calendar shown then): hiding it later in the legend
+   * does not change what the form saves.
+   */
+  calendarId?: string;
   mode: "view" | "edit";
   container: AgendaDetailsContainer;
 }

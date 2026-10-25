@@ -135,6 +135,31 @@ export function leavesLocalId(
   });
 }
 
+/** The range and view a request was made for. */
+export interface AgendaAnsweredRange {
+  from: string;
+  to: string;
+  view: string;
+}
+
+/** Whether two ranges are the same (no range given: taken as the same). */
+export const isSameRange = (
+  a: AgendaAnsweredRange | undefined,
+  b: AgendaAnsweredRange | undefined,
+) => !a || !b || (a.from === b.from && a.to === b.to && a.view === b.view);
+
+/**
+ * An answer without the lists that belong to its own range (`notices`,
+ * `backgrounds`): laid over another range's read, they would describe the
+ * wrong days.
+ */
+export function withoutRangeLists(
+  response: AgendaSaveResponse,
+): AgendaSaveResponse {
+  const { notices: _notices, backgrounds: _backgrounds, ...rest } = response;
+  return rest;
+}
+
 /** A save's answer, kept to lay over a read made before it. */
 export interface AgendaAnswerLayer {
   /** Its place among the writes (1 for the first). */
@@ -143,6 +168,8 @@ export interface AgendaAnswerLayer {
   written: AgendaChange[];
   /** The events new ones drew as, by their temporary id. */
   seeds: Map<string, AgendaEvent>;
+  /** The range it was answered for: its notices and backgrounds are that range's. */
+  range?: AgendaAnsweredRange;
 }
 
 /** How many answers are kept to lay over older reads. */
@@ -157,6 +184,8 @@ export function layerAnswers(
   layers: AgendaAnswerLayer[],
   readAt: number,
   timeZone: string,
+  /** The range the read is of. */
+  range?: AgendaAnsweredRange,
 ): AgendaData {
   return layers
     .filter((layer) => layer.seq > readAt)
@@ -164,7 +193,9 @@ export function layerAnswers(
       (current, layer) =>
         applySaveAnswer(
           current,
-          layer.response,
+          isSameRange(layer.range, range)
+            ? layer.response
+            : withoutRangeLists(layer.response),
           layer.written,
           (change) => layer.seeds.get(change.tempId ?? ""),
           timeZone,

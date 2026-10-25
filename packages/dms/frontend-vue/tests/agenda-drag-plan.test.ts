@@ -41,6 +41,7 @@ interface PlanSetup {
   calendars?: AgendaCalendar[];
   businessHours?: AgendaBusinessHours[];
   slots?: typeof SLOTS;
+  hiddenDays?: number[];
 }
 
 function options(setup: PlanSetup): ResolvedAgendaOptions {
@@ -75,16 +76,17 @@ function options(setup: PlanSetup): ResolvedAgendaOptions {
 
 function deps(setup: PlanSetup) {
   const applied: AgendaChange[] = [];
+  const hidden = setup.hiddenDays ?? [0, 6];
   const days = agendaDays(
     setup.from ?? "2026-10-26",
     setup.dayCount ?? 7,
-    [0, 6],
+    hidden,
   );
   const view: ResolvedAgendaView = {
     id: "week",
     type: "week",
     label: "Week",
-    hiddenDays: [0, 6],
+    hiddenDays: hidden,
     dayStart: "00:00",
     dayEnd: "24:00",
     slotMinutes: 30,
@@ -220,5 +222,57 @@ describe("planning a pending item from the keyboard", () => {
     const { deps: planner } = deps({});
     planner.apply = vi.fn(async () => false);
     expect(await planPendingItem(planner, ITEM)).toBe(false);
+  });
+});
+
+describe("planning in round 3", () => {
+  it("finds room past closed days with many resources (m7)", async () => {
+    const resources = Array.from({ length: 40 }, (_, index) => ({
+      id: `r${index}`,
+      label: `R${index}`,
+    }));
+    const { deps: planner, applied } = deps({
+      view: { type: "resources", hiddenDays: [] },
+      hiddenDays: [],
+      anchor: "2026-10-31",
+      resources,
+      raw: { constraints: { withinBusinessHours: true } },
+      businessHours: [{ days: [1, 2, 3, 4, 5], start: "08:00", end: "18:00" }],
+    });
+    expect(await planPendingItem(planner, ITEM)).toBe(true);
+    expect(applied[0]?.patch).toMatchObject({
+      start: "2026-10-26T08:00:00+01:00",
+      resourceIds: ["r0"],
+    });
+  });
+
+  it("tries the hours before the scroll time (m8)", async () => {
+    const early = deps({ view: { dayStart: "00:00", dayEnd: "07:00" } });
+    expect(await planPendingItem(early.deps, ITEM)).toBe(true);
+    expect(early.applied[0]?.patch?.start).toBe("2026-10-26T00:00:00+01:00");
+    const busy = deps({
+      raw: { constraints: { allowOverlap: false } },
+      dayCount: 1,
+      occurrences: [occurrence("pm", "2026-10-26T08:00", "2026-10-27T00:00")],
+    });
+    expect(await planPendingItem(busy.deps, ITEM)).toBe(true);
+    expect(busy.applied[0]?.patch?.start).toBe("2026-10-26T00:00:00+01:00");
+  });
+
+  it("plans on an allowed resource in a view without resource rows (m9)", async () => {
+    const { deps: planner, applied } = deps({
+      resources: [
+        { id: "ana", label: "Ana" },
+        { id: "bob", label: "Bob" },
+        { id: "cid", label: "Cid", editable: false },
+      ],
+    });
+    expect(
+      await planPendingItem(planner, {
+        ...ITEM,
+        allowedResourceIds: ["cid", "bob"],
+      }),
+    ).toBe(true);
+    expect(applied[0]?.patch?.resourceIds).toEqual(["bob"]);
   });
 });

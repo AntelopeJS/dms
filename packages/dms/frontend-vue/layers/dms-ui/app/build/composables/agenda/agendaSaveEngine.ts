@@ -10,6 +10,7 @@ import type {
 import { agendaEditKey, mergeChanges, type AgendaEdit } from "./agendaChanges";
 import type {
   AgendaRecordExtras,
+  AgendaRequestContext,
   AgendaSaveEngineOptions,
 } from "./agendaSaveOptions";
 
@@ -18,7 +19,13 @@ export type {
   AgendaRequestContext,
   AgendaSaveEngineOptions,
 } from "./agendaSaveOptions";
-import { answeredIds, isUnaddressed, readdressQueued } from "./agendaQueue";
+import {
+  afterRefused,
+  answeredIds,
+  isUnaddressed,
+  makesNewEvent,
+  readdressQueued,
+} from "./agendaQueue";
 import { seriesTimeZone } from "./agendaSeries";
 import { AgendaInFlight } from "./agendaInFlight";
 
@@ -220,7 +227,7 @@ export class AgendaSaveEngine {
     }
     if (response.confirm)
       return this.answerConfirm(batch, response.confirm, flags);
-    return this.settle(batch, response, flags);
+    return this.settle(batch, response, flags, request);
   }
 
   /** Changes refused as a whole: told, then dropped (immediate) or kept (staged). */
@@ -255,8 +262,12 @@ export class AgendaSaveEngine {
         continue;
       }
       this.map.delete(edit.key);
-      // A change made meanwhile is the user's own: it goes on its own.
-      if (edit.queued) void this.record(edit.queued, { base: edit.base });
+      // A change made meanwhile is the user's own: it goes on its own, but
+      // never to a new event the user declined (the route never knew it).
+      if (edit.queued && !makesNewEvent(edit.change))
+        void this.record(afterRefused(edit.change, edit.queued), {
+          base: edit.base,
+        });
     }
     this.options.onDeclined?.();
     return false;
@@ -286,7 +297,8 @@ export class AgendaSaveEngine {
   private settle(
     batch: AgendaEdit[],
     response: AgendaSaveResponse,
-    flags: WriteFlags = {},
+    flags: WriteFlags,
+    request: AgendaRequestContext,
   ): boolean {
     const errors = errorsByIndex(response);
     const { written, failed, gone } = this.sortAnswer(batch, response, flags);
@@ -294,6 +306,7 @@ export class AgendaSaveEngine {
     this.options.onAnswer(
       { ...response, removed: [...(response.removed ?? []), ...goneIds] },
       written,
+      request,
     );
     const ids = answeredIds(written, response);
     batch.forEach((edit, index) => {
@@ -346,6 +359,8 @@ export class AgendaSaveEngine {
         status: "error",
         base: edit.base,
         message: this.options.unaddressed?.() ?? "",
+        // Nothing to retry: the route never named the event.
+        retryable: false,
       },
     ]);
   }
@@ -353,7 +368,11 @@ export class AgendaSaveEngine {
   /** A change made during a write that failed joins the change kept. */
   private takeQueued(edit: AgendaEdit): void {
     if (!edit.queued) return;
-    const merged = mergeChanges(edit.change, edit.queued);
+    const merged = mergeChanges(
+      edit.change,
+      edit.queued,
+      this.zoneOf(edit.base),
+    );
     edit.queued = undefined;
     if (merged) edit.change = merged;
   }
@@ -366,17 +385,17 @@ export class AgendaSaveEngine {
   private markFailed(edit: AgendaEdit, message: string): AgendaEdit {
     edit.status = "error";
     edit.message = message;
-    if (!this.isImmediate) {
-      this.takeQueued(edit);
-      return edit;
-    }
+    // A new event refused takes the change made to it along: they go again
+    // together, from the Retry copy (its temporary id means nothing to the route).
+    if (!this.isImmediate || makesNewEvent(edit.change)) this.takeQueued(edit);
+    if (!this.isImmediate) return edit;
     this.map.delete(edit.key);
     const { queued, ...refused } = toRaw(edit);
     // A change made during the refused write is the user's own: it goes on
     // its own, never merged into what the route refused.
     if (queued)
       void Promise.resolve().then(() =>
-        this.record(queued, { base: edit.base }),
+        this.record(afterRefused(refused.change, queued), { base: edit.base }),
       );
     return refused;
   }
@@ -445,7 +464,7 @@ export class AgendaSaveEngine {
     }
     const errors = errorsByIndex(response);
     const written = changes.filter((_change, index) => !errors.has(index));
-    this.options.onAnswer(response, written);
+    this.options.onAnswer(response, written, request);
     return written.length === changes.length;
   }
 }

@@ -410,6 +410,11 @@ export function useAgenda(
     format: frame.format,
     occurrences: shown.occurrences,
     resources: () => source.resources.value,
+    newEventCalendar: () =>
+      (typeof raw.create === "object" ? raw.create.calendarId : undefined) ??
+      source.calendars.value.find(
+        (calendar) => !state.hiddenCalendars.value.has(calendar.id),
+      )?.id,
     isSettled: () => source.hasData.value && !source.isLoading.value,
     apply: save.apply,
     refresh: source.refresh,
