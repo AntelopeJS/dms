@@ -112,11 +112,13 @@ const issues = computed(() =>
 const failureMessage = computed(() => {
   const current = edit.value;
   if (!current) return "";
+  // A failed Overwrite says why (the network, a refusal) before the conflict.
+  if (current.message) return matrix.text(current.message);
   if (current.conflict)
     return t("dms.matrix.conflict", {
       value: shownValueText(current.conflict.current),
     });
-  return current.message ? matrix.text(current.message) : "";
+  return "";
 });
 const title = computed(() => {
   if (edit.value && !edit.value.conflict)

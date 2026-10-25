@@ -442,3 +442,48 @@ describe("fix round 1", () => {
     expect(requests).toHaveLength(1);
   });
 });
+
+describe("fix round 2", () => {
+  it("says why a forced Overwrite failed, the conflict kept (N7)", async () => {
+    const { engine, answer } = harness("immediate");
+    answer({ conflicts: [{ rowId: "k", columnId: "a", current: 9 }] });
+    await engine.commit({ rowId: "k", columnId: "a", value: 2, original: 1 });
+    answer(new Error("Network down"));
+    expect(await engine.overwrite("k", "a")).toBe(false);
+    expect(engine.editOf("k", "a")).toMatchObject({
+      message: "Network down",
+      conflict: { current: 9 },
+    });
+    expect(engine.stateOf("k", "a")).toBe("conflict");
+  });
+
+  it("writes an undo after the write of the same cell still running (N7)", async () => {
+    const releases: Array<() => void> = [];
+    const order: string[] = [];
+    const engine = createMatrixSaveEngine({
+      mode: () => "immediate",
+      send: (request) => {
+        order.push(String(request.changes[0]!.value));
+        return new Promise((resolve) => releases.push(() => resolve({})));
+      },
+      isBlocked: () => false,
+      describeError: String,
+    });
+    const write = engine.commit({
+      rowId: "r",
+      columnId: "a",
+      value: 3,
+      original: 2,
+    });
+    const undone = engine.undo([
+      { rowId: "r", columnId: "a", value: 2, previous: 1 },
+    ]);
+    await Promise.resolve();
+    expect(order).toEqual(["3"]);
+    releases[0]!();
+    await write;
+    await vi.waitFor(() => expect(order).toEqual(["3", "1"]));
+    releases[1]!();
+    expect(await undone).toBe(true);
+  });
+});

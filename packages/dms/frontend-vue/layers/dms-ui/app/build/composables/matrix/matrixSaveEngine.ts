@@ -181,6 +181,8 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
   /** Rows edited in this view, kept on screen with `keepEditedRows`. */
   const touchedRows = reactive(new Set<string>());
   const lastSaved = ref<MatrixChange[]>([]);
+  /** The writes running, by cell: an undo of that cell waits for them. */
+  const inFlight = new Map<string, Promise<unknown>>();
   const flashMs = options.savedFlashMs ?? DEFAULT_SAVED_FLASH_MS;
 
   const editOf = (rowId: string, columnId: string) =>
@@ -224,7 +226,7 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     }
     let response: MatrixSaveResponse;
     try {
-      response = (await options.send(request)) ?? {};
+      response = (await track(request.changes, options.send(request))) ?? {};
     } catch (error) {
       failAll(batch, options.describeError(error));
       return false;
@@ -234,6 +236,31 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     // A value committed during the write goes now, from the value written.
     if (options.mode() === "immediate") void flush();
     return isWritten;
+  }
+
+  /** Runs a request, known as running for each cell it writes. */
+  function track<T>(changes: MatrixWrittenValue[], request: Promise<T>) {
+    const keys = changes.map((change) =>
+      matrixCellKey(change.rowId, change.columnId),
+    );
+    const settled = request.catch(() => undefined);
+    for (const key of keys) inFlight.set(key, settled);
+    void settled.then(() => {
+      for (const key of keys) {
+        if (inFlight.get(key) === settled) inFlight.delete(key);
+      }
+    });
+    return request;
+  }
+
+  /** Resolves once no write of these cells runs any more. */
+  async function settledCells(changes: MatrixWrittenValue[]): Promise<void> {
+    const running = changes
+      .map((change) =>
+        inFlight.get(matrixCellKey(change.rowId, change.columnId)),
+      )
+      .filter((promise): promise is Promise<unknown> => promise !== undefined);
+    if (running.length) await Promise.all(running);
   }
 
   /** A request that failed as a whole: every change keeps its draft. */
@@ -415,6 +442,8 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
    */
   async function undo(changes: MatrixChange[]): Promise<boolean> {
     if (!changes.length) return true;
+    // Written after any write of the same cells still running, never under it.
+    await settledCells(changes);
     const request: MatrixSaveRequest = {
       changes: changes.map((change) => ({
         rowId: change.rowId,
@@ -425,7 +454,7 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     };
     let response: MatrixSaveResponse;
     try {
-      response = (await options.send(request)) ?? {};
+      response = (await track(request.changes, options.send(request))) ?? {};
     } catch {
       return false;
     }

@@ -3,7 +3,10 @@ import { computed, onBeforeUnmount } from "vue";
 import type { MatrixColumn } from "../../../types/matrix";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
-import { clampColumnWidth } from "../../composables/matrix/matrixColumns";
+import {
+  clampColumnWidth,
+  isFilterableColumn,
+} from "../../composables/matrix/matrixColumns";
 import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
 import { columnAlign } from "../../composables/matrix/matrixLayout";
 import MatrixColumnFilterMenu from "./MatrixColumnFilterMenu.vue";
@@ -158,7 +161,7 @@ onBeforeUnmount(() => detach?.());
         class="shrink-0"
       />
       <MatrixColumnFilterMenu
-        v-if="matrix.options.columnFilters"
+        v-if="isFilterableColumn(props.column, matrix.options.columnFilters)"
         :column="props.column"
       />
     </div>

@@ -8,11 +8,19 @@
  * cell display.
  */
 import { describe, expect, it } from "vitest";
+import { ref } from "vue";
+import { useMatrixSelection } from "../layers/dms-ui/app/build/composables/matrix/useMatrixSelection";
+import {
+  acceptsColumnFilter,
+  isFilterableColumn,
+} from "../layers/dms-ui/app/build/composables/matrix/matrixColumns";
 import {
   datetimeInputOf,
   editingColumnOf,
   editorModelOf,
   editsInPanel,
+  isUnchangedModel,
+  meetsCondition,
   parseTextDraft,
   shownValueText,
   valueFromEditorModel,
@@ -234,12 +242,21 @@ describe("groups, kept rows, answers", () => {
     expect(initiallyCollapsed(sections, undefined, 1)).toEqual(["g"]);
   });
 
-  it("keeps an edited row on the page it was edited on only (11)", () => {
+  it("keeps an edited row when filters drop it, never on another page (11, N2)", () => {
     const row: MatrixRow = { id: "r9", values: {} };
-    const kept = new Map([["r9", { row, pageKey: "0" }]]);
-    expect(keptRowIds(kept, new Set(), "0")).toEqual(["r9"]);
-    expect(keptRowIds(kept, new Set(), "1")).toEqual([]);
-    expect(keptRowIds(kept, new Set(["r9"]), "0")).toEqual([]);
+    const missing = JSON.stringify({ status: "missing" });
+    const kept = new Map([["r9", { row, filterKey: missing, pageKey: "2" }]]);
+    const view = (filterKey: string, pageKey: string) => ({
+      filterKey,
+      pageKey,
+    });
+    // A save moved it out of "missing": same filters, same page.
+    expect(keptRowIds(kept, new Set(), view(missing, "2"))).toEqual(["r9"]);
+    // Another page under the same filters: not this row's place.
+    expect(keptRowIds(kept, new Set(), view(missing, "3"))).toEqual([]);
+    // A filter change goes back to the first page: the row stays shown.
+    expect(keptRowIds(kept, new Set(), view("{}", "0"))).toEqual(["r9"]);
+    expect(keptRowIds(kept, new Set(["r9"]), view(missing, "2"))).toEqual([]);
   });
 
   it("keeps a save's counts and columns over every page read (12)", () => {
@@ -286,5 +303,72 @@ describe("cell display", () => {
     expect(column.type?.inputComponent?.options).toEqual({
       items: [{ value: "out", label: "Rupture", icon: "i-ph-x" }],
     });
+  });
+});
+
+describe("fix round 2", () => {
+  it("keeps a date-time's seconds when nothing was changed (N1)", () => {
+    const datetime: MatrixColumn = { id: "d", label: "D", kind: "datetime" };
+    for (const stored of ["2026-10-25T09:30:45Z", "2026-10-25T09:30:45.123Z"]) {
+      const model = editorModelOf(datetime, stored);
+      expect(isUnchangedModel(datetime, model, stored)).toBe(true);
+      expect(
+        isUnchangedModel(datetime, String(model).replace(":30", ":31"), stored),
+      ).toBe(false);
+    }
+    expect(isUnchangedModel(datetime, "", null)).toBe(true);
+  });
+
+  it("keeps only the rows still shown checked (N3)", () => {
+    const shown = ref<MatrixRow[]>([
+      { id: "a", values: {} },
+      { id: "b", values: {} },
+    ]);
+    const selection = useMatrixSelection(() => shown.value);
+    selection.toggleAll();
+    expect(selection.allState.value).toBe(true);
+    shown.value = [
+      { id: "b", values: {} },
+      { id: "c", values: {} },
+    ];
+    selection.keepOnly(["b", "c"]);
+    expect(selection.ids.value).toEqual(["b"]);
+    expect(selection.allState.value).toBe("indeterminate");
+  });
+
+  it("shows a row action on the rows its condition takes, booleans as such (N5)", () => {
+    const overridden = { field: "overridden", in: [true] };
+    expect(meetsCondition({ overridden: true }, overridden)).toBe(true);
+    expect(meetsCondition({ overridden: false }, overridden)).toBe(false);
+    expect(meetsCondition({}, overridden)).toBe(false);
+    expect(meetsCondition({ overridden: "true" }, overridden)).toBe(false);
+    expect(meetsCondition({}, undefined)).toBe(true);
+  });
+
+  it("filters the columns a list names, of kinds a filter compares (N5)", () => {
+    const json: MatrixColumn = { id: "body", label: "Body", kind: "json" };
+    const path: MatrixColumn = { id: "path", label: "Path" };
+    const at: MatrixColumn = { id: "at", label: "At", kind: "datetime" };
+    expect(isFilterableColumn(path, true)).toBe(true);
+    expect(isFilterableColumn(json, true)).toBe(false);
+    expect(isFilterableColumn(at, ["path"])).toBe(false);
+    expect(isFilterableColumn(path, ["path"])).toBe(true);
+    expect(isFilterableColumn(path, undefined)).toBe(false);
+    expect(acceptsColumnFilter("later", true, undefined)).toBe(true);
+    expect(acceptsColumnFilter("later", ["path"], undefined)).toBe(false);
+    expect(acceptsColumnFilter("body", true, json)).toBe(false);
+    const read = readMatrixUrlState(
+      {
+        "rec.filter_path": "contains:/api",
+        "rec.filter_body": "contains:x",
+        "rec.filter_nope": "is:1",
+      },
+      "rec",
+      emptyMatrixQuery(25),
+      [],
+      (id) =>
+        acceptsColumnFilter(id, ["path", "body"], id === "body" ? json : path),
+    );
+    expect(Object.keys(read.filters)).toEqual(["path"]);
   });
 });

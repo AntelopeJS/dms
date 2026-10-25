@@ -58,6 +58,8 @@ export function readMatrixUrlState(
   componentId: string,
   defaults: MatrixQueryState,
   facetIds: string[],
+  /** Whether a column filter the URL names is one the grid offers. */
+  acceptsFilter: (columnId: string) => boolean = () => true,
 ): MatrixQueryState {
   const read = (key: string) =>
     firstValue(query[matrixUrlKey(componentId, key)]);
@@ -71,7 +73,12 @@ export function readMatrixUrlState(
     if (value) facets[id] = value.split(FACET_SEPARATOR).filter(Boolean);
   }
   return {
-    filters: readColumnFilters(query, componentId, defaults.filters),
+    filters: readColumnFilters(
+      query,
+      componentId,
+      defaults.filters,
+      acceptsFilter,
+    ),
     page: page ? page - 1 : defaults.page,
     pageSize: pageSize ?? defaults.pageSize,
     search: read(URL_KEYS.search) ?? defaults.search,
@@ -91,6 +98,7 @@ function readColumnFilters(
   query: Record<string, QueryValue>,
   componentId: string,
   defaults: Record<string, MatrixColumnFilter>,
+  acceptsFilter: (columnId: string) => boolean,
 ): Record<string, MatrixColumnFilter> {
   const prefix = matrixUrlKey(componentId, "");
   const filters = { ...defaults };
@@ -98,7 +106,8 @@ function readColumnFilters(
     if (!key.startsWith(prefix)) continue;
     const columnId = columnOfFilterParam(key.slice(prefix.length));
     const filter = parseColumnFilter(firstValue(value) ?? "");
-    if (columnId && filter) filters[columnId] = filter;
+    if (columnId && filter && acceptsFilter(columnId))
+      filters[columnId] = filter;
   }
   return filters;
 }

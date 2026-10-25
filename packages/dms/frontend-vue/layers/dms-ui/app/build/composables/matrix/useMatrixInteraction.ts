@@ -327,7 +327,12 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
         if (openEditorCommit === commit) openEditorCommit = null;
       };
     },
-    commitOpenEditor: () => openEditorCommit?.(),
+    /** Commits the editor open in place; whether there was one. */
+    commitOpenEditor: () => {
+      if (!openEditorCommit) return false;
+      openEditorCommit();
+      return true;
+    },
     focusCell,
     startEdit,
     stopEditing,

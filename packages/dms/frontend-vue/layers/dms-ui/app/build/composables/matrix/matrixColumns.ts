@@ -133,3 +133,44 @@ export function matrixPreferencesKey(
 ): string {
   return `dms.matrix.columns:${pageId}:${componentId}`;
 }
+
+/** The kinds a header filter can compare (contains / is). */
+const FILTERABLE_KINDS: ReadonlySet<string> = new Set([
+  "text",
+  "longText",
+  "number",
+  "date",
+  "datetime",
+  "select",
+  "tags",
+  "boolean",
+]);
+
+/**
+ * Whether a column carries a header filter: `columnFilters: true` for
+ * every column of a kind it can compare, a list for those columns alone.
+ */
+export function isFilterableColumn(
+  column: MatrixColumn,
+  columnFilters: boolean | string[] | undefined,
+): boolean {
+  if (!columnFilters) return false;
+  if (!FILTERABLE_KINDS.has(column.kind ?? "text")) return false;
+  return columnFilters === true || columnFilters.includes(column.id);
+}
+
+/**
+ * Whether a column filter read from the URL is kept: its column takes a
+ * header filter, or is not known yet (a column only the response names),
+ * to be checked once it is (see `useMatrix`).
+ */
+export function acceptsColumnFilter(
+  columnId: string,
+  columnFilters: boolean | string[] | undefined,
+  column: MatrixColumn | undefined,
+): boolean {
+  if (!columnFilters) return false;
+  if (Array.isArray(columnFilters) && !columnFilters.includes(columnId))
+    return false;
+  return column ? isFilterableColumn(column, columnFilters) : true;
+}

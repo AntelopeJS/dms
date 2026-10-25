@@ -18,8 +18,8 @@ export interface MatrixSavingOptions {
   targetMessage: ComputedRef<string | null>;
   /** The grid's own element, inside the block's. */
   root: Ref<HTMLElement | null>;
-  /** Commits the cell being edited in place, if any. */
-  commitEditor: () => void;
+  /** Commits the cell being edited in place; whether one was open. */
+  commitEditor: () => boolean;
   context: () => MatrixContext;
 }
 
@@ -145,8 +145,10 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
       if (options.saveMode !== "staged") return;
       const block = saving.root.value?.closest(BLOCK_SELECTOR);
       if (!ownsShortcut(block)) return;
+      const hadEditor = saving.commitEditor();
+      // Nothing to save here: the browser's own Ctrl+S is left alone.
+      if (!hadEditor && !engine.count.value) return;
       event.preventDefault();
-      saving.commitEditor();
       void requestSave();
     },
   );

@@ -13,6 +13,8 @@ export interface MatrixSelection {
   toggleAll: () => void;
   allState: ComputedRef<MatrixSelectAllState>;
   clear: () => void;
+  /** Unchecks every row but `ids`. */
+  keepOnly: (ids: string[]) => void;
 }
 
 /**
@@ -44,5 +46,11 @@ export function useMatrixSelection(rows: () => MatrixRow[]): MatrixSelection {
     },
     allState,
     clear: () => selected.clear(),
+    keepOnly: (ids) => {
+      const kept = new Set(ids);
+      for (const id of [...selected]) {
+        if (!kept.has(id)) selected.delete(id);
+      }
+    },
   };
 }

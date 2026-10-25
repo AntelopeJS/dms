@@ -5,6 +5,7 @@ import {
   editingColumnOf,
   editorModelOf,
   isSameValue,
+  isUnchangedModel,
   kindOf,
   shownValueText,
   valueFromEditorModel,
@@ -131,6 +132,8 @@ function apply(value: unknown): void {
 }
 
 function applyModel(): boolean {
+  if (column.value && isUnchangedModel(column.value, model.value, stored.value))
+    return true;
   const read = result.value;
   if (!read?.ok) return false;
   if (isChanged.value) apply(read.value);

@@ -343,3 +343,34 @@ export function valueFromEditorModel(
   const reason = validateMatrixValue(column, read.value);
   return reason ? { ok: false, reason } : read;
 }
+
+/** A condition on a row's values: its value in `field` is one of `in`. */
+export interface MatrixValueCondition {
+  field: string;
+  in: readonly unknown[];
+}
+
+/** Whether a row's values meet a condition; no condition is always met. */
+export function meetsCondition(
+  values: Record<string, unknown>,
+  condition: MatrixValueCondition | undefined,
+): boolean {
+  if (!condition) return true;
+  return condition.in.includes(values[condition.field]);
+}
+
+/**
+ * Whether an editor's model still holds what it opened with: the user
+ * changed nothing, and the cell keeps its value as stored (a date and time
+ * keeps its seconds, which its input does not show).
+ */
+export function isUnchangedModel(
+  column: MatrixColumn,
+  model: unknown,
+  original: unknown,
+): boolean {
+  return (
+    JSON.stringify(model ?? null) ===
+    JSON.stringify(editorModelOf(column, original) ?? null)
+  );
+}

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { MatrixRow } from "../../../types/matrix";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
+import { meetsCondition } from "../../composables/matrix/matrixValues";
 import {
   cellBackground,
   MATRIX_TONE_BAR,
@@ -52,12 +53,14 @@ const tint = computed(() =>
   props.row.tone ? MATRIX_TONE_TINTS[props.row.tone] : undefined,
 );
 const actionItems = computed(() =>
-  (matrix.options.rowActions ?? []).map((action) => ({
-    label: matrix.text(action.label),
-    icon: action.icon,
-    color: action.tone,
-    onSelect: () => matrix.runRowAction(action, props.row),
-  })),
+  (matrix.options.rowActions ?? [])
+    .filter((action) => meetsCondition(props.row.values, action.visibleWhen))
+    .map((action) => ({
+      label: matrix.text(action.label),
+      icon: action.icon,
+      color: action.tone,
+      onSelect: () => matrix.runRowAction(action, props.row),
+    })),
 );
 const hasTools = computed(
   () => actionItems.value.length > 0 || matrix.hasRowPanel.value,

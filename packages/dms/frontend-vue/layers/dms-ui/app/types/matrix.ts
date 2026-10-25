@@ -249,6 +249,14 @@ export interface MatrixRowAction {
   icon?: string;
   tone?: MatrixTone;
   target: ActionTarget;
+  /** Offered only on the rows whose value in `field` is one of `in`. */
+  visibleWhen?: MatrixFieldCondition;
+}
+
+/** A row's value in `field` is one of `in`. */
+export interface MatrixFieldCondition {
+  field: string;
+  in: readonly unknown[];
 }
 
 export interface MatrixTotals {
@@ -307,7 +315,7 @@ export interface MatrixOptions {
   facets?: MatrixFacet[];
   sortable?: boolean;
   /** A contains / is filter in each header, sent as `filter_<columnId>=<mode>:<value>`. */
-  columnFilters?: boolean;
+  columnFilters?: boolean | string[];
   urlState?: boolean;
   grouping?: MatrixGrouping;
   totals?: MatrixTotals;

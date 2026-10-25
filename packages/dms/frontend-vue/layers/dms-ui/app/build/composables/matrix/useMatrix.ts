@@ -56,6 +56,7 @@ import {
 } from "./useMatrixQueryState";
 import { useMatrixRows, type MatrixRowsControls } from "./useMatrixRows";
 import { useMatrixTools } from "./useMatrixTools";
+import { acceptsColumnFilter } from "./matrixColumns";
 import { matrixFilterParams } from "./matrixQuery";
 import { useMatrixSaving } from "./useMatrixSaving";
 import { useMatrixSelection, type MatrixSelection } from "./useMatrixSelection";
@@ -225,9 +226,13 @@ export function useMatrix(
     groupOf: (row) => fieldGroupOf(row),
     stateKey: `dms-matrix-folds:${props.pageId}:${props.componentId}`,
     keepEditedRows: () => options.keepEditedRows === true,
-    // Pages are not filters: a row edited on another page stays there.
-    pageKey: () =>
-      options.pagination === "pages" ? String(query.state.value.page) : "",
+    // What lists the rows: a row edited under other filters stays on screen,
+    // a row of another page under the same filters does not.
+    view: () => ({
+      filterKey: JSON.stringify(matrixFilterParams(query.state.value)),
+      pageKey:
+        options.pagination === "pages" ? String(query.state.value.page) : "",
+    }),
     touched: engine.touchedRows,
     hasEdit: (rowId) => engine.edits.value.some((edit) => edit.rowId === rowId),
   });
@@ -362,19 +367,46 @@ export function useMatrix(
         props.componentId,
       )
     : undefined;
+  // A row the first read does not list (gone, or filtered out) is dropped
+  // from the URL rather than waited for.
   onMounted(() => {
     if (!linkedRow) return;
+    // Settled once: the row opened, or dropped; later reads leave it alone.
     watch(
-      () => rows.rowById.value,
-      (byId) => {
-        if (!linkedRow || !byId.has(linkedRow)) return;
+      [() => rows.rowById.value, () => source.isLoading.value],
+      ([byId, isLoading]) => {
+        if (!linkedRow) return;
         const rowId = linkedRow;
+        if (byId.has(rowId)) {
+          linkedRow = undefined;
+          drawers.openRowPanel(rowId);
+          return;
+        }
+        if (isLoading || !source.data.value) return;
         linkedRow = undefined;
-        drawers.openRowPanel(rowId);
+        writeMatrixUrlEntries({
+          [matrixRowUrlKey(props.componentId)]: undefined,
+        });
       },
       { immediate: true },
     );
   });
+
+  // A column filter the URL named on a column the response then lacks, or
+  // that takes no filter, is let go once the columns are known.
+  watch(
+    () => columns.columnById.value,
+    (byId) => {
+      if (!source.data.value) return;
+      query.pruneColumnFilters((columnId) => {
+        const column = byId.get(columnId);
+        return (
+          !!column &&
+          acceptsColumnFilter(columnId, options.columnFilters, column)
+        );
+      });
+    },
+  );
 
   const interaction = useMatrixInteraction({
     options,
@@ -412,6 +444,12 @@ export function useMatrix(
     context: () => context as MatrixContext,
   });
   const selection = useMatrixSelection(() => rows.shown.value);
+  // Only rows still shown stay checked: a fill never receives a row the
+  // user no longer sees (another page, a filter, a search).
+  watch(
+    () => rows.shown.value.map((row) => row.id),
+    (ids) => selection.keepOnly(ids),
+  );
 
   const tools = useMatrixTools({
     options,

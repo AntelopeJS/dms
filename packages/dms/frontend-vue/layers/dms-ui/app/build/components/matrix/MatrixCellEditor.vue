@@ -5,6 +5,7 @@ import type { MatrixColumn, MatrixEnterMove } from "../../../types/matrix";
 import type { MatrixCommitMove } from "../../composables/matrix/useMatrixInteraction";
 import {
   editorModelOf,
+  isUnchangedModel,
   kindOf,
   valueFromEditorModel,
 } from "../../composables/matrix/matrixValues";
@@ -82,6 +83,13 @@ const invalidMessage = computed(() =>
 
 function commit(move: MatrixCommitMove): boolean {
   if (isDone.value) return true;
+  // Left as it opened, the cell keeps its stored value (a date and time its
+  // seconds, which the input does not show).
+  if (isUnchangedModel(props.column, model.value, props.value)) {
+    isDone.value = true;
+    emit("commit", props.value, move);
+    return true;
+  }
   const result = valueFromEditorModel(props.column, model.value);
   if (!result.ok) {
     invalidReason.value = result;

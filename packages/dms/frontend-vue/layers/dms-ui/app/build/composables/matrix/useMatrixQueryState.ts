@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from "vue";
 import type { MatrixOptions } from "../../../types/matrix";
+import { acceptsColumnFilter } from "./matrixColumns";
 import {
   DEFAULT_MATRIX_PAGE_SIZE,
   emptyMatrixQuery,
@@ -29,6 +30,8 @@ export interface MatrixQueryControls {
     filter: MatrixColumnFilter | null,
   ) => void;
   clearColumnFilters: () => void;
+  /** Drops the column filters `accepts` refuses (a column gone, or not filterable). */
+  pruneColumnFilters: (accepts: (columnId: string) => boolean) => void;
   clearFilters: () => void;
 }
 
@@ -53,6 +56,12 @@ export function useMatrixQueryState(
         componentId,
         defaults,
         facetIds,
+        (columnId) =>
+          acceptsColumnFilter(
+            columnId,
+            options.columnFilters,
+            options.columns?.find((column) => column.id === columnId),
+          ),
       )
     : defaults;
   const state = ref<MatrixQueryState>(initial);
@@ -102,6 +111,16 @@ export function useMatrixQueryState(
       refine({ filters });
     },
     clearColumnFilters: () => refine({ filters: {} }),
+    pruneColumnFilters: (accepts) => {
+      const ids = Object.keys(state.value.filters);
+      const kept = ids.filter(accepts);
+      if (kept.length === ids.length) return;
+      refine({
+        filters: Object.fromEntries(
+          kept.map((id) => [id, state.value.filters[id]!]),
+        ),
+      });
+    },
     clearFilters: () =>
       refine({ search: "", status: "", facets: {}, filters: {} }),
   };

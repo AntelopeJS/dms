@@ -40,11 +40,8 @@ export interface MatrixRowsOptions {
   /** Where the folds are kept while the page stays open. */
   stateKey: string;
   keepEditedRows: () => boolean;
-  /**
-   * The page the rows are read on (`pagination: "pages"`): a row kept is
-   * only kept on the page it was edited on, a page change is no filter.
-   */
-  pageKey: () => string;
+  /** What lists the rows now: their filters, and their page. */
+  view: () => MatrixRowsView;
   /** Rows edited in this view (the save engine's). */
   touched: Set<string>;
   /** A row still holding an edit, never let go. */
@@ -57,24 +54,34 @@ interface MatrixFoldState {
   seen: string[];
 }
 
-/** A row edited in this view, as last read, and the page it was read on. */
-export interface MatrixKeptRow {
-  row: MatrixRow;
+/** What lists the rows: the filters, search and sort, and the page. */
+export interface MatrixRowsView {
+  filterKey: string;
   pageKey: string;
 }
 
+/** A row edited in this view, as last read, and what listed it then. */
+export interface MatrixKeptRow extends MatrixRowsView {
+  row: MatrixRow;
+}
+
 /**
- * The kept rows drawn though the read no longer lists them: the ones edited
- * on the page shown (a filter or a search dropped them), never the rows of
- * another page.
+ * The kept rows drawn though the read no longer lists them: dropped by
+ * other filters (a filter change goes back to the first page), or by the
+ * same filters on the same page (a save moved the row out of its status).
+ * A row of another page under the same filters is never drawn.
  */
 export function keptRowIds(
   kept: ReadonlyMap<string, MatrixKeptRow>,
   answeredIds: ReadonlySet<string>,
-  pageKey: string,
+  view: MatrixRowsView,
 ): string[] {
   return [...kept.entries()]
-    .filter(([id, entry]) => !answeredIds.has(id) && entry.pageKey === pageKey)
+    .filter(
+      ([id, entry]) =>
+        !answeredIds.has(id) &&
+        (entry.filterKey !== view.filterKey || entry.pageKey === view.pageKey),
+    )
     .map(([id]) => id);
 }
 
@@ -89,9 +96,9 @@ function useKeptRows(
     ([rows]) => {
       if (!options.keepEditedRows()) return;
       const next = new Map(kept.value);
-      const pageKey = options.pageKey();
+      const view = options.view();
       for (const row of rows) {
-        if (options.touched.has(row.id)) next.set(row.id, { row, pageKey });
+        if (options.touched.has(row.id)) next.set(row.id, { row, ...view });
       }
       kept.value = next;
     },
@@ -101,7 +108,7 @@ function useKeptRows(
     () => new Set(answered.value.map((row) => row.id)),
   );
   const keptIds = computed(
-    () => new Set(keptRowIds(kept.value, answeredIds.value, options.pageKey())),
+    () => new Set(keptRowIds(kept.value, answeredIds.value, options.view())),
   );
   const keptRows = computed(() =>
     [...keptIds.value].map((id) => (kept.value.get(id) as MatrixKeptRow).row),

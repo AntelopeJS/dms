@@ -6,6 +6,7 @@ import {
   editingColumnOf,
   editorModelOf,
   isSameValue,
+  isUnchangedModel,
   kindOf,
   shownValueText,
   valueFromEditorModel,
@@ -87,6 +88,14 @@ function failureOf(column: MatrixColumn): string | null {
     : null;
 }
 
+/** The cell's placeholder (a base text), shown as a reference over its field. */
+function referenceOf(column: MatrixColumn): string {
+  const placeholder = row.value
+    ? matrix.cellState(row.value, column.id).placeholder
+    : undefined;
+  return placeholder ? matrix.text(placeholder) : "";
+}
+
 function issuesOf(column: MatrixColumn): string[] {
   if (!row.value) return [];
   return (matrix.cellState(row.value, column.id).issues ?? []).map(matrix.text);
@@ -94,6 +103,13 @@ function issuesOf(column: MatrixColumn): string[] {
 
 function commit(column: MatrixColumn): void {
   if (!(column.id in drafts) || !row.value) return;
+  if (
+    isUnchangedModel(editingOf(column), drafts[column.id], storedOf(column))
+  ) {
+    Reflect.deleteProperty(drafts, column.id);
+    Reflect.deleteProperty(errors, column.id);
+    return;
+  }
   const read = valueFromEditorModel(editingOf(column), drafts[column.id]);
   if (!read.ok) {
     errors[column.id] = invalidText(column, read);
@@ -178,6 +194,12 @@ function saveAll(): void {
           :required="column.required"
           :disabled="isReadOnly(column)"
         >
+          <blockquote
+            v-if="referenceOf(column)"
+            class="border-default text-muted mb-1.5 border-s-2 ps-3 text-[12.5px] whitespace-pre-wrap"
+          >
+            {{ referenceOf(column) }}
+          </blockquote>
           <MatrixFieldInput
             :id="fieldId(column)"
             :column="editingOf(column)"
