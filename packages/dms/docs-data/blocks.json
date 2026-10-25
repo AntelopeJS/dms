@@ -9065,6 +9065,730 @@
       }
     },
     {
+      "type": "FullAgenda",
+      "componentName": "dms-full-agenda-block",
+      "meta": {
+        "name": "Full agenda",
+        "icon": "i-ph-calendar-dots",
+        "description": "A calendar by month, week, day, list, year or resource, edited by dragging, with a sidebar and event details.",
+        "group": "data"
+      },
+      "config": {
+        "title": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Title",
+            "group": "content"
+          }
+        },
+        "description": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Description",
+            "group": "content"
+          }
+        },
+        "fetchUrl": {
+          "type": "string",
+          "optional": true,
+          "description": "Where the events are read from.",
+          "ui": {
+            "label": "Data source",
+            "group": "data",
+            "widget": "dataSource"
+          }
+        },
+        "fetchUrlMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "HTTP method",
+            "group": "advanced",
+            "widget": "select"
+          }
+        },
+        "realtimeTopic": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Topics whose events make the block read its data again.",
+          "ui": {
+            "label": "Realtime topics",
+            "group": "data",
+            "advanced": true
+          }
+        },
+        "staticData": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Static data",
+            "group": "advanced",
+            "widget": "json"
+          }
+        },
+        "periodScope": {
+          "type": "string",
+          "optional": true,
+          "description": "Id of the PeriodSelector driving this block.",
+          "ui": {
+            "label": "Period scope",
+            "group": "advanced"
+          }
+        },
+        "saveUrl": {
+          "type": "string",
+          "optional": true,
+          "description": "Where changes are written.",
+          "ui": {
+            "label": "Save route",
+            "group": "data",
+            "widget": "url"
+          }
+        },
+        "saveUrlMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Save method",
+            "group": "advanced",
+            "widget": "select"
+          }
+        },
+        "views": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Views",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "initialView": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "First view",
+            "group": "appearance",
+            "widget": "text"
+          }
+        },
+        "initialDate": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "First day",
+            "group": "data",
+            "widget": "text"
+          }
+        },
+        "minDate": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Earliest day",
+            "group": "behavior",
+            "widget": "text"
+          }
+        },
+        "maxDate": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Latest day",
+            "group": "behavior",
+            "widget": "text"
+          }
+        },
+        "weekStartsOn": {
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            6
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Week starts on",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "hiddenDays": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "optional": true,
+          "ui": {
+            "label": "Hidden days",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "timeZone": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Time zone",
+            "group": "advanced",
+            "widget": "text"
+          }
+        },
+        "calendars": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Calendars",
+            "group": "data",
+            "widget": "json"
+          }
+        },
+        "resources": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Resources",
+            "group": "data",
+            "widget": "json"
+          }
+        },
+        "slots": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Named slots",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "businessHours": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Opening hours",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "dayStart": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Day starts at",
+            "group": "appearance",
+            "widget": "text"
+          }
+        },
+        "dayEnd": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Day ends at",
+            "group": "appearance",
+            "widget": "text"
+          }
+        },
+        "slotMinutes": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Grid line every (min)",
+            "group": "appearance",
+            "widget": "number",
+            "min": 5
+          }
+        },
+        "snapMinutes": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Snap to (min)",
+            "group": "behavior",
+            "widget": "number",
+            "min": 1
+          }
+        },
+        "hourHeight": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Hour height (px)",
+            "group": "appearance",
+            "widget": "number",
+            "min": 16
+          }
+        },
+        "scrollTime": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Scroll to",
+            "group": "appearance",
+            "widget": "text"
+          }
+        },
+        "nowIndicator": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Current time line",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "allDayRow": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "All-day row",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "weekNumbers": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Week numbers",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "overlap": {
+          "type": "string",
+          "enum": [
+            "columns",
+            "stack"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Overlapping events",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
+        "maxEventsPerDay": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Events per day (month)",
+            "group": "appearance",
+            "widget": "number",
+            "min": 1
+          }
+        },
+        "resourceAreaWidth": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Resource column width (px)",
+            "group": "appearance",
+            "widget": "number",
+            "min": 80
+          }
+        },
+        "columnMinWidth": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Minimum column width (px)",
+            "group": "appearance",
+            "widget": "number",
+            "min": 24
+          }
+        },
+        "defaultDurationMinutes": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Default length (min)",
+            "group": "behavior",
+            "widget": "number",
+            "min": 1
+          }
+        },
+        "eventContent": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Event content",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "tooltips": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Tooltips",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "editable": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Editable",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "dragMove": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Drag to move",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "dragResize": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Drag to resize",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "copyOnAltDrag": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Alt + drag copies",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "create": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Create events",
+            "group": "behavior",
+            "widget": "json"
+          }
+        },
+        "rangeSelect": {
+          "type": "string",
+          "enum": [
+            "drag",
+            "twoClicks"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Range selection",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "selectAction": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Range action",
+            "group": "behavior",
+            "widget": "json"
+          }
+        },
+        "constraints": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Constraints",
+            "group": "behavior",
+            "widget": "json"
+          }
+        },
+        "saveMode": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "staged"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Save mode",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "review": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Review before saving",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "undoSeconds": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Undo window (s)",
+            "group": "behavior",
+            "widget": "number",
+            "min": 0
+          }
+        },
+        "conflicts": {
+          "type": "string",
+          "enum": [
+            "overwrite",
+            "detect"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Conflicts",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "recurringEdit": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "occurrence",
+            "series"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Editing a recurring event",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "fields": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Details fields",
+            "group": "data",
+            "widget": "json"
+          }
+        },
+        "details": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Details",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "eventAction": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Event click action",
+            "group": "behavior",
+            "widget": "json"
+          }
+        },
+        "eventActions": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Event actions",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "toolbarActions": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Toolbar actions",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "toolbar": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Toolbar",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "sidebar": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Sidebar",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "legend": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Legend",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "unscheduled": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Pending items",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "search": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Search",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "facets": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Facets",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "urlState": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Keep state in the URL",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "shortcuts": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Keyboard shortcuts",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "height": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Height",
+            "group": "appearance",
+            "widget": "text"
+          }
+        },
+        "responsive": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Narrow container",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "emptyLabel": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Empty message",
+            "group": "content"
+          }
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "comfortable"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Density",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        }
+      },
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "initialView",
+          "minDate",
+          "maxDate",
+          "dayStart",
+          "dayEnd",
+          "slotMinutes",
+          "snapMinutes",
+          "hourHeight",
+          "scrollTime",
+          "nowIndicator",
+          "allDayRow",
+          "weekNumbers",
+          "overlap",
+          "maxEventsPerDay",
+          "resourceAreaWidth",
+          "columnMinWidth",
+          "defaultDurationMinutes",
+          "tooltips",
+          "editable",
+          "dragMove",
+          "dragResize",
+          "copyOnAltDrag",
+          "rangeSelect",
+          "saveMode",
+          "review",
+          "undoSeconds",
+          "conflicts",
+          "recurringEdit",
+          "search",
+          "urlState",
+          "shortcuts",
+          "height",
+          "density"
+        ]
+      }
+    },
+    {
       "type": "Grid",
       "componentName": "dms-grid",
       "container": true,
