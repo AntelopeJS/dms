@@ -101,7 +101,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/tooling-configs": ">=0.0.9 <1.0.0",
+    "@antelopejs/tooling-configs": "0.2.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsonwebtoken": "^9.0.10",
