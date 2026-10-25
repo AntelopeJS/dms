@@ -1,0 +1,284 @@
+import { computed, nextTick, ref, type Ref } from "vue";
+import type {
+  MatrixColumn,
+  MatrixEnterMove,
+  MatrixOptions,
+  MatrixRow,
+} from "../../../types/matrix";
+import {
+  enterMoveTarget,
+  findMatrixCell,
+  isMatrixMoveKey,
+  isTypedCharacter,
+  moveMatrixFocus,
+  type MatrixCellAddress,
+  type MatrixGridShape,
+} from "./matrixNavigation";
+import { acceptsTypedStart, editsInPanel, isEmptyValue } from "./matrixValues";
+
+/** The cell being edited in place, and the text it was started with. */
+export interface MatrixEditing extends MatrixCellAddress {
+  /** A typed first character, or a draft carried over. */
+  draft?: unknown;
+  hasDraft: boolean;
+  /** The draft is an editor's model (a JSON text), not a cell value. */
+  isModel?: boolean;
+}
+
+/** Where a committed edit moves the focus. */
+export type MatrixCommitMove = MatrixEnterMove | "next" | "previous";
+
+/** What the interaction needs from the grid around it. */
+export interface MatrixInteractionOptions {
+  options: MatrixOptions;
+  root: Ref<HTMLElement | null>;
+  /** The rows drawn and the columns shown, as the focus moves through them. */
+  shape: () => MatrixGridShape;
+  /** Every row, collapsed groups included: N searches them all. */
+  allShape: () => MatrixGridShape;
+  rowOf: (rowId: string) => MatrixRow | undefined;
+  columnOf: (columnId: string) => MatrixColumn | undefined;
+  valueOf: (row: MatrixRow, columnId: string) => unknown;
+  isEditable: (row: MatrixRow, column: MatrixColumn) => boolean;
+  /** A click or Enter on a cell that does not edit: the block's `cellAction`. */
+  hasCellAction: (row: MatrixRow, column: MatrixColumn) => boolean;
+  runCellAction: (row: MatrixRow, column: MatrixColumn) => void;
+  commitValue: (row: MatrixRow, column: MatrixColumn, value: unknown) => void;
+  openCellDrawer: (address: MatrixCellAddress, editing?: MatrixEditing) => void;
+  openRowPanel: (rowId: string) => void;
+  hasRowPanel: () => boolean;
+  expandGroupOf: (rowId: string) => void;
+}
+
+const CELL_SELECTOR = "[data-matrix-cell]";
+type KeyHandler = (event: KeyboardEvent, focus: MatrixCellAddress) => boolean;
+
+/**
+ * The grid's keyboard and pointer: one focused cell moved with the arrows,
+ * Home / End and PageUp / PageDown; Enter (or the edit trigger) edits it in
+ * place or in a drawer; a typed character starts editing with it; Space
+ * opens the row; N and Shift+N jump to the next or previous empty editable
+ * cell; a click on a cell that does not edit runs `cellAction`.
+ */
+export function useMatrixInteraction(source: MatrixInteractionOptions) {
+  const { options } = source;
+  const focus = ref<MatrixCellAddress | null>(null);
+  const editing = ref<MatrixEditing | null>(null);
+  const hover = ref<MatrixCellAddress | null>(null);
+  const editTrigger = computed(() => options.editTrigger ?? "doubleClick");
+
+  function cellElement(address: MatrixCellAddress): HTMLElement | null {
+    const cells =
+      source.root.value?.querySelectorAll<HTMLElement>(CELL_SELECTOR) ?? [];
+    return (
+      [...cells].find(
+        (cell) =>
+          cell.dataset.rowId === address.rowId &&
+          cell.dataset.columnId === address.columnId,
+      ) ?? null
+    );
+  }
+
+  /** Moves the focus to a cell, on screen and to the keyboard. */
+  function focusCell(address: MatrixCellAddress | null): void {
+    focus.value = address;
+    if (!address) return;
+    void nextTick(() => {
+      const element = cellElement(address);
+      element?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      if (element && document.activeElement !== element) element.focus();
+    });
+  }
+
+  const resolve = (address: MatrixCellAddress) => {
+    const row = source.rowOf(address.rowId);
+    const column = source.columnOf(address.columnId);
+    return row && column ? { row, column } : null;
+  };
+
+  /** Starts editing a cell: in place, in its drawer, or a switch toggled. */
+  function startEdit(address: MatrixCellAddress, draft?: unknown): void {
+    const cell = resolve(address);
+    if (!cell) return;
+    const { row, column } = cell;
+    if (!source.isEditable(row, column)) {
+      if (source.hasCellAction(row, column)) source.runCellAction(row, column);
+      return;
+    }
+    const hasDraft = draft !== undefined;
+    const value = hasDraft ? draft : source.valueOf(row, column.id);
+    if (column.kind === "boolean") {
+      source.commitValue(row, column, !source.valueOf(row, column.id));
+      return;
+    }
+    const entry: MatrixEditing = { ...address, draft, hasDraft };
+    if (editsInPanel(column, value)) {
+      source.openCellDrawer(address, entry);
+      return;
+    }
+    editing.value = entry;
+  }
+
+  function stopEditing(): void {
+    const current = editing.value;
+    editing.value = null;
+    if (current)
+      focusCell({ rowId: current.rowId, columnId: current.columnId });
+  }
+
+  function editableAfter(from: MatrixCellAddress, step: 1 | -1) {
+    return findMatrixCell(source.shape(), from, step, (address) => {
+      const cell = resolve(address);
+      return !!cell && source.isEditable(cell.row, cell.column);
+    });
+  }
+
+  const COMMIT_MOVES: Record<
+    MatrixCommitMove,
+    (from: MatrixCellAddress) => MatrixCellAddress | null
+  > = {
+    down: (from) => enterMoveTarget(source.shape(), from, "down"),
+    right: (from) => enterMoveTarget(source.shape(), from, "right"),
+    stay: (from) => from,
+    next: (from) => editableAfter(from, 1),
+    previous: (from) => editableAfter(from, -1),
+  };
+
+  /** Commits the cell being edited, then moves as asked. */
+  function commitEdit(value: unknown, move: MatrixCommitMove): void {
+    const current = editing.value;
+    if (!current) return;
+    const cell = resolve(current);
+    editing.value = null;
+    if (cell) source.commitValue(cell.row, cell.column, value);
+    const target = COMMIT_MOVES[move](current) ?? current;
+    focusCell(target);
+    // Tab keeps editing, from cell to cell, as a form moves between fields:
+    // in place only, a switch is not toggled nor a drawer opened by passing.
+    if ((move === "next" || move === "previous") && target !== current)
+      continueEditing(target);
+  }
+
+  function continueEditing(address: MatrixCellAddress): void {
+    const cell = resolve(address);
+    if (!cell || cell.column.kind === "boolean") return;
+    if (editsInPanel(cell.column, source.valueOf(cell.row, cell.column.id)))
+      return;
+    editing.value = { ...address, hasDraft: false };
+  }
+
+  /** N: the next empty cell the user can fill, groups expanded on the way. */
+  function jumpToEmpty(step: 1 | -1): void {
+    const target = findMatrixCell(
+      source.allShape(),
+      focus.value,
+      step,
+      (address) => {
+        const cell = resolve(address);
+        if (!cell || !source.isEditable(cell.row, cell.column)) return false;
+        return isEmptyValue(source.valueOf(cell.row, cell.column.id));
+      },
+      true,
+    );
+    if (!target) return;
+    source.expandGroupOf(target.rowId);
+    focusCell(target);
+    void nextTick(() => {
+      cellElement(target)?.scrollIntoView({ block: "center" });
+    });
+  }
+
+  const KEY_HANDLERS: Record<string, KeyHandler> = {
+    Enter: (_event, current) => {
+      startEdit(current);
+      return true;
+    },
+    F2: (_event, current) => {
+      startEdit(current);
+      return true;
+    },
+    " ": (_event, current) => {
+      if (!source.hasRowPanel()) return false;
+      source.openRowPanel(current.rowId);
+      return true;
+    },
+    Escape: () => {
+      focus.value = null;
+      return true;
+    },
+    n: (event) => {
+      if (!options.jumpToEmpty) return false;
+      jumpToEmpty(event.shiftKey ? -1 : 1);
+      return true;
+    },
+    N: (event) => KEY_HANDLERS.n!(event, focus.value as MatrixCellAddress),
+  };
+
+  function typeToEdit(event: KeyboardEvent, current: MatrixCellAddress) {
+    if (!options.typeToEdit || !isTypedCharacter(event)) return false;
+    const cell = resolve(current);
+    if (!cell || !acceptsTypedStart(cell.column)) return false;
+    if (!source.isEditable(cell.row, cell.column)) return false;
+    startEdit(current, event.key);
+    return true;
+  }
+
+  /** The grid's keydown, while no cell is being edited. */
+  function onKeydown(event: KeyboardEvent): void {
+    if (editing.value || event.defaultPrevented) return;
+    const current = focus.value ?? null;
+    if (isMatrixMoveKey(event.key)) {
+      event.preventDefault();
+      const isCtrl = event.ctrlKey || event.metaKey;
+      focusCell(moveMatrixFocus(source.shape(), current, event.key, isCtrl));
+      return;
+    }
+    if (!current) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const handler = KEY_HANDLERS[event.key];
+    const handled =
+      (handler && handler(event, current)) || typeToEdit(event, current);
+    if (handled) event.preventDefault();
+  }
+
+  function onCellClick(address: MatrixCellAddress): void {
+    focusCell(address);
+    const cell = resolve(address);
+    if (!cell) return;
+    if (!source.isEditable(cell.row, cell.column)) {
+      if (source.hasCellAction(cell.row, cell.column))
+        source.runCellAction(cell.row, cell.column);
+      return;
+    }
+    if (editTrigger.value === "click") startEdit(address);
+  }
+
+  function onCellDoubleClick(address: MatrixCellAddress): void {
+    if (editTrigger.value !== "doubleClick") return;
+    const cell = resolve(address);
+    if (cell && source.isEditable(cell.row, cell.column)) startEdit(address);
+  }
+
+  const isFocused = (rowId: string, columnId: string) =>
+    focus.value?.rowId === rowId && focus.value.columnId === columnId;
+  const isEditing = (rowId: string, columnId: string) =>
+    editing.value?.rowId === rowId && editing.value.columnId === columnId;
+
+  return {
+    focus,
+    editing,
+    hover,
+    focusCell,
+    startEdit,
+    stopEditing,
+    commitEdit,
+    jumpToEmpty,
+    onKeydown,
+    onCellClick,
+    onCellDoubleClick,
+    isFocused,
+    isEditing,
+  };
+}
+
+export type MatrixInteraction = ReturnType<typeof useMatrixInteraction>;
