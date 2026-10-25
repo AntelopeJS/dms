@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import AgendaLegend from "./AgendaLegend.vue";
 import AgendaMiniCalendar from "./AgendaMiniCalendar.vue";
 import AgendaNotices from "./AgendaNotices.vue";
@@ -16,17 +23,26 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
 /**
  * The column beside the views (left or right), its sections in order: mini
  * calendar, calendars legend, resources, pending items, notices, upcoming,
- * tip. In a compact container it is a sheet over the agenda, closed by its
- * X, Esc or a click beside it.
+ * tip. In a compact container it is a modal sheet over the agenda (focus
+ * kept inside, given back on closing), closed by its X, Esc, a click beside
+ * it, or once a day is picked or an event opened; it fades out of the way
+ * while one of its items is dragged onto the agenda.
  */
 interface AgendaSidebarProps {
   sidebar: ResolvedAgendaSidebar;
   sections: AgendaSidebarSection[];
   legend: ResolvedAgendaLegend | null;
   mode: "column" | "overlay";
+  /** A drag is under way: the sheet lets the pointer reach the views. */
+  dragging?: boolean;
 }
 
-const props = defineProps<AgendaSidebarProps>();
+// Its root is a fragment (backdrop + aside): attributes go to the aside.
+defineOptions({ inheritAttrs: false });
+
+const props = withDefaults(defineProps<AgendaSidebarProps>(), {
+  dragging: false,
+});
 const emit = defineEmits<{ close: []; fold: [] }>();
 
 const ctx = useAgendaContext();
@@ -45,38 +61,80 @@ const groupLabel = (groupId: string | undefined) => {
   return group ? processText(group.label) : "";
 };
 
+const asideClass = computed(() => {
+  if (!isOverlay.value)
+    return [
+      "border-default",
+      isRight.value ? "order-last border-s" : "border-e",
+    ];
+  return [
+    "border-default absolute inset-y-0 z-40 max-w-[85%] shadow-xl",
+    isRight.value ? "end-0 border-s" : "start-0 border-e",
+    props.dragging && "pointer-events-none opacity-0",
+  ];
+});
+
 const panelEl = ref<HTMLElement | null>(null);
+let returnFocus: HTMLElement | null = null;
 onMounted(async () => {
   if (!isOverlay.value) return;
+  returnFocus = document.activeElement as HTMLElement | null;
   await nextTick();
   panelEl.value?.focus();
 });
+onBeforeUnmount(() => {
+  if (returnFocus?.isConnected) returnFocus.focus();
+});
+
+// The sheet has done its job once a day is picked or an event opens.
+watch([ctx.anchor, ctx.details], () => {
+  if (isOverlay.value) emit("close");
+});
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/** Tab stays inside the sheet. */
+function trapTab(event: KeyboardEvent): void {
+  if (!isOverlay.value || event.key !== "Tab" || !panelEl.value) return;
+  const items = [...panelEl.value.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const first = items[0];
+  const last = items.at(-1);
+  if (!first || !last) return;
+  const active = document.activeElement;
+  if (event.shiftKey && (active === first || active === panelEl.value)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 </script>
 
 <template>
   <div
-    v-if="isOverlay"
+    v-if="isOverlay && !props.dragging"
     class="absolute inset-0 z-30 bg-(--ui-bg)/60 backdrop-blur-[1px]"
     data-agenda-sidebar-backdrop
     @click="emit('close')"
   />
   <aside
+    v-bind="$attrs"
     ref="panelEl"
     :aria-label="t('dms.agenda.sidebar.label')"
+    :role="isOverlay ? 'dialog' : undefined"
+    :aria-modal="isOverlay || undefined"
     :tabindex="isOverlay ? -1 : undefined"
     :data-agenda-sidebar="props.mode"
+    :data-position="props.sidebar.position"
     :class="[
       'bg-default flex min-h-0 shrink-0 flex-col gap-5 overflow-y-auto p-4 outline-none',
-      isOverlay
-        ? [
-            'absolute inset-y-0 z-40 max-w-[85%] shadow-xl',
-            isRight ? 'end-0 border-s' : 'start-0 border-e',
-            'border-default',
-          ]
-        : ['border-default', isRight ? 'border-s' : 'border-e'],
+      asideClass,
     ]"
     :style="{ width }"
     @keydown.esc.stop="isOverlay && emit('close')"
+    @keydown="trapTab"
   >
     <div
       v-if="isOverlay || props.sidebar.collapsible"

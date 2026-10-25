@@ -100,7 +100,11 @@ export function occurrence(
     start: startMs,
     end: endMs,
     startDay: zonedDayKey(startMs, timeZone),
-    endDay: zonedDayKey(endMs - 1, timeZone),
+    // As the engine: a zero-length event ends on the day it starts.
+    endDay:
+      endMs > startMs
+        ? zonedDayKey(endMs - 1, timeZone)
+        : zonedDayKey(startMs, timeZone),
     startMinutes: allDay ? 0 : zonedMinutes(startMs, timeZone),
     endMinutes: allDay ? 0 : zonedMinutes(endMs, timeZone),
     resourceIds: extra.resourceIds ?? [],

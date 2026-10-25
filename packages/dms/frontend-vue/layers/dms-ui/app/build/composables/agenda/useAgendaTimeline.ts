@@ -13,7 +13,7 @@ import { parseSlots, type ParsedAgendaSlot } from "./agendaSlots";
 import {
   buildTimelineColumns,
   buildTimelineRows,
-  columnPosition,
+  shownPosition,
   dayBreaks,
   effectiveScale,
   timelineHeaderGroups,
@@ -98,7 +98,12 @@ function useTimelineGeometry(ctx: AgendaContext) {
   );
   const breaks = computed(() => dayBreaks(columns.value, scale.value));
   const headerGroups = computed(() =>
-    timelineHeaderGroups(columns.value, ctx.range.value.days, scale.value),
+    timelineHeaderGroups(
+      columns.value,
+      ctx.range.value.days,
+      scale.value,
+      ctx.options.value.weekStartsOn,
+    ),
   );
   const metrics = computed(
     () =>
@@ -219,6 +224,7 @@ export function useAgendaTimeline(
       columns: geometry.columns.value,
       breaks: geometry.breaks.value,
       metrics: geometry.metrics.value,
+      wholeColumns: geometry.scale.value === "day",
     }),
   );
   const bodyHeight = computed(() => {
@@ -233,13 +239,8 @@ export function useAgendaTimeline(
     }
     return byRow;
   });
-  const positionOf = (epochMs: number) => {
-    const columns = geometry.columns.value;
-    if (!columns.length) return null;
-    if (epochMs < columns[0]!.start || epochMs >= columns.at(-1)!.end)
-      return null;
-    return columnPosition(columns, epochMs);
-  };
+  const positionOf = (epochMs: number) =>
+    shownPosition(geometry.columns.value, epochMs);
   return {
     scale: geometry.scale,
     slots: geometry.slots,

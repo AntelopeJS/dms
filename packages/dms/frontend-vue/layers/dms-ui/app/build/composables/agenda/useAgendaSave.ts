@@ -1,4 +1,11 @@
-import { computed, ref, type ComputedRef, type Ref } from "vue";
+import {
+  computed,
+  getCurrentScope,
+  onScopeDispose,
+  ref,
+  type ComputedRef,
+  type Ref,
+} from "vue";
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type {
   AgendaChange,
@@ -77,6 +84,19 @@ function useAskConfirm(text: (value: BlockText | undefined) => string) {
     });
 }
 
+/** The scope of a change of a recurring occurrence, as `recurringEdit` says; `null`: the user backed out. */
+function useRecurringScope(raw: FullAgendaOptions) {
+  const recurring = useAgendaRecurringPrompt();
+  return async (
+    change: AgendaChange,
+  ): Promise<AgendaChange["scope"] | null> => {
+    if (!change.occurrence || change.scope) return change.scope;
+    const edit = raw.recurringEdit ?? "ask";
+    if (edit !== "ask") return edit;
+    return recurring.ask(change.kind === "delete" ? "delete" : "update");
+  };
+}
+
 /**
  * The editing of an agenda around its save engine: `apply` places a change
  * (asking which part of a recurring event it applies to, as
@@ -88,7 +108,7 @@ function useAskConfirm(text: (value: BlockText | undefined) => string) {
 export function useAgendaSave(setup: AgendaSaveSetup) {
   const { raw, options, source, text } = setup;
   const { t } = useI18n();
-  const recurring = useAgendaRecurringPrompt();
+  const scopeOf = useRecurringScope(raw);
   const mode = () => raw.saveMode ?? "immediate";
   const toasts = useAgendaSaveToasts({
     raw,
@@ -97,6 +117,7 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
     engine: () => engine,
   });
 
+  const status = useSaveStatus();
   const engine = createAgendaSaveEngine({
     mode,
     send: useSaveRequest(raw, setup.routeParams),
@@ -116,35 +137,35 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
       // An id the route never named stays on screen: read its own ids.
       if (leavesLocalId(response, written)) void source.refresh();
     },
-    onSaved: toasts.saved,
-    onFailed: toasts.failed,
+    onSaved: (written, response) => {
+      status.settle("saved");
+      toasts.saved(written, response);
+    },
+    onFailed: (edits) => {
+      status.settle("error");
+      toasts.failed(edits);
+    },
     onConflict: toasts.conflict,
     onGone: toasts.gone,
     describeError: (error) => resolveActionError(error, t),
     text: (message) => text(message),
   });
 
-  /** The scope of a change of a recurring occurrence; `null`: the user backed out. */
-  async function scopeOf(
-    change: AgendaChange,
-  ): Promise<AgendaChange["scope"] | null> {
-    if (!change.occurrence || change.scope) return change.scope;
-    const edit = raw.recurringEdit ?? "ask";
-    if (edit !== "ask") return edit;
-    return recurring.ask(change.kind === "delete" ? "delete" : "update");
-  }
-
   const eventById = (id: string | undefined) =>
     id ? source.data.value.events.find((event) => event.id === id) : undefined;
 
-  /** Places a change: drawn at once, then written (immediate) or kept (staged). */
+  /**
+   * Places a change: drawn at once, then written (immediate) or kept
+   * (staged). Resolves `false` when it was not placed (editing off, the
+   * scope prompt abandoned) or the route refused it.
+   */
   async function apply(
     change: AgendaChange,
     occurrence?: AgendaOccurrence,
-  ): Promise<void> {
-    if (!options.value.editable) return;
+  ): Promise<boolean> {
+    if (!options.value.editable) return false;
     const scope = await scopeOf(change);
-    if (scope === null) return;
+    if (scope === null) return false;
     const next = completeChange({
       change,
       occurrence,
@@ -156,7 +177,7 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
       next.kind === "schedule"
         ? source.data.value.unscheduled?.find((entry) => entry.id === next.id)
         : undefined;
-    await engine.record(next, {
+    return engine.record(next, {
       seed: item && next.tempId ? seedOfItem(item, next.tempId) : undefined,
       base: occurrence?.event ?? eventById(next.id),
       ghost: occurrence && {
@@ -168,13 +189,10 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
     });
   }
 
+  /** Writes the staged changes; a refusal is told once, by `onFailed`. */
   async function saveStaged(): Promise<void> {
-    if (!engine.count.value || engine.isSaving.value) return;
-    if (await engine.saveAll()) return;
-    const failed = engine.edits.value.filter(
-      (edit) => edit.status === "error",
-    ).length;
-    if (failed) toasts.notSaved(failed);
+    if (!engine.sendable.value.length || engine.isSaving.value) return;
+    await engine.saveAll();
   }
 
   useUnsavedChanges({ dirty: () => engine.hasUnsaved.value });
@@ -186,9 +204,20 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
     discardStaged: () => engine.discardAll(),
     staged: computed(() => (mode() === "staged" ? engine.staged.value : [])),
     saving: computed(() => engine.isSaving.value),
+    /** What a Save writes: conflicts and changes being written aside. */
+    sendableCount: computed(() => engine.sendable.value.length),
+    /** "Saving…", then "Saved" for a moment, or "error" until the next write. */
+    saveStatus: computed<AgendaSaveStatus>(() =>
+      engine.isSaving.value ? "saving" : status.last.value,
+    ),
     /** The events read with the changes not written laid over them, and how each shows. */
     overlay: computed(() =>
-      overlayEdits(source.data.value.events, engine.edits.value, mode()),
+      overlayEdits(
+        source.data.value.events,
+        engine.edits.value,
+        mode(),
+        options.value.timeZone,
+      ),
     ),
     pending: computed(() =>
       overlayPending(
@@ -206,13 +235,34 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
   };
 }
 
+/** How the last write went, as the toolbar tells it. */
+export type AgendaSaveStatus = "idle" | "saving" | "saved" | "error";
+
+const SAVED_SHOWN_MS = 2500;
+
+/** The outcome of the last write: "saved" for a moment, "error" until the next one. */
+function useSaveStatus() {
+  const last = ref<AgendaSaveStatus>("idle");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (getCurrentScope()) onScopeDispose(() => clearTimeout(timer));
+  return {
+    last,
+    settle: (outcome: "saved" | "error") => {
+      clearTimeout(timer);
+      last.value = outcome;
+      if (outcome === "saved")
+        timer = setTimeout(() => (last.value = "idle"), SAVED_SHOWN_MS);
+    },
+  };
+}
+
 /** A live region's message: set again even when it is the same text. */
 export function useLiveMessage(): {
   message: Ref<string>;
   announce: (text: string) => void;
 } {
   const message = ref("");
-  const NO_BREAK = " ";
+  const NO_BREAK = "\u00a0";
   return {
     message,
     announce: (text: string) => {

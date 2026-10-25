@@ -11,13 +11,12 @@ import {
 } from "../../composables/agenda/agendaTimeGridLayout";
 import {
   GRID_GUTTER_WIDTH,
+  columnTargetPart,
+  dayBackground,
   gridColumnAt,
   placementSpan,
 } from "../../composables/agenda/agendaTimeGridParts";
-import {
-  backgroundAppliesTo,
-  backgroundSpans,
-} from "../../composables/agenda/agendaBackgroundSpans";
+import { backgroundSpans } from "../../composables/agenda/agendaBackgroundSpans";
 import { isDayKey } from "../../composables/agenda/agendaTime";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import AgendaEventChip from "./AgendaEventChip.vue";
@@ -46,7 +45,13 @@ const { processText } = useComposedText();
 const GHOST_SUFFIX = "#ghost";
 /** Lanes shown before the row scrolls. */
 const VISIBLE_LANES = 4;
-const LANE_PX = 24;
+/** Pixels of a lane, as `density` wants it. */
+const LANE_PXS = { compact: 20, comfortable: 24 } as const;
+const lanePx = computed(() =>
+  ctx.options.value.raw.density === "compact"
+    ? LANE_PXS.compact
+    : LANE_PXS.comfortable,
+);
 
 const timeZone = computed(() => ctx.options.value.timeZone);
 
@@ -60,7 +65,11 @@ const ghosts = computed<AgendaOccurrence[]>(() =>
     })),
 );
 const layout = computed(() =>
-  layoutAllDayRow([...ctx.occurrences.value, ...ghosts.value], props.columns),
+  layoutAllDayRow(
+    [...ctx.occurrences.value, ...ghosts.value],
+    props.columns,
+    ctx.view.value.hiddenDays,
+  ),
 );
 const lanes = computed(() => Math.max(1, layout.value.lanes));
 const isGhost = (occurrence: AgendaOccurrence) =>
@@ -72,15 +81,14 @@ const tints = computed(() => {
     (span) => span.background.allDay || isDayKey(span.background.start),
   );
   return props.columns.flatMap((column, index) => {
-    const span = spans.find(
-      (candidate) =>
-        candidate.startDay <= column.day.key &&
-        candidate.endDay >= column.day.key &&
-        backgroundAppliesTo(candidate, column.resource?.id ?? null),
+    const found = dayBackground(
+      spans,
+      column.day.key,
+      column.resource?.id ?? null,
     );
-    return span
-      ? [{ index, style: span.style, label: span.background.label }]
-      : [];
+    if (!found) return [];
+    const label = found.labels.map((text) => processText(text)).join(" · ");
+    return [{ index, style: found.style, label }];
   });
 });
 
@@ -88,6 +96,7 @@ const previewColumns = computed(() =>
   props.columns.map((column) => ({
     day: column.day.key,
     resourceId: column.resource?.id,
+    unassigned: column.unassigned,
   })),
 );
 
@@ -107,7 +116,7 @@ function targetAt(x: number): AgendaDropTarget | null {
   if (!column || column.folded) return null;
   return {
     day: column.day.key,
-    resourceId: column.resource?.id,
+    ...columnTargetPart(column),
     allDay: true,
     asAllDay: true,
   };
@@ -142,8 +151,8 @@ function onClick(click: MouseEvent, isDouble: boolean): void {
     :class="lanes > VISIBLE_LANES && 'overflow-y-auto'"
     :style="{
       gridTemplateColumns: props.template,
-      gridTemplateRows: `repeat(${lanes}, ${LANE_PX}px)`,
-      maxHeight: `${VISIBLE_LANES * LANE_PX + 8}px`,
+      gridTemplateRows: `repeat(${lanes}, ${lanePx}px)`,
+      maxHeight: `${VISIBLE_LANES * lanePx + 8}px`,
     }"
     role="row"
     data-agenda-all-day
@@ -184,7 +193,7 @@ function onClick(click: MouseEvent, isDouble: boolean): void {
         v-if="tint.label"
         class="text-muted block truncate px-1 pt-0.5 text-[10px]"
       >
-        {{ processText(tint.label) }}
+        {{ tint.label }}
       </span>
     </div>
     <div

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject } from "vue";
+import { computed, inject, onMounted, ref } from "vue";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
 import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import AgendaDetailsHost from "../../build/components/agenda/AgendaDetailsHost.vue";
@@ -63,12 +63,30 @@ const rootEl = ctx.rootEl;
 
 const pageFills = usePageFillHeight();
 const inContainer = Boolean(inject(DMS_CONTAINER_KEY, undefined));
+// `fill` needs a flex column around the block: the page gives one to its
+// last block only, a drawer body is one, a modal body is not. Read once
+// mounted; until then the block fills.
+const parentFlexColumn = ref<boolean | null>(null);
+onMounted(() => {
+  const parent = rootEl.value?.parentElement;
+  if (!parent) return;
+  const style = getComputedStyle(parent);
+  parentFlexColumn.value =
+    style.display.includes("flex") && style.flexDirection.startsWith("column");
+});
 const height = computed(() =>
-  resolveAgendaHeight(props.height, pageFills.value),
+  resolveAgendaHeight(props.height, {
+    pageFills: pageFills.value,
+    parentFlexColumn: parentFlexColumn.value,
+    inContainer,
+  }),
 );
-const rootClass = computed(() =>
-  height.value.fill ? ["min-h-0 flex-1", inContainer && "h-full"] : undefined,
-);
+// On a page, a floor: the page scrolls rather than squeezing the agenda
+// under the blocks above it.
+const rootClass = computed(() => {
+  if (!height.value.fill) return undefined;
+  return inContainer ? "min-h-0 flex-1 h-full" : "min-h-[36rem] flex-1";
+});
 const rootStyle = computed(() =>
   height.value.height ? { height: height.value.height } : undefined,
 );
@@ -79,11 +97,17 @@ const hasError = computed(
     Boolean(ctx.error.value) &&
     ctx.occurrences.value.length === 0,
 );
+// A read that failed over events already shown: they stay, with a banner.
+const hasStaleError = computed(
+  () => !ctx.loading.value && Boolean(ctx.error.value) && !hasError.value,
+);
 const notFound = computed(() =>
   hasError.value ? readFetchNotFound(ctx.error.value) : null,
 );
+// The list view says it is empty itself.
 const isEmpty = computed(
   () =>
+    ctx.view.value.type !== "list" &&
     ctx.hasData.value &&
     !ctx.loading.value &&
     !hasError.value &&
@@ -106,6 +130,13 @@ const showSidebar = computed(
 const legendAt = (position: "toolbar" | "bottom") =>
   shell.legend.value?.position === position;
 const isDragging = computed(() => ctx.drag.active.value);
+// Without a toolbar, a folded sidebar keeps a button of its own.
+const showSidebarButton = computed(
+  () =>
+    !shell.toolbar.value &&
+    Boolean(shell.sidebar.value) &&
+    layout.value.sidebar === "folded",
+);
 </script>
 
 <template>
@@ -115,6 +146,7 @@ const isDragging = computed(() => ctx.drag.active.value);
     :data-component-id="props.componentId"
     :data-compact="ctx.compact.value || undefined"
     :data-density="props.density"
+    :data-height="height.fill ? 'fill' : height.height"
     :class="[
       'dms-card @container relative flex min-w-0 flex-col overflow-hidden',
       rootClass,
@@ -149,12 +181,7 @@ const isDragging = computed(() => ctx.drag.active.value);
         :sections="shell.sections.value"
         :legend="shell.legend.value"
         :mode="sidebarMode"
-        :class="[
-          sidebarRight && sidebarMode === 'column' && 'order-last',
-          isDragging &&
-            sidebarMode === 'overlay' &&
-            'pointer-events-none opacity-0',
-        ]"
+        :dragging="isDragging"
         @close="shell.overlayOpen.value = false"
         @fold="ctx.sidebarOpen.value = false"
       />
@@ -166,6 +193,38 @@ const isDragging = computed(() => ctx.drag.active.value);
           role="progressbar"
           :aria-label="t('dms.agenda.toolbar.loading')"
         />
+        <UButton
+          v-if="showSidebarButton"
+          icon="i-ph-sidebar-simple"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          :class="[
+            'bg-default absolute top-2 z-20',
+            sidebarRight ? 'end-2' : 'start-2',
+          ]"
+          :aria-label="t('dms.agenda.toolbar.sidebar')"
+          data-agenda-sidebar-toggle
+          @click="shell.toggleSidebar()"
+        />
+        <div
+          v-if="hasStaleError"
+          class="border-default flex items-center gap-2 border-b bg-(--dms-error-tint) px-4 py-1.5 text-xs"
+          role="alert"
+          data-agenda-stale-error
+        >
+          <UIcon name="i-ph-warning" class="text-error size-4 shrink-0" />
+          <span class="text-error flex-1">
+            {{ t("dms.agenda.toolbar.stale_error") }}
+          </span>
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            :label="t('dms.agenda.toolbar.retry')"
+            @click="ctx.refresh()"
+          />
+        </div>
         <DmsBlockInlineStatus
           v-if="hasError"
           :state="notFound ? 'not-found' : 'error'"

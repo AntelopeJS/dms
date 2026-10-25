@@ -9,6 +9,7 @@ import { useConfirm } from "../../../composables/confirm/useConfirm";
 import { useModal } from "../../../composables/containers/useModal";
 import type {
   AgendaEventAction,
+  AgendaEventPatch,
   AgendaRecurringScope,
 } from "../../../types/full-agenda";
 import type { AgendaContext, AgendaOccurrence } from "./agendaModel";
@@ -54,6 +55,28 @@ export function useAgendaRecurringPrompt() {
   return { ask };
 }
 
+/** What a form holds while it is open, and on what. */
+interface AgendaDraft {
+  key: string;
+  values: AgendaFormValues;
+}
+
+// One open form per agenda. Kept beside the context, not in the form: the
+// form mounts afresh when the details move between a panel and a drawer.
+const drafts = new WeakMap<AgendaContext, AgendaDraft>();
+
+/** Forgets the values typed in the agenda's form (closed, saved, cancelled). */
+export function clearAgendaDraft(ctx: AgendaContext): void {
+  drafts.delete(ctx);
+}
+
+/** The form's error that is no field's: the route refused the change. */
+export const AGENDA_FORM_REFUSED = "_form";
+const REFUSED_KEY = "$dms.agenda.details.status_error";
+
+/** `apply` answers `false` when the change was refused or abandoned. */
+const isRefused = (written: unknown) => written === false;
+
 /** The details of the agenda `ctx`, as its details components use them. */
 export function useAgendaDetails(ctx: AgendaContext) {
   const { t } = useI18n();
@@ -85,9 +108,25 @@ export function useAgendaDetails(ctx: AgendaContext) {
   );
   const saving = ref(false);
   const errors = ref<AgendaFormErrors>({});
+  const draftKey = computed(() => {
+    const open = state.value;
+    if (open?.occurrence) return open.occurrence.key;
+    return `new@${open?.placement?.start ?? ""}`;
+  });
 
-  /** The values the form opens with. */
+  /** Keeps what the form holds, for a form mounted again on the same event. */
+  function keepDraft(values: AgendaFormValues): void {
+    drafts.set(ctx, { key: draftKey.value, values });
+  }
+
+  /** The values the form opens with: those typed before, else the event's or the placement's. */
   function initialValues(): AgendaFormValues {
+    const draft = drafts.get(ctx);
+    if (draft?.key === draftKey.value) return { ...draft.values };
+    return freshValues();
+  }
+
+  function freshValues(): AgendaFormValues {
     const open = state.value;
     if (open?.occurrence)
       return valuesFromOccurrence(
@@ -116,6 +155,7 @@ export function useAgendaDetails(ctx: AgendaContext) {
   /** Leaves the form: back to the read view, or closed for a new event or a form opened directly. */
   function cancel(): void {
     errors.value = {};
+    clearAgendaDraft(ctx);
     const open = state.value;
     if (!open?.occurrence || ctx.options.value.raw.details?.editDirectly) {
       ctx.closeDetails();
@@ -143,20 +183,31 @@ export function useAgendaDetails(ctx: AgendaContext) {
     const target = occurrence.value;
     saving.value = true;
     try {
-      if (!target) {
-        await ctx.apply(createChange(patch));
-        ctx.closeDetails();
-        return true;
+      const written = await place(patch, target);
+      // Refused: the form stays open on what was typed, with the reason.
+      if (isRefused(written)) {
+        errors.value = { [AGENDA_FORM_REFUSED]: REFUSED_KEY };
+        return false;
       }
-      const scope = await scopeFor(target, "update");
-      if (scope === null) return false;
-      const change = updateChange(target, patch, timeZone.value, scope);
-      if (change) await ctx.apply(change, target);
+      if (written === null) return false;
+      clearAgendaDraft(ctx);
       ctx.closeDetails();
       return true;
     } finally {
       saving.value = false;
     }
+  }
+
+  /** Places the form's change; `null` when the scope prompt was abandoned. */
+  async function place(
+    patch: AgendaEventPatch,
+    target: AgendaOccurrence | null,
+  ): Promise<unknown> {
+    if (!target) return ctx.apply(createChange(patch));
+    const scope = await scopeFor(target, "update");
+    if (scope === null) return null;
+    const change = updateChange(target, patch, timeZone.value, scope);
+    return change ? ctx.apply(change, target) : true;
   }
 
   function confirmDelete(target: AgendaOccurrence): Promise<boolean> {
@@ -210,6 +261,8 @@ export function useAgendaDetails(ctx: AgendaContext) {
     saving,
     errors,
     initialValues,
+    keepDraft,
+    timeZone,
     edit,
     cancel,
     save,

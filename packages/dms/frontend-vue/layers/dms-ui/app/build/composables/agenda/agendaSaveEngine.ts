@@ -1,4 +1,4 @@
-import { computed, reactive, type ComputedRef } from "vue";
+import { computed, reactive, toRaw, type ComputedRef } from "vue";
 import type {
   AgendaChange,
   AgendaConfirm,
@@ -14,9 +14,13 @@ import {
   type AgendaEdit,
   type AgendaGhost,
 } from "./agendaChanges";
+import { answeredIds, readdressQueued } from "./agendaQueue";
 
 /** What a save request carries besides its changes. */
-export type AgendaRequestContext = Omit<AgendaSaveRequest, "changes" | "force">;
+export type AgendaRequestContext = Omit<
+  AgendaSaveRequest,
+  "changes" | "force" | "overwrite"
+>;
 
 export interface AgendaSaveEngineOptions {
   mode: () => AgendaSaveMode;
@@ -33,7 +37,11 @@ export interface AgendaSaveEngineOptions {
   onAnswer: (response: AgendaSaveResponse, written: AgendaChange[]) => void;
   /** The changes a request wrote, with its answer (Undo, its message). */
   onSaved?: (written: AgendaChange[], response: AgendaSaveResponse) => void;
-  /** Changes refused, with the message they keep (a toast, Retry). */
+  /**
+   * Changes refused, with their message. In immediate mode they are no
+   * longer kept: the event is back where it was, and `resend` writes one
+   * again (the toast's Retry).
+   */
   onFailed?: (edits: AgendaEdit[]) => void;
   /** A change the route answered a conflict for. */
   onConflict?: (edit: AgendaEdit) => void;
@@ -55,9 +63,20 @@ export interface AgendaRecordExtras {
   ghost?: AgendaGhost;
 }
 
+/** What the user answered for a request: a `confirm` question (`force`), a conflict (`overwrite`). */
+interface WriteFlags {
+  force?: boolean;
+  overwrite?: boolean;
+}
+
 /** The answer's refusals, by the place of their change in the request. */
 const errorsByIndex = (response: AgendaSaveResponse) =>
   new Map((response.errors ?? []).map((error) => [error.index, error]));
+
+const flagsOf = (flags: WriteFlags) => ({
+  ...(flags.force && { force: true }),
+  ...(flags.overwrite && { overwrite: true }),
+});
 
 /** How the changes of one request came back. */
 interface AgendaSettled {
@@ -68,12 +87,14 @@ interface AgendaSettled {
 
 /**
  * The changes of an agenda on their way to `saveUrl`. `immediate` writes each
- * change at once, drawn at its new place meanwhile (refused, it is drawn back
- * where it was, Retry offered); `staged` keeps them, merged per event, until
- * `saveAll` writes them together. An event has one write at a time: a change
- * made while it runs waits, then goes. A `confirm` answer asks the user,
- * then posts the same changes again with `force`; a conflict waits for
- * Overwrite (written with `force`) or Discard (the route's version taken).
+ * change at once, drawn at its new place meanwhile; refused, it is dropped
+ * (the event is back where it was) and handed to `onFailed` for a Retry.
+ * `staged` keeps them, merged per event, until `saveAll` writes them
+ * together. An event has one write at a time: a change made while it runs
+ * waits, then goes, addressed to the id the route answered. A `confirm`
+ * answer asks the user, then posts the same changes again with `force`
+ * (asked twice, it is a refusal); a conflict is written over with
+ * `overwrite`, or discarded for the route's version.
  */
 export class AgendaSaveEngine {
   private readonly map = reactive(new Map<string, AgendaEdit>());
@@ -88,9 +109,20 @@ export class AgendaSaveEngine {
   readonly isSaving = computed(() =>
     this.edits.value.some((edit) => edit.status === "saving"),
   );
-  /** Changes the page must not lose: staged, refused or in conflict. */
-  readonly hasUnsaved = computed(() =>
-    this.edits.value.some((edit) => edit.status !== "saving"),
+  /** What a Save writes: the staged and refused changes, conflicts aside. */
+  readonly sendable = computed(() =>
+    this.edits.value.filter(
+      (edit) => edit.status === "staged" || edit.status === "error",
+    ),
+  );
+  /**
+   * Changes the page must not lose: in staged mode every one not being
+   * written. In immediate mode nothing waits for a Save.
+   */
+  readonly hasUnsaved = computed(
+    () =>
+      this.options.mode() === "staged" &&
+      this.edits.value.some((edit) => edit.status !== "saving"),
   );
   /** The changes not being written, as a save would send them. */
   readonly staged = computed(() =>
@@ -109,9 +141,15 @@ export class AgendaSaveEngine {
     return this.map.get(edit.key) === edit;
   }
 
+  private get isImmediate(): boolean {
+    return this.options.mode() === "immediate";
+  }
+
   /**
    * Records a change: merged into the event's edit (dropped when they cancel
-   * out), queued behind a write running, written at once in immediate mode.
+   * out), queued behind a write running, written at once in immediate mode
+   * (a change of an event in conflict too: the route checks it again).
+   * Resolves whether it was written (or kept, staged).
    */
   record(
     change: AgendaChange,
@@ -130,20 +168,24 @@ export class AgendaSaveEngine {
       this.map.delete(key);
       return Promise.resolve(true);
     }
-    const edit: AgendaEdit = {
+    const keepsConflict = existing?.status === "conflict" && !this.isImmediate;
+    this.map.set(key, {
       key,
       change: merged,
-      status: existing?.status === "conflict" ? "conflict" : "staged",
+      status: keepsConflict ? "conflict" : "staged",
       seed: existing?.seed ?? extras.seed,
       base: existing?.base ?? extras.base,
       ghost: existing?.ghost ?? extras.ghost,
-      current: existing?.current,
-    };
-    this.map.set(key, edit);
-    if (this.options.mode() !== "immediate" || edit.status === "conflict")
-      return Promise.resolve(true);
+      current: keepsConflict ? existing?.current : undefined,
+    });
+    if (!this.isImmediate) return Promise.resolve(true);
     // The map hands back its reactive copy: the one the engine compares.
     return this.send([this.map.get(key)!]);
+  }
+
+  /** Writes a change refused in immediate mode again (the toast's Retry). */
+  resend(edit: AgendaEdit): Promise<boolean> {
+    return this.record(edit.change, edit);
   }
 
   /** Runs a request, known as running for each edit it writes. */
@@ -164,12 +206,15 @@ export class AgendaSaveEngine {
     if (running.length) await Promise.all(running);
   }
 
-  private async send(batch: AgendaEdit[], force = false): Promise<boolean> {
+  private async send(
+    batch: AgendaEdit[],
+    flags: WriteFlags = {},
+  ): Promise<boolean> {
     if (!batch.length) return true;
     const request: AgendaSaveRequest = {
       ...this.options.context(),
       changes: batch.map((edit) => edit.change),
-      ...(force && { force: true }),
+      ...flagsOf(flags),
     };
     for (const edit of batch) {
       edit.status = "saving";
@@ -183,25 +228,42 @@ export class AgendaSaveEngine {
           this.options.send(request),
         )) ?? {};
     } catch (error) {
-      const message = this.options.describeError(error);
-      batch.forEach((edit) => this.markFailed(edit, message));
-      this.options.onFailed?.(batch.filter((edit) => this.isCurrent(edit)));
+      this.fail(batch, this.options.describeError(error));
       return false;
     }
-    if (response.confirm) return this.answerConfirm(batch, response.confirm);
+    if (response.confirm)
+      return this.answerConfirm(batch, response.confirm, flags);
     return this.settle(batch, response);
   }
 
-  /** A `confirm` answer wrote nothing: asked, the changes go again with `force`, or go back. */
+  /** Changes refused as a whole: told, then dropped (immediate) or kept (staged). */
+  private fail(batch: AgendaEdit[], message: string): void {
+    const failed = batch
+      .filter((edit) => this.isCurrent(edit))
+      .map((edit) => this.markFailed(edit, message));
+    if (failed.length) this.options.onFailed?.(failed);
+  }
+
+  /**
+   * A `confirm` answer wrote nothing: asked, the changes go again with
+   * `force`, or go back. Asked again under `force`, it is a refusal: the
+   * route would ask forever.
+   */
   private async answerConfirm(
     batch: AgendaEdit[],
     confirm: AgendaConfirm,
+    flags: WriteFlags,
   ): Promise<boolean> {
     const current = batch.filter((edit) => this.isCurrent(edit));
-    if (await this.options.confirm(confirm)) return this.send(current, true);
+    if (flags.force) {
+      this.fail(current, this.options.text(confirm.title));
+      return false;
+    }
+    if (await this.options.confirm(confirm))
+      return this.send(current, { ...flags, force: true });
     for (const edit of current) {
-      if (this.options.mode() === "staged") edit.status = "staged";
-      else this.map.delete(edit.key);
+      if (this.isImmediate) this.map.delete(edit.key);
+      else edit.status = "staged";
     }
     return false;
   }
@@ -218,10 +280,10 @@ export class AgendaSaveEngine {
       if (!error) settled.written.push(edit.change);
       else if (error.code === "notFound") settled.gone.push(edit);
       else if (error.code === "conflict") this.markConflict(edit, error);
-      else {
-        this.markFailed(edit, this.options.text(error.message));
-        settled.failed.push(edit);
-      }
+      else if (this.isCurrent(edit))
+        settled.failed.push(
+          this.markFailed(edit, this.options.text(error.message)),
+        );
     });
     return settled;
   }
@@ -234,9 +296,10 @@ export class AgendaSaveEngine {
       { ...response, removed: [...(response.removed ?? []), ...goneIds] },
       written,
     );
+    const ids = answeredIds(written, response);
     batch.forEach((edit, index) => {
       const error = errors.get(index);
-      if (!error || error.code === "notFound") this.settleWritten(edit);
+      if (!error || error.code === "notFound") this.settleWritten(edit, ids);
     });
     if (written.length) this.options.onSaved?.(written, response);
     if (failed.length) this.options.onFailed?.(failed);
@@ -253,21 +316,13 @@ export class AgendaSaveEngine {
     this.options.onConflict?.(edit);
   }
 
-  /** A change written: gone, or followed by the change made meanwhile. */
-  private settleWritten(edit: AgendaEdit): void {
+  /** A change written: gone, or followed by the change made meanwhile, addressed to the answered id. */
+  private settleWritten(edit: AgendaEdit, ids: Map<string, string>): void {
     if (!this.isCurrent(edit)) return;
     this.map.delete(edit.key);
-    if (!edit.queued) return;
-    const next: AgendaEdit = {
-      key: edit.key,
-      change: edit.queued,
-      status: "staged",
-      base: edit.base,
-      ghost: edit.ghost,
-    };
-    this.map.set(next.key, next);
-    if (this.options.mode() === "immediate")
-      void this.send([this.map.get(next.key)!]);
+    const queued = readdressQueued(edit, ids);
+    if (!queued) return;
+    void this.record(queued, { base: edit.base, ghost: edit.ghost });
   }
 
   /** A change made during a write that failed joins the change kept. */
@@ -278,34 +333,37 @@ export class AgendaSaveEngine {
     if (merged) edit.change = merged;
   }
 
-  private markFailed(edit: AgendaEdit, message: string): void {
-    if (!this.isCurrent(edit)) return;
+  /**
+   * A refused change, as told: in immediate mode no longer kept (the event
+   * is drawn back; a Retry resends the copy), in staged mode kept for the
+   * next Save.
+   */
+  private markFailed(edit: AgendaEdit, message: string): AgendaEdit {
     this.takeQueued(edit);
     edit.status = "error";
     edit.message = message;
+    if (!this.isImmediate) return edit;
+    this.map.delete(edit.key);
+    return { ...toRaw(edit) };
   }
 
   /** Writes every staged or refused change, the conflicts aside (the save bar, Ctrl+S). */
   saveAll(): Promise<boolean> {
-    return this.send(
-      this.edits.value.filter(
-        (edit) => edit.status === "staged" || edit.status === "error",
-      ),
-    );
+    return this.send(this.sendable.value);
   }
 
-  /** Writes a refused change again. */
+  /** Writes a refused change again (staged mode; immediate refusals use `resend`). */
   retry(key: string): Promise<boolean> {
     const edit = this.map.get(key);
     if (!edit || edit.status !== "error") return Promise.resolve(false);
     return this.send([edit]);
   }
 
-  /** Writes a conflicting change over what the route stores. */
+  /** Writes a conflicting change over what the route stores (`overwrite`). */
   overwrite(key: string): Promise<boolean> {
     const edit = this.map.get(key);
     if (!edit || edit.status !== "conflict") return Promise.resolve(false);
-    return this.send([edit], true);
+    return this.send([edit], { overwrite: true });
   }
 
   /** Drops a change; after a conflict, the route's version is shown. */
@@ -323,8 +381,8 @@ export class AgendaSaveEngine {
 
   /**
    * Writes `changes` at once, apart from the edits (an Undo), after any
-   * write of the same events still running; a `confirm` answer is asked.
-   * Resolves whether the route took them all.
+   * write of the same events still running; a `confirm` answer is asked
+   * once. Resolves whether the route took them all.
    */
   async writeNow(changes: AgendaChange[], force = false): Promise<boolean> {
     if (!changes.length) return true;
@@ -333,7 +391,7 @@ export class AgendaSaveEngine {
     const request: AgendaSaveRequest = {
       ...this.options.context(),
       changes,
-      ...(force && { force: true }),
+      ...flagsOf({ force }),
     };
     let response: AgendaSaveResponse;
     try {

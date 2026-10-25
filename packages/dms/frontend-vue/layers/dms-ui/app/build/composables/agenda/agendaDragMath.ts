@@ -11,96 +11,41 @@
 
 import type { AgendaPendingItem } from "../../../types/full-agenda";
 import type {
-  AgendaDayKey,
   AgendaDragKind,
   AgendaDropTarget,
   AgendaOccurrence,
   AgendaPlacement,
 } from "./agendaModel";
-import {
-  MINUTE_MS,
-  addDays,
-  daysBetween,
-  zonedDayKey,
-  zonedEpoch,
-} from "./agendaTime";
+import { MINUTE_MS, addDays, daysBetween, zonedEpoch } from "./agendaTime";
 import { addSlots, countSlots, slotEpochRange } from "./agendaSlots";
 import type { AgendaSlotPosition } from "./agendaSlots";
-import { slotDistance, slotOfTime, slotPlacement } from "./agendaDragSlots";
-import type { AgendaSlotConfig } from "./agendaDragSlots";
-
-/** The options a placement reads. */
-export interface AgendaDragConfig extends AgendaSlotConfig {
-  snapMinutes: number;
-  defaultDurationMinutes: number;
-  /** Where a timed item dropped on a day alone starts (minutes). */
-  dayDropMinutes: number;
-  /** The shortest a resize or a range may make an event. */
-  minDurationMinutes: number;
-  maxDurationMinutes?: number;
-}
-
-/** What is being dragged, and where the pointer went down. */
-export interface AgendaDragSource {
-  kind: AgendaDragKind;
-  occurrence?: AgendaOccurrence;
-  item?: AgendaPendingItem;
-  origin: AgendaDropTarget | null;
-}
-
-/** Rounds `minutes` to the nearest multiple of `step`. */
-export function snapTo(minutes: number, step: number): number {
-  return step > 0 ? Math.round(minutes / step) * step : minutes;
-}
+import {
+  allDayPlacement,
+  occurrencePlacement,
+  slotAtInstant,
+  slotPlacement,
+  slotsBetween,
+  snapTo,
+  timedFrom,
+} from "./agendaDragBasics";
+import type { AgendaDragConfig, AgendaDragSource } from "./agendaDragBasics";
 
 const isTimeTarget = (target: AgendaDropTarget | null) =>
   target?.minutes !== undefined;
 
+/**
+ * A slot of a timeline by slot. Tested before the time: a slot target also
+ * carries the minutes of its slot's start, and a slot drag moves by slots.
+ */
 const isSlotTarget = (
   target: AgendaDropTarget | null,
   config: AgendaDragConfig,
-) =>
-  target?.slotIndex !== undefined &&
-  target.minutes === undefined &&
-  config.slots.length > 0;
+) => target?.slotIndex !== undefined && config.slots.length > 0;
 
-/** The placement an occurrence has now. */
-export function occurrencePlacement(
-  occurrence: AgendaOccurrence,
-): AgendaPlacement {
-  return {
-    start: occurrence.start,
-    end: occurrence.end,
-    allDay: occurrence.allDay,
-    resourceIds: [...occurrence.resourceIds],
-  };
-}
-
-/** Both placements put an event at the same place. */
-export function samePlacement(a: AgendaPlacement, b: AgendaPlacement): boolean {
-  return (
-    a.start === b.start &&
-    a.end === b.end &&
-    a.allDay === b.allDay &&
-    a.resourceIds.length === b.resourceIds.length &&
-    a.resourceIds.every((id) => b.resourceIds.includes(id))
-  );
-}
-
-function allDayPlacement(
-  first: AgendaDayKey,
-  last: AgendaDayKey,
-  resourceIds: string[],
-  config: AgendaDragConfig,
-): AgendaPlacement {
-  const [from, to] = first <= last ? [first, last] : [last, first];
-  return {
-    start: zonedEpoch(from, 0, config.timeZone),
-    end: zonedEpoch(addDays(to, 1), 0, config.timeZone),
-    allDay: true,
-    resourceIds,
-  };
-}
+const slotOf = (target: AgendaDropTarget): AgendaSlotPosition => ({
+  day: target.day,
+  slotIndex: target.slotIndex!,
+});
 
 /** The resources after a move: the one grabbed swapped for the one hovered. */
 function movedResources(
@@ -108,6 +53,8 @@ function movedResources(
   target: AgendaDropTarget,
 ): string[] {
   const current = source.occurrence?.resourceIds ?? [];
+  // The "no resource" row or column takes every resource off.
+  if (target.unassigned) return [];
   if (!target.resourceId) return [...current];
   const from = source.origin?.resourceId;
   if (!from || !current.includes(from)) return [target.resourceId];
@@ -167,13 +114,30 @@ function placeMoveAtTime(
       : durationMs(occurrence);
     return { start, end: start + length, allDay: false, resourceIds };
   }
+  if (origin.instant !== undefined && target.instant !== undefined) {
+    // A timeline by hour knows the instants: the second 02:30 of a
+    // fall-back day stays the second one.
+    const step = Math.max(config.snapMinutes, 1) * MINUTE_MS;
+    const shift = Math.round((target.instant - origin.instant) / step) * step;
+    return timedFrom(
+      occurrence.start + shift,
+      durationMs(occurrence),
+      resourceIds,
+    );
+  }
   // The grab point keeps its place in the event: the delta snaps, not the start.
   const delta = snapTo(minutes - origin.minutes, config.snapMinutes);
-  const start = zonedEpoch(
-    addDays(occurrence.startDay, daysBetween(origin.day, target.day)),
-    occurrence.startMinutes + delta,
-    config.timeZone,
-  );
+  const days = daysBetween(origin.day, target.day);
+  // No move keeps the instant: the second pass of a repeated DST hour has
+  // the wall time of the first, which `zonedEpoch` would pick.
+  const start =
+    delta === 0 && days === 0
+      ? occurrence.start
+      : zonedEpoch(
+          addDays(occurrence.startDay, days),
+          occurrence.startMinutes + delta,
+          config.timeZone,
+        );
   return {
     start,
     end: start + durationMs(occurrence),
@@ -192,20 +156,13 @@ function placeMoveOnSlot(
   const count = occurrence.allDay
     ? 1
     : countSlots(occurrence, config.slots, config.timeZone, config.hiddenDays);
-  const hovered: AgendaSlotPosition = {
-    day: target.day,
-    slotIndex: target.slotIndex!,
-  };
+  const hovered = slotOf(target);
   if (origin.slotIndex === undefined || occurrence.allDay) {
     return slotPlacement(hovered, count, resourceIds, config);
   }
   // The slot grabbed keeps its place in the event.
-  const own = slotOfTime(occurrence.startDay, occurrence.startMinutes, config);
-  const moved = slotDistance(
-    { day: origin.day, slotIndex: origin.slotIndex },
-    hovered,
-    config,
-  );
+  const own = slotAtInstant(occurrence.start, config);
+  const moved = slotsBetween(slotOf(origin), hovered, config);
   return slotPlacement(
     addSlots(own, moved, config.slots.length, config.hiddenDays),
     count,
@@ -232,11 +189,11 @@ function placeMove(
       ? shiftDays(occurrence, days, resourceIds, config)
       : allDayPlacement(target.day, target.day, resourceIds, config);
   }
-  if (isTimeTarget(target)) {
-    return placeMoveAtTime(occurrence, origin, target, resourceIds, config);
-  }
   if (isSlotTarget(target, config)) {
     return placeMoveOnSlot(occurrence, origin, target, resourceIds, config);
+  }
+  if (isTimeTarget(target)) {
+    return placeMoveAtTime(occurrence, origin, target, resourceIds, config);
   }
   return shiftDays(occurrence, days, resourceIds, config);
 }
@@ -256,20 +213,32 @@ function edgeInstant(
   edge: "start" | "end",
   config: AgendaDragConfig,
 ): number | null {
-  if (isTimeTarget(target)) {
-    return zonedEpoch(
-      target.day,
-      snapTo(target.minutes!, config.snapMinutes),
-      config.timeZone,
-    );
+  if (isSlotTarget(target, config)) {
+    const range = slotEpochRange(slotOf(target), config.slots, config.timeZone);
+    return edge === "start" ? range.start : range.end;
   }
-  if (!isSlotTarget(target, config)) return null;
-  const range = slotEpochRange(
-    { day: target.day, slotIndex: target.slotIndex! },
-    config.slots,
+  if (!isTimeTarget(target)) return null;
+  if (target.instant !== undefined) return target.instant;
+  return zonedEpoch(
+    target.day,
+    snapTo(target.minutes!, config.snapMinutes),
     config.timeZone,
   );
-  return edge === "start" ? range.start : range.end;
+}
+
+/** Over a day alone an edge keeps its time of day; an end at midnight closes the day hovered. */
+function dayEdgeInstant(
+  occurrence: AgendaOccurrence,
+  target: AgendaDropTarget,
+  isEnd: boolean,
+  config: AgendaDragConfig,
+): number {
+  if (!isEnd) {
+    return zonedEpoch(target.day, occurrence.startMinutes, config.timeZone);
+  }
+  return occurrence.endMinutes === 0 && occurrence.end > occurrence.start
+    ? zonedEpoch(addDays(target.day, 1), 0, config.timeZone)
+    : zonedEpoch(target.day, occurrence.endMinutes, config.timeZone);
 }
 
 function placeResize(
@@ -297,11 +266,7 @@ function placeResize(
   }
   const edge =
     edgeInstant(target, isEnd ? "end" : "start", config) ??
-    zonedEpoch(
-      target.day,
-      isEnd ? occurrence.endMinutes : occurrence.startMinutes,
-      config.timeZone,
-    );
+    dayEdgeInstant(occurrence, target, isEnd, config);
   if (isEnd) {
     const end = occurrence.start + clampLength(edge - occurrence.start, config);
     return { start: occurrence.start, end, allDay: false, resourceIds };
@@ -316,7 +281,7 @@ function ordered(
   b: AgendaDropTarget,
 ): [AgendaDropTarget, AgendaDropTarget] {
   const rank = (target: AgendaDropTarget) =>
-    target.minutes ?? target.slotIndex ?? 0;
+    target.slotIndex ?? target.minutes ?? 0;
   if (a.day !== b.day) return a.day < b.day ? [a, b] : [b, a];
   return rank(a) <= rank(b) ? [a, b] : [b, a];
 }
@@ -329,6 +294,10 @@ function placeRange(
   const origin = source.origin ?? target;
   const resourceIds = origin.resourceId ? [origin.resourceId] : [];
   const [low, high] = ordered(origin, target);
+  if (isSlotTarget(origin, config) && isSlotTarget(target, config)) {
+    const count = slotsBetween(slotOf(low), slotOf(high), config) + 1;
+    return slotPlacement(slotOf(low), count, resourceIds, config);
+  }
   if (isTimeTarget(origin) && isTimeTarget(target)) {
     const snap = Math.max(config.snapMinutes, 1);
     const start = zonedEpoch(
@@ -342,25 +311,7 @@ function placeRange(
       Math.floor(high.minutes! / snap) * snap + snap,
       config.timeZone,
     );
-    return {
-      start,
-      end: start + clampLength(end - start, config),
-      allDay: false,
-      resourceIds,
-    };
-  }
-  if (isSlotTarget(origin, config) && isSlotTarget(target, config)) {
-    const first: AgendaSlotPosition = {
-      day: low.day,
-      slotIndex: low.slotIndex!,
-    };
-    const count =
-      slotDistance(
-        first,
-        { day: high.day, slotIndex: high.slotIndex! },
-        config,
-      ) + 1;
-    return slotPlacement(first, count, resourceIds, config);
+    return timedFrom(start, clampLength(end - start, config), resourceIds);
   }
   return allDayPlacement(low.day, high.day, resourceIds, config);
 }
@@ -380,31 +331,26 @@ function placeExternal(
     return allDayPlacement(target.day, target.day, resourceIds, config);
   }
   const bySlots = item.durationSlots !== undefined && config.slots.length > 0;
-  if (isSlotTarget(target, config) || (bySlots && isTimeTarget(target))) {
-    const first =
-      target.slotIndex !== undefined
-        ? { day: target.day, slotIndex: target.slotIndex }
-        : slotOfTime(target.day, target.minutes!, config);
+  if (isSlotTarget(target, config)) {
+    const first = slotOf(target);
     if (bySlots)
       return slotPlacement(first, item.durationSlots!, resourceIds, config);
     const start = slotEpochRange(first, config.slots, config.timeZone).start;
-    return {
-      start,
-      end: start + itemLength(item, config),
-      allDay: false,
-      resourceIds,
-    };
+    return timedFrom(start, itemLength(item, config), resourceIds);
   }
   const minutes = isTimeTarget(target)
     ? snapTo(target.minutes!, config.snapMinutes)
     : config.dayDropMinutes;
   const start = zonedEpoch(target.day, minutes, config.timeZone);
-  return {
-    start,
-    end: start + itemLength(item, config),
-    allDay: false,
+  if (!bySlots) return timedFrom(start, itemLength(item, config), resourceIds);
+  // A time grid snaps to minutes: the item keeps the length of its slots.
+  const span = slotPlacement(
+    slotAtInstant(start, config),
+    item.durationSlots!,
     resourceIds,
-  };
+    config,
+  );
+  return timedFrom(start, span.end - span.start, resourceIds);
 }
 
 type Placer = (
@@ -429,14 +375,4 @@ export function placeDrag(
   config: AgendaDragConfig,
 ): AgendaPlacement {
   return PLACERS[source.kind](source, target, config);
-}
-
-/** The last day a placement covers, inclusive. */
-export function lastDayOf(
-  placement: AgendaPlacement,
-  timeZone: string,
-): AgendaDayKey {
-  return placement.allDay
-    ? addDays(zonedDayKey(placement.end, timeZone), -1)
-    : zonedDayKey(placement.end - 1, timeZone);
 }

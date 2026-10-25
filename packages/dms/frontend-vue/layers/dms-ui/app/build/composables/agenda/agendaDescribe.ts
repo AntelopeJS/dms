@@ -20,6 +20,13 @@ export function describeWhen(
 ): string {
   const { format, t } = tools;
   const day = format.day(occurrence.startDay, "long");
+  if (!occurrence.allDay && occurrence.startDay !== occurrence.endDay)
+    return t(`${A11Y_PREFIX}.timed_days`, {
+      from: day,
+      start: format.time(occurrence.start),
+      to: format.day(occurrence.endDay, "long"),
+      end: format.time(occurrence.end),
+    });
   if (!occurrence.allDay)
     return t(`${A11Y_PREFIX}.timed`, {
       day,

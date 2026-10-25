@@ -123,8 +123,13 @@ function scrollToTime(): void {
     ctx.options.value.scrollMinutes,
     ctx.options.value.timeZone,
   );
-  const position = state.positionOf(epoch);
-  if (position === null) return;
+  // Before the shown hours, the day's first column; after them, its last.
+  const dayColumns = columns.filter((column) => column.day === day);
+  const position =
+    state.positionOf(epoch) ??
+    (epoch < dayColumns[0]!.start
+      ? dayColumns[0]!.index
+      : dayColumns.at(-1)!.index);
   const trackWidth = el.scrollWidth - state.resourceWidth.value;
   el.scrollLeft = Math.max(
     0,
@@ -254,6 +259,7 @@ watch(
               :preview="
                 previewRows.has(row.key) ? ctx.drag.preview.value : null
               "
+              :whole-columns="state.scale.value === 'day'"
             />
           </div>
           <div

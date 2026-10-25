@@ -2,7 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AgendaDetails from "./AgendaDetails.vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { AGENDA_PANEL_WIDTH } from "../../composables/agenda/agendaShell";
+import { clearAgendaDraft } from "../../composables/agenda/useAgendaDetails";
+import {
+  AGENDA_PANEL_WIDTH,
+  attributeSelector,
+} from "../../composables/agenda/agendaShell";
 import type { AgendaDetailsState } from "../../composables/agenda/agendaModel";
 import { useDrawer } from "../../../composables/containers/useDrawer";
 import { useModal } from "../../../composables/containers/useModal";
@@ -31,7 +35,13 @@ type OverlayKind = "drawer" | "modal";
 let instance: ContainerInstance | null = null;
 let instanceKind: OverlayKind | null = null;
 let returnFocus: HTMLElement | null = null;
-const anchor = ref<HTMLElement | null>(null);
+/** What a popover is placed against: an element, or a point (`getBoundingClientRect`). */
+interface PopoverAnchor {
+  getBoundingClientRect: () => DOMRect;
+}
+
+const anchor = ref<PopoverAnchor | null>(null);
+const ANCHOR_TOP_OFFSET = 48;
 
 const state = computed(() => ctx.details.value);
 const titleOf = (open: AgendaDetailsState) =>
@@ -41,15 +51,31 @@ const containerId = computed(
 );
 
 /** The chip of the open occurrence (views mark it), else what had focus. */
-function chipOf(open: AgendaDetailsState): HTMLElement | null {
+/**
+ * The chip of the open occurrence (views mark it). Without one in the block
+ * (a deep link before the view drew it, an event opened from the "+N more"
+ * list, a new event), a point near the top of the agenda, never the page.
+ */
+function anchorOf(open: AgendaDetailsState): PopoverAnchor | null {
   const key = open.occurrence?.key;
   const root = ctx.rootEl.value;
-  if (key && root) {
-    const selector = `[data-agenda-occurrence="${CSS.escape(key)}"]`;
+  if (!root) return null;
+  if (key) {
+    const selector = attributeSelector("data-agenda-occurrence", key);
     const chip = root.querySelector<HTMLElement>(selector);
     if (chip) return chip;
   }
-  return returnFocus;
+  return {
+    getBoundingClientRect: () => {
+      const box = root.getBoundingClientRect();
+      return new DOMRect(
+        box.left + box.width / 2,
+        box.top + ANCHOR_TOP_OFFSET,
+        0,
+        0,
+      );
+    },
+  };
 }
 
 function restoreFocus(): void {
@@ -94,12 +120,13 @@ function sync(
   if (!open) {
     closeInstance();
     anchor.value = null;
+    clearAgendaDraft(ctx);
     restoreFocus();
     return;
   }
   if (!returnFocus && typeof document !== "undefined")
     returnFocus = document.activeElement as HTMLElement | null;
-  if (container === "popover") anchor.value = chipOf(open);
+  if (container === "popover") anchor.value = anchorOf(open);
   if (container !== "drawer" && container !== "modal") {
     closeInstance();
     return;

@@ -6,6 +6,8 @@ import type { AgendaFormField } from "../../composables/agenda/agendaForm";
 import {
   dayOfWallClock,
   timeOfWallClock,
+  wallClockIso,
+  wallClockOf,
   withDay,
   withTime,
 } from "../../composables/agenda/agendaFormTime";
@@ -25,12 +27,15 @@ interface AgendaFieldInputProps {
   invalid?: boolean;
   /** The event is all-day: start and end show their day only. */
   allDay?: boolean;
+  /** The agenda's zone: a `datetime` field is edited on its wall clock. */
+  timeZone?: string;
 }
 
 const props = withDefaults(defineProps<AgendaFieldInputProps>(), {
   id: undefined,
   invalid: false,
   allDay: false,
+  timeZone: "UTC",
 });
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
 const { t } = useI18n();
@@ -45,6 +50,25 @@ const isMoment = computed(
 );
 const isResources = computed(() => props.field.builtIn === "resourceIds");
 const isTime = computed(() => props.field.kind === TIME_KIND);
+const isDateTime = computed(
+  () => !props.field.builtIn && props.field.kind === "datetime",
+);
+const WALL_CLOCK_LENGTH = 16;
+/** A stored instant as the wall clock of the agenda's zone, as the input shows it. */
+const dateTimeModel = computed(() => {
+  const value = props.modelValue;
+  if (typeof value !== "string" || !value) return "";
+  const epoch = Date.parse(value);
+  return Number.isNaN(epoch) ? "" : wallClockOf(epoch, props.timeZone);
+});
+const setDateTime = (value: unknown) => {
+  const typed =
+    typeof value === "string" ? value.slice(0, WALL_CLOCK_LENGTH) : "";
+  emit(
+    "update:modelValue",
+    typed ? (wallClockIso(typed, props.timeZone) ?? typed) : null,
+  );
+};
 const datePicker = resolveDmsComponent("dms-date-picker");
 const timeInput = resolveDmsComponent("dms-input-time");
 
@@ -139,6 +163,15 @@ const setTimeMs = (value: unknown) => {
     :color="props.invalid ? 'error' : undefined"
     :highlight="props.invalid || undefined"
     @update:model-value="setTimeMs"
+  />
+  <MatrixFieldInput
+    v-else-if="isDateTime"
+    :id="props.id"
+    :column="column"
+    :model-value="dateTimeModel"
+    :disabled="props.field.readOnly"
+    :invalid="props.invalid"
+    @update:model-value="setDateTime"
   />
   <MatrixFieldInput
     v-else

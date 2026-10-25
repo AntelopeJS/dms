@@ -2,7 +2,7 @@
 // point is over, a placement read as a span the grid draws, the closed hours
 // and backgrounds of a column, the hours of its gutter.
 
-import type { AgendaBusinessHours } from "../../../types/full-agenda";
+import type { AgendaOpenInterval } from "./agendaOpenHours";
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type { AgendaPlacement } from "./agendaModel";
 import type {
@@ -14,7 +14,6 @@ import { backgroundAppliesTo } from "./agendaBackgroundSpans";
 import {
   MINUTES_PER_DAY,
   addDays,
-  parseTimeOfDay,
   zonedDayKey,
   zonedMinutes,
 } from "./agendaTime";
@@ -24,6 +23,19 @@ export const GRID_GUTTER_WIDTH = 56;
 /** Pixels of a folded group's placeholder column. */
 export const FOLDED_COLUMN_WIDTH = 32;
 const MINUTES_PER_HOUR = 60;
+
+/** The resource part of a column's target: its resource, or the "No resource" marker. */
+export interface AgendaColumnTargetPart {
+  resourceId?: string;
+  unassigned?: true;
+}
+
+export function columnTargetPart(
+  column: AgendaGridColumn,
+): AgendaColumnTargetPart {
+  if (column.unassigned) return { unassigned: true };
+  return column.resource ? { resourceId: column.resource.id } : {};
+}
 
 /** `grid-template-columns` of the grid: the gutter, then each column. */
 export function gridTemplate(
@@ -94,7 +106,10 @@ export function placementSpan(
   return {
     ...placement,
     startDay,
-    endDay: zonedDayKey(placement.end - 1, timeZone),
+    endDay:
+      placement.end > placement.start
+        ? zonedDayKey(placement.end - 1, timeZone)
+        : startDay,
     startMinutes: zonedMinutes(placement.start, timeZone),
     endMinutes: zonedMinutes(placement.end, timeZone),
   };
@@ -106,24 +121,15 @@ export interface AgendaMinutePiece {
   bottom: number;
 }
 
-/** The stretches of `dayStart` – `dayEnd` outside the opening hours (all of it when closed). */
+/** The stretches of `dayStart` – `dayEnd` outside the open ones (all of it when closed). */
 export function closedPieces(
-  hours: AgendaBusinessHours[],
+  open: AgendaOpenInterval[],
   dayStart: number,
   dayEnd: number,
 ): AgendaMinutePiece[] {
-  const open = hours
-    .map(
-      (interval) =>
-        [
-          parseTimeOfDay(interval.start, 0),
-          parseTimeOfDay(interval.end, MINUTES_PER_DAY),
-        ] as const,
-    )
-    .sort((a, b) => a[0] - b[0]);
   const pieces: AgendaMinutePiece[] = [];
   let cursor = dayStart;
-  for (const [start, end] of open) {
+  for (const { start, end } of open) {
     if (start > cursor)
       pieces.push({ top: cursor, bottom: Math.min(start, dayEnd) });
     cursor = Math.max(cursor, end);
@@ -187,4 +193,41 @@ export function hourMarks(dayStart: number, dayEnd: number): number[] {
     marks.push(minutes);
   }
   return marks;
+}
+
+/** Every whole-day background of a day, laid together. */
+export interface AgendaDayBackground {
+  style: Record<string, string>;
+  labels: BlockText[];
+}
+
+/**
+ * The whole-day backgrounds of a day behind one resource (or the agenda):
+ * their images layered (a holiday's tint under a closed day's hatching),
+ * every label kept. `null` when none applies.
+ */
+export function dayBackground(
+  spans: AgendaBackgroundSpan[],
+  day: string,
+  resourceId: string | null,
+): AgendaDayBackground | null {
+  const found = spans.filter(
+    (span) =>
+      span.startDay <= day &&
+      span.endDay >= day &&
+      backgroundAppliesTo(span, resourceId),
+  );
+  if (!found.length) return null;
+  const images = found
+    .map((span) => span.style.backgroundImage)
+    .filter((image): image is string => Boolean(image));
+  const style: Record<string, string> = Object.assign(
+    {},
+    ...found.map((span) => span.style),
+  );
+  if (images.length) style.backgroundImage = images.join(", ");
+  const labels = found
+    .map((span) => span.background.label)
+    .filter((label): label is BlockText => label !== undefined && label !== "");
+  return { style, labels };
 }

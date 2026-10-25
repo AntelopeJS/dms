@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { parseDate } from "@internationalized/date";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import DmsCalendar from "../../../components/form/components/Calendar.vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { addDays } from "../../composables/agenda/agendaTime";
+import {
+  addDays,
+  endOfMonth,
+  startOfMonth,
+} from "../../composables/agenda/agendaTime";
 
 /**
  * The month around the shown day: a click moves the agenda to that day, the
- * days shown are tinted and the days with events carry a dot.
+ * days shown are tinted and the days with events carry a dot, for whichever
+ * month the calendar shows (from the data in hand).
  */
 const ctx = useAgendaContext();
 // The calendar takes a date value; it answers ISO days.
@@ -15,11 +20,22 @@ const anchorDate = computed(() => parseDate(ctx.anchor.value));
 const { t } = useI18n();
 
 const MAX_MARKED_SPAN = 62;
+/** The grid shows up to a week of the months around. */
+const GRID_SPILL_DAYS = 7;
 
-/** Every day an occurrence of the range covers. */
+/** The first day of the month the calendar shows: the agenda's, until ‹ › move it. */
+const shownMonth = ref(startOfMonth(ctx.anchor.value));
+watch(ctx.anchor, (anchor) => (shownMonth.value = startOfMonth(anchor)));
+const onPlaceholder = (date: { toString: () => string }) => {
+  shownMonth.value = startOfMonth(date.toString());
+};
+
+/** Every day an occurrence of the shown grid covers. */
 const busyDays = computed(() => {
   const days = new Set<string>();
-  for (const occurrence of ctx.occurrences.value) {
+  const from = addDays(shownMonth.value, -GRID_SPILL_DAYS);
+  const to = addDays(endOfMonth(shownMonth.value), GRID_SPILL_DAYS);
+  for (const occurrence of ctx.occurrencesIn(from, to)) {
     let day = occurrence.startDay;
     for (
       let step = 0;
@@ -62,7 +78,9 @@ const pick = (day: unknown) => {
       :min-date="ctx.options.value.raw.minDate"
       :max-date="ctx.options.value.raw.maxDate"
       :fixed-weeks="true"
+      :year-controls="false"
       @update:model-value="pick"
+      @update:placeholder="onPlaceholder"
     >
       <template #day="{ day }">
         <span

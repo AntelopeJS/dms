@@ -32,6 +32,7 @@ import {
   compactAgendaView,
   navigateAnchor,
   resolveAgendaViews,
+  startsOnShownDay,
   viewSpan,
   visibleDay,
   type AgendaBounds,
@@ -201,7 +202,9 @@ export function useAgendaNavigation(setup: AgendaNavigationSetup) {
     isDayKey(raw.initialDate) ? raw.initialDate : today.value;
   const settle = (day: AgendaDayKey) =>
     clampDay(
-      view.value.type === "day" ? visibleDay(day, view.value.hiddenDays) : day,
+      startsOnShownDay(view.value)
+        ? visibleDay(day, view.value.hiddenDays)
+        : day,
       bounds,
     );
   const anchor = ref<AgendaDayKey>(

@@ -63,6 +63,36 @@ const momentOf = (patch: AgendaEventPatch | undefined): string => {
   return `${start} – ${dayAndTime(patch.end)}`;
 };
 
+/** The bounds a change touches, before and after; a bound it leaves is the event's own. */
+interface ReviewMoments {
+  before: string;
+  after: string;
+}
+
+function momentsOf({ change, base }: AgendaStagedEdit): ReviewMoments {
+  const patch = change.patch ?? {};
+  const previous = change.previous ?? {};
+  const touchesTime = "start" in patch || "end" in patch;
+  if (change.kind === "delete")
+    return {
+      before: momentOf(touchesTime ? previous : (base ?? previous)),
+      after: "",
+    };
+  if (!touchesTime) return { before: "", after: "" };
+  const was = {
+    start: previous.start ?? base?.start,
+    end: previous.end ?? base?.end,
+  };
+  const now = {
+    start: patch.start ?? was.start,
+    end: patch.end === null ? undefined : (patch.end ?? was.end),
+  };
+  return {
+    before: change.kind === "create" ? "" : momentOf(was as AgendaEventPatch),
+    after: momentOf(now as AgendaEventPatch),
+  };
+}
+
 /** A line of the review. */
 interface ReviewLine {
   key: string;
@@ -81,18 +111,15 @@ const lines = computed<ReviewLine[]>(() =>
     icon: KIND_ICONS[edit.change.kind],
     kind: t(`dms.agenda.details.change_${edit.change.kind}`),
     title: titleOf(edit),
-    before: momentOf(edit.change.previous ?? edit.base),
-    after: edit.change.kind === "delete" ? "" : momentOf(edit.change.patch),
+    ...momentsOf(edit),
     status: edit.status,
     message: edit.message,
   })),
 );
+// A conflict waits for its own answer: Save sends the others.
+const sendable = computed(() => ctx.sendableCount.value);
 const saveLabel = computed(() =>
-  t(
-    "dms.agenda.details.save_changes",
-    { count: lines.value.length },
-    lines.value.length,
-  ),
+  t("dms.agenda.save.save_label", { count: sendable.value }, sendable.value),
 );
 </script>
 
@@ -172,6 +199,7 @@ const saveLabel = computed(() =>
       />
       <UButton
         :label="saveLabel"
+        :disabled="sendable === 0"
         data-agenda-review-save
         @click="emit('success', true)"
       />

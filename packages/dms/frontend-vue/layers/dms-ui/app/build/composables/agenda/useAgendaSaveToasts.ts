@@ -10,7 +10,8 @@ import { agendaNewId } from "./agendaApply";
 import { DEFAULT_UNDO_SECONDS } from "./agendaOptions";
 
 const MS_PER_SECOND = 1000;
-const CONFLICT_TOAST_MS = 20_000;
+/** A conflict waits for an answer: its toast stays (a day; `setTimeout` caps near 25 days). */
+const CONFLICT_TOAST_MS = 86_400_000;
 const SAVE_PREFIX = "dms.agenda.save";
 
 export interface AgendaSaveToastSetup {
@@ -99,13 +100,17 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
     }).id;
   }
 
-  async function retry(keys: string[]): Promise<void> {
+  /**
+   * The toast's Retry: staged, a Save of what is kept; immediate, the
+   * refused changes (no longer kept) placed and written again.
+   */
+  async function retry(edits: AgendaEdit[]): Promise<void> {
     const engine = setup.engine();
     if (raw.saveMode === "staged") {
       await engine.saveAll();
       return;
     }
-    await Promise.all(keys.map((key) => engine.retry(key)));
+    await Promise.all(edits.map((edit) => engine.resend(edit)));
   }
 
   function failed(edits: AgendaEdit[]): void {
@@ -127,7 +132,7 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
           icon: "i-ph-arrow-clockwise",
           color: "neutral",
           variant: "outline",
-          onClick: () => void retry(edits.map((edit) => edit.key)),
+          onClick: () => void retry(edits),
         },
       ],
     });
@@ -168,14 +173,5 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
       });
   }
 
-  /** After a Save of the staged changes, the ones still refused. */
-  function notSaved(count: number): void {
-    toast.add({
-      title: counted("not_saved_toast", count),
-      color: "error",
-      icon: "i-ph-warning-circle",
-    });
-  }
-
-  return { saved, failed, conflict, gone, notSaved };
+  return { saved, failed, conflict, gone };
 }

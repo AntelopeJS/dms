@@ -198,16 +198,41 @@ export interface AgendaHeight {
   height?: string;
 }
 
+/** Where the block stands, for its height. */
+export interface AgendaHeightSetting {
+  /** The page fills the panel (`DefaultLayout({ fillHeight })`). */
+  pageFills: boolean;
+  /** The element around the block is a flex column; `null` before it is measured. */
+  parentFlexColumn: boolean | null;
+  /** In a drawer or a modal. */
+  inContainer: boolean;
+}
+
 export const AGENDA_DEFAULT_HEIGHT = "44rem";
+/** A container that gives no height (a modal body): as tall as the window lets it be. */
+export const AGENDA_CONTAINER_HEIGHT = "min(44rem, calc(100dvh - 12rem))";
 const FILL = "fill";
 
-/** `height`, else `fill` on a page filling the panel, else 44rem. */
+/**
+ * `height`, else `fill` on a page filling the panel, else 44rem. `fill`
+ * needs a flex column around the block (the page's last block, a drawer
+ * body): elsewhere (a block above it, a modal body) it falls back to 44rem,
+ * bounded by the window in a container.
+ */
 export function resolveAgendaHeight(
   height: string | undefined,
-  pageFills: boolean,
+  setting: AgendaHeightSetting,
 ): AgendaHeight {
-  const value = height ?? (pageFills ? FILL : AGENDA_DEFAULT_HEIGHT);
-  return value === FILL ? { fill: true } : { fill: false, height: value };
+  const value = height ?? (setting.pageFills ? FILL : AGENDA_DEFAULT_HEIGHT);
+  if (value !== FILL) return { fill: false, height: value };
+  if (setting.parentFlexColumn === false)
+    return {
+      fill: false,
+      height: setting.inContainer
+        ? AGENDA_CONTAINER_HEIGHT
+        : AGENDA_DEFAULT_HEIGHT,
+    };
+  return { fill: true };
 }
 
 /** The calendars of a legend group, the ungrouped first. */
@@ -318,4 +343,9 @@ export function matchesPending(
   return `${item.title} ${item.subtitle ?? ""}`
     .toLocaleLowerCase()
     .includes(needle);
+}
+
+/** An attribute selector matching a value exactly (quotes and backslashes escaped). */
+export function attributeSelector(name: string, value: string): string {
+  return `[${name}="${value.replace(/["\\]/g, "\\$&")}"]`;
 }

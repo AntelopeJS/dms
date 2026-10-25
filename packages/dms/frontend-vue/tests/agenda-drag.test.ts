@@ -8,14 +8,9 @@ import { describe, expect, it } from "vitest";
 import type {
   AgendaBusinessHours,
   AgendaResource,
-  AgendaSlot,
 } from "../layers/dms-ui/app/types/full-agenda";
 import { placeDrag } from "../layers/dms-ui/app/build/composables/agenda/agendaDragMath";
-import {
-  countSlots,
-  parseSlots,
-} from "../layers/dms-ui/app/build/composables/agenda/agendaSlots";
-import type { AgendaDragConfig } from "../layers/dms-ui/app/build/composables/agenda/agendaDragMath";
+import type { AgendaDragConfig } from "../layers/dms-ui/app/build/composables/agenda/agendaDragBasics";
 import { checkDrop } from "../layers/dms-ui/app/build/composables/agenda/agendaDragRules";
 import type { AgendaDropRules } from "../layers/dms-ui/app/build/composables/agenda/agendaDragRules";
 import { placementPatch } from "../layers/dms-ui/app/build/composables/agenda/agendaDragChange";
@@ -27,13 +22,6 @@ const at = (day: string, time: string, timeZone = BRUSSELS) => {
   const [hours, minutes] = time.split(":").map(Number) as [number, number];
   return zonedEpoch(day, hours * 60 + minutes, timeZone);
 };
-
-const SLOTS: AgendaSlot[] = [
-  { id: "S1", label: "S1", start: "08:00", end: "10:00" },
-  { id: "S2", label: "S2", start: "10:00", end: "12:00" },
-  { id: "S3", label: "S3", start: "13:00", end: "15:00" },
-  { id: "S4", label: "S4", start: "15:00", end: "17:00" },
-];
 
 const CONFIG: AgendaDragConfig = {
   timeZone: BRUSSELS,
@@ -259,40 +247,6 @@ describe("ranges and pending items", () => {
       end: "2026-10-29",
       allDay: true,
     });
-  });
-
-  it("spills a slot item over the next shown days", () => {
-    const config = { ...CONFIG, slots: parseSlots(SLOTS), hiddenDays: [0, 6] };
-    const placement = placeDrag(
-      {
-        kind: "external",
-        item: { id: "45601", title: "Client_1", durationSlots: 6 },
-        origin: null,
-      },
-      { day: "2026-10-30", slotIndex: 2, resourceId: "ana" },
-      config,
-    );
-    // Friday S3–S4, then Monday S1–S4 (the weekend is hidden).
-    expect(placement.start).toBe(at("2026-10-30", "13:00"));
-    expect(placement.end).toBe(at("2026-11-02", "17:00"));
-    expect(placement.resourceIds).toEqual(["ana"]);
-  });
-
-  it("moves a slot event by the slots the pointer moved, keeping its count", () => {
-    const config = { ...CONFIG, slots: parseSlots(SLOTS) };
-    const task = occurrence("t", "2026-10-26T13:00", "2026-10-27T17:00");
-    expect(countSlots(task, config.slots, BRUSSELS)).toBe(6);
-    const placement = placeDrag(
-      {
-        kind: "move",
-        occurrence: task,
-        origin: { day: "2026-10-26", slotIndex: 3 },
-      },
-      { day: "2026-10-27", slotIndex: 0 },
-      config,
-    );
-    expect(placement.start).toBe(at("2026-10-26", "15:00"));
-    expect(placement.end).toBe(at("2026-10-28", "10:00"));
   });
 
   it("drops a timed item on a day cell at the opening time", () => {

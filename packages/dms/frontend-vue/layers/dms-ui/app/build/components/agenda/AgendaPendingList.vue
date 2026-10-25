@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useId } from "vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import { agendaPaint } from "../../composables/agenda/agendaPaint";
 import { matchesPending } from "../../composables/agenda/agendaShell";
+import { scheduleChange } from "../../composables/agenda/agendaDragChange";
+import { newEventPlacement } from "../../composables/agenda/agendaPlacement";
+import type { AgendaPlacement } from "../../composables/agenda/agendaModel";
+import {
+  addDays,
+  dayStartEpoch,
+  zonedDayKey,
+} from "../../composables/agenda/agendaTime";
 import type { AgendaPendingItem } from "../../../types/full-agenda";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
@@ -10,7 +18,9 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
  * The things to plan (`unscheduled`): each item is dragged onto a day, a
  * slot or a resource (`ctx.drag.startPending`); the list itself is a drop
  * surface, an event dragged onto it goes back to the pending items
- * (`acceptDrop`, on by default).
+ * (`acceptDrop`, on by default). From the keyboard, Enter or Space plans a
+ * focused item on the day shown (at the next hour today, else 09:00), where
+ * Alt+arrows then move it.
  */
 const ctx = useAgendaContext();
 const { t } = useI18n();
@@ -61,6 +71,55 @@ const startDrag = (event: PointerEvent, item: AgendaPendingItem) => {
   if (!canDrag.value || event.button > 0) return;
   ctx.drag.startPending(event, item);
 };
+
+const MINUTE_MS = 60_000;
+const hintId = `agenda-pending-hint-${useId()}`;
+
+/** Where the keyboard plans an item: the new-event spot, its length, its first allowed resource. */
+function keyboardPlacement(item: AgendaPendingItem): AgendaPlacement {
+  const options = ctx.options.value;
+  const spot = newEventPlacement(
+    ctx.range.value,
+    ctx.today.value,
+    ctx.now.value,
+    options,
+  );
+  const minutes = item.durationMinutes ?? options.defaultDurationMinutes;
+  const resourceId =
+    item.allowedResourceIds?.[0] ??
+    (ctx.view.value.type === "resources" || ctx.view.value.type === "timeline"
+      ? ctx.resources.value.find((resource) => resource.editable !== false)?.id
+      : undefined);
+  const resourceIds = resourceId ? [resourceId] : [];
+  if (item.allDay) {
+    const day = zonedDayKey(spot.start, options.timeZone);
+    return {
+      start: dayStartEpoch(day, options.timeZone),
+      end: dayStartEpoch(addDays(day, 1), options.timeZone),
+      allDay: true,
+      resourceIds,
+    };
+  }
+  return {
+    start: spot.start,
+    end: spot.start + minutes * MINUTE_MS,
+    allDay: false,
+    resourceIds,
+  };
+}
+
+async function planByKeyboard(item: AgendaPendingItem): Promise<void> {
+  if (!canDrag.value) return;
+  const placement = keyboardPlacement(item);
+  const zone = ctx.options.value.timeZone;
+  await ctx.apply(scheduleChange(item, placement, zone));
+  ctx.announce(
+    t("dms.agenda.sidebar.planned", {
+      title: item.title,
+      when: ctx.format.timeRange(placement.start, placement.end),
+    }),
+  );
+}
 </script>
 
 <template>
@@ -102,6 +161,9 @@ const startDrag = (event: PointerEvent, item: AgendaPendingItem) => {
     >
       {{ t("dms.agenda.sidebar.drop_to_unschedule") }}
     </p>
+    <p v-if="canDrag" :id="hintId" class="sr-only">
+      {{ t("dms.agenda.sidebar.pending_hint") }}
+    </p>
     <ul v-if="items.length" class="flex flex-col gap-1.5">
       <li
         v-for="item in items"
@@ -111,11 +173,14 @@ const startDrag = (event: PointerEvent, item: AgendaPendingItem) => {
         :aria-roledescription="
           canDrag ? t('dms.agenda.sidebar.draggable') : undefined
         "
+        :aria-describedby="canDrag ? hintId : undefined"
         :class="[
-          'border-default bg-default relative flex touch-none items-start gap-2 overflow-hidden rounded-md border py-1.5 ps-3 pe-2 text-sm select-none',
+          'border-default bg-default relative flex touch-pan-y items-start gap-2 overflow-hidden rounded-md border py-1.5 ps-3 pe-2 text-sm select-none',
           canDrag && 'hover:border-accented cursor-grab active:cursor-grabbing',
         ]"
         @pointerdown="startDrag($event, item)"
+        @keydown.enter.prevent="planByKeyboard(item)"
+        @keydown.space.prevent="planByKeyboard(item)"
       >
         <span
           class="absolute inset-y-0 start-0 w-1"

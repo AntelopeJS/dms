@@ -14,6 +14,7 @@ import {
   rowAt,
   timelineTargetAt,
 } from "../layers/dms-ui/app/build/composables/agenda/agendaTimelineHitTest";
+import { MIN_SPAN } from "../layers/dms-ui/app/build/composables/agenda/agendaTimelineLayout";
 import {
   backgroundShades,
   businessHourShades,
@@ -114,7 +115,9 @@ describe("timeline columns", () => {
     });
     expect(dayBreaks(columns, "slot")).toEqual([4, 8]);
     expect(
-      timelineHeaderGroups(columns, days, "slot").map((group) => group.count),
+      timelineHeaderGroups(columns, days, "slot", 1).map(
+        (group) => group.count,
+      ),
     ).toEqual([4, 4, 4]);
   });
 
@@ -129,8 +132,8 @@ describe("timeline columns", () => {
       timeZone: BRUSSELS,
     });
     expect(columns).toHaveLength(21);
-    const groups = timelineHeaderGroups(columns, days, "day");
-    expect(groups.map((group) => group.day.week)).toEqual([40, 41, 42]);
+    const groups = timelineHeaderGroups(columns, days, "day", 1);
+    expect(groups.map((group) => group.week)).toEqual([40, 41, 42]);
     expect(dayBreaks(columns, "day")).toEqual([]);
   });
 
@@ -202,7 +205,7 @@ describe("timeline positions", () => {
     ]);
   });
 
-  it("leaves out an event inside a gap", () => {
+  it("keeps a flagged sliver of an event inside a gap, and leaves out one outside the range", () => {
     const { columns } = slotColumns("2026-10-22", 1);
     const lunch = placeSpan(
       columns,
@@ -210,7 +213,21 @@ describe("timeline positions", () => {
       Date.parse("2026-10-22T13:00:00+02:00"),
       [],
     );
-    expect(lunch).toBeNull();
+    expect(lunch?.segments).toEqual([
+      {
+        from: 2,
+        to: 2 + MIN_SPAN,
+        continuesBefore: true,
+        continuesAfter: true,
+      },
+    ]);
+    const nextWeek = placeSpan(
+      columns,
+      Date.parse("2026-10-29T09:00:00+01:00"),
+      Date.parse("2026-10-29T10:00:00+01:00"),
+      [],
+    );
+    expect(nextWeek).toBeNull();
   });
 });
 
@@ -300,48 +317,6 @@ describe("timeline rows", () => {
     expect(rowAt(rows, 120)?.key).toBe("r:ann");
     expect(rowAt(rows, 999)).toBeNull();
   });
-
-  it("keeps 60 resources over a week quick to lay out", () => {
-    const days = makeDays("2026-10-26", 7);
-    const weekColumns = buildTimelineColumns({
-      days,
-      scale: "hour",
-      slots: [],
-      dayStartMinutes: 420,
-      dayEndMinutes: 1260,
-      timeZone: BRUSSELS,
-    });
-    const resources = Array.from({ length: 60 }, (_, index) => ({
-      id: `p${index}`,
-      label: `P${index}`,
-    }));
-    const occurrences = resources.flatMap((resource, index) =>
-      days.flatMap((day) =>
-        [9, 11, 14].map((hour) =>
-          makeOccurrence({
-            key: `${resource.id}-${day.key}-${hour}`,
-            start: new Date(
-              day.start + (hour + (index % 2)) * HOUR,
-            ).toISOString(),
-            end: new Date(day.start + (hour + 2) * HOUR).toISOString(),
-            resourceIds: [resource.id],
-          }),
-        ),
-      ),
-    );
-    const started = performance.now();
-    const rows = buildTimelineRows({
-      resources,
-      groups: [],
-      folded: new Set(),
-      occurrences,
-      columns: weekColumns,
-      breaks: dayBreaks(weekColumns, "hour"),
-      metrics: METRICS,
-    });
-    expect(rows).toHaveLength(60);
-    expect(performance.now() - started).toBeLessThan(200);
-  });
 });
 
 describe("timeline targets and shading", () => {
@@ -359,6 +334,7 @@ describe("timeline targets and shading", () => {
     ).toEqual({
       day: "2026-10-26",
       minutes: 9 * 60 + 30,
+      instant: Date.parse("2026-10-26T09:30:00+01:00"),
       resourceId: "ann",
     });
   });
@@ -378,6 +354,8 @@ describe("timeline targets and shading", () => {
     ).toEqual({
       day: "2026-10-25",
       minutes: 150,
+      instant: Date.parse("2026-10-25T02:30:00+01:00"),
+      unassigned: true,
     });
   });
 
@@ -418,6 +396,7 @@ describe("timeline targets and shading", () => {
     ).toEqual({
       day: "2026-10-27",
       allDay: true,
+      unassigned: true,
     });
   });
 

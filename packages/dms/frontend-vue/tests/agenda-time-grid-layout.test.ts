@@ -85,11 +85,24 @@ describe("overlap stack", () => {
       ],
       "stack",
     );
-    expect(boxes.get("a")).toEqual({ left: 0, width: 1, z: 1 });
-    expect(boxes.get("b")!.left).toBeCloseTo(0.14);
-    expect(boxes.get("c")!.left).toBeCloseTo(0.28);
+    // Three levels share the 60 % indent: 0, 25 %, 50 % (the step tops at 25 %).
+    expect(boxes.get("a")).toEqual({
+      left: 0,
+      width: 1,
+      z: 1,
+      level: 0,
+      depth: 3,
+    });
+    expect(boxes.get("b")!.left).toBeCloseTo(0.25);
+    expect(boxes.get("c")!.left).toBeCloseTo(0.5);
     expect(boxes.get("c")!.z).toBe(3);
-    expect(boxes.get("d")).toEqual({ left: 0, width: 1, z: 1 });
+    expect(boxes.get("d")).toEqual({
+      left: 0,
+      width: 1,
+      z: 1,
+      level: 0,
+      depth: 1,
+    });
   });
 });
 

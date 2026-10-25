@@ -7,8 +7,9 @@ import type { AgendaOccurrence, ResolvedAgendaView } from "./agendaModel";
 export const AGENDA_ROOT_ATTRIBUTE = "data-dms-agenda";
 const ROOT_SELECTOR = `[${AGENDA_ROOT_ATTRIBUTE}]`;
 const SAVE_KEY = "s";
+/** Where keys are the widget's own: fields, menus, dialogs, radio groups, tabs, grid cells. */
 const EDITABLE_SELECTOR =
-  "input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='textbox'], [role='combobox'], [role='listbox'], [role='menu'], [role='dialog']";
+  "input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='textbox'], [role='combobox'], [role='listbox'], [role='menu'], [role='dialog'], [role='radiogroup'], [role='radio'], [role='tablist'], [role='tab'], [role='gridcell'], [role='slider'], [role='spinbutton']";
 
 /** The views the letters switch to. */
 export const AGENDA_VIEW_KEYS: Record<string, AgendaViewType> = {
@@ -71,59 +72,90 @@ export function nextFocusedKey(
   return occurrences[next]!.key;
 }
 
-type KeyAction = (
-  event: KeyboardEvent,
-  targets: AgendaShortcutTargets,
-) => boolean;
+/** What a key acts on: the targets, and the chip the focus is on. */
+interface KeyContext {
+  targets: AgendaShortcutTargets;
+  /** The key of the event chip holding the DOM focus, `null` when none does. */
+  chip: string | null;
+}
 
-const focused = (targets: AgendaShortcutTargets) =>
-  targets.occurrences().find((entry) => entry.key === targets.focusedKey.value);
+type KeyAction = (context: KeyContext) => boolean;
 
-/** Arrows step the period, or the focus among events once one has it; Alt + arrows are the drag's. */
+/** The chips carry their occurrence key (`data-agenda-occurrence`). */
+const CHIP_ATTRIBUTE = "data-agenda-occurrence";
+
+/** The occurrence key of the chip `target` sits in, inside the agenda. */
+export function chipKeyOf(
+  root: Element | null | undefined,
+  target: EventTarget | null,
+): string | null {
+  if (!root || !(target instanceof Element)) return null;
+  const chip = target.closest(`[${CHIP_ATTRIBUTE}]`);
+  if (!chip || !root.contains(chip)) return null;
+  return chip.getAttribute(CHIP_ATTRIBUTE);
+}
+
+/** Moves the DOM focus to the chip of `key`, if it is drawn. */
+function focusChip(root: HTMLElement | null, key: string | null): void {
+  if (!root || key === null) return;
+  const chips = root.querySelectorAll<HTMLElement>(`[${CHIP_ATTRIBUTE}]`);
+  const chip = [...chips].find(
+    (element) => element.getAttribute(CHIP_ATTRIBUTE) === key,
+  );
+  chip?.focus();
+}
+
+const chipOccurrence = ({ targets, chip }: KeyContext) =>
+  chip === null
+    ? undefined
+    : targets.occurrences().find((entry) => entry.key === chip);
+
+/**
+ * ← → step the period; on a focused chip they move the focus to the event
+ * before or after it (Alt + arrows are the drag's).
+ */
 const arrow =
   (step: 1 | -1): KeyAction =>
-  (_event, targets) => {
-    if (targets.focusedKey.value === null) {
+  ({ targets, chip }) => {
+    if (chip === null) {
       targets.go(step);
       return true;
     }
-    targets.focusedKey.value = nextFocusedKey(
-      targets.occurrences(),
-      targets.focusedKey.value,
-      step,
-    );
+    const next = nextFocusedKey(targets.occurrences(), chip, step);
+    targets.focusedKey.value = next;
+    focusChip(targets.root.value, next);
     return true;
   };
 
 const KEY_ACTIONS: Record<string, KeyAction> = {
-  t: (_event, targets) => {
+  t: ({ targets }) => {
     targets.goToday();
     return true;
   },
-  n: (_event, targets) => {
+  n: ({ targets }) => {
     targets.createNew();
     return true;
   },
   arrowleft: arrow(-1),
   arrowright: arrow(1),
-  enter: (_event, targets) => {
-    const occurrence = focused(targets);
+  enter: (context) => {
+    const occurrence = chipOccurrence(context);
     if (!occurrence) return false;
-    targets.open(occurrence);
+    context.targets.open(occurrence);
     return true;
   },
-  delete: (_event, targets) => removeFocused(targets),
-  backspace: (_event, targets) => removeFocused(targets),
-  escape: (_event, targets) => {
+  delete: (context) => removeFocused(context),
+  backspace: (context) => removeFocused(context),
+  escape: ({ targets }) => {
     targets.cancel();
     return false;
   },
 };
 
-function removeFocused(targets: AgendaShortcutTargets): boolean {
-  const occurrence = focused(targets);
+function removeFocused(context: KeyContext): boolean {
+  const occurrence = chipOccurrence(context);
   if (!occurrence?.canDelete) return false;
-  targets.remove(occurrence);
+  context.targets.remove(occurrence);
   return true;
 }
 
@@ -168,11 +200,15 @@ export function useAgendaShortcuts(targets: AgendaShortcutTargets): void {
       }
       if (!targets.enabled() || event.ctrlKey || event.metaKey || event.altKey)
         return;
-      if (!ownsAgendaKey(targets.root.value, event.target)) return;
+      const chip = chipKeyOf(targets.root.value, event.target);
+      // The focus is the truth: a chip left by the focus is no longer focused.
+      if (targets.focusedKey.value !== chip) targets.focusedKey.value = chip;
+      if (chip === null && !ownsAgendaKey(targets.root.value, event.target))
+        return;
       const key = event.key.toLowerCase();
       const action = KEY_ACTIONS[key];
       const isHandled = action
-        ? action(event, targets)
+        ? action({ targets, chip })
         : !event.shiftKey && switchView(key, targets);
       if (isHandled) event.preventDefault();
     },

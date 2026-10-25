@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { AgendaDropTarget } from "../../composables/agenda/agendaModel";
+import type {
+  AgendaDropTarget,
+  AgendaSurfaceViewport,
+} from "../../composables/agenda/agendaModel";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import { useAgendaTimeGrid } from "../../composables/agenda/useAgendaTimeGrid";
+import { weekNumberOf } from "../../composables/agenda/agendaMonthLayout";
+import { startOfWeek } from "../../composables/agenda/agendaTime";
 import { GRID_GUTTER_WIDTH } from "../../composables/agenda/agendaTimeGridParts";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import AgendaAllDayRow from "./AgendaAllDayRow.vue";
@@ -39,12 +44,28 @@ const MINUTES_PER_HOUR = 60;
 
 const scrollerEl = ref<HTMLElement | null>(null);
 const bodyEl = ref<HTMLElement | null>(null);
+const headerEl = ref<HTMLElement | null>(null);
+
+/** The body as it shows: under the sticky header, beside the sticky gutter (auto-scroll edges). */
+function bodyViewport(): AgendaSurfaceViewport {
+  const box = scrollerEl.value!.getBoundingClientRect();
+  const headerBottom =
+    headerEl.value?.getBoundingClientRect().bottom ?? box.top;
+  return {
+    top: Math.max(box.top, headerBottom),
+    left: box.left + GRID_GUTTER_WIDTH,
+    right: box.right,
+    bottom: box.bottom,
+  };
+}
 
 const showAllDayRow = computed(() => ctx.options.value.raw.allDayRow !== false);
 const weekLabel = computed(() => {
   const first = ctx.range.value.days[0];
   if (!ctx.options.value.raw.weekNumbers || !first) return "";
-  return t("dms.agenda.grid.week_short", { week: first.week });
+  const { weekStartsOn } = ctx.options.value;
+  const week = weekNumberOf(startOfWeek(first.key, weekStartsOn), weekStartsOn);
+  return t("dms.agenda.grid.week_short", { week });
 });
 /** The first column of each day carries the now line's dot. */
 const isFirstOfDay = (index: number) =>
@@ -94,6 +115,7 @@ onMounted(() => {
     el: bodyEl.value,
     resolve: targetAt,
     scroller: scrollerEl.value ?? undefined,
+    viewport: scrollerEl.value ? bodyViewport : undefined,
   });
 });
 onBeforeUnmount(() => unregister?.());
@@ -114,7 +136,7 @@ watch(() => [metrics.value.hourHeight, metrics.value.dayStart], scrollToStart, {
       class="relative min-h-0 flex-1 overflow-auto overscroll-contain"
     >
       <div class="min-w-full" :style="{ minWidth: `${minWidth}px` }">
-        <div class="sticky top-0 z-30 bg-(--ui-bg)">
+        <div ref="headerEl" class="sticky top-0 z-30 bg-(--ui-bg)">
           <AgendaGridHeader
             :rows="headers"
             :template="template"

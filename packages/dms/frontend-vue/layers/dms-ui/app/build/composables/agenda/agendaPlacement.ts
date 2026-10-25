@@ -15,32 +15,38 @@ import {
   maxDayKey,
   minDayKey,
   MINUTE_MS,
-  parseTimeOfDay,
   zonedDayKey,
   zonedEpoch,
   zonedIso,
   zonedMinutes,
 } from "./agendaTime";
+import { parseSlots } from "./agendaSlots";
 
 const MINUTES_PER_HOUR = 60;
 const DEFAULT_NEW_MINUTES = 9 * MINUTES_PER_HOUR;
 const LATEST_NEW_MINUTES = 23 * MINUTES_PER_HOUR;
 
-/** Where a click on an empty spot creates: a slot, a day, or a time with the default length. */
+/**
+ * Where a click on an empty spot creates: a slot (its index among the slots
+ * as `parseSlots` orders them, as the views do), a day, or a time with the
+ * default length, at the instant under the pointer when the view knows it
+ * (the second 02:30 of a fall-back day). The "no resource" row gives none.
+ */
 export function placementOfTarget(
   target: AgendaDropTarget,
   options: ResolvedAgendaOptions,
 ): AgendaPlacement {
   const { timeZone } = options;
-  const resourceIds = target.resourceId ? [target.resourceId] : [];
+  const resourceIds =
+    target.resourceId && !target.unassigned ? [target.resourceId] : [];
   const slot =
     target.slotIndex === undefined
       ? undefined
-      : options.slots[target.slotIndex];
+      : parseSlots(options.slots)[target.slotIndex];
   if (slot) {
     return {
-      start: zonedEpoch(target.day, parseTimeOfDay(slot.start, 0), timeZone),
-      end: zonedEpoch(target.day, parseTimeOfDay(slot.end, 0), timeZone),
+      start: zonedEpoch(target.day, slot.startMinutes, timeZone),
+      end: zonedEpoch(target.day, slot.endMinutes, timeZone),
       allDay: false,
       resourceIds,
     };
@@ -53,7 +59,8 @@ export function placementOfTarget(
       resourceIds,
     };
   }
-  const start = zonedEpoch(target.day, target.minutes, timeZone);
+  const start =
+    target.instant ?? zonedEpoch(target.day, target.minutes, timeZone);
   return {
     start,
     end: start + options.defaultDurationMinutes * MINUTE_MS,
@@ -70,7 +77,8 @@ export function placementOfDays(
 ): AgendaPlacement {
   const from = minDayKey(first.day, second.day);
   const to = maxDayKey(first.day, second.day);
-  const resourceId = first.resourceId ?? second.resourceId;
+  const resourceId =
+    first.resourceId ?? (second.unassigned ? undefined : second.resourceId);
   return {
     start: dayStartEpoch(from, timeZone),
     end: dayStartEpoch(addDays(to, 1), timeZone),

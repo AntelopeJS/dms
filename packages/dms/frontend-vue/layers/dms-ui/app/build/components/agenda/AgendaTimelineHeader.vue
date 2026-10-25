@@ -33,7 +33,7 @@ const share = (count: number) =>
 function groupLabel(group: TimelineHeaderGroup): string {
   if (props.scale !== "day") return props.format.day(group.day.key, "medium");
   const month = props.format.month(group.day.year, group.day.month);
-  return `${t("dms.agenda.timeline.week", { week: group.day.week })} · ${month}`;
+  return `${t("dms.agenda.timeline.week", { week: group.week })} · ${month}`;
 }
 
 function columnLabel(column: TimelineColumn): string {

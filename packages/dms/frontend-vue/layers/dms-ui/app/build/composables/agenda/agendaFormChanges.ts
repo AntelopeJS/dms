@@ -47,7 +47,30 @@ function sameInstant(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
-/** The keys of `next` that differ from `before`, and what they were. */
+/** Absent and `null` say the same: no value. */
+const isBlank = (value: unknown) => value === undefined || value === null;
+
+/** The data a patch writes, and what it was (`null` for a key it adds), `null` when nothing changes. */
+function diffData(
+  next: Record<string, unknown>,
+  before: Record<string, unknown> = {},
+): { data: Record<string, unknown>; previous: Record<string, unknown> } | null {
+  const changed = Object.keys(next).filter(
+    (key) =>
+      !(isBlank(next[key]) && isBlank(before[key])) &&
+      !sameInstant(next[key], before[key]),
+  );
+  if (changed.length === 0) return null;
+  const previous = { ...before };
+  for (const key of changed) previous[key] = before[key] ?? null;
+  return { data: { ...before, ...next }, previous };
+}
+
+/**
+ * The keys of `next` that differ from `before`, and what they were: a
+ * field `next` clears is sent as `null`, and one `before` lacked comes back
+ * as `null` in `previous` (Undo clears it).
+ */
 export function diffPatch(
   next: AgendaEventPatch,
   before: AgendaEventPatch,
@@ -58,18 +81,30 @@ export function diffPatch(
   const beforeFields = before as Record<string, unknown>;
   for (const key of Object.keys(next)) {
     if (key === "data") continue;
-    if (sameInstant(nextFields[key], beforeFields[key])) continue;
-    patch[key] = nextFields[key];
-    previous[key] = beforeFields[key];
+    const value = nextFields[key];
+    const was = beforeFields[key];
+    if (isBlank(value) && isBlank(was)) continue;
+    if (sameInstant(value, was)) continue;
+    patch[key] = value ?? null;
+    previous[key] = was ?? null;
   }
-  if (next.data) {
-    const merged = { ...before.data, ...next.data };
-    if (!sameInstant(merged, before.data ?? {})) {
-      patch.data = merged;
-      previous.data = before.data;
-    }
+  const data = next.data ? diffData(next.data, before.data) : null;
+  if (data) {
+    patch.data = data.data;
+    previous.data = data.previous;
   }
   return { patch, previous };
+}
+
+/** A patch without its `null`s: a new event has nothing to clear. */
+function withoutNulls(patch: AgendaEventPatch): AgendaEventPatch {
+  const fields = Object.entries(patch).filter(([, value]) => value !== null);
+  const result = Object.fromEntries(fields) as AgendaEventPatch;
+  if (patch.data)
+    result.data = Object.fromEntries(
+      Object.entries(patch.data).filter(([, value]) => value !== null),
+    );
+  return result;
 }
 
 let tempCounter = 0;
@@ -82,7 +117,7 @@ export function agendaTempId(): string {
 
 /** The change that creates an event from the form. */
 export function createChange(patch: AgendaEventPatch): AgendaChange {
-  return { kind: "create", tempId: agendaTempId(), patch };
+  return { kind: "create", tempId: agendaTempId(), patch: withoutNulls(patch) };
 }
 
 /**

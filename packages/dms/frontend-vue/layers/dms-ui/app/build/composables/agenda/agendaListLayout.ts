@@ -67,7 +67,8 @@ function partOn(
   const ends = occurrence.endDay === day;
   if (starts && ends) return "single";
   if (starts) return "start";
-  if (ends) return "end";
+  // Ending at midnight, it fills its last day (Mon 22:00 → Wed 00:00: Tuesday is whole).
+  if (ends && occurrence.endMinutes !== 0) return "end";
   return "middle";
 }
 

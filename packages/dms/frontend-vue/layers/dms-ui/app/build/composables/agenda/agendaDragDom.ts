@@ -1,7 +1,11 @@
 // The DOM side of the drag engine: which registered surface the pointer is
 // over, and how fast the area under it scrolls near its edges.
 
-import type { AgendaDropSurface, AgendaDropTarget } from "./agendaModel";
+import type {
+  AgendaDropSurface,
+  AgendaDropTarget,
+  AgendaSurfaceViewport,
+} from "./agendaModel";
 
 /** A surface the pointer is over, and what it says is there. */
 export interface AgendaSurfaceHit {
@@ -75,8 +79,16 @@ export function surfaceScroller(
   return null;
 }
 
-/** Scroll speed along one axis: negative near `min`, positive near `max`. */
+/** Pixels past an edge where dragging still scrolls; farther out (over the toolbar) it stops. */
+export const AUTO_SCROLL_OUTSIDE = 48;
+
+/**
+ * Scroll speed along one axis: negative near `min`, positive near `max`,
+ * none far outside (the pointer has left for another part of the page).
+ */
 export function edgeSpeed(position: number, min: number, max: number): number {
+  if (position < min - AUTO_SCROLL_OUTSIDE) return 0;
+  if (position > max + AUTO_SCROLL_OUTSIDE) return 0;
   const ramp = (distance: number) =>
     Math.round(
       AUTO_SCROLL_MAX_SPEED *
@@ -87,4 +99,12 @@ export function edgeSpeed(position: number, min: number, max: number): number {
   if (position > max - AUTO_SCROLL_EDGE)
     return ramp(Math.max(0, max - position));
   return 0;
+}
+
+/** Where a surface shows: its own viewport, else its scroller's box. */
+export function surfaceViewport(
+  surface: AgendaDropSurface,
+  scroller: HTMLElement,
+): AgendaSurfaceViewport {
+  return surface.viewport?.() ?? scroller.getBoundingClientRect();
 }

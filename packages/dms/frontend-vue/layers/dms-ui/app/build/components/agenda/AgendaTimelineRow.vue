@@ -27,6 +27,8 @@ const props = defineProps<{
   shades: TimelineShade[];
   metrics: TimelineMetrics;
   preview: AgendaDragPreview | null;
+  /** A timeline by day: the preview takes whole days, as the events do. */
+  wholeColumns?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -62,7 +64,9 @@ const previewHere = computed(() => {
     ? preview.resourceIds.includes(id)
     : !preview.resourceIds.length;
   if (!onRow) return null;
-  return placeSpan(props.columns, preview.start, preview.end, props.breaks);
+  return placeSpan(props.columns, preview.start, preview.end, props.breaks, {
+    wholeColumns: props.wholeColumns,
+  });
 });
 
 const previewStyle = (segment: TimelineSegment) => ({

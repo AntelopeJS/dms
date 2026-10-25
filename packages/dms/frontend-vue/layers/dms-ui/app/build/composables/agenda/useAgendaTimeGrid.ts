@@ -26,6 +26,7 @@ import {
 import {
   GRID_GUTTER_WIDTH,
   backgroundPieces,
+  columnTargetPart,
   closedPieces,
   gridColumnAt,
   gridMinWidth,
@@ -36,6 +37,7 @@ import {
   type AgendaMinutePiece,
 } from "./agendaTimeGridParts";
 import { backgroundSpans } from "./agendaBackgroundSpans";
+import { openIntervals } from "./agendaOpenHours";
 import { parseSlots } from "./agendaSlots";
 import {
   DAY_MS,
@@ -74,6 +76,9 @@ export interface AgendaGridItem {
   isGhost: boolean;
   clippedStart: boolean;
   clippedEnd: boolean;
+  /** `stack`: its level and the levels of its stack. */
+  level?: number;
+  depth?: number;
 }
 
 /** What one column draws. */
@@ -260,19 +265,25 @@ export function resolveGridBody(
   return {
     day: column.day.key,
     minutes: Math.min(Math.max(minutes, dayStart), dayEnd - 1),
-    resourceId: column.resource?.id,
+    ...columnTargetPart(column),
   };
 }
 
 /** The columns, headers and widths of a time grid view. */
 function useGridColumns(ctx: AgendaContext) {
+  const isResources = computed(() => ctx.view.value.type === "resources");
   const columnInput = computed(() => ({
     days: ctx.range.value.days,
-    resources:
-      ctx.view.value.type === "resources" ? ctx.resources.value : undefined,
+    resources: isResources.value ? ctx.resources.value : undefined,
     groups: ctx.resourceGroups.value,
     folded: ctx.foldedGroups.value,
     layout: ctx.view.value.resourceLayout,
+    // Events planned on no resource get a column of their own.
+    withUnassigned:
+      isResources.value &&
+      ctx.occurrences.value.some(
+        (occurrence) => !occurrence.resourceIds.length,
+      ),
   }));
   const columns = computed(() => buildGridColumns(columnInput.value));
   const columnMinWidth = computed(
@@ -354,11 +365,16 @@ export function useAgendaTimeGrid(ctx: AgendaContext) {
     return columns.value.map((column) => {
       const resourceId = column.resource?.id;
       const isShaded = !column.folded && hasHours(resourceId);
-      const hours = isShaded ? ctx.hoursOn(column.day.weekday, resourceId) : [];
+      const open = isShaded
+        ? openIntervals(
+            ctx.hoursOn(column.day.weekday, resourceId),
+            ctx.hoursOn((column.day.weekday + 6) % 7, resourceId),
+          )
+        : [];
       return {
         column,
         items: column.folded ? [] : columnItems(column, input),
-        closed: isShaded ? closedPieces(hours, dayStart, dayEnd) : [],
+        closed: isShaded ? closedPieces(open, dayStart, dayEnd) : [],
         backgrounds: column.folded
           ? []
           : backgroundPieces(

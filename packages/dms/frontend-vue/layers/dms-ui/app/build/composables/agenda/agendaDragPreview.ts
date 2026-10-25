@@ -5,6 +5,7 @@
 import type { Ref } from "vue";
 import type {
   AgendaBackground,
+  AgendaCalendar,
   AgendaResource,
 } from "../../../types/full-agenda";
 import type {
@@ -16,15 +17,13 @@ import type {
   ResolvedAgendaOptions,
   ResolvedAgendaView,
 } from "./agendaModel";
-import {
-  occurrencePlacement,
-  placeDrag,
-  samePlacement,
-} from "./agendaDragMath";
-import type { AgendaDragConfig, AgendaDragSource } from "./agendaDragMath";
+import { placeDrag } from "./agendaDragMath";
+import { occurrencePlacement, samePlacement } from "./agendaDragBasics";
+import type { AgendaDragConfig, AgendaDragSource } from "./agendaDragBasics";
 import { checkDrop } from "./agendaDragRules";
 import type { AgendaDropRules } from "./agendaDragRules";
 import { parseSlots } from "./agendaSlots";
+import type { AgendaNudgeContext } from "./agendaDragKeys";
 
 /** What the drag engine needs of the agenda (`useAgenda` passes its context's parts). */
 export interface AgendaDragDeps {
@@ -32,7 +31,15 @@ export interface AgendaDragDeps {
   /** The view drawn: its hidden days. */
   view: Readonly<Ref<ResolvedAgendaView>>;
   occurrences: Readonly<Ref<AgendaOccurrence[]>>;
+  /**
+   * The occurrences of the range before the legend, the search and the
+   * facets hide any: what `allowOverlap: false` checks against (a hidden
+   * calendar's event still takes its time). Defaults to `occurrences`.
+   */
+  rangeOccurrences?: Readonly<Ref<AgendaOccurrence[]>>;
   resources: Readonly<Ref<AgendaResource[]>>;
+  /** The calendars: a pending item of a read-only calendar is not dropped. */
+  calendars?: Readonly<Ref<AgendaCalendar[]>>;
   backgrounds: Readonly<Ref<AgendaBackground[]>>;
   hoursOn: AgendaContext["hoursOn"];
   apply: AgendaContext["apply"];
@@ -69,6 +76,19 @@ export const viewDragConfig = (deps: AgendaDragDeps): AgendaDragConfig =>
     deps.view.value.hiddenDays ?? deps.options.value.hiddenDays,
   );
 
+/** What a key's move reads: slots step only on a timeline by slot (time grids snap to minutes). */
+export function viewNudgeContext(deps: AgendaDragDeps): AgendaNudgeContext {
+  const config = viewDragConfig(deps);
+  const view = deps.view.value;
+  const isSlotTimeline = view.type === "timeline" && view.scale === "slot";
+  return {
+    snapMinutes: config.snapMinutes,
+    hiddenDays: config.hiddenDays,
+    timeZone: config.timeZone,
+    slots: isSlotTimeline ? config.slots : [],
+  };
+}
+
 /** What a drop is checked against. A range only picked (no create) ignores the constraints. */
 export function dropRules(
   deps: AgendaDragDeps,
@@ -84,7 +104,8 @@ export function dropRules(
     businessHours: options.businessHours,
     hoursOn: deps.hoursOn,
     backgrounds: deps.backgrounds.value,
-    occurrences: deps.occurrences.value,
+    occurrences: (deps.rangeOccurrences ?? deps.occurrences).value,
+    calendars: deps.calendars?.value ?? [],
     minDate: options.raw.minDate,
     maxDate: options.raw.maxDate,
   };
@@ -137,6 +158,7 @@ export function buildPreview(
       copy,
       allowedResourceIds:
         occurrence?.event.allowedResourceIds ?? item?.allowedResourceIds,
+      calendarId: item?.calendarId,
       checkDuration: source.kind !== "move",
     },
     input.rules,

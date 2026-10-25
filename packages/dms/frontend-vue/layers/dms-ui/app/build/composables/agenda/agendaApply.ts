@@ -101,13 +101,34 @@ export function completeChange(input: AgendaCompleteInput): AgendaChange {
   }
   const event = occurrence?.event ?? input.event;
   if (!event) return next;
+  const own =
+    occurrence && next.occurrence
+      ? occurrenceBounds(occurrence, input.timeZone)
+      : undefined;
+  if (own && next.scope === "occurrence" && !isRemoval(next))
+    next.patch = withOwnTimes(next.patch, own, occurrence!);
   const previous = isRemoval(next)
     ? eventFields(event)
     : previousOf(event, next.patch);
-  const bounds =
-    occurrence && next.occurrence
-      ? timesOf(occurrenceBounds(occurrence, input.timeZone), next)
-      : {};
+  const bounds = own ? timesOf(own, next) : {};
   next.previous = { ...previous, ...next.previous, ...bounds };
   return next;
+}
+
+/**
+ * The patch of an occurrence changed alone, its own times filled in where
+ * the change keeps them: the event it becomes stands on its own day, not on
+ * its series' first one, and a new start alone keeps its own end.
+ */
+function withOwnTimes(
+  patch: AgendaEventPatch | undefined,
+  own: AgendaEventPatch,
+  occurrence: AgendaOccurrence,
+): AgendaEventPatch {
+  return {
+    start: own.start,
+    end: own.end,
+    allDay: occurrence.allDay,
+    ...patch,
+  };
 }

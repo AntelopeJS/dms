@@ -5,6 +5,7 @@
 import type {
   AgendaBackground,
   AgendaBusinessHours,
+  AgendaCalendar,
   AgendaConstraints,
   AgendaResource,
 } from "../../../types/full-agenda";
@@ -17,18 +18,19 @@ import {
   MINUTES_PER_DAY,
   MINUTE_MS,
   addDays,
-  parseTimeOfDay,
   weekdayOf,
   zonedDayKey,
   zonedMinutes,
 } from "./agendaTime";
-import { lastDayOf } from "./agendaDragMath";
+import { openIntervals, withinOpen } from "./agendaOpenHours";
+import { lastDayOf } from "./agendaDragBasics";
 import { backgroundAppliesTo, backgroundSpans } from "./agendaBackgroundSpans";
 
 /** Why a drop is refused (`dms.agenda.drag.reason.<code>`). */
 export type AgendaDragRefusal =
   | "resourceReadOnly"
   | "resourceNotAllowed"
+  | "calendarReadOnly"
   | "tooShort"
   | "tooLong"
   | "outsideHours"
@@ -44,6 +46,8 @@ export interface AgendaDropCheck {
   copy: boolean;
   /** The event's or pending item's own resource limit. */
   allowedResourceIds?: string[];
+  /** A pending item's calendar (an event of a read-only calendar does not move at all). */
+  calendarId?: string;
   /** A move or a resize that keeps the length: the duration limits are the resize's business. */
   checkDuration: boolean;
 }
@@ -57,7 +61,12 @@ export interface AgendaDropRules {
   businessHours: AgendaBusinessHours[];
   hoursOn: (weekday: number, resourceId?: string) => AgendaBusinessHours[];
   backgrounds: AgendaBackground[];
+  /**
+   * Every occurrence of the range, those the legend, the search or the
+   * facets hide included: a hidden event still takes its time.
+   */
   occurrences: AgendaOccurrence[];
+  calendars: AgendaCalendar[];
   minDate?: string;
   maxDate?: string;
 }
@@ -86,10 +95,23 @@ function readOnlyResource(check: AgendaDropCheck, rules: AgendaDropRules) {
 
 function notAllowedResource(check: AgendaDropCheck) {
   const allowed = check.allowedResourceIds;
-  if (!allowed) return null;
-  return check.placement.resourceIds.some((id) => !allowed.includes(id))
+  if (!allowed?.length) return null;
+  const { resourceIds } = check.placement;
+  // Planned on no resource: only an event that already had none may stay so.
+  if (!resourceIds.length) {
+    return check.occurrence?.resourceIds.length === 0
+      ? null
+      : "resourceNotAllowed";
+  }
+  return resourceIds.some((id) => !allowed.includes(id))
     ? "resourceNotAllowed"
     : null;
+}
+
+function readOnlyCalendar(check: AgendaDropCheck, rules: AgendaDropRules) {
+  if (!check.calendarId) return null;
+  const calendar = rules.calendars.find((item) => item.id === check.calendarId);
+  return calendar?.editable === false ? "calendarReadOnly" : null;
 }
 
 function duration(check: AgendaDropCheck, rules: AgendaDropRules) {
@@ -145,29 +167,20 @@ function dayPiece(
   return [from, to];
 }
 
-function withinHours(
-  hours: AgendaBusinessHours[],
-  from: number,
-  to: number,
-): boolean {
-  return hours.some(
-    (open) =>
-      parseTimeOfDay(open.start, 0) <= from &&
-      to <= parseTimeOfDay(open.end, MINUTES_PER_DAY),
-  );
-}
-
 function businessHours(check: AgendaDropCheck, rules: AgendaDropRules) {
   if (!rules.constraints.withinBusinessHours) return null;
   const { placement } = check;
   for (const resourceId of checkedResources(placement)) {
     if (!hasHours(rules, resourceId)) continue;
     for (const day of placementDays(placement, rules.timeZone)) {
-      const hours = rules.hoursOn(weekdayOf(day), resourceId);
-      if (!hours.length) return "closed";
+      const open = openIntervals(
+        rules.hoursOn(weekdayOf(day), resourceId),
+        rules.hoursOn(weekdayOf(addDays(day, -1)), resourceId),
+      );
+      if (!open.length) return "closed";
       if (placement.allDay) continue;
       const [from, to] = dayPiece(placement, day, rules.timeZone);
-      if (!withinHours(hours, from, to)) return "outsideHours";
+      if (!withinOpen(open, from, to)) return "outsideHours";
     }
   }
   return null;
@@ -189,13 +202,21 @@ function closedBackground(check: AgendaDropCheck, rules: AgendaDropRules) {
   return isClosed ? "closed" : null;
 }
 
+/**
+ * `allowOverlap: false`: timed events of one resource (or of the agenda,
+ * without resources) may not overlap. All-day events (a leave, a holiday)
+ * and cancelled ones neither block a drop nor are blocked: they mark a day,
+ * they do not take its hours.
+ */
 function overlap(check: AgendaDropCheck, rules: AgendaDropRules) {
   if (rules.constraints.allowOverlap !== false) return null;
   const { placement, occurrence } = check;
+  if (placement.allDay) return null;
   const byResource =
     rules.resources.size > 0 && placement.resourceIds.length > 0;
   const clashes = rules.occurrences.some((other) => {
     if (!check.copy && other.key === occurrence?.key) return false;
+    if (other.allDay || other.event.status === "cancelled") return false;
     if (
       byResource &&
       !other.resourceIds.some((id) => placement.resourceIds.includes(id))
@@ -209,6 +230,7 @@ function overlap(check: AgendaDropCheck, rules: AgendaDropRules) {
 const RULES: Rule[] = [
   readOnlyResource,
   notAllowedResource,
+  readOnlyCalendar,
   outOfRange,
   duration,
   businessHours,

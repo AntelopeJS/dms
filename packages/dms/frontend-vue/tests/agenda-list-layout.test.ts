@@ -65,6 +65,22 @@ describe("agenda list", () => {
     ]);
   });
 
+  it("#55 lists the last day of an event ending at midnight as a whole day", () => {
+    const list = buildAgendaList(days, [
+      makeOccurrence({
+        key: "night",
+        start: "2026-10-26T22:00:00+01:00",
+        end: "2026-10-28T00:00:00+01:00",
+      }),
+    ]);
+    expect(
+      list.map((entry) => [entry.day.key, entry.rows.map((row) => row.part)]),
+    ).toEqual([
+      ["2026-10-26", ["start"]],
+      ["2026-10-27", ["middle"]],
+    ]);
+  });
+
   it("ends a timed event at midnight on the day before", () => {
     const list = buildAgendaList(days, [
       makeOccurrence({

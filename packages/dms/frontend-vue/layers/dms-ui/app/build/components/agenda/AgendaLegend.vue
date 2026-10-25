@@ -42,13 +42,15 @@ const swatchStyle = (calendar: AgendaCalendar) => {
     ? { backgroundColor: paint.bar, borderColor: paint.bar, color: paint.onBar }
     : { borderColor: paint.bar };
 };
-const toggleLabel = (calendar: AgendaCalendar) =>
-  t(
-    isShown(calendar)
-      ? "dms.agenda.sidebar.hide_calendar"
-      : "dms.agenda.sidebar.show_calendar",
-    { name: processText(calendar.label) },
-  );
+// A toggle is a checkbox named by its calendar (and its count): its name
+// stays the same whether it is checked or not.
+const countLabel = (calendar: AgendaCalendar) =>
+  props.legend.counts
+    ? t("dms.agenda.sidebar.calendar_count", {
+        name: processText(calendar.label),
+        count: countOf(calendar),
+      })
+    : processText(calendar.label);
 const isInline = computed(() => props.layout === "inline");
 </script>
 
@@ -84,8 +86,9 @@ const isInline = computed(() => props.layout === "inline");
         v-for="calendar in group.calendars"
         :key="calendar.id"
         :type="props.legend.toggles ? 'button' : undefined"
-        :aria-pressed="props.legend.toggles ? isShown(calendar) : undefined"
-        :aria-label="props.legend.toggles ? toggleLabel(calendar) : undefined"
+        :role="props.legend.toggles ? 'checkbox' : undefined"
+        :aria-checked="props.legend.toggles ? isShown(calendar) : undefined"
+        :aria-label="props.legend.toggles ? countLabel(calendar) : undefined"
         :data-agenda-calendar="calendar.id"
         :class="[
           'flex min-w-0 items-center gap-2 rounded-md text-start text-sm',

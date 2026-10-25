@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type {
   AgendaGridColumnLayout,
+  AgendaGridItem,
   AgendaGridMetrics,
 } from "../../composables/agenda/useAgendaTimeGrid";
 import type { AgendaMinutePiece } from "../../composables/agenda/agendaTimeGridParts";
@@ -30,6 +31,7 @@ const props = withDefaults(defineProps<AgendaGridColumnProps>(), {
 });
 
 const ctx = useAgendaContext();
+const { t } = useI18n();
 const { processText } = useComposedText();
 
 const MINUTES_PER_HOUR = 60;
@@ -53,17 +55,31 @@ const showNow = computed(
 const label = computed(() => {
   const { column } = props.layout;
   const day = ctx.format.day(column.day.key, "long");
+  if (column.unassigned) return `${t("dms.agenda.grid.unassigned")}, ${day}`;
   return column.resource
     ? `${processText(column.resource.label)}, ${day}`
     : day;
 });
 
-function itemStyle(item: AgendaGridColumnLayout["items"][number]) {
+/** Pixels a stacked event steps in per level, at most (25 % of a narrow column). */
+const STACK_STEP_PX = 14;
+
+/** The indent of an item: its share of the column; a stacked one stops at 14 px a level. */
+function indentOf(item: AgendaGridItem): string {
+  if (item.level === undefined || item.level === 0)
+    return `${item.left * 100}%`;
+  return `min(${item.level * STACK_STEP_PX}px, ${item.left * 100}%)`;
+}
+
+function itemStyle(item: AgendaGridItem) {
+  const indent = indentOf(item);
+  const width =
+    item.level === undefined ? `${item.width * 100}%` : `(100% - ${indent})`;
   return {
     top: `${item.top}px`,
     height: `${Math.max(item.height - 1, 1)}px`,
-    left: `calc(${item.left * 100}% + ${GAP_PX / 2}px)`,
-    width: `calc(${item.width * 100}% - ${item.isGhost ? GAP_PX : RIGHT_ROOM_PX}px)`,
+    left: `calc(${indent} + ${GAP_PX / 2}px)`,
+    width: `calc(${width} - ${item.isGhost ? GAP_PX : RIGHT_ROOM_PX}px)`,
     zIndex: item.isGhost ? 1 : item.z + 2,
   };
 }
@@ -118,6 +134,7 @@ function itemStyle(item: AgendaGridColumnLayout["items"][number]) {
         :occurrence="item.occurrence"
         layout="block"
         :height="item.height"
+        :stacked="(item.level ?? 0) > 0"
         :continues-before="item.clippedStart"
         :continues-after="item.clippedEnd"
       />

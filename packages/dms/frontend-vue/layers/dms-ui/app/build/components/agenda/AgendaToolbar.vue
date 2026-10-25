@@ -68,6 +68,7 @@ const hasHeader = computed(
     canCreate.value,
 );
 
+const period = computed(() => ctx.format.title.value);
 const pickerOpen = ref(false);
 const pickDay = (day: unknown) => {
   if (typeof day !== "string") return;
@@ -102,6 +103,46 @@ const setFacet = (facet: AgendaFacet, value: unknown) => {
 };
 
 const actionColor = (action: AgendaToolbarAction) => action.tone ?? "neutral";
+
+/** How a save in `immediate` mode stands, beside the period. */
+interface SaveStatusBadge {
+  label: string;
+  icon: string;
+  class: string;
+}
+
+/** How each save status is drawn: its text key, icon and colour. */
+interface SaveStatusStyle {
+  key: string;
+  icon: string;
+  class: string;
+}
+
+const SAVE_STATUS: Record<string, SaveStatusStyle> = {
+  saving: {
+    key: "dms.agenda.save.saving",
+    icon: "i-ph-circle-notch",
+    class: "text-muted [&_svg]:animate-spin",
+  },
+  saved: {
+    key: "dms.agenda.save.saved",
+    icon: "i-ph-check",
+    class: "text-success",
+  },
+  error: {
+    key: "dms.agenda.details.status_error",
+    icon: "i-ph-warning",
+    class: "text-error",
+  },
+};
+const saveStatus = computed<SaveStatusBadge | null>(() => {
+  if (raw.value.saveMode === "staged") return null;
+  const status = ctx.saveStatus.value;
+  const badge = SAVE_STATUS[status];
+  return badge
+    ? { icon: badge.icon, class: badge.class, label: t(badge.key) }
+    : null;
+});
 </script>
 
 <template>
@@ -189,8 +230,13 @@ const actionColor = (action: AgendaToolbarAction) => action.tone ?? "neutral";
           variant="ghost"
           trailing-icon="i-ph-caret-down"
           class="text-highlighted font-semibold"
-          :label="ctx.format.title.value"
-          :aria-label="t('dms.agenda.toolbar.pick_date')"
+          :label="period"
+          :aria-label="
+            t('dms.agenda.toolbar.pick_date', {
+              period: period,
+            })
+          "
+          data-agenda-period-picker
         />
         <template #content>
           <DmsCalendar
@@ -209,8 +255,20 @@ const actionColor = (action: AgendaToolbarAction) => action.tone ?? "neutral";
         aria-live="polite"
         data-agenda-period
       >
-        {{ ctx.format.title.value }}
+        {{ period }}
       </h3>
+      <span v-if="props.parts.datePicker" class="sr-only" aria-live="polite">
+        {{ period }}
+      </span>
+      <span
+        v-if="saveStatus"
+        :class="['inline-flex items-center gap-1 text-xs', saveStatus.class]"
+        role="status"
+        data-agenda-save-status
+      >
+        <UIcon :name="saveStatus.icon" class="size-3.5" />
+        {{ saveStatus.label }}
+      </span>
 
       <div class="ms-auto flex flex-wrap items-center gap-2">
         <UInput

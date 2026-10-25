@@ -15,7 +15,17 @@ import type {
 } from "../../../types/full-agenda";
 import type { AgendaDay, AgendaDayKey, AgendaOccurrence } from "./agendaModel";
 import type { ParsedAgendaSlot } from "./agendaSlots";
-import { MINUTES_PER_DAY, zonedEpoch } from "./agendaTime";
+import { MINUTES_PER_DAY, startOfWeek, zonedEpoch } from "./agendaTime";
+import { weekNumberOf } from "./agendaYearLayout";
+import { placeSpan } from "./agendaTimelinePlacement";
+
+export {
+  columnPosition,
+  MIN_SPAN,
+  placeSpan,
+  shownPosition,
+  type PlaceSpanOptions,
+} from "./agendaTimelinePlacement";
 
 const HOUR_MINUTES = 60;
 /** Positions closer than this are equal (float noise of fractions). */
@@ -54,6 +64,8 @@ export interface TimelineHeaderGroup {
   first: number;
   count: number;
   day: AgendaDay;
+  /** A timeline by day: the week's number, its weeks from the week start. */
+  week: number;
 }
 
 /** A part of an event drawn in one stretch (a day's part of a long one). */
@@ -118,6 +130,8 @@ export interface TimelineRowsInput {
   /** Column indices where a segment breaks (each day's first column but the first). */
   breaks: readonly number[];
   metrics: TimelineMetrics;
+  /** A timeline by day: timed events take the whole days they touch. */
+  wholeColumns?: boolean;
 }
 
 /** The scale a view draws at, `slot` falling back to `hour` without slots. */
@@ -204,93 +218,28 @@ export function dayBreaks(
 
 /**
  * The top level of the header: a cell per day over its hours or slots; a
- * cell per week over the days of a timeline by day.
+ * cell per week (from `weekStartsOn`) over the days of a timeline by day.
  */
 export function timelineHeaderGroups(
   columns: readonly TimelineColumn[],
   days: readonly AgendaDay[],
   scale: AgendaTimelineScale,
+  weekStartsOn: number,
 ): TimelineHeaderGroup[] {
   const groups: TimelineHeaderGroup[] = [];
   for (const column of columns) {
     const day = days[column.dayIndex]!;
-    const key = scale === "day" ? `${day.year}-W${day.week}` : `${column.day}`;
+    const weekFirst = startOfWeek(column.day, weekStartsOn);
+    const key = scale === "day" ? weekFirst : column.day;
     const last = groups.at(-1);
     if (last && last.key === key) {
       last.count += 1;
       continue;
     }
-    groups.push({ key, first: column.index, count: 1, day });
+    const week = weekNumberOf(weekFirst, weekStartsOn);
+    groups.push({ key, first: column.index, count: 1, day, week });
   }
   return groups;
-}
-
-/**
- * Where an instant falls along the columns, as a fractional column index:
- * inside a column, proportionally to the time elapsed in it; between two
- * columns (a break, the night), at the edge of the next one.
- */
-export function columnPosition(
-  columns: readonly TimelineColumn[],
-  epochMs: number,
-): number {
-  let low = 0;
-  let high = columns.length - 1;
-  let found = -1;
-  while (low <= high) {
-    const middle = (low + high) >> 1;
-    if (columns[middle]!.start <= epochMs) {
-      found = middle;
-      low = middle + 1;
-    } else {
-      high = middle - 1;
-    }
-  }
-  if (found < 0) return 0;
-  const column = columns[found]!;
-  if (epochMs >= column.end) return found + 1;
-  return found + (epochMs - column.start) / (column.end - column.start);
-}
-
-/** Cuts a stretch at the breaks inside it. */
-function splitSegments(
-  from: number,
-  to: number,
-  breaks: readonly number[],
-  clippedBefore: boolean,
-  clippedAfter: boolean,
-): TimelineSegment[] {
-  const cuts = breaks.filter((at) => at > from + EPSILON && at < to - EPSILON);
-  const edges = [from, ...cuts, to];
-  return edges.slice(0, -1).map((start, index) => ({
-    from: start,
-    to: edges[index + 1]!,
-    continuesBefore: index > 0 || clippedBefore,
-    continuesAfter: index < edges.length - 2 || clippedAfter,
-  }));
-}
-
-/**
- * The stretch an instant span covers along the columns, or `null` when it
- * covers none (outside the range, inside a gap).
- */
-export function placeSpan(
-  columns: readonly TimelineColumn[],
-  start: number,
-  end: number,
-  breaks: readonly number[],
-): Pick<TimelinePlaced, "from" | "to" | "segments"> | null {
-  if (!columns.length) return null;
-  const from = columnPosition(columns, start);
-  const to = columnPosition(columns, Math.max(end, start + 1));
-  if (to - from <= EPSILON) return null;
-  const clippedBefore = start < columns[0]!.start;
-  const clippedAfter = end > columns.at(-1)!.end;
-  return {
-    from,
-    to,
-    segments: splitSegments(from, to, breaks, clippedBefore, clippedAfter),
-  };
 }
 
 /**
@@ -352,6 +301,7 @@ function placeAll(
       occurrence.start,
       occurrence.end,
       input.breaks,
+      { wholeColumns: input.wholeColumns },
     );
     if (!span) continue;
     const key = ghost ? `${occurrence.key}#ghost` : occurrence.key;

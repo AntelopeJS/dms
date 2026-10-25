@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useNow } from "@vueuse/core";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { upcomingOccurrences } from "../../composables/agenda/agendaShell";
+import { AGENDA_UPCOMING_COUNT } from "../../composables/agenda/agendaShell";
 import type { AgendaOccurrence } from "../../composables/agenda/agendaModel";
 
-/** The next events from now among those read, soonest first; a click opens one. */
+/**
+ * The next events from now, from the data in hand (series expanded ahead),
+ * soonest first; a click opens one. A route answering only the range shown
+ * gives only that range's events.
+ */
 const ctx = useAgendaContext();
 const { t } = useI18n();
 
-const MINUTE_MS = 60_000;
-const now = useNow({ interval: MINUTE_MS });
-
 const items = computed(() =>
-  upcomingOccurrences(ctx.occurrences.value, now.value.getTime()),
+  ctx.upcoming.value.slice(0, AGENDA_UPCOMING_COUNT),
 );
 const whenOf = (occurrence: AgendaOccurrence) => {
   const day = ctx.format.day(occurrence.startDay, "medium");
   if (occurrence.allDay) return day;
-  return `${day} · ${ctx.format.timeRange(occurrence.start, occurrence.end)}`;
+  const range = ctx.format.timeRange(occurrence.start, occurrence.end);
+  return `${day} · ${range}`;
 };
 </script>
 

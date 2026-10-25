@@ -3,7 +3,7 @@
  * tests drive the parts through it (width, details, staged changes) and
  * read what the parts asked of it (`apply`, `goTo`, `startPending`...).
  */
-import { computed, ref } from "vue";
+import { computed, ref, type Ref } from "vue";
 import { vi } from "vitest";
 import type {
   AgendaContext,
@@ -98,11 +98,18 @@ function resolvedOptions(raw: FullAgendaOptions): ResolvedAgendaOptions {
   };
 }
 
-/** What a fake context records besides its state. */
+/** What a fake context records besides its state, and the knobs a test turns. */
 export interface FakeAgenda {
   ctx: AgendaContext;
   surfaces: AgendaDropSurface[];
   applied: AgendaChange[];
+  /** What `apply` answers (`false`: the route refused). */
+  applyResult: { value: boolean };
+  dragActive: Ref<boolean>;
+  error: Ref<unknown>;
+  saveStatus: Ref<"idle" | "saving" | "saved" | "error">;
+  /** `null`: every staged change is sendable. */
+  sendable: Ref<number | null>;
 }
 
 /** A context over the static data of the options, `width` pixels wide. */
@@ -132,6 +139,11 @@ export function fakeAgendaContext(
     ),
   );
   const staged = ref<AgendaChange[]>([]);
+  const applyResult = { value: true };
+  const dragActive = ref(false);
+  const error = ref<unknown>(null);
+  const saveStatus = ref<"idle" | "saving" | "saved" | "error">("idle");
+  const sendable = ref<number | null>(null);
   const ctx: AgendaContext = {
     componentId: raw.componentId ?? "agenda",
     pageId: raw.pageId ?? "page",
@@ -175,7 +187,7 @@ export function fakeAgendaContext(
     compact: computed(() => widthRef.value < options.value.compactBelow),
     sidebarOpen: ref(true),
     loading: computed(() => false),
-    error: computed(() => null),
+    error: computed(() => error.value),
     refresh: vi.fn(async () => {}),
     calendars: computed(() => raw.calendars ?? data.calendars ?? []),
     calendarGroups: computed(() => data.calendarGroups ?? []),
@@ -213,7 +225,7 @@ export function fakeAgendaContext(
     hoursOn: () => [],
     drag: {
       preview: ref(null),
-      active: computed(() => false),
+      active: computed(() => dragActive.value),
       registerSurface: vi.fn((surface: AgendaDropSurface) => {
         surfaces.push(surface);
         return () => {};
@@ -227,7 +239,9 @@ export function fakeAgendaContext(
       draggingKey: computed(() => null),
     },
     apply: vi.fn(async (change: AgendaChange) => {
+      if (!applyResult.value) return false;
       applied.push(change);
+      return true;
     }),
     staged: computed(() => staged.value),
     saving: computed(() => false),
@@ -267,10 +281,26 @@ export function fakeAgendaContext(
     ),
     retry: vi.fn(async () => true),
     resolveConflict: vi.fn(async () => undefined),
+    saveStatus: computed(() => saveStatus.value),
+    sendableCount: computed(() => sendable.value ?? staged.value.length),
+    upcoming: computed(() => allOccurrences.value),
+    occurrencesIn: (from: string, to: string) =>
+      allOccurrences.value.filter(
+        (occurrence) => occurrence.endDay >= from && occurrence.startDay <= to,
+      ),
   };
   // Tests stage changes through the context's own list.
   (ctx as AgendaContext & { stagedList: typeof staged }).stagedList = staged;
-  return { ctx, surfaces, applied };
+  return {
+    ctx,
+    surfaces,
+    applied,
+    applyResult,
+    dragActive,
+    error,
+    saveStatus,
+    sendable,
+  };
 }
 
 /** The writable list behind `ctx.staged`. */

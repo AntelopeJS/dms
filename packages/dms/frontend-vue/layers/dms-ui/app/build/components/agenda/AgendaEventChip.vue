@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import type { AgendaOccurrence } from "../../composables/agenda/agendaModel";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import {
@@ -31,6 +31,10 @@ interface AgendaEventChipProps {
   continuesAfter?: boolean;
   /** Pixels of a block's height: a short block keeps its title and time on one line. */
   height?: number;
+  /** Laid over another event (`overlap: "stack"`): an outline and a shadow keep it readable. */
+  stacked?: boolean;
+  /** In the tab order. A grid with a roving focus leaves all but one chip out. */
+  tabbable?: boolean;
 }
 
 defineOptions({ inheritAttrs: false });
@@ -40,6 +44,8 @@ const props = withDefaults(defineProps<AgendaEventChipProps>(), {
   continuesBefore: false,
   continuesAfter: false,
   height: undefined,
+  stacked: false,
+  tabbable: true,
 });
 
 const ctx = useAgendaContext();
@@ -109,9 +115,11 @@ const badges = computed(() => {
 const avatar = computed(() =>
   content.value.avatar ? event.value.avatar : undefined,
 );
-const hasTooltip = computed(
-  () => raw.value.tooltips !== false && !ctx.drag.active.value,
-);
+// Not tied to the drag: every chip would redraw at its start and its drop.
+// A drag hides tooltips through the body's `data-agenda-dragging` instead.
+const hasTooltip = computed(() => raw.value.tooltips !== false);
+const TOOLTIP_UI = { content: "[[data-agenda-dragging]_&]:hidden" };
+const isCompact = computed(() => raw.value.density === "compact");
 const canResize = computed(
   () =>
     ctx.options.value.dragResize &&
@@ -133,6 +141,13 @@ const LAYOUT_CLASSES: Record<AgendaChipLayout, string> = {
   dot: "items-center gap-1.5 px-1 text-xs leading-none",
   cell: "items-center justify-center text-[10px] font-semibold leading-none",
 };
+/** `density: "compact"`: tighter paddings and a smaller text. */
+const COMPACT_CLASSES: Record<AgendaChipLayout, string> = {
+  block: "flex-col items-stretch gap-0 px-1 py-0.5 text-[11px] leading-tight",
+  bar: "items-center gap-1 px-1 text-[11px] leading-none",
+  dot: "items-center gap-1 px-0.5 text-[11px] leading-none",
+  cell: "items-center justify-center text-[9px] font-semibold leading-none",
+};
 const hasEdgeBar = computed(
   () =>
     (props.layout === "block" || props.layout === "bar") &&
@@ -143,7 +158,8 @@ const rootClasses = computed(() => [
   "group/chip relative flex size-full min-w-0 cursor-pointer overflow-hidden text-start select-none",
   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-primary)",
   ROUNDED[props.layout],
-  LAYOUT_CLASSES[props.layout],
+  (isCompact.value ? COMPACT_CLASSES : LAYOUT_CLASSES)[props.layout],
+  props.stacked ? "shadow-md ring-1 ring-(--ui-bg)" : "",
   ...chipClasses(props.occurrence, props.layout),
   hasEdgeBar.value && !props.continuesBefore
     ? "border-s-3 border-(--agenda-bar)"
@@ -162,6 +178,31 @@ const rootClasses = computed(() => [
 ]);
 
 const openOn = computed(() => raw.value.details?.openOn ?? "click");
+
+const chipEl = ref<HTMLElement | null>(null);
+const isFocusedKey = computed(
+  () => ctx.focusedKey.value === props.occurrence.key,
+);
+
+/**
+ * The keyboard moved the agenda's focus to this event (arrows from another
+ * chip): the browser's focus follows. A focus elsewhere (the toolbar) stays.
+ */
+watch(isFocusedKey, async (isFocused) => {
+  if (!isFocused) return;
+  await nextTick();
+  const active = document.activeElement;
+  const el = chipEl.value;
+  if (!el || active === el || !active?.closest("[data-agenda-occurrence]")) {
+    return;
+  }
+  el.focus();
+});
+
+function onFocusOut(): void {
+  // Leaving the chips clears the focused event: no shortcut acts on it any more.
+  if (isFocusedKey.value) ctx.focusedKey.value = null;
+}
 
 function onPointerDown(pointer: PointerEvent): void {
   // A press on a chip never starts a range on the surface under it.
@@ -205,10 +246,12 @@ function onKeydown(key: KeyboardEvent): void {
   <UTooltip
     :disabled="!hasTooltip"
     :delay-duration="600"
+    :ui="TOOLTIP_UI"
     :content="{ side: 'top', sideOffset: 4 }"
   >
     <button
       v-bind="$attrs"
+      ref="chipEl"
       type="button"
       :class="rootClasses"
       :style="chipPaintVars(props.occurrence)"
@@ -216,11 +259,13 @@ function onKeydown(key: KeyboardEvent): void {
       :aria-roledescription="t('dms.agenda.grid.event')"
       :data-agenda-occurrence="props.occurrence.key"
       :data-state="props.occurrence.state"
+      :tabindex="props.tabbable ? 0 : -1"
       @pointerdown="onPointerDown"
       @click="onClick"
       @dblclick="onDoubleClick"
       @keydown="onKeydown"
       @focus="ctx.focusedKey.value = props.occurrence.key"
+      @focusout="onFocusOut"
     >
       <template v-if="props.layout === 'cell'">
         <span class="truncate px-0.5">
@@ -234,11 +279,13 @@ function onKeydown(key: KeyboardEvent): void {
         />
         <span
           v-if="content.time && startText"
-          class="text-muted shrink-0 tabular-nums"
+          class="text-muted min-w-0 truncate tabular-nums"
         >
           {{ startText }}
         </span>
-        <span class="min-w-0 truncate font-medium">{{ event.title }}</span>
+        <span class="max-w-full shrink-0 truncate font-medium">
+          {{ event.title }}
+        </span>
       </template>
       <template v-else>
         <span
@@ -257,16 +304,19 @@ function onKeydown(key: KeyboardEvent): void {
               startText &&
               !props.continuesBefore
             "
-            class="shrink-0 tabular-nums opacity-80"
+            class="min-w-0 truncate tabular-nums opacity-80"
           >
             {{ startText }}
           </span>
-          <span class="min-w-0 truncate font-medium">{{ event.title }}</span>
+          <!-- The title always wins: the time beside it gives way first. -->
+          <span class="max-w-full shrink-0 truncate font-medium">
+            {{ event.title }}
+          </span>
           <span
-            v-if="isShort && content.time && timeText"
-            class="shrink-0 truncate tabular-nums opacity-80"
+            v-if="isShort && content.time && startText"
+            class="min-w-0 truncate tabular-nums opacity-80"
           >
-            {{ timeText }}
+            {{ startText }}
           </span>
           <UIcon
             v-if="props.occurrence.state"

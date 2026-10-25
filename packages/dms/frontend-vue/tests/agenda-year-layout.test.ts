@@ -172,6 +172,36 @@ describe("year of small months", () => {
   });
 });
 
+describe("#34 week numbers from the week start", () => {
+  it("numbers Sunday-start weeks of September 2026 by their Thursday, none twice", () => {
+    const months = buildYearMonths({
+      from: "2026-01-01",
+      today: "",
+      occurrences: [],
+      backgrounds: [],
+      weekStartsOn: 0,
+    });
+    expect(months[8]!.weeks.map((week) => week.week)).toEqual([
+      36, 37, 38, 39, 40,
+    ]);
+  });
+
+  it("numbers Saturday-start weeks too", () => {
+    const months = buildYearMonths({
+      from: "2026-01-01",
+      today: "",
+      occurrences: [],
+      backgrounds: [],
+      weekStartsOn: 6,
+    });
+    // Sat 24 – Fri 30 October: its Thursday is the 29th, week 44.
+    const october = months[9]!.weeks.find((week) =>
+      week.days.some((cell) => cell.day === "2026-10-24"),
+    );
+    expect(october?.week).toBe(44);
+  });
+});
+
 describe("two-click range", () => {
   it("orders the pending range either way", () => {
     expect(pendingRange("2026-10-28", "2026-10-26")).toEqual({

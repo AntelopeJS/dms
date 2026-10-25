@@ -94,6 +94,8 @@ export function applySaveAnswer(
   response: AgendaSaveResponse,
   written: AgendaChange[],
   seedOf: AgendaSeedOf = () => undefined,
+  /** The agenda's zone: a series without one of its own moves in it. */
+  timeZone = "UTC",
 ): AgendaData {
   const answered = response.events ?? [];
   const replaced = new Set(
@@ -106,7 +108,7 @@ export function applySaveAnswer(
   for (const change of written) {
     const id = changedId(change);
     if (id && (replaced.has(id) || removed.has(id))) continue;
-    events = applyChange(events, change, seedOf(change));
+    events = applyChange(events, change, seedOf(change), timeZone);
   }
   const unscheduled = response.unscheduled ?? pendingAfter(data, written);
   return {

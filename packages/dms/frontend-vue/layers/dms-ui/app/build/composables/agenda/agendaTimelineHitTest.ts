@@ -34,9 +34,51 @@ export interface TimelineTargetInput {
   timeZone: string;
 }
 
+const MINUTE_MS = 60_000;
+
+type TargetRow = Pick<AgendaDropTarget, "resourceId" | "unassigned">;
+
+/** The row part of a target: its resource, or the "No resource" marker. */
+function rowPart(resourceId: string | null): TargetRow {
+  return resourceId ? { resourceId } : { unassigned: true };
+}
+
 /**
- * What a point of a row is over: a day with a time snapped down to
- * `snapMinutes` (by hour), a slot (by slot), or a day cell (by day).
+ * A point of an hour column: the wall-clock minutes of its day snapped down
+ * to `snapMinutes`, and the instant itself (snapped the same way), which
+ * tells the first 02:30 of a fall-back day from the second.
+ */
+function hourTarget(
+  column: TimelineColumn,
+  fraction: number,
+  input: TimelineTargetInput,
+): AgendaDropTarget {
+  const epoch = Math.min(
+    column.end - 1,
+    column.start + fraction * (column.end - column.start),
+  );
+  const wall = zonedWallClock(epoch, input.timeZone);
+  const snap = Math.max(1, input.snapMinutes);
+  const minutes =
+    wall.day === column.day
+      ? Math.floor(wall.minutes / snap) * snap
+      : column.minutes;
+  const snapped = epoch - (wall.minutes - minutes) * MINUTE_MS;
+  return {
+    day: column.day,
+    minutes: Math.max(column.minutes, minutes),
+    instant: Math.max(
+      column.start,
+      Math.floor(snapped / MINUTE_MS) * MINUTE_MS,
+    ),
+  };
+}
+
+/**
+ * What a point of a row is over: a day with a time (by hour; snapped down
+ * to `snapMinutes`, with the instant), a slot (by slot: `slotIndex` in the
+ * day, `minutes` its start), or a day cell (by day). The row of the events
+ * planned on no resource answers `unassigned`.
  */
 export function timelineTargetAt(
   input: TimelineTargetInput,
@@ -48,29 +90,18 @@ export function timelineTargetAt(
     Math.max(0, Math.floor(input.position)),
   );
   const column = columns[index]!;
-  const resource = input.resourceId ? { resourceId: input.resourceId } : {};
+  const row = rowPart(input.resourceId);
   if (input.scale === "day") {
-    return { day: column.day, allDay: true, ...resource };
+    return { day: column.day, allDay: true, ...row };
   }
   if (input.scale === "slot") {
     return {
       day: column.day,
       minutes: column.minutes,
       slotIndex: column.slotIndex ?? 0,
-      ...resource,
+      ...row,
     };
   }
   const fraction = Math.min(1, Math.max(0, input.position - index));
-  const epoch = column.start + fraction * (column.end - column.start);
-  const wall = zonedWallClock(Math.min(epoch, column.end - 1), input.timeZone);
-  const snap = Math.max(1, input.snapMinutes);
-  const minutes =
-    wall.day === column.day
-      ? Math.floor(wall.minutes / snap) * snap
-      : column.minutes;
-  return {
-    day: column.day,
-    minutes: Math.max(column.minutes, minutes),
-    ...resource,
-  };
+  return { ...hourTarget(column, fraction, input), ...row };
 }

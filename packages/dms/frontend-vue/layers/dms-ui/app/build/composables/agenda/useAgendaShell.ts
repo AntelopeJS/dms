@@ -59,7 +59,9 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
       width: ctx.width.value,
       compact: ctx.compact.value,
       sidebar: sidebar.value,
-      sidebarOpen: ctx.sidebarOpen.value,
+      // A sidebar that cannot be folded always shows, even `collapsed`.
+      sidebarOpen:
+        sidebar.value?.collapsible === false || ctx.sidebarOpen.value,
       overlayOpen: overlayOpen.value,
       details: requestedDetails.value,
       viewCount: ctx.views.value.length,
@@ -76,22 +78,28 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
     else ctx.sidebarOpen.value = !ctx.sidebarOpen.value;
   }
 
+  /** Every change not written yet, conflicts and refusals included: the bar shows while there is one. */
   const stagedCount = computed(() => ctx.staged.value.length);
+  /** The changes Save sends (a conflict waits for its own answer). */
+  const sendableCount = computed(() => ctx.sendableCount.value);
   const isStaged = computed(() => props.saveMode === "staged");
   const saveLabel = computed(() =>
     t(
       props.review
-        ? "dms.agenda.details.review_changes"
-        : "dms.agenda.details.save_changes",
-      { count: stagedCount.value },
-      stagedCount.value,
+        ? "dms.agenda.save.review_label"
+        : "dms.agenda.save.save_label",
+      { count: sendableCount.value },
+      sendableCount.value,
     ),
   );
 
   /** Writes the staged changes, after the review list with `review`. */
   async function requestSave(): Promise<void> {
-    if (stagedCount.value === 0 || ctx.saving.value) return;
-    if (props.review) {
+    if (ctx.saving.value) return;
+    // The review also resolves conflicts: it opens while one is left.
+    const reviews = props.review && stagedCount.value > 0;
+    if (!reviews && sendableCount.value === 0) return;
+    if (reviews) {
       const confirmed = await openModal<boolean>({
         title: t("dms.agenda.details.review_title"),
         description: t("dms.agenda.details.review_description"),
@@ -99,7 +107,7 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
         component: AgendaReviewList,
         componentOptions: { context: ctx },
       }).result;
-      if (!confirmed) return;
+      if (!confirmed || sendableCount.value === 0) return;
     }
     await ctx.saveStaged();
   }
@@ -131,6 +139,7 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
     toggleSidebar,
     isStaged,
     stagedCount,
+    sendableCount,
     saveLabel,
     requestSave,
     onKeydown,

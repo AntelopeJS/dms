@@ -3,15 +3,29 @@
 // lane packing also lays out the all-day row of the time grid.
 
 import type { AgendaDay, AgendaOccurrence } from "./agendaModel";
-import { startOfWeek } from "./agendaTime";
+import { addDays, isoWeekOf, startOfWeek } from "./agendaTime";
+import { shiftShownDay } from "./agendaSlots";
 
 /** A row of the month: the shown days of one week. */
 export interface AgendaWeekRow {
   /** The week's first day (shown or not). */
   key: string;
   days: AgendaDay[];
-  /** ISO week number of the row. */
+  /** ISO week number of the row, counted from its first day (see {@link weekNumberOf}). */
   week: number;
+}
+
+const THURSDAY = 4;
+const DAYS_PER_WEEK = 7;
+
+/**
+ * The ISO number of a week that starts on `weekStart`: the number of its
+ * Thursday, whichever day the weeks start on. A Sunday-start week 25–31
+ * October 2026 is week 44, not the 43 of its Sunday.
+ */
+export function weekNumberOf(weekStart: string, weekStartsOn: number): number {
+  const toThursday = (THURSDAY - weekStartsOn + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+  return isoWeekOf(addDays(weekStart, toThursday));
 }
 
 /** Something to lay out over consecutive columns, `first` to `last` inclusive. */
@@ -58,7 +72,7 @@ export function monthWeeks(
     const key = startOfWeek(day.key, weekStartsOn);
     const current = rows.at(-1);
     if (current?.key === key) current.days.push(day);
-    else rows.push({ key, days: [day], week: day.week });
+    else rows.push({ key, days: [day], week: weekNumberOf(key, weekStartsOn) });
   }
   return rows;
 }
@@ -134,6 +148,7 @@ function itemSegments(
   lane: number,
   visibleLanes: number[],
   days: AgendaDay[],
+  hiddenDays: readonly number[],
 ): AgendaMonthSegment[] {
   const segments: AgendaMonthSegment[] = [];
   let runStart = -1;
@@ -144,8 +159,12 @@ function itemSegments(
       lane,
       first: runStart,
       last: end,
-      continuesBefore: item.occurrence.startDay < days[runStart]!.key,
-      continuesAfter: item.occurrence.endDay > days[end]!.key,
+      // It continues only towards a shown day, not into a hidden weekend.
+      continuesBefore:
+        item.occurrence.startDay <=
+        shiftShownDay(days[runStart]!.key, -1, hiddenDays),
+      continuesAfter:
+        item.occurrence.endDay >= shiftShownDay(days[end]!.key, 1, hiddenDays),
       layout: chipLayout(item),
     });
     runStart = -1;
@@ -168,6 +187,7 @@ export function layoutMonthWeek(
   days: AgendaDay[],
   occurrences: AgendaOccurrence[],
   maxEventsPerDay: number,
+  hiddenDays: readonly number[] = [],
 ): AgendaMonthWeekLayout {
   const limit = Math.max(1, maxEventsPerDay);
   const items = weekItems(days, occurrences);
@@ -182,7 +202,7 @@ export function layoutMonthWeek(
     events.length > limit ? limit - 1 : limit,
   );
   const segments = items.flatMap((item) =>
-    itemSegments(item, lanes.get(item.key)!, visibleLanes, days),
+    itemSegments(item, lanes.get(item.key)!, visibleLanes, days, hiddenDays),
   );
   const drawn = days.map(() => 0);
   for (const segment of segments) {

@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-/* eslint-disable vue/one-component-per-file -- stand-ins for Nuxt UI and the views */
 /**
  * The FullAgenda block around its views, from static data through a fake
  * context: toolbar, sidebar (mini calendar, legend with toggles and counts,
@@ -8,312 +7,107 @@
  * save bar and Ctrl+S, the error and empty states, the height, and how it
  * lays out at 320, 700 and 1400 px wide.
  */
+import { nextTick } from "vue";
+import { describe, expect, it, vi } from "vitest";
+import { fakeOccurrence, stagedListOf } from "./fixtures/agendaFakeContext";
 import {
-  createApp,
-  defineComponent,
-  h,
-  inject,
-  nextTick,
-  provide,
-  ref,
-  type InjectionKey,
-} from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  fakeAgendaContext,
-  fakeOccurrence,
-  stagedListOf,
-  type FakeAgenda,
-} from "./fixtures/agendaFakeContext";
-import type { AgendaContext } from "../layers/dms-ui/app/build/composables/agenda/agendaModel";
+  AGENDA_STATIC,
+  harness,
+  mountBlock as mountWith,
+  query,
+  useAgendaBlockHarness,
+  type AgendaMountPlace,
+} from "./fixtures/agendaBlockHarness";
 import type { FullAgendaOptions } from "../layers/dms-ui/app/types/full-agenda";
 
-const AGENDA_KEY: InjectionKey<AgendaContext> = Symbol("agenda");
-const current: { agenda: FakeAgenda | null } = { agenda: null };
-const drawerOpen = vi.fn();
-const modalOpen = vi.fn();
-const pageFills = ref(false);
-
-const stub = (name: string) =>
-  defineComponent({
-    name,
-    inheritAttrs: false,
-    props: { label: { type: String, default: undefined } },
-    setup:
-      (props, { attrs, slots }) =>
-      () =>
-        h("div", { ...attrs, "data-stub": name }, [
-          props.label,
-          slots.default?.(),
-        ]),
-  });
-
-vi.mock("../layers/dms-ui/app/build/composables/agenda/useAgenda", () => ({
-  useAgenda: () => {
-    const ctx = current.agenda!.ctx;
-    provide(AGENDA_KEY, ctx);
-    return ctx;
-  },
-  useAgendaContext: () => inject(AGENDA_KEY)!,
-}));
+const fixture = () => import("./fixtures/agendaBlockHarness");
+vi.mock(
+  "../layers/dms-ui/app/build/composables/agenda/useAgenda",
+  async () => (await fixture()).mocks.useAgenda,
+);
 vi.mock(
   "../layers/dms-ui/app/build/components/agenda/AgendaTimeGrid.vue",
-  () => ({ default: stub("time-grid") }),
+  async () => (await fixture()).mocks.view("time-grid"),
 );
 vi.mock(
   "../layers/dms-ui/app/build/components/agenda/AgendaMonthView.vue",
-  () => ({ default: stub("month") }),
+  async () => (await fixture()).mocks.view("month"),
 );
 vi.mock(
   "../layers/dms-ui/app/build/components/agenda/AgendaTimelineView.vue",
-  () => ({ default: stub("timeline") }),
+  async () => (await fixture()).mocks.view("timeline"),
 );
 vi.mock(
   "../layers/dms-ui/app/build/components/agenda/AgendaYearView.vue",
-  () => ({ default: stub("year") }),
+  async () => (await fixture()).mocks.view("year"),
 );
 vi.mock(
   "../layers/dms-ui/app/build/components/agenda/AgendaListView.vue",
-  () => ({ default: stub("list") }),
+  async () => (await fixture()).mocks.view("list"),
 );
-vi.mock("../layers/dms-ui/app/components/form/components/Calendar.vue", () => ({
-  default: stub("calendar"),
-}));
+vi.mock(
+  "../layers/dms-ui/app/components/form/components/Calendar.vue",
+  async () => (await fixture()).mocks.calendar,
+);
 vi.mock(
   "../layers/dms-ui/app/build/components/matrix/MatrixCellValue.vue",
-  () => ({
-    default: defineComponent({
-      props: { value: { type: null, default: undefined } },
-      setup: (props) => () =>
-        h("span", { "data-cell-value": "" }, String(props.value ?? "")),
-    }),
-  }),
+  async () => (await fixture()).mocks.cellValue,
 );
 vi.mock(
   "../layers/dms-ui/app/build/components/matrix/MatrixFieldInput.vue",
-  () => ({
-    default: defineComponent({
-      props: {
-        modelValue: { type: null, default: undefined },
-        id: { type: String, default: undefined },
-      },
-      emits: ["update:modelValue"],
-      setup:
-        (props, { emit }) =>
-        () =>
-          h("input", {
-            id: props.id,
-            value: props.modelValue ?? "",
-            onInput: (event: Event) =>
-              emit(
-                "update:modelValue",
-                (event.target as HTMLInputElement).value,
-              ),
-          }),
-    }),
-  }),
+  async () => (await fixture()).mocks.fieldInput,
 );
-vi.mock("../layers/dms-ui/app/composables/resolveDmsComponent", () => ({
-  resolveDmsComponent: () => stub("dms-input"),
-}));
-vi.mock("../layers/dms-ui/app/composables/containers/useDrawer", () => ({
-  useDrawer: () => ({ open: drawerOpen }),
-}));
-vi.mock("../layers/dms-ui/app/composables/containers/useModal", () => ({
-  useModal: () => ({ open: modalOpen }),
-}));
-vi.mock("../layers/dms-ui/app/composables/confirm/useConfirm", () => ({
-  useConfirm: () => ({ confirm: vi.fn(async () => true) }),
-}));
+vi.mock(
+  "../layers/dms-ui/app/composables/resolveDmsComponent",
+  async () => (await fixture()).mocks.resolveDmsComponent,
+);
+vi.mock(
+  "../layers/dms-ui/app/composables/containers/useDrawer",
+  async () => (await fixture()).mocks.useDrawer,
+);
+vi.mock(
+  "../layers/dms-ui/app/composables/containers/useModal",
+  async () => (await fixture()).mocks.useModal,
+);
+vi.mock(
+  "../layers/dms-ui/app/composables/confirm/useConfirm",
+  async () => (await fixture()).mocks.useConfirm,
+);
 vi.mock(
   "../layers/dms-layout/app/composables/layout/usePageFillHeight",
-  () => ({
-    usePageFillHeight: () => pageFills,
-  }),
+  async () => (await fixture()).mocks.usePageFillHeight,
 );
-vi.mock("../layers/dms-ui/app/components/save-bar/SaveBar.vue", () => ({
-  default: defineComponent({
-    props: { saveLabel: { type: String, default: undefined } },
-    emits: ["save", "discard"],
-    setup:
-      (props, { emit }) =>
-      () =>
-        h(
-          "button",
-          { "data-save-bar": "", onClick: () => emit("save") },
-          props.saveLabel,
-        ),
-  }),
-}));
+vi.mock(
+  "../layers/dms-ui/app/components/save-bar/SaveBar.vue",
+  async () => (await fixture()).mocks.saveBar,
+);
 vi.mock(
   "../layers/dms-ui/app/build/components/blocks/BlockInlineStatus.vue",
-  () => ({
-    default: defineComponent({
-      props: { state: { type: String, default: undefined } },
-      setup: (props) => () => h("div", { "data-block-status": props.state }),
-    }),
-  }),
+  async () => (await fixture()).mocks.inlineStatus,
 );
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
+vi.mock(
+  "../layers/dms-core/app/composables/watch/useWatch",
+  async () => (await fixture()).mocks.useWatch,
+);
 vi.mock(
   "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({
-    useComponentEvent: vi.fn(),
-  }),
+  async () => (await fixture()).mocks.useComponentEvent,
 );
 
 const { default: FullAgendaBlock } = await import(
   "../layers/dms-ui/app/components/blocks/FullAgendaBlock.vue"
 );
 
-const UButton = defineComponent({
-  inheritAttrs: false,
-  props: {
-    label: { type: String, default: undefined },
-    type: { type: String, default: "button" },
-  },
-  setup:
-    (props, { attrs, slots }) =>
-    () =>
-      h("button", { ...attrs, type: props.type }, [
-        props.label,
-        slots.default?.(),
-      ]),
-});
-const UPopover = defineComponent({
-  props: { open: { type: Boolean, default: false } },
-  setup:
-    (props, { slots }) =>
-    () =>
-      h("div", { "data-popover": "" }, [
-        slots.default?.(),
-        props.open ? slots.content?.() : null,
-      ]),
-});
-const USelect = defineComponent({
-  inheritAttrs: false,
-  props: {
-    items: { type: Array, default: () => [] },
-    modelValue: { type: null, default: undefined },
-  },
-  setup:
-    (props, { attrs }) =>
-    () =>
-      h(
-        "select",
-        { ...attrs, value: props.modelValue },
-        (props.items as { label: string; value: string }[]).map((item) =>
-          h("option", { value: item.value }, item.label),
-        ),
-      ),
-});
-
-const STATIC = {
-  events: [
-    {
-      id: "e1",
-      title: "Sprint planning",
-      start: "2026-10-26T09:00:00+01:00",
-      end: "2026-10-26T10:00:00+01:00",
-      calendarId: "design",
-      location: "Room A",
-      data: { dossier: "45601" },
-      issues: [{ message: "No room booked", tone: "error" as const }],
-    },
-    {
-      id: "e2",
-      title: "Design critique",
-      start: "2026-10-27T14:00:00+01:00",
-      end: "2026-10-27T15:00:00+01:00",
-      calendarId: "design",
-    },
-    {
-      id: "e3",
-      title: "Backend sync",
-      start: "2026-10-28T11:00:00+01:00",
-      end: "2026-10-28T11:30:00+01:00",
-      calendarId: "eng",
-    },
-  ],
-  calendars: [
-    { id: "design", label: "Design", color: "oklch(0.62 0.15 258)" as const },
-    { id: "eng", label: "Engineering", color: "#1A7A4A" as const },
-  ],
-  unscheduled: [{ id: "p1", title: "Client_1", subtitle: "45601" }],
-  notices: [{ message: "Under-staffed on Saturday", date: "2026-10-31" }],
-};
-
-const mounted: Array<{ unmount: () => void; el: HTMLElement }> = [];
-
-async function mountBlock(
+const mountBlock = (
   options: Partial<FullAgendaOptions> = {},
   width = 1400,
-): Promise<{ el: HTMLElement; agenda: FakeAgenda }> {
-  const props = {
-    componentId: "team",
-    pageId: "agenda-team",
-    staticData: STATIC,
-    ...options,
-  };
-  current.agenda = fakeAgendaContext(props, width);
-  const el = document.createElement("div");
-  document.body.append(el);
-  const app = createApp(FullAgendaBlock, props);
-  for (const name of [
-    "UTooltip",
-    "UIcon",
-    "UBadge",
-    "UInput",
-    "USelectMenu",
-    "UAvatar",
-    "URadioGroup",
-    "DmsSegmented",
-    "USwitch",
-  ])
-    app.component(name, stub(name));
-  app.component("UButton", UButton);
-  app.component("UPopover", UPopover);
-  app.component("USelect", USelect);
-  app.mount(el);
-  mounted.push({ unmount: () => app.unmount(), el });
-  await nextTick();
-  return { el, agenda: current.agenda };
-}
+  place: AgendaMountPlace = {},
+) => mountWith(FullAgendaBlock, options, width, place);
+const drawerOpen = harness.drawerOpen;
+const modalOpen = harness.modalOpen;
+const STATIC = AGENDA_STATIC;
 
-beforeEach(() => {
-  vi.stubGlobal("useI18n", () => ({
-    locale: ref("en-GB"),
-    t: (key: string, params?: Record<string, unknown>) =>
-      params && typeof params === "object"
-        ? `${key} ${JSON.stringify(params)}`
-        : key,
-  }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  drawerOpen.mockReset().mockImplementation(() => ({
-    result: new Promise(() => {}),
-    close: vi.fn(),
-    patch: vi.fn(),
-  }));
-  modalOpen.mockReset().mockImplementation(() => ({
-    result: Promise.resolve(true),
-    close: vi.fn(),
-    patch: vi.fn(),
-  }));
-  pageFills.value = false;
-});
-
-afterEach(() => {
-  for (const { unmount, el } of mounted.splice(0)) {
-    unmount();
-    el.remove();
-  }
-  vi.unstubAllGlobals();
-});
-
-const query = (el: HTMLElement, selector: string) =>
-  el.querySelector<HTMLElement>(selector);
+useAgendaBlockHarness();
 
 describe("a full agenda", () => {
   it("draws the toolbar, the sidebar's sections and the view of the context", async () => {
@@ -340,7 +134,12 @@ describe("a full agenda", () => {
     );
     // The legend: a toggle per calendar with its count.
     const design = query(el, '[data-agenda-calendar="design"]')!;
-    expect(design.getAttribute("aria-pressed")).toBe("true");
+    // A checkbox named by its calendar and count, the same checked or not.
+    expect(design.getAttribute("role")).toBe("checkbox");
+    expect(design.getAttribute("aria-checked")).toBe("true");
+    expect(design.getAttribute("aria-label")).toBe(
+      'dms.agenda.sidebar.calendar_count {"name":"Design","count":2}',
+    );
     expect(design.textContent).toContain("2");
     design.click();
     expect(agenda.ctx.toggleCalendar).toHaveBeenCalledWith("design");
@@ -452,7 +251,7 @@ describe("a full agenda", () => {
     ];
     await nextTick();
     expect(query(el, "[data-save-bar]")?.textContent).toContain(
-      "dms.agenda.details.save_changes",
+      "dms.agenda.save.save_label",
     );
     const key = new KeyboardEvent("keydown", {
       key: "s",
@@ -476,7 +275,7 @@ describe("a full agenda", () => {
     stagedListOf(agenda.ctx).value = [{ kind: "delete", id: "e2" }];
     await nextTick();
     expect(query(el, "[data-save-bar]")?.textContent).toContain(
-      "dms.agenda.details.review_changes",
+      "dms.agenda.save.review_label",
     );
     const key = new KeyboardEvent("keydown", {
       key: "s",
@@ -502,7 +301,7 @@ describe("a full agenda", () => {
       "Nothing planned",
     );
     expect(query(el, "[data-dms-full-agenda]")?.style.height).toBe("44rem");
-    pageFills.value = true;
+    harness.pageFills.value = true;
     const filled = await mountBlock({});
     const root = query(filled.el, "[data-dms-full-agenda]")!;
     expect(root.style.height).toBe("");

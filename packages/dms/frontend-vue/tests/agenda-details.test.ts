@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+/* eslint-disable vue/one-component-per-file -- one probe component per agenda */
 /**
  * The details of a FullAgenda (`useAgendaDetails`) over a fake context: a
  * new event's form and its `create` change, a refused form, the scope of a
@@ -287,5 +288,95 @@ describe("an occurrence", () => {
       expect.objectContaining({ id: "close" }),
       meeting,
     );
+  });
+});
+
+/** Another details instance over the same agenda (the form mounted anew). */
+function detailsOn(agenda: FakeAgenda): AgendaDetailsApi {
+  let api: AgendaDetailsApi | undefined;
+  const app = createApp(
+    defineComponent({
+      setup() {
+        api = useAgendaDetails(agenda.ctx);
+        return () => h("div");
+      },
+    }),
+  );
+  app.mount(document.createElement("div"));
+  apps.push(app);
+  return api!;
+}
+
+describe("round 1", () => {
+  it("#21 keeps the form open, flagged, when the route refuses", async () => {
+    const { api, agenda } = details();
+    const meeting = agenda.ctx.occurrences.value[0]!;
+    agenda.ctx.details.value = {
+      occurrence: meeting,
+      mode: "edit",
+      container: "drawer",
+    };
+    agenda.applyResult.value = false;
+    const saved = await api.save({ ...api.initialValues(), title: "Refused" });
+    expect(saved).toBe(false);
+    expect(api.errors.value._form).toBe("$dms.agenda.details.status_error");
+    expect(agenda.ctx.details.value?.mode).toBe("edit");
+  });
+
+  it("#10 gives a form mounted again the values typed, until it is left", () => {
+    const { api, agenda } = details();
+    const meeting = agenda.ctx.occurrences.value[0]!;
+    agenda.ctx.details.value = {
+      occurrence: meeting,
+      mode: "edit",
+      container: "panel",
+    };
+    api.keepDraft({ ...api.initialValues(), title: "Typed" });
+    // The panel became a drawer: a new form on the same event.
+    expect(detailsOn(agenda).initialValues().title).toBe("Typed");
+    api.cancel();
+    agenda.ctx.details.value = {
+      occurrence: meeting,
+      mode: "edit",
+      container: "panel",
+    };
+    expect(detailsOn(agenda).initialValues().title).toBe("Sprint planning");
+  });
+});
+
+describe("review", () => {
+  it("#23 shows before → after for a change of the end alone", async () => {
+    const { default: AgendaReviewList } = await import(
+      "../layers/dms-ui/app/build/components/agenda/AgendaReviewList.vue"
+    );
+    const { agenda } = details();
+    agenda.ctx.stagedEdits = {
+      value: [
+        {
+          key: "k1",
+          status: "staged",
+          base: { ...MEETING },
+          change: {
+            kind: "resize",
+            id: "e1",
+            patch: { end: "2026-10-26T11:00:00+01:00" },
+            previous: { end: "2026-10-26T10:00:00+01:00" },
+          },
+        },
+      ],
+    } as typeof agenda.ctx.stagedEdits;
+    const el = document.createElement("div");
+    const app = createApp(AgendaReviewList, { context: agenda.ctx });
+    app.mount(el);
+    apps.push(app);
+    const line = el.querySelector("[data-agenda-review] li")!;
+    const times = line.querySelectorAll("p")[1]!;
+    const texts = [...times.querySelectorAll("span")].map(
+      (span) => span.textContent,
+    );
+    expect(texts).toEqual([
+      "medium:2026-10-26 08:00 – medium:2026-10-26 09:00",
+      "medium:2026-10-26 08:00 – medium:2026-10-26 10:00",
+    ]);
   });
 });

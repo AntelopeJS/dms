@@ -11,6 +11,7 @@ import type {
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import { useActionTargets } from "../actions/useActionTargets";
 import type {
+  AgendaContext,
   AgendaDetailsState,
   AgendaDropTarget,
   AgendaFormat,
@@ -47,13 +48,12 @@ export interface AgendaInteractionSetup {
   viewId: () => string;
   today: ComputedRef<string>;
   now: Ref<number>;
-  compact: ComputedRef<boolean>;
   format: AgendaFormat;
   occurrences: ComputedRef<AgendaOccurrence[]>;
   resources: () => AgendaResource[];
   /** The data was read once and no read runs: a deep-linked event missing is gone. */
   isSettled: () => boolean;
-  apply: (change: AgendaChange, occurrence?: AgendaOccurrence) => Promise<void>;
+  apply: AgendaContext["apply"];
   refresh: () => Promise<void>;
   text: (value: BlockText | undefined) => string;
   announce: (message: string) => void;
@@ -136,7 +136,10 @@ function useAgendaCreate(
       createAt(placementOfDays(first, target, timeZone()));
       return;
     }
-    rangeAnchor.value = { day: target.day, resourceId: target.resourceId };
+    rangeAnchor.value = {
+      day: target.day,
+      resourceId: target.unassigned ? undefined : target.resourceId,
+    };
     setup.announce(
       t(`${A11Y_PREFIX}.range_started`, {
         day: setup.format.day(target.day, "long"),
@@ -182,9 +185,9 @@ export function useAgendaInteractions(setup: AgendaInteractionSetup) {
   const isDeepLinked =
     raw.details?.deepLink !== false && raw.urlState !== false;
   const runTarget = useTargetRunner(setup);
-  /** A panel opens as a drawer in a narrow agenda. */
-  const containerFor = (container: AgendaDetailsContainer) =>
-    setup.compact.value && container === "panel" ? "drawer" : container;
+  // The container asked for is kept: the shell draws a panel as a drawer
+  // while the agenda is narrow, and as a panel again once it widens.
+  const containerFor = (container: AgendaDetailsContainer) => container;
   const create = useAgendaCreate(setup, { details, runTarget, containerFor });
 
   const writeOpenEvent = (key?: string) => {

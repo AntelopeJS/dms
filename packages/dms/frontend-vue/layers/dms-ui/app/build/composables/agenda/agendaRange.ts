@@ -284,9 +284,20 @@ export function stepAnchor(
   if (view.type === "month") return addMonths(anchor, step);
   if (view.type === "year") return addMonths(anchor, step * 12);
   if (view.type === "week") return addDays(anchor, step * DAYS_PER_WEEK);
-  if (view.type === "day")
-    return visibleDay(addDays(anchor, step), view.hiddenDays, step);
-  return addDays(anchor, step * view.duration);
+  const next = addDays(anchor, step * view.duration);
+  return startsOnShownDay(view)
+    ? visibleDay(next, view.hiddenDays, step)
+    : next;
+}
+
+/**
+ * Whether a view shorter than a week starts on a day it shows: a one-day
+ * `day`, `resources` or `timeline` never lands on a hidden Saturday, where
+ * it would show nothing of its own.
+ */
+export function startsOnShownDay(view: ResolvedAgendaView): boolean {
+  if (view.type === "day") return true;
+  return DURATION_VIEWS.has(view.type) && view.duration < DAYS_PER_WEEK;
 }
 
 /** Navigation bounds (inclusive days); either may be absent. */

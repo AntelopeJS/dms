@@ -10,6 +10,27 @@ const MAX_LINE_OCTETS = 75;
 const PRODUCT_ID = "-//AntelopeJS//DMS FullAgenda//EN";
 const UID_DOMAIN = "dms-agenda";
 const TAG_PATTERN = /<[^>]*>/g;
+const ENTITY_PATTERN = /&(#x[\da-f]+|#\d+|[a-z]+);/gi;
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: "\u00a0",
+};
+
+/** HTML entities as the characters they stand for (`&amp;` is "&", `&#233;` is "é"). */
+export function decodeEntities(text: string): string {
+  return text.replace(ENTITY_PATTERN, (entity, name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.startsWith("#x"))
+      return String.fromCodePoint(Number.parseInt(lower.slice(2), 16));
+    if (lower.startsWith("#"))
+      return String.fromCodePoint(Number.parseInt(lower.slice(1), 10));
+    return NAMED_ENTITIES[lower] ?? entity;
+  });
+}
 const ICS_MIME = "text/calendar;charset=utf-8";
 const PAD = 2;
 const YEAR_PAD = 4;
@@ -98,7 +119,9 @@ function occurrenceLines(
   }
   lines.push(`SUMMARY:${escapeIcsText(event.title ?? "")}`);
   if (event.location) lines.push(`LOCATION:${escapeIcsText(event.location)}`);
-  const description = event.description?.replace(TAG_PATTERN, "").trim();
+  const description = decodeEntities(
+    event.description?.replace(TAG_PATTERN, "") ?? "",
+  ).trim();
   if (description) lines.push(`DESCRIPTION:${escapeIcsText(description)}`);
   const category = options.calendarLabel?.(occurrence);
   if (category) lines.push(`CATEGORIES:${escapeIcsText(category)}`);

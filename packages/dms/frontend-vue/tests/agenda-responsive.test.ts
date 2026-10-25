@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  attributeSelector,
   legendGroups,
   resolveAgendaHeight,
   resolveLegend,
@@ -144,16 +145,53 @@ describe("parts", () => {
   });
 
   it("fills a filling page, else takes 44rem or the length given", () => {
-    expect(resolveAgendaHeight(undefined, true)).toEqual({ fill: true });
-    expect(resolveAgendaHeight(undefined, false)).toEqual({
-      fill: false,
-      height: "44rem",
+    const page = {
+      pageFills: true,
+      parentFlexColumn: true,
+      inContainer: false,
+    };
+    expect(resolveAgendaHeight(undefined, page)).toEqual({ fill: true });
+    expect(
+      resolveAgendaHeight(undefined, { ...page, pageFills: false }),
+    ).toEqual({ fill: false, height: "44rem" });
+    expect(resolveAgendaHeight("fill", { ...page, pageFills: false })).toEqual({
+      fill: true,
     });
-    expect(resolveAgendaHeight("fill", false)).toEqual({ fill: true });
-    expect(resolveAgendaHeight("30rem", true)).toEqual({
+    expect(resolveAgendaHeight("30rem", page)).toEqual({
       fill: false,
       height: "30rem",
     });
+    // Not measured yet (server render): it fills.
+    expect(
+      resolveAgendaHeight(undefined, { ...page, parentFlexColumn: null }),
+    ).toEqual({ fill: true });
+  });
+
+  it("falls back where nothing gives it a height: a block above the last, a modal body", () => {
+    // #11: only the page's last block sits in a flex column.
+    expect(
+      resolveAgendaHeight(undefined, {
+        pageFills: true,
+        parentFlexColumn: false,
+        inContainer: false,
+      }),
+    ).toEqual({ fill: false, height: "44rem" });
+    // A modal body is no flex column: bounded by the window.
+    expect(
+      resolveAgendaHeight("fill", {
+        pageFills: false,
+        parentFlexColumn: false,
+        inContainer: true,
+      }),
+    ).toEqual({ fill: false, height: "min(44rem, calc(100dvh - 12rem))" });
+    // A drawer body is one: it fills.
+    expect(
+      resolveAgendaHeight("fill", {
+        pageFills: false,
+        parentFlexColumn: true,
+        inContainer: true,
+      }),
+    ).toEqual({ fill: true });
   });
 
   it("groups the legend, sorts the notices, lists what comes next", () => {
@@ -188,5 +226,11 @@ describe("parts", () => {
     expect(
       upcomingOccurrences(occurrences, 12, 2).map((item) => item.key),
     ).toEqual(["10", "20"]);
+  });
+
+  it("builds an exact attribute selector without CSS.escape", () => {
+    expect(attributeSelector("data-agenda-occurrence", 'a"b@2026-10-26')).toBe(
+      '[data-agenda-occurrence="a\\"b@2026-10-26"]',
+    );
   });
 });

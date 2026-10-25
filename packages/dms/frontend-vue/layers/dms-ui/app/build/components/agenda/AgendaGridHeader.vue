@@ -31,6 +31,7 @@ const { processText } = useComposedText();
 const INITIALS_LENGTH = 2;
 
 /** A day header opens the day, unless the view already is one day. */
+const isCompact = computed(() => ctx.options.value.raw.density === "compact");
 const opensDay = computed(
   () => ctx.view.value.type !== "day" && ctx.range.value.days.length > 1,
 );
@@ -89,7 +90,8 @@ const cellStyle = (cell: AgendaGridHeaderCell) => ({
     <div
       v-for="cell in row"
       :key="cell.key"
-      class="flex min-w-0 items-center justify-center border-e border-(--ui-border) px-1 py-1"
+      class="flex min-w-0 items-center justify-center border-e border-(--ui-border) px-1"
+      :class="isCompact ? 'py-0.5' : 'py-1'"
       :style="cellStyle(cell)"
       role="columnheader"
     >
@@ -121,6 +123,11 @@ const cellStyle = (cell: AgendaGridHeaderCell) => ({
             {{ groupLabel(cell.column.groupId) }}
           </span>
         </button>
+      </template>
+      <template v-else-if="cell.kind === 'resource' && cell.column.unassigned">
+        <span class="text-muted truncate text-xs font-medium italic">
+          {{ t("dms.agenda.grid.unassigned") }}
+        </span>
       </template>
       <template v-else-if="cell.kind === 'resource' && cell.column.resource">
         <div class="flex min-w-0 items-center gap-1.5">

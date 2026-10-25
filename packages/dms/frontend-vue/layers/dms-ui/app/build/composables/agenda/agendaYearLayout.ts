@@ -71,6 +71,19 @@ export interface YearMonthsInput extends YearLayoutInput {
   weekStartsOn: number;
 }
 
+/**
+ * The number of a week starting on `weekFirst` (weeks from `weekStartsOn`):
+ * the ISO week of its Thursday, so a Sunday-start week Sun 25 – Sat 31
+ * October 2026 is week 44, as six of its days are.
+ */
+export function weekNumberOf(
+  weekFirst: AgendaDayKey,
+  weekStartsOn: number,
+): number {
+  const toThursday = (THURSDAY - weekStartsOn + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+  return isoWeekOf(addDays(weekFirst, toThursday));
+}
+
 /** A pending `twoClicks` range, its days in order. */
 export interface YearPendingRange {
   from: AgendaDayKey;
@@ -221,10 +234,9 @@ function monthWeeks(
       const key = `${first.slice(0, 7)}:${row}:${column}`;
       return inMonth ? dayCell(key, day, index) : blankCell(key, 0);
     });
-    const thursday = days.find((cell) => cell.weekday === THURSDAY)?.day;
     return {
       key: `${first.slice(0, 7)}:${row}`,
-      week: isoWeekOf(thursday ?? weekFirst),
+      week: weekNumberOf(weekFirst, weekStartsOn),
       days,
     };
   });

@@ -5,7 +5,11 @@ import type {
   AgendaEvent,
   AgendaFacet,
 } from "../../../types/full-agenda";
-import type { AgendaRange, ResolvedAgendaOptions } from "./agendaModel";
+import type {
+  AgendaOccurrence,
+  AgendaRange,
+  ResolvedAgendaOptions,
+} from "./agendaModel";
 import type { AgendaEditMark } from "./agendaChanges";
 import { buildOccurrences } from "./agendaOccurrences";
 import {
@@ -15,11 +19,13 @@ import {
   filterResources,
   type AgendaFacetValues,
 } from "./agendaFilters";
-import { parseDay } from "./agendaTime";
+import { addDays, dayStartEpoch, parseDay, zonedDayKey } from "./agendaTime";
 import type { AgendaDataSource } from "./useAgendaData";
 
 const OPEN_ALL_DAY = "00:00";
 const CLOSE_ALL_DAY = "24:00";
+/** How far ahead "upcoming" looks in the events in hand. */
+const UPCOMING_DAYS = 60;
 
 /** The backgrounds touching the range's days. */
 export function backgroundsIn(
@@ -50,6 +56,8 @@ export interface AgendaOccurrenceSetup {
   search: Ref<string>;
   facetValues: Ref<AgendaFacetValues>;
   hiddenCalendars: Ref<Set<string>>;
+  /** The current instant (what "upcoming" starts from). */
+  now: Ref<number>;
 }
 
 /**
@@ -72,14 +80,18 @@ export function useAgendaOccurrences(setup: AgendaOccurrenceSetup) {
         source.resources.value.map((resource) => [resource.id, resource]),
       ),
   );
-  const inRange = computed(() =>
+  /** The occurrences of the events in hand over some days, every filter aside. */
+  const occurrencesOver = (
+    days: Pick<AgendaRange, "from" | "to" | "start" | "end">,
+    shownDays?: ReadonlySet<string>,
+  ) =>
     buildOccurrences(setup.overlay.value.events, {
       timeZone: options.value.timeZone,
-      from: range.value.from,
-      to: range.value.to,
-      start: range.value.start,
-      end: range.value.end,
-      shownDays: new Set(range.value.days.map((day) => day.key)),
+      from: days.from,
+      to: days.to,
+      start: days.start,
+      end: days.end,
+      shownDays,
       defaultDurationMinutes: options.value.defaultDurationMinutes,
       editable: options.value.editable,
       dragMove: options.value.dragMove,
@@ -88,16 +100,36 @@ export function useAgendaOccurrences(setup: AgendaOccurrenceSetup) {
       calendars: calendarsById.value,
       resources: resourcesById.value,
       marks: setup.overlay.value.marks,
-    }),
+    });
+  const inRange = computed(() =>
+    occurrencesOver(
+      range.value,
+      new Set(range.value.days.map((day) => day.key)),
+    ),
   );
-  const filtered = computed(() =>
-    filterBySearchAndFacets(inRange.value, {
+  const searched = (occurrences: AgendaOccurrence[]) =>
+    filterBySearchAndFacets(occurrences, {
       search: setup.search.value,
       facets: setup.facets,
       facetValues: setup.facetValues.value,
       hiddenCalendars: setup.hiddenCalendars.value,
-    }),
-  );
+    });
+  const filtered = computed(() => searched(inRange.value));
+
+  /** The occurrences of any days, from the events in hand, every filter applied. */
+  function occurrencesIn(from: string, to: string): AgendaOccurrence[] {
+    const timeZone = options.value.timeZone;
+    const days = {
+      from,
+      to,
+      start: dayStartEpoch(from, timeZone),
+      end: dayStartEpoch(addDays(to, 1), timeZone),
+    };
+    return filterByLegend(
+      searched(occurrencesOver(days)),
+      setup.hiddenCalendars.value,
+    );
+  }
 
   /** Business hours of a resource (or the agenda's) on a weekday; none set: open all day. */
   function hoursOn(
@@ -114,6 +146,16 @@ export function useAgendaOccurrences(setup: AgendaOccurrenceSetup) {
   }
 
   return {
+    /** Every occurrence of the range, before the legend, the search and the facets (the drop rules). */
+    rangeOccurrences: inRange,
+    occurrencesIn,
+    upcoming: computed(() => {
+      const now = setup.now.value;
+      const today = zonedDayKey(now, options.value.timeZone);
+      return occurrencesIn(today, addDays(today, UPCOMING_DAYS)).filter(
+        (occurrence) => occurrence.end > now,
+      );
+    }),
     occurrences: computed(() =>
       filterByLegend(filtered.value, setup.hiddenCalendars.value),
     ),

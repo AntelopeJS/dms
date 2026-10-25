@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { lastDayOf } from "../../composables/agenda/agendaDragMath";
+import { lastDayOf } from "../../composables/agenda/agendaDragBasics";
 import { DAY_MS, zonedDayKey } from "../../composables/agenda/agendaTime";
 import AgendaGhost from "./AgendaGhost.vue";
 
@@ -14,6 +14,8 @@ import AgendaGhost from "./AgendaGhost.vue";
 interface DayColumn {
   day: string;
   resourceId?: string;
+  /** The "No resource" column: a placement on no resource. */
+  unassigned?: boolean;
 }
 
 interface AgendaDayBarsPreviewProps {
@@ -46,8 +48,9 @@ const runs = computed<PreviewRun[]>(() => {
   const last = lastDayOf(preview, timeZone);
   const found: PreviewRun[] = [];
   props.columns.forEach((column, index) => {
-    const onResource =
-      !column.resourceId || preview.resourceIds.includes(column.resourceId);
+    const onResource = column.unassigned
+      ? !preview.resourceIds.length
+      : !column.resourceId || preview.resourceIds.includes(column.resourceId);
     if (!onResource || column.day < first || column.day > last) return;
     const run = found.at(-1);
     if (run && run.last === index - 1) run.last = index;

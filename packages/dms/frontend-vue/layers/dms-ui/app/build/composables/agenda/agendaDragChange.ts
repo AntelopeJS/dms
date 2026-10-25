@@ -8,7 +8,7 @@ import type {
 } from "../../../types/full-agenda";
 import type { AgendaOccurrence, AgendaPlacement } from "./agendaModel";
 import { zonedDayKey, zonedIso } from "./agendaTime";
-import { lastDayOf } from "./agendaDragMath";
+import { lastDayOf } from "./agendaDragBasics";
 
 /** The time fields of a placement, as the contract writes them. */
 export function placementPatch(
@@ -108,9 +108,12 @@ export function scheduleChange(
 
 /** An event sent back to the pending items. */
 export function unscheduleChange(occurrence: AgendaOccurrence): AgendaChange {
-  return {
+  const change: AgendaChange = {
     kind: "unschedule",
     id: eventId(occurrence),
     previous: previousPatch(occurrence),
   };
+  // One occurrence of a series goes back, not the whole series.
+  if (occurrence.recurring) change.occurrence = occurrence.recurring.occurrence;
+  return change;
 }

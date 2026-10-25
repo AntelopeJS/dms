@@ -2,7 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import type { AgendaDropTarget } from "../../composables/agenda/agendaModel";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { monthWeeks } from "../../composables/agenda/agendaMonthLayout";
+import {
+  layoutMonthWeek,
+  monthWeeks,
+} from "../../composables/agenda/agendaMonthLayout";
 import { backgroundSpans } from "../../composables/agenda/agendaBackgroundSpans";
 import { isDayKey } from "../../composables/agenda/agendaTime";
 import AgendaMonthWeek from "./AgendaMonthWeek.vue";
@@ -20,7 +23,8 @@ const { t } = useI18n();
 const WEEK_NUMBER_WIDTH = "2.25rem";
 /** Pixels a row needs: the day number and the lanes. */
 const NUMBER_PX = 28;
-const LANE_PX = 22;
+/** Pixels of a lane, as `density` wants it. */
+const LANE_PX = { compact: 18, comfortable: 22 } as const;
 const ROW_PADDING_PX = 6;
 
 const weeks = computed(() =>
@@ -38,12 +42,40 @@ const template = computed(() =>
     .filter(Boolean)
     .join(" "),
 );
+const lanePx = computed(() =>
+  ctx.options.value.raw.density === "compact"
+    ? LANE_PX.compact
+    : LANE_PX.comfortable,
+);
 const rowMin = computed(
   () =>
     NUMBER_PX +
-    Math.max(1, ctx.options.value.maxEventsPerDay) * LANE_PX +
+    Math.max(1, ctx.options.value.maxEventsPerDay) * lanePx.value +
     ROW_PADDING_PX,
 );
+const layouts = computed(() =>
+  weeks.value.map((week) =>
+    layoutMonthWeek(
+      week.days,
+      ctx.occurrences.value,
+      ctx.options.value.maxEventsPerDay,
+      ctx.view.value.hiddenDays,
+    ),
+  ),
+);
+
+/**
+ * The one chip of the month in the tab order (roving focus): the focused
+ * event when it is drawn, else the first chip drawn. The arrows move on.
+ */
+const entryKey = computed(() => {
+  const drawn = layouts.value.flatMap((layout) =>
+    layout.segments.map((segment) => segment.occurrence.key),
+  );
+  const focused = ctx.focusedKey.value;
+  if (focused && drawn.includes(focused)) return focused;
+  return drawn[0] ?? null;
+});
 const backgrounds = computed(() =>
   backgroundSpans(ctx.backgrounds.value, ctx.options.value.timeZone).filter(
     (span) => span.background.allDay || isDayKey(span.background.start),
@@ -65,9 +97,10 @@ function targetAt(x: number, y: number): AgendaDropTarget | null {
   if (!week) return null;
   const row = rows[index]!;
   const rect = row.getBoundingClientRect();
-  // The week number button is the row's first cell.
+  // The week number button leads the row (its cell wrapper has no box).
   const numberWidth = showWeekNumber.value
-    ? (row.firstElementChild?.getBoundingClientRect().width ?? 0)
+    ? (row.querySelector("[role=rowheader] button")?.getBoundingClientRect()
+        .width ?? 0)
     : 0;
   const width = (rect.width - numberWidth) / week.days.length;
   const column = Math.min(
@@ -123,13 +156,15 @@ onBeforeUnmount(() => unregister?.());
       }"
     >
       <AgendaMonthWeek
-        v-for="week in weeks"
+        v-for="(week, index) in weeks"
         :key="week.key"
         :week="week"
+        :layout="layouts[index]!"
         :template="template"
-        :occurrences="ctx.occurrences.value"
         :backgrounds="backgrounds"
         :show-week-number="showWeekNumber"
+        :entry-key="entryKey"
+        :lane-px="lanePx"
       />
     </div>
   </div>

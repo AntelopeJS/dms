@@ -302,20 +302,21 @@ function momentPatch(
   };
 }
 
-const textOrUndefined = (value: unknown): string | undefined =>
-  isEmptyValue(value) ? undefined : String(value).trim();
+// A field emptied in the form clears it: `null` (an absent key keeps it).
+const textOrNull = (value: unknown): string | null =>
+  isEmptyValue(value) ? null : String(value).trim();
 
 /** The built-in fields a patch takes straight from the values. */
 const PLAIN_PATCHES: Partial<
   Record<AgendaBuiltInField, (value: unknown) => Partial<AgendaEventPatch>>
 > = {
   title: (value) => ({ title: String(value ?? "").trim() }),
-  calendarId: (value) => ({ calendarId: textOrUndefined(value) }),
+  calendarId: (value) => ({ calendarId: textOrNull(value) }),
   resourceIds: (value) => ({
     resourceIds: Array.isArray(value) ? value.map(String) : [],
   }),
-  location: (value) => ({ location: textOrUndefined(value) }),
-  description: (value) => ({ description: textOrUndefined(value) }),
+  location: (value) => ({ location: textOrNull(value) }),
+  description: (value) => ({ description: textOrNull(value) }),
 };
 
 /**
@@ -334,7 +335,7 @@ export function buildPatch(
   for (const field of fields) {
     if (field.readOnly || !isFieldShown(field, values)) continue;
     if (!field.builtIn) {
-      data[field.id] = values[field.id];
+      data[field.id] = isEmptyValue(values[field.id]) ? null : values[field.id];
       continue;
     }
     const plain = PLAIN_PATCHES[field.builtIn];

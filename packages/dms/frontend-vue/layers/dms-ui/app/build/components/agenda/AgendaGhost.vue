@@ -7,7 +7,7 @@ import type {
 } from "../../composables/agenda/agendaModel";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import { agendaPaint } from "../../composables/agenda/agendaPaint";
-import { lastDayOf } from "../../composables/agenda/agendaDragMath";
+import { lastDayOf } from "../../composables/agenda/agendaDragBasics";
 import { zonedDayKey } from "../../composables/agenda/agendaTime";
 
 /**

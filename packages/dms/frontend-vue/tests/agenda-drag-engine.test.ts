@@ -86,6 +86,7 @@ function pointer(
     bubbles: true,
     cancelable: true,
     button: 0,
+    buttons: type === "pointermove" ? 1 : 0,
     altKey: Boolean(extra.altKey),
   });
   Object.defineProperty(event, "pointerId", { value: extra.pointerId ?? 1 });
@@ -402,5 +403,31 @@ describe("the keyboard", () => {
     expect(
       drag.nudge(new KeyboardEvent("keydown", { key: "ArrowDown" }), meeting),
     ).toBe(false);
+  });
+});
+
+describe("a lost pointerup (#32)", () => {
+  it("cancels when the window loses focus mid-drag", () => {
+    const { drag, apply, chip } = setup({}, [meeting]);
+    drag.startOccurrence(press(chip, 10, 560), meeting, "move");
+    window.dispatchEvent(pointer("pointermove", 160, 620));
+    expect(drag.active.value).toBe(true);
+    window.dispatchEvent(new Event("blur"));
+    expect(drag.active.value).toBe(false);
+    window.dispatchEvent(pointer("pointerup", 160, 620));
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it("cancels on a mouse move with no button down", () => {
+    const { drag, apply, chip } = setup({}, [meeting]);
+    drag.startOccurrence(press(chip, 10, 560), meeting, "move");
+    window.dispatchEvent(pointer("pointermove", 160, 620));
+    const released = pointer("pointermove", 170, 640);
+    Object.defineProperty(released, "buttons", { value: 0 });
+    window.dispatchEvent(released);
+    expect(drag.active.value).toBe(false);
+    expect(document.body.dataset.agendaDragging).toBeUndefined();
+    window.dispatchEvent(pointer("pointerup", 170, 640));
+    expect(apply).not.toHaveBeenCalled();
   });
 });

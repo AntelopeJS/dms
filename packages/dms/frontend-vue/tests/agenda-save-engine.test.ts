@@ -15,6 +15,7 @@ import {
   mergeChanges,
   overlayEdits,
   overlayPending,
+  type AgendaEdit,
 } from "../layers/dms-ui/app/build/composables/agenda/agendaChanges";
 import {
   agendaFetchQuery,
@@ -47,6 +48,7 @@ function harness(
   }> = [];
   const saved: AgendaChange[][] = [];
   const failed: string[][] = [];
+  const failedEdits: AgendaEdit[] = [];
   const confirm = vi.fn(async () => true);
   const engine = createAgendaSaveEngine({
     mode: () => mode,
@@ -67,7 +69,10 @@ function harness(
     confirm,
     onAnswer: (response, written) => answers.push({ response, written }),
     onSaved: (written) => saved.push(written),
-    onFailed: (edits) => failed.push(edits.map((edit) => edit.key)),
+    onFailed: (edits) => {
+      failed.push(edits.map((edit) => edit.key));
+      failedEdits.push(...edits);
+    },
     describeError: (error) => (error as Error).message,
     text: (message) => String(message),
     ...overrides,
@@ -79,7 +84,16 @@ function harness(
     next.resolve(response);
     await flush();
   };
-  return { engine, pending, answers, saved, failed, confirm, answer };
+  return {
+    engine,
+    pending,
+    answers,
+    saved,
+    failed,
+    failedEdits,
+    confirm,
+    answer,
+  };
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -116,32 +130,56 @@ describe("immediate mode", () => {
     expect(saved).toHaveLength(1);
   });
 
-  it("puts a refused change back where it was, with the route's message, and retries it", async () => {
-    const { engine, answer, failed, pending } = harness("immediate");
+  it("drops a refused change (the event is back), tells it, and Retry writes it again", async () => {
+    const { engine, answer, failed, failedEdits, pending } =
+      harness("immediate");
     void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
     await answer({
       errors: [{ index: 0, message: "Room taken", code: "refused" }],
     });
-    const [edit] = engine.edits.value;
-    expect(edit).toMatchObject({ status: "error", message: "Room taken" });
+    expect(engine.count.value).toBe(0);
+    expect(engine.hasUnsaved.value).toBe(false);
     expect(failed).toEqual([["a"]]);
-    const events = [
-      { id: "a", title: "A", start: "2026-10-20T09:00:00+02:00" },
-    ];
-    expect(
-      overlayEdits(events, engine.edits.value, "immediate").events[0]!.start,
-    ).toBe("2026-10-20T09:00:00+02:00");
-    void engine.retry("a");
+    expect(failedEdits[0]).toMatchObject({
+      status: "error",
+      message: "Room taken",
+    });
+    void engine.resend(failedEdits[0]!);
     expect(pending).toHaveLength(1);
+    expect(pending[0]!.request.changes[0]).toMatchObject({
+      id: "a",
+      patch: { start: "2026-10-21T09:00:00+02:00" },
+    });
     await answer({});
     expect(engine.count.value).toBe(0);
   });
 
-  it("keeps the message of a request that failed as a whole", async () => {
-    const { engine, answer } = harness("immediate");
+  it("never sends a refused move again with a later change of the event (#5)", async () => {
+    const { engine, answer, pending } = harness("immediate");
+    void engine.record(move("a", "2026-10-21T22:00:00+02:00"));
+    await answer({ errors: [{ index: 0, message: "Too late" }] });
+    void engine.record({
+      kind: "update",
+      id: "a",
+      patch: { title: "Renamed" },
+      previous: { title: "A" },
+    });
+    expect(pending[0]!.request.changes).toEqual([
+      {
+        kind: "update",
+        id: "a",
+        patch: { title: "Renamed" },
+        previous: { title: "A" },
+      },
+    ]);
+  });
+
+  it("tells the message of a request that failed as a whole", async () => {
+    const { engine, answer, failedEdits } = harness("immediate");
     void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
     await answer(new Error("Network down"));
-    expect(engine.edits.value[0]).toMatchObject({
+    expect(engine.count.value).toBe(0);
+    expect(failedEdits[0]).toMatchObject({
       status: "error",
       message: "Network down",
     });
@@ -286,7 +324,7 @@ describe("confirm", () => {
 describe("conflicts and events gone", () => {
   const current = { id: "a", title: "A", start: "2026-10-23T09:00:00+02:00" };
 
-  it("holds a conflict until Overwrite writes it with force", async () => {
+  it("holds a conflict until Overwrite writes it with overwrite, not force", async () => {
     const { engine, pending, answer } = harness("immediate");
     void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
     await answer({
@@ -301,10 +339,51 @@ describe("conflicts and events gone", () => {
     // A save of everything leaves a conflict alone.
     void engine.saveAll();
     expect(pending).toHaveLength(0);
+    expect(engine.hasUnsaved.value).toBe(false);
     void engine.overwrite("a");
-    expect(pending[0]!.request.force).toBe(true);
+    expect(pending[0]!.request.overwrite).toBe(true);
+    expect(pending[0]!.request.force).toBeUndefined();
     await answer({});
     expect(engine.count.value).toBe(0);
+  });
+
+  it("asks a confirm met after Overwrite, then posts overwrite and force (#17)", async () => {
+    const { engine, answer, pending, confirm } = harness("immediate");
+    void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
+    await answer({
+      errors: [{ index: 0, message: "Moved", code: "conflict", current }],
+    });
+    void engine.overwrite("a");
+    await answer({ confirm: { title: "Before its predecessor?" } });
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(pending[0]!.request).toMatchObject({ overwrite: true, force: true });
+  });
+
+  it("refuses a confirm asked again under force instead of asking forever (#54)", async () => {
+    const { engine, answer, pending, confirm, failedEdits } =
+      harness("immediate");
+    void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
+    await answer({ confirm: { title: "Sure?" } });
+    await answer({ confirm: { title: "Sure?" } });
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(pending).toHaveLength(0);
+    expect(failedEdits[0]).toMatchObject({ message: "Sure?" });
+  });
+
+  it("sends a later change of an event in conflict, so the route checks it again (#5)", async () => {
+    const { engine, answer, pending } = harness("immediate");
+    void engine.record(move("a", "2026-10-21T09:00:00+02:00"));
+    await answer({
+      errors: [{ index: 0, message: "Moved", code: "conflict", current }],
+    });
+    void engine.record({
+      kind: "update",
+      id: "a",
+      patch: { title: "T" },
+      previous: { title: "A" },
+    });
+    expect(pending).toHaveLength(1);
+    expect(pending[0]!.request.overwrite).toBeUndefined();
   });
 
   it("takes the route's version on Discard", async () => {

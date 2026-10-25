@@ -18,6 +18,7 @@ import {
   dayStartEpoch,
   daysBetween,
   isDayKey,
+  isTimeZone,
   MINUTE_MS,
   MINUTES_PER_DAY,
   parseDay,
@@ -99,7 +100,7 @@ function timedDays(start: number, end: number, timeZone: string) {
 function occurrenceBounds(
   bounds: EventBounds,
   day: AgendaDayKey,
-  timeZone: string,
+  zones: SeriesZones,
 ): EventBounds {
   const spanDays = daysBetween(bounds.startDay, bounds.endDay);
   if (bounds.allDay) {
@@ -108,24 +109,74 @@ function occurrenceBounds(
       allDay: true,
       startDay: day,
       endDay,
-      start: dayStartEpoch(day, timeZone),
-      end: dayStartEpoch(addDays(endDay, 1), timeZone),
+      start: dayStartEpoch(day, zones.agenda),
+      end: dayStartEpoch(addDays(endDay, 1), zones.agenda),
     };
   }
+  const { series } = zones;
   const endOffset = daysBetween(
     bounds.startDay,
-    zonedDayKey(bounds.end, timeZone),
+    zonedDayKey(bounds.end, series),
   );
-  const start = zonedEpoch(day, zonedMinutes(bounds.start, timeZone), timeZone);
+  const start = zonedEpoch(day, zonedMinutes(bounds.start, series), series);
   const end = Math.max(
     start,
     zonedEpoch(
       addDays(day, endOffset),
-      zonedMinutes(bounds.end, timeZone),
-      timeZone,
+      zonedMinutes(bounds.end, series),
+      series,
     ),
   );
-  return { allDay: false, start, end, ...timedDays(start, end, timeZone) };
+  return { allDay: false, start, end, ...timedDays(start, end, zones.agenda) };
+}
+
+/** The zone a series keeps its wall clock and days in, and the zone the agenda draws in. */
+interface SeriesZones {
+  series: string;
+  agenda: string;
+}
+
+/**
+ * The occurrences of a series: expanded in the series' zone (its wall
+ * clock, weekdays, `until`, `exceptions` and occurrence days are of that
+ * zone), drawn in the agenda's.
+ */
+function seriesOccurrences(
+  event: AgendaEvent,
+  settings: AgendaNormalizeSettings,
+  kept: (bounds: EventBounds) => boolean,
+): AgendaOccurrence[] {
+  const recurrence = event.recurrence!;
+  const zones: SeriesZones = {
+    series: isTimeZone(recurrence.timeZone)
+      ? recurrence.timeZone
+      : settings.timeZone,
+    agenda: settings.timeZone,
+  };
+  const bounds = eventBounds(
+    event,
+    zones.series,
+    settings.defaultDurationMinutes,
+  );
+  if (!bounds) return [];
+  // The range's days as the series counts them (a day either side for timed ones).
+  const window = bounds.allDay
+    ? { from: settings.from, to: settings.to }
+    : {
+        from: zonedDayKey(settings.start, zones.series),
+        to: zonedDayKey(
+          Math.max(settings.end - 1, settings.start),
+          zones.series,
+        ),
+      };
+  const days = expandRecurrence(bounds.startDay, recurrence, {
+    ...window,
+    spanDays: daysBetween(bounds.startDay, bounds.endDay),
+  });
+  return days
+    .map((day) => ({ day, bounds: occurrenceBounds(bounds, day, zones) }))
+    .filter((entry) => kept(entry.bounds))
+    .map((entry) => toOccurrence(event, entry.bounds, settings, entry.day));
 }
 
 function overlapsRange(bounds: EventBounds, settings: AgendaNormalizeSettings) {
@@ -230,29 +281,17 @@ export function eventOccurrences(
   event: AgendaEvent,
   settings: AgendaNormalizeSettings,
 ): AgendaOccurrence[] {
+  const kept = (entry: EventBounds) =>
+    overlapsRange(entry, settings) &&
+    touchesShownDay(entry, settings.shownDays);
+  if (event.recurrence) return seriesOccurrences(event, settings, kept);
   const bounds = eventBounds(
     event,
     settings.timeZone,
     settings.defaultDurationMinutes,
   );
   if (!bounds) return [];
-  const kept = (entry: EventBounds) =>
-    overlapsRange(entry, settings) &&
-    touchesShownDay(entry, settings.shownDays);
-  if (!event.recurrence)
-    return kept(bounds) ? [toOccurrence(event, bounds, settings)] : [];
-  const days = expandRecurrence(bounds.startDay, event.recurrence, {
-    from: settings.from,
-    to: settings.to,
-    spanDays: daysBetween(bounds.startDay, bounds.endDay),
-  });
-  return days
-    .map((day) => ({
-      day,
-      bounds: occurrenceBounds(bounds, day, settings.timeZone),
-    }))
-    .filter((entry) => kept(entry.bounds))
-    .map((entry) => toOccurrence(event, entry.bounds, settings, entry.day));
+  return kept(bounds) ? [toOccurrence(event, bounds, settings)] : [];
 }
 
 /** Earlier first; at one start, the longer first (it takes the first column). */

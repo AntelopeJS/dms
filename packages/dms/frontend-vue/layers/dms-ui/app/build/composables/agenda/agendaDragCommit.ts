@@ -9,12 +9,12 @@ import type {
   AgendaPlacement,
   ResolvedAgendaOptions,
 } from "./agendaModel";
-import type { AgendaDragSource } from "./agendaDragMath";
+import type { AgendaDragSource } from "./agendaDragBasics";
 import {
   lastDayOf,
   occurrencePlacement,
   samePlacement,
-} from "./agendaDragMath";
+} from "./agendaDragBasics";
 import { zonedDayKey } from "./agendaTime";
 import {
   copyChange,
@@ -120,6 +120,8 @@ export class AgendaDropCommitter {
       this.say("unscheduled", { title });
       return;
     }
+    // Dropped where it is: neither a move nor a copy on top of itself.
+    if (samePlacement(placement, occurrencePlacement(occurrence))) return;
     if (dropped.copy) {
       void this.deps
         .apply(copyChange(occurrence, placement, timeZone))
@@ -127,7 +129,6 @@ export class AgendaDropCommitter {
       this.say("copied", { title, when: this.describe(placement) });
       return;
     }
-    if (samePlacement(placement, occurrencePlacement(occurrence))) return;
     const kind = source.kind === "move" ? "move" : "resize";
     void this.deps
       .apply(placementChange(occurrence, placement, kind, timeZone), occurrence)

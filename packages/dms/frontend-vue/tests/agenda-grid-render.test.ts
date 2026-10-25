@@ -341,3 +341,98 @@ describe("the event chip", () => {
     expect(ctx.drag.nudge).toHaveBeenCalled();
   });
 });
+
+describe("round 1: focus, roving, short blocks, stacks, no resource", () => {
+  it("clears the focused event when focus leaves a chip, and follows a keyboard move (#9)", async () => {
+    const ctx = contextFor({});
+    const a = occurrence("a", "2026-10-26T09:00", "2026-10-26T10:00");
+    const b = occurrence("b", "2026-10-26T11:00", "2026-10-26T12:00");
+    const root = await mount(
+      defineComponent({
+        setup: () => () => [
+          h(AgendaEventChip, { occurrence: a }),
+          h(AgendaEventChip, { occurrence: b }),
+        ],
+      }),
+    );
+    const [chipA, chipB] = [...root.querySelectorAll("button")];
+    chipA!.focus();
+    expect(ctx.focusedKey.value).toBe("a");
+    ctx.focusedKey.value = "b";
+    await nextTick();
+    await nextTick();
+    expect(document.activeElement).toBe(chipB);
+    chipB!.blur();
+    chipB!.dispatchEvent(new FocusEvent("focusout"));
+    expect(ctx.focusedKey.value).toBeNull();
+  });
+
+  it("puts each month chip in its day's cell and one of them in the tab order (#50)", async () => {
+    contextFor({
+      view: "month",
+      from: "2026-09-28",
+      dayCount: 42,
+      occurrences: [
+        occurrence("x", "2026-10-26T09:00", "2026-10-26T10:00"),
+        occurrence("y", "2026-10-27T09:00", "2026-10-27T10:00"),
+      ],
+    });
+    const root = await mount(AgendaMonthView);
+    const chips = [
+      ...root.querySelectorAll<HTMLElement>("[data-agenda-occurrence]"),
+    ];
+    expect(
+      chips.map((chip) => chip.closest('[role="gridcell"]')).every(Boolean),
+    ).toBe(true);
+    expect(chips.filter((chip) => chip.tabIndex === 0)).toHaveLength(1);
+  });
+
+  it("writes a short block's title first, its start time after (lead #1)", async () => {
+    contextFor({});
+    const standup = occurrence("s", "2026-10-26T09:00", "2026-10-26T09:15", {
+      title: "Design standup",
+    });
+    const root = await mount(AgendaEventChip, {
+      occurrence: standup,
+      height: 18,
+    });
+    const spans = [...root.querySelectorAll("button > span > span")].map(
+      (span) => span.textContent!.trim(),
+    );
+    expect(spans[0]).toBe("Design standup");
+    expect(spans[1]).not.toContain("–");
+  });
+
+  it("stacks overlapping events with a capped step and a shadow (lead #2, #56)", async () => {
+    contextFor({
+      raw: { overlap: "stack" },
+      occurrences: [
+        occurrence("p", "2026-10-27T10:00", "2026-10-27T11:00"),
+        occurrence("q", "2026-10-27T10:00", "2026-10-27T11:00"),
+      ],
+    });
+    const root = await mount(AgendaTimeGrid);
+    const top = root.querySelector('[data-agenda-occurrence="q"]')!;
+    // jsdom rewrites `min()`: the step is min(14px, 25%) in a browser.
+    const style = top.closest("div")!.getAttribute("style")!;
+    expect(style).toContain("14px");
+    expect(style).toContain("25%");
+    expect(top.className).toContain("shadow-md");
+  });
+
+  it("draws a No resource column in a resources view (#14) and compact chips (#51)", async () => {
+    contextFor({
+      view: "resources",
+      dayCount: 1,
+      raw: { density: "compact", resources: [{ id: "ana", label: "Ana" }] },
+      occurrences: [occurrence("free", "2026-10-26T09:00", "2026-10-26T10:00")],
+    });
+    const root = await mount(AgendaTimeGrid);
+    expect(root.textContent).toContain("dms.agenda.grid.unassigned");
+    const chip = root.querySelector('[data-agenda-occurrence="free"]')!;
+    expect(
+      chip.closest("[role=gridcell]")!.getAttribute("aria-label"),
+    ).toContain("dms.agenda.grid.unassigned");
+    expect(chip.className).toContain("text-[11px]");
+  });
+});

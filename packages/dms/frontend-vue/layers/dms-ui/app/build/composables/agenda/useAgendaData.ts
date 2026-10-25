@@ -1,5 +1,7 @@
 import {
   computed,
+  getCurrentScope,
+  onScopeDispose,
   ref,
   shallowRef,
   watch,
@@ -43,6 +45,8 @@ export interface AgendaDataSetup {
   shownCalendarIds: () => string[] | undefined;
   /** The state of the block's watch actions: a change reads again. */
   watchKey: () => string;
+  /** The agenda knows its view (its width measured): reading waits for it. */
+  isReady?: () => boolean;
 }
 
 /** A value that follows `source` once it holds still for `delay` ms. */
@@ -53,6 +57,7 @@ function useDebounced(source: Ref<string>, delay: number): Ref<string> {
     clearTimeout(timer);
     timer = setTimeout(() => (settled.value = value), delay);
   });
+  if (getCurrentScope()) onScopeDispose(() => clearTimeout(timer));
   return settled;
 }
 
@@ -86,23 +91,46 @@ export function useAgendaData(setup: AgendaDataSetup) {
       calendars: setup.shownCalendarIds(),
     });
 
+  /** The save answers laid over the data so far. */
+  let writes = 0;
   let isLoading: ComputedRef<boolean> = computed(() => false);
   let error: ComputedRef<unknown> = computed(() => null);
   let refresh = async () => {};
 
   if (raw.fetchUrl) {
-    const loaded = useApiData<AgendaData>(() => url.value ?? null, {
-      method: raw.fetchUrlMethod as UseApiDataOptions<AgendaData>["method"],
-      query,
-      lazy: true,
-      refreshOnPageRefresh: false,
-      watch: [setup.watchKey],
-    });
+    const isReady = setup.isReady ?? (() => true);
+    const loaded = useApiData<AgendaData>(
+      () => (isReady() ? (url.value ?? null) : null),
+      {
+        method: raw.fetchUrlMethod as UseApiDataOptions<AgendaData>["method"],
+        query,
+        lazy: true,
+        refreshOnPageRefresh: false,
+        watch: [setup.watchKey],
+      },
+    );
+    // A read started before the last write answers what was stored then:
+    // it is dropped and read again, so a saved event does not jump back.
+    let readFrom = writes;
+    watch(
+      () => loaded.status.value,
+      (status) => {
+        if (status === "pending") readFrom = writes;
+      },
+      { flush: "sync" },
+    );
     // A new read replaces the data; until it lands, the last one stays.
     watch(
       () => loaded.data.value,
       (data) => {
-        if (data) local.value = data;
+        if (!data) return;
+        if (readFrom < writes) {
+          // Once per write: the read that follows is taken whatever it reports.
+          readFrom = writes;
+          void loaded.refresh();
+          return;
+        }
+        local.value = data;
       },
       { immediate: true },
     );
@@ -141,7 +169,14 @@ export function useAgendaData(setup: AgendaDataSetup) {
       written: AgendaChange[],
       seedOf?: AgendaSeedOf,
     ) => {
-      local.value = applySaveAnswer(data.value, response, written, seedOf);
+      writes += 1;
+      local.value = applySaveAnswer(
+        data.value,
+        response,
+        written,
+        seedOf,
+        setup.timeZone(),
+      );
     },
   };
 }

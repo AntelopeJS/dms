@@ -2,6 +2,8 @@ import {
   computed,
   inject,
   markRaw,
+  onBeforeUnmount,
+  onMounted,
   provide,
   ref,
   watch,
@@ -51,7 +53,8 @@ import {
   useAgendaShortcuts,
 } from "./useAgendaShortcuts";
 
-const AGENDA_CONTEXT: InjectionKey<AgendaContext> = Symbol("dms-agenda");
+// Registered by name: a module served twice after a hot reload still finds it.
+const AGENDA_CONTEXT: InjectionKey<AgendaContext> = Symbol.for("dms-agenda");
 
 /** The context of the agenda a part sits in (`useAgenda` provides it). */
 export function useAgendaContext(): AgendaContext {
@@ -102,16 +105,50 @@ function useViewLabel(text: TextOf) {
 function useAgendaLayout(raw: FullAgendaOptions) {
   const rootEl = ref<HTMLElement | null>(null);
   const { width } = useElementSize(rootEl);
-  const compactBelow = raw.responsive?.compactBelow ?? DEFAULT_COMPACT_BELOW;
-  const compact = computed(() => width.value > 0 && width.value < compactBelow);
-  watch(rootEl, (element) => element?.setAttribute(AGENDA_ROOT_ATTRIBUTE, ""));
-  // A compact agenda folds its sidebar into an overlay, closed at first.
-  const startsOpen = !(
-    typeof raw.sidebar === "object" && raw.sidebar.collapsed
+  const compact = computed(
+    () =>
+      width.value > 0 &&
+      width.value < (raw.responsive?.compactBelow ?? DEFAULT_COMPACT_BELOW),
   );
-  const sidebarOpen = ref(startsOpen);
-  watch(compact, (isCompact) => (sidebarOpen.value = !isCompact && startsOpen));
-  return { rootEl, width, compact, sidebarOpen };
+  watch(rootEl, (element) => element?.setAttribute(AGENDA_ROOT_ATTRIBUTE, ""));
+  // The column's state: a compact agenda opens its sidebar in an overlay of
+  // the shell's own, so a fold the user made survives a resize.
+  const sidebarOpen = ref(
+    !(typeof raw.sidebar === "object" && raw.sidebar.collapsed),
+  );
+  return {
+    rootEl,
+    width,
+    compact,
+    sidebarOpen,
+    isMeasured: useMeasured(width),
+  };
+}
+
+const MEASURE_WAIT_MS = 150;
+
+/**
+ * Whether the agenda knows its width. A server render, and the browser
+ * hydrating it, read at once (they render the same view); a client
+ * navigation waits for the root to be measured (or a moment, for a root
+ * that is not shown), so a narrow container reads its compact view once,
+ * not the wide one first.
+ */
+function useMeasured(width: Ref<number>): Ref<boolean> {
+  const isMeasured = ref(typeof window === "undefined" || isDmsHydrating());
+  if (isMeasured.value) return isMeasured;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = watch(width, (value) => {
+    if (value > 0) isMeasured.value = true;
+  });
+  onMounted(() => {
+    timer = setTimeout(() => (isMeasured.value = true), MEASURE_WAIT_MS);
+  });
+  onBeforeUnmount(() => {
+    clearTimeout(timer);
+    stop();
+  });
+  return isMeasured;
 }
 
 /** The views, the range and the resolved options, the URL read once. */
@@ -223,6 +260,8 @@ function buildContext(parts: AgendaParts): AgendaContext {
     discardStaged: save.discardStaged,
     stagedEdits: computed(() => save.engine.edits.value),
     retry: save.retry,
+    saveStatus: save.saveStatus,
+    sendableCount: save.sendableCount,
     resolveConflict: save.resolveConflict,
     editable: computed(() => isAgendaEditable(frame.raw)),
     ...interactions,
@@ -330,6 +369,7 @@ export function useAgenda(
             .filter((id) => !state.hiddenCalendars.value.has(id))
         : undefined,
     watchKey,
+    isReady: () => frame.layout.isMeasured.value,
   });
   state.follow({
     calendars: () => source.calendars.value,
@@ -354,6 +394,7 @@ export function useAgenda(
     search: state.search,
     facetValues: state.facetValues,
     hiddenCalendars: state.hiddenCalendars,
+    now: navigation.now,
   });
   const interactions = useAgendaInteractions({
     raw,
@@ -364,7 +405,6 @@ export function useAgenda(
     viewId: () => navigation.view.value.id,
     today: navigation.today,
     now: navigation.now,
-    compact: frame.layout.compact,
     format: frame.format,
     occurrences: shown.occurrences,
     resources: () => source.resources.value,
@@ -378,6 +418,8 @@ export function useAgenda(
     options,
     view: navigation.view,
     occurrences: shown.occurrences,
+    rangeOccurrences: shown.rangeOccurrences,
+    calendars: source.calendars,
     resources: shown.resources,
     backgrounds: shown.backgrounds,
     hoursOn: shown.hoursOn,

@@ -19,15 +19,21 @@ import type {
   AgendaOccurrence,
 } from "./agendaModel";
 import { placeDrag } from "./agendaDragMath";
-import type { AgendaDragSource } from "./agendaDragMath";
+import type { AgendaDragSource } from "./agendaDragBasics";
 import { checkDrop } from "./agendaDragRules";
 import type { AgendaDropRules } from "./agendaDragRules";
-import { edgeSpeed, hitSurface, surfaceScroller } from "./agendaDragDom";
+import {
+  edgeSpeed,
+  hitSurface,
+  surfaceScroller,
+  surfaceViewport,
+} from "./agendaDragDom";
 import {
   buildPreview,
   dropRules,
   samePreview,
   viewDragConfig,
+  viewNudgeContext,
 } from "./agendaDragPreview";
 import type { AgendaDragDeps } from "./agendaDragPreview";
 import { keyStep, nudgeSource, nudgeTarget } from "./agendaDragKeys";
@@ -118,7 +124,7 @@ class AgendaDragEngine {
     if (!current?.isStarted || !current.surface) return;
     const scroller = surfaceScroller(current.surface);
     if (!scroller) return;
-    const rect = scroller.getBoundingClientRect();
+    const rect = surfaceViewport(current.surface, scroller);
     const dx = edgeSpeed(current.x, rect.left, rect.right);
     const dy = edgeSpeed(current.y, rect.top, rect.bottom);
     if (!dx && !dy) return;
@@ -141,6 +147,8 @@ class AgendaDragEngine {
     }
     this.bodySelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
+    // Tooltips hide through CSS while dragging: the chips do not redraw.
+    document.body.dataset.agendaDragging = "";
     this.committer.say("started", { title: current.title });
     this.updatePreview();
   };
@@ -152,6 +160,8 @@ class AgendaDragEngine {
     window[method]("keydown", this.onKey as EventListener, true);
     window[method]("keyup", this.onKey as EventListener, true);
     window[method]("contextmenu", this.onContextMenu, true);
+    // Alt+Tab mid-drag loses the pointerup: leaving the window cancels.
+    window[method]("blur", this.cancel);
     // A touch drag must stop the page from scrolling under it.
     if (isOn)
       window.addEventListener("touchmove", this.onTouchMove, {
@@ -170,6 +180,7 @@ class AgendaDragEngine {
     if (current) this.listen(false);
     if (current?.isStarted) {
       document.body.style.userSelect = this.bodySelect;
+      delete document.body.dataset.agendaDragging;
       try {
         current.captureEl?.releasePointerCapture?.(current.pointerId);
       } catch {
@@ -195,6 +206,11 @@ class AgendaDragEngine {
   }
 
   private move(current: DragSession, event: PointerEvent): void {
+    // A mouse moving with no button down lost its pointerup somewhere.
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      this.cancel();
+      return;
+    }
     const moved = Math.hypot(
       current.x - current.startX,
       current.y - current.startY,
@@ -315,8 +331,9 @@ class AgendaDragEngine {
       ? options.dragResize && occurrence.canResize
       : options.dragMove && occurrence.canMove;
     if (!isAllowed) return false;
-    const source = nudgeSource(occurrence, isResize);
-    const target = nudgeTarget(occurrence, step, isResize, options.snapMinutes);
+    const context = viewNudgeContext(this.deps);
+    const source = nudgeSource(occurrence, isResize, context);
+    const target = nudgeTarget(occurrence, step, isResize, context);
     const placement = placeDrag(source, target, viewDragConfig(this.deps));
     const refusal = checkDrop(
       {

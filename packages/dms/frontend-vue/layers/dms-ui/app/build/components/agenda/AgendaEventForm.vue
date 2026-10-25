@@ -6,7 +6,10 @@ import {
   type AgendaFormField,
   type AgendaFormValues,
 } from "../../composables/agenda/agendaForm";
-import type { AgendaDetailsApi } from "../../composables/agenda/useAgendaDetails";
+import {
+  AGENDA_FORM_REFUSED,
+  type AgendaDetailsApi,
+} from "../../composables/agenda/useAgendaDetails";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
 /**
@@ -38,7 +41,12 @@ const errorOf = (field: AgendaFormField) => {
 };
 const setValue = (field: AgendaFormField, value: unknown) => {
   values.value = { ...values.value, [field.id]: value };
+  props.details.keepDraft(values.value);
 };
+const refusal = computed(() => {
+  const error = props.details.errors.value[AGENDA_FORM_REFUSED];
+  return error ? processText(error) : "";
+});
 const isAllDay = computed(() => Boolean(values.value.allDay));
 const submit = () => props.details.save(values.value);
 </script>
@@ -67,6 +75,7 @@ const submit = () => props.details.save(values.value);
         :field="field"
         :model-value="values[field.id]"
         :all-day="isAllDay"
+        :time-zone="props.details.timeZone.value"
         :invalid="Boolean(errorOf(field))"
         :aria-describedby="
           errorOf(field) ? `${inputId(field)}-error` : undefined
@@ -85,6 +94,14 @@ const submit = () => props.details.save(values.value);
         {{ errorOf(field) }}
       </p>
     </div>
+    <p
+      v-if="refusal"
+      class="text-error text-sm"
+      role="alert"
+      data-agenda-form-refused
+    >
+      {{ refusal }}
+    </p>
     <div class="flex justify-end gap-2 pt-1">
       <UButton
         color="neutral"

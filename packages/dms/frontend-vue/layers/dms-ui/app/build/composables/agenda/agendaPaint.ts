@@ -34,11 +34,30 @@ export function isAgendaTone(color: string): color is Tone {
   return TONES.has(color);
 }
 
-/** A colour as CSS: a tone as its `--ui-<tone>` variable, anything else as written. */
+/** The colour forms a runtime without `CSS.supports` (a server render) takes on trust. */
+const COLOR_FORMS =
+  /^(#[\da-f]{3,8}|(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(.+\))$/i;
+const CUSTOM_PROPERTY = /^var\(--[\w-]+(,.*)?\)$/;
+
+/** Whether a colour other than a tone is one CSS takes; a custom property is trusted. */
+function isCssColor(value: string): boolean {
+  if (CUSTOM_PROPERTY.test(value)) return true;
+  if (typeof CSS !== "undefined" && typeof CSS.supports === "function")
+    return CSS.supports("color", value);
+  return COLOR_FORMS.test(value);
+}
+
+/**
+ * A colour as CSS: a tone (any case) as its `--ui-<tone>` variable, a CSS
+ * colour or a custom property as written; anything else (a typo, an unknown
+ * name) falls back to the primary tone, so the event keeps a tint and a bar.
+ */
 export function agendaColorCss(color: AgendaColor | undefined): string {
-  const value = color ?? DEFAULT_AGENDA_COLOR;
-  if (!isAgendaTone(value)) return value;
-  return TONE_COLORS[value] ?? `var(--ui-${value})`;
+  const value = (color ?? DEFAULT_AGENDA_COLOR).trim();
+  const tone = value.toLowerCase();
+  if (isAgendaTone(tone)) return TONE_COLORS[tone] ?? `var(--ui-${tone})`;
+  if (isCssColor(value)) return value;
+  return agendaColorCss(DEFAULT_AGENDA_COLOR);
 }
 
 const paintCache = new Map<string, AgendaPaint>();

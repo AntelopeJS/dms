@@ -918,14 +918,16 @@
         "today": "Today",
         "previous": "Previous period",
         "next": "Next period",
-        "pick_date": "Go to a date",
+        "pick_date": "{period}, go to a date",
         "search": "Search events",
         "new": "New event",
         "refresh": "Refresh",
         "export_ics": "Export as .ics",
         "sidebar": "Show or hide the sidebar",
         "loading": "Loading events",
-        "empty": "No events in this period"
+        "empty": "No events in this period",
+        "stale_error": "The agenda could not be refreshed: what it shows may be out of date.",
+        "retry": "Retry"
       },
       "sidebar": {
         "label": "Agenda sidebar",
@@ -933,8 +935,7 @@
         "fold": "Fold the sidebar",
         "mini_calendar": "Calendar",
         "calendars": "Calendars",
-        "show_calendar": "Show {name}",
-        "hide_calendar": "Hide {name}",
+        "calendar_count": "{name}, {count} events",
         "resources": "Resources",
         "unscheduled": "To plan",
         "unscheduled_empty": "Nothing left to plan",
@@ -942,6 +943,8 @@
         "no_match": "No item matches",
         "draggable": "draggable item",
         "drop_to_unschedule": "Drop here to take it off the agenda",
+        "pending_hint": "Drag it onto the agenda, or press Enter to plan it on the day shown.",
+        "planned": "{title} planned, {when}",
         "notices": "Checks",
         "upcoming": "Upcoming",
         "upcoming_empty": "Nothing coming up"
@@ -975,8 +978,6 @@
         "retry": "Retry",
         "overwrite": "Overwrite",
         "take_theirs": "Take theirs",
-        "save_changes": "Save {count} change | Save {count} changes",
-        "review_changes": "Review and save {count} change | Review and save {count} changes",
         "review_title": "Review the changes",
         "review_description": "Nothing is written until you save.",
         "change_create": "created",
@@ -1019,8 +1020,7 @@
         "gone": "“{title}” no longer exists",
         "unresolved": "The save address of this agenda could not be built",
         "save_label": "Save {count} change | Save {count} changes",
-        "review_label": "Review {count} change | Review {count} changes",
-        "staged_count": "{count} unsaved change | {count} unsaved changes"
+        "review_label": "Review {count} change | Review {count} changes"
       },
       "grid": {
         "all_day": "All day",
@@ -1031,6 +1031,7 @@
         "tentative": "tentative",
         "cancelled": "cancelled",
         "issues": "issues: {count}",
+        "unassigned": "No resource",
         "group_fold": "Fold {group}",
         "group_unfold": "Unfold {group}",
         "now": "Now"
@@ -1082,6 +1083,7 @@
         "reason": {
           "resourceReadOnly": "this resource is read-only",
           "resourceNotAllowed": "not allowed on this resource",
+          "calendarReadOnly": "its calendar is read-only",
           "tooShort": "shorter than allowed",
           "tooLong": "longer than allowed",
           "outsideHours": "outside opening hours",
@@ -1094,6 +1096,7 @@
         "event": "{title}, {when}",
         "event_calendar": "{title}, {when}, calendar {calendar}",
         "timed": "{day} {start} to {end}",
+        "timed_days": "{from} {start} to {to} {end}",
         "all_day": "{day}, all day",
         "days": "{from} to {to}, all day",
         "state_staged": "not saved yet",

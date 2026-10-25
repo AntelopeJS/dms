@@ -153,6 +153,17 @@ export interface AgendaDropTarget {
    * by day) an event keeps its kind and its time of day.
    */
   asAllDay?: boolean;
+  /**
+   * Over the row of the events planned on no resource (a timeline's "No
+   * resource" row): a drop there clears the event's resources.
+   */
+  unassigned?: true;
+  /**
+   * The instant under the pointer, epoch ms, where the view knows it (a
+   * timeline by hour). It tells apart the two 02:30 of a fall-back day,
+   * which `day` + `minutes` cannot; snapped like `minutes` on a click.
+   */
+  instant?: number;
 }
 
 /** What a view reports a point is over. Each view registers one surface per scrolling area. */
@@ -165,6 +176,20 @@ export interface AgendaDropSurface {
   resolve: (clientX: number, clientY: number) => AgendaDropTarget | null;
   /** The element that scrolls near its edges while dragging. Defaults to `el` or its first scrolling ancestor. */
   scroller?: HTMLElement;
+  /**
+   * The part of the scroller where the surface shows, in client pixels (the
+   * time grid's body under its sticky header, beside its sticky gutter):
+   * dragging near its edges scrolls. Defaults to the scroller's box.
+   */
+  viewport?: () => AgendaSurfaceViewport;
+}
+
+/** A visible box, in client pixels. */
+export interface AgendaSurfaceViewport {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
 }
 
 export type AgendaDragKind =
@@ -358,8 +383,15 @@ export interface AgendaContext {
 
   /** Editing. */
   drag: AgendaDragController;
-  /** Places a change (optimistic; staged or written at once). */
-  apply: (change: AgendaChange, occurrence?: AgendaOccurrence) => Promise<void>;
+  /**
+   * Places a change (optimistic; staged or written at once). Resolves
+   * `false` when it was not placed (editing off, the scope prompt abandoned)
+   * or the route refused it.
+   */
+  apply: (
+    change: AgendaChange,
+    occurrence?: AgendaOccurrence,
+  ) => Promise<boolean>;
   /** The staged changes (`saveMode: "staged"`). */
   staged: ComputedRef<AgendaChange[]>;
   saving: ComputedRef<boolean>;
@@ -412,6 +444,18 @@ export interface AgendaContext {
     key: string,
     choice: "overwrite" | "discard",
   ) => Promise<unknown>;
+  /** How the last write went: "Saving…", then "Saved" for a moment, or "error" until the next write. */
+  saveStatus: ComputedRef<"idle" | "saving" | "saved" | "error">;
+  /** What the save bar's Save writes: staged and refused changes, conflicts and writes running aside. */
+  sendableCount: ComputedRef<number>;
+  /**
+   * The next occurrences from now, from the data in hand (series expanded
+   * ahead, legend, search and facets applied), soonest first. A route that
+   * answers only the range shown gives only that range's events.
+   */
+  upcoming: ComputedRef<AgendaOccurrence[]>;
+  /** The occurrences of any days (the mini calendar's month), from the data in hand, filters applied. */
+  occurrencesIn: (from: AgendaDayKey, to: AgendaDayKey) => AgendaOccurrence[];
 }
 
 /** A change not written yet, as the review lists it. */

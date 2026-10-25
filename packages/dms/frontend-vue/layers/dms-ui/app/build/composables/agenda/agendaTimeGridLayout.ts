@@ -9,8 +9,9 @@ import type {
   AgendaResourceLayout,
 } from "../../../types/full-agenda";
 import type { AgendaDay, AgendaOccurrence } from "./agendaModel";
-import { MINUTES_PER_DAY, MINUTE_MS } from "./agendaTime";
+import { MINUTES_PER_DAY, MINUTE_MS, addDays, daysBetween } from "./agendaTime";
 import { packLanes } from "./agendaMonthLayout";
+import { shiftShownDay } from "./agendaSlots";
 
 /** A column of the grid: a day, a resource on a day, or a folded group. */
 export interface AgendaGridColumn {
@@ -21,6 +22,8 @@ export interface AgendaGridColumn {
   groupId?: string;
   /** A folded group's narrow placeholder: no events. */
   folded: boolean;
+  /** The column of the events planned on no resource (`resources` view). */
+  unassigned?: boolean;
 }
 
 export type AgendaGridHeaderKind = "group" | "resource" | "day";
@@ -42,6 +45,8 @@ export interface AgendaGridColumnsInput {
   groups?: AgendaResourceGroup[];
   folded?: Set<string>;
   layout?: AgendaResourceLayout;
+  /** Adds a "No resource" column per day: some event shown has no resource. */
+  withUnassigned?: boolean;
 }
 
 const NO_GROUP = "";
@@ -90,6 +95,13 @@ function blockColumns(
   }));
 }
 
+const unassignedColumn = (day: AgendaDay): AgendaGridColumn => ({
+  key: `unassigned|${day.key}`,
+  day,
+  folded: false,
+  unassigned: true,
+});
+
 /** The columns of a time grid, in the order they are drawn. */
 export function buildGridColumns(
   input: AgendaGridColumnsInput,
@@ -98,6 +110,23 @@ export function buildGridColumns(
   if (!resources) {
     return days.map((day) => ({ key: day.key, day, folded: false }));
   }
+  const columns = resourceColumns(input, resources);
+  if (!input.withUnassigned) return columns;
+  if (input.layout !== "daysFirst") {
+    return [...columns, ...days.map(unassignedColumn)];
+  }
+  // Days first: each day ends with its own "No resource" column.
+  return days.flatMap((day) => [
+    ...columns.filter((column) => column.day.key === day.key),
+    unassignedColumn(day),
+  ]);
+}
+
+function resourceColumns(
+  input: AgendaGridColumnsInput,
+  resources: AgendaResource[],
+): AgendaGridColumn[] {
+  const { days } = input;
   const blocks = resourceBlocks(resources, input.groups ?? []);
   const isFolded = (block: ResourceBlock) =>
     block.groupId !== NO_GROUP && (input.folded?.has(block.groupId) ?? false);
@@ -123,8 +152,12 @@ const HEADER_KEYS: Record<
   (column: AgendaGridColumn) => string
 > = {
   group: (column) => column.groupId ?? NO_GROUP,
-  resource: (column) =>
-    column.folded ? `folded:${column.groupId}` : (column.resource?.id ?? ""),
+  resource: (column) => {
+    if (column.unassigned) return "unassigned";
+    return column.folded
+      ? `folded:${column.groupId}`
+      : (column.resource?.id ?? "");
+  },
   day: (column) => column.day.key,
 };
 
@@ -202,9 +235,21 @@ export interface AgendaTimedSegment<
   clippedEnd: boolean;
 }
 
-/** A timed event of 24 h or more goes to the all-day row, as a bar. */
+/**
+ * A timed event of a whole wall-clock day or more goes to the all-day row,
+ * as a bar: 00:00 to 00:00 the next day, though the DST day lasts 23 h;
+ * 00:00 to 23:00 on the 25 h day stays a block.
+ */
 export function isAllDayRowItem(span: AgendaPlacedSpan): boolean {
-  return span.allDay || span.end - span.start >= MINUTES_PER_DAY * MINUTE_MS;
+  if (span.allDay) return true;
+  // `endDay` is the last day covered: an end at midnight is the next day's 00:00.
+  const endsAtMidnight = span.endMinutes === 0 && span.end > span.start;
+  const endDay = endsAtMidnight ? addDays(span.endDay, 1) : span.endDay;
+  const wallMinutes =
+    daysBetween(span.startDay, endDay) * MINUTES_PER_DAY +
+    span.endMinutes -
+    span.startMinutes;
+  return wallMinutes >= MINUTES_PER_DAY;
 }
 
 /** The span belongs to the column (its day and its resource). */
@@ -213,6 +258,7 @@ export function inColumn(
   column: AgendaGridColumn,
 ): boolean {
   if (column.folded) return false;
+  if (column.unassigned && span.resourceIds.length) return false;
   if (column.resource && !span.resourceIds.includes(column.resource.id)) {
     return false;
   }
@@ -239,10 +285,12 @@ export function timedSegment<T extends AgendaPlacedSpan>(
     span.endDay === key && span.endMinutes > 0
       ? span.endMinutes
       : MINUTES_PER_DAY;
-  if (span.startDay === span.endDay && to <= from) {
+  if (span.end <= span.start) to = from;
+  else if (span.startDay === span.endDay && to <= from) {
     to = Math.min(MINUTES_PER_DAY, from + (span.end - span.start) / MINUTE_MS);
   }
-  if (to <= from) return null;
+  // A zero-length event keeps the sliver `minMinutes` gives it.
+  if (to < from) return null;
   const top = Math.min(Math.max(from, dayStart), dayEnd - minMinutes);
   const bottom = Math.max(Math.min(to, dayEnd), top + minMinutes);
   return {
@@ -260,6 +308,9 @@ export interface AgendaOverlapBox {
   width: number;
   /** Stacking order (later, deeper events on top). */
   z: number;
+  /** `stack`: the level of the piece, and how many levels its stack has. */
+  level?: number;
+  depth?: number;
 }
 
 /** What the overlap layout reads of a piece. */
@@ -270,7 +321,8 @@ export interface AgendaOverlapItem {
 }
 
 /** The shift of each level of a `stack`, as a share of the column. */
-const STACK_STEP = 0.14;
+const STACK_STEP = 0.25;
+/** The deepest event of a stack starts no further in than this share. */
 const STACK_MAX_INDENT = 0.6;
 
 const byStart = (a: AgendaOverlapItem, b: AgendaOverlapItem) =>
@@ -339,9 +391,15 @@ function layoutStackCluster(
       ? Math.max(...under.map((other) => levels.get(other.key)!)) + 1
       : 0;
     levels.set(item.key, level);
-    const left = Math.min(level * STACK_STEP, STACK_MAX_INDENT);
-    boxes.set(item.key, { left, width: 1 - left, z: level + 1 });
   });
+  const depth = Math.max(...levels.values()) + 1;
+  // A deep stack shares the indent out, so each level still steps in.
+  const step = Math.min(STACK_STEP, STACK_MAX_INDENT / Math.max(1, depth - 1));
+  for (const item of cluster) {
+    const level = levels.get(item.key)!;
+    const left = level * step;
+    boxes.set(item.key, { left, width: 1 - left, z: level + 1, level, depth });
+  }
 }
 
 const OVERLAP_LAYOUTS: Record<
@@ -392,6 +450,7 @@ function columnRuns(
 export function layoutAllDayRow(
   occurrences: AgendaOccurrence[],
   columns: AgendaGridColumn[],
+  hiddenDays: readonly number[] = [],
 ): { bars: AgendaAllDayBar[]; lanes: number } {
   const pieces = occurrences
     .filter(isAllDayRowItem)
@@ -417,8 +476,12 @@ export function layoutAllDayRow(
       lane: lanes.get(piece.key)!,
       first: piece.first,
       last: piece.last,
-      continuesBefore: piece.occurrence.startDay < days[0]!.key,
-      continuesAfter: piece.occurrence.endDay > days[1]!.key,
+      // A bar continues only towards a day shown, not into a hidden weekend.
+      continuesBefore:
+        piece.occurrence.startDay <=
+        shiftShownDay(days[0]!.key, -1, hiddenDays),
+      continuesAfter:
+        piece.occurrence.endDay >= shiftShownDay(days[1]!.key, 1, hiddenDays),
     };
   });
   return {

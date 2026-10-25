@@ -29,6 +29,17 @@ const DAY_STYLES: Record<AgendaDayStyle, Intl.DateTimeFormatOptions> = {
 const MINUTES_PER_HOUR = 60;
 const UTC = "UTC";
 const formatters = new Map<string, Intl.DateTimeFormat>();
+/** Thin, narrow no-break and no-break spaces, which ICU versions use differently. */
+const SPACES = /[\u00a0\u2009\u202f]/g;
+
+/**
+ * A formatted text with plain spaces: Node's ICU and a browser's put thin
+ * or narrow spaces in different places (around a range's dash, before
+ * "AM"), and a server render must read as the browser's.
+ */
+export function plainSpaces(text: string): string {
+  return text.replace(SPACES, " ");
+}
 
 function formatter(
   locale: string,
@@ -63,12 +74,13 @@ export function formatAgendaTime(
   settings: AgendaFormatSettings,
 ): string {
   const twelve = settings.hourCycle === "h12";
-  return formatter(settings.locale, {
+  const text = formatter(settings.locale, {
     timeZone: settings.timeZone,
     hour: twelve ? "numeric" : "2-digit",
     minute: "2-digit",
     hourCycle: settings.hourCycle,
   }).format(epoch);
+  return plainSpaces(text);
 }
 
 /** "09:30 – 10:15", or the start alone. */
@@ -89,8 +101,10 @@ export function formatAgendaDay(
   style: AgendaDayStyle,
   locale: string,
 ): string {
-  return formatter(locale, { ...DAY_STYLES[style], timeZone: UTC }).format(
-    dayDate(key),
+  return plainSpaces(
+    formatter(locale, { ...DAY_STYLES[style], timeZone: UTC }).format(
+      dayDate(key),
+    ),
   );
 }
 
@@ -100,11 +114,13 @@ export function formatAgendaMonth(
   month: number,
   locale: string,
 ): string {
-  return formatter(locale, {
-    month: "long",
-    year: "numeric",
-    timeZone: UTC,
-  }).format(new Date(Date.UTC(year, month, 1, 12)));
+  return plainSpaces(
+    formatter(locale, {
+      month: "long",
+      year: "numeric",
+      timeZone: UTC,
+    }).format(new Date(Date.UTC(year, month, 1, 12))),
+  );
 }
 
 /** Two days as one span ("28 Sep – 4 Oct 2026", "19–25 Oct 2026"). */
@@ -119,8 +135,8 @@ export function formatAgendaDaySpan(
     year: "numeric",
     timeZone: UTC,
   });
-  if (from === to) return span.format(dayDate(from));
-  return span.formatRange(dayDate(from), dayDate(to));
+  if (from === to) return plainSpaces(span.format(dayDate(from)));
+  return plainSpaces(span.formatRange(dayDate(from), dayDate(to)));
 }
 
 /** The toolbar's period for a view's range around its anchor. */

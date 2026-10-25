@@ -9,6 +9,7 @@ import type {
 import type { AgendaDetailsApi } from "../../composables/agenda/useAgendaDetails";
 import type { AgendaFormField } from "../../composables/agenda/agendaForm";
 import { noticeTone } from "../../composables/agenda/agendaShell";
+import { zonedDayKey } from "../../composables/agenda/agendaTime";
 import type { AgendaEventAction } from "../../../types/full-agenda";
 import type { MatrixCellKind, MatrixColumn } from "../../../types/matrix";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
@@ -60,6 +61,13 @@ const safeHtml = computed(() =>
 const customFields = computed(() =>
   props.details.fields.value.filter((field) => !field.builtIn),
 );
+/** A custom `datetime` value in the agenda's zone ("Mon 26 Oct · 09:30"). */
+const dateTimeText = (value: unknown): string => {
+  const epoch = typeof value === "string" ? Date.parse(value) : Number.NaN;
+  if (Number.isNaN(epoch)) return value ? String(value) : "";
+  const day = zonedDayKey(epoch, props.ctx.options.value.timeZone);
+  return `${format.value.day(day, "medium")} · ${format.value.time(epoch)}`;
+};
 const columnOf = (field: AgendaFormField): MatrixColumn => ({
   id: field.id,
   label: field.label,
@@ -73,6 +81,31 @@ const row = computed(() => ({
 }));
 const actions = computed(() => props.details.actionsOf(props.occurrence));
 const actionColor = (action: AgendaEventAction) => action.tone ?? "neutral";
+/** The change of this event the route answered a conflict for, if any. */
+const conflict = computed(() => {
+  if (props.occurrence.state !== "conflict") return null;
+  const id = props.occurrence.recurring?.seriesId ?? props.occurrence.event.id;
+  return (
+    props.ctx.stagedEdits.value.find(
+      (edit) =>
+        edit.status === "conflict" &&
+        (edit.change.id === id || edit.change.tempId === id),
+    ) ?? null
+  );
+});
+const conflictMessage = computed(
+  () =>
+    props.occurrence.stateMessage ||
+    conflict.value?.message ||
+    t("dms.agenda.details.status_conflict"),
+);
+/** Writes over the route's version, or takes it; the details close on the event as it now is. */
+async function resolveConflict(choice: "overwrite" | "discard") {
+  const edit = conflict.value;
+  if (!edit) return;
+  await props.ctx.resolveConflict(edit.key, choice);
+  props.details.close();
+}
 const statusLabel = computed(() =>
   event.value.status && event.value.status !== "confirmed"
     ? t(`dms.agenda.details.status_${event.value.status}`)
@@ -170,7 +203,11 @@ const statusLabel = computed(() =>
       >
         <dt class="text-muted">{{ processText(field.label) }}</dt>
         <dd class="min-w-0">
+          <span v-if="field.kind === 'datetime'" class="text-default">
+            {{ dateTimeText(row.values[field.id]) }}
+          </span>
           <MatrixCellValue
+            v-else
             :column="columnOf(field)"
             :value="row.values[field.id]"
             :row="row"
@@ -178,6 +215,36 @@ const statusLabel = computed(() =>
         </dd>
       </div>
     </dl>
+
+    <div
+      v-if="conflict"
+      class="flex flex-col gap-2 rounded-md bg-(--dms-error-tint) p-3 text-sm"
+      role="alert"
+      data-agenda-details-conflict
+    >
+      <p class="text-error flex items-start gap-2">
+        <UIcon name="i-ph-warning" class="mt-0.5 size-4 shrink-0" />
+        <span>{{ conflictMessage }}</span>
+      </p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          :label="t('dms.agenda.details.take_theirs')"
+          data-agenda-conflict-discard
+          @click="resolveConflict('discard')"
+        />
+        <UButton
+          size="xs"
+          color="error"
+          variant="outline"
+          :label="t('dms.agenda.details.overwrite')"
+          data-agenda-conflict-overwrite
+          @click="resolveConflict('overwrite')"
+        />
+      </div>
+    </div>
 
     <ul v-if="event.issues?.length" class="flex flex-col gap-1.5">
       <li

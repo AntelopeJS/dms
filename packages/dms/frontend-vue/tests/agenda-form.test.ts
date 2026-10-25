@@ -263,6 +263,53 @@ describe("values and changes", () => {
     expect(patch).toMatchObject({ start: "2026-10-26", end: "2026-10-27" });
   });
 
+  it("#6 sends a cleared field as null, and null as what Undo puts back", () => {
+    const values = valuesFromOccurrence(meeting, fields, BRUSSELS);
+    const cleared = buildPatch(
+      fields,
+      { ...values, location: "", dossier: "", description: "Agenda" },
+      BRUSSELS,
+    );
+    const change = updateChange(meeting, cleared, BRUSSELS)!;
+    expect(change.patch).toEqual({
+      location: null,
+      description: "Agenda",
+      data: { dossier: null, other: 1 },
+    });
+    // On the wire the clears survive (an absent key would keep the value).
+    expect(JSON.parse(JSON.stringify(change.patch))).toMatchObject({
+      location: null,
+      data: { dossier: null },
+    });
+    // The description was absent: Undo clears it again.
+    expect(change.previous).toEqual({
+      location: "Room A",
+      description: null,
+      data: { dossier: "45601", other: 1 },
+    });
+  });
+
+  it("#6 sends nothing for a field left empty that was empty", () => {
+    const values = valuesFromOccurrence(meeting, fields, BRUSSELS);
+    const next = buildPatch(fields, { ...values, description: "" }, BRUSSELS);
+    expect(updateChange(meeting, next, BRUSSELS)).toBeNull();
+  });
+
+  it("#6 creates without nulls: a new event has nothing to clear", () => {
+    const start = wallClockEpoch("2026-10-26T13:00", BRUSSELS)!;
+    const values = valuesFromPlacement(
+      { start, end: start + 3_600_000, allDay: false, resourceIds: [] },
+      fields,
+      BRUSSELS,
+    );
+    const change = createChange(
+      buildPatch(fields, { ...values, title: "New" }, BRUSSELS),
+    );
+    expect(Object.values(change.patch!)).not.toContain(null);
+    expect(change.patch).not.toHaveProperty("location");
+    expect(change.patch?.data ?? {}).toEqual({});
+  });
+
   it("refuses an empty required field and an end before its start", () => {
     const errors = validateForm(
       fields,
