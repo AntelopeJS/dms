@@ -104,7 +104,9 @@ export interface MatrixSelectOption {
  * One column. Columns come from the block's `columns` option, from the
  * response's `columns`, or both: the response wins for an id both declare,
  * and adds the ones it alone names (languages of a workspace, sizes of an
- * article, fields of a collection).
+ * article, fields of a collection). They are drawn in the response's order,
+ * then the block's columns the response does not name, in the block's order;
+ * `pinned` ones first.
  */
 export interface MatrixColumn {
   id: string;
@@ -259,6 +261,12 @@ export interface MatrixSaveRequest {
   changes: MatrixChange[];
   /** Set when the user chose Overwrite on a conflict. */
   force?: boolean;
+  /**
+   * The query the grid reads its rows with (`search`, `status`,
+   * `facet_<id>`...), without paging, so the route can answer the `counts`
+   * of the filtered view.
+   */
+  query?: Record<string, string>;
 }
 
 /** A change the route refused. */
