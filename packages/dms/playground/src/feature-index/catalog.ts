@@ -1,3 +1,4 @@
+import { AGENDA_FEATURES } from "./agenda";
 import { BLOCKS_FEATURES } from "./blocks";
 import { FORM_FEATURES } from "./form";
 import { FRONTEND_FEATURES } from "./frontend";
@@ -11,6 +12,7 @@ export const PLAYGROUND_FEATURES: PlaygroundFeature[] = [
   ...BLOCKS_FEATURES,
   ...TABLE_VIEW_FEATURES,
   ...MATRIX_FEATURES,
+  ...AGENDA_FEATURES,
   ...FORM_FEATURES,
   ...PAGES_FEATURES,
   ...FRONTEND_FEATURES,

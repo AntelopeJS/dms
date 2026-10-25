@@ -10,6 +10,7 @@ import "./drawer-modal";
 import "./form";
 import "./table-view";
 import "./matrix";
+import "./agenda";
 import "./tabs";
 import "./grid";
 import "./chart";
