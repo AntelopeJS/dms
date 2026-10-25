@@ -31,6 +31,7 @@ export const MATRIX_CELL_KINDS = [
   "number",
   "boolean",
   "date",
+  "datetime",
   "select",
   "tags",
   "json",
@@ -135,7 +136,10 @@ export interface MatrixColumn {
   nullable?: boolean;
   /** An empty value is refused before it is sent. */
   required?: boolean;
-  /** Left out of the row totals (an annex column, a price). Numbers count by default. */
+  /**
+   * Left out of the totals (an annex column, a price, a rate): no part of the
+   * row's Total, no sum in the Total row. Numbers count by default.
+   */
   excludeFromTotals?: boolean;
   align?: "start" | "center" | "end";
   /**
@@ -171,8 +175,13 @@ export interface MatrixCellState {
   readOnly?: boolean;
   /** Warnings shown on the cell and in its drawer (a placeholder missing). */
   issues?: BlockText[];
-  /** Greyed text shown while the cell is empty (the inherited or base text). */
+  /**
+   * Greyed text shown while the cell is empty, and above its editor while it
+   * is edited (the inherited or base text, as a reference).
+   */
   placeholder?: BlockText;
+  /** Overrides the column's `editIn` for this cell (a long base text edited in the drawer). */
+  editIn?: MatrixEditIn;
   /** A value shown struck through before the current one (before / after). */
   previous?: unknown;
 }
@@ -193,6 +202,9 @@ export interface MatrixRow {
   readOnly?: boolean;
   /** Highlights the row (the current store). */
   tone?: MatrixTone;
+  /** A pill after the row label ("Overridden"). */
+  badge?: BlockText;
+  badgeTone?: MatrixTone;
 }
 
 /** A group heading the rows that name it. */
@@ -265,6 +277,8 @@ export interface MatrixSaveRequest {
   changes: MatrixChange[];
   /** Set when the user chose Overwrite on a conflict. */
   force?: boolean;
+  /** The block's `conflicts` mode, so a generic route knows whether to check `previous`. */
+  conflicts?: MatrixConflictMode;
   /**
    * The query the grid reads its rows with (`search`, `status`,
    * `facet_<id>`...), without paging, so the route can answer the `counts`
@@ -290,8 +304,12 @@ export interface MatrixConflict {
 
 /**
  * The answer of `saveUrl`. Rows it returns replace theirs on screen; a change
- * named in `errors` or `conflicts` stays in its cell with the message. A
- * non-2xx answer fails every change of the request.
+ * named in `errors` or `conflicts` stays in its cell with the message; every
+ * other change of the request counts as written, its cell keeping the value
+ * sent. A route refusing the request as a whole names every change, answers
+ * a row error, or answers a non-2xx, which fails every change of the request.
+ * `columns`, `groups` and `footer` replace theirs (a coverage badge, a group
+ * count, a footer line that the save moved).
  */
 export interface MatrixSaveResponse {
   rows?: MatrixRow[];
@@ -299,12 +317,18 @@ export interface MatrixSaveResponse {
   conflicts?: MatrixConflict[];
   counts?: Record<string, number>;
   targets?: MatrixTargets;
+  columns?: MatrixColumn[];
+  groups?: MatrixGroup[];
+  footer?: BlockText;
 }
 
 /**
- * A server-computed fill (all to the warehouse, by minimum stock, clear): the
- * grid posts its rows as shown (`{ rows }`) and applies the answered
- * `{ changes }` as edits, through the save mode like typed ones.
+ * A server-computed fill (all to the warehouse, by minimum stock, on the
+ * checked stores, clear): the grid posts its rows as shown (`{ rows }`, plus
+ * `selected`, the checked row ids, when the grid is `selectable`) and applies
+ * the answered `{ changes }` as edits, through the save mode like typed ones.
+ * A change on a cell the user cannot edit is left out; an answered `previous`
+ * is ignored, the edit starting from the value on screen.
  */
 export interface MatrixFillAction {
   id: string;
@@ -359,9 +383,35 @@ export interface MatrixRowPanel {
   title?: BlockText;
   /** Adds a read-only JSON tab of the row. */
   showJson?: boolean;
+  /** Puts the open row in the page URL, so a link or a refresh opens it again. */
+  deepLink?: boolean;
 }
 
-/** Row totals (a Total column), column totals (a Total row), or both. */
+/**
+ * An action on a row, in the menu of its header (Override, Revert, Delete).
+ * `{{row.X}}` takes the row's values, plus `{{row.id}}`.
+ */
+export interface MatrixRowAction {
+  id: string;
+  label: BlockText;
+  icon?: string;
+  tone?: MatrixTone;
+  target: ActionTarget;
+}
+
+/** A row action as the block receives it, its target serialized. */
+export interface MatrixRowActionSerialized extends Omit<
+  MatrixRowAction,
+  "target"
+> {
+  target: ActionTargetSerialized;
+}
+
+/**
+ * Row totals (a Total column, drawn after the last column it adds up and
+ * before the columns left out of the totals), column totals (a Total row),
+ * or both.
+ */
 export interface MatrixTotals {
   rows?: boolean;
   columns?: boolean;
@@ -437,6 +487,9 @@ export interface MatrixProps extends BaseComponentProps {
    * `{{row.value}}` (the cell's value).
    */
   cellAction?: ActionTarget;
+  rowActions?: MatrixRowAction[];
+  /** A checkbox per row; fill actions receive the checked ids as `selected`. */
+  selectable?: boolean;
   fillActions?: MatrixFillAction[];
 
   /** Defaults to `none` (every row at once). */
@@ -449,6 +502,12 @@ export interface MatrixProps extends BaseComponentProps {
   facets?: MatrixFacet[];
   /** Header clicks sort, sent as `sort` and `direction`. */
   sortable?: boolean;
+  /**
+   * A filter per column in its header (contains, is), sent as
+   * `filter_<columnId>=<mode>:<value>` like a table view's, and shown as
+   * removable chips.
+   */
+  columnFilters?: boolean;
   /** Keeps page, search, status and facets in the page URL. Defaults to `true`. */
   urlState?: boolean;
 
@@ -477,8 +536,12 @@ export interface MatrixProps extends BaseComponentProps {
 }
 
 /** The options as the block receives them, its targets serialized. */
-export interface MatrixPropsSerialized extends Omit<MatrixProps, "cellAction"> {
+export interface MatrixPropsSerialized extends Omit<
+  MatrixProps,
+  "cellAction" | "rowActions"
+> {
   cellAction?: ActionTargetSerialized;
+  rowActions?: MatrixRowActionSerialized[];
 }
 
 const MATRIX_COMPONENT_NAME = "dms-matrix-block";
@@ -493,10 +556,16 @@ const DEFAULT_ICON = "i-ph-grid-nine";
 export function Matrix(
   options?: MatrixProps,
 ): ComponentBuilder<MatrixPropsSerialized> {
-  const { cellAction, ...rest } = options ?? {};
+  const { cellAction, rowActions, ...rest } = options ?? {};
   const serialized: MatrixPropsSerialized = {
     ...rest,
     ...(cellAction && { cellAction: serializeActionTarget(cellAction) }),
+    ...(rowActions && {
+      rowActions: rowActions.map((action) => ({
+        ...action,
+        target: serializeActionTarget(action.target),
+      })),
+    }),
   };
   return attachRealtimeTopicsHook(
     new ComponentBuilder<MatrixPropsSerialized>(MATRIX_COMPONENT_NAME)
@@ -606,6 +675,16 @@ export const MatrixSchema = z.object({
     group: "behavior",
     widget: "json",
   }),
+  rowActions: ui(opaqueOption<MatrixRowActionSerialized[]>().optional(), {
+    label: "Row actions",
+    group: "features",
+    widget: "json",
+  }),
+  selectable: ui(z.boolean().optional(), {
+    label: "Row checkboxes",
+    group: "features",
+    widget: "switch",
+  }),
   fillActions: ui(opaqueOption<MatrixFillAction[]>().optional(), {
     label: "Fill actions",
     group: "features",
@@ -644,6 +723,11 @@ export const MatrixSchema = z.object({
   }),
   sortable: ui(z.boolean().optional(), {
     label: "Sortable",
+    group: "features",
+    widget: "switch",
+  }),
+  columnFilters: ui(z.boolean().optional(), {
+    label: "Column filters",
     group: "features",
     widget: "switch",
   }),
