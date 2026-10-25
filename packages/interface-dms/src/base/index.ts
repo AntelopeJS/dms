@@ -29,6 +29,8 @@ export * from "./layouts";
 export * from "./live-toggle";
 export * from "./matrix";
 export * from "./matrix-types";
+export * from "./full-agenda";
+export * from "./full-agenda-types";
 export * from "./meter";
 export * from "./nav-card-grid";
 export * from "./page-toolbar";

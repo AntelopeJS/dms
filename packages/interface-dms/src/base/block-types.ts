@@ -24,6 +24,7 @@ import "./key-value-list";
 import "./kpi-card";
 import "./live-toggle";
 import "./matrix";
+import "./full-agenda";
 import "./meter";
 import "./nav-card-grid";
 import "./page-toolbar";

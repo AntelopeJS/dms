@@ -902,6 +902,47 @@
         "remove_chip": "Retirer le filtre {filter}",
         "clear_all": "Tout effacer"
       }
+    },
+    "agenda": {
+      "views": {
+        "_owner": "placeholder"
+      },
+      "toolbar": {
+        "_owner": "placeholder"
+      },
+      "sidebar": {
+        "_owner": "placeholder"
+      },
+      "details": {
+        "_owner": "placeholder"
+      },
+      "form": {
+        "_owner": "placeholder"
+      },
+      "save": {
+        "_owner": "placeholder"
+      },
+      "grid": {
+        "_owner": "placeholder"
+      },
+      "month": {
+        "_owner": "placeholder"
+      },
+      "timeline": {
+        "_owner": "placeholder"
+      },
+      "year": {
+        "_owner": "placeholder"
+      },
+      "list": {
+        "_owner": "placeholder"
+      },
+      "drag": {
+        "_owner": "placeholder"
+      },
+      "a11y": {
+        "_owner": "placeholder"
+      }
     }
   }
 }
