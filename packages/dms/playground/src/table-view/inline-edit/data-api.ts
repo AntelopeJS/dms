@@ -35,8 +35,8 @@ const CATEGORIES: { value: InlineProductCategory; label: string }[] = [
 
 /**
  * The products of the "Inline edit" demo: a column per kind of simple value
- * the grid edits in place, a read-only one, and notes in rich text, which
- * stay in the edit form.
+ * the grid edits in place, a read-only one, and notes in a long text (a
+ * textarea), which stay in the edit form.
  */
 @RegisterDataController()
 export class inlineProductDataAPI extends DataController(
@@ -135,8 +135,10 @@ export class inlineProductDataAPI extends DataController(
   @Listable()
   @Column({
     name: "Notes",
-    type: new DefaultDataTypes.RichTextType({
+    type: new DefaultDataTypes.StringType({
       placeholder: "Notes for the sales team",
+      textarea: true,
+      rows: 4,
     }),
     size: 260,
   })

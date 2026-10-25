@@ -8,7 +8,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 
-const tableName = "playground_inline_products";
+const tableName = "playground_inline_catalogue";
 
 export type InlineProductCategory =
   | "furniture"
@@ -30,7 +30,7 @@ interface InlineProductSeed {
 }
 
 // A small furniture catalogue: a few products out of stock, a few inactive,
-// a few with notes, which stay in the edit form.
+// a few with notes, a long text edited in the form only.
 const PRODUCTS: InlineProductSeed[] = [
   {
     name: "Oak standing desk",
@@ -40,7 +40,7 @@ const PRODUCTS: InlineProductSeed[] = [
     active: true,
     category: "furniture",
     launchDate: "2025-03-04",
-    notes: "<p>Electric lift, two memory presets.</p>",
+    notes: "Electric lift, two memory presets.",
   },
   {
     name: "Walnut side table",
@@ -59,7 +59,7 @@ const PRODUCTS: InlineProductSeed[] = [
     active: true,
     category: "office",
     launchDate: "2025-01-20",
-    notes: "<p>Back in stock in <strong>March</strong>.</p>",
+    notes: "Back in stock in March.",
   },
   {
     name: "Linen floor cushion",
@@ -87,7 +87,7 @@ const PRODUCTS: InlineProductSeed[] = [
     active: false,
     category: "lighting",
     launchDate: "2023-06-15",
-    notes: "<p>Discontinued by the supplier.</p>",
+    notes: "Discontinued by the supplier.",
   },
   {
     name: "Modular shelf unit",
@@ -178,7 +178,7 @@ const PRODUCTS: InlineProductSeed[] = [
     active: true,
     category: "office",
     launchDate: "2025-09-01",
-    notes: "<p>Sold by packs of four.</p>",
+    notes: "Sold by packs of four.",
   },
   {
     name: "Bouclé armchair",

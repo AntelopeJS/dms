@@ -32,12 +32,12 @@ export class PageTableViewInlineEdit extends PageController(
       text: "A select or a date picker opens with the cell, and the pick is the save.",
     },
     {
-      label: "Empty the name, or type a negative price",
-      text: "The server refuses it: the cell stays open on what you typed, marked invalid, and a toast says why.",
+      label: "Empty a name, press Enter",
+      text: "The server refuses it (the name is mandatory): the cell stays open on what you typed, marked invalid, and a toast says why. Click another cell instead and the refused one stays marked until you edit it again.",
     },
     {
       label: "SKU and Notes",
-      text: "A read-only column and a rich text keep their display: edit Notes from the row's drawer (click the row outside an editable cell).",
+      text: "A read-only column and a long text (a textarea) keep their display: edit Notes from the row's drawer (click the row outside an editable cell).",
     },
     {
       label: "Grouped display",

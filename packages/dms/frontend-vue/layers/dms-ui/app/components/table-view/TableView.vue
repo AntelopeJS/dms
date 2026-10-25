@@ -1419,7 +1419,7 @@ const inlineEditing = useTableInlineEdit<T>({
   canEditRow: (row) =>
     isRowActionEnabled(tableProps.value.rowActions?.edit, row),
   isEnabled: computed(() => !tableRows.isSource && !showArchived.value),
-  refreshRow: (id) => patchRowLocal(id),
+  getRow: (id) => tableRows.getRow(id),
   onSaved: () => refreshCounts(),
   onError: (failure) =>
     toast.add({

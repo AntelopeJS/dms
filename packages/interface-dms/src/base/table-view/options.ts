@@ -1166,6 +1166,12 @@ export interface TableViewOptions<
    * left as they are. Needs the `edit` action: a caller without it gets the
    * read-only grid. Ignored by `TableView.fromSource`, which has no edit
    * route.
+   *
+   * An inline edit sends the field alone, without the edit form around it:
+   * what `forms.edit` declares on the form's builder (its watches setting
+   * another field) and the form's own submit defaults do not run. A rule
+   * the data must keep belongs to the column (`disabledWhen`,
+   * `visibleWhen`) or to a guard, which the edit route enforces either way.
    * @example true
    * @example { columns: ["price", "stock", "active"] }
    */

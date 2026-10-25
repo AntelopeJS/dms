@@ -1,15 +1,29 @@
 <script setup lang="ts" generic="T extends Data">
-import { nextTick, useId } from "vue";
-import { onClickOutside } from "@vueuse/core";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  useId,
+  useTemplateRef,
+  watch,
+} from "vue";
+import { onClickOutside, useEventListener } from "@vueuse/core";
 import { FlexRender, type CellContext } from "@tanstack/vue-table";
 import type { Data } from "../../../types/table";
 import type { TableInlineEdit } from "../../composables/table-view/useTableInlineEdit";
 import { processFieldI18n } from "../../utils/fieldOptionsI18n";
+import { whenFocusable } from "../../utils/whenFocusable";
 
 interface InlineEditCellProps {
   /** The cell, as the grid hands it to a `<column>-cell` slot. */
   cell: CellContext<T, unknown>;
   inlineEdit: TableInlineEdit<T>;
+}
+
+/** What the cell reads of its grid column's definition. */
+interface InlineEditColumnDef {
+  cellWrap?: boolean;
+  meta?: { label?: string };
 }
 
 const props = defineProps<InlineEditCellProps>();
@@ -25,6 +39,9 @@ const FOCUSABLE_SELECTOR =
 const DISPLAY_CONTROL_SELECTOR = "a, button";
 // Texts beside a switch or a checkbox: in a cell, the column header says it.
 const TOGGLE_TEXT_OPTIONS = new Set(["label", "description"]);
+// The control is resolved lazily: its code may still be loading when the
+// cell opens. Past this delay, the cell gives up taking the keyboard.
+const FOCUS_WAIT_MS = 3_000;
 
 const row = computed(() => props.cell.row.original);
 const columnId = computed(() => props.cell.column.id);
@@ -43,11 +60,7 @@ const isInvalid = computed(() =>
 );
 
 const columnDef = computed(
-  () =>
-    props.cell.column.columnDef as {
-      cellWrap?: boolean;
-      meta?: { label?: string };
-    },
+  () => props.cell.column.columnDef as InlineEditColumnDef,
 );
 const textClass = computed(() =>
   columnDef.value.cellWrap
@@ -55,12 +68,24 @@ const textClass = computed(() =>
     : "line-clamp-1 text-ellipsis",
 );
 
+// While its value is being saved, the cell draws that value, not the old one.
+const shownCell = computed<CellContext<T, unknown>>(() => {
+  const saving = props.inlineEdit.pendingOf(row.value, columnId.value);
+  const target = column.value;
+  if (!saving || !target) return props.cell;
+  const original = { ...row.value, [target.field.id]: saving.value } as T;
+  return { ...props.cell, row: { ...props.cell.row, original } };
+});
+
 const inputId = useId();
 const inputLabel = computed(() =>
   t("dms.table.inline_edit.cell", {
     column: columnDef.value.meta?.label ?? columnId.value,
     row: props.inlineEdit.rowLabel(row.value),
   }),
+);
+const status = computed(() =>
+  isSaving.value ? t("dms.table.inline_edit.saving") : "",
 );
 
 const control = computed(() =>
@@ -77,13 +102,10 @@ const controlOptions = computed<Record<string, unknown>>(() => {
       Object.entries(options).filter(([key]) => !TOGGLE_TEXT_OPTIONS.has(key)),
     );
   }
-  // A required select is not emptied by picking its value again.
+  // Picking the value a cell holds again keeps it: a cell is emptied by
+  // clearing it, not by a click on its own value.
   if (target.opensPicker === "defaultOpen") {
-    return {
-      ...options,
-      deselectable: !target.field.required,
-      defaultOpen: true,
-    };
+    return { ...options, deselectable: false, defaultOpen: true };
   }
   return options;
 });
@@ -103,16 +125,22 @@ let shouldRefocusDisplay = false;
 
 const commit = () => props.inlineEdit.commit(row.value, columnId.value);
 
-// A select opens by itself (`defaultOpen`), focus in its list; a date's
-// trigger is clicked open on arrival, not when focus comes back to it.
-const focusControl = (shouldOpenPicker: boolean) => {
-  const root = editor.value;
+// A select opens by itself (`defaultOpen`), the keyboard in its list; a
+// date's trigger is clicked open on arrival, not when focus comes back to
+// it; a text or a number is selected whole, ready to be typed over.
+const focusControl = async (shouldOpenPicker: boolean) => {
   const target = column.value;
-  if (!root || !target) return;
+  if (!editor.value || !target) return;
   if (shouldOpenPicker && target.opensPicker === "defaultOpen") return;
-  const focusable = root.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-  focusable?.focus();
-  if (shouldOpenPicker && target.opensPicker === "click") focusable?.click();
+  const focusable = await whenFocusable(
+    editor.value,
+    FOCUSABLE_SELECTOR,
+    FOCUS_WAIT_MS,
+  );
+  if (!focusable || !isEditing.value) return;
+  focusable.focus();
+  if (focusable instanceof HTMLInputElement) focusable.select();
+  if (shouldOpenPicker && target.opensPicker === "click") focusable.click();
 };
 
 const open = (event?: Event) => {
@@ -134,11 +162,15 @@ const handleFocusOut = (event: FocusEvent) => {
   setTimeout(() => void commit(), 0);
 };
 
+const cancel = () => {
+  shouldRefocusDisplay = true;
+  props.inlineEdit.cancel();
+};
+
 const handleEditorKeydown = (event: KeyboardEvent) => {
   if (event.key === "Escape") {
     event.stopPropagation();
-    shouldRefocusDisplay = true;
-    props.inlineEdit.cancel();
+    cancel();
     return;
   }
   if (event.key !== "Enter" || column.value?.commit !== "type") return;
@@ -148,31 +180,48 @@ const handleEditorKeydown = (event: KeyboardEvent) => {
   (event.target as HTMLElement | null)?.blur?.();
 };
 
+// Esc in an open picker closes the picker and the cell at once.
+const handlePickerEscape = (event: KeyboardEvent) => {
+  if (event.key !== "Escape") return;
+  const target = event.target as Element | null;
+  if (target?.closest?.(POPOVER_SELECTOR)) cancel();
+};
+
 // A pick is the edit: it saves at once.
 const handleUpdate = (value: unknown) => {
   draft.value = value;
-  if (column.value?.commit === "pick") void commit();
+  if (column.value?.commit !== "pick") return;
+  // The picker closed: the keyboard goes back to the cell, not to the page.
+  shouldRefocusDisplay = true;
+  void commit();
 };
 
 // A picker closed by a click elsewhere leaves no focus in the cell to lose:
 // the click saves it too. Listened to while the cell is open only, rather
 // than by every editable cell of the page.
-let stopClickOutside: (() => void) | undefined;
+let stopListening: (() => void) | undefined;
 watch(
   editor,
   (element) => {
-    stopClickOutside?.();
-    stopClickOutside = element
-      ? onClickOutside(element, () => void commit(), {
-          ignore: [POPOVER_SELECTOR],
-        })
-      : undefined;
+    stopListening?.();
+    stopListening = undefined;
+    if (!element) return;
+    const stops = [
+      onClickOutside(element, () => void commit(), {
+        ignore: [POPOVER_SELECTOR],
+      }),
+      useEventListener(document, "keydown", handlePickerEscape, {
+        capture: true,
+      }),
+    ];
+    stopListening = () => stops.forEach((stop) => stop());
   },
   { flush: "post" },
 );
-onBeforeUnmount(() => stopClickOutside?.());
+onBeforeUnmount(() => stopListening?.());
 
-// A refused value takes the keyboard back to its input.
+// A refused value takes the keyboard back to its input, when the user is
+// still on it (a refusal never pulls them back from another cell).
 watch(isInvalid, (invalid) => {
   if (invalid && isEditing.value) void nextTick(() => focusControl(false));
 });
@@ -196,6 +245,7 @@ const toggle = (value: unknown) =>
   <div
     v-else-if="column.commit === 'toggle'"
     class="flex items-center gap-1.5"
+    :aria-busy="isSaving || undefined"
     @click.stop
     @dblclick.stop
   >
@@ -213,14 +263,18 @@ const toggle = (value: unknown) =>
       v-if="isSaving"
       name="i-ph-spinner"
       class="text-dimmed size-3.5 animate-spin"
+      role="img"
       :aria-label="t('dms.table.inline_edit.saving')"
     />
+    <span class="sr-only" role="status">{{ status }}</span>
   </div>
 
   <div
     v-else-if="isEditing"
     ref="editor"
     class="-mx-1.5 flex min-w-0 items-center gap-1.5"
+    data-inline-edit="editor"
+    :aria-busy="isSaving || undefined"
     @click.stop
     @dblclick.stop
     @keydown="handleEditorKeydown"
@@ -242,32 +296,52 @@ const toggle = (value: unknown) =>
       v-if="isSaving"
       name="i-ph-spinner"
       class="text-dimmed size-3.5 shrink-0 animate-spin"
+      role="img"
       :aria-label="t('dms.table.inline_edit.saving')"
     />
+    <span class="sr-only" role="status">{{ status }}</span>
   </div>
 
-  <!-- The value as the column draws it; a click turns it into the input. -->
+  <!-- The value as the column draws it; a click turns it into the input. A
+       value the server refused marks the cell until it is edited again. -->
   <div
     v-else
     ref="display"
     role="button"
     tabindex="0"
+    data-inline-edit="display"
     :aria-label="t('dms.table.inline_edit.start', { cell: inputLabel })"
-    :title="t('dms.table.inline_edit.hint')"
-    class="hover:bg-elevated hover:ring-accented focus-visible:ring-primary -mx-1.5 flex min-h-7 cursor-text items-center gap-1.5 rounded-md px-1.5 outline-none hover:ring-1 hover:ring-inset focus-visible:ring-2"
+    :aria-busy="isSaving || undefined"
+    :title="
+      isInvalid
+        ? t('dms.table.inline_edit.not_saved')
+        : t('dms.table.inline_edit.hint')
+    "
+    :class="[
+      'hover:bg-elevated hover:ring-accented focus-visible:ring-primary -mx-1.5 flex min-h-7 cursor-text items-center gap-1.5 rounded-md px-1.5 outline-none hover:ring-1 hover:ring-inset focus-visible:ring-2',
+      isInvalid && 'ring-error ring-1 ring-inset',
+    ]"
     @click.stop="open"
     @dblclick.stop
     @keydown.enter.prevent="open()"
     @keydown.f2.prevent="open()"
   >
     <div :class="['min-w-0 flex-1', textClass]">
-      <FlexRender :render="cell.column.columnDef.cell" :props="cell" />
+      <FlexRender :render="cell.column.columnDef.cell" :props="shownCell" />
     </div>
     <UIcon
       v-if="isSaving"
       name="i-ph-spinner"
       class="text-dimmed size-3.5 shrink-0 animate-spin"
+      role="img"
       :aria-label="t('dms.table.inline_edit.saving')"
+    />
+    <UIcon
+      v-else-if="isInvalid"
+      name="i-ph-warning-circle"
+      class="text-error size-3.5 shrink-0"
+      role="img"
+      :aria-label="t('dms.table.inline_edit.not_saved')"
     />
   </div>
 </template>

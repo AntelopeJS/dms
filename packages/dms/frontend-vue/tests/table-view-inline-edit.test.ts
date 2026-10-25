@@ -125,7 +125,12 @@ describe("a cell edited in place", () => {
       offset: 0,
       limit: 10,
     });
-    const refreshRow = vi.fn();
+    const getRow = vi.fn(
+      async (id: string): Promise<Row | undefined> => ({
+        ...data.value!.results.find((row) => row._id === id)!,
+        price: 151,
+      }),
+    );
     const onSaved = vi.fn();
     const onError = vi.fn();
     const edit = useTableInlineEdit<Row>({
@@ -140,12 +145,12 @@ describe("a cell edited in place", () => {
       getDataType: () => undefined,
       canEditRow: (row) => row.locked !== true,
       isEnabled: computed(() => true),
-      refreshRow,
+      getRow,
       onSaved,
       onError,
     });
     const row = (index: number) => data.value!.results[index]!;
-    return { edit, data, row, api, refreshRow, onSaved, onError };
+    return { edit, data, row, api, getRow, onSaved, onError };
   };
 
   it("sends nothing when the value did not change", async () => {
@@ -158,17 +163,23 @@ describe("a cell edited in place", () => {
   });
 
   it("saves the new value by a partial edit and updates the row", async () => {
-    const { edit, row, data, api, refreshRow, onSaved } = setup();
+    const { edit, row, data, api, getRow, onSaved } = setup();
     edit.start(row(0), "price");
     edit.setDraft(150);
-    expect(await edit.commit(row(0), "price")).toBe(true);
+    const saving = edit.commit(row(0), "price");
+    // The cell shows the value sent while it is saved.
+    expect(edit.valueOf(row(0), "price")).toBe(150);
+    expect(edit.isSaving(row(0), "price")).toBe(true);
+    expect(await saving).toBe(true);
     expect(api).toHaveBeenCalledWith("/api/products/edit", {
       method: "PUT",
       query: { id: "p1" },
       body: { price: 150 },
     });
-    expect(data.value?.results[0]?.price).toBe(150);
-    expect(refreshRow).toHaveBeenCalledWith("p1");
+    // The row as the server answers it replaces the one listed.
+    expect(getRow).toHaveBeenCalledWith("p1");
+    expect(data.value?.results[0]?.price).toBe(151);
+    expect(edit.isSaving(row(0), "price")).toBe(false);
     expect(onSaved).toHaveBeenCalled();
     expect(edit.isEditing(row(0), "price")).toBe(false);
   });
@@ -200,6 +211,47 @@ describe("a cell edited in place", () => {
     expect(edit.isInvalid(row(0), "price")).toBe(true);
     expect(edit.draft.value).toBe(-5);
     expect(data.value?.results[0]?.price).toBe(120);
+  });
+
+  it("marks a cell refused after the user went on, without taking them back", async () => {
+    const failure = Object.assign(new Error("refused"), { statusCode: 400 });
+    const { edit, row, onError } = setup(
+      vi.fn(async () => {
+        throw failure;
+      }),
+    );
+    edit.start(row(0), "name");
+    edit.setDraft("Desk!");
+    edit.start(row(1), "price");
+    edit.setDraft(40);
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(failure));
+    expect(edit.isEditing(row(1), "price")).toBe(true);
+    expect(edit.draft.value).toBe(40);
+    expect(edit.isInvalid(row(0), "name")).toBe(true);
+    // Back on it, the cell opens on the value refused; Esc drops it.
+    edit.cancel();
+    edit.start(row(0), "name");
+    expect(edit.draft.value).toBe("Desk!");
+    edit.cancel();
+    expect(edit.isInvalid(row(0), "name")).toBe(false);
+  });
+
+  it("closes the cell when the refusal names other fields only", async () => {
+    const failure = Object.assign(new Error("refused"), {
+      statusCode: 400,
+      data: { code: "missing_mandatory_fields", fields: ["category"] },
+    });
+    const { edit, row, onError } = setup(
+      vi.fn(async () => {
+        throw failure;
+      }),
+    );
+    edit.start(row(0), "price");
+    edit.setDraft(99);
+    expect(await edit.commit()).toBe(false);
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(edit.isEditing(row(0), "price")).toBe(false);
+    expect(edit.isInvalid(row(0), "price")).toBe(false);
   });
 
   it("saves the cell left when another one opens", async () => {
