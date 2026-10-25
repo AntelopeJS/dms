@@ -10560,6 +10560,24 @@
             "widget": "json"
           }
         },
+        "rowActions": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Row actions",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "selectable": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Row checkboxes",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
         "fillActions": {
           "type": "unknown",
           "optional": true,
@@ -10637,6 +10655,15 @@
           "optional": true,
           "ui": {
             "label": "Sortable",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "columnFilters": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Column filters",
             "group": "features",
             "widget": "switch"
           }
@@ -10782,8 +10809,10 @@
           "undoSeconds",
           "conflicts",
           "enterMove",
+          "selectable",
           "search",
           "sortable",
+          "columnFilters",
           "urlState",
           "crossHighlight",
           "columnsMenu",
