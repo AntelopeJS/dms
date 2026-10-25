@@ -67,6 +67,8 @@ export interface PendingInlineSave {
 /** A value the server refused, kept for the cell to open on again. */
 interface FailedInlineSave {
   draft: unknown;
+  /** The row's value the refused one was to replace. */
+  base: unknown;
 }
 
 const cellKey = (rowId: string, columnId: string) =>
@@ -168,8 +170,25 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
   const isSaving = (row: T, columnId: string): boolean =>
     !!pendingOf(row, columnId);
 
+  // A refusal holds while the row keeps the value it was to replace: once a
+  // realtime event or a refresh brings another, the refused value is moot.
+  const refusalOf = (
+    row: T,
+    columnId: string,
+  ): FailedInlineSave | undefined => {
+    const refused = failed.value[keyOf(row, columnId)];
+    const column = columnOf(columnId);
+    if (!refused || !column) return undefined;
+    const isCurrent = isSameValue(
+      column.field,
+      stateValue(row, column),
+      refused.base,
+    );
+    return isCurrent ? refused : undefined;
+  };
+
   const isInvalid = (row: T, columnId: string): boolean =>
-    !!failed.value[keyOf(row, columnId)];
+    !!refusalOf(row, columnId);
 
   /** The value the cell shows: the one being saved, else the row's. */
   const valueOf = (row: T, columnId: string): unknown => {
@@ -195,8 +214,10 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
     // One cell at a time: the one left saves first, as leaving it does.
     if (active.value) void commitCell(active.value);
     const initial = stateValue(row, column);
-    // A cell whose value was refused opens on that value again.
-    const refused = failed.value[cellKey(rowId, columnId)];
+    // A cell whose value was refused opens on that value again, unless the
+    // row has changed since.
+    const refused = refusalOf(row, columnId);
+    if (!refused) forget(failed, cellKey(rowId, columnId));
     const draft = refused ? refused.draft : initial;
     active.value = { rowId, columnId, draft, initial };
     return true;
@@ -295,7 +316,10 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
         if (isActiveCell(cell.rowId, cell.columnId)) cancel();
         return false;
       }
-      failed.value = { ...failed.value, [key]: { draft: cell.draft } };
+      failed.value = {
+        ...failed.value,
+        [key]: { draft: cell.draft, base: cell.initial },
+      };
       return false;
     }
     forget(failed, key);

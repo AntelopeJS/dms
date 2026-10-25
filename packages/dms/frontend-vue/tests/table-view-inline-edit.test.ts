@@ -236,6 +236,31 @@ describe("a cell edited in place", () => {
     expect(edit.isInvalid(row(0), "name")).toBe(false);
   });
 
+  it("drops a refusal once the row brings another value of the field", async () => {
+    const failure = Object.assign(new Error("refused"), { statusCode: 400 });
+    const { edit, row, data } = setup(
+      vi.fn(async () => {
+        throw failure;
+      }),
+    );
+    edit.start(row(0), "name");
+    edit.setDraft("Desk!");
+    await edit.commit();
+    edit.start(row(1), "price");
+    expect(edit.isInvalid(row(0), "name")).toBe(true);
+    // A realtime update or a refresh: the server's row has another name.
+    data.value = {
+      ...data.value!,
+      results: data.value!.results.map((entry, index) =>
+        index === 0 ? { ...entry, name: "Oak desk" } : entry,
+      ),
+    };
+    expect(edit.isInvalid(row(0), "name")).toBe(false);
+    edit.cancel();
+    edit.start(row(0), "name");
+    expect(edit.draft.value).toBe("Oak desk");
+  });
+
   it("closes the cell when the refusal names other fields only", async () => {
     const failure = Object.assign(new Error("refused"), {
       statusCode: 400,

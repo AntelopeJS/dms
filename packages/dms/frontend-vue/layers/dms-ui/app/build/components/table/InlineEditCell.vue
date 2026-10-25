@@ -226,10 +226,21 @@ watch(isInvalid, (invalid) => {
   if (invalid && isEditing.value) void nextTick(() => focusControl(false));
 });
 
+// Whether the keyboard is still this cell's: on it, or on nothing (the
+// closed editor took it along). Gone to another cell, it stays there.
+const isKeyboardHere = (element: HTMLElement): boolean => {
+  const focused = document.activeElement;
+  if (!focused || focused === document.body) return true;
+  return !!element.parentElement?.contains(focused);
+};
+
 watch(isEditing, (editing, wasEditing) => {
   if (editing || !wasEditing || !shouldRefocusDisplay) return;
   shouldRefocusDisplay = false;
-  void nextTick(() => display.value?.focus());
+  void nextTick(() => {
+    const element = display.value;
+    if (element && isKeyboardHere(element)) element.focus();
+  });
 });
 
 const toggle = (value: unknown) =>
@@ -343,5 +354,7 @@ const toggle = (value: unknown) =>
       role="img"
       :aria-label="t('dms.table.inline_edit.not_saved')"
     />
+    <!-- A save after Enter runs here, the editor closed: still announced. -->
+    <span class="sr-only" role="status">{{ status }}</span>
   </div>
 </template>

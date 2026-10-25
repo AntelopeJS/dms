@@ -65,8 +65,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mountCell(api = vi.fn(async () => ({}))) {
-  const rows = ref([{ _id: "p1", name: "Desk" }]);
+function mountCell(
+  api: (...args: never[]) => Promise<unknown> = vi.fn(async () => ({})),
+  componentName = "dms-input-text",
+) {
+  const rows = ref([
+    { _id: "p1", name: "Desk" },
+    { _id: "p2", name: "Lamp" },
+  ]);
   const data = ref({
     results: rows.value as Row[],
     total: 1,
@@ -79,7 +85,7 @@ function mountCell(api = vi.fn(async () => ({}))) {
       {
         id: "name",
         type: "string",
-        component: { componentName: "dms-input-text", options: {} },
+        component: { componentName, options: {} },
       },
     ],
     columns: [
@@ -104,8 +110,8 @@ function mountCell(api = vi.fn(async () => ({}))) {
     onError: () => {},
   });
   const onRowClick = vi.fn();
-  const cell = () => {
-    const original = data.value.results[0]!;
+  const cell = (index: number) => {
+    const original = data.value.results[index]!;
     return {
       row: { original },
       column: {
@@ -120,9 +126,16 @@ function mountCell(api = vi.fn(async () => ({}))) {
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(() =>
-    h("div", { onClick: onRowClick, onDblclick: onRowClick }, [
-      h(InlineEditCell as never, { cell: cell(), inlineEdit }),
-    ]),
+    h(
+      "div",
+      [0, 1].map((index) =>
+        h(
+          "div",
+          { "data-row": index, onClick: onRowClick, onDblclick: onRowClick },
+          [h(InlineEditCell as never, { cell: cell(index), inlineEdit })],
+        ),
+      ),
+    ),
   );
   app.component("UIcon", IconStub);
   app.mount(host);
@@ -182,4 +195,52 @@ it("cancels on Esc without a request", async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
   expect(api).not.toHaveBeenCalled();
   expect(host.querySelector("input")).toBe(null);
+});
+
+const rowOf = (root: HTMLElement, index: number) =>
+  root.querySelector<HTMLElement>(`[data-row='${index}']`)!;
+
+it("announces a save still running in a cell the user left", async () => {
+  let finish: (value: unknown) => void = () => {};
+  const api = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const { host } = mountCell(api);
+  const input = await openCell(rowOf(host, 0));
+  input.value = "Standing desk";
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  // Going on to the second row saves the first one.
+  displayOf(rowOf(host, 1)).click();
+  await vi.waitFor(() => expect(api).toHaveBeenCalled());
+  await nextTick();
+  const status = displayOf(rowOf(host, 0)).querySelector("[role='status']");
+  expect(status?.textContent).toBe("dms.table.inline_edit.saving");
+  expect(displayOf(rowOf(host, 0)).getAttribute("aria-busy")).toBe("true");
+  finish({});
+  await vi.waitFor(() => expect(status?.textContent).toBe(""));
+});
+
+it("leaves the keyboard where the user went after a pick saves the cell", async () => {
+  // A select's pick saves: the cell closes once it is written.
+  const { host, api } = mountCell(undefined, "dms-select");
+  displayOf(rowOf(host, 0)).click();
+  await vi.waitFor(() =>
+    expect(rowOf(host, 0).querySelector("input")).not.toBe(null),
+  );
+  const elsewhere = document.createElement("input");
+  document.body.append(elsewhere);
+  elsewhere.focus();
+  const picker = rowOf(host, 0).querySelector("input")!;
+  picker.value = "Chair";
+  picker.dispatchEvent(new Event("input", { bubbles: true }));
+  await vi.waitFor(() => expect(api).toHaveBeenCalled());
+  await vi.waitFor(() =>
+    expect(rowOf(host, 0).querySelector("input")).toBe(null),
+  );
+  await nextTick();
+  expect(document.activeElement).toBe(elsewhere);
+  elsewhere.remove();
 });
