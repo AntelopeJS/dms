@@ -4,14 +4,21 @@ import type {
   MatrixCellError,
   MatrixCellState,
   MatrixChange,
+  MatrixConflict,
   MatrixData,
   MatrixGroup,
   MatrixRow,
   MatrixSaveRequest,
   MatrixSaveResponse,
-} from "@antelopejs/interface-dms/base/matrix";
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { cellError, readSaveRequest, rowError } from "../save";
+import {
+  cellError,
+  conflictOf,
+  readSaveRequest,
+  rowError,
+  type SaveRequest,
+} from "../save";
 import {
   MAX_WORKING_DAYS,
   PEOPLE,
@@ -109,17 +116,36 @@ function shiftProblem(
   return undefined;
 }
 
-function applyShift(change: MatrixChange): MatrixCellError | undefined {
+/** The outcome of one change: written, refused, or made on a moved value. */
+interface ChangeOutcome {
+  error?: MatrixCellError;
+  conflict?: MatrixConflict;
+}
+
+function applyShift(change: MatrixChange, request: SaveRequest): ChangeOutcome {
   const person = PEOPLE.find((candidate) => candidate.id === change.rowId);
-  if (!person)
-    return rowError(
-      change.rowId,
-      "Cette personne ne fait plus partie de l'équipe.",
-    );
+  if (!person) {
+    return {
+      error: rowError(
+        change.rowId,
+        "Cette personne ne fait plus partie de l'équipe.",
+      ),
+    };
+  }
   const problem = shiftProblem(person, change);
-  if (problem) return cellError(change, problem);
+  if (problem) return { error: cellError(change, problem) };
+  const conflict = conflictOf(
+    request,
+    change,
+    person.week[change.columnId] ?? null,
+  );
+  if (conflict) return { conflict };
   if (isShift(change.value)) person.week[change.columnId] = change.value;
-  return undefined;
+  return {};
+}
+
+function footerLine(): string {
+  return `Heures planifiées cette semaine : ${TEAMS.map(teamHours).join(" · ")}.`;
 }
 
 /**
@@ -136,20 +162,26 @@ export class MatrixRosterController extends Controller(MATRIX_ROSTER_API) {
     return {
       rows: PEOPLE.map(personRow),
       groups: TEAMS.map(teamGroup),
-      footer: `Heures planifiées cette semaine : ${TEAMS.map(teamHours).join(" · ")}.`,
+      footer: footerLine(),
     };
   }
 
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
-    const { changes } = readSaveRequest(body);
-    const errors = changes
-      .map(applyShift)
-      .filter((error): error is MatrixCellError => !!error);
-    const rowIds = new Set(changes.map((change) => change.rowId));
+    const request = readSaveRequest(body);
+    const outcomes = request.changes.map((change) =>
+      applyShift(change, request),
+    );
+    const rowIds = new Set(request.changes.map((change) => change.rowId));
+    // The rows carry their hours again (description, tone); the footer sums
+    // the stores' hours the save moved.
     return {
       rows: PEOPLE.filter((person) => rowIds.has(person.id)).map(personRow),
-      errors,
+      errors: outcomes.flatMap(({ error }) => (error ? [error] : [])),
+      conflicts: outcomes.flatMap(({ conflict }) =>
+        conflict ? [conflict] : [],
+      ),
+      footer: footerLine(),
     };
   }
 

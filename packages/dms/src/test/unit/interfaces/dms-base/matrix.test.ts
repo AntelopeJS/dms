@@ -4,10 +4,8 @@ import {
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
 import { CodeBlock } from "@antelopejs/interface-dms/base";
-import {
-  Matrix,
-  type MatrixProps,
-} from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type { MatrixProps } from "@antelopejs/interface-dms/base/matrix-types";
 
 const COMPONENT_NAME = "dms-matrix-block";
 
@@ -22,6 +20,7 @@ const FULL_OPTIONS: MatrixProps = {
   saveUrlMethod: "POST",
   columns: [
     { id: "38", label: "38", kind: "number", integer: true, min: 0 },
+    { id: "receivedAt", label: "Received", kind: "datetime" },
     {
       id: "status",
       label: "Status",
@@ -40,7 +39,9 @@ const FULL_OPTIONS: MatrixProps = {
   undoSeconds: 10,
   conflicts: "detect",
   enterMove: "right",
-  rowPanel: { title: "Store", showJson: true },
+  rowPanel: { title: "Store", showJson: true, deepLink: true },
+  selectable: true,
+  columnFilters: true,
   fillActions: [
     {
       id: "clear",
@@ -132,6 +133,46 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     expect(serialized.options?.cellAction).to.deep.equal(target);
   });
 
+  it("serializes the targets of its row actions", () => {
+    const serialized = Matrix({
+      rowActions: [
+        {
+          id: "revert",
+          label: "Revert",
+          icon: "i-ph-arrow-counter-clockwise",
+          tone: "warning",
+          target: {
+            type: "api",
+            url: "/api/keys/revert?key={{row.id}}",
+            method: "POST",
+            successMessage: "Reverted",
+          },
+        },
+        {
+          id: "open",
+          label: "Open",
+          target: {
+            type: "drawer",
+            title: "Key",
+            component: CodeBlock({ code: "{{row.id}}" }),
+          },
+        },
+      ],
+    }).serializeSync();
+    const [revert, open] = serialized.options?.rowActions ?? [];
+    expect(revert).to.deep.include({ id: "revert", tone: "warning" });
+    expect(revert?.target).to.deep.equal({
+      type: "api",
+      url: "/api/keys/revert?key={{row.id}}",
+      method: "POST",
+      successMessage: "Reverted",
+    });
+    const component =
+      open?.target.type === "drawer" ? open.target.component : undefined;
+    expect(component?.componentName).to.be.a("string");
+    expect(component?.options).to.deep.include({ code: "{{row.id}}" });
+  });
+
   it("is listed in the catalog with its schema", () => {
     const block = GetBlockType("Matrix");
     expect(block?.componentName).to.equal(COMPONENT_NAME);
@@ -147,10 +188,17 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
       "infinite",
     ]);
     expect(block?.config.grouping).to.not.equal(undefined);
+    expect(block?.config.selectable?.type).to.equal("boolean");
+    expect(block?.config.columnFilters?.type).to.equal("boolean");
+    expect(block?.config.rowActions).to.not.equal(undefined);
   });
 
   it("accepts a full set of options, and no option at all", () => {
-    const { cellAction: _action, ...options } = FULL_OPTIONS;
+    const {
+      cellAction: _action,
+      rowActions: _rowActions,
+      ...options
+    } = FULL_OPTIONS;
     expect(ValidateBlockOptions("Matrix", options).valid).to.equal(true);
     expect(ValidateBlockOptions("Matrix", {}).valid).to.equal(true);
   });

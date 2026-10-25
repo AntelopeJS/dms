@@ -642,13 +642,105 @@ function commonKeys(): TranslationKey[] {
   });
 }
 
+// Email bodies: long, multi-line texts, still missing in some languages, so
+// their empty cells are edited in the drawer (cells[language].editIn).
+const EMAIL_BODIES: TranslationKey[] = [
+  {
+    key: "emails.orderConfirmation.body",
+    namespace: "emails",
+    texts: {
+      en: `Hello {name},
+
+Thank you for your order {orderNumber}. We are preparing your parcel and will send you a tracking link as soon as it leaves our warehouse in Herstal.
+
+You can change the delivery address until the parcel ships, from your account or by replying to this email.
+
+See you soon,
+The customer service team`,
+      fr: `Bonjour {name},
+
+Merci pour votre commande {orderNumber}. Nous préparons votre colis et vous enverrons un lien de suivi dès qu'il quittera notre entrepôt de Herstal.
+
+Vous pouvez modifier l'adresse de livraison jusqu'à l'expédition, depuis votre compte ou en répondant à cet e-mail.
+
+À bientôt,
+Le service clients`,
+    },
+  },
+  {
+    key: "emails.pickupReady.body",
+    namespace: "emails",
+    texts: {
+      en: `Good news, {name}!
+Your pair is waiting for you at {store}.
+We keep it for 7 days: bring your order number {orderNumber} or this email.`,
+      fr: `Bonne nouvelle, {name} !
+Votre paire vous attend au magasin {store}.
+Nous la gardons 7 jours : présentez votre numéro de commande {orderNumber} ou cet e-mail.`,
+      nl: `Goed nieuws, {name}!
+Je paar ligt klaar in {store}.
+We houden het 7 dagen voor je bij: breng je bestelnummer {orderNumber} of deze e-mail mee.`,
+    },
+  },
+];
+
 /** The workspace's keys, kept in memory: a restart puts them back. */
 export const TRANSLATION_KEYS: TranslationKey[] = [
   ...commonKeys(),
   ...Object.entries(ENTITIES).flatMap(([namespace, entities]) =>
     entityKeys(namespace, entities),
   ),
+  ...EMAIL_BODIES,
 ];
+
+/**
+ * The texts the module ships, before the workspace changed any of them:
+ * what "Revert to the module's text" puts back.
+ */
+export const MODULE_TEXTS: ReadonlyMap<string, KeyTexts> = new Map(
+  TRANSLATION_KEYS.map((entry) => [entry.key, { ...entry.texts }]),
+);
+
+// The shop's own wording, over the module's: it sells shoes, not "products".
+const WORKSPACE_OVERRIDES: Record<string, KeyTexts> = {
+  "catalog.product.title": {
+    en: "Shoes",
+    fr: "Chaussures",
+    nl: "Schoenen",
+    de: "Schuhe",
+  },
+  "catalog.product.empty": {
+    en: "No shoes yet",
+    fr: "Aucune chaussure pour l'instant",
+    nl: "Nog geen schoenen",
+    de: "Noch keine Schuhe",
+  },
+  "inventory.store.title": {
+    en: "Shops",
+    fr: "Boutiques",
+    nl: "Winkels",
+    de: "Filialen",
+  },
+  "common.signOut": {
+    en: "Log out",
+    fr: "Déconnexion",
+    nl: "Uitloggen",
+    de: "Abmelden",
+  },
+};
+
+/**
+ * The keys whose texts the workspace changed (seeded with the shop's own
+ * wording, then every key saved): their rows carry an "Overridden" badge.
+ */
+export const OVERRIDDEN_KEYS = new Set<string>(
+  Object.keys(WORKSPACE_OVERRIDES),
+);
+
+for (const entry of TRANSLATION_KEYS) {
+  const override = WORKSPACE_OVERRIDES[entry.key];
+  if (override) entry.texts = { ...override };
+}
 
 /**
  * The key a "colleague" keeps rewording in French: the route changes it just

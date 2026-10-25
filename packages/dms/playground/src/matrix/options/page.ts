@@ -1,7 +1,8 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CodeBlock, KeyValueList } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import { Matrix, type MatrixData } from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type { MatrixData } from "@antelopejs/interface-dms/base/matrix-types";
 import { MATRIX_ALLOCATION_SLUG } from "../allocation/page";
 import { matrixCategory, matrixPagePath } from "../category";
 import { MATRIX_RECORDS_SLUG } from "../records/page";
@@ -96,8 +97,9 @@ const DECLARATION = `static revenue = Matrix({
   legend: [{ label: "Below the floor", tone: "error" }],
 });
 
-// Editable: add a route receiving { changes: [{ rowId, columnId, value, previous }] }
-// and answering { rows?, errors?, conflicts? }.
+// Editable: add a route receiving
+//   { changes: [{ rowId, columnId, value, previous }], conflicts, force?, query }
+// and answering { rows?, errors?, conflicts?, counts?, columns?, groups?, footer? }.
 static stock = Matrix({ fetchUrl, saveUrl, editTrigger: "click", saveMode: "staged" });`;
 
 @RegisterPage()
@@ -170,6 +172,11 @@ export class PageMatrixOptions extends PageController(
       page: MATRIX_RECORDS_SLUG,
     },
     {
+      option: "row badge",
+      text: "A pill after the row label (Overridden).",
+      page: MATRIX_TRANSLATIONS_SLUG,
+    },
+    {
       option: "row description / tone / group",
       text: "A dimmed line under the label, a highlighted row, the group it is filed under.",
       page: MATRIX_ROSTER_SLUG,
@@ -183,6 +190,16 @@ export class PageMatrixOptions extends PageController(
       option: "cell placeholder / issues",
       text: "The base text greyed in an empty cell; warnings on a cell.",
       page: MATRIX_TRANSLATIONS_SLUG,
+    },
+    {
+      option: "cell editIn",
+      text: "Overrides the column's editIn for one cell: an empty cell translating a long text opens in the drawer.",
+      page: MATRIX_TRANSLATIONS_SLUG,
+    },
+    {
+      option: "kind: datetime",
+      text: "A date and its time, edited with both.",
+      page: MATRIX_RECORDS_SLUG,
     },
     {
       option: "cell previous",
@@ -238,7 +255,12 @@ export class PageMatrixOptions extends PageController(
     },
     {
       option: "conflicts: detect",
-      text: "The route answers a conflict when the value moved; Overwrite or Discard.",
+      text: "Each save says the mode (conflicts); the route checks previous and answers a conflict when the value moved; Overwrite or Discard.",
+      page: MATRIX_TRANSLATIONS_SLUG,
+    },
+    {
+      option: "save answers",
+      text: "A save receives the list query and answers the filtered counts, the columns, the groups and the footer it moved.",
       page: MATRIX_TRANSLATIONS_SLUG,
     },
     {
@@ -253,8 +275,18 @@ export class PageMatrixOptions extends PageController(
     },
     {
       option: "rowPanel",
-      text: "A row in a drawer, one field per column, with a JSON tab (showJson).",
+      text: "A row in a drawer, one field per column, with a JSON tab (showJson), the open row kept in the URL (deepLink).",
       page: MATRIX_RECORDS_SLUG,
+    },
+    {
+      option: "rowActions",
+      text: "A menu in the row header, each action a target ({{row.id}} filled): copy the base text, revert.",
+      page: MATRIX_TRANSLATIONS_SLUG,
+    },
+    {
+      option: "selectable",
+      text: "A checkbox per row; fills receive the checked ids (selected).",
+      page: MATRIX_ALLOCATION_SLUG,
     },
     {
       option: "cellAction",
@@ -290,6 +322,11 @@ export class PageMatrixOptions extends PageController(
       page: MATRIX_RECORDS_SLUG,
     },
     { option: "search", text: "Sent as search.", page: MATRIX_RECORDS_SLUG },
+    {
+      option: "columnFilters",
+      text: "A filter per column header (contains, is), sent as filter_<column>=<mode>:<value>, shown as chips.",
+      page: MATRIX_RECORDS_SLUG,
+    },
     {
       option: "facets",
       text: "Select filters sent as facet_<id>=a,b, choices static or answered.",

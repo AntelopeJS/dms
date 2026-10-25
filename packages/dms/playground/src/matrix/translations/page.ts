@@ -41,7 +41,15 @@ export class PageMatrixTranslations extends PageController(
     },
     {
       label: "Fill a missing translation",
-      text: "An empty cell shows the English text greyed (placeholder). N and Shift+N jump to the next and previous empty cell (jumpToEmpty), opening its group.",
+      text: "An empty cell shows the English text greyed (placeholder), and again above the editor while you type. Once saved, the route answers the header's coverage, the group badges, the status counts of the filtered view and the footer again (columns, groups, counts, footer). N and Shift+N jump to the next and previous empty cell (jumpToEmpty), opening its group.",
+    },
+    {
+      label: "Translate an email body",
+      text: 'emails › orderConfirmation.body and pickupReady.body hold long multi-line texts: their missing cells carry editIn: "panel" (cells[language].editIn) and open in the drawer, the English text above the editor.',
+    },
+    {
+      label: "Open a row's menu",
+      text: 'rowActions in the row header: "Copy the English text" fills the missing languages, "Revert to the module\'s text" puts back what the module ships (api targets with {{row.id}}). Keys the shop reworded carry an "Overridden" badge (row badge), as does every key you save.',
     },
     {
       label: "Fix a placeholder",
@@ -75,6 +83,31 @@ export class PageMatrixTranslations extends PageController(
     saveMode: "immediate",
     conflicts: "detect",
     enterMove: "down",
+    rowActions: [
+      {
+        id: "copy-base",
+        label: "Copy the English text to the missing languages",
+        icon: "i-ph-copy",
+        target: {
+          type: "api",
+          url: `${MATRIX_TRANSLATIONS_API}/actions/copy-base?key={{row.id}}`,
+          method: "POST",
+          successMessage: "English copied into the missing languages",
+        },
+      },
+      {
+        id: "revert",
+        label: "Revert to the module's text",
+        icon: "i-ph-arrow-counter-clockwise",
+        tone: "warning",
+        target: {
+          type: "api",
+          url: `${MATRIX_TRANSLATIONS_API}/actions/revert?key={{row.id}}`,
+          method: "POST",
+          successMessage: "The module's text is back",
+        },
+      },
+    ],
     pagination: "infinite",
     pageSize: PAGE_SIZE,
     grouping: { collapsible: true, collapseAbove: COLLAPSE_ABOVE, count: true },

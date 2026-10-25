@@ -1,10 +1,10 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import {
-  Matrix,
-  type MatrixColumn,
-  type MatrixLegendItem,
-} from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type {
+  MatrixColumn,
+  MatrixLegendItem,
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
 import { ARTICLE, SIZES } from "../stock/data";
@@ -73,11 +73,15 @@ export class PageMatrixAllocation extends PageController(
     },
     {
       label: "Use a fill",
-      text: 'fillActions post the rows shown and apply the { changes } the route answers, staged like typed edits: "Tout à l\'entrepôt", "Selon les stocks minimum" (tops each store up to its minimum, current store first), "Effacer".',
+      text: 'fillActions post the rows shown and apply the { changes } the route answers, staged like typed edits: "Tout à l\'entrepôt", "Selon les stocks minimum" (tops each store up to its minimum, current store first), "Effacer". Changes on hatched cells are never answered.',
+    },
+    {
+      label: "Check stores, then fill",
+      text: 'selectable: a checkbox per row (and select-all in the header). "Sur les magasins cochés" receives { rows, selected } and splits each size pair by pair between the checked stores that ordered it; a size none of them ordered goes to the warehouse. Nothing checked: the route refuses.',
     },
     {
       label: "Save the split",
-      text: 'saveMode: "staged" without review: one save writes it all. The route checks the totals again and refuses a size that does not add up.',
+      text: 'saveMode: "staged" without review: one save writes it all. The route checks the totals again: a split that does not add up is refused whole, every change named (the sizes at fault with their reason, the others "not written").',
     },
     {
       label: "Correct a counted stock",
@@ -98,6 +102,7 @@ export class PageMatrixAllocation extends PageController(
     rowHeader: { label: "Magasin", width: 220 },
     editTrigger: "click",
     typeToEdit: true,
+    selectable: true,
     saveMode: "staged",
     totals: { rows: true, columns: true, label: "Total réparti" },
     targets: {
@@ -119,6 +124,12 @@ export class PageMatrixAllocation extends PageController(
         label: "Selon les stocks minimum",
         icon: "i-ph-scales",
         url: `${MATRIX_ALLOCATION_API}/fill/minimum`,
+      },
+      {
+        id: "checked",
+        label: "Sur les magasins cochés",
+        icon: "i-ph-check-square",
+        url: `${MATRIX_ALLOCATION_API}/fill/checked`,
       },
       {
         id: "clear",

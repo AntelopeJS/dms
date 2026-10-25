@@ -52,8 +52,18 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
     PAGES.records,
   ),
   feature(
-    "A row in a drawer, with a JSON tab",
-    "rowPanel: { showJson: true }",
+    "A row in a drawer, with a JSON tab, kept in the URL",
+    "rowPanel: { showJson: true, deepLink: true }",
+    PAGES.records,
+  ),
+  feature(
+    "A filter in each column header, as chips",
+    "columnFilters: true (filter_<column>=<mode>:<value>)",
+    PAGES.records,
+  ),
+  feature(
+    "Date and time cells",
+    'columns[]: { kind: "datetime" }',
     PAGES.records,
   ),
   feature(
@@ -94,6 +104,21 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
   feature(
     "Base text as placeholder, issues on a cell",
     "MatrixRow.cells[id].placeholder / issues",
+    PAGES.translations,
+  ),
+  feature(
+    "A cell edited in the drawer whatever its column says",
+    'MatrixRow.cells[id].editIn: "panel"',
+    PAGES.translations,
+  ),
+  feature(
+    "A menu of actions per row, a badge on the row",
+    "rowActions [{ id, label, target }], MatrixRow.badge",
+    PAGES.translations,
+  ),
+  feature(
+    "A save answering the view it moved",
+    "MatrixSaveRequest.query → MatrixSaveResponse { counts, columns, groups, footer }",
     PAGES.translations,
   ),
   feature(
@@ -139,6 +164,11 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
   feature(
     "Fills computed by the server",
     "fillActions [{ id, label, url }] → { changes }",
+    PAGES.allocation,
+  ),
+  feature(
+    "Rows checked, a fill on the checked rows",
+    "selectable: true, fill actions receive { rows, selected }",
     PAGES.allocation,
   ),
   feature(

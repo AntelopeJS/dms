@@ -2,23 +2,26 @@ import {
   Context,
   Controller,
   Get,
+  HTTPResult,
   JSONBody,
+  Parameter,
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import type {
-  MatrixCellError,
-  MatrixCellState,
-  MatrixChange,
-  MatrixColumn,
-  MatrixConflict,
-  MatrixData,
-  MatrixGroup,
-  MatrixRow,
-  MatrixSaveRequest,
-  MatrixSaveResponse,
-} from "@antelopejs/interface-dms/base/matrix";
+import {
+  MATRIX_LONG_TEXT_LENGTH,
+  type MatrixCellError,
+  type MatrixCellState,
+  type MatrixChange,
+  type MatrixColumn,
+  type MatrixConflict,
+  type MatrixData,
+  type MatrixGroup,
+  type MatrixRow,
+  type MatrixSaveRequest,
+  type MatrixSaveResponse,
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import {
   facetAllows,
@@ -28,7 +31,13 @@ import {
   pageOf,
   readMatrixQuery,
 } from "../query";
-import { cellError, readSaveRequest, rowError, sameCellValue } from "../save";
+import {
+  cellError,
+  conflictOf,
+  readSaveRequest,
+  rowError,
+  type SaveRequest,
+} from "../save";
 import {
   BASE_LANGUAGE,
   CONTESTED_KEY,
@@ -37,17 +46,23 @@ import {
   LANGUAGE_INFO,
   LANGUAGES,
   type Language,
+  MODULE_TEXTS,
   NAMESPACES,
+  OVERRIDDEN_KEYS,
   TRANSLATION_KEYS,
   type TranslationKey,
 } from "./data";
 import { MATRIX_TRANSLATIONS_API, PageMatrixTranslations } from "./page";
 
 const PLACEHOLDERS = /\{(\w+)\}/g;
-const MAX_TEXT_LENGTH = 500;
+const MAX_TEXT_LENGTH = 2000;
 const WELL_COVERED = 0.9;
 const PERCENT = 100;
 const ALL_STATUS = "all";
+const LINE_BREAK = "\n";
+const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
+const JSON_TYPE = "application/json";
 
 /** Which keys a status segment keeps, given the languages shown. */
 type StatusTest = (entry: TranslationKey, languages: Language[]) => boolean;
@@ -56,6 +71,15 @@ type StatusTest = (entry: TranslationKey, languages: Language[]) => boolean;
 interface ChangeOutcome {
   error?: MatrixCellError;
   conflict?: MatrixConflict;
+}
+
+/** What the grid shows around its rows, for one list query. */
+interface TranslationView {
+  languages: Language[];
+  columns: MatrixColumn[];
+  groups: MatrixGroup[];
+  counts: Record<string, number>;
+  footer: string;
 }
 
 let contestedWording = 0;
@@ -156,13 +180,29 @@ function namespaceGroup(namespace: (typeof NAMESPACES)[number]): MatrixGroup {
   };
 }
 
+/** A text a one-line cell cannot take whole: it is edited in the drawer. */
+function isLongText(text: string): boolean {
+  return text.includes(LINE_BREAK) || text.length > MATRIX_LONG_TEXT_LENGTH;
+}
+
+// An empty cell holds no value for `editIn: "auto"` to judge by: the base
+// text it translates decides where it is edited.
+function missingCellState(
+  base: string | undefined,
+): MatrixCellState | undefined {
+  if (!base) return undefined;
+  return isLongText(base)
+    ? { placeholder: base, editIn: "panel" }
+    : { placeholder: base };
+}
+
 function cellState(
   entry: TranslationKey,
   language: Language,
 ): MatrixCellState | undefined {
-  const base = entry.texts[BASE_LANGUAGE];
-  if (isMissing(entry, language))
-    return base ? { placeholder: base } : undefined;
+  if (isMissing(entry, language)) {
+    return missingCellState(entry.texts[BASE_LANGUAGE]);
+  }
   const issues = issuesOf(entry, language);
   return issues.length ? { issues, tone: "warning" } : undefined;
 }
@@ -175,12 +215,15 @@ function toRow(entry: TranslationKey, languages: Language[]): MatrixRow {
     const state = cellState(entry, language);
     if (state) cells[language] = state;
   }
+  const isOverridden = OVERRIDDEN_KEYS.has(entry.key);
   return {
     id: entry.key,
     label: entry.key.slice(entry.namespace.length + 1),
     group: entry.namespace,
     values,
     cells,
+    badge: isOverridden ? "Overridden" : undefined,
+    badgeTone: isOverridden ? "info" : undefined,
   };
 }
 
@@ -219,6 +262,22 @@ function statusCounts(
   return counts;
 }
 
+/**
+ * What the grid shows around its rows for a list query: the languages'
+ * columns with their coverage, the namespaces' groups, the status counts of
+ * the filtered view and the footer. The read and the save answer the same.
+ */
+function viewOf(query: MatrixQuery): TranslationView {
+  const languages = shownLanguages(query);
+  return {
+    languages,
+    columns: languages.map(languageColumn),
+    groups: NAMESPACES.map(namespaceGroup),
+    counts: statusCounts(searchKeys(query), languages),
+    footer: footerLine(),
+  };
+}
+
 /** A colleague rewords the contested key right after each read. */
 function rewordContestedKey(): void {
   const entry = TRANSLATION_KEYS.find(
@@ -231,8 +290,9 @@ function rewordContestedKey(): void {
 
 function checkValue(change: MatrixChange): string | undefined {
   const { value } = change;
-  if (value !== null && typeof value !== "string")
+  if (value !== null && typeof value !== "string") {
     return "A translation is text.";
+  }
   if (typeof value === "string" && value.length > MAX_TEXT_LENGTH) {
     return `A translation holds ${MAX_TEXT_LENGTH} characters at most.`;
   }
@@ -242,7 +302,10 @@ function checkValue(change: MatrixChange): string | undefined {
   return undefined;
 }
 
-function applyChange(change: MatrixChange, force: boolean): ChangeOutcome {
+function applyChange(
+  change: MatrixChange,
+  request: SaveRequest,
+): ChangeOutcome {
   const entry = TRANSLATION_KEYS.find(
     (candidate) => candidate.key === change.rowId,
   );
@@ -258,21 +321,36 @@ function applyChange(change: MatrixChange, force: boolean): ChangeOutcome {
   }
   const problem = checkValue(change);
   if (problem) return { error: cellError(change, problem) };
-  const current = entry.texts[language] ?? null;
-  if (!force && !sameCellValue(change.previous, current)) {
-    return { conflict: { rowId: change.rowId, columnId: language, current } };
-  }
+  const conflict = conflictOf(request, change, entry.texts[language] ?? null);
+  if (conflict) return { conflict };
   const text = typeof change.value === "string" ? change.value : "";
   if (text) entry.texts[language] = text;
   else delete entry.texts[language];
+  OVERRIDDEN_KEYS.add(entry.key);
   return {};
+}
+
+function findKey(key: string): TranslationKey {
+  const entry = TRANSLATION_KEYS.find((candidate) => candidate.key === key);
+  if (entry) return entry;
+  throw new HTTPResult(
+    HTTP_NOT_FOUND,
+    JSON.stringify({ message: `No key ${key} in this workspace.` }),
+    JSON_TYPE,
+  );
+}
+
+function languageNames(languages: Language[]): string {
+  return languages.map((language) => LANGUAGE_INFO[language].label).join(", ");
 }
 
 /**
  * The routes of the "Translations" demo: the keys of a workspace by
  * language. The languages are columns the route answers, with their
  * coverage; the status segments, the namespace and language facets and the
- * search are applied here, and the save detects conflicts on `previous`.
+ * search are applied here; the save detects conflicts on `previous` when
+ * the block asks, and answers the view it moved. Two row actions copy the
+ * English text into the missing languages and put the module's text back.
  */
 export class MatrixTranslationsController extends Controller(
   MATRIX_TRANSLATIONS_API,
@@ -283,17 +361,16 @@ export class MatrixTranslationsController extends Controller(
   @Get("rows")
   list(@Context() ctx: RequestContext): MatrixData {
     const query = readMatrixQuery(ctx.url.searchParams);
-    const languages = shownLanguages(query);
-    const searched = searchKeys(query);
+    const { languages, ...view } = viewOf(query);
     const test =
       STATUS_TESTS[query.status ?? ALL_STATUS] ?? STATUS_TESTS[ALL_STATUS]!;
-    const matching = searched.filter((entry) => test(entry, languages));
+    const matching = searchKeys(query).filter((entry) =>
+      test(entry, languages),
+    );
     const data: MatrixData = {
+      ...view,
       rows: pageOf(matching, query).map((entry) => toRow(entry, languages)),
-      columns: languages.map(languageColumn),
       total: matching.length,
-      groups: NAMESPACES.map(namespaceGroup),
-      counts: statusCounts(searched, languages),
       facets: {
         namespace: facetItems(
           TRANSLATION_KEYS,
@@ -301,7 +378,6 @@ export class MatrixTranslationsController extends Controller(
           Object.fromEntries(NAMESPACES.map(({ id, label }) => [id, label])),
         ),
       },
-      footer: footerLine(),
     };
     rewordContestedKey();
     return data;
@@ -309,17 +385,49 @@ export class MatrixTranslationsController extends Controller(
 
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
-    const { changes, force = false } = readSaveRequest(body);
-    const outcomes = changes.map((change) => applyChange(change, force));
-    const rowIds = new Set(changes.map((change) => change.rowId));
+    const request = readSaveRequest(body);
+    const outcomes = request.changes.map((change) =>
+      applyChange(change, request),
+    );
+    const rowIds = new Set(request.changes.map((change) => change.rowId));
+    const { languages, ...view } = viewOf(request.query);
     return {
+      ...view,
       rows: TRANSLATION_KEYS.filter((entry) => rowIds.has(entry.key)).map(
-        (entry) => toRow(entry, [...LANGUAGES]),
+        (entry) => toRow(entry, languages),
       ),
       errors: outcomes.flatMap(({ error }) => (error ? [error] : [])),
       conflicts: outcomes.flatMap(({ conflict }) =>
         conflict ? [conflict] : [],
       ),
     };
+  }
+
+  /** Row action: the English text copied into the languages still missing. */
+  @Post("actions/copy-base")
+  copyBase(@Parameter("key", "query") key = "") {
+    const entry = findKey(key);
+    const base = entry.texts[BASE_LANGUAGE] ?? "";
+    const missing = LANGUAGES.filter((language) => isMissing(entry, language));
+    if (!missing.length) return { message: "Nothing was missing." };
+    for (const language of missing) entry.texts[language] = base;
+    OVERRIDDEN_KEYS.add(entry.key);
+    return { message: `English copied into ${languageNames(missing)}.` };
+  }
+
+  /** Row action: the module's texts put back, the key no longer overridden. */
+  @Post("actions/revert")
+  revert(@Parameter("key", "query") key = "") {
+    const entry = findKey(key);
+    if (!OVERRIDDEN_KEYS.has(entry.key)) {
+      throw new HTTPResult(
+        HTTP_CONFLICT,
+        JSON.stringify({ message: "This key already has the module's text." }),
+        JSON_TYPE,
+      );
+    }
+    entry.texts = { ...MODULE_TEXTS.get(entry.key) };
+    OVERRIDDEN_KEYS.delete(entry.key);
+    return { message: "The module's text is back." };
   }
 }

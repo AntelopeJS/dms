@@ -1,10 +1,10 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import {
-  Matrix,
-  type MatrixColumn,
-  type MatrixSelectOption,
-} from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type {
+  MatrixColumn,
+  MatrixSelectOption,
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
 import { HTTP_METHODS, PURGED_REF, REQUEST_LABELS } from "./data";
@@ -95,8 +95,8 @@ const COLUMNS: MatrixColumn[] = [
   {
     id: "receivedAt",
     label: "receivedAt",
-    description: "date",
-    kind: "date",
+    description: "date (and time)",
+    kind: "datetime",
     width: 190,
   },
   {
@@ -195,11 +195,19 @@ export class PageMatrixRecords extends PageController(
     },
     {
       label: "Open a whole row",
-      text: "rowPanel: the ⤢ button of the row header, or Space, opens the document as a form, with a JSON tab (showJson). J / K step through the rows.",
+      text: "rowPanel: the ⤢ button of the row header, or Space, opens the document as a form, with a JSON tab (showJson). J / K step through the rows. The open row is in the page URL (deepLink): refresh, it opens again.",
     },
     {
       label: "Sort, search, filter",
       text: "sortable sends sort / direction, search searches ref, _id, path, client and notes, the facets send facet_method=GET,POST and facet_status=4xx,5xx (the status choices and their counts come from the response).",
+    },
+    {
+      label: "Filter a column",
+      text: "columnFilters: a filter in each header (contains, is), sent as filter_<column>=contains:<text> and shown as removable chips; try path contains orders, or client is pos-lg4.",
+    },
+    {
+      label: "Edit a receivedAt",
+      text: 'kind: "datetime": the date and the time of the request, edited with both.',
     },
     {
       label: "Page through 300 documents",
@@ -227,12 +235,13 @@ export class PageMatrixRecords extends PageController(
     saveMode: "staged",
     review: true,
     undoSeconds: UNDO_SECONDS,
-    rowPanel: { title: "Document", showJson: true },
+    rowPanel: { title: "Document", showJson: true, deepLink: true },
     pagination: "pages",
     pageSize: PAGE_SIZE,
     pageSizes: PAGE_SIZES,
     sortable: true,
     search: true,
+    columnFilters: true,
     facets: [
       {
         id: "method",
@@ -269,8 +278,6 @@ export class PageMatrixRecords extends PageController(
     pageSize: PAGE_SIZE,
     sortable: true,
     search: true,
-    // The first grid keeps its state in the URL; two would share the keys.
-    urlState: false,
     saveMode: "staged",
     density: "compact",
     maxHeight: "60vh",

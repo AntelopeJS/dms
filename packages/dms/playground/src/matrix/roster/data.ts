@@ -1,4 +1,4 @@
-import type { MatrixSelectOption } from "@antelopejs/interface-dms/base/matrix";
+import type { MatrixSelectOption } from "@antelopejs/interface-dms/base/matrix-types";
 
 /** What a person does on a day. */
 export type Shift = "morning" | "afternoon" | "day" | "off" | "leave" | "sick";

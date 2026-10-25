@@ -2,9 +2,11 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import type {
   MatrixCellError,
   MatrixChange,
+  MatrixConflict,
   MatrixRow,
   MatrixSaveRequest,
-} from "@antelopejs/interface-dms/base/matrix";
+} from "@antelopejs/interface-dms/base/matrix-types";
+import { type MatrixQuery, readMatrixQuery } from "./query";
 
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
@@ -26,23 +28,65 @@ function isChange(change: MatrixChange | null | undefined): boolean {
   );
 }
 
+/** A save request checked for its shape, with the list query it was sent from. */
+export interface SaveRequest {
+  changes: MatrixChange[];
+  /** Whether `previous` is checked: the block's `conflicts: "detect"`, unless forced. */
+  detectsConflicts: boolean;
+  /** The grid's list query (search, status, facets, filters), for the `counts` answered. */
+  query: MatrixQuery;
+}
+
+function listQuery(query: MatrixSaveRequest["query"]): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (typeof value === "string") params.set(key, value);
+  }
+  return params;
+}
+
 /**
  * The changes a `saveUrl` received, checked for their shape: a body that is
- * not a {@link MatrixSaveRequest} fails the whole request with a 400.
+ * not a {@link MatrixSaveRequest} fails the whole request with a 400. A
+ * route checks `previous` only when the block detects conflicts and the user
+ * did not choose Overwrite.
  */
 export function readSaveRequest(
   body: MatrixSaveRequest | undefined,
-): MatrixSaveRequest {
+): SaveRequest {
   const changes = body?.changes;
   if (!Array.isArray(changes) || !changes.every(isChange)) {
     throw badRequest("Expected { changes: [{ rowId, columnId, value }] }.");
   }
-  return { changes, force: body?.force === true };
+  return {
+    changes,
+    detectsConflicts: body?.conflicts === "detect" && body.force !== true,
+    query: readMatrixQuery(listQuery(body?.query)),
+  };
 }
 
-/** The rows a fill action received (`{ rows }`), as the grid shows them. */
+/**
+ * The conflict of a change whose stored value moved since the edit started,
+ * when the request detects conflicts; `undefined` when it may be written.
+ */
+export function conflictOf(
+  request: SaveRequest,
+  change: MatrixChange,
+  current: MatrixChange["value"],
+): MatrixConflict | undefined {
+  if (!request.detectsConflicts || sameCellValue(change.previous, current)) {
+    return undefined;
+  }
+  return { rowId: change.rowId, columnId: change.columnId, current };
+}
+
+/**
+ * What a fill action received: the rows as the grid shows them and, on a
+ * `selectable` grid, the ids of the checked rows.
+ */
 export interface MatrixFillRequest {
   rows?: MatrixRow[];
+  selected?: string[];
 }
 
 /** A refusal of one cell, or of a whole row without `columnId`. */

@@ -4,14 +4,17 @@ import type {
   MatrixCellError,
   MatrixCellState,
   MatrixChange,
+  MatrixConflict,
   MatrixData,
   MatrixRow,
   MatrixSaveRequest,
   MatrixSaveResponse,
-} from "@antelopejs/interface-dms/base/matrix";
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import {
+  badRequest,
   cellError,
+  conflictOf,
   type MatrixFillRequest,
   readSaveRequest,
   sameCellValue,
@@ -135,23 +138,24 @@ function sizeTotal(quantities: StoreQuantities, size: string): number {
   );
 }
 
-/** The changes of a size column whose pairs do not add up to the delivery. */
-function unbalancedErrors(
+/** The changes of a size column whose pairs do not add up to the delivery, and why. */
+function unbalancedReasons(
   proposed: StoreQuantities,
   changes: MatrixChange[],
-): MatrixCellError[] {
-  return changes.flatMap((change) => {
+): Map<MatrixChange, string> {
+  const reasons = new Map<MatrixChange, string>();
+  for (const change of changes) {
     const size = change.columnId;
     const total = sizeTotal(proposed, size);
     const received = RECEIVED[size] ?? 0;
-    if (total === received) return [];
-    return [
-      cellError(
+    if (total !== received) {
+      reasons.set(
         change,
         `Pointure ${size} : ${total} paires réparties pour ${received} reçues.`,
-      ),
-    ];
-  });
+      );
+    }
+  }
+  return reasons;
 }
 
 function copyOf(quantities: StoreQuantities): StoreQuantities {
@@ -223,6 +227,67 @@ const toMinimumStock: FillRule = (store, size) =>
   byMinimumStock()[store.id]?.[size] ?? null;
 
 /**
+ * Splits each size between the checked stores that ordered it, one pair at a
+ * time in serving order; a size none of them ordered goes to the warehouse.
+ */
+function onCheckedStores(selected: string[]): StoreQuantities {
+  const checked = [
+    ...SERVED_STORES,
+    ...STORES.filter((store) => store.id === WAREHOUSE),
+  ].filter((store) => selected.includes(store.id));
+  const split: StoreQuantities = Object.fromEntries(
+    STORES.map((store) => [store.id, {}]),
+  );
+  for (const size of SIZES) {
+    const takers = checked.filter((store) => isInRange(store, size));
+    const pairs = RECEIVED[size] ?? 0;
+    if (!takers.length) {
+      if (pairs) split[WAREHOUSE]![size] = pairs;
+      continue;
+    }
+    for (let pair = 0; pair < pairs; pair += 1) {
+      const store = takers[pair % takers.length]!;
+      split[store.id]![size] = (split[store.id]![size] ?? 0) + 1;
+    }
+  }
+  return split;
+}
+
+function checkedRule(request: MatrixFillRequest | undefined): FillRule {
+  const selected = Array.isArray(request?.selected) ? request.selected : [];
+  if (!selected.length) {
+    throw badRequest("Cochez d'abord les magasins à servir.");
+  }
+  const split = onCheckedStores(selected);
+  return (store, size) => split[store.id]?.[size] ?? null;
+}
+
+const NOT_WRITTEN =
+  "Non enregistré : la répartition est refusée en entier, voir les cases en erreur.";
+
+/**
+ * Every change of a refused split, each with its own reason or the reason
+ * the whole split was refused: the grid keeps them all, none written.
+ */
+function refuseAll(
+  changes: MatrixChange[],
+  reasons: Map<MatrixChange, string>,
+): MatrixCellError[] {
+  return changes.map((change) =>
+    cellError(change, reasons.get(change) ?? NOT_WRITTEN),
+  );
+}
+
+function problemsOf(changes: MatrixChange[]): Map<MatrixChange, string> {
+  const problems = new Map<MatrixChange, string>();
+  for (const change of changes) {
+    const problem = quantityProblem(change);
+    if (problem) problems.set(change, problem);
+  }
+  return problems;
+}
+
+/**
  * The routes of the "Reception allocation" demo: the split of a delivery
  * between the stores (saved together, only when every size adds up), the
  * three fills computed here, and the stock correction saved cell by cell.
@@ -244,15 +309,12 @@ export class MatrixAllocationController extends Controller(
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
     const { changes } = readSaveRequest(body);
-    const refused = changes.flatMap((change) => {
-      const problem = quantityProblem(change);
-      return problem ? [cellError(change, problem)] : [];
-    });
-    if (refused.length) return { errors: refused };
+    const problems = problemsOf(changes);
+    if (problems.size) return { errors: refuseAll(changes, problems) };
     const proposed = copyOf(allocation);
     for (const change of changes) setQuantity(proposed, change);
-    const unbalanced = unbalancedErrors(proposed, changes);
-    if (unbalanced.length) return { errors: unbalanced };
+    const unbalanced = unbalancedReasons(proposed, changes);
+    if (unbalanced.size) return { errors: refuseAll(changes, unbalanced) };
     Object.assign(allocation, proposed);
     return { rows: STORES.map(allocationRow) };
   }
@@ -267,6 +329,11 @@ export class MatrixAllocationController extends Controller(
     return { changes: fillChanges(body, toMinimumStock) };
   }
 
+  @Post("fill/checked")
+  fillChecked(@JSONBody() body: MatrixFillRequest) {
+    return { changes: fillChanges(body, checkedRule(body)) };
+  }
+
   @Post("fill/clear")
   fillClear(@JSONBody() body: MatrixFillRequest) {
     return { changes: fillChanges(body, clearAll) };
@@ -279,21 +346,32 @@ export class MatrixAllocationController extends Controller(
 
   @Post("correction/save")
   saveCorrection(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
-    const { changes } = readSaveRequest(body);
+    const request = readSaveRequest(body);
+    const { changes } = request;
     const errors: MatrixCellError[] = [];
+    const conflicts: MatrixConflict[] = [];
     for (const change of changes) {
       const problem =
         quantityProblem(change) ??
         (change.value === null
           ? "Indiquez le nombre compté, 0 s'il n'y en a plus."
           : undefined);
+      const conflict = problem
+        ? undefined
+        : conflictOf(
+            request,
+            change,
+            counted[change.rowId]?.[change.columnId] ?? null,
+          );
       if (problem) errors.push(cellError(change, problem));
+      else if (conflict) conflicts.push(conflict);
       else setQuantity(counted, change);
     }
     const rowIds = new Set(changes.map((change) => change.rowId));
     return {
       rows: STORES.filter((store) => rowIds.has(store.id)).map(correctionRow),
       errors,
+      conflicts,
     };
   }
 

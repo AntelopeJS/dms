@@ -11,14 +11,16 @@ import type {
   MatrixCellError,
   MatrixCellState,
   MatrixChange,
+  MatrixConflict,
   MatrixData,
   MatrixRow,
   MatrixSaveRequest,
   MatrixSaveResponse,
-} from "@antelopejs/interface-dms/base/matrix";
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import {
   facetAllows,
+  filtersAllow,
   facetItems,
   type MatrixQuery,
   matchesSearch,
@@ -26,7 +28,14 @@ import {
   readMatrixQuery,
   sortItems,
 } from "../query";
-import { cellError, readSaveRequest, rowError, touchedRowIds } from "../save";
+import {
+  cellError,
+  conflictOf,
+  readSaveRequest,
+  rowError,
+  type SaveRequest,
+  touchedRowIds,
+} from "../save";
 import {
   HTTP_METHODS,
   PURGED_REF,
@@ -212,7 +221,14 @@ function groupedFirst(
   if (!field || !isDocumentKey(field)) return documents;
   return sortItems(
     documents,
-    { offset: 0, search: "", direction: "asc", facets: {}, sort: field },
+    {
+      offset: 0,
+      search: "",
+      direction: "asc",
+      facets: {},
+      filters: {},
+      sort: field,
+    },
     readField,
   );
 }
@@ -221,42 +237,55 @@ function findDocument(id: string): RequestDocument | undefined {
   return REQUEST_DOCUMENTS.find((document) => document._id === id);
 }
 
+/** The outcome of one change: written, refused, or made on a moved value. */
+interface ChangeOutcome {
+  error?: MatrixCellError;
+  conflict?: MatrixConflict;
+}
+
 function applyChange(
   document: RequestDocument,
   change: MatrixChange,
-): MatrixCellError | undefined {
+  request: SaveRequest,
+): ChangeOutcome {
   const { columnId } = change;
   if (!isWritableField(columnId)) {
-    return cellError(change, `${columnId} is read-only.`);
+    return { error: cellError(change, `${columnId} is read-only.`) };
   }
   const problem = FIELD_CHECKS[columnId](change.value);
-  if (problem) return cellError(change, problem);
+  if (problem) return { error: cellError(change, problem) };
+  const conflict = conflictOf(request, change, document[columnId]);
+  if (conflict) return { conflict };
   Object.assign(document, { [columnId]: change.value });
-  return undefined;
+  return {};
 }
 
-function saveRow(rowId: string, changes: MatrixChange[]): MatrixCellError[] {
+function saveRow(rowId: string, request: SaveRequest): ChangeOutcome[] {
   const document = findDocument(rowId);
-  if (!document) return [rowError(rowId, "This document no longer exists.")];
+  if (!document) {
+    return [{ error: rowError(rowId, "This document no longer exists.") }];
+  }
   if (document.ref === PURGED_REF) {
     return [
-      rowError(
-        rowId,
-        "The retention job purged this document after you opened the page: reload to drop it.",
-      ),
+      {
+        error: rowError(
+          rowId,
+          "The retention job purged this document after you opened the page: reload to drop it.",
+        ),
+      },
     ];
   }
-  return changes
+  return request.changes
     .filter((change) => change.rowId === rowId)
-    .map((change) => applyChange(document, change))
-    .filter((error): error is MatrixCellError => !!error);
+    .map((change) => applyChange(document, change, request));
 }
 
 /**
  * The routes of the "Records" demo: a collection browser over the
  * in-memory `api_requests` documents. The list searches, filters, sorts and
- * pages on the server; the save checks each cell against its field and
- * answers the rows it wrote, and a row error for the purged document.
+ * pages on the server, column filters included; the save checks each cell
+ * against its field (and its `previous` when the block detects conflicts)
+ * and answers the rows it wrote, and a row error for the purged document.
  */
 export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
   @AuthUserWithPermission(PageMatrixRecords)
@@ -266,8 +295,10 @@ export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
   list(@Context() ctx: RequestContext): MatrixData {
     const query = readMatrixQuery(ctx.url.searchParams);
     const searched = searchDocuments(query);
-    const byMethod = searched.filter((document) =>
-      facetAllows(query, "method", document.method),
+    const byMethod = searched.filter(
+      (document) =>
+        facetAllows(query, "method", document.method) &&
+        filtersAllow(query, document, readField),
     );
     const matching = byMethod.filter((document) =>
       facetAllows(query, "status", statusClass(document.status)),
@@ -291,14 +322,20 @@ export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
 
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
-    const { changes } = readSaveRequest(body);
-    const rowIds = touchedRowIds(changes);
-    const errors = rowIds.flatMap((rowId) => saveRow(rowId, changes));
+    const request = readSaveRequest(body);
+    const rowIds = touchedRowIds(request.changes);
+    const outcomes = rowIds.flatMap((rowId) => saveRow(rowId, request));
     const rows = rowIds
       .map(findDocument)
       .filter((document): document is RequestDocument => !!document)
       .filter((document) => document.ref !== PURGED_REF)
       .map(toRow);
-    return { rows, errors };
+    return {
+      rows,
+      errors: outcomes.flatMap(({ error }) => (error ? [error] : [])),
+      conflicts: outcomes.flatMap(({ conflict }) =>
+        conflict ? [conflict] : [],
+      ),
+    };
   }
 }

@@ -1,10 +1,10 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import {
-  Matrix,
-  type MatrixColumn,
-  type MatrixLegendItem,
-} from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type {
+  MatrixColumn,
+  MatrixLegendItem,
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
 import { MAX_WORKING_DAYS, SHIFT_OPTIONS, WEEK } from "./data";
@@ -78,7 +78,7 @@ export class PageMatrixRoster extends PageController(
     },
     {
       label: "Fold a store",
-      text: "The people are grouped by store (group, groups), each group collapsible; the footer line sums the hours per store.",
+      text: "The people are grouped by store (group, groups), each group collapsible; the footer line sums the hours per store, and each save answers it again with the rows (footer, rows).",
     },
   ]);
 

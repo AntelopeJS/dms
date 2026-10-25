@@ -2,10 +2,8 @@ import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import {
-  Matrix,
-  type MatrixLegendItem,
-} from "@antelopejs/interface-dms/base/matrix";
+import { Matrix } from "@antelopejs/interface-dms/base/matrix";
+import type { MatrixLegendItem } from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
 import { ARTICLE, CURRENT_STORE, STORES, WAREHOUSE } from "./data";

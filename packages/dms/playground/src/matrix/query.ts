@@ -1,6 +1,8 @@
-import type { MatrixFacetItem } from "@antelopejs/interface-dms/base/matrix";
+import type { MatrixFacetItem } from "@antelopejs/interface-dms/base/matrix-types";
 
 const FACET_PREFIX = "facet_";
+const FILTER_PREFIX = "filter_";
+const FILTER_MODE_SEPARATOR = ":";
 const LIST_SEPARATOR = ",";
 const DESCENDING = "desc";
 // Park-Miller's minimal standard generator, and the FNV-1a 32-bit hash.
@@ -28,7 +30,24 @@ export interface MatrixQuery {
   direction: SortDirection;
   /** The values picked in each facet, by facet id. */
   facets: Record<string, string[]>;
+  /** The column filters (`filter_<columnId>=<mode>:<value>`), by column id. */
+  filters: Record<string, ColumnFilter>;
 }
+
+/** A column filter of the grid's header: `contains` or `is`, and its text. */
+export interface ColumnFilter {
+  mode: string;
+  /** Lower-cased. */
+  value: string;
+}
+
+type FilterTest = (cell: string, expected: string) => boolean;
+
+// The modes a Matrix's column filters send, as a table view's do.
+const FILTER_TESTS: Record<string, FilterTest> = {
+  contains: (cell, expected) => cell.includes(expected),
+  is: (cell, expected) => cell === expected,
+};
 
 /** Reads a value of an item by a column id, for sorting. */
 export type CellReader<T> = (item: T, columnId: string) => unknown;
@@ -41,6 +60,22 @@ function readFacets(params: URLSearchParams): Record<string, string[]> {
     if (picked.length) facets[key.slice(FACET_PREFIX.length)] = picked;
   });
   return facets;
+}
+
+function readFilters(params: URLSearchParams): Record<string, ColumnFilter> {
+  const filters: Record<string, ColumnFilter> = {};
+  params.forEach((raw, key) => {
+    const separator = raw.indexOf(FILTER_MODE_SEPARATOR);
+    if (!key.startsWith(FILTER_PREFIX) || separator < 0) return;
+    filters[key.slice(FILTER_PREFIX.length)] = {
+      mode: raw.slice(0, separator),
+      value: raw
+        .slice(separator + 1)
+        .trim()
+        .toLowerCase(),
+    };
+  });
+  return filters;
 }
 
 function readPositive(params: URLSearchParams, key: string): number {
@@ -59,6 +94,7 @@ export function readMatrixQuery(params: URLSearchParams): MatrixQuery {
     sort: params.get("sort") || undefined,
     direction: params.get("direction") === DESCENDING ? "desc" : "asc",
     facets: readFacets(params),
+    filters: readFilters(params),
   };
 }
 
@@ -77,6 +113,25 @@ export function facetAllows(
 ): boolean {
   const picked = query.facets[facetId];
   return !picked || picked.includes(value);
+}
+
+/**
+ * Whether an item passes every column filter of the query; a filter on an
+ * unknown mode lets everything through.
+ */
+export function filtersAllow<T>(
+  query: MatrixQuery,
+  item: T,
+  read: CellReader<T>,
+): boolean {
+  return Object.entries(query.filters).every(([columnId, filter]) => {
+    const test = FILTER_TESTS[filter.mode];
+    if (!test || !filter.value) return true;
+    const cell = read(item, columnId);
+    return isEmpty(cell)
+      ? false
+      : test(searchableText(cell).toLowerCase(), filter.value);
+  });
 }
 
 /** Whether any of the texts holds the search (already lower-cased). */

@@ -13,7 +13,7 @@ import type {
   MatrixData,
   MatrixRow,
   MatrixSelectOption,
-} from "@antelopejs/interface-dms/base/matrix";
+} from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import {
   ARTICLE,
