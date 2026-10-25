@@ -80,13 +80,15 @@ export function buildMatrixSections(
 
 /**
  * The groups that start folded: the ones the response says so, or every
- * group once the grid holds more than `collapseAbove` rows.
+ * group once the grid holds more than `collapseAbove` rows. None when
+ * `collapsible` is `false`: a folded group could never be opened.
  */
 export function initiallyCollapsed(
   sections: MatrixSection[],
   grouping: MatrixGrouping | undefined,
   rowCount: number,
 ): string[] {
+  if (grouping?.collapsible === false) return [];
   const isLarge =
     grouping?.collapseAbove !== undefined && rowCount > grouping.collapseAbove;
   return sections

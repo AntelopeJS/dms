@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MatrixContext } from "../../composables/matrix/useMatrix";
 import type { MatrixEdit } from "../../composables/matrix/matrixSaveEngine";
-import { isEmptyValue, valueText } from "../../composables/matrix/matrixValues";
+import { shownValueText } from "../../composables/matrix/matrixValues";
 
 /** The review before a staged save: each change, row · column, before → after. */
 interface MatrixReviewListProps {
@@ -20,8 +20,7 @@ const columnLabel = (columnId: string) => {
   const column = props.context.columns.columnById.value.get(columnId);
   return column ? props.context.text(column.label) : columnId;
 };
-const shown = (value: unknown) =>
-  isEmptyValue(value) ? t("dms.matrix.empty_value") : valueText(value);
+const shown = shownValueText;
 </script>
 
 <template>

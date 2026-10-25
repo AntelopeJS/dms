@@ -19,6 +19,7 @@ import type {
   MatrixRow,
   MatrixSaveResponse,
 } from "../../../types/matrix";
+import type { MatrixWrittenValue } from "./matrixSaveEngine";
 import {
   applyStaticQuery,
   buildMatrixQuery,
@@ -38,10 +39,13 @@ export interface MatrixDataSource {
   isLoadingMore: ComputedRef<boolean>;
   refresh: () => Promise<void>;
   loadMore: () => Promise<void>;
-  /** Puts what a save answered on screen: its rows, counts and targets. */
+  /**
+   * Puts what a save answered on screen: its rows in place, and its counts,
+   * targets, columns, groups and footer over the read's until the next read.
+   */
   applySaveResponse: (response: MatrixSaveResponse) => void;
-  /** Shows the value a conflict says is stored. */
-  patchValue: (rowId: string, columnId: string, value: unknown) => void;
+  /** Shows values the server now holds (a conflict's, a write no row returned). */
+  patchValues: (values: MatrixWrittenValue[]) => void;
 }
 
 export interface MatrixDataOptions {
@@ -58,48 +62,119 @@ function replaceRows(rows: MatrixRow[], answered: MatrixRow[]): MatrixRow[] {
   return rows.map((row) => byId.get(row.id) ?? row);
 }
 
-function withValue(
+function withValues(
   rows: MatrixRow[],
-  rowId: string,
-  columnId: string,
-  value: unknown,
+  values: MatrixWrittenValue[],
 ): MatrixRow[] {
-  return rows.map((row) =>
-    row.id === rowId
-      ? { ...row, values: { ...row.values, [columnId]: value } }
-      : row,
-  );
+  if (!values.length) return rows;
+  const byRow = new Map<string, MatrixWrittenValue[]>();
+  for (const value of values) {
+    byRow.set(value.rowId, [...(byRow.get(value.rowId) ?? []), value]);
+  }
+  return rows.map((row) => {
+    const written = byRow.get(row.id);
+    if (!written) return row;
+    const patched = { ...row.values };
+    for (const value of written) patched[value.columnId] = value.value;
+    return { ...row, values: patched };
+  });
 }
 
-/** An answer with a save's rows, counts and targets laid over it. */
-export function withSaveResponse(
-  data: MatrixData,
+/** What a save answered over the read: kept apart, until the next read. */
+export type MatrixAnswerOverrides = Pick<
+  MatrixData,
+  "counts" | "targets" | "columns" | "groups" | "footer"
+>;
+
+/** The overrides after a save's answer: each part it holds replaces its own. */
+export function answerOverridesOf(
+  previous: MatrixAnswerOverrides,
   response: MatrixSaveResponse,
-): MatrixData {
+): MatrixAnswerOverrides {
   return {
-    ...data,
-    rows: replaceRows(data.rows, response.rows ?? []),
-    ...(response.counts && { counts: { ...data.counts, ...response.counts } }),
+    ...previous,
+    ...(response.counts && {
+      counts: { ...previous.counts, ...response.counts },
+    }),
     ...(response.targets && { targets: response.targets }),
+    ...(response.columns && { columns: response.columns }),
+    ...(response.groups && { groups: response.groups }),
+    ...(response.footer !== undefined && { footer: response.footer }),
   };
 }
 
-/** The data a source edits in place: a ref it can read and replace. */
-type EditableData = Ref<MatrixData | null>;
-
-function editors(
-  data: EditableData,
-): Pick<MatrixDataSource, "applySaveResponse" | "patchValue"> {
+/** A read with a save's answer laid over it. */
+export function withAnswerOverrides(
+  data: MatrixData,
+  overrides: MatrixAnswerOverrides,
+): MatrixData {
   return {
-    applySaveResponse: (response) => {
-      if (data.value) data.value = withSaveResponse(data.value, response);
+    ...data,
+    ...overrides,
+    ...((data.counts || overrides.counts) && {
+      counts: { ...data.counts, ...overrides.counts },
+    }),
+  };
+}
+
+/** Where a source keeps its rows: the read, and how to rewrite them. */
+interface MatrixRowStore {
+  read: ComputedRef<MatrixData | null>;
+  writeRows: (rewrite: (rows: MatrixRow[]) => MatrixRow[]) => void;
+}
+
+/** The parts of a source that put a save's answer on screen. */
+type MatrixAnswerParts = Pick<
+  MatrixDataSource,
+  "data" | "applySaveResponse" | "patchValues"
+>;
+
+/**
+ * The data shown: the read with the last save's answer over it. Rows are
+ * rewritten where the read keeps them (a page among the infinite pages); the
+ * rest of an answer is kept apart, so a later page read cannot drop it, and
+ * goes with the next read of the query.
+ */
+function useAnswerOverrides(store: MatrixRowStore): MatrixAnswerParts {
+  const overrides = shallowRef<MatrixAnswerOverrides>({});
+  let isWriting = false;
+  watch(
+    store.read,
+    () => {
+      if (!isWriting) overrides.value = {};
     },
-    patchValue: (rowId, columnId, value) => {
-      if (!data.value) return;
-      data.value = {
-        ...data.value,
-        rows: withValue(data.value.rows, rowId, columnId, value),
-      };
+    { flush: "sync" },
+  );
+  const writeRows = (rewrite: (rows: MatrixRow[]) => MatrixRow[]) => {
+    isWriting = true;
+    try {
+      store.writeRows(rewrite);
+    } finally {
+      isWriting = false;
+    }
+  };
+  return {
+    data: computed(() =>
+      store.read.value
+        ? withAnswerOverrides(store.read.value, overrides.value)
+        : null,
+    ),
+    applySaveResponse: (response) => {
+      overrides.value = answerOverridesOf(overrides.value, response);
+      if (response.rows?.length)
+        writeRows((rows) => replaceRows(rows, response.rows ?? []));
+    },
+    patchValues: (values) => writeRows((rows) => withValues(rows, values)),
+  };
+}
+
+/** The rows of a data ref, rewritten in place. */
+function refRowStore(data: Ref<MatrixData | null>): MatrixRowStore {
+  return {
+    read: computed(() => data.value),
+    writeRows: (rewrite) => {
+      if (data.value)
+        data.value = { ...data.value, rows: rewrite(data.value.rows) };
     },
   };
 }
@@ -146,21 +221,20 @@ function usePagedMatrixData(source: MatrixDataOptions): MatrixDataSource {
   const refresh = () => loaded.refresh();
   useRefreshTriggers(options.realtimeTopic, refresh);
   return {
-    data: computed(() => loaded.data.value),
     isLoading: computed(() => loaded.status.value === "pending"),
     error: loaded.error,
     hasMore: computed(() => false),
     isLoadingMore: computed(() => false),
     refresh,
     loadMore: async () => {},
-    ...editors(loaded.data),
+    ...useAnswerOverrides(refRowStore(loaded.data)),
   };
 }
 
 const KEY_PREFIX = "dms-matrix";
 
-/** The rows read so far, from the first page on. */
-function mergePages(pages: MatrixData[]): MatrixData | null {
+/** The rows read so far, from the first page on; the rest from the last page read. */
+export function mergePages(pages: MatrixData[]): MatrixData | null {
   const [first] = pages;
   if (!first) return null;
   const last = pages.at(-1) ?? first;
@@ -207,26 +281,22 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
   );
   const refresh = () => paged.refresh();
   useRefreshTriggers(options.realtimeTopic, refresh);
-  const data = computed(() => mergePages(paged.pages.value));
-  // Edits go into the page that holds the row.
-  const editable = computed<MatrixData | null>({
-    get: () => data.value,
-    set: (next) => {
+  // Rows are rewritten in the page that holds them.
+  const store: MatrixRowStore = {
+    read: computed(() => mergePages(paged.pages.value)),
+    writeRows: (rewrite) => {
       const value = paged.data.value;
-      if (!next || !value) return;
-      const byId = new Map(next.rows.map((row) => [row.id, row]));
+      if (!value) return;
       paged.data.value = {
         ...value,
-        pages: value.pages.map((page, index) => ({
+        pages: value.pages.map((page) => ({
           ...page,
-          ...(index === 0 && { counts: next.counts, targets: next.targets }),
-          rows: page.rows.map((row) => byId.get(row.id) ?? row),
+          rows: rewrite(page.rows),
         })),
       };
     },
-  });
+  };
   return {
-    data,
     isLoading: computed(
       () => paged.status.value === "pending" && !paged.loadingMore.value,
     ),
@@ -235,7 +305,7 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
     isLoadingMore: computed(() => paged.loadingMore.value),
     refresh,
     loadMore: () => paged.loadMore(),
-    ...editors(editable),
+    ...useAnswerOverrides(store),
   };
 }
 
@@ -267,13 +337,16 @@ function useStaticMatrixData(source: MatrixDataOptions): MatrixDataSource {
         )
       : null,
   );
-  const data = computed<MatrixData | null>(() => {
-    const value = queried.value;
-    if (!value || pagination !== "infinite") return value;
-    return { ...value, rows: value.rows.slice(0, revealed.value) };
-  });
+  const store: MatrixRowStore = {
+    read: computed<MatrixData | null>(() => {
+      const value = queried.value;
+      if (!value || pagination !== "infinite") return value;
+      return { ...value, rows: value.rows.slice(0, revealed.value) };
+    }),
+    // The static rows themselves: the query reads them again as they change.
+    writeRows: refRowStore(local).writeRows,
+  };
   return {
-    data,
     isLoading: computed(() => false),
     error: ref(null),
     hasMore: computed(
@@ -286,6 +359,6 @@ function useStaticMatrixData(source: MatrixDataOptions): MatrixDataSource {
     loadMore: async () => {
       revealed.value += query.value.pageSize;
     },
-    ...editors(local),
+    ...useAnswerOverrides(store),
   };
 }

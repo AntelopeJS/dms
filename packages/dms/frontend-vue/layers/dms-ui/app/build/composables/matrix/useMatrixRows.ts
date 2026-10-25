@@ -40,6 +40,11 @@ export interface MatrixRowsOptions {
   /** Where the folds are kept while the page stays open. */
   stateKey: string;
   keepEditedRows: () => boolean;
+  /**
+   * The page the rows are read on (`pagination: "pages"`): a row kept is
+   * only kept on the page it was edited on, a page change is no filter.
+   */
+  pageKey: () => string;
   /** Rows edited in this view (the save engine's). */
   touched: Set<string>;
   /** A row still holding an edit, never let go. */
@@ -52,19 +57,41 @@ interface MatrixFoldState {
   seen: string[];
 }
 
-/** The rows a touched row is remembered by: as last read. */
+/** A row edited in this view, as last read, and the page it was read on. */
+export interface MatrixKeptRow {
+  row: MatrixRow;
+  pageKey: string;
+}
+
+/**
+ * The kept rows drawn though the read no longer lists them: the ones edited
+ * on the page shown (a filter or a search dropped them), never the rows of
+ * another page.
+ */
+export function keptRowIds(
+  kept: ReadonlyMap<string, MatrixKeptRow>,
+  answeredIds: ReadonlySet<string>,
+  pageKey: string,
+): string[] {
+  return [...kept.entries()]
+    .filter(([id, entry]) => !answeredIds.has(id) && entry.pageKey === pageKey)
+    .map(([id]) => id);
+}
+
+/** The rows a touched row is remembered by: as last read, on its page. */
 function useKeptRows(
   options: MatrixRowsOptions,
   answered: ComputedRef<MatrixRow[]>,
 ) {
-  const kept: Ref<Map<string, MatrixRow>> = shallowRef(new Map());
+  const kept: Ref<Map<string, MatrixKeptRow>> = shallowRef(new Map());
   watch(
     [answered, () => options.touched.size],
     ([rows]) => {
       if (!options.keepEditedRows()) return;
       const next = new Map(kept.value);
+      const pageKey = options.pageKey();
       for (const row of rows) {
-        if (options.touched.has(row.id)) next.set(row.id, row);
+        if (options.touched.has(row.id)) next.set(row.id, { row, pageKey });
       }
       kept.value = next;
     },
@@ -74,18 +101,15 @@ function useKeptRows(
     () => new Set(answered.value.map((row) => row.id)),
   );
   const keptIds = computed(
-    () =>
-      new Set(
-        [...kept.value.keys()].filter((id) => !answeredIds.value.has(id)),
-      ),
+    () => new Set(keptRowIds(kept.value, answeredIds.value, options.pageKey())),
   );
   const keptRows = computed(() =>
-    [...keptIds.value].map((id) => kept.value.get(id) as MatrixRow),
+    [...keptIds.value].map((id) => (kept.value.get(id) as MatrixKeptRow).row),
   );
   const hideKept = () => {
-    const next = new Map<string, MatrixRow>();
-    for (const [id, row] of kept.value) {
-      if (options.hasEdit(id)) next.set(id, row);
+    const next = new Map<string, MatrixKeptRow>();
+    for (const [id, entry] of kept.value) {
+      if (options.hasEdit(id)) next.set(id, entry);
       else options.touched.delete(id);
     }
     kept.value = next;

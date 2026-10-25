@@ -18,6 +18,8 @@ interface MatrixFieldInputProps {
   /** In a cell: one line, small; in a drawer: the field's full size. */
   surface?: "cell" | "drawer";
   invalid?: boolean;
+  /** Edited as a text whatever its kind (a number typed into a cell). */
+  asText?: boolean;
 }
 
 const props = withDefaults(defineProps<MatrixFieldInputProps>(), {
@@ -25,6 +27,7 @@ const props = withDefaults(defineProps<MatrixFieldInputProps>(), {
   disabled: false,
   surface: "drawer",
   invalid: false,
+  asText: false,
 });
 
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
@@ -75,6 +78,11 @@ const EDITORS: Record<MatrixCellKind, FieldEditor> = {
   },
   boolean: { component: "dms-switch", options: () => ({}) },
   date: { component: "dms-date-picker", options: () => ({}) },
+  // No DMS input takes a date and a time: the browser's own, in local time.
+  datetime: {
+    component: "dms-input-text",
+    options: () => ({ type: "datetime-local" }),
+  },
   select: {
     component: "dms-select",
     options: (column) => ({ items: selectItems(column) }),
@@ -104,7 +112,9 @@ const EDITORS: Record<MatrixCellKind, FieldEditor> = {
   address: { component: "dms-input-address", options: () => ({}) },
 };
 
-const editor = computed(() => EDITORS[kindOf(props.column)]);
+const editor = computed(() =>
+  props.asText ? EDITORS.text : EDITORS[kindOf(props.column)],
+);
 const component = computed(() => resolveDmsComponent(editor.value.component));
 const isCell = computed(() => props.surface === "cell");
 const options = computed(() =>

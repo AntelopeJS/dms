@@ -5,23 +5,26 @@ import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import { clampColumnWidth } from "../../composables/matrix/matrixColumns";
 import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
-import { kindOf } from "../../composables/matrix/matrixValues";
+import { columnAlign } from "../../composables/matrix/matrixLayout";
+import MatrixColumnFilterMenu from "./MatrixColumnFilterMenu.vue";
 
 /**
  * A column header: its icon and label (a sort button on a sortable grid,
  * cycling ascending, descending, none), its description as a dimmed line
- * and tooltip, a badge ("Base", "12 missing"), a meter (coverage), and the
- * drag handle of a resizable grid.
+ * and tooltip, a badge ("Base", "12 missing"), a meter (coverage, named by
+ * its rounded share), the filter of a `columnFilters` grid, and the drag
+ * handle of a resizable grid.
  */
 interface MatrixHeaderCellProps {
   column: MatrixColumn;
   colIndex: number;
   width: number;
-  stickyLeft?: number;
+  /** Inline start of a pinned column, in pixels. */
+  stickyStart?: number;
 }
 
 const props = withDefaults(defineProps<MatrixHeaderCellProps>(), {
-  stickyLeft: undefined,
+  stickyStart: undefined,
 });
 
 const matrix = useMatrixContext();
@@ -38,15 +41,18 @@ const sort = computed(() => {
 });
 const ARIA_SORT = { asc: "ascending", desc: "descending" } as const;
 const SORT_ICONS = { asc: "i-ph-arrow-up", desc: "i-ph-arrow-down" } as const;
-const align = computed(
-  () =>
-    props.column.align ?? (kindOf(props.column) === "number" ? "end" : "start"),
-);
+const align = computed(() => columnAlign(props.column));
 const PROGRESS_SCALE = 100;
 const progress = computed(() =>
   props.column.progress === undefined
     ? null
     : Math.max(0, Math.min(1, props.column.progress)) * PROGRESS_SCALE,
+);
+// The header is named by its label, then by this: never the raw ratio.
+const progressText = computed(() =>
+  progress.value === null
+    ? ""
+    : t("dms.matrix.progress", { percent: Math.round(progress.value) }),
 );
 
 // One width update per frame while dragging; the listeners go with the header.
@@ -67,7 +73,11 @@ function startResize(event: PointerEvent): void {
       ),
     );
   };
-  const onUp = () => detach?.();
+  // The width is remembered on the device once the drag ends.
+  const onUp = () => {
+    detach?.();
+    matrix.columns.saveWidths();
+  };
   detach = () => {
     cancelAnimationFrame(frame);
     window.removeEventListener("pointermove", onMove);
@@ -86,6 +96,7 @@ function resizeByKey(event: KeyboardEvent): void {
   event.preventDefault();
   event.stopPropagation();
   matrix.columns.resize(props.column.id, props.width + delta);
+  matrix.columns.saveWidths();
 }
 
 onBeforeUnmount(() => detach?.());
@@ -98,10 +109,10 @@ onBeforeUnmount(() => detach?.());
     :aria-colindex="props.colIndex"
     :aria-sort="sort ? ARIA_SORT[sort] : isSortable ? 'none' : undefined"
     class="group/head relative border-e border-b border-(--ui-border-default) bg-(--dms-bg-muted) px-3 py-1.5 align-bottom font-normal"
-    :class="props.stickyLeft !== undefined && 'sticky z-30'"
+    :class="props.stickyStart !== undefined && 'sticky z-30'"
     :style="
-      props.stickyLeft !== undefined
-        ? { left: `${props.stickyLeft}px` }
+      props.stickyStart !== undefined
+        ? { insetInlineStart: `${props.stickyStart}px` }
         : undefined
     "
   >
@@ -146,6 +157,10 @@ onBeforeUnmount(() => detach?.());
         size="sm"
         class="shrink-0"
       />
+      <MatrixColumnFilterMenu
+        v-if="matrix.options.columnFilters"
+        :column="props.column"
+      />
     </div>
     <p
       v-if="description"
@@ -154,8 +169,11 @@ onBeforeUnmount(() => detach?.());
     >
       {{ description }}
     </p>
+    <span v-if="progress !== null" class="sr-only">{{ progressText }}</span>
     <DmsMeter
       v-if="progress !== null"
+      aria-hidden="true"
+      :title="progressText"
       class="mt-1.5"
       :value="progress"
       :max="100"

@@ -3,12 +3,12 @@ import { computed, onBeforeUnmount, reactive, ref } from "vue";
 import type { MatrixColumn } from "../../../types/matrix";
 import type { MatrixContext } from "../../composables/matrix/useMatrix";
 import {
+  editingColumnOf,
   editorModelOf,
-  isEmptyValue,
   isSameValue,
   kindOf,
+  shownValueText,
   valueFromEditorModel,
-  valueText,
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
 import MatrixFieldInput from "./MatrixFieldInput.vue";
@@ -55,10 +55,21 @@ const errors = reactive<Record<string, string>>({});
 
 const storedOf = (column: MatrixColumn) =>
   row.value ? matrix.valueOf(row.value, column.id) : undefined;
+// An object found in a text column is edited as JSON, decided by the value
+// the field first shows (the drawer mounts anew for each row).
+const editingColumns = new Map<string, MatrixColumn>();
+function editingOf(column: MatrixColumn): MatrixColumn {
+  let editing = editingColumns.get(column.id);
+  if (!editing) {
+    editing = editingColumnOf(column, storedOf(column));
+    editingColumns.set(column.id, editing);
+  }
+  return editing;
+}
 const modelOf = (column: MatrixColumn) =>
   column.id in drafts
     ? drafts[column.id]
-    : editorModelOf(column, storedOf(column));
+    : editorModelOf(editingOf(column), storedOf(column));
 const isReadOnly = (column: MatrixColumn) =>
   !row.value || !matrix.isEditable(row.value, column);
 const fieldId = (column: MatrixColumn) => `dms-matrix-row-${column.id}`;
@@ -66,9 +77,7 @@ const fieldId = (column: MatrixColumn) => `dms-matrix-row-${column.id}`;
 function wasOf(column: MatrixColumn): string | null {
   const edit = matrix.engine.editOf(props.rowId, column.id);
   if (!edit || edit.conflict) return null;
-  return isEmptyValue(edit.before)
-    ? t("dms.matrix.empty_value")
-    : valueText(edit.before);
+  return shownValueText(edit.before);
 }
 
 function failureOf(column: MatrixColumn): string | null {
@@ -85,7 +94,7 @@ function issuesOf(column: MatrixColumn): string[] {
 
 function commit(column: MatrixColumn): void {
   if (!(column.id in drafts) || !row.value) return;
-  const read = valueFromEditorModel(column, drafts[column.id]);
+  const read = valueFromEditorModel(editingOf(column), drafts[column.id]);
   if (!read.ok) {
     errors[column.id] = invalidText(column, read);
     return;
@@ -107,7 +116,7 @@ function onFocusOut(column: MatrixColumn, event: FocusEvent): void {
 function onModel(column: MatrixColumn, model: unknown): void {
   drafts[column.id] = model;
   Reflect.deleteProperty(errors, column.id);
-  if (PICKED_KINDS.has(kindOf(column))) commit(column);
+  if (PICKED_KINDS.has(kindOf(editingOf(column)))) commit(column);
 }
 
 function setNull(column: MatrixColumn): void {
@@ -171,7 +180,7 @@ function saveAll(): void {
         >
           <MatrixFieldInput
             :id="fieldId(column)"
-            :column="column"
+            :column="editingOf(column)"
             :model-value="modelOf(column)"
             :disabled="isReadOnly(column)"
             :invalid="Boolean(errors[column.id])"

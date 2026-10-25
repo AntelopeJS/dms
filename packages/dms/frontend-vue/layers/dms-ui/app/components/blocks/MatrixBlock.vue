@@ -9,10 +9,8 @@ import MatrixToolbar from "../../build/components/matrix/MatrixToolbar.vue";
 import { useMatrix } from "../../build/composables/matrix/useMatrix";
 import { clampPage } from "../../build/composables/matrix/matrixQuery";
 import {
-  MATRIX_HATCH_CLASS,
-  MATRIX_TINT_CLASS,
+  cellBackground,
   MATRIX_TONE_TINTS,
-  tintStyle,
 } from "../../build/composables/matrix/matrixTones";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import { useComponentEvent } from "../../../../dms-core/app/composables/components/useComponentEvent";
@@ -41,6 +39,8 @@ const props = withDefaults(defineProps<MatrixBlockProps>(), {
   jumpToEmpty: undefined,
   keepEditedRows: undefined,
   exportCsv: undefined,
+  selectable: undefined,
+  columnFilters: undefined,
 });
 
 useComponentEvent(props.componentId);
@@ -196,12 +196,11 @@ const legend = computed(() => props.legend ?? []);
       >
         <span
           class="border-default size-3 shrink-0 rounded-[3px] border bg-(--dms-surface-card)"
-          :class="[
-            item.hatched && MATRIX_HATCH_CLASS,
-            item.tone && MATRIX_TINT_CLASS,
-          ]"
           :style="
-            tintStyle(item.tone ? MATRIX_TONE_TINTS[item.tone] : undefined)
+            cellBackground({
+              tint: item.tone ? MATRIX_TONE_TINTS[item.tone] : undefined,
+              isHatched: item.hatched,
+            })
           "
           aria-hidden="true"
         />

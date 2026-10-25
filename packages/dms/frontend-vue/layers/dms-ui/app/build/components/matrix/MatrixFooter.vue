@@ -92,6 +92,7 @@ const isStaged = computed(() => matrix.options.saveMode === "staged");
         v-if="matrix.options.jumpToEmpty"
         class="inline-flex items-center gap-1"
       >
+        <UKbd v-if="matrix.options.typeToEdit" value="alt" size="sm" />
         <UKbd value="N" size="sm" />
         {{ t("dms.matrix.shortcuts.next_empty") }}
       </span>

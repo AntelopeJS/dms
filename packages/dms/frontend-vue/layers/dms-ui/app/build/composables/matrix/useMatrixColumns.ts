@@ -23,7 +23,10 @@ export interface MatrixColumnsControls {
   isHidden: (column: MatrixColumn) => boolean;
   toggle: (columnId: string) => void;
   move: (columnId: string, step: number) => void;
+  /** A width dragged to: on screen at once, remembered by `saveWidths`. */
   resize: (columnId: string, width: number) => void;
+  /** Remembers the widths on the device, once a drag ends. */
+  saveWidths: () => void;
   reset: () => void;
 }
 
@@ -92,13 +95,16 @@ export function useMatrixColumns(
     },
     move: (columnId, step) =>
       update({ order: moveColumnOrder(columns.value, columnId, step) }),
-    resize: (columnId, width) =>
-      update({
+    resize: (columnId, width) => {
+      preferences.value = {
+        ...preferences.value,
         widths: {
           ...preferences.value.widths,
           [columnId]: clampColumnWidth(width),
         },
-      }),
+      };
+    },
+    saveWidths: () => writePreferences(storageKey, preferences.value),
     reset: () => update({ order: [], hidden: {}, widths: {} }),
   };
 }

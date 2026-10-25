@@ -18,12 +18,15 @@ import {
   structuredSizeTag,
   valueText,
 } from "../../composables/matrix/matrixValues";
+import { matrixRenderColumn } from "../../composables/matrix/matrixRender";
 
 /**
  * A cell's value as read: by its column's kind (a right-aligned figure, a
- * switch's state, a date, pills for a select or tags, `{3}` and one line of
- * JSON for an object, a clamped long text), through the column's table view
- * `display`, or a module's own `component`.
+ * switch's state, a date through the DMS date type, pills for a select or
+ * tags, `{3}` and one line of JSON for an object, a clamped long text),
+ * through the column's table view `display` (which reads the column's
+ * options as its type's, so a status pill shows their labels), or a
+ * module's own `component`.
  */
 interface MatrixCellValueProps {
   column: MatrixColumn;
@@ -51,14 +54,13 @@ const custom = computed(() =>
     ? resolveDmsComponent(props.column.component)
     : undefined,
 );
+const renderColumn = computed(() =>
+  matrixRenderColumn(props.column, processText),
+);
+// A display, or the DMS's own type for the kinds it draws as a table does.
 const displayed = computed<VNodeChild | null>(() =>
-  props.column.display
-    ? renderValue(
-        { id: props.column.id, display: props.column.display },
-        props.value,
-        props.row.values,
-        "cell",
-      )
+  props.column.display || kind.value === "date"
+    ? renderValue(renderColumn.value, props.value, props.row.values, "cell")
     : null,
 );
 
@@ -81,18 +83,21 @@ const pills = computed(() => {
     });
 });
 
-const DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
+const DATETIME_FORMAT: Intl.DateTimeFormatOptions = {
+  dateStyle: "medium",
+  timeStyle: "short",
+};
 
 const numberText = computed(() =>
   typeof props.value === "number"
     ? new Intl.NumberFormat(locale.value).format(props.value)
     : valueText(props.value),
 );
-const dateText = computed(() => {
+const dateTimeText = computed(() => {
   const date = new Date(String(props.value));
   return Number.isNaN(date.getTime())
     ? valueText(props.value)
-    : new Intl.DateTimeFormat(locale.value, DATE_FORMAT).format(date);
+    : new Intl.DateTimeFormat(locale.value, DATETIME_FORMAT).format(date);
 });
 const plainText = computed(() =>
   kind.value === "richText"
@@ -126,7 +131,7 @@ const MONO_KINDS = new Set<MatrixCellKind>(["code"]);
   >
     {{ placeholder }}
   </span>
-  <RenderedValue v-else-if="props.column.display" :node="displayed" />
+  <RenderedValue v-else-if="displayed !== null" :node="displayed" />
   <span
     v-else-if="kind === 'number'"
     class="text-highlighted font-mono tabular-nums"
@@ -141,10 +146,10 @@ const MONO_KINDS = new Set<MatrixCellKind>(["code"]);
     :aria-label="props.value ? t('dms.matrix.yes') : t('dms.matrix.no')"
   />
   <span
-    v-else-if="kind === 'date'"
+    v-else-if="kind === 'datetime'"
     class="text-muted font-mono text-xs tabular-nums"
   >
-    {{ dateText }}
+    {{ dateTimeText }}
   </span>
   <span
     v-else-if="PILL_KINDS.has(kind)"

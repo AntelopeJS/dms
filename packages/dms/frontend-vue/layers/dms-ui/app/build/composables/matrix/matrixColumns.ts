@@ -94,17 +94,21 @@ const KIND_WIDTHS: Partial<Record<NonNullable<MatrixColumn["kind"]>, number>> =
     boolean: BOOLEAN_COLUMN_WIDTH,
   };
 
-/** A column's width: dragged to, declared, or its kind's. */
+/**
+ * A column's width: dragged to (within the drag's bounds), else declared as
+ * it is, else its kind's.
+ */
 export function matrixColumnWidth(
   column: MatrixColumn,
   preferences: MatrixColumnPreferences,
 ): number {
-  const width =
-    preferences.widths?.[column.id] ??
+  const dragged = preferences.widths?.[column.id];
+  if (dragged !== undefined) return clampColumnWidth(dragged);
+  return (
     column.width ??
     KIND_WIDTHS[column.kind ?? "text"] ??
-    MATRIX_DEFAULT_COLUMN_WIDTH;
-  return clampColumnWidth(width);
+    MATRIX_DEFAULT_COLUMN_WIDTH
+  );
 }
 
 /** The order after moving `columnId` by `step` places among `columns`. */

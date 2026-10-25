@@ -12,10 +12,20 @@ import { isSameValue } from "./matrixValues";
 /**
  * An edited cell not written yet: `pending` (staged, or held in immediate
  * mode while a `blockSave` target is missed), `saving`, or `failed` (the
- * draft kept with the server's message, or the value it holds now on a
- * conflict).
+ * draft kept with the server's message, or with the value stored meanwhile
+ * on a conflict).
  */
 export type MatrixEditStatus = "pending" | "saving" | "failed";
+
+/** The value stored meanwhile, after a conflict: Overwrite or Discard. */
+export interface MatrixEditConflict {
+  current: unknown;
+}
+
+/** A value committed while the cell's previous write still runs. */
+export interface MatrixQueuedValue {
+  value: unknown;
+}
 
 export interface MatrixEdit {
   rowId: string;
@@ -25,9 +35,16 @@ export interface MatrixEdit {
   after: unknown;
   status: MatrixEditStatus;
   message?: BlockText;
-  /** The value stored meanwhile, after a conflict: Overwrite or Discard. */
-  conflict?: { current: unknown };
+  conflict?: MatrixEditConflict;
+  /** Written once the write in flight settles, from the value it wrote. */
+  queued?: MatrixQueuedValue;
 }
+
+/** A value a cell now holds on the server, to show without a read. */
+export type MatrixWrittenValue = Pick<
+  MatrixChange,
+  "rowId" | "columnId" | "value"
+>;
 
 /** What a cell shows of its saving. */
 export type MatrixCellSaveState =
@@ -46,6 +63,12 @@ export interface MatrixSaveEngineOptions {
   isBlocked: () => boolean;
   /** Every answer of `saveUrl`: its rows, counts and targets go on screen. */
   onResponse?: (response: MatrixSaveResponse) => void;
+  /**
+   * Values the server now holds that no returned row shows: a change the
+   * answer does not name counts as written, its cell keeping the value sent
+   * (after an undo, the value written back).
+   */
+  onWritten?: (values: MatrixWrittenValue[]) => void;
   /** A change the server answered a conflict for. */
   onConflict?: (conflict: MatrixConflict) => void;
   /** The changes a request wrote (some of them, or all). */
@@ -72,18 +95,25 @@ export function matrixCellKey(rowId: string, columnId: string): string {
   return `${rowId}${KEY_SEPARATOR}${columnId}`;
 }
 
-const changeOf = (edit: MatrixEdit): MatrixChange => ({
+const keyOf = (edit: MatrixEdit) => matrixCellKey(edit.rowId, edit.columnId);
+
+/**
+ * The change an edit sends. Overwriting a conflict replaces the value stored
+ * meanwhile: that is its `previous`, and what an Undo writes back.
+ */
+const changeOf = (edit: MatrixEdit, isForced = false): MatrixChange => ({
   rowId: edit.rowId,
   columnId: edit.columnId,
   value: edit.after,
-  previous: edit.before,
+  previous: isForced && edit.conflict ? edit.conflict.current : edit.before,
 });
 
-/** The refusals of an answer, by cell and by row. */
+/** The refusals of an answer, by cell and by row, and the rows it returns. */
 interface AnswerIndex {
   cellErrors: Map<string, BlockText>;
   rowErrors: Map<string, BlockText>;
   conflicts: Map<string, MatrixConflict>;
+  returnedRows: Set<string>;
 }
 
 function indexAnswer(response: MatrixSaveResponse): AnswerIndex {
@@ -91,6 +121,7 @@ function indexAnswer(response: MatrixSaveResponse): AnswerIndex {
     cellErrors: new Map(),
     rowErrors: new Map(),
     conflicts: new Map(),
+    returnedRows: new Set((response.rows ?? []).map((row) => row.id)),
   };
   for (const error of response.errors ?? []) {
     if (error.columnId)
@@ -109,7 +140,28 @@ function indexAnswer(response: MatrixSaveResponse): AnswerIndex {
   return index;
 }
 
+function isRefused(answer: AnswerIndex, change: MatrixWrittenValue): boolean {
+  const key = matrixCellKey(change.rowId, change.columnId);
+  return (
+    answer.cellErrors.has(key) ||
+    answer.conflicts.has(key) ||
+    answer.rowErrors.has(change.rowId)
+  );
+}
+
+/** The written values no returned row shows: they are patched on screen. */
+function unreturned(
+  answer: AnswerIndex,
+  values: MatrixWrittenValue[],
+): MatrixWrittenValue[] {
+  return values
+    .filter((value) => !answer.returnedRows.has(value.rowId))
+    .map(({ rowId, columnId, value }) => ({ rowId, columnId, value }));
+}
+
 export type MatrixSaveEngine = ReturnType<typeof createMatrixSaveEngine>;
+
+type EditOutcome = "saved" | "failed";
 
 /**
  * The edits of a grid and their way to `saveUrl`. `immediate` writes each
@@ -118,6 +170,9 @@ export type MatrixSaveEngine = ReturnType<typeof createMatrixSaveEngine>;
  * until `saveAll` writes them together, and a cell put back as it was is no
  * longer an edit. While a `blockSave` target is missed nothing is written:
  * immediate edits wait, held, and go together once every target is met.
+ * A cell has one write at a time: a value committed while it runs waits,
+ * then goes from the value it wrote. A conflict is only written over by
+ * Overwrite, never by a save of every edit.
  */
 export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
   const edits = reactive(new Map<string, MatrixEdit>());
@@ -130,11 +185,13 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
 
   const editOf = (rowId: string, columnId: string) =>
     edits.get(matrixCellKey(rowId, columnId));
+  const isCurrent = (edit: MatrixEdit) => edits.get(keyOf(edit)) === edit;
 
-  /** The value a cell shows: its edit's, else what the server holds. */
+  /** The value a cell shows: its edit's (a queued one first), else the server's. */
   function valueOf(rowId: string, columnId: string, stored: unknown): unknown {
     const edit = editOf(rowId, columnId);
-    return edit ? edit.after : stored;
+    if (!edit) return stored;
+    return edit.queued ? edit.queued.value : edit.after;
   }
 
   function stateOf(rowId: string, columnId: string): MatrixCellSaveState {
@@ -151,19 +208,20 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
   }
 
   const list = computed(() => [...edits.values()]);
-  const waiting = (edit: MatrixEdit) => edit.status !== "saving";
+  /** An edit a save may send: not in flight, and no conflict to settle. */
+  const isSendable = (edit: MatrixEdit) =>
+    edit.status !== "saving" && !edit.conflict;
 
-  async function send(batch: MatrixEdit[], force = false): Promise<boolean> {
+  async function send(batch: MatrixEdit[], isForced = false): Promise<boolean> {
     if (!batch.length) return true;
+    const request: MatrixSaveRequest = {
+      changes: batch.map((edit) => changeOf(edit, isForced)),
+      ...(isForced && { force: true }),
+    };
     for (const edit of batch) {
       edit.status = "saving";
       edit.message = undefined;
-      edit.conflict = undefined;
     }
-    const request: MatrixSaveRequest = {
-      changes: batch.map(changeOf),
-      ...(force && { force: true }),
-    };
     let response: MatrixSaveResponse;
     try {
       response = (await options.send(request)) ?? {};
@@ -172,81 +230,99 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
       return false;
     }
     options.onResponse?.(response);
-    return settle(batch, indexAnswer(response));
+    const isWritten = settle(batch, request.changes, indexAnswer(response));
+    // A value committed during the write goes now, from the value written.
+    if (options.mode() === "immediate") void flush();
+    return isWritten;
   }
 
   /** A request that failed as a whole: every change keeps its draft. */
   function failAll(batch: MatrixEdit[], message: BlockText): void {
-    for (const edit of batch) {
-      if (edits.get(matrixCellKey(edit.rowId, edit.columnId)) !== edit)
-        continue;
-      edit.status = "failed";
-      edit.message = message;
-    }
+    for (const edit of batch) markFailed(edit, { message });
   }
 
-  function settle(batch: MatrixEdit[], answer: AnswerIndex): boolean {
+  /** A value committed during a write that failed becomes the draft. */
+  function takeQueued(edit: MatrixEdit): void {
+    if (!edit.queued) return;
+    edit.after = edit.queued.value;
+    edit.queued = undefined;
+  }
+
+  function settle(
+    batch: MatrixEdit[],
+    changes: MatrixChange[],
+    answer: AnswerIndex,
+  ): boolean {
     const saved: MatrixChange[] = [];
-    let failures = 0;
-    for (const edit of batch) {
-      const outcome = settleEdit(edit, answer);
-      if (outcome === "failed") failures++;
-      if (outcome === "saved") saved.push(changeOf(edit));
-    }
+    batch.forEach((edit, index) => {
+      if (settleEdit(edit, answer) === "saved")
+        saved.push(changes[index] as MatrixChange);
+    });
     if (saved.length) {
       lastSaved.value = saved;
+      options.onWritten?.(unreturned(answer, saved));
       options.onSaved?.(saved);
     }
-    return failures === 0;
+    return saved.length === batch.length;
   }
 
-  function settleEdit(
-    edit: MatrixEdit,
-    answer: AnswerIndex,
-  ): "saved" | "failed" {
-    const key = matrixCellKey(edit.rowId, edit.columnId);
+  function settleEdit(edit: MatrixEdit, answer: AnswerIndex): EditOutcome {
+    const key = keyOf(edit);
     const conflict = answer.conflicts.get(key);
     const message =
       answer.cellErrors.get(key) ?? answer.rowErrors.get(edit.rowId);
     if (conflict) {
       options.onConflict?.(conflict);
-      // The stored value is what an Overwrite now replaces.
-      markFailed(edit, key, { conflict: { current: conflict.current } });
+      markFailed(edit, { conflict: { current: conflict.current } });
       return "failed";
     }
     if (message !== undefined) {
       if (answer.rowErrors.has(edit.rowId)) rowErrors.set(edit.rowId, message);
-      markFailed(edit, key, { message });
+      markFailed(edit, { message });
       return "failed";
     }
     rowErrors.delete(edit.rowId);
-    const current = edits.get(key);
-    if (current === edit) {
-      edits.delete(key);
-      flashSaved(key);
-    } else if (current) {
-      // Edited again while this write ran: the next write starts from it.
-      current.before = edit.after;
-    }
+    if (isCurrent(edit)) settleWritten(edit, key);
     return "saved";
+  }
+
+  /** A written edit: gone, or followed by the value committed meanwhile. */
+  function settleWritten(edit: MatrixEdit, key: string): void {
+    edits.delete(key);
+    const queued = edit.queued;
+    if (!queued || isSameValue(queued.value, edit.after)) {
+      flashSaved(key);
+      return;
+    }
+    edits.set(key, {
+      rowId: edit.rowId,
+      columnId: edit.columnId,
+      before: edit.after,
+      after: queued.value,
+      status: "pending",
+    });
   }
 
   function markFailed(
     edit: MatrixEdit,
-    key: string,
     failure: Pick<MatrixEdit, "message" | "conflict">,
   ): void {
-    if (edits.get(key) !== edit) return;
+    if (!isCurrent(edit)) return;
+    takeQueued(edit);
     edit.status = "failed";
     edit.message = failure.message;
-    edit.conflict = failure.conflict;
-    if (failure.conflict) edit.before = failure.conflict.current;
+    // The edit keeps the value it started from; the stored one is apart.
+    edit.conflict = failure.conflict ?? edit.conflict;
   }
 
   /** Writes the immediate edits held so far, unless a target holds them. */
   function flush(): Promise<boolean> {
     if (options.isBlocked()) return Promise.resolve(false);
-    return send(list.value.filter((edit) => edit.status === "pending"));
+    return send(
+      list.value.filter(
+        (edit) => edit.status === "pending" && isSendable(edit),
+      ),
+    );
   }
 
   /**
@@ -267,60 +343,75 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
   function record(change: MatrixCommit): void {
     const key = matrixCellKey(change.rowId, change.columnId);
     const existing = edits.get(key);
-    const before = existing ? existing.before : change.original;
     touchedRows.add(change.rowId);
-    if (isSameValue(change.value, before)) {
-      if (existing && existing.status !== "saving") edits.delete(key);
+    if (existing?.status === "saving") {
+      existing.queued = { value: change.value };
       return;
     }
+    const before = existing ? existing.before : change.original;
+    if (isSameValue(change.value, before) && !existing?.conflict) {
+      if (existing) edits.delete(key);
+      return;
+    }
+    // Edited again, a conflicting cell stays one until Overwrite or Discard.
+    const conflict = existing?.conflict;
     edits.set(key, {
       rowId: change.rowId,
       columnId: change.columnId,
       before,
       after: change.value,
-      status: "pending",
+      status: conflict ? "failed" : "pending",
+      ...(conflict && { conflict }),
     });
   }
 
-  /** Writes every edit not being written (the save bar, Ctrl+S). */
+  /** Writes every edit that may go (the save bar, Ctrl+S); conflicts wait. */
   function saveAll(): Promise<boolean> {
     if (options.isBlocked()) return Promise.resolve(false);
-    return send(list.value.filter(waiting));
+    return send(list.value.filter(isSendable));
   }
 
   /** Writes one failed cell again. */
   function retry(rowId: string, columnId: string): Promise<boolean> {
     const edit = editOf(rowId, columnId);
-    if (!edit || edit.status === "saving") return Promise.resolve(false);
-    if (options.isBlocked()) return Promise.resolve(false);
+    if (!edit || !isSendable(edit) || options.isBlocked())
+      return Promise.resolve(false);
     return send([edit]);
   }
 
   /** Writes a conflicting cell over the value stored meanwhile. */
   function overwrite(rowId: string, columnId: string): Promise<boolean> {
     const edit = editOf(rowId, columnId);
-    if (!edit || edit.status === "saving") return Promise.resolve(false);
+    if (!edit || edit.status === "saving" || options.isBlocked())
+      return Promise.resolve(false);
     return send([edit], true);
   }
 
   /** Drops a cell's edit: it shows what the server holds. */
   function discard(rowId: string, columnId: string): void {
     const key = matrixCellKey(rowId, columnId);
-    if (edits.get(key)?.status === "saving") return;
+    const edit = edits.get(key);
+    if (!edit) return;
+    // A write in flight cannot be called back; what was committed after it can.
+    if (edit.status === "saving") {
+      edit.queued = undefined;
+      return;
+    }
     edits.delete(key);
   }
 
   /** Drops every edit not being written. */
   function discardAll(): void {
     for (const [key, edit] of edits) {
-      if (waiting(edit)) edits.delete(key);
+      if (edit.status === "saving") edit.queued = undefined;
+      else edits.delete(key);
     }
     rowErrors.clear();
   }
 
   /**
    * Writes back the values the last save replaced (its `previous`), as the
-   * Undo of its toast. Resolves whether the route took them.
+   * Undo of its toast. Resolves whether the route took them all.
    */
   async function undo(changes: MatrixChange[]): Promise<boolean> {
     if (!changes.length) return true;
@@ -332,19 +423,19 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
         previous: change.value,
       })),
     };
+    let response: MatrixSaveResponse;
     try {
-      const response = (await options.send(request)) ?? {};
-      options.onResponse?.(response);
-      const answer = indexAnswer(response);
-      return (
-        answer.cellErrors.size +
-          answer.rowErrors.size +
-          answer.conflicts.size ===
-        0
-      );
+      response = (await options.send(request)) ?? {};
     } catch {
       return false;
     }
+    options.onResponse?.(response);
+    const answer = indexAnswer(response);
+    const written = request.changes.filter(
+      (change) => !isRefused(answer, change),
+    );
+    options.onWritten?.(unreturned(answer, written));
+    return written.length === request.changes.length;
   }
 
   const count: ComputedRef<number> = computed(() => edits.size);

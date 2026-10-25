@@ -13,6 +13,7 @@ export type MatrixCellKind =
   | "number"
   | "boolean"
   | "date"
+  | "datetime"
   | "select"
   | "tags"
   | "json"
@@ -90,7 +91,10 @@ export interface MatrixCellState {
   disabled?: boolean;
   readOnly?: boolean;
   issues?: BlockText[];
+  /** Greyed while the cell is empty, and shown above its editor. */
   placeholder?: BlockText;
+  /** Overrides the column's `editIn` for this cell. */
+  editIn?: MatrixEditIn;
   previous?: unknown;
 }
 
@@ -103,6 +107,9 @@ export interface MatrixRow {
   cells?: Record<string, MatrixCellState>;
   readOnly?: boolean;
   tone?: MatrixTone;
+  /** A pill after the row label ("Overridden"). */
+  badge?: BlockText;
+  badgeTone?: MatrixTone;
 }
 
 export interface MatrixGroup {
@@ -149,6 +156,8 @@ export interface MatrixChange {
 export interface MatrixSaveRequest {
   changes: MatrixChange[];
   force?: boolean;
+  /** The block's `conflicts` mode, so a generic route knows whether to check `previous`. */
+  conflicts?: MatrixConflictMode;
   /** The list query (search, status, facets), without paging: for filtered `counts`. */
   query?: Record<string, string>;
 }
@@ -165,12 +174,20 @@ export interface MatrixConflict {
   current: unknown;
 }
 
+/**
+ * The answer of `saveUrl`. A change it names in neither `errors` nor
+ * `conflicts` counts as written, its cell keeping the value sent; `columns`,
+ * `groups` and `footer` replace theirs.
+ */
 export interface MatrixSaveResponse {
   rows?: MatrixRow[];
   errors?: MatrixCellError[];
   conflicts?: MatrixConflict[];
   counts?: Record<string, number>;
   targets?: MatrixTargets;
+  columns?: MatrixColumn[];
+  groups?: MatrixGroup[];
+  footer?: BlockText;
 }
 
 export interface MatrixFillAction {
@@ -182,8 +199,14 @@ export interface MatrixFillAction {
 }
 
 /** What a fill action's route answers: the cells to set, as edits. */
+/** A cell a fill sets (an answered `previous` is ignored). */
+export type MatrixFillChange = Pick<
+  MatrixChange,
+  "rowId" | "columnId" | "value"
+>;
+
 export interface MatrixFillResponse {
-  changes?: Array<Pick<MatrixChange, "rowId" | "columnId" | "value">>;
+  changes?: MatrixFillChange[];
 }
 
 export interface MatrixStatusFilter {
@@ -215,6 +238,17 @@ export interface MatrixRowHeader {
 export interface MatrixRowPanel {
   title?: BlockText;
   showJson?: boolean;
+  /** The open row in the page URL, opened again on load. */
+  deepLink?: boolean;
+}
+
+/** An action in the menu of a row's header; `{{row.X}}` and `{{row.id}}` fill. */
+export interface MatrixRowAction {
+  id: string;
+  label: BlockText;
+  icon?: string;
+  tone?: MatrixTone;
+  target: ActionTarget;
 }
 
 export interface MatrixTotals {
@@ -261,6 +295,9 @@ export interface MatrixOptions {
   enterMove?: MatrixEnterMove;
   rowPanel?: boolean | MatrixRowPanel;
   cellAction?: ActionTarget;
+  rowActions?: MatrixRowAction[];
+  /** A checkbox per row; fills receive the checked ids as `selected`. */
+  selectable?: boolean;
   fillActions?: MatrixFillAction[];
   pagination?: MatrixPagination;
   pageSize?: number;
@@ -269,6 +306,8 @@ export interface MatrixOptions {
   statusFilters?: MatrixStatusFilter[];
   facets?: MatrixFacet[];
   sortable?: boolean;
+  /** A contains / is filter in each header, sent as `filter_<columnId>=<mode>:<value>`. */
+  columnFilters?: boolean;
   urlState?: boolean;
   grouping?: MatrixGrouping;
   totals?: MatrixTotals;

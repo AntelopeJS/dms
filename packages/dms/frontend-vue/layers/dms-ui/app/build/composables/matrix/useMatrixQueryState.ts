@@ -4,6 +4,7 @@ import {
   DEFAULT_MATRIX_PAGE_SIZE,
   emptyMatrixQuery,
   nextMatrixSort,
+  type MatrixColumnFilter,
   type MatrixQueryState,
 } from "./matrixQuery";
 import {
@@ -22,6 +23,12 @@ export interface MatrixQueryControls {
   setStatus: (status: string) => void;
   setFacet: (facetId: string, values: string[]) => void;
   toggleSort: (columnId: string) => void;
+  /** A column's header filter; `null` removes it. */
+  setColumnFilter: (
+    columnId: string,
+    filter: MatrixColumnFilter | null,
+  ) => void;
+  clearColumnFilters: () => void;
   clearFilters: () => void;
 }
 
@@ -50,15 +57,19 @@ export function useMatrixQueryState(
     : defaults;
   const state = ref<MatrixQueryState>(initial);
 
-  if (keepsUrl)
+  if (keepsUrl) {
+    let written = state.value.filters;
     watch(
       state,
-      (next) =>
+      (next) => {
         writeMatrixUrlEntries(
-          matrixUrlEntries(componentId, next, defaults, facetIds),
-        ),
+          matrixUrlEntries(componentId, next, defaults, facetIds, written),
+        );
+        written = next.filters;
+      },
       { deep: true },
     );
+  }
 
   const refine = (patch: Partial<MatrixQueryState>) => {
     state.value = { ...state.value, ...patch, page: 0 };
@@ -69,7 +80,8 @@ export function useMatrixQueryState(
     isFiltered: () =>
       Boolean(state.value.search.trim()) ||
       Boolean(state.value.status) ||
-      Object.values(state.value.facets).some((values) => values.length > 0),
+      Object.values(state.value.facets).some((values) => values.length > 0) ||
+      Object.keys(state.value.filters).length > 0,
     setPage: (page) => {
       state.value = { ...state.value, page: Math.max(0, page) };
     },
@@ -83,6 +95,14 @@ export function useMatrixQueryState(
       refine({ facets: { ...state.value.facets, [facetId]: values } }),
     toggleSort: (columnId) =>
       refine({ sort: nextMatrixSort(state.value.sort, columnId) }),
-    clearFilters: () => refine({ search: "", status: "", facets: {} }),
+    setColumnFilter: (columnId, filter) => {
+      const filters = { ...state.value.filters };
+      if (filter?.value) filters[columnId] = filter;
+      else Reflect.deleteProperty(filters, columnId);
+      refine({ filters });
+    },
+    clearColumnFilters: () => refine({ filters: {} }),
+    clearFilters: () =>
+      refine({ search: "", status: "", facets: {}, filters: {} }),
   };
 }

@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { computed, useTemplateRef, watch } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
 import type { MatrixColumn, MatrixRow } from "../../../types/matrix";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import type { MatrixSection } from "../../composables/matrix/matrixSections";
-import { kindOf } from "../../composables/matrix/matrixValues";
+import {
+  columnAlign,
+  matrixGridSlots,
+} from "../../composables/matrix/matrixLayout";
+import { isTotalledColumn } from "../../composables/matrix/matrixTotals";
+import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
+import { matrixFilterParams } from "../../composables/matrix/matrixQuery";
 import MatrixCell from "./MatrixCell.vue";
 import MatrixGroupHeader from "./MatrixGroupHeader.vue";
 import MatrixHeaderCell from "./MatrixHeaderCell.vue";
@@ -14,19 +20,25 @@ import MatrixRowHeaderCell from "./MatrixRowHeaderCell.vue";
 /**
  * The grid itself (`role="grid"`): a sticky header row, a sticky row header
  * column and pinned columns, the rows under their group headers, a Total
- * column and a sticky Total row, skeleton rows on a first load, a thin bar
- * while a read runs, and the sentinel reading the next rows of an infinite
- * grid.
+ * column (after the columns it adds up) and a sticky Total row, skeleton
+ * rows on a first load, a thin bar while a read runs, and a sentinel: it
+ * draws the next rows of a long grid (a batch at a time) and reads the next
+ * page of an infinite one.
  */
 const matrix = useMatrixContext();
 const { t, locale } = useI18n();
 
 const DEFAULT_ROW_HEADER_WIDTH = 200;
 const NUMBERS_WIDTH = 36;
+const SELECT_WIDTH = 32;
 const TOTAL_COLUMN_WIDTH = 112;
 const SKELETON_ROWS = 6;
 const SCROLL_MARGIN = "400px";
+/** Rows drawn at a time in a grid listing every row at once. */
+const REVEAL_BATCH = 200;
 const ROW_HEIGHTS = { compact: "36px", comfortable: "44px" } as const;
+// The header row is row 1.
+const FIRST_BODY_ROW_INDEX = 2;
 
 const scroller = useTemplateRef<HTMLElement>("scroller");
 const sentinel = useTemplateRef<HTMLElement>("sentinel");
@@ -36,10 +48,12 @@ watch(scroller, (element) => {
 
 const columns = computed(() => matrix.columns.visible.value);
 const hasNumbers = computed(() => matrix.options.rowHeader?.numbers === true);
+const isSelectable = computed(() => matrix.options.selectable === true);
 const rowHeaderWidth = computed(
   () =>
     (matrix.options.rowHeader?.width ?? DEFAULT_ROW_HEADER_WIDTH) +
-    (hasNumbers.value ? NUMBERS_WIDTH : 0),
+    (hasNumbers.value ? NUMBERS_WIDTH : 0) +
+    (isSelectable.value ? SELECT_WIDTH : 0),
 );
 const hasTotalColumn = computed(() => matrix.options.totals?.rows === true);
 const hasTotalRow = computed(() => matrix.options.totals?.columns === true);
@@ -50,17 +64,14 @@ const rowHeaderLabel = computed(
   () => matrix.text(matrix.options.rowHeader?.label) || "",
 );
 
-/** `left` of each pinned column: after the row header and the pinned before it. */
-const stickyLefts = computed(() => {
-  const lefts: Record<string, number> = {};
-  let left = rowHeaderWidth.value;
-  for (const column of columns.value) {
-    if (!column.pinned) break;
-    lefts[column.id] = left;
-    left += matrix.columns.widthOf(column);
-  }
-  return lefts;
-});
+const slots = computed(() =>
+  matrixGridSlots(
+    columns.value,
+    matrix.columns.widthOf,
+    rowHeaderWidth.value,
+    hasTotalColumn.value,
+  ),
+);
 const tableWidth = computed(
   () =>
     rowHeaderWidth.value +
@@ -71,16 +82,24 @@ const tableWidth = computed(
     (hasTotalColumn.value ? TOTAL_COLUMN_WIDTH : 0),
 );
 
-/** A group header or a row, in the order drawn, with its `aria-rowindex`. */
-type GridItem =
-  | { type: "group"; key: string; section: MatrixSection; index: number }
-  | {
-      type: "row";
-      key: string;
-      row: MatrixRow;
-      index: number;
-      number?: number;
-    };
+/** A group header drawn among the rows, with its `aria-rowindex`. */
+interface GridGroupItem {
+  type: "group";
+  key: string;
+  section: MatrixSection;
+  index: number;
+}
+
+/** A row drawn, with its `aria-rowindex` and its number across pages. */
+interface GridRowItem {
+  type: "row";
+  key: string;
+  row: MatrixRow;
+  index: number;
+  number?: number;
+}
+
+type GridItem = GridGroupItem | GridRowItem;
 
 const pageOffset = computed(() =>
   matrix.options.pagination === "pages"
@@ -96,13 +115,37 @@ const answeredIndex = computed(
       ]),
     ),
 );
-// The header row is row 1.
-const FIRST_BODY_ROW_INDEX = 2;
+
+// Thousands of rows listed at once are drawn a batch at a time, the next one
+// as the sentinel comes into view, so the grid stays fluid.
+const isBatched = computed(
+  () => (matrix.options.pagination ?? "none") === "none",
+);
+const revealed = ref(REVEAL_BATCH);
+watch(
+  () => JSON.stringify(matrixFilterParams(matrix.query.state.value)),
+  () => {
+    revealed.value = REVEAL_BATCH;
+  },
+);
+// A row the keyboard or a jump moves to is drawn first.
+watch(matrix.interaction.focus, (focus) => {
+  if (!focus || !isBatched.value) return;
+  const index = matrix.rows.shown.value.findIndex(
+    (row) => row.id === focus.rowId,
+  );
+  if (index >= revealed.value) revealed.value = index + REVEAL_BATCH;
+});
+const rowLimit = computed(() =>
+  isBatched.value ? revealed.value : Number.POSITIVE_INFINITY,
+);
 
 const items = computed<GridItem[]>(() => {
   const list: GridItem[] = [];
   let index = FIRST_BODY_ROW_INDEX;
+  let drawn = 0;
   for (const section of matrix.rows.sections.value) {
+    if (drawn >= rowLimit.value) break;
     if (section.group)
       list.push({
         type: "group",
@@ -112,6 +155,8 @@ const items = computed<GridItem[]>(() => {
       });
     if (section.group && matrix.rows.isCollapsed(section.key)) continue;
     for (const row of section.rows) {
+      if (drawn >= rowLimit.value) break;
+      drawn++;
       const answered = answeredIndex.value.get(row.id);
       list.push({
         type: "row",
@@ -125,6 +170,25 @@ const items = computed<GridItem[]>(() => {
   }
   return list;
 });
+const hasHiddenRows = computed(
+  () => isBatched.value && matrix.rows.shown.value.length > revealed.value,
+);
+const hasMore = computed(
+  () => hasHiddenRows.value || matrix.source.hasMore.value,
+);
+
+const groupHeaderCount = computed(
+  () => matrix.rows.sections.value.filter((section) => section.group).length,
+);
+// Every row of the grid: the header, the rows the query matches, the group
+// headers, and the Total row.
+const rowCount = computed(
+  () =>
+    1 +
+    (matrix.source.data.value?.total ?? matrix.rows.rows.value.length) +
+    groupHeaderCount.value +
+    (hasTotalRow.value ? 1 : 0),
+);
 
 const isFirstLoad = computed(
   () => matrix.source.isLoading.value && !matrix.source.data.value,
@@ -132,25 +196,19 @@ const isFirstLoad = computed(
 const isRefreshing = computed(
   () => matrix.source.isLoading.value && Boolean(matrix.source.data.value),
 );
-const entryCell = computed(() => {
-  const row = matrix.rows.shown.value[0];
-  const column = columns.value[0];
-  return row && column ? { rowId: row.id, columnId: column.id } : null;
-});
-const isEntry = (row: MatrixRow, column: MatrixColumn) =>
-  !matrix.interaction.focus.value &&
-  entryCell.value?.rowId === row.id &&
-  entryCell.value.columnId === column.id;
 
 const format = (value: number) =>
   new Intl.NumberFormat(locale.value).format(value);
-const isNumberColumn = (column: MatrixColumn) => kindOf(column) === "number";
 const columnTotal = (column: MatrixColumn) =>
   format(matrix.totals.value.columns[column.id] ?? 0);
 const columnTarget = (column: MatrixColumn) => {
   const target = matrix.targets.value?.columns?.[column.id];
   return target === undefined ? "" : format(target);
 };
+const alignClass = (column: MatrixColumn) =>
+  MATRIX_ALIGN_CLASSES[columnAlign(column)];
+const stickyStyle = (start?: number) =>
+  start === undefined ? undefined : { insetInlineStart: `${start}px` };
 
 const rowStyle = computed(() => ({
   "--dms-matrix-row-h": ROW_HEIGHTS[matrix.options.density ?? "comfortable"],
@@ -164,17 +222,18 @@ const scrollStyle = computed(() =>
 const observer = useIntersectionObserver(
   sentinel,
   (entries) => {
-    if (entries.some((entry) => entry.isIntersecting))
-      void matrix.source.loadMore();
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    if (hasHiddenRows.value) revealed.value += REVEAL_BATCH;
+    else void matrix.source.loadMore();
   },
   {
     root: () => (matrix.options.maxHeight ? scroller.value : null),
     rootMargin: SCROLL_MARGIN,
   },
 );
-// A sentinel still in view after a page landed asks for the next one.
+// A sentinel still in view after rows landed asks for the next ones.
 watch(
-  () => matrix.source.data.value?.rows.length,
+  () => items.value.length,
   () => {
     observer.pause();
     observer.resume();
@@ -182,7 +241,9 @@ watch(
 );
 
 const FOOT_CELL =
-  "h-9 border-t border-e border-(--ui-border-default) bg-(--dms-bg-muted) px-3 text-end font-mono text-xs font-semibold tabular-nums";
+  "h-9 border-t border-e border-(--ui-border-default) bg-(--dms-bg-muted) px-3 font-mono text-xs font-semibold tabular-nums";
+const TOTAL_CELL =
+  "h-[var(--dms-matrix-row-h)] border-e border-b border-(--ui-border-muted) bg-(--dms-bg-muted) px-3 text-end font-mono font-semibold tabular-nums";
 </script>
 
 <template>
@@ -194,7 +255,7 @@ const FOOT_CELL =
   >
     <div
       v-if="isRefreshing"
-      class="pointer-events-none sticky top-0 left-0 z-40 h-0.5 w-full overflow-hidden"
+      class="pointer-events-none sticky start-0 top-0 z-40 h-0.5 w-full overflow-hidden"
       role="progressbar"
       :aria-label="t('dms.matrix.loading')"
     >
@@ -205,10 +266,8 @@ const FOOT_CELL =
     <table
       role="grid"
       :aria-label="matrix.text(matrix.options.title) || undefined"
-      :aria-rowcount="
-        (matrix.source.data.value?.total ?? matrix.rows.rows.value.length) + 1
-      "
-      :aria-colcount="columns.length + 1 + (hasTotalColumn ? 1 : 0)"
+      :aria-rowcount="rowCount"
+      :aria-colcount="slots.length + 1"
       :aria-busy="matrix.source.isLoading.value || undefined"
       class="text-default table-fixed border-separate border-spacing-0 text-[13px]"
       :class="isRefreshing && 'opacity-70 transition-opacity delay-200'"
@@ -218,13 +277,11 @@ const FOOT_CELL =
       <colgroup>
         <col :style="{ width: `${rowHeaderWidth}px` }" />
         <col
-          v-for="column in columns"
-          :key="column.id"
-          :style="{ width: `${matrix.columns.widthOf(column)}px` }"
-        />
-        <col
-          v-if="hasTotalColumn"
-          :style="{ width: `${TOTAL_COLUMN_WIDTH}px` }"
+          v-for="slot in slots"
+          :key="slot.key"
+          :style="{
+            width: `${slot.type === 'total' ? TOTAL_COLUMN_WIDTH : matrix.columns.widthOf(slot.column)}px`,
+          }"
         />
       </colgroup>
       <thead class="sticky top-0 z-20">
@@ -235,35 +292,44 @@ const FOOT_CELL =
             aria-colindex="1"
             class="sticky start-0 z-30 border-e border-b border-(--ui-border-default) bg-(--dms-bg-muted) px-3 py-1.5 text-start align-bottom font-normal"
           >
-            <span class="text-dimmed" :class="EYEBROW_CLASS">
-              {{ rowHeaderLabel }}
+            <span class="flex items-center gap-2">
+              <UCheckbox
+                v-if="isSelectable"
+                :model-value="matrix.selection.allState.value"
+                :aria-label="t('dms.matrix.select_all')"
+                @update:model-value="matrix.selection.toggleAll()"
+              />
+              <span class="text-dimmed" :class="EYEBROW_CLASS">
+                {{ rowHeaderLabel }}
+              </span>
             </span>
           </th>
-          <MatrixHeaderCell
-            v-for="(column, index) in columns"
-            :key="column.id"
-            :column="column"
-            :col-index="index + 2"
-            :width="matrix.columns.widthOf(column)"
-            :sticky-left="stickyLefts[column.id]"
-          />
-          <th
-            v-if="hasTotalColumn"
-            scope="col"
-            role="columnheader"
-            :aria-colindex="columns.length + 2"
-            class="border-b border-(--ui-border-default) bg-(--dms-bg-muted) px-3 py-1.5 text-end align-bottom font-normal"
-          >
-            <span class="text-dimmed" :class="EYEBROW_CLASS">
-              {{ totalLabel }}
-            </span>
-          </th>
+          <template v-for="slot in slots" :key="slot.key">
+            <MatrixHeaderCell
+              v-if="slot.type === 'column'"
+              :column="slot.column"
+              :col-index="slot.colIndex"
+              :width="matrix.columns.widthOf(slot.column)"
+              :sticky-start="slot.stickyStart"
+            />
+            <th
+              v-else
+              scope="col"
+              role="columnheader"
+              :aria-colindex="slot.colIndex"
+              class="border-e border-b border-(--ui-border-default) bg-(--dms-bg-muted) px-3 py-1.5 text-end align-bottom font-normal"
+            >
+              <span class="text-dimmed" :class="EYEBROW_CLASS">
+                {{ totalLabel }}
+              </span>
+            </th>
+          </template>
         </tr>
       </thead>
       <tbody v-if="isFirstLoad" aria-busy="true">
         <tr v-for="index in SKELETON_ROWS" :key="index">
           <td
-            :colspan="columns.length + 1 + (hasTotalColumn ? 1 : 0)"
+            :colspan="slots.length + 1"
             class="h-[var(--dms-matrix-row-h)] border-b border-(--ui-border-muted) px-3"
           >
             <USkeleton
@@ -280,14 +346,17 @@ const FOOT_CELL =
             v-if="item.type === 'group'"
             :aria-rowindex="item.index"
             :section="item.section"
-            :columns="columns"
-            :sticky-lefts="stickyLefts"
-            :has-total-column="hasTotalColumn"
+            :grid-slots="slots"
           />
           <tr
             v-else
             role="row"
             :aria-rowindex="item.index"
+            :aria-selected="
+              isSelectable
+                ? matrix.selection.isSelected(item.row.id)
+                : undefined
+            "
             :data-row-id="item.row.id"
           >
             <MatrixRowHeaderCell
@@ -295,84 +364,89 @@ const FOOT_CELL =
               :number="item.number"
               :width="rowHeaderWidth"
             />
-            <MatrixCell
-              v-for="(column, index) in columns"
-              :key="column.id"
-              :row="item.row"
-              :column="column"
-              :col-index="index + 2"
-              :sticky-left="stickyLefts[column.id]"
-              :is-entry="isEntry(item.row, column)"
-            />
-            <td
-              v-if="hasTotalColumn"
-              role="gridcell"
-              :aria-colindex="columns.length + 2"
-              aria-readonly="true"
-              class="h-[var(--dms-matrix-row-h)] border-b border-(--ui-border-muted) bg-(--dms-bg-muted) px-3 text-end font-mono font-semibold tabular-nums"
-              :class="
-                matrix.misses.value.rows.has(item.row.id)
-                  ? 'text-error'
-                  : 'text-highlighted'
-              "
-            >
-              {{ format(matrix.totals.value.rows[item.row.id] ?? 0) }}
-            </td>
+            <template v-for="slot in slots" :key="slot.key">
+              <MatrixCell
+                v-if="slot.type === 'column'"
+                :row="item.row"
+                :column="slot.column"
+                :col-index="slot.colIndex"
+                :sticky-start="slot.stickyStart"
+              />
+              <td
+                v-else
+                role="gridcell"
+                :aria-colindex="slot.colIndex"
+                aria-readonly="true"
+                :class="[
+                  TOTAL_CELL,
+                  matrix.misses.value.rows.has(item.row.id)
+                    ? 'text-error'
+                    : 'text-highlighted',
+                ]"
+              >
+                {{ format(matrix.totals.value.rows[item.row.id] ?? 0) }}
+              </td>
+            </template>
           </tr>
         </template>
       </tbody>
       <tfoot v-if="hasTotalRow && !isFirstLoad" class="sticky bottom-0 z-20">
-        <tr role="row">
+        <tr role="row" :aria-rowindex="rowCount">
           <th
             scope="row"
             role="rowheader"
+            aria-colindex="1"
             class="sticky start-0 z-30 h-9 border-e border-t border-(--ui-border-default) bg-(--dms-bg-muted) px-3 text-start font-normal"
           >
             <span class="text-dimmed" :class="EYEBROW_CLASS">
               {{ totalLabel }}
             </span>
           </th>
-          <td
-            v-for="column in columns"
-            :key="column.id"
-            role="gridcell"
-            aria-readonly="true"
-            :class="[
-              FOOT_CELL,
-              matrix.misses.value.columns.has(column.id)
-                ? 'text-error'
-                : 'text-highlighted',
-              column.id in stickyLefts && 'sticky z-30',
-            ]"
-            :style="
-              column.id in stickyLefts
-                ? { left: `${stickyLefts[column.id]}px` }
-                : undefined
-            "
-          >
-            <template v-if="isNumberColumn(column)">
-              {{ columnTotal(column) }}
-              <span v-if="columnTarget(column)" class="text-dimmed font-normal">
-                / {{ columnTarget(column) }}
-              </span>
-            </template>
-          </td>
-          <td
-            v-if="hasTotalColumn"
-            role="gridcell"
-            aria-readonly="true"
-            :class="[
-              FOOT_CELL,
-              matrix.misses.value.total ? 'text-error' : 'text-highlighted',
-            ]"
-          >
-            {{ format(matrix.totals.value.total) }}
-          </td>
+          <template v-for="slot in slots" :key="slot.key">
+            <td
+              v-if="slot.type === 'column'"
+              role="gridcell"
+              :aria-colindex="slot.colIndex"
+              aria-readonly="true"
+              :class="[
+                FOOT_CELL,
+                alignClass(slot.column),
+                matrix.misses.value.columns.has(slot.column.id)
+                  ? 'text-error'
+                  : 'text-highlighted',
+                slot.stickyStart !== undefined && 'sticky z-30',
+              ]"
+              :style="stickyStyle(slot.stickyStart)"
+            >
+              <template v-if="isTotalledColumn(slot.column)">
+                {{ columnTotal(slot.column) }}
+                <span
+                  v-if="columnTarget(slot.column)"
+                  class="text-dimmed font-normal"
+                >
+                  / {{ columnTarget(slot.column) }}
+                </span>
+              </template>
+            </td>
+            <td
+              v-else
+              role="gridcell"
+              :aria-colindex="slot.colIndex"
+              aria-readonly="true"
+              :class="[
+                FOOT_CELL,
+                'text-end',
+                matrix.misses.value.total ? 'text-error' : 'text-highlighted',
+              ]"
+            >
+              {{ format(matrix.totals.value.total) }}
+            </td>
+          </template>
         </tr>
       </tfoot>
     </table>
     <div
-      v-if="matrix.source.hasMore.value"
+      v-if="hasMore"
       ref="sentinel"
       class="text-dimmed flex h-10 items-center justify-center gap-2 text-xs"
     >

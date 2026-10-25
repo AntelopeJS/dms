@@ -307,3 +307,138 @@ it("remembers the rows edited in the view", async () => {
   await engine.commit({ rowId: "r1", columnId: "a", value: 2, original: 1 });
   expect([...engine.touchedRows]).toEqual(["r1"]);
 });
+
+describe("fix round 1", () => {
+  it("shows the value written when the answer returns no row (1)", async () => {
+    const onWritten = vi.fn();
+    const { engine, answer } = harness("staged", { onWritten });
+    await engine.commit({ rowId: "r1", columnId: "a", value: 2, original: 1 });
+    await engine.commit({ rowId: "r2", columnId: "a", value: 5, original: 4 });
+    answer({ rows: [{ id: "r2", values: { a: 5 } }] });
+    await engine.saveAll();
+    expect(onWritten).toHaveBeenCalledWith([
+      { rowId: "r1", columnId: "a", value: 2 },
+    ]);
+  });
+
+  it("shows the value an undo wrote back (1)", async () => {
+    const onWritten = vi.fn();
+    const { engine, answer } = harness("staged", { onWritten });
+    answer({ errors: [{ rowId: "r2", columnId: "a", message: "No" }] });
+    await engine.undo([
+      { rowId: "r1", columnId: "a", value: 2, previous: 1 },
+      { rowId: "r2", columnId: "a", value: 5, previous: 4 },
+    ]);
+    expect(onWritten).toHaveBeenLastCalledWith([
+      { rowId: "r1", columnId: "a", value: 1 },
+    ]);
+  });
+
+  it("never writes over a conflict by saving every edit (2)", async () => {
+    const { engine, answer, requests } = harness("staged");
+    await engine.commit({
+      rowId: "k",
+      columnId: "fr",
+      value: "B",
+      original: "A",
+    });
+    await engine.commit({
+      rowId: "k",
+      columnId: "de",
+      value: "D",
+      original: "C",
+    });
+    answer({ conflicts: [{ rowId: "k", columnId: "fr", current: "Z" }] });
+    await engine.saveAll();
+    // The edit keeps the value it started from; the stored one is apart.
+    expect(engine.editOf("k", "fr")).toMatchObject({
+      before: "A",
+      conflict: { current: "Z" },
+    });
+    answer({});
+    await engine.commit({
+      rowId: "k",
+      columnId: "it",
+      value: "I",
+      original: "",
+    });
+    await engine.saveAll();
+    expect(requests[1]!.changes.map((change) => change.columnId)).toEqual([
+      "it",
+    ]);
+    expect(engine.stateOf("k", "fr")).toBe("conflict");
+    expect(await engine.overwrite("k", "fr")).toBe(true);
+    expect(requests[2]).toMatchObject({
+      force: true,
+      changes: [{ rowId: "k", columnId: "fr", value: "B", previous: "Z" }],
+    });
+  });
+
+  it("waits for a cell's write before sending its next value (6)", async () => {
+    let release: (response: MatrixSaveResponse) => void = () => {};
+    const requests: MatrixSaveRequest[] = [];
+    const engine = createMatrixSaveEngine({
+      mode: () => "immediate",
+      send: (request) => {
+        requests.push(request);
+        return new Promise((resolve) => {
+          release = resolve;
+        });
+      },
+      isBlocked: () => false,
+      describeError: String,
+    });
+    const first = engine.commit({
+      rowId: "r",
+      columnId: "a",
+      value: 2,
+      original: 1,
+    });
+    await engine.commit({ rowId: "r", columnId: "a", value: 3, original: 1 });
+    expect(requests).toHaveLength(1);
+    expect(engine.valueOf("r", "a", 1)).toBe(3);
+    release({});
+    await first;
+    expect(requests).toHaveLength(2);
+    expect(requests[1]!.changes).toEqual([
+      { rowId: "r", columnId: "a", value: 3, previous: 2 },
+    ]);
+  });
+
+  it("writes a revert made during a save once it settled (6)", async () => {
+    let release: (response: MatrixSaveResponse) => void = () => {};
+    const requests: MatrixSaveRequest[] = [];
+    const engine = createMatrixSaveEngine({
+      mode: () => "immediate",
+      send: (request) => {
+        requests.push(request);
+        return new Promise((resolve) => {
+          release = resolve;
+        });
+      },
+      isBlocked: () => false,
+      describeError: String,
+    });
+    const first = engine.commit({
+      rowId: "r",
+      columnId: "a",
+      value: 2,
+      original: 1,
+    });
+    await engine.commit({ rowId: "r", columnId: "a", value: 1, original: 1 });
+    release({});
+    await first;
+    expect(requests[1]!.changes).toEqual([
+      { rowId: "r", columnId: "a", value: 1, previous: 2 },
+    ]);
+  });
+
+  it("refuses Overwrite while a blockSave target is missed (17)", async () => {
+    const { engine, answer, requests, blocked } = harness("immediate");
+    answer({ conflicts: [{ rowId: "k", columnId: "a", current: 9 }] });
+    await engine.commit({ rowId: "k", columnId: "a", value: 2, original: 1 });
+    blocked.value = true;
+    expect(await engine.overwrite("k", "a")).toBe(false);
+    expect(requests).toHaveLength(1);
+  });
+});

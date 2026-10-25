@@ -4,12 +4,15 @@ import { useEventListener } from "@vueuse/core";
 import type { MatrixFacet } from "../../../types/matrix";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import MatrixColumnsMenu from "./MatrixColumnsMenu.vue";
+import MatrixStatusSegments, {
+  type MatrixStatusSegment,
+} from "./MatrixStatusSegments.vue";
 
 /**
  * The grid's head: its title and description, the fills, the columns menu,
  * the CSV export and a refresh; then its filters: a search (Ctrl+/ focuses
- * it, typing waits for a pause), the status segments with their counts, and
- * a select per facet.
+ * it, typing waits for a pause), the status segments with their tones and
+ * counts, and a select per facet; then the column filters in use as chips.
  */
 const matrix = useMatrixContext();
 const { t } = useI18n();
@@ -86,7 +89,7 @@ const statusValue = computed(
   () =>
     query.state.value.status || (ownsAll.value ? ALL_COUNT_KEY : ALL_STATUS),
 );
-const statusItems = computed(() => [
+const statusItems = computed<MatrixStatusSegment[]>(() => [
   ...(ownsAll.value
     ? []
     : [
@@ -99,9 +102,29 @@ const statusItems = computed(() => [
   ...statusFilters.value.map((filter) => ({
     label: matrix.text(filter.label),
     value: filter.id,
+    tone: filter.tone,
     count: counts.value[filter.id],
   })),
 ]);
+
+/** A column filter in use, as its chip reads it. */
+interface FilterChip {
+  columnId: string;
+  label: string;
+}
+
+const filterChips = computed<FilterChip[]>(() =>
+  Object.entries(query.state.value.filters).map(([columnId, filter]) => {
+    const column = matrix.columns.columnById.value.get(columnId);
+    return {
+      columnId,
+      label: t(`dms.matrix.filter.chip_${filter.mode}`, {
+        column: column ? matrix.text(column.label) : columnId,
+        value: filter.value,
+      }),
+    };
+  }),
+);
 
 function facetItems(facet: MatrixFacet) {
   const items =
@@ -193,13 +216,12 @@ function setFacet(facet: MatrixFacet, value: unknown): void {
           <UKbd value="/" size="sm" />
         </template>
       </UInput>
-      <DmsSegmented
+      <MatrixStatusSegments
         v-if="statusFilters.length"
         :model-value="statusValue"
         :items="statusItems"
-        size="sm"
         :aria-label="t('dms.matrix.status')"
-        @update:model-value="query.setStatus(String($event))"
+        @update:model-value="query.setStatus($event)"
       />
       <USelectMenu
         v-for="facet in facets"
@@ -222,6 +244,40 @@ function setFacet(facet: MatrixFacet, value: unknown): void {
         variant="link"
         :label="t('dms.matrix.clear_filters')"
         @click="query.clearFilters()"
+      />
+    </div>
+    <div
+      v-if="filterChips.length"
+      class="border-default flex flex-wrap items-center gap-1.5 border-b py-1.5 ps-[18px] pe-3.5"
+      :aria-label="t('dms.matrix.filter.active')"
+      role="group"
+    >
+      <UBadge
+        v-for="chip in filterChips"
+        :key="chip.columnId"
+        color="neutral"
+        variant="soft"
+        size="md"
+        class="gap-1"
+      >
+        {{ chip.label }}
+        <button
+          type="button"
+          class="hover:text-highlighted -me-0.5 rounded-sm"
+          :aria-label="
+            t('dms.matrix.filter.remove_chip', { filter: chip.label })
+          "
+          @click="query.setColumnFilter(chip.columnId, null)"
+        >
+          <UIcon name="i-ph-x" class="size-3" />
+        </button>
+      </UBadge>
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="link"
+        :label="t('dms.matrix.filter.clear_all')"
+        @click="query.clearColumnFilters()"
       />
     </div>
   </div>

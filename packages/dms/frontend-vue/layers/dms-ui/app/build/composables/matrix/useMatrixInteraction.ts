@@ -1,6 +1,7 @@
 import { computed, nextTick, ref, type Ref } from "vue";
 import type {
   MatrixColumn,
+  MatrixEditIn,
   MatrixEnterMove,
   MatrixOptions,
   MatrixRow,
@@ -14,7 +15,12 @@ import {
   type MatrixCellAddress,
   type MatrixGridShape,
 } from "./matrixNavigation";
-import { acceptsTypedStart, editsInPanel, isEmptyValue } from "./matrixValues";
+import {
+  acceptsTypedStart,
+  editsInPanel,
+  isEmptyValue,
+  kindOf,
+} from "./matrixValues";
 
 /** The cell being edited in place, and the text it was started with. */
 export interface MatrixEditing extends MatrixCellAddress {
@@ -48,10 +54,40 @@ export interface MatrixInteractionOptions {
   openRowPanel: (rowId: string) => void;
   hasRowPanel: () => boolean;
   expandGroupOf: (rowId: string) => void;
+  /** A cell's own `editIn`, over its column's. */
+  cellEditIn: (row: MatrixRow, columnId: string) => MatrixEditIn | undefined;
 }
 
 const CELL_SELECTOR = "[data-matrix-cell]";
+const JUMP_KEY_CODE = "KeyN";
+const JUMP_KEYS: ReadonlySet<string> = new Set(["n", "N"]);
 type KeyHandler = (event: KeyboardEvent, focus: MatrixCellAddress) => boolean;
+
+/** A step through the cells: `1` to the next, `-1` to the previous. */
+export type MatrixJumpStep = 1 | -1;
+
+/**
+ * The step a key asks of `jumpToEmpty`: N and Shift+N, or, when a typed
+ * letter starts editing (`typeToEdit`), Alt+N and Alt+Shift+N, read from the
+ * key's position since Alt+N types another character on a Mac.
+ */
+export function jumpStepOf(
+  event: KeyboardEvent,
+  hasTypeToEdit: boolean,
+): MatrixJumpStep | null {
+  if (event.ctrlKey || event.metaKey) return null;
+  const isJump = hasTypeToEdit
+    ? event.altKey && event.code === JUMP_KEY_CODE
+    : !event.altKey && JUMP_KEYS.has(event.key);
+  if (!isJump) return null;
+  return event.shiftKey ? -1 : 1;
+}
+
+/** A key pressed on a cell itself, not on a button inside the grid. */
+function isOnCell(event: KeyboardEvent): boolean {
+  const target = event.target as Element | null;
+  return typeof target?.matches === "function" && target.matches(CELL_SELECTOR);
+}
 
 /**
  * The grid's keyboard and pointer: one focused cell moved with the arrows,
@@ -66,6 +102,8 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
   const editing = ref<MatrixEditing | null>(null);
   const hover = ref<MatrixCellAddress | null>(null);
   const editTrigger = computed(() => options.editTrigger ?? "doubleClick");
+  /** The in-place editor's commit, while one is open (Ctrl+S runs it first). */
+  let openEditorCommit: (() => void) | null = null;
 
   function cellElement(address: MatrixCellAddress): HTMLElement | null {
     const cells =
@@ -107,17 +145,20 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     }
     const hasDraft = draft !== undefined;
     const value = hasDraft ? draft : source.valueOf(row, column.id);
-    if (column.kind === "boolean") {
+    if (kindOf(column) === "boolean") {
       source.commitValue(row, column, !source.valueOf(row, column.id));
       return;
     }
     const entry: MatrixEditing = { ...address, draft, hasDraft };
-    if (editsInPanel(column, value)) {
+    if (inPanel(row, column, value)) {
       source.openCellDrawer(address, entry);
       return;
     }
     editing.value = entry;
   }
+
+  const inPanel = (row: MatrixRow, column: MatrixColumn, value: unknown) =>
+    editsInPanel(column, value, source.cellEditIn(row, column.id));
 
   function stopEditing(): void {
     const current = editing.value;
@@ -161,14 +202,16 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
 
   function continueEditing(address: MatrixCellAddress): void {
     const cell = resolve(address);
-    if (!cell || cell.column.kind === "boolean") return;
-    if (editsInPanel(cell.column, source.valueOf(cell.row, cell.column.id)))
+    if (!cell || kindOf(cell.column) === "boolean") return;
+    if (
+      inPanel(cell.row, cell.column, source.valueOf(cell.row, cell.column.id))
+    )
       return;
     editing.value = { ...address, hasDraft: false };
   }
 
   /** N: the next empty cell the user can fill, groups expanded on the way. */
-  function jumpToEmpty(step: 1 | -1): void {
+  function jumpToEmpty(step: MatrixJumpStep): void {
     const target = findMatrixCell(
       source.allShape(),
       focus.value,
@@ -206,13 +249,15 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
       focus.value = null;
       return true;
     },
-    n: (event) => {
-      if (!options.jumpToEmpty) return false;
-      jumpToEmpty(event.shiftKey ? -1 : 1);
-      return true;
-    },
-    N: (event) => KEY_HANDLERS.n!(event, focus.value as MatrixCellAddress),
   };
+
+  function jump(event: KeyboardEvent): boolean {
+    if (!options.jumpToEmpty) return false;
+    const step = jumpStepOf(event, options.typeToEdit === true);
+    if (!step) return false;
+    jumpToEmpty(step);
+    return true;
+  }
 
   function typeToEdit(event: KeyboardEvent, current: MatrixCellAddress) {
     if (!options.typeToEdit || !isTypedCharacter(event)) return false;
@@ -223,9 +268,12 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     return true;
   }
 
-  /** The grid's keydown, while no cell is being edited. */
+  /**
+   * The grid's keydown, while no cell is being edited: only a key pressed on
+   * a cell, a button inside the grid (Retry, a fold, a sort) keeps its own.
+   */
   function onKeydown(event: KeyboardEvent): void {
-    if (editing.value || event.defaultPrevented) return;
+    if (editing.value || event.defaultPrevented || !isOnCell(event)) return;
     const current = focus.value ?? null;
     if (isMatrixMoveKey(event.key)) {
       event.preventDefault();
@@ -234,6 +282,10 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
       return;
     }
     if (!current) return;
+    if (jump(event)) {
+      event.preventDefault();
+      return;
+    }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const handler = KEY_HANDLERS[event.key];
     const handled =
@@ -268,6 +320,14 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     focus,
     editing,
     hover,
+    /** The editor open in place hands its commit over while it is open. */
+    registerEditor: (commit: () => void) => {
+      openEditorCommit = commit;
+      return () => {
+        if (openEditorCommit === commit) openEditorCommit = null;
+      };
+    },
+    commitOpenEditor: () => openEditorCommit?.(),
     focusCell,
     startEdit,
     stopEditing,

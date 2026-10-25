@@ -182,6 +182,7 @@ describe("URL state", () => {
       status: "",
       facets: { store: ["ENT", "WEB"] },
       sort: { columnId: "38", direction: "desc" },
+      filters: {},
     });
   });
 
@@ -249,9 +250,11 @@ describe("columns", () => {
     expect(
       matrixColumnWidth({ id: "a", label: "A" }, { widths: { a: 20 } }),
     ).toBe(80);
-    expect(matrixColumnWidth({ id: "a", label: "A", width: 900 }, {})).toBe(
-      640,
-    );
+    // A declared width is the column's own: only a drag is held in bounds.
+    expect(matrixColumnWidth({ id: "a", label: "A", width: 64 }, {})).toBe(64);
+    expect(
+      matrixColumnWidth({ id: "a", label: "A" }, { widths: { a: 900 } }),
+    ).toBe(640);
     expect(matrixColumnWidth({ id: "a", label: "A", kind: "number" }, {})).toBe(
       104,
     );
@@ -271,10 +274,10 @@ describe("totals and targets", () => {
   ];
   const valueOf = (row: MatrixRow, columnId: string) => row.values[columnId];
 
-  it("adds rows, columns and the grand total, excluded columns left out of the rows", () => {
+  it("adds rows, columns and the grand total, excluded columns left out of every total", () => {
     expect(computeMatrixTotals(rows, columns, valueOf)).toEqual({
       rows: { ENT: 10, WEB: 2 },
-      columns: { 36: 6, 37: 6, price: 180 },
+      columns: { 36: 6, 37: 6 },
       total: 12,
     });
   });

@@ -3,7 +3,7 @@ import type { MatrixAlign, MatrixTone } from "../../../types/matrix";
 /**
  * The tint each tone lays on a cell or a row, a DMS token in both themes.
  * Laid as a background image over the cell's own colour (see
- * `MATRIX_TINT_CLASS`), so a sticky cell stays opaque under its tint.
+ * `cellBackground`), so a sticky cell stays opaque under its tint.
  */
 export const MATRIX_TONE_TINTS: Record<MatrixTone, string> = {
   neutral: "var(--dms-neutral-tint)",
@@ -34,23 +34,34 @@ export const MATRIX_TONE_BAR: Record<MatrixTone, string> = {
   info: "shadow-[inset_2px_0_0_0_var(--ui-info)]",
 };
 
-/** Paints `--dms-matrix-tint` over the cell's background. */
-export const MATRIX_TINT_CLASS =
-  "bg-[image:linear-gradient(var(--dms-matrix-tint),var(--dms-matrix-tint))]";
-
-/** The diagonal hatching of a disabled cell (and of its legend swatch). */
-export const MATRIX_HATCH_CLASS =
-  "bg-[image:repeating-linear-gradient(-45deg,var(--ui-border-accented)_0_1px,transparent_1px_7px)]";
-
 export const MATRIX_ALIGN_CLASSES: Record<MatrixAlign, string> = {
   start: "justify-start text-start",
   center: "justify-center text-center",
   end: "justify-end text-end",
 };
 
-/** The style giving a cell a tint, or none. */
-export function tintStyle(
-  tint: string | undefined,
+/** The diagonal hatching of a disabled cell (and of its legend swatch). */
+const HATCH_IMAGE =
+  "repeating-linear-gradient(-45deg, var(--ui-border-accented) 0 1px, transparent 1px 7px)";
+
+/** What is painted over a cell's own background. */
+export interface MatrixCellPaint {
+  /** A tone's tint (`MATRIX_TONE_TINTS`). */
+  tint?: string;
+  /** Hatched, as a disabled cell. */
+  isHatched?: boolean;
+}
+
+/**
+ * The style painting a cell: its hatching and its tint laid as background
+ * images over its own colour, both at once, so a sticky cell stays opaque.
+ */
+export function cellBackground(
+  paint: MatrixCellPaint,
 ): Record<string, string> | undefined {
-  return tint ? { "--dms-matrix-tint": tint } : undefined;
+  const layers = [
+    paint.isHatched ? HATCH_IMAGE : "",
+    paint.tint ? `linear-gradient(${paint.tint}, ${paint.tint})` : "",
+  ].filter(Boolean);
+  return layers.length ? { backgroundImage: layers.join(", ") } : undefined;
 }

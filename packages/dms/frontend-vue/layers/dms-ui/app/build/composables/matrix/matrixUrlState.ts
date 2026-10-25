@@ -1,5 +1,10 @@
 import {
+  columnFilterParam,
+  columnFilterText,
+  columnOfFilterParam,
   facetParam,
+  parseColumnFilter,
+  type MatrixColumnFilter,
   type MatrixQueryState,
   type MatrixSortDirection,
 } from "./matrixQuery";
@@ -9,7 +14,9 @@ import {
  * component id (`stock.page=3`, `stock.facet_store=ENT,WEB`): two grids on a
  * page never read each other's keys, and none collides with the page's own
  * query (`{{query.X}}` of a `fetchUrl`). A value at its default is left out.
- * The page is written from 1, as a person reads it.
+ * The page is written from 1, as a person reads it; a column filter as
+ * `<id>.filter_<column>=<mode>:<value>`; the row a drawer has open as
+ * `<id>.row=<rowId>` (`rowPanel.deepLink`).
  */
 const URL_KEYS = {
   page: "page",
@@ -18,6 +25,7 @@ const URL_KEYS = {
   status: "status",
   sort: "sort",
   direction: "dir",
+  row: "row",
 } as const;
 
 const FACET_SEPARATOR = ",";
@@ -63,6 +71,7 @@ export function readMatrixUrlState(
     if (value) facets[id] = value.split(FACET_SEPARATOR).filter(Boolean);
   }
   return {
+    filters: readColumnFilters(query, componentId, defaults.filters),
     page: page ? page - 1 : defaults.page,
     pageSize: pageSize ?? defaults.pageSize,
     search: read(URL_KEYS.search) ?? defaults.search,
@@ -78,6 +87,35 @@ export function readMatrixUrlState(
   };
 }
 
+function readColumnFilters(
+  query: Record<string, QueryValue>,
+  componentId: string,
+  defaults: Record<string, MatrixColumnFilter>,
+): Record<string, MatrixColumnFilter> {
+  const prefix = matrixUrlKey(componentId, "");
+  const filters = { ...defaults };
+  for (const [key, value] of Object.entries(query)) {
+    if (!key.startsWith(prefix)) continue;
+    const columnId = columnOfFilterParam(key.slice(prefix.length));
+    const filter = parseColumnFilter(firstValue(value) ?? "");
+    if (columnId && filter) filters[columnId] = filter;
+  }
+  return filters;
+}
+
+/** The URL key of the row a grid's drawer has open. */
+export function matrixRowUrlKey(componentId: string): string {
+  return matrixUrlKey(componentId, URL_KEYS.row);
+}
+
+/** The row the URL says the grid's drawer has open. */
+export function readMatrixUrlRow(
+  query: Record<string, QueryValue>,
+  componentId: string,
+): string | undefined {
+  return firstValue(query[matrixRowUrlKey(componentId)]) || undefined;
+}
+
 /**
  * The URL keys of the state, each with its value or `undefined` to remove
  * it (at its default). Facets the grid offers are always listed, so one
@@ -88,6 +126,8 @@ export function matrixUrlEntries(
   state: MatrixQueryState,
   defaults: MatrixQueryState,
   facetIds: string[],
+  /** The filters of the state written before, to remove the ones gone. */
+  previousFilters?: Record<string, MatrixColumnFilter>,
 ): Record<string, string | undefined> {
   const key = (name: string) => matrixUrlKey(componentId, name);
   const unlessDefault = <T>(value: T, fallback: T, text: string) =>
@@ -116,6 +156,17 @@ export function matrixUrlEntries(
     const values = state.facets[id] ?? [];
     entries[key(facetParam(id))] = values.length
       ? values.join(FACET_SEPARATOR)
+      : undefined;
+  }
+  // A filter removed must leave the URL: the ones written before are listed.
+  const filtered = new Set([
+    ...Object.keys(previousFilters ?? {}),
+    ...Object.keys(state.filters),
+  ]);
+  for (const columnId of filtered) {
+    const filter = state.filters[columnId];
+    entries[key(columnFilterParam(columnId))] = filter?.value
+      ? columnFilterText(filter)
       : undefined;
   }
   return entries;

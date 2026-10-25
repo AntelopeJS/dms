@@ -3,17 +3,15 @@ import { computed } from "vue";
 import type { MatrixColumn, MatrixRow } from "../../../types/matrix";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import {
+  cellBackground,
   MATRIX_ALIGN_CLASSES,
-  MATRIX_HATCH_CLASS,
-  MATRIX_TINT_CLASS,
   MATRIX_TONE_TEXT,
   MATRIX_TONE_TINTS,
-  tintStyle,
 } from "../../composables/matrix/matrixTones";
 import {
   isEmptyValue,
   kindOf,
-  valueText,
+  shownValueText,
 } from "../../composables/matrix/matrixValues";
 import MatrixCellEditor from "./MatrixCellEditor.vue";
 import MatrixCellValue from "./MatrixCellValue.vue";
@@ -29,15 +27,12 @@ interface MatrixCellProps {
   column: MatrixColumn;
   /** From 1, among the grid's columns (the row header is 1). */
   colIndex: number;
-  /** `left` of a pinned column, in pixels. */
-  stickyLeft?: number;
-  /** The keyboard starts here when no cell has the focus yet. */
-  isEntry?: boolean;
+  /** Inline start of a pinned column, in pixels. */
+  stickyStart?: number;
 }
 
 const props = withDefaults(defineProps<MatrixCellProps>(), {
-  stickyLeft: undefined,
-  isEntry: false,
+  stickyStart: undefined,
 });
 
 const matrix = useMatrixContext();
@@ -59,6 +54,13 @@ const isFocused = computed(() =>
 const isEditing = computed(() =>
   interaction.isEditing(props.row.id, props.column.id),
 );
+// The keyboard enters the grid here while no cell has the focus. Read in
+// the cell: a focus move then redraws the cells it concerns, not the grid.
+const isEntry = computed(() => {
+  if (interaction.focus.value) return false;
+  const entry = matrix.entryCell.value;
+  return entry?.rowId === props.row.id && entry.columnId === props.column.id;
+});
 const hasAction = computed(
   () => !isEditable.value && matrix.hasCellAction(props.row, props.column),
 );
@@ -91,20 +93,19 @@ const tint = computed(() => {
   return props.row.tone ? MATRIX_TONE_TINTS[props.row.tone] : undefined;
 });
 
+// The value before the edit, or the one the server says was there: struck
+// through, unless there was none (an empty cell has nothing to strike).
 const struck = computed(() => {
   if (edit.value && !edit.value.conflict) return edit.value.before;
   return state.value.previous;
 });
 const hasStruck = computed(
   () =>
-    (edit.value !== undefined && !edit.value.conflict) ||
-    state.value.previous !== undefined,
+    ((edit.value !== undefined && !edit.value.conflict) ||
+      state.value.previous !== undefined) &&
+    !isEmptyValue(struck.value),
 );
-const struckText = computed(() =>
-  isEmptyValue(struck.value)
-    ? t("dms.matrix.empty_value")
-    : valueText(struck.value),
-);
+const struckText = computed(() => shownValueText(struck.value));
 const issues = computed(() =>
   (state.value.issues ?? []).map((issue) => matrix.text(issue)),
 );
@@ -113,9 +114,7 @@ const failureMessage = computed(() => {
   if (!current) return "";
   if (current.conflict)
     return t("dms.matrix.conflict", {
-      value: isEmptyValue(current.conflict.current)
-        ? t("dms.matrix.empty_value")
-        : valueText(current.conflict.current),
+      value: shownValueText(current.conflict.current),
     });
   return current.message ? matrix.text(current.message) : "";
 });
@@ -126,23 +125,23 @@ const title = computed(() => {
 });
 
 const cellClass = computed(() => [
-  "group/cell relative h-[var(--dms-matrix-row-h)] border-e border-b border-(--ui-border-muted) bg-(--dms-surface-card) px-3 py-0 align-middle outline-none",
-  tint.value && MATRIX_TINT_CLASS,
-  isCrossLit.value && !tint.value && "bg-elevated",
+  "group/cell relative h-[var(--dms-matrix-row-h)] border-e border-b border-(--ui-border-muted) px-3 py-0 align-middle outline-none",
+  isCrossLit.value ? "bg-elevated" : "bg-(--dms-surface-card)",
   isFocused.value && "ring-primary z-[1] ring-2 ring-inset",
   isHovered.value &&
     !isFocused.value &&
     "ring-1 ring-(--ui-border-accented) ring-inset",
-  state.value.disabled &&
-    `${MATRIX_HATCH_CLASS} text-dimmed cursor-not-allowed`,
+  state.value.disabled && "text-dimmed cursor-not-allowed",
   hasAction.value && "cursor-pointer",
   isEditable.value && !isEditing.value && "cursor-cell",
-  props.stickyLeft !== undefined && "sticky z-10",
+  props.stickyStart !== undefined && "sticky z-10",
   state.value.tone && MATRIX_TONE_TEXT[state.value.tone],
 ]);
 const cellStyle = computed(() => ({
-  ...tintStyle(tint.value),
-  ...(props.stickyLeft !== undefined && { left: `${props.stickyLeft}px` }),
+  ...cellBackground({ tint: tint.value, isHatched: state.value.disabled }),
+  ...(props.stickyStart !== undefined && {
+    insetInlineStart: `${props.stickyStart}px`,
+  }),
 }));
 
 const enterMove = computed(() => matrix.options.enterMove ?? "down");
@@ -169,7 +168,7 @@ function onEditorPanel(model: unknown): void {
     :aria-selected="isFocused"
     :aria-readonly="!isEditable || undefined"
     :aria-disabled="state.disabled || undefined"
-    :tabindex="isFocused || props.isEntry ? 0 : -1"
+    :tabindex="isFocused || isEntry ? 0 : -1"
     :title="title"
     :class="cellClass"
     :style="cellStyle"
@@ -185,6 +184,9 @@ function onEditorPanel(model: unknown): void {
       :draft="interaction.editing.value?.draft"
       :has-draft="interaction.editing.value?.hasDraft"
       :label="label"
+      :reference="
+        state.placeholder ? matrix.text(state.placeholder) : undefined
+      "
       :enter-move="enterMove"
       @commit="interaction.commitEdit"
       @cancel="interaction.stopEditing"

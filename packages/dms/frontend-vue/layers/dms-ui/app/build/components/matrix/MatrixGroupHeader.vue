@@ -3,19 +3,23 @@ import { computed } from "vue";
 import type { MatrixColumn } from "../../../types/matrix";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import type { MatrixSection } from "../../composables/matrix/matrixSections";
-import { kindOf } from "../../composables/matrix/matrixValues";
+import {
+  columnAlign,
+  type MatrixGridSlot,
+} from "../../composables/matrix/matrixLayout";
+import { isTotalledColumn } from "../../composables/matrix/matrixTotals";
+import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
 
 /**
  * The header row of a group: its label, description, badge and row count, a
  * button folding its rows (`aria-expanded`) when groups fold, and with
- * `subtotals` the group's own column sums under the columns.
+ * `subtotals` the group's own sums under the columns added up and the Total
+ * column, aligned as their cells.
  */
 interface MatrixGroupHeaderProps {
   section: MatrixSection;
-  columns: MatrixColumn[];
-  /** `left` of each pinned column, by id. */
-  stickyLefts: Record<string, number>;
-  hasTotalColumn: boolean;
+  /** The grid's columns in the order drawn, the Total one among them. */
+  gridSlots: MatrixGridSlot[];
 }
 
 const props = defineProps<MatrixGroupHeaderProps>();
@@ -37,12 +41,13 @@ const subtotals = computed(() =>
 const format = (value: number) =>
   new Intl.NumberFormat(locale.value).format(value);
 const subtotalOf = (column: MatrixColumn) =>
-  kindOf(column) === "number" && subtotals.value
+  isTotalledColumn(column) && subtotals.value
     ? format(subtotals.value.columns[column.id] ?? 0)
     : "";
-const colspan = computed(
-  () => props.columns.length + 1 + (props.hasTotalColumn ? 1 : 0),
-);
+const alignClass = (column: MatrixColumn) =>
+  MATRIX_ALIGN_CLASSES[columnAlign(column)];
+const stickyStyle = (start?: number) =>
+  start === undefined ? undefined : { insetInlineStart: `${start}px` };
 const CELL_CLASS =
   "h-9 border-b border-(--ui-border-default) bg-(--dms-bg-muted) py-0";
 </script>
@@ -51,7 +56,7 @@ const CELL_CLASS =
   <tr role="row" data-matrix-group>
     <th
       scope="rowgroup"
-      :colspan="hasSubtotals ? 1 : colspan"
+      :colspan="hasSubtotals ? 1 : props.gridSlots.length + 1"
       class="text-start font-normal"
       :class="[CELL_CLASS, hasSubtotals && 'sticky start-0 z-10']"
     >
@@ -112,26 +117,27 @@ const CELL_CLASS =
       </div>
     </th>
     <template v-if="hasSubtotals">
-      <td
-        v-for="column in props.columns"
-        :key="column.id"
-        class="text-muted px-3 text-end font-mono text-xs tabular-nums"
-        :class="[CELL_CLASS, column.id in props.stickyLefts && 'sticky z-10']"
-        :style="
-          column.id in props.stickyLefts
-            ? { left: `${props.stickyLefts[column.id]}px` }
-            : undefined
-        "
-      >
-        {{ subtotalOf(column) }}
-      </td>
-      <td
-        v-if="props.hasTotalColumn"
-        class="text-highlighted px-3 text-end font-mono text-xs font-semibold tabular-nums"
-        :class="CELL_CLASS"
-      >
-        {{ format(subtotals?.total ?? 0) }}
-      </td>
+      <template v-for="slot in props.gridSlots" :key="slot.key">
+        <td
+          v-if="slot.type === 'column'"
+          class="text-muted px-3 font-mono text-xs tabular-nums"
+          :class="[
+            CELL_CLASS,
+            alignClass(slot.column),
+            slot.stickyStart !== undefined && 'sticky z-10',
+          ]"
+          :style="stickyStyle(slot.stickyStart)"
+        >
+          {{ subtotalOf(slot.column) }}
+        </td>
+        <td
+          v-else
+          class="text-highlighted px-3 text-end font-mono text-xs font-semibold tabular-nums"
+          :class="CELL_CLASS"
+        >
+          {{ format(subtotals?.total ?? 0) }}
+        </td>
+      </template>
     </template>
   </tr>
 </template>

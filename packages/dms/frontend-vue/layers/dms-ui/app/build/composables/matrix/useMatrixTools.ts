@@ -3,6 +3,7 @@ import type { BlockText } from "#dms-core/app/types/composed-text";
 import type {
   MatrixColumn,
   MatrixFillAction,
+  MatrixFillChange,
   MatrixFillResponse,
   MatrixOptions,
   MatrixRow,
@@ -30,6 +31,11 @@ export interface MatrixToolsOptions {
   totals: () => MatrixTotalsResult;
   commitMany: (changes: MatrixCommit[]) => void;
   rowOf: (rowId: string) => MatrixRow | undefined;
+  columnOf: (columnId: string) => MatrixColumn | undefined;
+  /** A fill sets only the cells the user could edit. */
+  isEditable: (row: MatrixRow, column: MatrixColumn) => boolean;
+  /** The checked rows of a `selectable` grid, posted to the fills. */
+  selected: () => string[] | undefined;
   /** A select's value as its option reads. */
   labelOfValue: (column: MatrixColumn, value: unknown) => string | undefined;
 }
@@ -74,6 +80,7 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
           rows: tools
             .rows()
             .map((row) => shownRow(row, columnIds, tools.valueOf)),
+          ...(tools.selected() && { selected: tools.selected() }),
         },
       });
       applyFill(response?.changes ?? []);
@@ -84,12 +91,15 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
     }
   }
 
-  function applyFill(changes: NonNullable<MatrixFillResponse["changes"]>) {
+  // A change on a cell the user cannot edit is left out, and an answered
+  // `previous` ignored: the edit starts from the value on screen.
+  function applyFill(changes: MatrixFillChange[]) {
     const commits: MatrixCommit[] = [];
-    for (const change of changes) {
-      const row = tools.rowOf(change.rowId);
-      if (!row) continue;
-      commits.push({ ...change, original: row.values[change.columnId] });
+    for (const { rowId, columnId, value } of changes) {
+      const row = tools.rowOf(rowId);
+      const column = tools.columnOf(columnId);
+      if (!row || !column || !tools.isEditable(row, column)) continue;
+      commits.push({ rowId, columnId, value, original: row.values[columnId] });
     }
     if (commits.length) tools.commitMany(commits);
   }

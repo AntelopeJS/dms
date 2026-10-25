@@ -8,6 +8,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 import {
+  jumpStepOf,
   useMatrixInteraction,
   type MatrixInteractionOptions,
 } from "../layers/dms-ui/app/build/composables/matrix/useMatrixInteraction";
@@ -26,7 +27,11 @@ const COLUMNS: MatrixColumn[] = [
 ];
 
 const ROWS: MatrixRow[] = [
-  { id: "r1", values: { name: "Alma", qty: 2, on: true, meta: {}, id: "A1" } },
+  {
+    id: "r1",
+    values: { name: "Alma", qty: 2, on: true, meta: {}, id: "A1" },
+    cells: { name: {} },
+  },
   {
     id: "r2",
     values: { name: "", qty: null, on: false, meta: null, id: "A2" },
@@ -68,20 +73,33 @@ function setup(
     openRowPanel: calls.rowPanel,
     hasRowPanel: () => Boolean(options.rowPanel),
     expandGroupOf: calls.expand,
+    cellEditIn: (row, columnId) => row.cells?.[columnId]?.editIn,
     ...overrides,
   });
   return { interaction, calls };
 }
 
-function key(name: string, init: KeyboardEventInit = {}): KeyboardEvent {
+/** The element a key is pressed on: a cell, or a button inside the grid. */
+const CELL_TARGET = {
+  matches: (selector: string) => selector === "[data-matrix-cell]",
+};
+const BUTTON_TARGET = { matches: () => false };
+
+function key(
+  name: string,
+  init: KeyboardEventInit = {},
+  target: object = CELL_TARGET,
+): KeyboardEvent {
   return {
     key: name,
+    code: `Key${name.toUpperCase()}`,
     shiftKey: false,
     ctrlKey: false,
     metaKey: false,
     altKey: false,
     defaultPrevented: false,
     preventDefault: vi.fn(),
+    target,
     ...init,
   } as unknown as KeyboardEvent;
 }
@@ -125,6 +143,17 @@ describe("focus and editing", () => {
     interaction.focusCell(at("r1", "qty"));
     interaction.onKeydown(key("7"));
     expect(interaction.editing.value).toBeNull();
+  });
+
+  it("follows a cell's own editIn over its column's", () => {
+    const { interaction, calls } = setup();
+    ROWS[0]!.cells = { name: { editIn: "panel" } };
+    interaction.startEdit(at("r1", "name"));
+    expect(calls.drawer).toHaveBeenCalledWith(
+      at("r1", "name"),
+      expect.anything(),
+    );
+    ROWS[0]!.cells = { name: {} };
   });
 
   it("sends a JSON cell to its drawer and toggles a switch at once", () => {
@@ -202,10 +231,66 @@ describe("shortcuts", () => {
     expect(calls.action).toHaveBeenCalledTimes(2);
   });
 
+  it("leaves the keys of a button inside the grid alone", () => {
+    const { interaction, calls } = setup({ rowPanel: true });
+    interaction.focusCell(at("r1", "name"));
+    const enter = key("Enter", {}, BUTTON_TARGET);
+    interaction.onKeydown(enter);
+    interaction.onKeydown(key(" ", {}, BUTTON_TARGET));
+    interaction.onKeydown(key("ArrowDown", {}, BUTTON_TARGET));
+    expect(interaction.editing.value).toBeNull();
+    expect(calls.rowPanel).not.toHaveBeenCalled();
+    expect(interaction.focus.value).toEqual(at("r1", "name"));
+    expect(enter.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("types into the cell with typeToEdit, and jumps with Alt+N", () => {
+    const { interaction } = setup({ jumpToEmpty: true, typeToEdit: true });
+    interaction.focusCell(at("r1", "name"));
+    interaction.onKeydown(key("n"));
+    expect(interaction.editing.value).toMatchObject({
+      ...at("r1", "name"),
+      draft: "n",
+    });
+    interaction.stopEditing();
+    // On a Mac, Alt+N types "˜": the jump reads the key's position.
+    interaction.onKeydown(key("˜", { altKey: true, code: "KeyN" }));
+    expect(interaction.focus.value).toEqual(at("r2", "name"));
+    interaction.onKeydown(
+      key("N", { altKey: true, shiftKey: true, code: "KeyN" }),
+    );
+    // Back from the first row's empty cells, round to the last row's.
+    expect(interaction.focus.value).toEqual(at("r3", "meta"));
+  });
+
   it("lets Escape drop the focus", () => {
     const { interaction } = setup();
     interaction.focusCell(at("r1", "name"));
     interaction.onKeydown(key("Escape"));
     expect(interaction.focus.value).toBeNull();
+  });
+});
+
+describe("jump keys", () => {
+  it("reads N, Shift+N, or Alt+N with typeToEdit", () => {
+    const press = (init: KeyboardEventInit) =>
+      ({
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        ...init,
+      }) as KeyboardEvent;
+    expect(jumpStepOf(press({ key: "n", code: "KeyN" }), false)).toBe(1);
+    expect(
+      jumpStepOf(press({ key: "N", code: "KeyN", shiftKey: true }), false),
+    ).toBe(-1);
+    expect(jumpStepOf(press({ key: "n", code: "KeyN" }), true)).toBeNull();
+    expect(
+      jumpStepOf(press({ key: "Dead", code: "KeyN", altKey: true }), true),
+    ).toBe(1);
+    expect(
+      jumpStepOf(press({ key: "n", code: "KeyN", ctrlKey: true }), false),
+    ).toBeNull();
   });
 });

@@ -207,6 +207,7 @@
         "start": "Modifier {cell}",
         "hint": "Cliquer pour modifier",
         "saving": "Enregistrement…",
+        "not_saved": "Non enregistré : cliquer pour réessayer",
         "error": "La modification n’a pas pu être enregistrée"
       }
     },
@@ -831,7 +832,6 @@
       "hide": "Masquer",
       "yes": "Oui",
       "no": "Non",
-      "empty_value": "vide",
       "was": "Avant : {value}",
       "conflict": "Modifiée entre-temps, désormais {value}",
       "cell": {
@@ -865,7 +865,8 @@
         "number": "Saisissez un nombre",
         "min": "Au moins {min}",
         "max": "Au plus {max}",
-        "json": "JSON invalide"
+        "json": "JSON invalide",
+        "datetime": "Saisissez une date et une heure"
       },
       "drawer": {
         "apply": "Appliquer",
@@ -882,6 +883,24 @@
         "open_row": "ouvrir la ligne",
         "next_empty": "cellule vide suivante",
         "save": "enregistrer"
+      },
+      "select_all": "Sélectionner toutes les lignes affichées",
+      "select_row": "Sélectionner {row}",
+      "row_actions": "Actions de {row}",
+      "progress": "{percent} % couvert",
+      "filter": {
+        "contains": "contient",
+        "is": "est",
+        "title": "Filtrer {column}",
+        "mode": "Comparaison",
+        "value": "Valeur",
+        "apply": "Appliquer",
+        "remove": "Retirer",
+        "chip_contains": "{column} contient « {value} »",
+        "chip_is": "{column} est « {value} »",
+        "active": "Filtres de colonne",
+        "remove_chip": "Retirer le filtre {filter}",
+        "clear_all": "Tout effacer"
       }
     }
   }

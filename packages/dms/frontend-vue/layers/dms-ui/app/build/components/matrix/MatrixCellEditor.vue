@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import type { MatrixColumn, MatrixEnterMove } from "../../../types/matrix";
 import type { MatrixCommitMove } from "../../composables/matrix/useMatrixInteraction";
@@ -9,6 +9,7 @@ import {
   valueFromEditorModel,
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
+import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import MatrixFieldInput from "./MatrixFieldInput.vue";
 
 /**
@@ -17,7 +18,9 @@ import MatrixFieldInput from "./MatrixFieldInput.vue";
  * Ctrl+Enter saves and stays, Tab / Shift+Tab save and edit the next or
  * previous editable cell, Escape cancels, Ctrl+Shift+Enter carries the draft
  * to the cell's drawer. A click elsewhere saves; a draft the column refuses
- * says why under the cell and is dropped by a click elsewhere.
+ * says why under the cell and is dropped by a click elsewhere. The cell's
+ * reference text (its placeholder: the base text, the inherited one) shows
+ * above the input while it is typed.
  */
 interface MatrixCellEditorProps {
   column: MatrixColumn;
@@ -28,12 +31,15 @@ interface MatrixCellEditorProps {
   hasDraft?: boolean;
   /** Labels the input: "Row · Column". */
   label: string;
+  /** Shown above the input, as a reference (the cell's placeholder). */
+  reference?: string;
   enterMove: MatrixEnterMove;
 }
 
 const props = withDefaults(defineProps<MatrixCellEditorProps>(), {
   draft: undefined,
   hasDraft: false,
+  reference: undefined,
 });
 
 const emit = defineEmits<{
@@ -56,12 +62,17 @@ const ENTER_OWNING_KINDS = new Set(["tags", "select", "date"]);
 const PICKED_KINDS = new Set(["select", "date"]);
 
 const wrapper = useTemplateRef<HTMLElement>("wrapper");
+const kind = computed(() => kindOf(props.column));
+// A number started by typing keeps the characters as typed ("-", ".", ","):
+// a number input would drop them. It is read as a number on commit.
+const isTypedNumber = props.hasDraft && kindOf(props.column) === "number";
 const model = ref<unknown>(
-  editorModelOf(props.column, props.hasDraft ? props.draft : props.value),
+  isTypedNumber
+    ? String(props.draft ?? "")
+    : editorModelOf(props.column, props.hasDraft ? props.draft : props.value),
 );
 const invalidReason = ref<ReturnType<typeof valueFromEditorModel> | null>(null);
 const isDone = ref(false);
-const kind = computed(() => kindOf(props.column));
 const invalidText = useMatrixInvalidText();
 const invalidMessage = computed(() =>
   invalidReason.value && !invalidReason.value.ok
@@ -160,6 +171,12 @@ function placeCaret(element: HTMLInputElement | HTMLTextAreaElement): void {
 }
 
 onMounted(() => focusInput());
+
+// Ctrl+S saves the grid with the cell being typed in.
+const unregister = useMatrixContext().interaction.registerEditor(() => {
+  if (!commit("stay")) cancel();
+});
+onBeforeUnmount(unregister);
 </script>
 
 <template>
@@ -172,9 +189,17 @@ onMounted(() => focusInput());
     @click.stop
     @dblclick.stop
   >
+    <p
+      v-if="props.reference"
+      class="text-dimmed line-clamp-2 px-1 pt-1 pb-0.5 text-[11.5px] whitespace-normal"
+      :title="props.reference"
+    >
+      {{ props.reference }}
+    </p>
     <MatrixFieldInput
       :column="props.column"
       :model-value="model"
+      :as-text="isTypedNumber"
       surface="cell"
       :invalid="Boolean(invalidMessage)"
       :default-open="kind === 'select' || undefined"

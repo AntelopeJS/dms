@@ -20,6 +20,8 @@ export interface MatrixDrawersOptions {
   panelTitle: () => BlockText | undefined;
   /** Gives the keyboard back to the grid's cell once a drawer closes. */
   onClosed: (address?: MatrixCellAddress) => void;
+  /** The row the row drawer shows, as it opens and steps; none once closed. */
+  onRowShown?: (rowId?: string) => void;
 }
 
 const ROW_POSITION_KEY = "$dms.matrix.drawer.row_position";
@@ -90,12 +92,15 @@ export function useMatrixDrawers(options: MatrixDrawersOptions) {
 
   function showRow(index: number): void {
     const row = options.shownRows()[index];
-    if (row && rowDrawer) rowDrawer.patch(rowDrawerOptions(row));
+    if (!row || !rowDrawer) return;
+    rowDrawer.patch(rowDrawerOptions(row));
+    options.onRowShown?.(row.id);
   }
 
   function openRowPanel(rowId: string): void {
     const row = options.rowOf(rowId);
     if (!row) return;
+    options.onRowShown?.(row.id);
     if (rowDrawer) {
       rowDrawer.patch(rowDrawerOptions(row));
       return;
@@ -108,6 +113,7 @@ export function useMatrixDrawers(options: MatrixDrawersOptions) {
     });
     rowDrawer.result.finally(() => {
       rowDrawer = null;
+      options.onRowShown?.();
       options.onClosed();
     });
   }

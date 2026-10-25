@@ -17,16 +17,14 @@ export interface MatrixTotalsResult {
 
 /** The columns a row total adds up: numbers, minus the excluded ones. */
 export function totalledColumns(columns: MatrixColumn[]): MatrixColumn[] {
-  return columns.filter(
-    (column) => kindOf(column) === "number" && !column.excludeFromTotals,
-  );
+  return columns.filter(isTotalledColumn);
 }
 
 /**
- * Row totals, column totals and the grand total. A row total adds the
- * totalled columns; a column total adds every row's cell of a number column
- * (an excluded column still has its own footer); the grand total adds the
- * row totals, so it matches the Total column.
+ * Row totals, column totals and the grand total, over the totalled columns
+ * only: a column left out of the totals (an annex, a price, a rate) is part
+ * of no total, not even its own footer. The grand total adds the row
+ * totals, so it matches the Total column.
  */
 export function computeMatrixTotals(
   rows: MatrixRow[],
@@ -34,20 +32,37 @@ export function computeMatrixTotals(
   valueOf: MatrixCellValueOf,
 ): MatrixTotalsResult {
   const counted = totalledColumns(columns);
-  const numberColumns = columns.filter((column) => kindOf(column) === "number");
   const result: MatrixTotalsResult = { rows: {}, columns: {}, total: 0 };
-  for (const column of numberColumns) result.columns[column.id] = 0;
+  for (const column of counted) result.columns[column.id] = 0;
   for (const row of rows) {
     let rowTotal = 0;
-    for (const column of numberColumns) {
+    for (const column of counted) {
       const value = numericValue(valueOf(row, column.id));
       result.columns[column.id] = (result.columns[column.id] ?? 0) + value;
-      if (counted.includes(column)) rowTotal += value;
+      rowTotal += value;
     }
     result.rows[row.id] = rowTotal;
     result.total += rowTotal;
   }
   return result;
+}
+
+/** Whether a column has a sum in the Total row and the group subtotals. */
+export function isTotalledColumn(column: MatrixColumn): boolean {
+  return kindOf(column) === "number" && !column.excludeFromTotals;
+}
+
+/**
+ * Where the Total column is drawn among the columns shown: after the last
+ * column it adds up, so the columns left out of the totals (annexes) stay
+ * at its right. At the end when no column is added up.
+ */
+export function totalColumnIndex(columns: MatrixColumn[]): number {
+  let last = -1;
+  columns.forEach((column, index) => {
+    if (isTotalledColumn(column)) last = index;
+  });
+  return last < 0 ? columns.length : last + 1;
 }
 
 /** Totals that differ from their target. */

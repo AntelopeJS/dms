@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { MatrixContext } from "../../composables/matrix/useMatrix";
 import {
+  editingColumnOf,
   editorModelOf,
-  isEmptyValue,
   isSameValue,
   kindOf,
+  shownValueText,
   valueFromEditorModel,
-  valueText,
   type EditorValueResult,
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
@@ -17,7 +17,8 @@ import MatrixFieldInput from "./MatrixFieldInput.vue";
  * The drawer of one cell (a JSON value, a long text): its editor alone, the
  * column as its title and the row as its description. Staged, Apply puts
  * the value in the grid's edits; immediate, the value is saved as it is
- * typed, once it holds still. A nullable column offers "Set to null".
+ * typed, once it holds still, and on closing. A nullable column offers "Set
+ * to null"; an object found in a text column is edited as JSON.
  */
 interface MatrixCellDrawerProps {
   context: MatrixContext;
@@ -45,15 +46,28 @@ const FIELD_ID = "dms-matrix-cell-field";
 
 const matrix = props.context;
 const row = computed(() => matrix.rows.rowById.value.get(props.rowId));
-const column = computed(() =>
-  matrix.columns.columnById.value.get(props.columnId),
-);
 const stored = computed(() =>
   row.value ? matrix.valueOf(row.value, props.columnId) : undefined,
 );
+const gridColumn = computed(() =>
+  matrix.columns.columnById.value.get(props.columnId),
+);
+// Read once: the value the drawer opens on picks how it is edited.
+const openedOn = stored.value;
+const column = computed(() =>
+  gridColumn.value ? editingColumnOf(gridColumn.value, openedOn) : undefined,
+);
+const reference = computed(() => {
+  const placeholder = row.value
+    ? matrix.cellState(row.value, props.columnId).placeholder
+    : undefined;
+  return placeholder ? matrix.text(placeholder) : "";
+});
 const isReadOnly = computed(
   () =>
-    !row.value || !column.value || !matrix.isEditable(row.value, column.value),
+    !row.value ||
+    !gridColumn.value ||
+    !matrix.isEditable(row.value, gridColumn.value),
 );
 const isImmediate = computed(
   () => (matrix.options.saveMode ?? "immediate") === "immediate",
@@ -102,9 +116,7 @@ const issues = computed(() =>
 const wasText = computed(() => {
   const current = edit.value;
   if (!current || current.conflict) return null;
-  return isEmptyValue(current.before)
-    ? t("dms.matrix.empty_value")
-    : valueText(current.before);
+  return shownValueText(current.before);
 });
 const failure = computed(() =>
   edit.value?.status === "failed" && edit.value.message
@@ -114,8 +126,8 @@ const failure = computed(() =>
 
 /** Puts a value in the grid: staged, or written now. */
 function apply(value: unknown): void {
-  if (!row.value || !column.value) return;
-  matrix.commitValue(row.value, column.value, value);
+  if (!row.value || !gridColumn.value) return;
+  matrix.commitValue(row.value, gridColumn.value, value);
 }
 
 function applyModel(): boolean {
@@ -125,13 +137,23 @@ function applyModel(): boolean {
   return true;
 }
 
+const isAutosaved = computed(() => isImmediate.value && !isReadOnly.value);
 let timer: ReturnType<typeof setTimeout> | undefined;
-watch(model, () => {
-  if (!isImmediate.value || isReadOnly.value) return;
+function scheduleAutosave(): void {
+  if (!isAutosaved.value) return;
   clearTimeout(timer);
   timer = setTimeout(applyModel, AUTOSAVE_DELAY_MS);
+}
+watch(model, scheduleAutosave);
+// A draft carried in (a typed character, the inline editor's) is saved too.
+onMounted(() => {
+  if (props.hasDraft) scheduleAutosave();
 });
-onBeforeUnmount(() => clearTimeout(timer));
+// Closing never loses what was typed in the last moments before it.
+onBeforeUnmount(() => {
+  clearTimeout(timer);
+  if (isAutosaved.value) applyModel();
+});
 
 function save(): void {
   clearTimeout(timer);
@@ -154,6 +176,12 @@ const isFill = computed(() =>
 <template>
   <div v-if="column && row" class="flex w-full min-w-0 flex-1 flex-col gap-4">
     <div class="flex flex-1 flex-col gap-2">
+      <blockquote
+        v-if="reference"
+        class="border-default text-muted border-s-2 ps-3 text-[13px] whitespace-pre-wrap"
+      >
+        {{ reference }}
+      </blockquote>
       <DmsFieldRow
         layout="stack"
         :fill="isFill"
