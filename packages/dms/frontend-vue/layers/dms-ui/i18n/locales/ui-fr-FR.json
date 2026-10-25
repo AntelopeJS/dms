@@ -201,6 +201,13 @@
         "move": "Glisser pour réordonner, ou utiliser les flèches",
         "disabled": "Effacez la recherche, les filtres et l’onglet pour réordonner",
         "error": "Le nouvel ordre n’a pas pu être enregistré"
+      },
+      "inline_edit": {
+        "cell": "{column} de {row}",
+        "start": "Modifier {cell}",
+        "hint": "Cliquer pour modifier",
+        "saving": "Enregistrement…",
+        "error": "La modification n’a pas pu être enregistrée"
       }
     },
     "table_form": {

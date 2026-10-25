@@ -201,6 +201,13 @@
         "move": "Drag to reorder, or use the arrow keys",
         "disabled": "Clear the search, filters and tab to reorder",
         "error": "The new order could not be saved"
+      },
+      "inline_edit": {
+        "cell": "{column} of {row}",
+        "start": "Edit {cell}",
+        "hint": "Click to edit",
+        "saving": "Saving…",
+        "error": "The change could not be saved"
       }
     },
     "table_form": {

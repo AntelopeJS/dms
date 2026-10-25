@@ -41,6 +41,7 @@ import type {
   TableViewPaginationMode,
   TableViewSourceConfig,
   TableViewReorderConfig,
+  TableViewInlineEditConfig,
   TableViewTab,
 } from "../../composables/table-view/types";
 import {
@@ -162,6 +163,8 @@ import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
+import { useTableInlineEdit } from "../../build/composables/table-view/useTableInlineEdit";
+import InlineEditCell from "../../build/components/table/InlineEditCell.vue";
 import {
   groupedOptionsFor,
   listTableSorting,
@@ -241,6 +244,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   source?: TableViewSourceConfig;
   /** Rows ordered by hand on a number column (backend `reorder`). */
   reorder?: TableViewReorderConfig;
+  /** Simple values edited in the grid (backend `inlineEdit`). */
+  inlineEdit?: boolean | TableViewInlineEditConfig;
   /** Rows listed first whatever the sort (backend `pinnedRows`). */
   pinnedRows?: RowActionRule;
   /** Footer texts and figures: row count, hint, summaries and legend. */
@@ -1398,6 +1403,36 @@ const { reorderState } = useTableReorder<T>({
     }),
 });
 
+// Simple values edited in the grid, each saved at once. The edit form says
+// which fields may be edited and how: the server leaves it out for a caller
+// without the edit action, and a source table has none, so neither edits.
+const inlineEditing = useTableInlineEdit<T>({
+  inlineEdit: props.inlineEdit,
+  editFields: formComponents.edit?.options?.fields,
+  columns: allColumns,
+  data,
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  labelKey,
+  location,
+  api: $authFetch,
+  getDataType,
+  canEditRow: (row) =>
+    isRowActionEnabled(tableProps.value.rowActions?.edit, row),
+  isEnabled: computed(() => !tableRows.isSource && !showArchived.value),
+  refreshRow: (id) => patchRowLocal(id),
+  onSaved: () => refreshCounts(),
+  onError: (failure) =>
+    toast.add({
+      title: t("dms.table.inline_edit.error"),
+      description: describeTableWriteError(failure, t, allColumns, processI18n),
+      color: Color.error,
+      icon: "i-ph-warning-circle",
+    }),
+});
+const inlineEditSlots = computed(() =>
+  inlineEditing.columns.value.map(({ columnId }) => `${columnId}-cell`),
+);
+
 const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
   grouped: activeGroupedOptions,
   isActive: isGroupedDisplay,
@@ -2526,6 +2561,9 @@ onMounted(() => {
         @save-as="saveAsNewView"
         @delete="deleteView"
       />
+    </template>
+    <template v-for="slot in inlineEditSlots" :key="slot" #[slot]="cell">
+      <InlineEditCell :cell="cell" :inline-edit="inlineEditing" />
     </template>
     <template v-if="expandableConfig" #expanded="{ row }">
       <ExpandedRowDetail
