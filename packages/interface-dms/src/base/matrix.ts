@@ -214,6 +214,7 @@ export interface MatrixGroup {
 export interface MatrixTargets {
   rows?: Record<string, number>;
   columns?: Record<string, number>;
+  /** Checked against the grand total, drawn when `totals.rows` and `totals.columns` are both on. */
   total?: number;
   blockSave?: boolean;
   /** Said under the grid while a target is missed. */
@@ -252,7 +253,10 @@ export interface MatrixChange {
   rowId: string;
   columnId: string;
   value: unknown;
-  /** The value the edit started from. */
+  /**
+   * The value the edit started from. Always sent; a route checks it only
+   * under `conflicts: "detect"`, and ignores it otherwise.
+   */
   previous: unknown;
 }
 
@@ -310,7 +314,11 @@ export interface MatrixFillAction {
   method?: EnumOption<HttpMethod>;
 }
 
-/** A segment of the status filter ("Missing 12"), sent as `status=<id>`. */
+/**
+ * A segment of the status filter ("Missing 12"), sent as `status=<id>`. The
+ * grid puts an "All" segment first (no `status` sent, counted by
+ * `counts.all`) unless one of the filters has the id `all`.
+ */
 export interface MatrixStatusFilter {
   id: string;
   label: BlockText;
@@ -371,7 +379,11 @@ export interface MatrixGrouping {
    * lists the rows sorted on it, so a group's rows follow each other.
    */
   groupByField?: string;
-  /** A click on a group header folds its rows. */
+  /**
+   * A click on a group header folds its rows. Defaults to `true` when groups
+   * may start folded (`collapseAbove`, or a group answered `collapsed`), so a
+   * folded group can always be opened; `false` keeps every group open.
+   */
   collapsible?: boolean;
   /** Groups start collapsed past this many rows. */
   collapseAbove?: number;
@@ -448,7 +460,11 @@ export interface MatrixProps extends BaseComponentProps {
   /** Show, hide and reorder columns, remembered on the device. */
   columnsMenu?: boolean;
   resizableColumns?: boolean;
-  /** N and Shift+N jump to the next and previous empty editable cell. */
+  /**
+   * N and Shift+N jump to the next and previous empty editable cell. With
+   * `typeToEdit`, a letter starts editing instead, and the jump is Alt+N and
+   * Alt+Shift+N.
+   */
   jumpToEmpty?: boolean;
   /** Keeps a row the user edited on screen after it stops matching the filters. */
   keepEditedRows?: boolean;
