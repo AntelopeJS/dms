@@ -24,6 +24,7 @@ import {
 } from "../table/utils/filterEditorValue";
 import { formatDuration } from "#dms-core/app/utils/formatter";
 import { withNumberSuffix } from "./numberSuffix";
+import { richTextFormatter } from "./richTextCell";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { formatRecordLabel } from "../table-view/utils/formTexts";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
@@ -1019,7 +1020,11 @@ const registerFileType = (registerDataType: (dataType: DataType) => void) => {
 const registerDisplayOnlyTypes = (
   registerDataType: (dataType: DataType) => void,
 ) => {
-  registerDataType({ id: "rich_text", displayComponent: DisplayRichText });
+  registerDataType({
+    id: "rich_text",
+    displayComponent: DisplayRichText,
+    formatter: richTextFormatter,
+  });
   registerDataType({ id: "password", displayComponent: DisplayPassword });
   registerDataType({
     id: "color",
