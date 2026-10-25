@@ -9,6 +9,7 @@ import {
 import { blockRealtimeTopicOption } from "./display";
 import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import type { ColumnDisplaySerialized } from "./table-view/column-display";
+import type { TableViewGroupBy } from "./table-view/options";
 import type {
   ActionTarget,
   ActionTargetSerialized,
@@ -352,11 +353,32 @@ export interface MatrixTotals {
   label?: BlockText;
 }
 
-/** How groups behave. */
+/**
+ * Rows cut into groups, each under a header row, as the table view's
+ * `grouped` display does. A row joins the group its `group` names (groups the
+ * server builds, described by the response's `groups`), else the group of its
+ * value in `groupByField`.
+ */
 export interface MatrixGrouping {
+  /**
+   * Column the rows are grouped on, read from each row's values. The route
+   * lists the rows sorted on it, so a group's rows follow each other and a
+   * page starting inside a group repeats its header on top.
+   */
+  groupByField?: string;
+  /**
+   * `value` (the default): one group per value; `day` or `week`: one group
+   * per calendar day or week of a date column. Same as the table view's.
+   */
+  by?: TableViewGroupBy;
+  /** A click on a group header folds its rows; the fold is kept while the page stays open. */
   collapsible?: boolean;
   /** Groups start collapsed past this many rows. */
   collapseAbove?: number;
+  /** Group headers show how many rows the group holds. */
+  count?: boolean;
+  /** With `totals.columns`, each group header carries its own column sums. */
+  subtotals?: boolean;
 }
 
 export interface MatrixProps extends BaseComponentProps {
