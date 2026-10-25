@@ -5,7 +5,11 @@
     "composite": false,
     "incremental": false,
     "tsBuildInfoFile": null,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@antelopejs/interface-dms": ["../src/index.ts"],
+      "@antelopejs/interface-dms/*": ["../src/*"]
+    }
   },
   "include": ["../src/**/*.ts", "**/*.ts"]
 }
