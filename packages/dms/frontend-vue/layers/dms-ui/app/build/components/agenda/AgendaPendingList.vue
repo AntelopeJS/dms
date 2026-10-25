@@ -140,7 +140,7 @@ async function planByKeyboard(item: AgendaPendingItem): Promise<void> {
         "
         :aria-describedby="canDrag ? hintId : undefined"
         :class="[
-          'border-default bg-default relative flex touch-pan-y items-start gap-2 overflow-hidden rounded-md border py-1.5 ps-3 pe-2 text-sm select-none',
+          'border-default bg-default relative flex shrink-0 touch-pan-y items-start gap-2 overflow-hidden rounded-md border py-1.5 ps-3 pe-2 text-sm select-none',
           canDrag && 'hover:border-accented cursor-grab active:cursor-grabbing',
         ]"
         @pointerdown="startDrag($event, item)"

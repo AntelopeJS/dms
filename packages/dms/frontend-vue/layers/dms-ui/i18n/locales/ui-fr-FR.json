@@ -949,6 +949,7 @@
         "planned": "{title} planifié",
         "not_planned": "{title} n’a pas pu être planifié sur les jours affichés",
         "notices": "Contrôles",
+        "notices_empty": "Aucun contrôle en défaut",
         "upcoming": "À venir",
         "upcoming_empty": "Rien de prévu"
       },

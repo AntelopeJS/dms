@@ -948,6 +948,7 @@
         "planned": "{title} planned",
         "not_planned": "{title} could not be planned on the days shown",
         "notices": "Checks",
+        "notices_empty": "No check failing",
         "upcoming": "Upcoming",
         "upcoming_empty": "Nothing coming up"
       },

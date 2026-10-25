@@ -15,6 +15,14 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
  * of its events (their `issues`), errors first. A click opens the event it
  * names, else moves the agenda to its day and brings its resource into view.
  */
+interface AgendaNoticesProps {
+  /** The sidebar lists the section itself: it stays, saying all is well, when empty. */
+  asked?: boolean;
+}
+
+const props = withDefaults(defineProps<AgendaNoticesProps>(), {
+  asked: false,
+});
 const ctx = useAgendaContext();
 const { t } = useI18n();
 const { processText } = useComposedText();
@@ -87,6 +95,7 @@ const pick = (line: NoticeLine) => {
 
 <template>
   <section
+    v-if="items.length || props.asked"
     :aria-label="t('dms.agenda.sidebar.notices')"
     class="flex flex-col gap-2"
     data-agenda-notices
@@ -94,7 +103,14 @@ const pick = (line: NoticeLine) => {
     <h3 class="text-muted text-xs font-semibold tracking-wide uppercase">
       {{ t("dms.agenda.sidebar.notices") }}
     </h3>
-    <ul class="flex flex-col gap-1.5">
+    <p
+      v-if="!items.length"
+      class="text-dimmed text-xs"
+      data-agenda-notices-empty
+    >
+      {{ t("dms.agenda.sidebar.notices_empty") }}
+    </p>
+    <ul v-else class="flex flex-col gap-1.5">
       <li v-for="line in items" :key="line.key">
         <component
           :is="line.actionable ? 'button' : 'div'"

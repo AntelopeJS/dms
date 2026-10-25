@@ -13,6 +13,7 @@ import { nextTick, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import { stagedListOf } from "./fixtures/agendaFakeContext";
 import {
+  AGENDA_STATIC,
   harness,
   mountBlock as mountWith,
   query,
@@ -248,6 +249,42 @@ describe("sidebar", () => {
     expect(enGB.dms.agenda.sidebar.calendar_count).toBe(
       "{name}, {count} event | {name}, {count} events",
     );
+  });
+});
+
+describe("sidebar sections", () => {
+  it("keeps each pending item at its natural height; only the list scrolls", async () => {
+    const { el } = await mountBlock({ sidebar: true, unscheduled: {} });
+    const item = query(el, '[data-agenda-pending-item="p1"]')!;
+    expect(item.className).toContain("shrink-0");
+    expect(item.textContent).toContain("45601");
+  });
+
+  it("hides empty checks, unless the sidebar lists them: then all is said well", async () => {
+    const quiet = {
+      ...AGENDA_STATIC,
+      notices: [],
+      events: AGENDA_STATIC.events.map(
+        ({ issues: _issues, ...event }) => event,
+      ),
+    };
+    const hidden = await mountBlock({
+      sidebar: { sections: ["unscheduled"] },
+      staticData: quiet,
+    });
+    expect(query(hidden.el, "[data-agenda-notices]")).toBeNull();
+    const asked = await mountBlock({
+      sidebar: { sections: ["notices"] },
+      staticData: quiet,
+    });
+    expect(
+      query(asked.el, "[data-agenda-notices-empty]")?.textContent,
+    ).toContain("dms.agenda.sidebar.notices_empty");
+    const busy = await mountBlock({ sidebar: { sections: ["notices"] } });
+    expect(query(busy.el, "[data-agenda-notices-empty]")).toBeNull();
+    expect(
+      busy.el.querySelectorAll("[data-agenda-notices] [data-tone]").length,
+    ).toBe(2);
   });
 });
 

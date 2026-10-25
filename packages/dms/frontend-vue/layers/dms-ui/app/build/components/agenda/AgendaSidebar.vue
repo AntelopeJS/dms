@@ -197,7 +197,10 @@ function trapTab(event: KeyboardEvent): void {
         </ul>
       </section>
       <AgendaPendingList v-else-if="section === 'unscheduled'" />
-      <AgendaNotices v-else-if="section === 'notices'" />
+      <AgendaNotices
+        v-else-if="section === 'notices'"
+        :asked="Boolean(props.sidebar.sections?.includes('notices'))"
+      />
       <AgendaUpcoming v-else-if="section === 'upcoming'" />
       <p
         v-else-if="section === 'tip' && tip"
