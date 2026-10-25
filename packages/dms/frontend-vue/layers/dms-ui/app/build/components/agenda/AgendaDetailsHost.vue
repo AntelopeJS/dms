@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AgendaDetails from "./AgendaDetails.vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
-import { clearAgendaDraft } from "../../composables/agenda/useAgendaDetails";
+import { syncAgendaDraft } from "../../composables/agenda/useAgendaDetails";
 import {
   AGENDA_PANEL_WIDTH,
   attributeSelector,
@@ -117,10 +117,10 @@ function sync(
   open: AgendaDetailsState | null,
   container: AgendaDetailsContainer,
 ): void {
+  syncAgendaDraft(ctx, open);
   if (!open) {
     closeInstance();
     anchor.value = null;
-    clearAgendaDraft(ctx);
     restoreFocus();
     return;
   }

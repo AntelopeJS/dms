@@ -95,14 +95,24 @@ export function chipKeyOf(
   return chip.getAttribute(CHIP_ATTRIBUTE);
 }
 
-/** Moves the DOM focus to the chip of `key`, if it is drawn. */
-function focusChip(root: HTMLElement | null, key: string | null): void {
-  if (!root || key === null) return;
-  const chips = root.querySelectorAll<HTMLElement>(`[${CHIP_ATTRIBUTE}]`);
-  const chip = [...chips].find(
-    (element) => element.getAttribute(CHIP_ATTRIBUTE) === key,
-  );
-  chip?.focus();
+/**
+ * Moves the DOM focus to the chip drawn before or after the focused one, in
+ * the order the chips are drawn: an event with no chip of its own (behind a
+ * "+N more") is stepped over, never a dead end. Resolves the key focused.
+ */
+function stepChip(
+  root: HTMLElement | null,
+  from: Element | null,
+  step: 1 | -1,
+): string | null {
+  if (!root) return null;
+  const chips = [...root.querySelectorAll<HTMLElement>(`[${CHIP_ATTRIBUTE}]`)];
+  const current = from?.closest(`[${CHIP_ATTRIBUTE}]`);
+  const index = chips.findIndex((chip) => chip === current);
+  const next = chips[Math.min(Math.max(index + step, 0), chips.length - 1)];
+  if (!next) return null;
+  next.focus();
+  return next.getAttribute(CHIP_ATTRIBUTE);
 }
 
 const chipOccurrence = ({ targets, chip }: KeyContext) =>
@@ -121,9 +131,8 @@ const arrow =
       targets.go(step);
       return true;
     }
-    const next = nextFocusedKey(targets.occurrences(), chip, step);
-    targets.focusedKey.value = next;
-    focusChip(targets.root.value, next);
+    const next = stepChip(targets.root.value, document.activeElement, step);
+    targets.focusedKey.value = next ?? chip;
     return true;
   };
 

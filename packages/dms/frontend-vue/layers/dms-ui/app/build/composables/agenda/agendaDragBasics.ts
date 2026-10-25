@@ -12,12 +12,17 @@ import type {
 } from "./agendaModel";
 import {
   addDays,
-  daysBetween,
-  weekdayOf,
+  MINUTE_MS,
+  zonedMinutes,
   zonedDayKey,
   zonedEpoch,
 } from "./agendaTime";
-import { slotPositionOf, slotSpan } from "./agendaSlots";
+import {
+  addSlots,
+  slotEpochRange,
+  slotPositionOf,
+  slotSpan,
+} from "./agendaSlots";
 import type { AgendaSlotPosition, ParsedAgendaSlot } from "./agendaSlots";
 
 /** The options a placement reads. */
@@ -61,21 +66,37 @@ export function slotAtInstant(
   );
 }
 
-/** Slots from one slot to another, counting shown days only. */
-export function slotsBetween(
-  from: AgendaSlotPosition,
-  to: AgendaSlotPosition,
-  config: Pick<AgendaDragConfig, "slots" | "hiddenDays">,
+/**
+ * The last slot an event ending at `end` covers: the slot holding the
+ * minute before its end, or the one before when it ends in a gap (lunch).
+ */
+export function slotEndingAt(
+  end: number,
+  config: Pick<AgendaDragConfig, "slots" | "hiddenDays" | "timeZone">,
+): AgendaSlotPosition {
+  const holding = slotAtInstant(end - 1, config);
+  const range = slotEpochRange(holding, config.slots, config.timeZone);
+  return range.start >= end
+    ? addSlots(holding, -1, config.slots.length, config.hiddenDays)
+    : holding;
+}
+
+/**
+ * An instant snapped to `step` minutes of its zone's wall clock, moved by
+ * the snap's difference: the second 02:30 of a fall-back day snaps to the
+ * second 02:30, which a wall time read back would turn into the first.
+ */
+export function snapInstant(
+  epoch: number,
+  step: number,
+  timeZone: string,
+  mode: "round" | "floor" = "round",
 ): number {
-  const span = daysBetween(from.day, to.day);
-  const step = span < 0 ? -1 : 1;
-  let shownDays = 0;
-  let day = from.day;
-  for (let walked = 0; walked < Math.abs(span); walked += 1) {
-    day = addDays(day, step);
-    if (!config.hiddenDays.includes(weekdayOf(day))) shownDays += step;
-  }
-  return shownDays * config.slots.length + to.slotIndex - from.slotIndex;
+  if (step <= 0) return epoch;
+  const seconds = (((epoch % MINUTE_MS) + MINUTE_MS) % MINUTE_MS) / MINUTE_MS;
+  const exact = zonedMinutes(epoch, timeZone) + seconds;
+  const snapped = Math[mode](exact / step) * step;
+  return epoch + (snapped - exact) * MINUTE_MS;
 }
 
 /** A run of `count` slots from a slot, running on into the next shown days. */

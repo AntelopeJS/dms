@@ -1,11 +1,4 @@
-import {
-  computed,
-  getCurrentScope,
-  onScopeDispose,
-  ref,
-  type ComputedRef,
-  type Ref,
-} from "vue";
+import { computed, ref, type ComputedRef, type Ref } from "vue";
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type {
   AgendaChange,
@@ -22,11 +15,16 @@ import { useAgendaRecurringPrompt } from "./useAgendaDetails";
 import type {
   AgendaOccurrence,
   AgendaRange,
+  AgendaRefusal,
   ResolvedAgendaOptions,
   ResolvedAgendaView,
 } from "./agendaModel";
 import { agendaEditKey, overlayEdits, overlayPending } from "./agendaChanges";
-import { createAgendaSaveEngine } from "./agendaSaveEngine";
+import {
+  createAgendaSaveEngine,
+  type AgendaSaveEngine,
+} from "./agendaSaveEngine";
+import { useAgendaSaveStatus } from "./useAgendaSaveStatus";
 import { completeChange, seedOfItem } from "./agendaApply";
 import { leavesLocalId } from "./agendaData";
 import type { AgendaDataSource } from "./useAgendaData";
@@ -97,29 +95,19 @@ function useRecurringScope(raw: FullAgendaOptions) {
   };
 }
 
-/**
- * The editing of an agenda around its save engine: `apply` places a change
- * (asking which part of a recurring event it applies to, as
- * `recurringEdit` says), the engine writes it at once or keeps it staged,
- * the toasts tell how it went (see `useAgendaSaveToasts`), a `confirm`
- * question is asked before the same changes go again with `force`, and
- * leaving the page with changes not written asks first.
- */
-export function useAgendaSave(setup: AgendaSaveSetup) {
-  const { raw, options, source, text } = setup;
-  const { t } = useI18n();
-  const scopeOf = useRecurringScope(raw);
-  const mode = () => raw.saveMode ?? "immediate";
-  const toasts = useAgendaSaveToasts({
-    raw,
-    text,
-    announce: setup.announce,
-    engine: () => engine,
-  });
+/** What the engine of an agenda reports to, besides the data. */
+interface AgendaEngineHooks {
+  toasts: ReturnType<typeof useAgendaSaveToasts>;
+  status: ReturnType<typeof useAgendaSaveStatus>;
+}
 
-  const status = useSaveStatus();
-  const engine = createAgendaSaveEngine({
-    mode,
+/** The save engine of an agenda, wired to its data, its toasts and its status. */
+function useAgendaEngine(setup: AgendaSaveSetup, hooks: AgendaEngineHooks) {
+  const { raw, source, text, options } = setup;
+  const { t } = useI18n();
+  const { toasts, status } = hooks;
+  const engine: AgendaSaveEngine = createAgendaSaveEngine({
+    mode: () => raw.saveMode ?? "immediate",
     send: useSaveRequest(raw, setup.routeParams),
     context: () => ({
       conflicts: raw.conflicts ?? "overwrite",
@@ -145,11 +133,46 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
       status.settle("error");
       toasts.failed(edits);
     },
-    onConflict: toasts.conflict,
+    onConflict: (edit) => {
+      status.settle("error");
+      toasts.conflict(edit);
+    },
     onGone: toasts.gone,
+    onDeclined: status.clear,
     describeError: (error) => resolveActionError(error, t),
     text: (message) => text(message),
+    timeZone: () => options.value.timeZone,
+    unaddressed: () => t(`${SAVE_PREFIX}.unaddressed`),
   });
+  return engine;
+}
+
+/**
+ * The editing of an agenda around its save engine: `apply` places a change
+ * (asking which part of a recurring event it applies to, as
+ * `recurringEdit` says), the engine writes it at once or keeps it staged,
+ * the toasts tell how it went (see `useAgendaSaveToasts`), the status
+ * follows it (see `useAgendaSaveStatus`), a `confirm` question is asked
+ * before the same changes go again with `force`, and leaving the page with
+ * changes not written asks first.
+ */
+export function useAgendaSave(setup: AgendaSaveSetup) {
+  const { raw, options, source } = setup;
+  const scopeOf = useRecurringScope(raw);
+  const mode = () => raw.saveMode ?? "immediate";
+  const lastRefusal = ref<AgendaRefusal | null>(null);
+  const status = useAgendaSaveStatus(() => engine);
+  const toasts = useAgendaSaveToasts({
+    raw,
+    text: setup.text,
+    announce: setup.announce,
+    engine: () => engine,
+    lastRefusal,
+    // A Retry reads the event as it is now: it may have moved since.
+    resend: (edit) => apply({ ...edit.change, previous: undefined }),
+    onUndone: (isUndone) => status.settle(isUndone ? "saved" : "error"),
+  });
+  const engine = useAgendaEngine(setup, { toasts, status });
 
   const eventById = (id: string | undefined) =>
     id ? source.data.value.events.find((event) => event.id === id) : undefined;
@@ -201,15 +224,13 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
     engine,
     apply,
     saveStaged,
+    lastRefusal,
     discardStaged: () => engine.discardAll(),
     staged: computed(() => (mode() === "staged" ? engine.staged.value : [])),
     saving: computed(() => engine.isSaving.value),
     /** What a Save writes: conflicts and changes being written aside. */
     sendableCount: computed(() => engine.sendable.value.length),
-    /** "Saving…", then "Saved" for a moment, or "error" until the next write. */
-    saveStatus: computed<AgendaSaveStatus>(() =>
-      engine.isSaving.value ? "saving" : status.last.value,
-    ),
+    saveStatus: status.status,
     /** The events read with the changes not written laid over them, and how each shows. */
     overlay: computed(() =>
       overlayEdits(
@@ -231,27 +252,6 @@ export function useAgendaSave(setup: AgendaSaveSetup) {
       if (choice === "overwrite") return engine.overwrite(key);
       engine.discard(key);
       return true;
-    },
-  };
-}
-
-/** How the last write went, as the toolbar tells it. */
-export type AgendaSaveStatus = "idle" | "saving" | "saved" | "error";
-
-const SAVED_SHOWN_MS = 2500;
-
-/** The outcome of the last write: "saved" for a moment, "error" until the next one. */
-function useSaveStatus() {
-  const last = ref<AgendaSaveStatus>("idle");
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  if (getCurrentScope()) onScopeDispose(() => clearTimeout(timer));
-  return {
-    last,
-    settle: (outcome: "saved" | "error") => {
-      clearTimeout(timer);
-      last.value = outcome;
-      if (outcome === "saved")
-        timer = setTimeout(() => (last.value = "idle"), SAVED_SHOWN_MS);
     },
   };
 }

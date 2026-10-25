@@ -251,6 +251,24 @@ export interface AgendaDragController {
    * its chip dims. Changes twice per drag, so chips read it, not `preview`.
    */
   draggingKey: ComputedRef<string | null>;
+  /**
+   * Plans a pending item without a pointer (the keyboard): through the
+   * rules and the placement of a drop (slots, `durationSlots`, hidden days,
+   * allowed resources, read-only calendars, constraints). With `target`,
+   * there; without, on the first spot allowed from the anchor day on (its
+   * shown days, then its slots or times, the allowed resources in order).
+   * Resolves `false` when no spot fits or the save refuses it.
+   */
+  planPending: (
+    item: AgendaPendingItem,
+    target?: AgendaDropTarget,
+  ) => Promise<boolean>;
+  /**
+   * After a keyboard move, or the drop of an event whose chip had the focus:
+   * the event whose chip takes the focus back once drawn at its new place.
+   * That chip clears it.
+   */
+  refocusKey: Ref<string | null>;
 }
 
 /** A pending range of a `twoClicks` selection: the first day picked. */
@@ -348,6 +366,8 @@ export interface AgendaContext {
   goToday: () => void;
   goTo: (day: AgendaDayKey, viewType?: AgendaViewType) => void;
   canGoPrevious: ComputedRef<boolean>;
+  /** Today is within `minDate` / `maxDate` (the Today button is disabled otherwise). */
+  canGoToday: ComputedRef<boolean>;
   canGoNext: ComputedRef<boolean>;
 
   /** Layout. */
@@ -456,6 +476,20 @@ export interface AgendaContext {
   upcoming: ComputedRef<AgendaOccurrence[]>;
   /** The occurrences of any days (the mini calendar's month), from the data in hand, filters applied. */
   occurrencesIn: (from: AgendaDayKey, to: AgendaDayKey) => AgendaOccurrence[];
+  /**
+   * Added by the shell (dev D), filled by the save engine: the last change
+   * the route refused, with its message, for the details form to show.
+   */
+  lastRefusal?: Ref<AgendaRefusal | null>;
+}
+
+/** A change the route refused, and why. */
+export interface AgendaRefusal {
+  /** The event the change named. */
+  id?: string;
+  /** A new event's temporary id. */
+  tempId?: string;
+  message: string;
 }
 
 /** A change not written yet, as the review lists it. */

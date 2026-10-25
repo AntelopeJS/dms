@@ -36,7 +36,8 @@ function previousPatch(occurrence: AgendaOccurrence): AgendaEventPatch {
   const { event } = occurrence;
   return {
     start: event.start,
-    end: event.end,
+    // Stored without an end: Undo clears the end the move wrote.
+    end: event.end ?? null,
     allDay: event.allDay ?? false,
     resourceIds: [...(event.resourceIds ?? [])],
   };

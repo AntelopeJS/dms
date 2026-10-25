@@ -29,6 +29,7 @@ import type {
 import {
   buildAgendaRange,
   clampDay,
+  clampDays,
   compactAgendaView,
   navigateAnchor,
   resolveAgendaViews,
@@ -180,7 +181,11 @@ export function useAgendaNavigation(setup: AgendaNavigationSetup) {
   );
 
   const scopeState = usePeriodScope(raw.periodScope);
-  const scopeDays = computed(() => scopeDaysOf(scopeState.value));
+  // A period picked past `minDate` / `maxDate` is shown within them.
+  const scopeDays = computed(() => {
+    const days = scopeDaysOf(scopeState.value);
+    return days && clampDays(days, bounds);
+  });
 
   const view = computed<ResolvedAgendaView>(() => {
     const shown = setup.compact.value
@@ -209,6 +214,17 @@ export function useAgendaNavigation(setup: AgendaNavigationSetup) {
     );
   const anchor = ref<AgendaDayKey>(
     settle(scopeDays.value?.from ?? setup.initialDay ?? configuredDay()),
+  );
+
+  // A view that skips hidden days (a day or one-day resources view, picked
+  // or shown once narrow) never starts on one: the week view's Saturday
+  // moves to the next shown day.
+  watch(
+    () => `${view.value.id}|${view.value.type}|${view.value.hiddenDays.join()}`,
+    () => {
+      const settled = settle(anchor.value);
+      if (settled !== anchor.value) anchor.value = settled;
+    },
   );
 
   // The selector's period moves the agenda (a pick, Back, a link).
@@ -276,6 +292,8 @@ export function useAgendaNavigation(setup: AgendaNavigationSetup) {
       if (target) pickedViewId.value = target.id;
       moveTo(day);
     },
+    /** Today is within `minDate` / `maxDate`: the Today button may go there. */
+    canGoToday: computed(() => clampDay(today.value, bounds) === today.value),
     canGoPrevious: computed(() => stepTo(-1) !== null),
     canGoNext: computed(() => stepTo(1) !== null),
   };

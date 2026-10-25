@@ -25,6 +25,7 @@ export {
   placeSpan,
   shownPosition,
   type PlaceSpanOptions,
+  type TimelineSpan,
 } from "./agendaTimelinePlacement";
 
 const HOUR_MINUTES = 60;
@@ -88,6 +89,11 @@ export interface TimelinePlaced {
   from: number;
   to: number;
   segments: TimelineSegment[];
+  /**
+   * Drawn as a sliver: too thin to see where it really falls (zero-length,
+   * or outside the shown hours). It takes no room in the lanes.
+   */
+  sliver: boolean;
 }
 
 export interface TimelineMetrics {
@@ -130,8 +136,16 @@ export interface TimelineRowsInput {
   /** Column indices where a segment breaks (each day's first column but the first). */
   breaks: readonly number[];
   metrics: TimelineMetrics;
-  /** A timeline by day: timed events take the whole days they touch. */
+  /**
+   * A timeline by day: timed events take the whole days they touch. Two
+   * shifts of one day (08–12 and 13–17), or a night shift and the next
+   * day's morning one, then share a day cell and take a lane each: the row
+   * grows rather than drawing them over each other (N42).
+   */
   wholeColumns?: boolean;
+  /** The range's first and last instants: events outside the shown hours keep a sliver. */
+  rangeStart?: number;
+  rangeEnd?: number;
 }
 
 /** The scale a view draws at, `slot` falling back to `hour` without slots. */
@@ -245,18 +259,24 @@ export function timelineHeaderGroups(
 /**
  * Gives each placed occurrence the first lane free at its start, the
  * earlier and the longer first: overlapping events stack, the row growing
- * one lane per level. Returns the number of lanes used.
+ * one lane per level. Returns the number of lanes used. A sliver takes the
+ * first lane and no room: drawn over what is there, it never pushes a real
+ * event down a lane (N15).
  */
 export function assignLanes(items: TimelinePlaced[]): number {
   items.sort((a, b) => a.from - b.from || b.to - a.to);
   const laneEnds: number[] = [];
   for (const item of items) {
+    if (item.sliver) {
+      item.lane = 0;
+      continue;
+    }
     let lane = laneEnds.findIndex((end) => end <= item.from + EPSILON);
     if (lane < 0) lane = laneEnds.length;
     laneEnds[lane] = item.to;
     item.lane = lane;
   }
-  return laneEnds.length;
+  return Math.max(laneEnds.length, items.length ? 1 : 0);
 }
 
 const UNASSIGNED = "\u0000none";
@@ -301,7 +321,11 @@ function placeAll(
       occurrence.start,
       occurrence.end,
       input.breaks,
-      { wholeColumns: input.wholeColumns },
+      {
+        wholeColumns: input.wholeColumns,
+        rangeStart: input.rangeStart,
+        rangeEnd: input.rangeEnd,
+      },
     );
     if (!span) continue;
     const key = ghost ? `${occurrence.key}#ghost` : occurrence.key;

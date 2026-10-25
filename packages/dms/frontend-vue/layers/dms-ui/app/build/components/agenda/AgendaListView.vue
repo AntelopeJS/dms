@@ -25,6 +25,11 @@ const opensOnDouble = computed(
   () => ctx.options.value.raw.details?.openOn === "doubleClick",
 );
 
+// Empty only once read: no "No events" while the first answer is on its way.
+const isEmpty = computed(
+  () => !days.value.length && ctx.hasData.value && !ctx.loading.value,
+);
+
 const emptyLabel = computed(() => {
   const label = ctx.options.value.raw.emptyLabel;
   return label ? processText(label) : t("dms.agenda.list.empty");
@@ -76,7 +81,7 @@ const dayTitle = (key: string, isToday: boolean) =>
     class="relative min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
     :aria-label="t('dms.agenda.list.label')"
   >
-    <p v-if="!days.length" class="text-muted px-4 py-10 text-center text-sm">
+    <p v-if="isEmpty" class="text-muted px-4 py-10 text-center text-sm">
       {{ emptyLabel }}
     </p>
     <section

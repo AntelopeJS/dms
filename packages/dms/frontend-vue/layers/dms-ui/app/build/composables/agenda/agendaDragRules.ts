@@ -203,6 +203,20 @@ function closedBackground(check: AgendaDropCheck, rules: AgendaDropRules) {
 }
 
 /**
+ * The events a placement shares its row with: those of one of its
+ * resources; with resources but none of its own, those planned on no
+ * resource (the "No resource" column or row); without resources, all.
+ */
+function sameRowAs(
+  resourceIds: string[],
+  hasResources: boolean,
+): (other: AgendaOccurrence) => boolean {
+  if (!hasResources) return () => true;
+  if (!resourceIds.length) return (other) => !other.resourceIds.length;
+  return (other) => other.resourceIds.some((id) => resourceIds.includes(id));
+}
+
+/**
  * `allowOverlap: false`: timed events of one resource (or of the agenda,
  * without resources) may not overlap. All-day events (a leave, a holiday)
  * and cancelled ones neither block a drop nor are blocked: they mark a day,
@@ -212,16 +226,11 @@ function overlap(check: AgendaDropCheck, rules: AgendaDropRules) {
   if (rules.constraints.allowOverlap !== false) return null;
   const { placement, occurrence } = check;
   if (placement.allDay) return null;
-  const byResource =
-    rules.resources.size > 0 && placement.resourceIds.length > 0;
+  const sameRow = sameRowAs(placement.resourceIds, rules.resources.size > 0);
   const clashes = rules.occurrences.some((other) => {
     if (!check.copy && other.key === occurrence?.key) return false;
     if (other.allDay || other.event.status === "cancelled") return false;
-    if (
-      byResource &&
-      !other.resourceIds.some((id) => placement.resourceIds.includes(id))
-    )
-      return false;
+    if (!sameRow(other)) return false;
     return other.start < placement.end && placement.start < other.end;
   });
   return clashes ? "overlap" : null;

@@ -29,6 +29,8 @@ export interface FakeContextInput {
   slots?: AgendaSlot[];
   today?: string;
   raw?: ResolvedAgendaOptions["raw"];
+  /** The first answer is still on its way. */
+  loading?: boolean;
 }
 
 const time = (epoch: number) =>
@@ -124,7 +126,8 @@ export function fakeAgendaContext(input: FakeContextInput): AgendaContext {
     width: ref(1200),
     compact: computed(() => false),
     sidebarOpen: ref(false),
-    loading: computed(() => false),
+    loading: computed(() => !!input.loading),
+    hasData: computed(() => !input.loading),
     error: computed(() => null),
     refresh: vi.fn(async () => {}),
     calendars: computed(() => []),

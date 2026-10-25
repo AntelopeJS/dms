@@ -148,6 +148,7 @@ const cellStyle = (cell: AgendaGridHeaderCell) => ({
           <span class="flex min-w-0 flex-col leading-tight">
             <span
               class="text-highlighted flex items-center gap-1 truncate text-xs font-medium"
+              :title="processText(cell.column.resource.label)"
             >
               {{ processText(cell.column.resource.label) }}
               <UIcon
@@ -159,6 +160,7 @@ const cellStyle = (cell: AgendaGridHeaderCell) => ({
             <span
               v-if="cell.column.resource.description"
               class="text-dimmed truncate text-[10px]"
+              :title="processText(cell.column.resource.description)"
             >
               {{ processText(cell.column.resource.description) }}
             </span>

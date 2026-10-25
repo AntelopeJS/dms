@@ -41,7 +41,7 @@ const errorOf = (field: AgendaFormField) => {
 };
 const setValue = (field: AgendaFormField, value: unknown) => {
   values.value = { ...values.value, [field.id]: value };
-  props.details.keepDraft(values.value);
+  props.details.touch(field.id, value);
 };
 const refusal = computed(() => {
   const error = props.details.errors.value[AGENDA_FORM_REFUSED];

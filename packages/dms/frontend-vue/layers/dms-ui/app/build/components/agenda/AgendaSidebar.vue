@@ -61,6 +61,8 @@ const groupLabel = (groupId: string | undefined) => {
   return group ? processText(group.label) : "";
 };
 
+// Sections keep their height and stack (`[&>*]:shrink-0` on the column):
+// the column scrolls, they never overlap.
 const asideClass = computed(() => {
   if (!isOverlay.value)
     return [
@@ -129,7 +131,7 @@ function trapTab(event: KeyboardEvent): void {
     :data-agenda-sidebar="props.mode"
     :data-position="props.sidebar.position"
     :class="[
-      'bg-default flex min-h-0 shrink-0 flex-col gap-5 overflow-y-auto p-4 outline-none',
+      'bg-default flex min-h-0 shrink-0 flex-col gap-5 overflow-y-auto p-4 outline-none [&>*]:shrink-0',
       asideClass,
     ]"
     :style="{ width }"
@@ -154,7 +156,10 @@ function trapTab(event: KeyboardEvent): void {
       />
     </div>
     <template v-for="section in props.sections" :key="section">
-      <AgendaMiniCalendar v-if="section === 'miniCalendar'" />
+      <AgendaMiniCalendar
+        v-if="section === 'miniCalendar'"
+        @picked="isOverlay && emit('close')"
+      />
       <AgendaLegend
         v-else-if="section === 'calendars' && props.legend"
         :legend="props.legend"

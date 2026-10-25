@@ -10,10 +10,12 @@ import type {
 } from "../../../types/full-agenda";
 import type {
   AgendaContext,
+  AgendaDayKey,
   AgendaDragPreview,
   AgendaDropTarget,
   AgendaFormat,
   AgendaOccurrence,
+  AgendaRange,
   ResolvedAgendaOptions,
   ResolvedAgendaView,
 } from "./agendaModel";
@@ -40,6 +42,10 @@ export interface AgendaDragDeps {
   resources: Readonly<Ref<AgendaResource[]>>;
   /** The calendars: a pending item of a read-only calendar is not dropped. */
   calendars?: Readonly<Ref<AgendaCalendar[]>>;
+  /** The range shown: where a pending item is planned from the keyboard. Defaults to two weeks from today. */
+  range?: Readonly<Ref<AgendaRange>>;
+  /** The day the range is built around: keyboard planning starts there. Defaults to today. */
+  anchor?: Readonly<Ref<AgendaDayKey>>;
   backgrounds: Readonly<Ref<AgendaBackground[]>>;
   hoursOn: AgendaContext["hoursOn"];
   apply: AgendaContext["apply"];

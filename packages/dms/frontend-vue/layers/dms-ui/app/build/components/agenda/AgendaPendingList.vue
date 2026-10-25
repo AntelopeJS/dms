@@ -3,14 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref, useId } from "vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import { agendaPaint } from "../../composables/agenda/agendaPaint";
 import { matchesPending } from "../../composables/agenda/agendaShell";
-import { scheduleChange } from "../../composables/agenda/agendaDragChange";
-import { newEventPlacement } from "../../composables/agenda/agendaPlacement";
-import type { AgendaPlacement } from "../../composables/agenda/agendaModel";
-import {
-  addDays,
-  dayStartEpoch,
-  zonedDayKey,
-} from "../../composables/agenda/agendaTime";
 import type { AgendaPendingItem } from "../../../types/full-agenda";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
@@ -19,7 +11,7 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
  * slot or a resource (`ctx.drag.startPending`); the list itself is a drop
  * surface, an event dragged onto it goes back to the pending items
  * (`acceptDrop`, on by default). From the keyboard, Enter or Space plans a
- * focused item on the day shown (at the next hour today, else 09:00), where
+ * focused item on the first allowed spot from the day shown, where
  * Alt+arrows then move it.
  */
 const ctx = useAgendaContext();
@@ -72,52 +64,21 @@ const startDrag = (event: PointerEvent, item: AgendaPendingItem) => {
   ctx.drag.startPending(event, item);
 };
 
-const MINUTE_MS = 60_000;
 const hintId = `agenda-pending-hint-${useId()}`;
 
-/** Where the keyboard plans an item: the new-event spot, its length, its first allowed resource. */
-function keyboardPlacement(item: AgendaPendingItem): AgendaPlacement {
-  const options = ctx.options.value;
-  const spot = newEventPlacement(
-    ctx.range.value,
-    ctx.today.value,
-    ctx.now.value,
-    options,
-  );
-  const minutes = item.durationMinutes ?? options.defaultDurationMinutes;
-  const resourceId =
-    item.allowedResourceIds?.[0] ??
-    (ctx.view.value.type === "resources" || ctx.view.value.type === "timeline"
-      ? ctx.resources.value.find((resource) => resource.editable !== false)?.id
-      : undefined);
-  const resourceIds = resourceId ? [resourceId] : [];
-  if (item.allDay) {
-    const day = zonedDayKey(spot.start, options.timeZone);
-    return {
-      start: dayStartEpoch(day, options.timeZone),
-      end: dayStartEpoch(addDays(day, 1), options.timeZone),
-      allDay: true,
-      resourceIds,
-    };
-  }
-  return {
-    start: spot.start,
-    end: spot.start + minutes * MINUTE_MS,
-    allDay: false,
-    resourceIds,
-  };
-}
-
+/**
+ * Plans an item from the keyboard through the drag's own rules and
+ * placement (hidden days, slots, allowed resources, constraints): the first
+ * allowed spot from the day shown.
+ */
 async function planByKeyboard(item: AgendaPendingItem): Promise<void> {
   if (!canDrag.value) return;
-  const placement = keyboardPlacement(item);
-  const zone = ctx.options.value.timeZone;
-  await ctx.apply(scheduleChange(item, placement, zone));
+  const planned = await ctx.drag.planPending(item);
   ctx.announce(
-    t("dms.agenda.sidebar.planned", {
-      title: item.title,
-      when: ctx.format.timeRange(placement.start, placement.end),
-    }),
+    t(
+      planned ? "dms.agenda.sidebar.planned" : "dms.agenda.sidebar.not_planned",
+      { title: item.title },
+    ),
   );
 }
 </script>
@@ -129,7 +90,7 @@ async function planByKeyboard(item: AgendaPendingItem): Promise<void> {
     data-agenda-pending
     :data-drop-target="isDropTarget || undefined"
     :class="[
-      'flex min-h-0 flex-col gap-2 rounded-lg transition-colors',
+      'flex flex-col gap-2 rounded-lg transition-colors',
       isDropTarget && 'ring-primary ring-dashed bg-(--ui-primary)/8 ring-2',
     ]"
   >
@@ -164,7 +125,11 @@ async function planByKeyboard(item: AgendaPendingItem): Promise<void> {
     <p v-if="canDrag" :id="hintId" class="sr-only">
       {{ t("dms.agenda.sidebar.pending_hint") }}
     </p>
-    <ul v-if="items.length" class="flex flex-col gap-1.5">
+    <ul
+      v-if="items.length"
+      class="-mx-1 flex max-h-80 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1 py-0.5"
+      data-agenda-pending-items
+    >
       <li
         v-for="item in items"
         :key="item.id"

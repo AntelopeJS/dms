@@ -5,6 +5,7 @@
 import type { AgendaBackground, AgendaColor } from "../../../types/full-agenda";
 import type { Tone } from "../../../types/tone";
 import type { AgendaPaint } from "./agendaModel";
+import { CSS_COLOR_NAMES } from "./agendaColorNames";
 
 const TONES: ReadonlySet<string> = new Set<Tone>([
   "neutral",
@@ -34,17 +35,23 @@ export function isAgendaTone(color: string): color is Tone {
   return TONES.has(color);
 }
 
-/** The colour forms a runtime without `CSS.supports` (a server render) takes on trust. */
+/** The colour functions and hex forms the agenda takes as written. */
 const COLOR_FORMS =
-  /^(#[\da-f]{3,8}|(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(.+\))$/i;
+  /^(#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})|(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\([^()]*(\([^()]*\)[^()]*)*\))$/i;
 const CUSTOM_PROPERTY = /^var\(--[\w-]+(,.*)?\)$/;
 
-/** Whether a colour other than a tone is one CSS takes; a custom property is trusted. */
-function isCssColor(value: string): boolean {
-  if (CUSTOM_PROPERTY.test(value)) return true;
-  if (typeof CSS !== "undefined" && typeof CSS.supports === "function")
-    return CSS.supports("color", value);
-  return COLOR_FORMS.test(value);
+/**
+ * Whether a colour other than a tone is one the agenda takes: a custom
+ * property, a hex or colour function, or a CSS named colour. One check,
+ * the same on the server and in the browser (no `CSS.supports`), so a
+ * server render paints what the browser hydrates.
+ */
+export function isAgendaCssColor(value: string): boolean {
+  return (
+    CUSTOM_PROPERTY.test(value) ||
+    COLOR_FORMS.test(value) ||
+    CSS_COLOR_NAMES.has(value.toLowerCase())
+  );
 }
 
 /**
@@ -56,7 +63,7 @@ export function agendaColorCss(color: AgendaColor | undefined): string {
   const value = (color ?? DEFAULT_AGENDA_COLOR).trim();
   const tone = value.toLowerCase();
   if (isAgendaTone(tone)) return TONE_COLORS[tone] ?? `var(--ui-${tone})`;
-  if (isCssColor(value)) return value;
+  if (isAgendaCssColor(value)) return value;
   return agendaColorCss(DEFAULT_AGENDA_COLOR);
 }
 

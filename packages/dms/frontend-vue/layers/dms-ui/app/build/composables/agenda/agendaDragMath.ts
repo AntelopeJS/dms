@@ -17,14 +17,20 @@ import type {
   AgendaPlacement,
 } from "./agendaModel";
 import { MINUTE_MS, addDays, daysBetween, zonedEpoch } from "./agendaTime";
-import { addSlots, countSlots, slotEpochRange } from "./agendaSlots";
+import {
+  addSlots,
+  countSlots,
+  slotEpochRange,
+  slotsBetween,
+} from "./agendaSlots";
 import type { AgendaSlotPosition } from "./agendaSlots";
 import {
   allDayPlacement,
   occurrencePlacement,
   slotAtInstant,
+  slotEndingAt,
   slotPlacement,
-  slotsBetween,
+  snapInstant,
   snapTo,
   timedFrom,
 } from "./agendaDragBasics";
@@ -157,12 +163,26 @@ function placeMoveOnSlot(
     ? 1
     : countSlots(occurrence, config.slots, config.timeZone, config.hiddenDays);
   const hovered = slotOf(target);
-  if (origin.slotIndex === undefined || occurrence.allDay) {
+  // An all-day event stays all-day: it moves by the days the pointer moved.
+  if (occurrence.allDay) {
+    return shiftDays(
+      occurrence,
+      daysBetween(origin.day, target.day),
+      resourceIds,
+      config,
+    );
+  }
+  if (origin.slotIndex === undefined) {
     return slotPlacement(hovered, count, resourceIds, config);
   }
   // The slot grabbed keeps its place in the event.
   const own = slotAtInstant(occurrence.start, config);
-  const moved = slotsBetween(slotOf(origin), hovered, config);
+  const moved = slotsBetween(
+    slotOf(origin),
+    hovered,
+    config.slots.length,
+    config.hiddenDays,
+  );
   return slotPlacement(
     addSlots(own, moved, config.slots.length, config.hiddenDays),
     count,
@@ -218,7 +238,10 @@ function edgeInstant(
     return edge === "start" ? range.start : range.end;
   }
   if (!isTimeTarget(target)) return null;
-  if (target.instant !== undefined) return target.instant;
+  // A timeline by hour: the instant, snapped (the repeated DST hour stays itself).
+  if (target.instant !== undefined) {
+    return snapInstant(target.instant, config.snapMinutes, config.timeZone);
+  }
   return zonedEpoch(
     target.day,
     snapTo(target.minutes!, config.snapMinutes),
@@ -267,11 +290,44 @@ function placeResize(
   const edge =
     edgeInstant(target, isEnd ? "end" : "start", config) ??
     dayEdgeInstant(occurrence, target, isEnd, config);
+  if (isSlotTarget(target, config)) {
+    return slotResize(occurrence, edge, isEnd, resourceIds, config);
+  }
   if (isEnd) {
     const end = occurrence.start + clampLength(edge - occurrence.start, config);
     return { start: occurrence.start, end, allDay: false, resourceIds };
   }
   const start = occurrence.end - clampLength(occurrence.end - edge, config);
+  return { start, end: occurrence.end, allDay: false, resourceIds };
+}
+
+/**
+ * A resize by slots: the edge goes to a slot's start or end, never past
+ * the event's own first slot (an end) or last slot (a start), so the event
+ * keeps at least one slot.
+ */
+function slotResize(
+  occurrence: AgendaOccurrence,
+  edge: number,
+  isEnd: boolean,
+  resourceIds: string[],
+  config: AgendaDragConfig,
+): AgendaPlacement {
+  if (isEnd) {
+    const first = slotEpochRange(
+      slotAtInstant(occurrence.start, config),
+      config.slots,
+      config.timeZone,
+    );
+    const end = Math.max(edge, first.end);
+    return { start: occurrence.start, end, allDay: false, resourceIds };
+  }
+  const last = slotEpochRange(
+    slotEndingAt(occurrence.end, config),
+    config.slots,
+    config.timeZone,
+  );
+  const start = Math.min(edge, last.start);
   return { start, end: occurrence.end, allDay: false, resourceIds };
 }
 
@@ -295,8 +351,17 @@ function placeRange(
   const resourceIds = origin.resourceId ? [origin.resourceId] : [];
   const [low, high] = ordered(origin, target);
   if (isSlotTarget(origin, config) && isSlotTarget(target, config)) {
-    const count = slotsBetween(slotOf(low), slotOf(high), config) + 1;
+    const count =
+      slotsBetween(
+        slotOf(low),
+        slotOf(high),
+        config.slots.length,
+        config.hiddenDays,
+      ) + 1;
     return slotPlacement(slotOf(low), count, resourceIds, config);
+  }
+  if (origin.instant !== undefined && target.instant !== undefined) {
+    return instantRange(origin.instant, target.instant, resourceIds, config);
   }
   if (isTimeTarget(origin) && isTimeTarget(target)) {
     const snap = Math.max(config.snapMinutes, 1);
@@ -314,6 +379,22 @@ function placeRange(
     return timedFrom(start, clampLength(end - start, config), resourceIds);
   }
   return allDayPlacement(low.day, high.day, resourceIds, config);
+}
+
+/** A range picked on a timeline by hour, from instants: the repeated DST hour stays itself. */
+function instantRange(
+  from: number,
+  to: number,
+  resourceIds: string[],
+  config: AgendaDragConfig,
+): AgendaPlacement {
+  const snap = Math.max(config.snapMinutes, 1);
+  const start = snapInstant(Math.min(from, to), snap, config.timeZone, "floor");
+  // The cell under the pointer is part of the range.
+  const end =
+    snapInstant(Math.max(from, to), snap, config.timeZone, "floor") +
+    snap * MINUTE_MS;
+  return timedFrom(start, clampLength(end - start, config), resourceIds);
 }
 
 function itemLength(item: AgendaPendingItem, config: AgendaDragConfig): number {
@@ -338,10 +419,7 @@ function placeExternal(
     const start = slotEpochRange(first, config.slots, config.timeZone).start;
     return timedFrom(start, itemLength(item, config), resourceIds);
   }
-  const minutes = isTimeTarget(target)
-    ? snapTo(target.minutes!, config.snapMinutes)
-    : config.dayDropMinutes;
-  const start = zonedEpoch(target.day, minutes, config.timeZone);
+  const start = timeDropStart(target, config);
   if (!bySlots) return timedFrom(start, itemLength(item, config), resourceIds);
   // A time grid snaps to minutes: the item keeps the length of its slots.
   const span = slotPlacement(
@@ -351,6 +429,20 @@ function placeExternal(
     config,
   );
   return timedFrom(start, span.end - span.start, resourceIds);
+}
+
+/** Where a timed item dropped on a time (or a day alone) starts. */
+function timeDropStart(
+  target: AgendaDropTarget,
+  config: AgendaDragConfig,
+): number {
+  if (target.instant !== undefined) {
+    return snapInstant(target.instant, config.snapMinutes, config.timeZone);
+  }
+  const minutes = isTimeTarget(target)
+    ? snapTo(target.minutes!, config.snapMinutes)
+    : config.dayDropMinutes;
+  return zonedEpoch(target.day, minutes, config.timeZone);
 }
 
 type Placer = (

@@ -9,6 +9,7 @@ import {
   DAYS_PER_WEEK,
   MINUTES_PER_DAY,
   addDays,
+  daysBetween,
   parseTimeOfDay,
   weekdayOf,
   zonedDayKey,
@@ -140,6 +141,27 @@ export function addSlots(
     ? shiftShownDay(position.day, dayStep, hiddenDays)
     : position.day;
   return { day, slotIndex };
+}
+
+/**
+ * Slots from one position to another (negative backwards), counting shown
+ * days only: the distance a slot drag moved, the length of a picked run.
+ */
+export function slotsBetween(
+  from: AgendaSlotPosition,
+  to: AgendaSlotPosition,
+  slotCount: number,
+  hiddenDays: readonly number[] = [],
+): number {
+  const span = daysBetween(from.day, to.day);
+  const step = span < 0 ? -1 : 1;
+  let shownDays = 0;
+  let day = from.day;
+  for (let walked = 0; walked < Math.abs(span); walked += 1) {
+    day = addDays(day, step);
+    if (!hiddenDays.includes(weekdayOf(day))) shownDays += step;
+  }
+  return shownDays * slotCount + to.slotIndex - from.slotIndex;
 }
 
 /** The instants a slot of a day covers. */

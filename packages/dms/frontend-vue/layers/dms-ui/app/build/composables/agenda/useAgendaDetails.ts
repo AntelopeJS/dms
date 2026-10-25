@@ -12,7 +12,11 @@ import type {
   AgendaEventPatch,
   AgendaRecurringScope,
 } from "../../../types/full-agenda";
-import type { AgendaContext, AgendaOccurrence } from "./agendaModel";
+import type {
+  AgendaContext,
+  AgendaDetailsState,
+  AgendaOccurrence,
+} from "./agendaModel";
 import {
   agendaActionRow,
   buildPatch,
@@ -55,19 +59,43 @@ export function useAgendaRecurringPrompt() {
   return { ask };
 }
 
-/** What a form holds while it is open, and on what. */
+/**
+ * What the user typed in the open form, and on what: only the fields they
+ * touched (laid over fresh values, so a move made meanwhile is kept), and
+ * the refusal shown under it.
+ */
 interface AgendaDraft {
   key: string;
-  values: AgendaFormValues;
+  touched: AgendaFormValues;
+  refusal?: string;
 }
 
 // One open form per agenda. Kept beside the context, not in the form: the
 // form mounts afresh when the details move between a panel and a drawer.
 const drafts = new WeakMap<AgendaContext, AgendaDraft>();
 
+/** The key of the form the details show, `null` outside a form. */
+function editKeyOf(state: AgendaDetailsState | null): string | null {
+  if (!state || state.mode !== "edit") return null;
+  if (state.occurrence) return state.occurrence.key;
+  return `new@${state.placement?.start ?? ""}`;
+}
+
 /** Forgets the values typed in the agenda's form (closed, saved, cancelled). */
 export function clearAgendaDraft(ctx: AgendaContext): void {
   drafts.delete(ctx);
+}
+
+/**
+ * Forgets the draft once the details leave its form: another event, the
+ * read view, closed. A panel turned drawer keeps it (same event, same mode).
+ */
+export function syncAgendaDraft(
+  ctx: AgendaContext,
+  state: AgendaDetailsState | null,
+): void {
+  const draft = drafts.get(ctx);
+  if (draft && draft.key !== editKeyOf(state)) drafts.delete(ctx);
 }
 
 /** The form's error that is no field's: the route refused the change. */
@@ -76,6 +104,11 @@ const REFUSED_KEY = "$dms.agenda.details.status_error";
 
 /** `apply` answers `false` when the change was refused or abandoned. */
 const isRefused = (written: unknown) => written === false;
+
+/** The form's errors holding only a refusal, if any. */
+function refusalErrors(message: string | undefined): AgendaFormErrors {
+  return message ? { [AGENDA_FORM_REFUSED]: message } : {};
+}
 
 /** The details of the agenda `ctx`, as its details components use them. */
 export function useAgendaDetails(ctx: AgendaContext) {
@@ -107,23 +140,48 @@ export function useAgendaDetails(ctx: AgendaContext) {
     () => canEdit.value && Boolean(occurrence.value?.canDelete),
   );
   const saving = ref(false);
-  const errors = ref<AgendaFormErrors>({});
-  const draftKey = computed(() => {
-    const open = state.value;
-    if (open?.occurrence) return open.occurrence.key;
-    return `new@${open?.placement?.start ?? ""}`;
-  });
+  const draftKey = computed(() => editKeyOf(state.value));
+  const ownDraft = () => {
+    const draft = drafts.get(ctx);
+    return draft && draft.key === draftKey.value ? draft : undefined;
+  };
+  const errors = ref<AgendaFormErrors>(refusalErrors(ownDraft()?.refusal));
 
-  /** Keeps what the form holds, for a form mounted again on the same event. */
-  function keepDraft(values: AgendaFormValues): void {
-    drafts.set(ctx, { key: draftKey.value, values });
+  /** Keeps a field the user changed, for a form mounted again on the same event. */
+  function touch(fieldId: string, value: unknown): void {
+    const key = draftKey.value;
+    if (!key) return;
+    const draft = ownDraft();
+    drafts.set(ctx, {
+      key,
+      touched: { ...draft?.touched, [fieldId]: value },
+      refusal: draft?.refusal,
+    });
   }
 
-  /** The values the form opens with: those typed before, else the event's or the placement's. */
+  /** The values the form opens with: the event's or the placement's, the touched fields over them. */
   function initialValues(): AgendaFormValues {
-    const draft = drafts.get(ctx);
-    if (draft?.key === draftKey.value) return { ...draft.values };
-    return freshValues();
+    return { ...freshValues(), ...ownDraft()?.touched };
+  }
+
+  /** What a save sends: fresh values, only the fields the user touched taken from the form. */
+  function valuesToSave(values: AgendaFormValues): AgendaFormValues {
+    const touched = ownDraft()?.touched ?? {};
+    const picked = Object.fromEntries(
+      Object.keys(touched).map((id) => [id, values[id] ?? touched[id]]),
+    );
+    return { ...freshValues(), ...picked };
+  }
+
+  function rememberRefusal(message: string): void {
+    errors.value = refusalErrors(message);
+    const key = draftKey.value;
+    if (key)
+      drafts.set(ctx, {
+        key,
+        touched: ownDraft()?.touched ?? {},
+        refusal: message,
+      });
   }
 
   function freshValues(): AgendaFormValues {
@@ -177,16 +235,21 @@ export function useAgendaDetails(ctx: AgendaContext) {
 
   /** Saves the form as one change; `false` when it was refused or abandoned. */
   async function save(values: AgendaFormValues): Promise<boolean> {
-    errors.value = validateForm(fields.value, values, timeZone.value);
+    const saved = valuesToSave(values);
+    errors.value = validateForm(fields.value, saved, timeZone.value);
     if (Object.keys(errors.value).length > 0) return false;
-    const patch = buildPatch(fields.value, values, timeZone.value);
+    const patch = buildPatch(fields.value, saved, timeZone.value);
     const target = occurrence.value;
+    const refusalBefore = ctx.lastRefusal?.value;
     saving.value = true;
     try {
       const written = await place(patch, target);
-      // Refused: the form stays open on what was typed, with the reason.
+      // Refused: the form stays open on what was typed, with the route's reason.
       if (isRefused(written)) {
-        errors.value = { [AGENDA_FORM_REFUSED]: REFUSED_KEY };
+        const refusal = ctx.lastRefusal?.value;
+        rememberRefusal(
+          refusal && refusal !== refusalBefore ? refusal.message : REFUSED_KEY,
+        );
         return false;
       }
       if (written === null) return false;
@@ -261,7 +324,7 @@ export function useAgendaDetails(ctx: AgendaContext) {
     saving,
     errors,
     initialValues,
-    keepDraft,
+    touch,
     timeZone,
     edit,
     cancel,

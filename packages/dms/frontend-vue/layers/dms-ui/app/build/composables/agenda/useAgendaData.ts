@@ -7,6 +7,7 @@ import {
   watch,
   type ComputedRef,
   type Ref,
+  type ShallowRef,
 } from "vue";
 import {
   useApiData,
@@ -16,6 +17,7 @@ import type {
   AgendaCalendar,
   AgendaChange,
   AgendaData,
+  AgendaEvent,
   AgendaSaveResponse,
   FullAgendaOptions,
 } from "../../../types/full-agenda";
@@ -26,7 +28,10 @@ import type { AgendaFacetValues } from "./agendaFilters";
 import {
   agendaFetchQuery,
   applySaveAnswer,
+  KEPT_ANSWER_LAYERS,
+  layerAnswers,
   mergeById,
+  type AgendaAnswerLayer,
   type AgendaSeedOf,
 } from "./agendaData";
 
@@ -61,6 +66,67 @@ function useDebounced(source: Ref<string>, delay: number): Ref<string> {
   return settled;
 }
 
+/** The save answers laid over the data so far, the last ones kept. */
+interface AgendaAnswers {
+  writes: number;
+  layers: AgendaAnswerLayer[];
+}
+
+/** Where reads are put on screen. */
+interface AgendaReadTarget {
+  local: ShallowRef<AgendaData | null>;
+  answers: AgendaAnswers;
+  timeZone: () => string;
+}
+
+/**
+ * Puts each read on screen, with the save answers made after it laid over
+ * it: a read started before a write (or a week shown again from cache)
+ * shows the write, and is read again once in the background.
+ */
+function keepReadsCurrent(
+  loaded: ReturnType<typeof useApiData<AgendaData>>,
+  keyOf: () => string,
+  target: AgendaReadTarget,
+): void {
+  const { answers } = target;
+  const readAt = new Map<string, number>();
+  const reread = new Set<string>();
+  let running: { key: string; from: number } | null = null;
+  watch(
+    () => loaded.status.value,
+    (status) => {
+      if (status === "pending")
+        running = { key: keyOf(), from: answers.writes };
+    },
+    { flush: "sync" },
+  );
+  watch(
+    () => loaded.data.value,
+    (fresh) => {
+      if (!fresh) return;
+      const key = keyOf();
+      const isRunning = loaded.status.value === "pending";
+      if (running?.key === key && !isRunning) {
+        readAt.set(key, running.from);
+        running = null;
+      }
+      const from = readAt.get(key) ?? 0;
+      target.local.value = layerAnswers(
+        fresh,
+        answers.layers,
+        from,
+        target.timeZone(),
+      );
+      const mark = `${key}#${answers.writes}`;
+      if (from >= answers.writes || isRunning || reread.has(mark)) return;
+      reread.add(mark);
+      void loaded.refresh();
+    },
+    { immediate: true },
+  );
+}
+
 const EMPTY: AgendaData = { events: [] };
 
 /**
@@ -91,8 +157,7 @@ export function useAgendaData(setup: AgendaDataSetup) {
       calendars: setup.shownCalendarIds(),
     });
 
-  /** The save answers laid over the data so far. */
-  let writes = 0;
+  const answers: AgendaAnswers = { writes: 0, layers: [] };
   let isLoading: ComputedRef<boolean> = computed(() => false);
   let error: ComputedRef<unknown> = computed(() => null);
   let refresh = async () => {};
@@ -109,30 +174,10 @@ export function useAgendaData(setup: AgendaDataSetup) {
         watch: [setup.watchKey],
       },
     );
-    // A read started before the last write answers what was stored then:
-    // it is dropped and read again, so a saved event does not jump back.
-    let readFrom = writes;
-    watch(
-      () => loaded.status.value,
-      (status) => {
-        if (status === "pending") readFrom = writes;
-      },
-      { flush: "sync" },
-    );
-    // A new read replaces the data; until it lands, the last one stays.
-    watch(
-      () => loaded.data.value,
-      (data) => {
-        if (!data) return;
-        if (readFrom < writes) {
-          // Once per write: the read that follows is taken whatever it reports.
-          readFrom = writes;
-          void loaded.refresh();
-          return;
-        }
-        local.value = data;
-      },
-      { immediate: true },
+    keepReadsCurrent(
+      loaded,
+      () => `${url.value ?? ""}?${JSON.stringify(query())}`,
+      { local, answers, timeZone: setup.timeZone },
     );
     isLoading = computed(() => loaded.status.value === "pending");
     error = computed(() => loaded.error.value);
@@ -169,7 +214,14 @@ export function useAgendaData(setup: AgendaDataSetup) {
       written: AgendaChange[],
       seedOf?: AgendaSeedOf,
     ) => {
-      writes += 1;
+      answers.writes += 1;
+      const seeds = new Map(
+        written
+          .map((change) => [change.tempId ?? "", seedOf?.(change)] as const)
+          .filter((entry): entry is [string, AgendaEvent] => Boolean(entry[1])),
+      );
+      answers.layers.push({ seq: answers.writes, response, written, seeds });
+      if (answers.layers.length > KEPT_ANSWER_LAYERS) answers.layers.shift();
       local.value = applySaveAnswer(
         data.value,
         response,

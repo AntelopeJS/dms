@@ -5,8 +5,8 @@
 
 import type { AgendaDropTarget, AgendaOccurrence } from "./agendaModel";
 import type { AgendaDragSource } from "./agendaDragBasics";
-import { slotAtInstant } from "./agendaDragBasics";
-import { MINUTES_PER_DAY } from "./agendaTime";
+import { slotAtInstant, slotEndingAt } from "./agendaDragBasics";
+import { MINUTES_PER_DAY, MINUTE_MS } from "./agendaTime";
 import { addSlots, shiftShownDay } from "./agendaSlots";
 import type { ParsedAgendaSlot } from "./agendaSlots";
 
@@ -59,7 +59,12 @@ export function nudgeSource(
   }
   const origin: AgendaDropTarget = occurrence.allDay
     ? { day: occurrence.startDay, asAllDay: true }
-    : { day: occurrence.startDay, minutes: occurrence.startMinutes };
+    : {
+        day: occurrence.startDay,
+        minutes: occurrence.startMinutes,
+        // Keys move instants: the repeated DST hour does not run backwards.
+        instant: isResize ? occurrence.end : occurrence.start,
+      };
   return { kind, occurrence, origin };
 }
 
@@ -71,7 +76,8 @@ function slotTarget(
 ): AgendaDropTarget {
   const count = context.slots.length;
   if (isResize) {
-    const last = slotAtInstant(occurrence.end - 1, context);
+    // The end's own slot (the one before when it ends in a gap) steps on.
+    const last = slotEndingAt(occurrence.end, context);
     const slot = addSlots(last, step.snaps, count, context.hiddenDays);
     return { day: slot.day, slotIndex: slot.slotIndex };
   }
@@ -99,12 +105,23 @@ export function nudgeTarget(
   if (isResize) {
     const end =
       occurrence.endMinutes === 0 ? MINUTES_PER_DAY : occurrence.endMinutes;
-    return { day: occurrence.endDay, minutes: end + delta };
+    return {
+      day: occurrence.endDay,
+      minutes: end + delta,
+      instant: occurrence.end + delta * MINUTE_MS,
+    };
   }
-  const day = step.days
-    ? shiftShownDay(occurrence.startDay, step.days, context.hiddenDays)
-    : occurrence.startDay;
-  return occurrence.allDay
-    ? { day, asAllDay: true }
-    : { day, minutes: occurrence.startMinutes + delta };
+  if (occurrence.allDay || step.days) {
+    const day = step.days
+      ? shiftShownDay(occurrence.startDay, step.days, context.hiddenDays)
+      : occurrence.startDay;
+    return occurrence.allDay
+      ? { day, asAllDay: true }
+      : { day, minutes: occurrence.startMinutes };
+  }
+  return {
+    day: occurrence.startDay,
+    minutes: occurrence.startMinutes + delta,
+    instant: occurrence.start + delta * MINUTE_MS,
+  };
 }

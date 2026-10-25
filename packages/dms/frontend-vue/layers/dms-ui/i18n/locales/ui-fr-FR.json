@@ -917,6 +917,7 @@
       "toolbar": {
         "view": "Vue",
         "today": "Aujourd’hui",
+        "today_unavailable": "Aujourd’hui est en dehors des dates proposées par cet agenda",
         "previous": "Période précédente",
         "next": "Période suivante",
         "pick_date": "{period}, aller à une date",
@@ -936,7 +937,7 @@
         "fold": "Replier le panneau",
         "mini_calendar": "Calendrier",
         "calendars": "Calendriers",
-        "calendar_count": "{name}, {count} événements",
+        "calendar_count": "{name}, {count} événement | {name}, {count} événements",
         "resources": "Ressources",
         "unscheduled": "À planifier",
         "unscheduled_empty": "Plus rien à planifier",
@@ -945,7 +946,8 @@
         "draggable": "élément déplaçable",
         "drop_to_unschedule": "Déposez ici pour le retirer de l’agenda",
         "pending_hint": "Glissez-le sur l’agenda, ou appuyez sur Entrée pour le planifier le jour affiché.",
-        "planned": "{title} planifié, {when}",
+        "planned": "{title} planifié",
+        "not_planned": "{title} n’a pas pu être planifié sur les jours affichés",
         "notices": "Contrôles",
         "upcoming": "À venir",
         "upcoming_empty": "Rien de prévu"
@@ -979,6 +981,7 @@
         "retry": "Réessayer",
         "overwrite": "Écraser",
         "take_theirs": "Garder leur version",
+        "conflicts_to_resolve": "{count} conflit à résoudre | {count} conflits à résoudre",
         "review_title": "Vérifier les modifications",
         "review_description": "Rien n’est écrit tant que vous n’enregistrez pas.",
         "change_create": "créé",
@@ -1020,6 +1023,7 @@
         "discard": "Abandonner",
         "gone": "{title} n’existe plus",
         "unresolved": "L’adresse d’enregistrement de cet agenda n’a pas pu être construite",
+        "unaddressed": "Cette modification suit un nouvel événement que le serveur n’a pas encore nommé. Rechargez l’agenda et refaites-la.",
         "save_label": "Enregistrer {count} modification | Enregistrer {count} modifications",
         "review_label": "Vérifier {count} modification | Vérifier {count} modifications"
       },
@@ -1039,7 +1043,7 @@
       },
       "month": {
         "more": "+{count} de plus",
-        "more_label": "{day} : {count} de plus",
+        "more_label": "{day} : {count} de plus | {day} : {count} de plus",
         "day_label": "{day}, événements : {count}",
         "open_week": "Ouvrir la semaine {week}",
         "week_number": "Numéro de semaine"
@@ -1048,12 +1052,12 @@
         "label": "Chronologie",
         "resources": "Ressources",
         "unassigned": "Sans ressource",
-        "today": "Aujourd'hui",
+        "today": "Aujourd’hui",
         "week": "Semaine {week}",
         "expand_group": "Déplier {name}",
         "collapse_group": "Replier {name}",
         "read_only": "Lecture seule",
-        "continues_before": "Suite d'un jour précédent",
+        "continues_before": "Suite d’un jour précédent",
         "continues_after": "Se poursuit un jour suivant"
       },
       "year": {
@@ -1065,10 +1069,10 @@
       },
       "list": {
         "label": "Événements par jour",
-        "today": "Aujourd'hui",
+        "today": "Aujourd’hui",
         "all_day": "Toute la journée",
         "from": "À partir de {time}",
-        "until": "Jusqu'à {time}",
+        "until": "Jusqu’à {time}",
         "empty": "Aucun événement sur cette période"
       },
       "drag": {

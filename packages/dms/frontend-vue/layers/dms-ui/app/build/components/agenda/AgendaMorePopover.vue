@@ -18,9 +18,13 @@ interface AgendaMorePopoverProps {
   occurrences: AgendaOccurrence[];
   /** How many of them the cell does not draw. */
   count: number;
+  /** In the tab order (the month grid has one roving tab stop). */
+  tabbable?: boolean;
 }
 
-const props = defineProps<AgendaMorePopoverProps>();
+const props = withDefaults(defineProps<AgendaMorePopoverProps>(), {
+  tabbable: true,
+});
 
 const ctx = useAgendaContext();
 const { t } = useI18n();
@@ -47,8 +51,14 @@ function openDay(): void {
     <button
       type="button"
       class="text-muted hover:text-highlighted hover:bg-elevated w-full truncate rounded-md px-1.5 text-start text-xs font-medium"
+      :tabindex="props.tabbable ? 0 : -1"
+      data-agenda-roving
       :aria-label="
-        t('dms.agenda.month.more_label', { count: props.count, day: dayLabel })
+        t(
+          'dms.agenda.month.more_label',
+          { count: props.count, day: dayLabel },
+          props.count,
+        )
       "
       @pointerdown.stop
       @click.stop

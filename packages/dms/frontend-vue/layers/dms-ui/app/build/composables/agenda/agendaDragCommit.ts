@@ -5,6 +5,7 @@ import type { Ref } from "vue";
 import type {
   AgendaContext,
   AgendaDragPreview,
+  AgendaOccurrence,
   AgendaFormat,
   AgendaPlacement,
   ResolvedAgendaOptions,
@@ -34,6 +35,9 @@ export interface AgendaDropCommitDeps {
 
 type Announce = (message: string) => void;
 
+/** Gives the focus back to an event's chip once its change has settled. */
+type Refocus = (key: string) => void;
+
 /** The save engine reports a refusal itself (toast, event put back): a rejection is not this drop's to handle. */
 const ignore = () => undefined;
 
@@ -41,6 +45,7 @@ export class AgendaDropCommitter {
   constructor(
     private readonly deps: AgendaDropCommitDeps,
     private readonly announce: Announce,
+    private readonly refocus: Refocus = () => {},
   ) {}
 
   /** Writes `dms.agenda.drag.<key>` to the live region. */
@@ -67,6 +72,8 @@ export class AgendaDropCommitter {
     source: AgendaDragSource,
     title: string,
     dropped: AgendaDragPreview | null,
+    /** The moved chip had the focus (a key, or a drag that began on a focused chip). */
+    keepsFocus = false,
   ): void {
     if (!dropped) {
       this.say("cancelled");
@@ -101,7 +108,24 @@ export class AgendaDropCommitter {
       this.say("scheduled", { title, when: this.describe(placement) });
       return;
     }
-    this.dropOccurrence(source, title, dropped, placement);
+    this.dropOccurrence(source, title, dropped, placement, keepsFocus);
+  }
+
+  /**
+   * Writes a change of an occurrence; once it settles (drawn at its new
+   * place, or put back), the chip of a focused event takes the focus back.
+   */
+  private write(
+    change: Parameters<AgendaDropCommitDeps["apply"]>[0],
+    occurrence: AgendaOccurrence | undefined,
+    refocusKey: string | undefined,
+  ): void {
+    const written = occurrence
+      ? this.deps.apply(change, occurrence)
+      : this.deps.apply(change);
+    void written.catch(ignore).finally(() => {
+      if (refocusKey) this.refocus(refocusKey);
+    });
   }
 
   private dropOccurrence(
@@ -109,10 +133,12 @@ export class AgendaDropCommitter {
     title: string,
     dropped: AgendaDragPreview,
     placement: AgendaPlacement,
+    keepsFocus: boolean,
   ): void {
     const { occurrence } = source;
     if (!occurrence) return;
     const timeZone = this.deps.options.value.timeZone;
+    const refocusKey = keepsFocus ? occurrence.key : undefined;
     if (dropped.toPending) {
       void this.deps
         .apply(unscheduleChange(occurrence), occurrence)
@@ -123,16 +149,20 @@ export class AgendaDropCommitter {
     // Dropped where it is: neither a move nor a copy on top of itself.
     if (samePlacement(placement, occurrencePlacement(occurrence))) return;
     if (dropped.copy) {
-      void this.deps
-        .apply(copyChange(occurrence, placement, timeZone))
-        .catch(ignore);
+      this.write(
+        copyChange(occurrence, placement, timeZone),
+        undefined,
+        refocusKey,
+      );
       this.say("copied", { title, when: this.describe(placement) });
       return;
     }
     const kind = source.kind === "move" ? "move" : "resize";
-    void this.deps
-      .apply(placementChange(occurrence, placement, kind, timeZone), occurrence)
-      .catch(ignore);
+    this.write(
+      placementChange(occurrence, placement, kind, timeZone),
+      occurrence,
+      refocusKey,
+    );
     this.say(kind === "move" ? "moved" : "resized", {
       title,
       when: this.describe(placement),

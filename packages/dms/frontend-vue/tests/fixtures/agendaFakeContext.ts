@@ -7,6 +7,8 @@ import { computed, ref, type Ref } from "vue";
 import { vi } from "vitest";
 import type {
   AgendaContext,
+  AgendaRefusal,
+  AgendaStagedEdit,
   AgendaDropSurface,
   AgendaOccurrence,
   ResolvedAgendaOptions,
@@ -110,6 +112,10 @@ export interface FakeAgenda {
   saveStatus: Ref<"idle" | "saving" | "saved" | "error">;
   /** `null`: every staged change is sendable. */
   sendable: Ref<number | null>;
+  /** The status of each staged change, by its place (`staged` when absent). */
+  statuses: Ref<AgendaStagedEdit["status"][]>;
+  /** Today lies within `minDate`/`maxDate`. */
+  canGoToday: Ref<boolean>;
 }
 
 /** A context over the static data of the options, `width` pixels wide. */
@@ -144,6 +150,8 @@ export function fakeAgendaContext(
   const error = ref<unknown>(null);
   const saveStatus = ref<"idle" | "saving" | "saved" | "error">("idle");
   const sendable = ref<number | null>(null);
+  const statuses = ref<AgendaStagedEdit["status"][]>([]);
+  const canGoToday = ref(true);
   const ctx: AgendaContext = {
     componentId: raw.componentId ?? "agenda",
     pageId: raw.pageId ?? "page",
@@ -182,6 +190,7 @@ export function fakeAgendaContext(
     goTo: vi.fn(),
     canGoPrevious: computed(() => true),
     canGoNext: computed(() => true),
+    canGoToday: computed(() => canGoToday.value),
     rootEl: ref(null),
     width: widthRef,
     compact: computed(() => widthRef.value < options.value.compactBelow),
@@ -235,6 +244,7 @@ export function fakeAgendaContext(
       startPending: vi.fn(),
       cancel: vi.fn(),
       nudge: vi.fn(() => false),
+      planPending: vi.fn(async () => true),
       announcement: ref(""),
       draggingKey: computed(() => null),
     },
@@ -276,11 +286,12 @@ export function fakeAgendaContext(
       staged.value.map((change, index) => ({
         key: `edit-${index}`,
         change,
-        status: "staged" as const,
+        status: statuses.value[index] ?? "staged",
       })),
     ),
     retry: vi.fn(async () => true),
     resolveConflict: vi.fn(async () => undefined),
+    lastRefusal: ref<AgendaRefusal | null>(null),
     saveStatus: computed(() => saveStatus.value),
     sendableCount: computed(() => sendable.value ?? staged.value.length),
     upcoming: computed(() => allOccurrences.value),
@@ -300,6 +311,8 @@ export function fakeAgendaContext(
     error,
     saveStatus,
     sendable,
+    statuses,
+    canGoToday,
   };
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import type { AgendaOccurrence } from "../../composables/agenda/agendaModel";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import {
@@ -29,7 +29,10 @@ interface AgendaEventChipProps {
   /** The event runs on before / after this piece: a square edge, no resize handle. */
   continuesBefore?: boolean;
   continuesAfter?: boolean;
-  /** Pixels of a block's height: a short block keeps its title and time on one line. */
+  /**
+   * Pixels of the chip's height: a short block keeps its title and time on
+   * one line; a bar of 40 px or more shows its subtitle under its title.
+   */
   height?: number;
   /** Laid over another event (`overlap: "stack"`): an outline and a shadow keep it readable. */
   stacked?: boolean;
@@ -128,6 +131,30 @@ const canResize = computed(
     props.layout !== "cell",
 );
 const isVertical = computed(() => props.layout === "block");
+/** Pixels from which a bar has room for its subtitle under its title. */
+const TWO_LINE_BAR_FROM = 40;
+/** A tall bar (a timeline's two-line lane): the subtitle on its own line. */
+const isTwoLineBar = computed(
+  () =>
+    props.layout === "bar" &&
+    (props.height ?? 0) >= TWO_LINE_BAR_FROM &&
+    content.value.subtitle &&
+    Boolean(event.value.subtitle),
+);
+const TWO_LINE_BAR_CLASSES =
+  "flex-col items-stretch justify-center gap-0.5 px-1.5 text-xs leading-tight";
+/** On a timeline by slot the slot is the time: a bar shows none. */
+const isSlotTimeline = computed(
+  () => ctx.view.value.type === "timeline" && ctx.view.value.scale === "slot",
+);
+/** The start time after the title: on a bar (not cut before), or a short block. */
+const inlineTime = computed(() => {
+  if (!content.value.time || !startText.value) return false;
+  if (props.layout === "bar") {
+    return !props.continuesBefore && !isSlotTimeline.value;
+  }
+  return isShort.value;
+});
 
 const ROUNDED: Record<AgendaChipLayout, string> = {
   block: "rounded-md",
@@ -158,7 +185,9 @@ const rootClasses = computed(() => [
   "group/chip relative flex size-full min-w-0 cursor-pointer overflow-hidden text-start select-none",
   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-primary)",
   ROUNDED[props.layout],
-  (isCompact.value ? COMPACT_CLASSES : LAYOUT_CLASSES)[props.layout],
+  isTwoLineBar.value
+    ? TWO_LINE_BAR_CLASSES
+    : (isCompact.value ? COMPACT_CLASSES : LAYOUT_CLASSES)[props.layout],
   props.stacked ? "shadow-md ring-1 ring-(--ui-bg)" : "",
   ...chipClasses(props.occurrence, props.layout),
   hasEdgeBar.value && !props.continuesBefore
@@ -198,6 +227,20 @@ watch(isFocusedKey, async (isFocused) => {
   }
   el.focus();
 });
+
+/**
+ * A keyboard move or a drop moved this event (its chip may be a new one, in
+ * another day): the focus comes back to it once it is drawn there.
+ */
+function takeFocusBack(): void {
+  const el = chipEl.value;
+  if (!el || ctx.drag.refocusKey.value !== props.occurrence.key) return;
+  ctx.drag.refocusKey.value = null;
+  if (document.activeElement !== el) el.focus();
+  ctx.focusedKey.value = props.occurrence.key;
+}
+onMounted(takeFocusBack);
+watch(() => ctx.drag.refocusKey.value, takeFocusBack, { flush: "post" });
 
 function onFocusOut(): void {
   // Leaving the chips clears the focused event: no shortcut acts on it any more.
@@ -288,63 +331,57 @@ function onKeydown(key: KeyboardEvent): void {
         </span>
       </template>
       <template v-else>
-        <span
-          class="flex min-w-0 items-center gap-1"
-          :class="isShort && 'flex-nowrap'"
-        >
+        <span class="flex min-w-0 items-center gap-1">
           <UIcon
             v-if="content.icon && event.icon"
             :name="event.icon"
             class="size-3.5 shrink-0"
           />
+          <!--
+            The title first and never cut for the rest: the time and the
+            badges after it wrap onto a hidden second line when they do not
+            fit whole.
+          -->
           <span
-            v-if="
-              props.layout === 'bar' &&
-              content.time &&
-              startText &&
-              !props.continuesBefore
-            "
-            class="min-w-0 truncate tabular-nums opacity-80"
+            class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 overflow-hidden"
+            :class="props.layout === 'bar' ? 'h-5' : 'h-[1.25em]'"
           >
-            {{ startText }}
-          </span>
-          <!-- The title always wins: the time beside it gives way first. -->
-          <span class="max-w-full shrink-0 truncate font-medium">
-            {{ event.title }}
-          </span>
-          <span
-            v-if="isShort && content.time && startText"
-            class="min-w-0 truncate tabular-nums opacity-80"
-          >
-            {{ startText }}
+            <span class="max-w-full truncate font-medium">
+              {{ event.title }}
+            </span>
+            <span
+              v-if="inlineTime"
+              class="whitespace-nowrap tabular-nums opacity-80"
+            >
+              {{ startText }}
+            </span>
+            <template v-if="props.layout === 'bar'">
+              <UBadge
+                v-for="(badge, index) in badges"
+                :key="index"
+                :label="processText(badge.label)"
+                :icon="badge.icon"
+                :color="badge.tone ?? 'neutral'"
+                variant="soft"
+                size="sm"
+              />
+            </template>
           </span>
           <UIcon
             v-if="props.occurrence.state"
             :name="STATE_ICONS[props.occurrence.state]"
-            class="ms-auto size-3.5 shrink-0"
+            class="size-3.5 shrink-0"
             :class="props.occurrence.state === 'saving' && 'animate-spin'"
           />
           <UIcon
             v-if="tone"
             name="i-ph-warning"
             class="size-3.5 shrink-0"
-            :class="[
-              tone === 'error' ? 'text-error' : 'text-warning',
-              !props.occurrence.state && 'ms-auto',
-            ]"
+            :class="tone === 'error' ? 'text-error' : 'text-warning'"
           />
-          <template v-if="props.layout === 'bar'">
-            <UBadge
-              v-for="(badge, index) in badges"
-              :key="index"
-              :label="processText(badge.label)"
-              :icon="badge.icon"
-              :color="badge.tone ?? 'neutral'"
-              variant="soft"
-              size="sm"
-              class="shrink-0"
-            />
-          </template>
+        </span>
+        <span v-if="isTwoLineBar" class="truncate opacity-80">
+          {{ event.subtitle }}
         </span>
         <template v-if="props.layout === 'block' && !isShort">
           <span

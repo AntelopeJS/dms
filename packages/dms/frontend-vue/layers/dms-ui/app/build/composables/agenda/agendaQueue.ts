@@ -43,6 +43,20 @@ function localIdOf(change: AgendaChange): string | undefined {
 }
 
 /**
+ * Whether the change queued behind a written create names an event the
+ * route answered no id for: it cannot be sent (the route never knew its
+ * temporary id).
+ */
+export function isUnaddressed(
+  edit: Pick<AgendaEdit, "change" | "queued">,
+  ids: Map<string, string>,
+): boolean {
+  const { queued, change } = edit;
+  if (!queued || !change.tempId) return false;
+  return queued.id === change.tempId && !ids.has(change.tempId);
+}
+
+/**
  * The change queued behind a written one, addressed as the route now knows
  * the event. An occurrence detached without an answered id is detached
  * again from its series, with the fields of both changes: the route keeps

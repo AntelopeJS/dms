@@ -49,6 +49,15 @@ const CALENDARS = [
 
 const apps: Array<{ unmount: () => void }> = [];
 
+/** Types into the form as its inputs do (each field touched), and gives what it then holds. */
+function typeIn(
+  api: AgendaDetailsApi,
+  changes: Record<string, unknown>,
+): Record<string, unknown> {
+  for (const [field, value] of Object.entries(changes)) api.touch(field, value);
+  return api.initialValues();
+}
+
 function details(raw: Partial<FullAgendaOptions> = {}): {
   api: AgendaDetailsApi;
   agenda: FakeAgenda;
@@ -112,7 +121,7 @@ describe("a new event", () => {
       start: "2026-10-26T13:00",
       end: "2026-10-26T14:00",
     });
-    expect(await api.save({ ...values, title: "Demo" })).toBe(true);
+    expect(await api.save(typeIn(api, { title: "Demo" }))).toBe(true);
     expect(agenda.applied[0]).toMatchObject({
       kind: "create",
       patch: {
@@ -135,7 +144,7 @@ describe("a new event", () => {
       mode: "edit",
       container: "drawer",
     };
-    expect(await api.save({ ...api.initialValues(), title: "" })).toBe(false);
+    expect(await api.save(typeIn(api, { title: "" }))).toBe(false);
     expect(api.errors.value.title).toBe("$dms.agenda.form.required");
     expect(agenda.applied).toHaveLength(0);
   });
@@ -159,8 +168,7 @@ describe("an occurrence", () => {
       container: "drawer",
     };
     modalAnswer.value = "series";
-    const values = api.initialValues();
-    expect(await api.save({ ...values, title: "Standup" })).toBe(true);
+    expect(await api.save(typeIn(api, { title: "Standup" }))).toBe(true);
     expect(agenda.applied[0]).toMatchObject({
       kind: "update",
       id: "standup",
@@ -174,7 +182,7 @@ describe("an occurrence", () => {
       container: "drawer",
     };
     modalAnswer.value = undefined;
-    expect(await api.save({ ...values, title: "Other" })).toBe(false);
+    expect(await api.save(typeIn(api, { title: "Other" }))).toBe(false);
     expect(agenda.applied).toHaveLength(1);
   });
 
@@ -185,7 +193,7 @@ describe("an occurrence", () => {
       mode: "edit",
       container: "drawer",
     };
-    await api.save({ ...api.initialValues(), title: "Standup" });
+    await api.save(typeIn(api, { title: "Standup" }));
     expect(modalOpen).not.toHaveBeenCalled();
     expect(agenda.applied[0]).toMatchObject({ scope: "occurrence" });
   });
@@ -317,7 +325,7 @@ describe("round 1", () => {
       container: "drawer",
     };
     agenda.applyResult.value = false;
-    const saved = await api.save({ ...api.initialValues(), title: "Refused" });
+    const saved = await api.save(typeIn(api, { title: "Refused" }));
     expect(saved).toBe(false);
     expect(api.errors.value._form).toBe("$dms.agenda.details.status_error");
     expect(agenda.ctx.details.value?.mode).toBe("edit");
@@ -331,7 +339,7 @@ describe("round 1", () => {
       mode: "edit",
       container: "panel",
     };
-    api.keepDraft({ ...api.initialValues(), title: "Typed" });
+    api.touch("title", "Typed");
     // The panel became a drawer: a new form on the same event.
     expect(detailsOn(agenda).initialValues().title).toBe("Typed");
     api.cancel();
@@ -378,5 +386,96 @@ describe("review", () => {
       "medium:2026-10-26 08:00 – medium:2026-10-26 09:00",
       "medium:2026-10-26 08:00 – medium:2026-10-26 10:00",
     ]);
+  });
+});
+
+describe("round 2", () => {
+  it("N5 forgets a draft once the details leave its event or its form", async () => {
+    const { syncAgendaDraft } = await import(
+      "../layers/dms-ui/app/build/composables/agenda/useAgendaDetails"
+    );
+    const { api, agenda } = details({
+      staticData: {
+        events: [MEETING, { ...MEETING, id: "e2", title: "Other" }],
+      },
+    });
+    const [first, second] = agenda.ctx.occurrences.value;
+    const editFirst = {
+      occurrence: first!,
+      mode: "edit" as const,
+      container: "panel" as const,
+    };
+    agenda.ctx.details.value = editFirst;
+    api.touch("title", "Abandoned");
+    // Another event opens: the draft goes.
+    const other = {
+      occurrence: second!,
+      mode: "view" as const,
+      container: "panel" as const,
+    };
+    agenda.ctx.details.value = other;
+    syncAgendaDraft(agenda.ctx, other);
+    agenda.ctx.details.value = editFirst;
+    expect(detailsOn(agenda).initialValues().title).toBe("Sprint planning");
+    // The same event in its read view: gone too.
+    detailsOn(agenda).touch("title", "Again");
+    const read = { ...editFirst, mode: "view" as const };
+    syncAgendaDraft(agenda.ctx, read);
+    agenda.ctx.details.value = editFirst;
+    expect(detailsOn(agenda).initialValues().title).toBe("Sprint planning");
+    // The same form in a drawer: kept.
+    detailsOn(agenda).touch("title", "Kept");
+    syncAgendaDraft(agenda.ctx, { ...editFirst, container: "drawer" });
+    expect(detailsOn(agenda).initialValues().title).toBe("Kept");
+  });
+
+  it("N5 keeps a move made while the form was open: only the touched fields are sent", async () => {
+    const { api, agenda } = details();
+    const meeting = agenda.ctx.occurrences.value[0]!;
+    agenda.ctx.details.value = {
+      occurrence: meeting,
+      mode: "edit",
+      container: "panel",
+    };
+    const typed = typeIn(api, { title: "Renamed" });
+    // A drag moved the event an hour later meanwhile; the form still holds 09:00.
+    const moved = fakeOccurrence({
+      ...MEETING,
+      start: "2026-10-26T10:00:00+01:00",
+      end: "2026-10-26T11:00:00+01:00",
+    });
+    agenda.ctx.details.value = {
+      occurrence: moved,
+      mode: "edit",
+      container: "panel",
+    };
+    expect(await api.save(typed)).toBe(true);
+    expect(agenda.applied[0]).toMatchObject({
+      kind: "update",
+      patch: { title: "Renamed" },
+    });
+    expect(agenda.applied[0]?.patch).not.toHaveProperty("start");
+    expect(agenda.applied[0]?.patch).not.toHaveProperty("end");
+  });
+
+  it("N28 shows the route's own message, and keeps it with the form", async () => {
+    const { api, agenda } = details();
+    const meeting = agenda.ctx.occurrences.value[0]!;
+    agenda.ctx.details.value = {
+      occurrence: meeting,
+      mode: "edit",
+      container: "panel",
+    };
+    agenda.ctx.apply = vi.fn(async () => {
+      agenda.ctx.lastRefusal!.value = {
+        id: "e1",
+        message: "Locked by payroll",
+      };
+      return false;
+    });
+    expect(await api.save(typeIn(api, { title: "Refused" }))).toBe(false);
+    expect(api.errors.value._form).toBe("Locked by payroll");
+    // The panel became a drawer: the new form shows it too.
+    expect(detailsOn(agenda).errors.value._form).toBe("Locked by payroll");
   });
 });

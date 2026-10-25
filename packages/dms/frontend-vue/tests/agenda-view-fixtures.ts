@@ -67,6 +67,13 @@ export function makeOccurrence(spec: OccurrenceSpec): AgendaOccurrence {
   const end = allDay
     ? zonedEpoch(addDays(spec.end, 1), 0, timeZone)
     : Date.parse(spec.end);
+  // As the engine: a zero-length event ends on the day it starts, and an
+  // event ending at midnight has `endMinutes` 1440 on its last day.
+  const endDay = allDay
+    ? spec.end
+    : zonedWallClock(end > start ? end - 1 : start, timeZone).day;
+  const endsAtMidnight =
+    !allDay && zonedWallClock(end, timeZone).day !== endDay;
   return {
     key: spec.key,
     event: {
@@ -81,9 +88,10 @@ export function makeOccurrence(spec: OccurrenceSpec): AgendaOccurrence {
     start,
     end,
     startDay: allDay ? spec.start : zonedWallClock(start, timeZone).day,
-    endDay: allDay ? spec.end : zonedWallClock(end - 1, timeZone).day,
+    endDay,
     startMinutes: zonedWallClock(start, timeZone).minutes,
-    endMinutes: zonedWallClock(end, timeZone).minutes,
+    endMinutes:
+      allDay || endsAtMidnight ? 1440 : zonedWallClock(end, timeZone).minutes,
     resourceIds: spec.resourceIds ?? [],
     paint: {
       background: "rgb(220, 230, 250)",

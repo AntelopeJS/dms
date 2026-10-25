@@ -226,6 +226,9 @@ watch(
             :class="row.kind === 'group' ? 'bg-elevated/60' : ''"
             role="row"
             :aria-rowindex="index + 2"
+            :data-agenda-resource="
+              row.kind === 'resource' ? row.resource?.id : undefined
+            "
             :style="{ top: `${row.top}px`, height: `${row.height}px` }"
           >
             <div
@@ -259,7 +262,7 @@ watch(
               :preview="
                 previewRows.has(row.key) ? ctx.drag.preview.value : null
               "
-              :whole-columns="state.scale.value === 'day'"
+              :placement="state.placement.value"
             />
           </div>
           <div

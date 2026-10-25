@@ -12,7 +12,8 @@ import {
   backgroundAppliesTo,
   CLOSED_HOURS_STYLE,
 } from "./agendaBackgroundSpans";
-import { MINUTES_PER_DAY, parseTimeOfDay, zonedEpoch } from "./agendaTime";
+import { openIntervals } from "./agendaOpenHours";
+import { zonedEpoch } from "./agendaTime";
 import { columnPosition, type TimelineColumn } from "./agendaTimelineLayout";
 
 const EPSILON = 1e-6;
@@ -37,42 +38,23 @@ interface EpochInterval {
 
 const DAYS_PER_WEEK = 7;
 
-/** The wall-clock minutes a range of hours covers on its own day, and past midnight. */
-interface HoursSpan {
-  start: number;
-  end: number;
-  /** Minutes of the next day it runs into (an overnight 22:00–06:00: 360). */
-  spill: number;
-}
-
-function hoursSpan(range: AgendaBusinessHours): HoursSpan {
-  const start = parseTimeOfDay(range.start, 0);
-  const end = parseTimeOfDay(range.end, MINUTES_PER_DAY);
-  if (end > start) return { start, end, spill: 0 };
-  // Overnight (22:00–06:00): open until midnight, then on into the next day.
-  return { start, end: MINUTES_PER_DAY, spill: end };
-}
-
 /**
- * The open parts of a day: its own ranges, and the mornings the previous
- * weekday's overnight ranges run into.
+ * The open parts of a day as instants: `openIntervals` (shared with the time
+ * grid and the drop rules) reads its own hours and the morning the previous
+ * weekday's overnight hours run into.
  */
-function openIntervals(
+function openEpochs(
   day: AgendaDay,
   hoursOf: HoursOfWeekday,
   timeZone: string,
 ): EpochInterval[] {
-  const at = (minutes: number) => zonedEpoch(day.key, minutes, timeZone);
-  const own = hoursOf(day.weekday).map(hoursSpan);
-  const previous = hoursOf((day.weekday + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK)
-    .map(hoursSpan)
-    .filter((span) => span.spill > 0);
-  return [
-    ...own.map((span) => ({ start: at(span.start), end: at(span.end) })),
-    ...previous.map((span) => ({ start: at(0), end: at(span.spill) })),
-  ]
-    .filter((interval) => interval.end > interval.start)
-    .sort((a, b) => a.start - b.start);
+  const previous = (day.weekday + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK;
+  return openIntervals(hoursOf(day.weekday), hoursOf(previous)).map(
+    (interval) => ({
+      start: zonedEpoch(day.key, interval.start, timeZone),
+      end: zonedEpoch(day.key, interval.end, timeZone),
+    }),
+  );
 }
 
 /** The parts of a day outside its open intervals. */
@@ -99,7 +81,7 @@ function closedOfDay(
   scale: AgendaTimelineScale,
   timeZone: string,
 ): EpochInterval[] {
-  const open = openIntervals(day, hoursOf, timeZone);
+  const open = openEpochs(day, hoursOf, timeZone);
   if (scale !== "day") return closedIntervals(day, open);
   return open.length ? [] : [{ start: day.start, end: day.end }];
 }

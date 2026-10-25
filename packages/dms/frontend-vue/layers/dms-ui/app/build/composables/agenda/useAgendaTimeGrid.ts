@@ -272,6 +272,15 @@ export function resolveGridBody(
 /** The columns, headers and widths of a time grid view. */
 function useGridColumns(ctx: AgendaContext) {
   const isResources = computed(() => ctx.view.value.type === "resources");
+  // A boolean of its own: an event change rebuilds the columns only when it
+  // flips, not on every move.
+  const hasUnassigned = computed(
+    () =>
+      isResources.value &&
+      ctx.occurrences.value.some(
+        (occurrence) => !occurrence.resourceIds.length,
+      ),
+  );
   const columnInput = computed(() => ({
     days: ctx.range.value.days,
     resources: isResources.value ? ctx.resources.value : undefined,
@@ -279,11 +288,7 @@ function useGridColumns(ctx: AgendaContext) {
     folded: ctx.foldedGroups.value,
     layout: ctx.view.value.resourceLayout,
     // Events planned on no resource get a column of their own.
-    withUnassigned:
-      isResources.value &&
-      ctx.occurrences.value.some(
-        (occurrence) => !occurrence.resourceIds.length,
-      ),
+    withUnassigned: hasUnassigned.value,
   }));
   const columns = computed(() => buildGridColumns(columnInput.value));
   const columnMinWidth = computed(

@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { AgendaDragPreview } from "../../composables/agenda/agendaModel";
 import {
   placeSpan,
+  type PlaceSpanOptions,
   type TimelineColumn,
   type TimelineMetrics,
   type TimelinePlaced,
@@ -27,8 +28,8 @@ const props = defineProps<{
   shades: TimelineShade[];
   metrics: TimelineMetrics;
   preview: AgendaDragPreview | null;
-  /** A timeline by day: the preview takes whole days, as the events do. */
-  wholeColumns?: boolean;
+  /** How spans are placed (whole days by day, the range's bounds), as the events are. */
+  placement?: PlaceSpanOptions;
 }>();
 
 const { t } = useI18n();
@@ -64,9 +65,13 @@ const previewHere = computed(() => {
     ? preview.resourceIds.includes(id)
     : !preview.resourceIds.length;
   if (!onRow) return null;
-  return placeSpan(props.columns, preview.start, preview.end, props.breaks, {
-    wholeColumns: props.wholeColumns,
-  });
+  return placeSpan(
+    props.columns,
+    preview.start,
+    preview.end,
+    props.breaks,
+    props.placement,
+  );
 });
 
 const previewStyle = (segment: TimelineSegment) => ({
@@ -93,8 +98,11 @@ const continuation = (segment: TimelineSegment, index: number) =>
       <div
         v-for="(segment, index) in item.segments"
         :key="`${item.key}:${index}`"
-        class="absolute z-[1] px-px"
-        :class="item.ghost ? 'pointer-events-none' : ''"
+        class="absolute px-px"
+        :class="[
+          item.ghost ? 'pointer-events-none' : '',
+          item.sliver ? 'z-[2]' : 'z-[1]',
+        ]"
         :style="segmentStyle(item, segment)"
         :data-agenda-occurrence="item.ghost ? undefined : item.occurrence.key"
       >
@@ -107,6 +115,7 @@ const continuation = (segment: TimelineSegment, index: number) =>
           v-else
           :occurrence="item.occurrence"
           layout="bar"
+          :height="metrics.laneHeight - LANE_GAP"
           :continues-before="continuation(segment, index)"
           :continues-after="segment.continuesAfter"
           class="size-full"

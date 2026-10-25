@@ -134,3 +134,41 @@ export function leavesLocalId(
     return change.scope === "occurrence" && change.kind !== "delete";
   });
 }
+
+/** A save's answer, kept to lay over a read made before it. */
+export interface AgendaAnswerLayer {
+  /** Its place among the writes (1 for the first). */
+  seq: number;
+  response: AgendaSaveResponse;
+  written: AgendaChange[];
+  /** The events new ones drew as, by their temporary id. */
+  seeds: Map<string, AgendaEvent>;
+}
+
+/** How many answers are kept to lay over older reads. */
+export const KEPT_ANSWER_LAYERS = 30;
+
+/**
+ * A read with the save answers made after it laid over it (a week read
+ * before a move and shown again from cache shows the move).
+ */
+export function layerAnswers(
+  data: AgendaData,
+  layers: AgendaAnswerLayer[],
+  readAt: number,
+  timeZone: string,
+): AgendaData {
+  return layers
+    .filter((layer) => layer.seq > readAt)
+    .reduce(
+      (current, layer) =>
+        applySaveAnswer(
+          current,
+          layer.response,
+          layer.written,
+          (change) => layer.seeds.get(change.tempId ?? ""),
+          timeZone,
+        ),
+      data,
+    );
+}

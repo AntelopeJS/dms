@@ -10,7 +10,7 @@ import type {
   AgendaRecurringScope,
 } from "../../../types/full-agenda";
 import type { AgendaOccurrence } from "./agendaModel";
-import { eventFields, previousOf } from "./agendaChanges";
+import { eventFields, previousOf, withoutAbsent } from "./agendaChanges";
 import { zonedIso } from "./agendaTime";
 
 let tempCounter = 0;
@@ -111,7 +111,8 @@ export function completeChange(input: AgendaCompleteInput): AgendaChange {
     ? eventFields(event)
     : previousOf(event, next.patch);
   const bounds = own ? timesOf(own, next) : {};
-  next.previous = { ...previous, ...next.previous, ...bounds };
+  // The caller's `previous` wins, but never with a value it left `undefined`.
+  next.previous = { ...previous, ...withoutAbsent(next.previous), ...bounds };
   return next;
 }
 

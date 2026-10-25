@@ -8,6 +8,7 @@ import type {
 } from "../../layers/dms-ui/app/build/composables/agenda/agendaModel";
 import {
   addDays,
+  MINUTES_PER_DAY,
   weekdayOf,
   zonedDayKey,
   zonedEpoch,
@@ -106,7 +107,15 @@ export function occurrence(
         ? zonedDayKey(endMs - 1, timeZone)
         : zonedDayKey(startMs, timeZone),
     startMinutes: allDay ? 0 : zonedMinutes(startMs, timeZone),
-    endMinutes: allDay ? 0 : zonedMinutes(endMs, timeZone),
+    // As the engine: 1440 for an all-day event and for one ending at midnight.
+    endMinutes:
+      allDay ||
+      zonedDayKey(endMs, timeZone) !==
+        (endMs > startMs
+          ? zonedDayKey(endMs - 1, timeZone)
+          : zonedDayKey(startMs, timeZone))
+        ? MINUTES_PER_DAY
+        : zonedMinutes(endMs, timeZone),
     resourceIds: extra.resourceIds ?? [],
     paint: PAINT,
     canMove: extra.editable !== false,

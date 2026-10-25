@@ -187,7 +187,7 @@ describe("sidebar", () => {
     expect(scrolled).toHaveBeenCalled();
   });
 
-  it("#47 plans a pending item from the keyboard on the day shown", async () => {
+  it("#47 plans a pending item from the keyboard through the drag's rules", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
       unscheduled: {},
@@ -198,18 +198,16 @@ describe("sidebar", () => {
     item.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );
-    await vi.waitFor(() => expect(agenda.applied).toHaveLength(1));
-    // Today (25/10) is not shown: 09:00 on the range's first day, an hour long.
-    expect(agenda.applied[0]).toMatchObject({
-      kind: "schedule",
-      id: "p1",
-      patch: {
-        start: "2026-10-26T09:00:00+01:00",
-        end: "2026-10-26T10:00:00+01:00",
-        allDay: false,
-      },
-    });
-    expect(agenda.ctx.announce).toHaveBeenCalled();
+    await vi.waitFor(() =>
+      expect(agenda.ctx.drag.planPending).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "p1" }),
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(agenda.ctx.announce).toHaveBeenCalledWith(
+        'dms.agenda.sidebar.planned {"title":"Client_1"}',
+      ),
+    );
   });
 });
 
@@ -361,20 +359,18 @@ describe("toolbar and states", () => {
 
   it("#53 says how an immediate save stands, not a staged one", async () => {
     const { el, agenda } = await mountBlock({ saveUrl: "/save" });
-    expect(query(el, "[data-agenda-save-status]")).toBeNull();
+    // Mounted from the start, empty: a live region announces its changes.
+    const status = query(el, "[data-agenda-save-status]")!;
+    expect(status.getAttribute("role")).toBe("status");
+    expect(status.textContent?.trim()).toBe("");
     agenda.saveStatus.value = "saving";
     await nextTick();
-    expect(query(el, "[data-agenda-save-status]")?.textContent).toContain(
-      "dms.agenda.save.saving",
-    );
+    expect(query(el, "[data-agenda-save-status]")).toBe(status);
+    expect(status.textContent).toContain("dms.agenda.save.saving");
     agenda.saveStatus.value = "saved";
     await nextTick();
-    expect(query(el, "[data-agenda-save-status]")?.textContent).toContain(
-      "dms.agenda.save.saved",
-    );
+    expect(status.textContent).toContain("dms.agenda.save.saved");
     const staged = await mountBlock({ saveUrl: "/save", saveMode: "staged" });
-    staged.agenda.saveStatus.value = "saving";
-    await nextTick();
     expect(query(staged.el, "[data-agenda-save-status]")).toBeNull();
   });
 
@@ -390,14 +386,16 @@ describe("toolbar and states", () => {
 });
 
 describe("height", () => {
-  it("#11 fills only a flex column, else 44rem, bounded by the window in a modal", async () => {
+  it("#11 fills only the page's filling block, else 44rem, bounded by the window in a modal", async () => {
     harness.pageFills.value = true;
     const last = await mountBlock({});
     const root = query(last.el, "[data-dms-full-agenda]")!;
     expect(root.style.height).toBe("");
-    expect(root.className).toContain("min-h-[36rem]");
+    expect(root.dataset.height).toBe("fill");
+    // N17: no floor of its own, the page region keeps its minimum.
+    expect(root.className).not.toContain("min-h-[36rem]");
 
-    const above = await mountBlock({}, 1400, { parentStyle: "display: block" });
+    const above = await mountBlock({}, 1400, { pageFill: false });
     await nextTick();
     expect(query(above.el, "[data-dms-full-agenda]")!.style.height).toBe(
       "44rem",
@@ -406,6 +404,7 @@ describe("height", () => {
     harness.pageFills.value = false;
     const modal = await mountBlock({ height: "fill" }, 600, {
       parentStyle: "display: block",
+      pageFill: false,
       container: true,
     });
     await nextTick();

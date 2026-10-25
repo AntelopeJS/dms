@@ -12,16 +12,15 @@ import type {
 } from "../../../types/full-agenda";
 import type { AgendaOccurrence, AgendaOccurrenceState } from "./agendaModel";
 import { occurrenceKey } from "./agendaRecurrence";
-import {
-  addDays,
-  daysBetween,
-  isDayKey,
-  isTimeZone,
-  zonedDayKey,
-  zonedEpoch,
-  zonedIso,
-  zonedMinutes,
-} from "./agendaTime";
+import { mergePatch, patchEvent } from "./agendaPatch";
+import { isSeriesPair, patchSeries, rebaseSeriesChange } from "./agendaSeries";
+
+export { mergePatch, patchEvent, withoutAbsent } from "./agendaPatch";
+export {
+  seriesTimeZone,
+  zonedShift,
+  type AgendaZonedShift,
+} from "./agendaSeries";
 
 /** Where a change stands. `staged` waits for Save; `error` and `conflict` were refused. */
 export type AgendaEditStatus = "staged" | "saving" | "error" | "conflict";
@@ -45,6 +44,8 @@ export interface AgendaEdit {
   current?: AgendaEvent;
   /** A change made while this one is being written: sent once it settles. */
   queued?: AgendaChange;
+  /** It was written with `force` (a `confirm` answered): an Overwrite keeps it. */
+  forced?: boolean;
 }
 
 /** How an occurrence shows its change. */
@@ -85,17 +86,6 @@ const isRemoval = (change: AgendaChange) =>
 function sameValue(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-}
-
-/** `next` over `patch`, their `data` merged field by field. */
-export function mergePatch(
-  patch: AgendaEventPatch | undefined,
-  next: AgendaEventPatch | undefined,
-): AgendaEventPatch {
-  const merged: AgendaEventPatch = { ...patch, ...next };
-  if (patch?.data || next?.data)
-    merged.data = { ...patch?.data, ...next?.data };
-  return merged;
 }
 
 /** What an absent field reads as in a `previous`: its default, else cleared (`null`). */
@@ -171,6 +161,8 @@ function mergedKind(
 export function mergeChanges(
   existing: AgendaChange,
   next: AgendaChange,
+  /** The series' zone, for two series changes made through different occurrences. */
+  timeZone = "UTC",
 ): AgendaChange | null {
   if (isRemoval(next)) {
     if (isNewKind(existing)) return null;
@@ -179,6 +171,11 @@ export function mergeChanges(
   if (isNewKind(existing))
     return { ...existing, patch: mergePatch(existing.patch, next.patch) };
   if (isRemoval(existing)) return next;
+  if (isSeriesPair(existing, next))
+    return {
+      ...rebaseSeriesChange(existing, next, timeZone),
+      kind: mergedKind(existing, next),
+    };
   const merged: AgendaChange = {
     ...existing,
     kind: mergedKind(existing, next),
@@ -186,25 +183,6 @@ export function mergeChanges(
     previous: mergePatch(next.previous, existing.previous),
   };
   return isNoop(merged) ? null : merged;
-}
-
-/** A record without its `null` entries: what a patch clears is gone. */
-function withoutCleared<T extends object>(record: T): T {
-  return Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== null),
-  ) as T;
-}
-
-/** An event with a patch's fields over its own; a field (or `data` key) set to `null` is cleared. */
-export function patchEvent(
-  event: AgendaEvent,
-  patch: AgendaEventPatch | undefined,
-): AgendaEvent {
-  if (!patch) return event;
-  const { data, ...fields } = patch;
-  const merged = withoutCleared({ ...event, ...fields }) as AgendaEvent;
-  if (!data) return merged;
-  return { ...merged, data: withoutCleared({ ...event.data, ...data }) };
 }
 
 /** The event a `create` draws before the route answers it. */
@@ -243,108 +221,6 @@ function detachOccurrence(
     ...others,
     patchEvent({ ...single, id: occurrenceKey(series.id, day) }, change.patch),
   ];
-}
-
-/** How far an occurrence moved, in the series' zone: whole days, and wall-clock minutes. */
-export interface AgendaZonedShift {
-  days: number;
-  minutes: number;
-}
-
-/** The days and wall-clock minutes from `before` to `after`; `null` when either is not a date. */
-export function zonedShift(
-  before: string | null | undefined,
-  after: string | null | undefined,
-  timeZone: string,
-): AgendaZonedShift | null {
-  if (!before || !after) return null;
-  if (isDayKey(before) && isDayKey(after))
-    return { days: daysBetween(before, after), minutes: 0 };
-  const from = Date.parse(before);
-  const to = Date.parse(after);
-  if (Number.isNaN(from) || Number.isNaN(to)) return null;
-  return {
-    days: daysBetween(zonedDayKey(from, timeZone), zonedDayKey(to, timeZone)),
-    minutes: zonedMinutes(to, timeZone) - zonedMinutes(from, timeZone),
-  };
-}
-
-/** A series bound moved by a zoned shift: its day by the days, its wall clock by the minutes (DST-safe). */
-function shiftBound(
-  bound: string | undefined,
-  shift: AgendaZonedShift | null,
-  timeZone: string,
-): string | undefined {
-  if (!bound || !shift) return bound;
-  if (isDayKey(bound)) return addDays(bound, shift.days);
-  const epoch = Date.parse(bound);
-  if (Number.isNaN(epoch)) return bound;
-  const day = addDays(zonedDayKey(epoch, timeZone), shift.days);
-  const minutes = zonedMinutes(epoch, timeZone) + shift.minutes;
-  return zonedIso(zonedEpoch(day, minutes, timeZone), timeZone);
-}
-
-const DAYS_PER_WEEK = 7;
-
-/** A weekly series' days turned by the days its occurrence moved (Friday + 3 is Monday). */
-function rotateWeekdays(
-  recurrence: AgendaEvent["recurrence"],
-  days: number,
-): AgendaEvent["recurrence"] {
-  const weekdays = recurrence?.weekdays;
-  const turn = ((days % DAYS_PER_WEEK) + DAYS_PER_WEEK) % DAYS_PER_WEEK;
-  if (!recurrence || !weekdays?.length || !turn) return recurrence;
-  return {
-    ...recurrence,
-    weekdays: weekdays.map((weekday) => (weekday + turn) % DAYS_PER_WEEK),
-  };
-}
-
-/** The zone a series keeps its wall clock and its days in: its own, else the agenda's. */
-export function seriesTimeZone(event: AgendaEvent, timeZone: string): string {
-  const own = event.recurrence?.timeZone;
-  return isTimeZone(own) ? own : timeZone;
-}
-
-/** A series that falls on several weekdays keeps its days when moved as a whole: only its time moves. */
-const keepsItsDays = (event: AgendaEvent) =>
-  event.recurrence?.frequency === "weekly" &&
-  (event.recurrence.weekdays?.length ?? 0) > 1;
-
-/** A shift without its days. */
-const timeOnly = (shift: AgendaZonedShift | null): AgendaZonedShift | null =>
-  shift && { days: 0, minutes: shift.minutes };
-
-/**
- * A series changed through one of its occurrences: the change's `start` and
- * `end` are the occurrence's. As the routes do, in the series' zone (a 09:00
- * standup stays at 09:00 across a DST change): a series on several weekdays
- * keeps its days and takes the new wall-clock time; any other moves by the
- * days and the time, a single weekday following. The other fields apply as
- * they are.
- */
-function patchSeries(
-  event: AgendaEvent,
-  change: AgendaChange,
-  timeZone: string,
-): AgendaEvent {
-  const { start, end, ...rest } = change.patch ?? {};
-  const previous = change.previous ?? {};
-  const zone = seriesTimeZone(event, timeZone);
-  const keepsDays = keepsItsDays(event);
-  const shiftOf = (shift: AgendaZonedShift | null) =>
-    keepsDays ? timeOnly(shift) : shift;
-  const startShift = shiftOf(zonedShift(previous.start, start, zone));
-  const endShift =
-    shiftOf(zonedShift(previous.end ?? previous.start, end ?? start, zone)) ??
-    startShift;
-  const moved: AgendaEvent = {
-    ...event,
-    start: shiftBound(event.start, startShift, zone) ?? event.start,
-    end: shiftBound(event.end, endShift, zone),
-    recurrence: rotateWeekdays(event.recurrence, startShift?.days ?? 0),
-  };
-  return patchEvent(moved, rest);
 }
 
 /**

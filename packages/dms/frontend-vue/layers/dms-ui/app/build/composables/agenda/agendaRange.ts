@@ -317,6 +317,20 @@ export function clampDay(
   return day;
 }
 
+/**
+ * A span of days held within the bounds (a period picked in a selector that
+ * reaches past `minDate` / `maxDate`); wholly outside them, the nearest
+ * bound day.
+ */
+export function clampDays(
+  days: { from: AgendaDayKey; to: AgendaDayKey },
+  bounds: AgendaBounds,
+): { from: AgendaDayKey; to: AgendaDayKey } {
+  const from = clampDay(days.from, bounds);
+  const to = clampDay(days.to, bounds);
+  return { from, to: to < from ? from : to };
+}
+
 /** Whether a range around `anchor` shows any day within the bounds. */
 export function rangeMeetsBounds(
   view: ResolvedAgendaView,

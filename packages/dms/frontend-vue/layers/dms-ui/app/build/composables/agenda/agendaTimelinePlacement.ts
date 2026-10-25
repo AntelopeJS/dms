@@ -77,6 +77,33 @@ function splitSegments(
 export interface PlaceSpanOptions {
   /** A timeline by day: a timed span takes the whole days it touches. */
   wholeColumns?: boolean;
+  /**
+   * The instants of the range shown: the start of its first day and the end
+   * of its last. An event inside them but outside the shown hours (before
+   * `dayStart` on the first day, after `dayEnd` or the last slot on the
+   * last) keeps a sliver. Defaults to the columns' own bounds.
+   */
+  rangeStart?: number;
+  rangeEnd?: number;
+}
+
+/** Where a span is drawn: its stretch, its segments, and whether it is only a sliver. */
+export type TimelineSpan = Pick<
+  TimelinePlaced,
+  "from" | "to" | "segments" | "sliver"
+>;
+
+/** A zero-length instant lies outside every column (edges included). */
+function isInstantHidden(
+  columns: readonly TimelineColumn[],
+  epochMs: number,
+): boolean {
+  const position = columnPosition(columns, epochMs);
+  const column = columns[Math.floor(position + EPSILON)];
+  const before = columns[Math.ceil(position - EPSILON) - 1];
+  const inside = (candidate?: TimelineColumn) =>
+    !!candidate && candidate.start <= epochMs && epochMs <= candidate.end;
+  return !inside(column) && !inside(before);
 }
 
 /** A start lies in no column (`[start, end)`): before the first, in a gap, after the last. */
@@ -133,10 +160,10 @@ export function placeSpan(
   end: number,
   breaks: readonly number[],
   options: PlaceSpanOptions = {},
-): Pick<TimelinePlaced, "from" | "to" | "segments"> | null {
+): TimelineSpan | null {
   if (!columns.length) return null;
-  const first = columns[0]!.start;
-  const last = columns.at(-1)!.end;
+  const first = options.rangeStart ?? columns[0]!.start;
+  const last = options.rangeEnd ?? columns.at(-1)!.end;
   const safeEnd = Math.max(end, start);
   if (start >= last || safeEnd < first || (safeEnd === first && end > start)) {
     return null;
@@ -147,18 +174,22 @@ export function placeSpan(
     from = Math.floor(from + EPSILON);
     to = Math.max(from + 1, Math.ceil(to - EPSILON));
   }
-  const clippedBefore = isStartHidden(
-    columns,
-    start,
-    columnPosition(columns, start),
-  );
+  // A zero-length event is hidden or shown as a whole: both flags or none.
+  const zeroHidden = safeEnd === start && isInstantHidden(columns, start);
+  const clippedBefore =
+    safeEnd === start
+      ? zeroHidden
+      : isStartHidden(columns, start, columnPosition(columns, start));
   const clippedAfter =
-    safeEnd > start &&
-    isEndHidden(columns, safeEnd, columnPosition(columns, safeEnd));
-  if (to - from < MIN_SPAN) [from, to] = widen(columns, from, start, safeEnd);
+    safeEnd === start
+      ? zeroHidden
+      : isEndHidden(columns, safeEnd, columnPosition(columns, safeEnd));
+  const sliver = to - from < MIN_SPAN;
+  if (sliver) [from, to] = widen(columns, from, start, safeEnd);
   return {
     from,
     to,
+    sliver,
     segments: splitSegments(from, to, breaks, clippedBefore, clippedAfter),
   };
 }

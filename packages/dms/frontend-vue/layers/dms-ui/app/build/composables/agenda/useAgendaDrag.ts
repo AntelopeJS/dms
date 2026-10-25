@@ -38,6 +38,7 @@ import {
 import type { AgendaDragDeps } from "./agendaDragPreview";
 import { keyStep, nudgeSource, nudgeTarget } from "./agendaDragKeys";
 import { AgendaDropCommitter } from "./agendaDragCommit";
+import { planPendingItem } from "./agendaDragPlan";
 
 export type { AgendaDragDeps } from "./agendaDragPreview";
 
@@ -49,6 +50,8 @@ const FRAME_MS = 16;
 
 interface DragSession {
   source: AgendaDragSource;
+  /** The chip dragged had the focus: it takes it back after the drop. */
+  hadFocus: boolean;
   title: string;
   pointerId: number;
   isTouch: boolean;
@@ -78,12 +81,19 @@ const cancelRaf = (handle: FrameHandle): void => {
   else clearTimeout(handle);
 };
 
+/** The event whose chip has the browser's focus. */
+const focusedChipKey = (): string | undefined =>
+  document.activeElement instanceof HTMLElement
+    ? document.activeElement.dataset.agendaOccurrence
+    : undefined;
+
 const WINDOW_LISTENERS = ["pointermove", "pointerup", "pointercancel"] as const;
 
 class AgendaDragEngine {
   readonly preview = shallowRef<AgendaDragPreview | null>(null);
   readonly isActive = ref(false);
   readonly draggingKey = ref<string | null>(null);
+  readonly refocusKey = ref<string | null>(null);
   readonly announcement = ref("");
   private readonly surfaces: AgendaDropSurface[] = [];
   private readonly committer: AgendaDropCommitter;
@@ -93,9 +103,15 @@ class AgendaDragEngine {
   private bodySelect = "";
 
   constructor(private readonly deps: AgendaDragDeps) {
-    this.committer = new AgendaDropCommitter(deps, (message) => {
-      this.announcement.value = message;
-    });
+    this.committer = new AgendaDropCommitter(
+      deps,
+      (message) => {
+        this.announcement.value = message;
+      },
+      (key) => {
+        this.refocusKey.value = key;
+      },
+    );
   }
 
   private computePreview(current: DragSession): AgendaDragPreview | null {
@@ -237,7 +253,12 @@ class AgendaDragEngine {
     const dropped = this.preview.value;
     this.teardown();
     this.swallowNextClick();
-    this.committer.drop(current.source, current.title, dropped);
+    this.committer.drop(
+      current.source,
+      current.title,
+      dropped,
+      current.hadFocus,
+    );
   }
 
   private readonly onPointer = (event: PointerEvent): void => {
@@ -295,6 +316,7 @@ class AgendaDragEngine {
         : origin;
     this.session = {
       source: { ...source, origin: resolved },
+      hadFocus: focusedChipKey() === source.occurrence?.key,
       title,
       pointerId: event.pointerId,
       isTouch,
@@ -349,14 +371,19 @@ class AgendaDragEngine {
     const reason = refusal
       ? this.deps.t(`dms.agenda.drag.reason.${refusal}`)
       : undefined;
-    this.committer.drop(source, title, {
-      ...placement,
-      kind: source.kind,
-      valid: refusal === null,
-      reason,
-      copy: false,
-      toPending: false,
-    });
+    this.committer.drop(
+      source,
+      title,
+      {
+        ...placement,
+        kind: source.kind,
+        valid: refusal === null,
+        reason,
+        copy: false,
+        toPending: false,
+      },
+      true,
+    );
     return true;
   }
 
@@ -411,5 +438,7 @@ export function useAgendaDrag(deps: AgendaDragDeps): AgendaDragController {
     nudge: (event, occurrence) => engine.nudge(event, occurrence),
     announcement: engine.announcement,
     draggingKey: computed(() => engine.draggingKey.value),
+    planPending: (item, target) => planPendingItem(deps, item, target),
+    refocusKey: engine.refocusKey,
   };
 }

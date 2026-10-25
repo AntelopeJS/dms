@@ -9,6 +9,7 @@ import type {
 } from "../../composables/agenda/agendaMonthLayout";
 import type { AgendaBackgroundSpan } from "../../composables/agenda/agendaBackgroundSpans";
 import { dayBackground } from "../../composables/agenda/agendaTimeGridParts";
+import { rovingToken } from "../../composables/agenda/agendaMonthLayout";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import AgendaEventChip from "./AgendaEventChip.vue";
 import AgendaMorePopover from "./AgendaMorePopover.vue";
@@ -20,7 +21,8 @@ import AgendaDayBarsPreview from "./AgendaDayBarsPreview.vue";
  * its events on lanes (bars over days, a dot and a time for the others),
  * "+N more" on a crowded day, and the drag preview over its days. Each
  * chip sits in the grid cell of its first day; one chip of the month is in
- * the tab order (`entryKey`), the arrows move from it.
+ * the tab order (`entry`): the day numbers, the chips and the "+N more"
+ * of the month are one roving set, the arrows move through it.
  */
 interface AgendaMonthWeekProps {
   week: AgendaWeekRow;
@@ -28,8 +30,8 @@ interface AgendaMonthWeekProps {
   template: string;
   backgrounds: AgendaBackgroundSpan[];
   showWeekNumber: boolean;
-  /** The one chip of the month in the tab order. */
-  entryKey: string | null;
+  /** The one element of the month in the tab order (see {@link rovingToken}). */
+  entry: string;
   /** Pixels of a lane. */
   lanePx: number;
 }
@@ -82,6 +84,8 @@ const segmentStyle = (segment: AgendaMonthSegment) => ({
   gridRow: segment.lane + 2,
 });
 
+const tabIndexOf = (token: string) => (props.entry === token ? 0 : -1);
+
 function openDay(day: AgendaDay): void {
   ctx.goTo(day.key, "day");
 }
@@ -108,6 +112,7 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
     <div v-if="props.showWeekNumber" class="contents" role="rowheader">
       <button
         type="button"
+        tabindex="-1"
         class="text-dimmed hover:text-primary flex justify-center border-e border-(--ui-border) pt-1.5 text-[10px] font-medium tabular-nums"
         :style="{ gridColumn: 1, gridRow: '1 / -1' }"
         :aria-label="t('dms.agenda.month.open_week', { week: props.week.week })"
@@ -158,6 +163,8 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
             ]"
             :aria-label="ctx.format.day(day.key, 'long')"
             @pointerdown.stop
+            :tabindex="tabIndexOf(rovingToken.day(day.key))"
+            data-agenda-roving
             @click.stop="openDay(day)"
             @dblclick.stop
           >
@@ -176,7 +183,8 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
           :layout="segment.layout"
           :continues-before="segment.continuesBefore"
           :continues-after="segment.continuesAfter"
-          :tabbable="segment.occurrence.key === props.entryKey"
+          :tabbable="props.entry === rovingToken.chip(props.week.key, segment)"
+          data-agenda-roving
         />
       </div>
       <div
@@ -185,6 +193,7 @@ function onClick(day: AgendaDay, isDouble: boolean): void {
         :style="{ gridColumn: index + offset, gridRow: limit + 1 }"
       >
         <AgendaMorePopover
+          :tabbable="props.entry === rovingToken.more(day.key)"
           :day="day"
           :occurrences="props.layout.dayEvents[index]!"
           :count="props.layout.more[index]!"

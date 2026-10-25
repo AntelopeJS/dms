@@ -21,6 +21,7 @@ import {
   type TimelineHeaderGroup,
   type TimelineMetrics,
   type TimelineRow,
+  type PlaceSpanOptions,
 } from "./agendaTimelineLayout";
 import { rowAt, timelineTargetAt } from "./agendaTimelineHitTest";
 import {
@@ -49,6 +50,14 @@ const METRICS: Record<"compact" | "comfortable", TimelineMetrics> = {
   compact: { laneHeight: 24, rowPadding: 3, minRowHeight: 36, groupHeight: 28 },
 };
 
+/** Comfortable lanes tall enough for a title over a subtitle ("Peters" / "DC-Dessin-AP1"). */
+const TWO_LINE_METRICS: TimelineMetrics = {
+  laneHeight: 44,
+  rowPadding: 5,
+  minRowHeight: 54,
+  groupHeight: 32,
+};
+
 /** The elements a point is measured against. */
 export interface TimelineElements {
   /** The scrolling viewport. */
@@ -59,6 +68,8 @@ export interface TimelineElements {
 
 export interface AgendaTimelineState {
   scale: ComputedRef<"hour" | "slot" | "day">;
+  /** How spans are placed: whole days by day, slivers inside the range's bounds. */
+  placement: ComputedRef<PlaceSpanOptions>;
   slots: ComputedRef<ParsedAgendaSlot[]>;
   columns: ComputedRef<TimelineColumn[]>;
   headerGroups: ComputedRef<TimelineHeaderGroup[]>;
@@ -105,12 +116,18 @@ function useTimelineGeometry(ctx: AgendaContext) {
       ctx.options.value.weekStartsOn,
     ),
   );
-  const metrics = computed(
-    () =>
-      METRICS[
-        options.value.raw.density === "compact" ? "compact" : "comfortable"
-      ],
-  );
+  // Two-line lanes when an event shown has a subtitle to show (L2); compact
+  // density keeps one line.
+  const metrics = computed(() => {
+    if (options.value.raw.density === "compact") return METRICS.compact;
+    const showsSubtitle = options.value.raw.eventContent?.subtitle !== false;
+    const hasSubtitle = ctx.occurrences.value.some(
+      (occurrence) => !!occurrence.event.subtitle,
+    );
+    return showsSubtitle && hasSubtitle
+      ? TWO_LINE_METRICS
+      : METRICS.comfortable;
+  });
   const resourceWidth = computed(() => {
     const width =
       options.value.raw.resourceAreaWidth ?? TIMELINE_RESOURCE_WIDTH;
@@ -215,6 +232,11 @@ export function useAgendaTimeline(
   elements: TimelineElements,
 ): AgendaTimelineState {
   const geometry = useTimelineGeometry(ctx);
+  const placement = computed<PlaceSpanOptions>(() => ({
+    wholeColumns: geometry.scale.value === "day",
+    rangeStart: ctx.range.value.start,
+    rangeEnd: ctx.range.value.end,
+  }));
   const rows = computed(() =>
     buildTimelineRows({
       resources: ctx.resources.value,
@@ -224,7 +246,7 @@ export function useAgendaTimeline(
       columns: geometry.columns.value,
       breaks: geometry.breaks.value,
       metrics: geometry.metrics.value,
-      wholeColumns: geometry.scale.value === "day",
+      ...placement.value,
     }),
   );
   const bodyHeight = computed(() => {
@@ -243,6 +265,7 @@ export function useAgendaTimeline(
     shownPosition(geometry.columns.value, epochMs);
   return {
     scale: geometry.scale,
+    placement,
     slots: geometry.slots,
     columns: geometry.columns,
     headerGroups: geometry.headerGroups,

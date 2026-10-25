@@ -916,6 +916,7 @@
       "toolbar": {
         "view": "View",
         "today": "Today",
+        "today_unavailable": "Today is outside the dates this agenda offers",
         "previous": "Previous period",
         "next": "Next period",
         "pick_date": "{period}, go to a date",
@@ -935,7 +936,7 @@
         "fold": "Fold the sidebar",
         "mini_calendar": "Calendar",
         "calendars": "Calendars",
-        "calendar_count": "{name}, {count} events",
+        "calendar_count": "{name}, {count} event | {name}, {count} events",
         "resources": "Resources",
         "unscheduled": "To plan",
         "unscheduled_empty": "Nothing left to plan",
@@ -944,7 +945,8 @@
         "draggable": "draggable item",
         "drop_to_unschedule": "Drop here to take it off the agenda",
         "pending_hint": "Drag it onto the agenda, or press Enter to plan it on the day shown.",
-        "planned": "{title} planned, {when}",
+        "planned": "{title} planned",
+        "not_planned": "{title} could not be planned on the days shown",
         "notices": "Checks",
         "upcoming": "Upcoming",
         "upcoming_empty": "Nothing coming up"
@@ -978,6 +980,7 @@
         "retry": "Retry",
         "overwrite": "Overwrite",
         "take_theirs": "Take theirs",
+        "conflicts_to_resolve": "{count} conflict to resolve | {count} conflicts to resolve",
         "review_title": "Review the changes",
         "review_description": "Nothing is written until you save.",
         "change_create": "created",
@@ -1019,6 +1022,7 @@
         "discard": "Discard",
         "gone": "“{title}” no longer exists",
         "unresolved": "The save address of this agenda could not be built",
+        "unaddressed": "This change follows a new event the server did not name yet. Reload the agenda and make it again.",
         "save_label": "Save {count} change | Save {count} changes",
         "review_label": "Review {count} change | Review {count} changes"
       },
@@ -1038,7 +1042,7 @@
       },
       "month": {
         "more": "+{count} more",
-        "more_label": "{count} more events on {day}",
+        "more_label": "{count} more event on {day} | {count} more events on {day}",
         "day_label": "{day}, events: {count}",
         "open_week": "Open week {week}",
         "week_number": "Week number"

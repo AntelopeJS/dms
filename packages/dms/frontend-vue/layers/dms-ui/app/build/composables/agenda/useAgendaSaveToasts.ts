@@ -1,3 +1,4 @@
+import type { Ref } from "vue";
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type {
   AgendaChange,
@@ -6,6 +7,7 @@ import type {
 } from "../../../types/full-agenda";
 import { inverseChange, type AgendaEdit } from "./agendaChanges";
 import type { AgendaSaveEngine } from "./agendaSaveEngine";
+import type { AgendaRefusal } from "./agendaModel";
 import { agendaNewId } from "./agendaApply";
 import { DEFAULT_UNDO_SECONDS } from "./agendaOptions";
 
@@ -20,6 +22,12 @@ export interface AgendaSaveToastSetup {
   announce: (message: string) => void;
   /** The engine, once built (the toasts are wired into it). */
   engine: () => AgendaSaveEngine;
+  /** The last refusal, for the form that made the change. */
+  lastRefusal: Ref<AgendaRefusal | null>;
+  /** Places a refused change again, read against the event as it is now (Retry). */
+  resend: (edit: AgendaEdit) => Promise<boolean>;
+  /** An Undo went through, or not. */
+  onUndone?: (isUndone: boolean) => void;
 }
 
 /** The title a change is told by: its event's, else the new event's. */
@@ -65,6 +73,7 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
 
   async function undo(changes: AgendaChange[]): Promise<void> {
     const isUndone = await setup.engine().writeNow(changes);
+    setup.onUndone?.(isUndone);
     toast.add({
       title: isUndone ? label("undone") : label("undo_failed"),
       color: isUndone ? "neutral" : "error",
@@ -110,12 +119,17 @@ export function useAgendaSaveToasts(setup: AgendaSaveToastSetup) {
       await engine.saveAll();
       return;
     }
-    await Promise.all(edits.map((edit) => engine.resend(edit)));
+    await Promise.all(edits.map((edit) => setup.resend(edit)));
   }
 
   function failed(edits: AgendaEdit[]): void {
     const [first] = edits;
     if (!first) return;
+    setup.lastRefusal.value = {
+      id: first.change.id,
+      tempId: first.change.tempId,
+      message: first.message ?? "",
+    };
     const title =
       edits.length === 1
         ? label("failed", { title: editTitle(first) })

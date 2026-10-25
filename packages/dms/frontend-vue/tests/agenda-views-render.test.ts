@@ -218,6 +218,43 @@ describe("timeline view", () => {
   });
 });
 
+describe("timeline rows (L2, notices)", () => {
+  function roster(subtitle?: string) {
+    ctx = fakeAgendaContext({
+      days: makeDays("2026-10-26", 1),
+      view: { scale: "hour" },
+      resources: [{ id: "ann", label: "Ann" }],
+      occurrences: [
+        {
+          ...makeOccurrence({
+            key: "peters",
+            title: "Peters",
+            start: "2026-10-26T09:00:00+01:00",
+            end: "2026-10-26T11:00:00+01:00",
+            resourceIds: ["ann"],
+          }),
+          event: { id: "peters", title: "Peters", start: "", subtitle },
+        },
+      ],
+    });
+    return mount(AgendaTimelineView);
+  }
+
+  it("gives lanes two lines when an event has a subtitle, one otherwise", () => {
+    const twoLines = roster("DC-Dessin-AP1");
+    const row = twoLines.querySelector(
+      '[data-agenda-resource="ann"]',
+    ) as HTMLElement;
+    expect(row.style.height).toBe("54px");
+    app?.unmount();
+    const oneLine = roster();
+    const plain = oneLine.querySelector(
+      '[data-agenda-resource="ann"]',
+    ) as HTMLElement;
+    expect(plain.style.height).toBe("48px");
+  });
+});
+
 describe("timeline on the DST day", () => {
   it("draws 24 hour columns and the now line at 10:00 CET on 2026-10-25", () => {
     ctx = fakeAgendaContext({
@@ -415,6 +452,17 @@ describe("list view", () => {
     ).click();
     expect(ctx.open).toHaveBeenCalledWith(
       expect.objectContaining({ key: "standup" }),
+    );
+  });
+
+  it("says nothing while the first answer is loading (N35)", () => {
+    ctx = fakeAgendaContext({
+      days: makeDays("2026-10-25", 7),
+      view: { type: "list" },
+      loading: true,
+    });
+    expect(mount(AgendaListView).textContent).not.toContain(
+      "dms.agenda.list.empty",
     );
   });
 

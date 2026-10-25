@@ -54,16 +54,28 @@ const isDateTime = computed(
   () => !props.field.builtIn && props.field.kind === "datetime",
 );
 const WALL_CLOCK_LENGTH = 16;
-/** A stored instant as the wall clock of the agenda's zone, as the input shows it. */
+// An instant names its offset (`Z`, `+01:00`); a bare `2026-10-26T09:30` does not.
+const HAS_OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+/**
+ * A stored value as the input shows it: an instant as the wall clock of the
+ * agenda's zone; a value stored without an offset is already one.
+ */
 const dateTimeModel = computed(() => {
   const value = props.modelValue;
   if (typeof value !== "string" || !value) return "";
+  if (!HAS_OFFSET.test(value)) return value.slice(0, WALL_CLOCK_LENGTH);
   const epoch = Date.parse(value);
   return Number.isNaN(epoch) ? "" : wallClockOf(epoch, props.timeZone);
 });
 const setDateTime = (value: unknown) => {
   const typed =
     typeof value === "string" ? value.slice(0, WALL_CLOCK_LENGTH) : "";
+  // The wall clock shown, unchanged: the stored instant stays (in the hour a
+  // DST change repeats, the wall clock alone would name the first one).
+  if (typed && typed === dateTimeModel.value) {
+    emit("update:modelValue", props.modelValue);
+    return;
+  }
   emit(
     "update:modelValue",
     typed ? (wallClockIso(typed, props.timeZone) ?? typed) : null,

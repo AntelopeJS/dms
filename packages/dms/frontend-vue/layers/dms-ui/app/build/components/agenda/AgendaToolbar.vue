@@ -2,6 +2,7 @@
 import { parseDate } from "@internationalized/date";
 import { computed, ref } from "vue";
 import DmsCalendar from "../../../components/form/components/Calendar.vue";
+import AgendaSaveStatus from "./AgendaSaveStatus.vue";
 import AgendaViewSwitcher from "./AgendaViewSwitcher.vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import type { ResolvedAgendaToolbar } from "../../composables/agenda/agendaShell";
@@ -104,45 +105,10 @@ const setFacet = (facet: AgendaFacet, value: unknown) => {
 
 const actionColor = (action: AgendaToolbarAction) => action.tone ?? "neutral";
 
-/** How a save in `immediate` mode stands, beside the period. */
-interface SaveStatusBadge {
-  label: string;
-  icon: string;
-  class: string;
-}
-
-/** How each save status is drawn: its text key, icon and colour. */
-interface SaveStatusStyle {
-  key: string;
-  icon: string;
-  class: string;
-}
-
-const SAVE_STATUS: Record<string, SaveStatusStyle> = {
-  saving: {
-    key: "dms.agenda.save.saving",
-    icon: "i-ph-circle-notch",
-    class: "text-muted [&_svg]:animate-spin",
-  },
-  saved: {
-    key: "dms.agenda.save.saved",
-    icon: "i-ph-check",
-    class: "text-success",
-  },
-  error: {
-    key: "dms.agenda.details.status_error",
-    icon: "i-ph-warning",
-    class: "text-error",
-  },
-};
-const saveStatus = computed<SaveStatusBadge | null>(() => {
-  if (raw.value.saveMode === "staged") return null;
-  const status = ctx.saveStatus.value;
-  const badge = SAVE_STATUS[status];
-  return badge
-    ? { icon: badge.icon, class: badge.class, label: t(badge.key) }
-    : null;
-});
+/** An immediate agenda says how its writes stand, beside the period. */
+const showsSaveStatus = computed(
+  () => ctx.editable.value && raw.value.saveMode !== "staged",
+);
 </script>
 
 <template>
@@ -195,14 +161,23 @@ const saveStatus = computed<SaveStatusBadge | null>(() => {
           @click="emit('toggle-sidebar')"
         />
       </UTooltip>
-      <UButton
+      <UTooltip
         v-if="props.parts.today"
-        size="sm"
-        color="neutral"
-        variant="outline"
-        :label="t('dms.agenda.toolbar.today')"
-        @click="ctx.goToday()"
-      />
+        :text="t('dms.agenda.toolbar.today_unavailable')"
+        :disabled="ctx.canGoToday.value"
+      >
+        <!-- A disabled button gets no hover: the span carries the tooltip. -->
+        <span class="inline-flex" data-agenda-today>
+          <UButton
+            size="sm"
+            color="neutral"
+            variant="outline"
+            :label="t('dms.agenda.toolbar.today')"
+            :disabled="!ctx.canGoToday.value"
+            @click="ctx.goToday()"
+          />
+        </span>
+      </UTooltip>
       <div v-if="props.parts.navigation" class="flex items-center">
         <UButton
           icon="i-ph-caret-left"
@@ -260,15 +235,7 @@ const saveStatus = computed<SaveStatusBadge | null>(() => {
       <span v-if="props.parts.datePicker" class="sr-only" aria-live="polite">
         {{ period }}
       </span>
-      <span
-        v-if="saveStatus"
-        :class="['inline-flex items-center gap-1 text-xs', saveStatus.class]"
-        role="status"
-        data-agenda-save-status
-      >
-        <UIcon :name="saveStatus.icon" class="size-3.5" />
-        {{ saveStatus.label }}
-      </span>
+      <AgendaSaveStatus v-if="showsSaveStatus" />
 
       <div class="ms-auto flex flex-wrap items-center gap-2">
         <UInput

@@ -4,7 +4,7 @@
 // view shares.
 
 import type { AgendaDay, AgendaDayKey, AgendaOccurrence } from "./agendaModel";
-import { addDays } from "./agendaTime";
+import { addDays, MINUTES_PER_DAY } from "./agendaTime";
 
 /** How an event shows on one of its days. */
 export type AgendaListPart =
@@ -67,8 +67,9 @@ function partOn(
   const ends = occurrence.endDay === day;
   if (starts && ends) return "single";
   if (starts) return "start";
-  // Ending at midnight, it fills its last day (Mon 22:00 → Wed 00:00: Tuesday is whole).
-  if (ends && occurrence.endMinutes !== 0) return "end";
+  // Ending at midnight (the engine's `endMinutes` 1440 on its last day), it
+  // fills that day: Mon 22:00 → Wed 00:00 lists Tuesday as a whole day.
+  if (ends && occurrence.endMinutes < MINUTES_PER_DAY) return "end";
   return "middle";
 }
 

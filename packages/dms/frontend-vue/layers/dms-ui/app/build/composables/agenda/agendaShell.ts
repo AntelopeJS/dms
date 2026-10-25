@@ -198,14 +198,22 @@ export interface AgendaHeight {
   height?: string;
 }
 
+/** What the element laying the block out says, once mounted. */
+export interface AgendaFillPlace {
+  /** The page marks it as its filling block (`data-dms-page-fill`). */
+  pageFill: boolean;
+  /** It is a flex column (a drawer body), giving its height to the block. */
+  flexColumn: boolean;
+}
+
 /** Where the block stands, for its height. */
 export interface AgendaHeightSetting {
   /** The page fills the panel (`DefaultLayout({ fillHeight })`). */
   pageFills: boolean;
-  /** The element around the block is a flex column; `null` before it is measured. */
-  parentFlexColumn: boolean | null;
   /** In a drawer or a modal. */
   inContainer: boolean;
+  /** `null` before it is mounted (and on the server). */
+  place: AgendaFillPlace | null;
 }
 
 export const AGENDA_DEFAULT_HEIGHT = "44rem";
@@ -213,11 +221,15 @@ export const AGENDA_DEFAULT_HEIGHT = "44rem";
 export const AGENDA_CONTAINER_HEIGHT = "min(44rem, calc(100dvh - 12rem))";
 const FILL = "fill";
 
+/** The attribute the page renderer puts on its filling block's wrapper. */
+export const PAGE_FILL_ATTRIBUTE = "data-dms-page-fill";
+
 /**
  * `height`, else `fill` on a page filling the panel, else 44rem. `fill`
- * needs a flex column around the block (the page's last block, a drawer
- * body): elsewhere (a block above it, a modal body) it falls back to 44rem,
- * bounded by the window in a container.
+ * takes the height of the page's filling block or of a drawer body;
+ * elsewhere (a block above it, one inside a stack, a modal body) it falls
+ * back to 44rem, bounded by the window in a container. Before it is mounted
+ * the block fills, as the page's last block most often does.
  */
 export function resolveAgendaHeight(
   height: string | undefined,
@@ -225,14 +237,36 @@ export function resolveAgendaHeight(
 ): AgendaHeight {
   const value = height ?? (setting.pageFills ? FILL : AGENDA_DEFAULT_HEIGHT);
   if (value !== FILL) return { fill: false, height: value };
-  if (setting.parentFlexColumn === false)
-    return {
-      fill: false,
-      height: setting.inContainer
-        ? AGENDA_CONTAINER_HEIGHT
-        : AGENDA_DEFAULT_HEIGHT,
-    };
-  return { fill: true };
+  const { place } = setting;
+  if (!place) return { fill: true };
+  if (setting.inContainer)
+    return place.flexColumn
+      ? { fill: true }
+      : { fill: false, height: AGENDA_CONTAINER_HEIGHT };
+  return place.pageFill
+    ? { fill: true }
+    : { fill: false, height: AGENDA_DEFAULT_HEIGHT };
+}
+
+/** The element laying an element out: its parent, past `display: contents` wrappers (a permission veil). */
+export function layoutParentOf(element: HTMLElement): HTMLElement | null {
+  let parent = element.parentElement;
+  while (parent && getComputedStyle(parent).display === "contents")
+    parent = parent.parentElement;
+  return parent;
+}
+
+/** What the element laying the block out says about filling. */
+export function fillPlaceOf(element: HTMLElement): AgendaFillPlace {
+  const parent = layoutParentOf(element);
+  if (!parent) return { pageFill: false, flexColumn: false };
+  const style = getComputedStyle(parent);
+  return {
+    pageFill: parent.hasAttribute(PAGE_FILL_ATTRIBUTE),
+    flexColumn:
+      style.display.includes("flex") &&
+      style.flexDirection.startsWith("column"),
+  };
 }
 
 /** The calendars of a legend group, the ungrouped first. */

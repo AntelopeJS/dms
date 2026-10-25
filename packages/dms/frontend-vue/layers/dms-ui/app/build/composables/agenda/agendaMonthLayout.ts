@@ -225,3 +225,16 @@ export function layoutMonthWeek(
     lanes: Math.min(limit, usedLanes + (hasMore ? 1 : 0)),
   };
 }
+
+/**
+ * The names of the month's roving elements: a day number, a piece of an
+ * event (a week, the event, its first column), a day's "+N more".
+ */
+export const rovingToken = {
+  day: (day: string) => `day:${day}`,
+  chip: (
+    weekKey: string,
+    segment: Pick<AgendaMonthSegment, "occurrence" | "first">,
+  ) => `chip:${weekKey}:${segment.occurrence.key}:${segment.first}`,
+  more: (day: string) => `more:${day}`,
+};

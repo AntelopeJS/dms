@@ -82,22 +82,37 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
   const stagedCount = computed(() => ctx.staged.value.length);
   /** The changes Save sends (a conflict waits for its own answer). */
   const sendableCount = computed(() => ctx.sendableCount.value);
+  const conflictCount = computed(
+    () =>
+      ctx.stagedEdits.value.filter((edit) => edit.status === "conflict").length,
+  );
+  /** Nothing Save could send, conflicts left: the bar leads to them. */
+  const onlyConflicts = computed(
+    () => sendableCount.value === 0 && conflictCount.value > 0,
+  );
   const isStaged = computed(() => props.saveMode === "staged");
-  const saveLabel = computed(() =>
-    t(
+  const saveLabel = computed(() => {
+    if (onlyConflicts.value)
+      return t(
+        "dms.agenda.details.conflicts_to_resolve",
+        { count: conflictCount.value },
+        conflictCount.value,
+      );
+    return t(
       props.review
         ? "dms.agenda.save.review_label"
         : "dms.agenda.save.save_label",
       { count: sendableCount.value },
       sendableCount.value,
-    ),
-  );
+    );
+  });
 
   /** Writes the staged changes, after the review list with `review`. */
   async function requestSave(): Promise<void> {
     if (ctx.saving.value) return;
-    // The review also resolves conflicts: it opens while one is left.
-    const reviews = props.review && stagedCount.value > 0;
+    // The review also resolves conflicts: it opens on them when only they are left.
+    const reviews =
+      (props.review && stagedCount.value > 0) || onlyConflicts.value;
     if (!reviews && sendableCount.value === 0) return;
     if (reviews) {
       const confirmed = await openModal<boolean>({
@@ -140,6 +155,7 @@ export function useAgendaShell(ctx: AgendaContext, props: FullAgendaOptions) {
     isStaged,
     stagedCount,
     sendableCount,
+    onlyConflicts,
     saveLabel,
     requestSave,
     onKeydown,

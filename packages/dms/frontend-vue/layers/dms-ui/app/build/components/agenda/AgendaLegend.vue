@@ -46,10 +46,11 @@ const swatchStyle = (calendar: AgendaCalendar) => {
 // stays the same whether it is checked or not.
 const countLabel = (calendar: AgendaCalendar) =>
   props.legend.counts
-    ? t("dms.agenda.sidebar.calendar_count", {
-        name: processText(calendar.label),
-        count: countOf(calendar),
-      })
+    ? t(
+        "dms.agenda.sidebar.calendar_count",
+        { name: processText(calendar.label), count: countOf(calendar) },
+        countOf(calendar),
+      )
     : processText(calendar.label);
 const isInline = computed(() => props.layout === "inline");
 </script>

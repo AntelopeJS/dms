@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The shell of a FullAgenda at a container width: at 320 px (a modal, a
  * phone) the sidebar folds into a sheet, the views into a select and the
@@ -8,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   attributeSelector,
+  fillPlaceOf,
   legendGroups,
   resolveAgendaHeight,
   resolveLegend,
@@ -145,53 +147,69 @@ describe("parts", () => {
   });
 
   it("fills a filling page, else takes 44rem or the length given", () => {
-    const page = {
-      pageFills: true,
-      parentFlexColumn: true,
-      inContainer: false,
-    };
+    const filling = { pageFill: true, flexColumn: true };
+    const page = { pageFills: true, inContainer: false, place: filling };
     expect(resolveAgendaHeight(undefined, page)).toEqual({ fill: true });
     expect(
       resolveAgendaHeight(undefined, { ...page, pageFills: false }),
     ).toEqual({ fill: false, height: "44rem" });
-    expect(resolveAgendaHeight("fill", { ...page, pageFills: false })).toEqual({
-      fill: true,
-    });
     expect(resolveAgendaHeight("30rem", page)).toEqual({
       fill: false,
       height: "30rem",
     });
-    // Not measured yet (server render): it fills.
-    expect(
-      resolveAgendaHeight(undefined, { ...page, parentFlexColumn: null }),
-    ).toEqual({ fill: true });
+    // Not mounted yet (server render): it fills.
+    expect(resolveAgendaHeight(undefined, { ...page, place: null })).toEqual({
+      fill: true,
+    });
   });
 
-  it("falls back where nothing gives it a height: a block above the last, a modal body", () => {
-    // #11: only the page's last block sits in a flex column.
-    expect(
-      resolveAgendaHeight(undefined, {
-        pageFills: true,
-        parentFlexColumn: false,
-        inContainer: false,
-      }),
-    ).toEqual({ fill: false, height: "44rem" });
+  it("N17 fills only the page's filling block or a drawer body", () => {
+    const page = { pageFills: true, inContainer: false };
+    // A block above the last, or one inside a stack (a flex column of no height).
+    for (const place of [
+      { pageFill: false, flexColumn: false },
+      { pageFill: false, flexColumn: true },
+    ])
+      expect(resolveAgendaHeight(undefined, { ...page, place })).toEqual({
+        fill: false,
+        height: "44rem",
+      });
     // A modal body is no flex column: bounded by the window.
     expect(
       resolveAgendaHeight("fill", {
         pageFills: false,
-        parentFlexColumn: false,
         inContainer: true,
+        place: { pageFill: false, flexColumn: false },
       }),
     ).toEqual({ fill: false, height: "min(44rem, calc(100dvh - 12rem))" });
     // A drawer body is one: it fills.
     expect(
       resolveAgendaHeight("fill", {
         pageFills: false,
-        parentFlexColumn: true,
         inContainer: true,
+        place: { pageFill: false, flexColumn: true },
       }),
     ).toEqual({ fill: true });
+  });
+
+  it("N17 reads the page's mark past `display: contents` wrappers (a permission veil)", () => {
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-dms-page-fill", "");
+    const veil = document.createElement("div");
+    veil.style.display = "contents";
+    const block = document.createElement("div");
+    veil.append(block);
+    wrapper.append(veil);
+    document.body.append(wrapper);
+    expect(fillPlaceOf(block)).toMatchObject({ pageFill: true });
+    // In a stack inside the filling block: the stack lays it out, unmarked.
+    const stack = document.createElement("div");
+    stack.style.cssText = "display: flex; flex-direction: column";
+    const nested = document.createElement("div");
+    stack.append(nested);
+    veil.append(stack);
+    expect(fillPlaceOf(nested)).toEqual({ pageFill: false, flexColumn: true });
+    wrapper.remove();
   });
 
   it("groups the legend, sorts the notices, lists what comes next", () => {

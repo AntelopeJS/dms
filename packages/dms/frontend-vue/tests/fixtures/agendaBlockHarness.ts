@@ -221,6 +221,8 @@ export interface AgendaMountPlace {
   parentStyle?: string;
   /** Inside a drawer or a modal (`DMS_CONTAINER_KEY` provided). */
   container?: boolean;
+  /** The page marks the parent as its filling block (`data-dms-page-fill`). Defaults to `true`. */
+  pageFill?: boolean;
 }
 
 const FLEX_COLUMN = "display: flex; flex-direction: column";
@@ -242,6 +244,7 @@ export async function mountBlock(
   harness.agenda = fakeAgendaContext(props, width);
   const el = document.createElement("div");
   el.setAttribute("style", place.parentStyle ?? FLEX_COLUMN);
+  if (place.pageFill !== false) el.setAttribute("data-dms-page-fill", "");
   document.body.append(el);
   const root = defineComponent({
     setup() {

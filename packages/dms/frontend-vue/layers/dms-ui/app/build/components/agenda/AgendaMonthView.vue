@@ -5,6 +5,7 @@ import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import {
   layoutMonthWeek,
   monthWeeks,
+  rovingToken,
 } from "../../composables/agenda/agendaMonthLayout";
 import { backgroundSpans } from "../../composables/agenda/agendaBackgroundSpans";
 import { isDayKey } from "../../composables/agenda/agendaTime";
@@ -65,17 +66,44 @@ const layouts = computed(() =>
 );
 
 /**
- * The one chip of the month in the tab order (roving focus): the focused
- * event when it is drawn, else the first chip drawn. The arrows move on.
+ * The one element of the month in the tab order (roving focus): the first
+ * piece of the focused event when it is drawn, else the first day number.
+ * A bar across two weeks is one tab stop.
  */
-const entryKey = computed(() => {
-  const drawn = layouts.value.flatMap((layout) =>
-    layout.segments.map((segment) => segment.occurrence.key),
-  );
+const entry = computed(() => {
   const focused = ctx.focusedKey.value;
-  if (focused && drawn.includes(focused)) return focused;
-  return drawn[0] ?? null;
+  for (const [index, layout] of layouts.value.entries()) {
+    const segment = layout.segments.find(
+      (piece) => piece.occurrence.key === focused,
+    );
+    if (segment) return rovingToken.chip(weeks.value[index]!.key, segment);
+  }
+  return rovingToken.day(weeks.value[0]?.days[0]?.key ?? "");
 });
+
+const ROVING_STEPS: Record<string, number> = {
+  ArrowLeft: -1,
+  ArrowUp: -1,
+  ArrowRight: 1,
+  ArrowDown: 1,
+};
+
+/** The arrows move through the month's day numbers, chips and "+N more" in order. */
+function onKeydown(key: KeyboardEvent): void {
+  const step = ROVING_STEPS[key.key];
+  if (!step || key.altKey || key.ctrlKey || key.metaKey || key.shiftKey) return;
+  const current = (key.target as HTMLElement | null)?.closest<HTMLElement>(
+    "[data-agenda-roving]",
+  );
+  const items = bodyEl.value
+    ? [...bodyEl.value.querySelectorAll<HTMLElement>("[data-agenda-roving]")]
+    : [];
+  const next = current ? items[items.indexOf(current) + step] : undefined;
+  if (!next) return;
+  key.preventDefault();
+  key.stopPropagation();
+  next.focus();
+}
 const backgrounds = computed(() =>
   backgroundSpans(ctx.backgrounds.value, ctx.options.value.timeZone).filter(
     (span) => span.background.allDay || isDayKey(span.background.start),
@@ -151,6 +179,7 @@ onBeforeUnmount(() => unregister?.());
     <div
       ref="bodyEl"
       class="grid min-h-0 flex-1 overflow-y-auto overscroll-contain select-none"
+      @keydown="onKeydown"
       :style="{
         gridTemplateRows: `repeat(${weeks.length}, minmax(${rowMin}px, 1fr))`,
       }"
@@ -163,7 +192,7 @@ onBeforeUnmount(() => unregister?.());
         :template="template"
         :backgrounds="backgrounds"
         :show-week-number="showWeekNumber"
-        :entry-key="entryKey"
+        :entry="entry"
         :lane-px="lanePx"
       />
     </div>

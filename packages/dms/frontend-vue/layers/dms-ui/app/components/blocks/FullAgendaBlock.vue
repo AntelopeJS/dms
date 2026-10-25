@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, ref } from "vue";
+import { computed } from "vue";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
 import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import AgendaDetailsHost from "../../build/components/agenda/AgendaDetailsHost.vue";
 import AgendaLegend from "../../build/components/agenda/AgendaLegend.vue";
+import AgendaSaveStatus from "../../build/components/agenda/AgendaSaveStatus.vue";
 import AgendaSidebar from "../../build/components/agenda/AgendaSidebar.vue";
 import AgendaToolbar from "../../build/components/agenda/AgendaToolbar.vue";
 import AgendaViewHost from "../../build/components/agenda/AgendaViewHost.vue";
 import { useAgenda } from "../../build/composables/agenda/useAgenda";
 import { useAgendaShell } from "../../build/composables/agenda/useAgendaShell";
-import { resolveAgendaHeight } from "../../build/composables/agenda/agendaShell";
-import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
+import { useAgendaHeight } from "../../build/composables/agenda/useAgendaHeight";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import { useComponentEvent } from "../../../../dms-core/app/composables/components/useComponentEvent";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
-import { usePageFillHeight } from "#dms-layout/app/composables/layout/usePageFillHeight";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { FullAgendaOptions } from "../../types/full-agenda";
 
@@ -61,34 +60,9 @@ const { processText } = useComposedText();
 // Bound as the root's template ref: the context measures it.
 const rootEl = ctx.rootEl;
 
-const pageFills = usePageFillHeight();
-const inContainer = Boolean(inject(DMS_CONTAINER_KEY, undefined));
-// `fill` needs a flex column around the block: the page gives one to its
-// last block only, a drawer body is one, a modal body is not. Read once
-// mounted; until then the block fills.
-const parentFlexColumn = ref<boolean | null>(null);
-onMounted(() => {
-  const parent = rootEl.value?.parentElement;
-  if (!parent) return;
-  const style = getComputedStyle(parent);
-  parentFlexColumn.value =
-    style.display.includes("flex") && style.flexDirection.startsWith("column");
-});
-const height = computed(() =>
-  resolveAgendaHeight(props.height, {
-    pageFills: pageFills.value,
-    parentFlexColumn: parentFlexColumn.value,
-    inContainer,
-  }),
-);
-// On a page, a floor: the page scrolls rather than squeezing the agenda
-// under the blocks above it.
-const rootClass = computed(() => {
-  if (!height.value.fill) return undefined;
-  return inContainer ? "min-h-0 flex-1 h-full" : "min-h-[36rem] flex-1";
-});
-const rootStyle = computed(() =>
-  height.value.height ? { height: height.value.height } : undefined,
+const { height, rootClass, rootStyle } = useAgendaHeight(
+  rootEl,
+  () => props.height,
 );
 
 const hasError = computed(
@@ -131,12 +105,20 @@ const legendAt = (position: "toolbar" | "bottom") =>
   shell.legend.value?.position === position;
 const isDragging = computed(() => ctx.drag.active.value);
 // Without a toolbar, a folded sidebar keeps a button of its own.
+// Without a toolbar, a slim strip keeps a way to a folded sidebar and the
+// save status of an immediate agenda, above the views rather than over them.
 const showSidebarButton = computed(
   () =>
     !shell.toolbar.value &&
     Boolean(shell.sidebar.value) &&
     layout.value.sidebar === "folded",
 );
+const showsStripStatus = computed(
+  () =>
+    !shell.toolbar.value && ctx.editable.value && props.saveMode !== "staged",
+);
+// The sheet is modal: what lies outside it is out of reach while it is open.
+const outsideSheet = computed(() => layout.value.sidebar === "overlay");
 </script>
 
 <template>
@@ -156,6 +138,7 @@ const showSidebarButton = computed(
   >
     <AgendaToolbar
       v-if="shell.toolbar.value"
+      :inert="outsideSheet || undefined"
       :parts="shell.toolbar.value"
       :switcher="layout.switcher"
       :has-sidebar="
@@ -170,9 +153,30 @@ const showSidebarButton = computed(
     <AgendaLegend
       v-if="shell.legend.value && legendAt('toolbar')"
       :legend="shell.legend.value"
+      :inert="outsideSheet || undefined"
       layout="inline"
       class="border-default border-b"
     />
+    <div
+      v-if="showSidebarButton || showsStripStatus"
+      :class="[
+        'border-default flex items-center gap-2 border-b px-2 py-1',
+        sidebarRight && 'flex-row-reverse',
+      ]"
+      data-agenda-strip
+    >
+      <UButton
+        v-if="showSidebarButton"
+        icon="i-ph-sidebar-simple"
+        size="xs"
+        color="neutral"
+        variant="ghost"
+        :aria-label="t('dms.agenda.toolbar.sidebar')"
+        data-agenda-sidebar-toggle
+        @click="shell.toggleSidebar()"
+      />
+      <AgendaSaveStatus v-if="showsStripStatus" class="ms-auto" />
+    </div>
 
     <div class="relative flex min-h-0 flex-1">
       <AgendaSidebar
@@ -192,20 +196,6 @@ const showSidebarButton = computed(
           class="bg-primary/60 absolute inset-x-0 top-0 z-20 h-0.5 animate-pulse"
           role="progressbar"
           :aria-label="t('dms.agenda.toolbar.loading')"
-        />
-        <UButton
-          v-if="showSidebarButton"
-          icon="i-ph-sidebar-simple"
-          size="xs"
-          color="neutral"
-          variant="outline"
-          :class="[
-            'bg-default absolute top-2 z-20',
-            sidebarRight ? 'end-2' : 'start-2',
-          ]"
-          :aria-label="t('dms.agenda.toolbar.sidebar')"
-          data-agenda-sidebar-toggle
-          @click="shell.toggleSidebar()"
         />
         <div
           v-if="hasStaleError"
@@ -256,6 +246,7 @@ const showSidebarButton = computed(
     />
     <div
       v-if="shell.isStaged.value && shell.stagedCount.value > 0"
+      :inert="outsideSheet || undefined"
       class="border-default border-t py-2 ps-[18px] pe-3.5"
       data-agenda-save-bar
     >

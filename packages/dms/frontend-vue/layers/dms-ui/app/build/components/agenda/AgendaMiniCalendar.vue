@@ -60,8 +60,12 @@ const isInRange = (day: CalendarDay) => {
   const key = keyOf(day);
   return key >= ctx.range.value.from && key <= ctx.range.value.to;
 };
+const emit = defineEmits<{ picked: [] }>();
 const pick = (day: unknown) => {
-  if (typeof day === "string") ctx.goTo(day);
+  if (typeof day !== "string") return;
+  ctx.goTo(day);
+  // Even the day already shown: the sidebar sheet has done its job.
+  emit("picked");
 };
 </script>
 

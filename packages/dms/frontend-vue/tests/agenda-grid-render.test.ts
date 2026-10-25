@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-/* eslint-disable vue/one-component-per-file -- stand-ins for Nuxt UI */
 /**
  * The time grid and the month view mounted over a fake context: columns and
  * headers (days, resources days first under groups, a folded group, a
@@ -9,28 +8,23 @@
  * weeks, bars over weeks, "+N more", a day number and an empty day; the
  * chip's styles, states, content toggles, click and keyboard.
  */
-import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
-import type { Component } from "vue";
+import { computed, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  AgendaContext,
-  AgendaOccurrence,
-} from "../layers/dms-ui/app/build/composables/agenda/agendaModel";
-import type {
-  AgendaViewType,
-  FullAgendaOptions,
-} from "../layers/dms-ui/app/types/full-agenda";
-import { fakeAgendaContext } from "./fixtures/agendaFakeContext";
-import { agendaDays, occurrence } from "./fixtures/agendaOccurrences";
+import { occurrence } from "./fixtures/agendaOccurrences";
+import {
+  contextFor,
+  mount,
+  mounted,
+  translate,
+} from "./fixtures/agendaGridMount";
 import AgendaTimeGrid from "../layers/dms-ui/app/build/components/agenda/AgendaTimeGrid.vue";
 import AgendaMonthView from "../layers/dms-ui/app/build/components/agenda/AgendaMonthView.vue";
 import AgendaEventChip from "../layers/dms-ui/app/build/components/agenda/AgendaEventChip.vue";
 
-const current: { ctx: AgendaContext | null } = { ctx: null };
-
-vi.mock("../layers/dms-ui/app/build/composables/agenda/useAgenda", () => ({
-  useAgendaContext: () => current.ctx!,
-}));
+vi.mock("../layers/dms-ui/app/build/composables/agenda/useAgenda", async () => {
+  const fixture = await import("./fixtures/agendaGridMount");
+  return { useAgendaContext: () => fixture.mounted.ctx! };
+});
 vi.mock(
   "../layers/dms-core/app/composables/translation/useComposedText",
   () => ({
@@ -40,81 +34,14 @@ vi.mock(
   }),
 );
 
-const stub = (name: string, slotNames: string[] = ["default"]) =>
-  defineComponent({
-    name,
-    inheritAttrs: false,
-    props: {
-      label: { type: String, default: undefined },
-      name: { type: String, default: undefined },
-    },
-    setup:
-      (props, { attrs, slots }) =>
-      () =>
-        h("span", { ...attrs, "data-stub": name, "data-name": props.name }, [
-          props.label,
-          ...slotNames.map((slot) => slots[slot]?.()),
-        ]),
-  });
-
-const STUBS: Record<string, Component> = {
-  UTooltip: stub("UTooltip"),
-  UPopover: stub("UPopover", ["default", "content"]),
-  UBadge: stub("UBadge"),
-  UAvatar: stub("UAvatar"),
-  UIcon: stub("UIcon"),
-};
-
-const translate = (key: string, params?: Record<string, unknown>) =>
-  params && Object.keys(params).length
-    ? `${key}${JSON.stringify(params)}`
-    : key;
-
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: translate, locale: ref("en-GB") }));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
+  mounted.ctx = null;
 });
-
-interface GridSetup {
-  raw?: FullAgendaOptions;
-  view?: AgendaViewType;
-  from?: string;
-  dayCount?: number;
-  occurrences?: AgendaOccurrence[];
-}
-
-function contextFor(setup: GridSetup): AgendaContext {
-  const view = setup.view ?? "week";
-  const { ctx } = fakeAgendaContext({ ...setup.raw, views: [view] });
-  const days = agendaDays(setup.from ?? "2026-10-26", setup.dayCount ?? 7);
-  ctx.range = computed(() => ({
-    from: days[0]!.key,
-    to: days.at(-1)!.key,
-    days,
-    start: days[0]!.start,
-    end: days.at(-1)!.end,
-  }));
-  ctx.occurrences = computed(() => setup.occurrences ?? []);
-  current.ctx = ctx;
-  return ctx;
-}
-
-async function mount(
-  component: Component,
-  props: Record<string, unknown> = {},
-): Promise<HTMLElement> {
-  const host = document.createElement("div");
-  document.body.append(host);
-  const app = createApp({ render: () => h(component, props) });
-  for (const [name, definition] of Object.entries(STUBS))
-    app.component(name, definition);
-  app.mount(host);
-  await nextTick();
-  return host;
-}
 
 const HOLIDAY = {
   start: "2026-11-01",
@@ -384,7 +311,14 @@ describe("round 1: focus, roving, short blocks, stacks, no resource", () => {
     expect(
       chips.map((chip) => chip.closest('[role="gridcell"]')).every(Boolean),
     ).toBe(true);
-    expect(chips.filter((chip) => chip.tabIndex === 0)).toHaveLength(1);
+    // One tab stop in the whole month: with no focused event, the first day number.
+    const stops = [...root.querySelectorAll<HTMLElement>("button")].filter(
+      (button) => button.tabIndex >= 0,
+    );
+    expect(stops).toHaveLength(1);
+    expect(
+      stops[0]!.closest("[data-agenda-day]")?.getAttribute("data-agenda-day"),
+    ).toBe("2026-09-28");
   });
 
   it("writes a short block's title first, its start time after (lead #1)", async () => {
@@ -396,7 +330,7 @@ describe("round 1: focus, roving, short blocks, stacks, no resource", () => {
       occurrence: standup,
       height: 18,
     });
-    const spans = [...root.querySelectorAll("button > span > span")].map(
+    const spans = [...root.querySelectorAll("button > span > span > span")].map(
       (span) => span.textContent!.trim(),
     );
     expect(spans[0]).toBe("Design standup");
