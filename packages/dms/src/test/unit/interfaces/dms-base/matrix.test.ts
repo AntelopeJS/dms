@@ -41,7 +41,7 @@ const FULL_OPTIONS: MatrixProps = {
   enterMove: "right",
   rowPanel: { title: "Store", showJson: true, deepLink: true },
   selectable: true,
-  columnFilters: true,
+  columnFilters: ["38", "status"],
   fillActions: [
     {
       id: "clear",
@@ -141,6 +141,7 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
           label: "Revert",
           icon: "i-ph-arrow-counter-clockwise",
           tone: "warning",
+          visibleWhen: { field: "overridden", in: [true] },
           target: {
             type: "api",
             url: "/api/keys/revert?key={{row.id}}",
@@ -161,6 +162,10 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     }).serializeSync();
     const [revert, open] = serialized.options?.rowActions ?? [];
     expect(revert).to.deep.include({ id: "revert", tone: "warning" });
+    expect(revert?.visibleWhen).to.deep.equal({
+      field: "overridden",
+      in: [true],
+    });
     expect(revert?.target).to.deep.equal({
       type: "api",
       url: "/api/keys/revert?key={{row.id}}",
@@ -189,7 +194,7 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     ]);
     expect(block?.config.grouping).to.not.equal(undefined);
     expect(block?.config.selectable?.type).to.equal("boolean");
-    expect(block?.config.columnFilters?.type).to.equal("boolean");
+    expect(block?.config.columnFilters).to.not.equal(undefined);
     expect(block?.config.rowActions).to.not.equal(undefined);
   });
 
@@ -201,6 +206,9 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     } = FULL_OPTIONS;
     expect(ValidateBlockOptions("Matrix", options).valid).to.equal(true);
     expect(ValidateBlockOptions("Matrix", {}).valid).to.equal(true);
+    expect(
+      ValidateBlockOptions("Matrix", { columnFilters: true }).valid,
+    ).to.equal(true);
   });
 
   it("refuses values outside its enums", () => {

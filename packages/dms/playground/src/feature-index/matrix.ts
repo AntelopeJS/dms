@@ -57,8 +57,8 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
     PAGES.records,
   ),
   feature(
-    "A filter in each column header, as chips",
-    "columnFilters: true (filter_<column>=<mode>:<value>)",
+    "A filter in the chosen column headers, as chips",
+    'columnFilters: ["method", "path", …] (filter_<column>=<mode>:<value>)',
     PAGES.records,
   ),
   feature(
@@ -113,7 +113,7 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
   ),
   feature(
     "A menu of actions per row, a badge on the row",
-    "rowActions [{ id, label, target }], MatrixRow.badge",
+    "rowActions [{ id, label, target, visibleWhen }], MatrixRow.badge",
     PAGES.translations,
   ),
   feature(

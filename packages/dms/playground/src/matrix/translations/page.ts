@@ -8,6 +8,7 @@ import {
   CONTESTED_KEY,
   LANGUAGE_INFO,
   LANGUAGES,
+  OVERRIDDEN_FIELD,
   TRANSLATION_KEYS,
 } from "./data";
 
@@ -49,7 +50,7 @@ export class PageMatrixTranslations extends PageController(
     },
     {
       label: "Open a row's menu",
-      text: 'rowActions in the row header: "Copy the English text" fills the missing languages, "Revert to the module\'s text" puts back what the module ships (api targets with {{row.id}}). Keys the shop reworded carry an "Overridden" badge (row badge), as does every key you save.',
+      text: 'rowActions in the row header (api targets with {{row.id}}): "Copy the English text" fills the missing languages; "Override for this workspace" shows only on keys not overridden, "Revert to the module\'s text" only on overridden ones (visibleWhen on the row value overridden, which no column shows). Overridden keys carry a badge (row badge): the shop\'s rewordings, and every key you save.',
     },
     {
       label: "Fix a placeholder",
@@ -96,8 +97,21 @@ export class PageMatrixTranslations extends PageController(
         },
       },
       {
+        id: "override",
+        label: "Override for this workspace",
+        icon: "i-ph-push-pin",
+        visibleWhen: { field: OVERRIDDEN_FIELD, in: [false] },
+        target: {
+          type: "api",
+          url: `${MATRIX_TRANSLATIONS_API}/actions/override?key={{row.id}}`,
+          method: "POST",
+          successMessage: "The workspace now overrides this key",
+        },
+      },
+      {
         id: "revert",
         label: "Revert to the module's text",
+        visibleWhen: { field: OVERRIDDEN_FIELD, in: [true] },
         icon: "i-ph-arrow-counter-clockwise",
         tone: "warning",
         target: {

@@ -203,7 +203,7 @@ export class PageMatrixRecords extends PageController(
     },
     {
       label: "Filter a column",
-      text: "columnFilters: a filter in each header (contains, is), sent as filter_<column>=contains:<text> and shown as removable chips; try path contains orders, or client is pos-lg4.",
+      text: "columnFilters: [method, path, status, client, cached, receivedAt]: a filter (contains, is) in those headers only, not on json, code or key-value fields; sent as filter_<column>=contains:<text> and shown as removable chips. Try path contains orders, client is pos-lg4, or receivedAt contains 2026-10-24.",
     },
     {
       label: "Edit a receivedAt",
@@ -241,7 +241,15 @@ export class PageMatrixRecords extends PageController(
     pageSizes: PAGE_SIZES,
     sortable: true,
     search: true,
-    columnFilters: true,
+    // The scalar fields: a json, code or key-value cell has no text to match.
+    columnFilters: [
+      "method",
+      "path",
+      "status",
+      "client",
+      "cached",
+      "receivedAt",
+    ],
     facets: [
       {
         id: "method",

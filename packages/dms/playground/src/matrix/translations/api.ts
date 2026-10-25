@@ -48,6 +48,7 @@ import {
   type Language,
   MODULE_TEXTS,
   NAMESPACES,
+  OVERRIDDEN_FIELD,
   OVERRIDDEN_KEYS,
   TRANSLATION_KEYS,
   type TranslationKey,
@@ -208,14 +209,16 @@ function cellState(
 }
 
 function toRow(entry: TranslationKey, languages: Language[]): MatrixRow {
-  const values: Record<string, string | null> = {};
+  const isOverridden = OVERRIDDEN_KEYS.has(entry.key);
+  const values: Record<string, string | boolean | null> = {
+    [OVERRIDDEN_FIELD]: isOverridden,
+  };
   const cells: Record<string, MatrixCellState> = {};
   for (const language of languages) {
     values[language] = entry.texts[language] ?? null;
     const state = cellState(entry, language);
     if (state) cells[language] = state;
   }
-  const isOverridden = OVERRIDDEN_KEYS.has(entry.key);
   return {
     id: entry.key,
     label: entry.key.slice(entry.namespace.length + 1),
@@ -413,6 +416,24 @@ export class MatrixTranslationsController extends Controller(
     for (const language of missing) entry.texts[language] = base;
     OVERRIDDEN_KEYS.add(entry.key);
     return { message: `English copied into ${languageNames(missing)}.` };
+  }
+
+  /**
+   * Row action: the key taken over by the workspace, its texts kept as they
+   * are, so later module updates leave it alone.
+   */
+  @Post("actions/override")
+  override(@Parameter("key", "query") key = "") {
+    const entry = findKey(key);
+    if (OVERRIDDEN_KEYS.has(entry.key)) {
+      throw new HTTPResult(
+        HTTP_CONFLICT,
+        JSON.stringify({ message: "This key is already overridden." }),
+        JSON_TYPE,
+      );
+    }
+    OVERRIDDEN_KEYS.add(entry.key);
+    return { message: "The workspace now overrides this key." };
   }
 
   /** Row action: the module's texts put back, the key no longer overridden. */

@@ -730,6 +730,12 @@ const WORKSPACE_OVERRIDES: Record<string, KeyTexts> = {
 };
 
 /**
+ * The row value the row actions' `visibleWhen` reads: no column shows it,
+ * the menu offers Revert or Override by it.
+ */
+export const OVERRIDDEN_FIELD = "overridden";
+
+/**
  * The keys whose texts the workspace changed (seeded with the shop's own
  * wording, then every key saved): their rows carry an "Overridden" badge.
  */

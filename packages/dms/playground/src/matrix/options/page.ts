@@ -280,7 +280,7 @@ export class PageMatrixOptions extends PageController(
     },
     {
       option: "rowActions",
-      text: "A menu in the row header, each action a target ({{row.id}} filled): copy the base text, revert.",
+      text: "A menu in the row header, each action a target ({{row.id}} filled), shown per row by visibleWhen (Override or Revert).",
       page: MATRIX_TRANSLATIONS_SLUG,
     },
     {
@@ -324,7 +324,7 @@ export class PageMatrixOptions extends PageController(
     { option: "search", text: "Sent as search.", page: MATRIX_RECORDS_SLUG },
     {
       option: "columnFilters",
-      text: "A filter per column header (contains, is), sent as filter_<column>=<mode>:<value>, shown as chips.",
+      text: "A filter (contains, is) in every header, or in the listed columns only, sent as filter_<column>=<mode>:<value>, shown as chips.",
       page: MATRIX_RECORDS_SLUG,
     },
     {

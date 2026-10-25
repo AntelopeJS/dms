@@ -253,8 +253,20 @@ function onCheckedStores(selected: string[]): StoreQuantities {
   return split;
 }
 
-function checkedRule(request: MatrixFillRequest | undefined): FillRule {
+/**
+ * The checked rows the request names among the rows it posted: an id the
+ * grid no longer shows (a stale selection) is ignored.
+ */
+function checkedIds(request: MatrixFillRequest | undefined): string[] {
   const selected = Array.isArray(request?.selected) ? request.selected : [];
+  const shown = Array.isArray(request?.rows)
+    ? new Set(request.rows.map((row) => row.id))
+    : new Set(STORES.map((store) => store.id));
+  return selected.filter((id) => shown.has(id));
+}
+
+function checkedRule(request: MatrixFillRequest | undefined): FillRule {
+  const selected = checkedIds(request);
   if (!selected.length) {
     throw badRequest("Cochez d'abord les magasins à servir.");
   }
