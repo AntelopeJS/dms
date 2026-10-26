@@ -2,7 +2,7 @@ import type {
   MissingInterface,
   StoreActionBody,
   StoreDependencyChoice,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import { isObject } from "#dms-core/app/utils/type-check";
 
 /**

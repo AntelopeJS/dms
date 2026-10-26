@@ -9,7 +9,7 @@ import { PLAIN_CODE_LANGUAGE } from "../../build/utils/codeLanguages";
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 

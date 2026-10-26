@@ -11,7 +11,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import PermissionVeil from "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue";
+import PermissionVeil from "../layers/dms-ui/app/entries/components/permission/PermissionVeil";
 
 type VeilState = "hidden" | "readonly" | "limited" | null;
 

@@ -11,7 +11,7 @@ import {
   FORM_HANDLE_KEY,
   type FormHandle,
   linkedFieldId,
-} from "../layers/dms-ui/app/build/composables/form/enclosingForm";
+} from "../layers/dms-ui/app/entries/composables/form/enclosingForm";
 import {
   type EnclosingForm,
   useEnclosingForm,

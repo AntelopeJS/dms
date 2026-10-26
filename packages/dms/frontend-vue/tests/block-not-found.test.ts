@@ -17,7 +17,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { stubBlockRuntime } from "./helpers/block-runtime";
-import { readFetchNotFound } from "../layers/dms-ui/app/build/utils/fetchNotFound";
+import { readFetchNotFound } from "../layers/dms-ui/app/entries/utils/fetchNotFound";
 
 interface FetchFailure extends Error {
   statusCode?: number;
@@ -48,10 +48,10 @@ const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 const { default: BlockStatus } = await import(
-  "../layers/dms-ui/app/build/components/blocks/BlockStatus.vue"
+  "../layers/dms-ui/app/entries/components/blocks/BlockStatus"
 );
 
 const SETTLE_MS = 250;

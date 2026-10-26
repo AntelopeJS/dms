@@ -15,7 +15,7 @@ import {
   entryFields,
   entryRowLayout,
   isWideField,
-} from "../layers/dms-ui/app/build/composables/form/formLayout";
+} from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type {
   FieldGroup,
   FormField,

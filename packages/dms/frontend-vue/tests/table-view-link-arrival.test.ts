@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
-import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
+import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
 import {
   isLinkedArrival,
   isLinkedVisit,
@@ -11,11 +11,11 @@ import {
   type TableLinkArrival,
   type TableLinkVisit,
   urlFilterScope,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
 import {
   pageArrivalKind,
   trackPageArrivals,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/pageArrival";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/pageArrival";
 
 const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
 const QUERY_PARAM_FILTERS = { customer: { field: "customerId" } };

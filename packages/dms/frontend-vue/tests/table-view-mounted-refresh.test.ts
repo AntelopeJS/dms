@@ -16,7 +16,7 @@ import {
 import { usePageLiveRefresh } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth/useAuthFetch";
-import type { TableCountQuery } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type {
   TableViewConfig,
   TableViewDisplayContext,

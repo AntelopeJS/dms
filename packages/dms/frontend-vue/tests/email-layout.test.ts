@@ -3,7 +3,7 @@ import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import EmailLayout from "../layers/dms-layout/app/emails/components/EmailLayout.vue";
 import { emailLogoUrl } from "../layers/dms-layout/app/emails/components/index";
-import type { DmsLogoSources } from "../layers/dms-core/shared/types/app-config";
+import type { DmsLogoSources } from "../layers/dms-core/app/entries/shared/types/app-config";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
 /** `branding.logo` as an email reads it: a path stands for `default.light`. */

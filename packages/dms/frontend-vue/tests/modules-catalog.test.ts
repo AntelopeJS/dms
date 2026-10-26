@@ -4,7 +4,7 @@ import type {
   ModuleWithAccess,
   PageInfo,
   SiteLayoutTree,
-} from "../layers/dms-layout/app/types/page";
+} from "../layers/dms-core/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_CATEGORY_OTHER,
@@ -15,7 +15,7 @@ import {
   recentModules,
   sortModules,
   summarizeModules,
-} from "../layers/dms-layout/app/build/utils/modules-catalog";
+} from "../layers/dms-layout/app/entries/utils/modules-catalog";
 
 const resolve = (value: string) =>
   value === MODULE_CATEGORY_OTHER ? "Other" : value;

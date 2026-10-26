@@ -2,12 +2,12 @@
 import { h, nextTick, type Component } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
-import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
-import RowNotFound from "../layers/dms-ui/app/build/components/containers/row/RowNotFound.vue";
+import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
+import RowNotFound from "../layers/dms-ui/app/entries/components/containers/row/RowNotFound";
 import {
   deepLinkOutcome,
   isDeepLinkAction,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   PANEL_COMPONENT,
   app,

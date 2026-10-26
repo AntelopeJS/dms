@@ -1,6 +1,6 @@
 import { ref, type Ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 
 const state = new Map<string, Ref>();
 const authFetch = vi.fn();

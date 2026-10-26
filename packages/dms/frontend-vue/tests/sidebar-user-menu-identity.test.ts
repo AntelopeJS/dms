@@ -12,7 +12,7 @@ import {
   type App,
   type PropType,
 } from "vue";
-import SidebarUserMenu from "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue";
+import SidebarUserMenu from "../layers/dms-layout/app/entries/components/layout/SidebarUserMenu";
 import type { User } from "../layers/dms-core/app/types/user";
 import {
   ACCOUNT_MENU_ENTRIES,

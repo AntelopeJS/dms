@@ -2,8 +2,8 @@ import { parseURL, withoutTrailingSlash } from "ufo";
 import {
   type ReplaceUrlVariablesContext,
   resolveLinkVariables,
-} from "#dms-ui/app/build/utils/urlVariables";
-import type { PageValidation } from "../../types/page";
+} from "#dms-ui/app/entries/utils/urlVariables";
+import type { PageValidation } from "#dms-core/app/types/page";
 
 const ROOT_PATH = "/";
 

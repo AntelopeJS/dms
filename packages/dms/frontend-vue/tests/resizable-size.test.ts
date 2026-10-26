@@ -12,7 +12,7 @@ import {
   type ResizeSide,
   type ResizeStorage,
   useResizableSize,
-} from "../layers/dms-ui/app/build/composables/containers/useResizableSize";
+} from "../layers/dms-ui/app/entries/composables/containers/useResizableSize";
 import {
   DEFAULT_SIDE_DRAWER_WIDTH,
   DRAWER_SIZE_WIDTHS,
@@ -21,7 +21,7 @@ import {
   MIN_SIDE_DRAWER_WIDTH,
   readDrawerSizePreferences,
   resolveDrawerSizeBounds,
-} from "../layers/dms-ui/app/build/composables/containers/drawerSize";
+} from "../layers/dms-ui/app/entries/composables/containers/drawerSize";
 
 const BOUNDS: ResizeBounds = { defaultSize: 600, minSize: 360, maxSize: 900 };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import coreEn from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
+import coreEn from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 
 const LABELLED_TAGS = {
   UBreadcrumb: "breadcrumb",

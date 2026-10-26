@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthResendCode from "../../build/components/AuthResendCode.vue";
 import { useAuthFormError } from "../../build/composables/useAuthFormError";

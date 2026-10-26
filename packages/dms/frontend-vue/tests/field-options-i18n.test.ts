@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { processFieldI18n } from "../layers/dms-ui/app/build/utils/fieldOptionsI18n";
+import { processFieldI18n } from "../layers/dms-ui/app/entries/utils/fieldOptionsI18n";
 
 const translate = (key: string) => (key.startsWith("$") ? `t(${key})` : key);
 

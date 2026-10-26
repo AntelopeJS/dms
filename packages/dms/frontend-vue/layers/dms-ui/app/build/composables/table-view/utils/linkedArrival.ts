@@ -3,7 +3,7 @@ import type { LocationQuery } from "#dms/frontend-module";
 import {
   hashText,
   type TableField,
-} from "#dms-core/app/build/composables/user/tablePreferences";
+} from "#dms-core/app/entries/composables/user/tablePreferences";
 import type { QueryParamFilters } from "../../../../composables/table-view/types/config";
 import type { TablePreferences } from "../useTablePreferences";
 import { RECORD_URL_KEY } from "./recordLink";

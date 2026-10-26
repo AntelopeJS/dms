@@ -7,14 +7,14 @@ import {
 } from "vue";
 import { onPageBlocksRefresh } from "#dms-ui/app/utils/blockRefresh";
 import type { LayoutHeaderAction } from "../../build/components/layout/PageHeaderActionBar.vue";
-import type { PageLayout } from "../../types/page";
+import type { PageLayout } from "#dms-core/app/types/page";
 import {
   isSamePageQuery,
   isSameRouteParams,
   fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../../utils/pageQuery";
+} from "#dms-core/app/utils/pageQuery";
 
 interface ServedHeaderActionsOptions {
   /** The buttons the page layout was served with. */

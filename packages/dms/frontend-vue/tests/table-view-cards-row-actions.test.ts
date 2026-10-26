@@ -18,7 +18,7 @@ import {
   type Table,
 } from "@tanstack/vue-table";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 type Row = { _id: string; name: string };

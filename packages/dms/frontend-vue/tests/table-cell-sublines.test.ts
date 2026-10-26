@@ -14,13 +14,13 @@ import type {
 } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
-import { readSubline } from "../layers/dms-ui/app/build/composables/data-types/cellHelpers";
-import { registerMetricCellTypes } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
-import { registerTwoLineCellType } from "../layers/dms-ui/app/build/composables/data-types/twoLineCell";
+import { readSubline } from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
+import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
+import { registerTwoLineCellType } from "../layers/dms-ui/app/entries/composables/data-types/twoLineCell";
 
 const IdentityCell = (
   await import(
-    "../layers/dms-ui/app/build/components/table-view/IdentityCell.vue"
+    "../layers/dms-ui/app/entries/components/table-view/IdentityCell"
   )
 ).default;
 
@@ -394,7 +394,7 @@ describe("identity sub-line", () => {
         registered.set(dataType.id, dataType.formatter),
     }));
     const { registerDefaultDataTypes } = await import(
-      "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+      "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
     );
     registerDefaultDataTypes();
     return registered.get("identity")!;

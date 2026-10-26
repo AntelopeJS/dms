@@ -1,12 +1,15 @@
-import type { Tone } from "#dms-ui/app/types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
-import { type ModuleCatalogEntry, MODULE_URL_PREFIX } from "../../types/page";
+import {
+  type ModuleCatalogEntry,
+  MODULE_URL_PREFIX,
+} from "#dms-core/app/types/page";
 import type {
   ModuleSourceKind,
   StoreListingEntry,
   StoreModuleState,
   StoreOperationKind,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import {
   type DisplayResolver,
   compareDisplayNames,

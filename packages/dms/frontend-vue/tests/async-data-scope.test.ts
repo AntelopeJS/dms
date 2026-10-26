@@ -18,7 +18,7 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
-import { asyncDataScopeOf } from "../layers/dms-core/app/build/utils/asyncDataScope";
+import { asyncDataScopeOf } from "../layers/dms-core/app/entries/utils/asyncDataScope";
 
 const engine = await import("#dms/frontend-module");
 const { default: asyncDataScopePlugin } = await import(

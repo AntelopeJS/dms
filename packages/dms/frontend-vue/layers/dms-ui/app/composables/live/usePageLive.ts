@@ -11,7 +11,7 @@ import {
   isServerPageLive,
 } from "../../build/composables/live/currentPageLive";
 import type { PageLiveController } from "../../build/composables/live/pageLiveController";
-import type { PageLiveNote, PageLiveNoteInput } from "../../types/live";
+import type { PageLiveNote, PageLiveNoteInput } from "#dms-core/app/types/live";
 
 /** The Live / Pause state of the page on screen, for a module's component. */
 export interface PageLiveState {

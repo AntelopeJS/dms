@@ -27,7 +27,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { useModuleStore } from "../layers/dms-layout/app/composables/page/useModuleStore";
-import ModuleTileSkeleton from "../layers/dms-layout/app/build/components/pages/modules/ModuleTileSkeleton.vue";
+import ModuleTileSkeleton from "../layers/dms-layout/app/entries/components/pages/modules/ModuleTileSkeleton";
 
 const idleListing = {
   enabled: true,

@@ -18,9 +18,9 @@ import {
 import {
   mapRelationBeforeState,
   sameRelationValue,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
-import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/build/composables/form/formLayout";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
+import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
 import { isString } from "../layers/dms-core/app/utils/type-check";
@@ -71,7 +71,7 @@ interface NotesSetup {
 
 async function changeNote(setup: NotesSetup): Promise<string> {
   const { default: FormFieldNotes } = await import(
-    "../layers/dms-ui/app/build/components/form/FormFieldNotes.vue"
+    "../layers/dms-ui/app/entries/components/form/FormFieldNotes"
   );
   const field: FormField = {
     id: "customer",

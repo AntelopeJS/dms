@@ -19,18 +19,18 @@ import {
   type FunctionalComponent,
   type VNode,
 } from "vue";
-import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
+import { resolveLinkVariables } from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   isSamePageQuery,
   fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../layers/dms-layout/app/utils/pageQuery";
+} from "../layers/dms-core/app/utils/pageQuery";
 import {
   providePageHeaderActions,
   usePageHeaderActions,
   type PageHeaderActionsOptions,
-} from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+} from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { stubMiscActions } from "./helpers/misc-runtime";
 import type { LocationQuery } from "#dms/frontend-module";
@@ -117,8 +117,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mount(path: string, props: NonNullable<VNode["props"]>) {
-  const { default: component } = await import(path);
+const loaders = {
+  "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue":
+    () =>
+      import(
+        "../layers/dms-layout/app/entries/components/layout/PageHeaderActionBar"
+      ),
+  "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue":
+    () =>
+      import(
+        "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet"
+      ),
+};
+
+async function mount(
+  path: keyof typeof loaders,
+  props: NonNullable<VNode["props"]>,
+) {
+  const { default: component } = await loaders[path]();
   app = createApp({ render: () => h(component, props) });
   app.component("UButton", ButtonStub);
   app.component("UTooltip", SlotStub);
@@ -451,7 +467,7 @@ describe("the order of the header's buttons", () => {
     options?: PageHeaderActionsOptions,
   ) {
     const { default: Outlet } = await import(
-      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue"
+      "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet"
     );
     const Page = defineComponent({
       setup() {

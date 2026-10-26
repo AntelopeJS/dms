@@ -20,7 +20,7 @@ import {
   replaceUrlVariables,
   resolveTextVariables,
   resolveUrlVariables,
-} from "../layers/dms-ui/app/build/utils/urlVariables";
+} from "../layers/dms-ui/app/entries/utils/urlVariables";
 
 const requests: string[] = [];
 let route: ReturnType<typeof useRealDataEngine>["route"];
@@ -34,7 +34,7 @@ const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 
 const SETTLE_MS = 250;

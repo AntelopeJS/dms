@@ -8,7 +8,7 @@ import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
-import { isConfirmTextMatch } from "../layers/dms-ui/app/build/composables/confirm/confirmTextMatch";
+import { isConfirmTextMatch } from "../layers/dms-ui/app/entries/composables/confirm/confirmTextMatch";
 import type { NamedValue } from "vue-i18n";
 
 const authFetch = vi.fn();

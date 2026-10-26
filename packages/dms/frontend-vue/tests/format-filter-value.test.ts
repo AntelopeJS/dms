@@ -6,8 +6,8 @@
  */
 import { describe, expect, it } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-import { registerFieldTypes } from "../layers/dms-ui/app/build/composables/data-types/registerFieldTypes";
-import { formatFilterValue } from "../layers/dms-ui/app/build/composables/table/utils/formatFilterValue";
+import { registerFieldTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerFieldTypes";
+import { formatFilterValue } from "../layers/dms-ui/app/entries/composables/table/utils/formatFilterValue";
 
 const dataTypes = new Map<string, DataType>();
 registerFieldTypes((dataType) => dataTypes.set(dataType.id, dataType));

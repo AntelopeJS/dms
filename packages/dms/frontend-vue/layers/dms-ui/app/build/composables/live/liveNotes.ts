@@ -1,4 +1,4 @@
-import type { PageLiveNote, PageLiveNoteTone } from "../../../types/live";
+import type { PageLiveNote, PageLiveNoteTone } from "#dms-core/app/types/live";
 import {
   resolveConfirmText,
   type ConfirmTranslate,

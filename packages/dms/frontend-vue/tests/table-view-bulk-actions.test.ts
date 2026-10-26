@@ -8,9 +8,9 @@ import {
   type PluralTranslate,
   readBulkCount,
   selectedRowIds,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/bulkActions";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/bulkActions";
+import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 function translator(locale: "en" | "fr"): PluralTranslate {
   const i18n = createI18n({

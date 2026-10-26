@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
@@ -8,19 +8,19 @@ import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsStatGroup, {
   type StatGroupItem,
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
-import type { Tone } from "#dms-ui/app/types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
-import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
+import DmsChipGroup from "#dms-ui/app/entries/components/form/ChipGroup";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
 import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
-import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import {
   ENDPOINT_MODULES_LISTING,
   useModulesListing,
 } from "../composables/page/useModulesListing";
 import { useModuleHistory } from "../composables/page/useModuleHistory";
-import type { ModuleCatalogEntry } from "../types/page";
+import type { ModuleCatalogEntry } from "#dms-core/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_STORE_PATH,
@@ -42,7 +42,7 @@ import {
 } from "../build/utils/module-store-catalog";
 import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
 

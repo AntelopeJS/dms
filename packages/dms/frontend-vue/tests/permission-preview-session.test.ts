@@ -1,11 +1,11 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, ref } from "vue";
-import { usePermissionPreview } from "../layers/dms-core/app/build/composables/auth/usePermissionPreview";
+import { usePermissionPreview } from "../layers/dms-core/app/entries/composables/auth/usePermissionPreview";
 import {
   PERMISSION_PREVIEW_STORAGE_PREFIX,
   PERMISSION_PREVIEW_TAB_KEY,
-} from "../layers/dms-core/app/build/utils/permission-preview";
+} from "../layers/dms-core/app/entries/utils/permission-preview";
 
 const states = new Map<string, unknown>();
 

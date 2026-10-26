@@ -2,7 +2,7 @@
 import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import { DMS_TONE_WELL } from "../../build/utils/tone";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type IconWellSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 /**

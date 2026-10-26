@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PHONE_VIEWPORT_QUERY,
   useMobileDisplay,
-} from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
+} from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import type { TableViewViewStateConfig } from "../layers/dms-ui/app/composables/table-view/types";
 
 const OFFERED = new Set(["table", "cards"]);

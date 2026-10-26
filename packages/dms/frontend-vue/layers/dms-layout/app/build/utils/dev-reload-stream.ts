@@ -2,7 +2,7 @@ import { type Ref, watch } from "vue";
 import {
   type CrossTabEnvironment,
   shareAcrossTabs,
-} from "#dms-core/app/build/utils/crossTab";
+} from "#dms-core/app/entries/utils/crossTab";
 
 const RELOAD_EVENT_NAME = "reload";
 const REOPEN_DELAY_MS = 2000;

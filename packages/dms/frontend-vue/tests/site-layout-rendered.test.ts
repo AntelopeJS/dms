@@ -22,7 +22,7 @@ import {
 import {
   useRenderedSiteLayout,
   useSiteLayout,
-} from "../layers/dms-layout/app/composables/page/useSiteLayout";
+} from "../layers/dms-core/app/composables/page/useSiteLayout";
 
 const RESPONSE = {
   siteLayout: { pages: { "/orders": { fullId: "orders" } }, categories: {} },

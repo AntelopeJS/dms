@@ -14,7 +14,7 @@ import {
   type PropType,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
-import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
+import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 
 const route = reactive({ path: "/modules/automation/runs", query: {} });
 let app: App;

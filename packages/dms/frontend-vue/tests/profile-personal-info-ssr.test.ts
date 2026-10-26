@@ -101,7 +101,7 @@ afterEach(() => {
 
 it("renders the saved profile and its picture on the server, and the browser does not read them again", async () => {
   const { default: ProfilePersonalInfo } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePersonalInfo.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/profile/ProfilePersonalInfo"
   );
 
   const Page = defineComponent({

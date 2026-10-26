@@ -2,9 +2,9 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import {
   type AuthFormHandle,
   useAuthFormError,

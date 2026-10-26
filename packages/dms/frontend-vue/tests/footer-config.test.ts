@@ -10,7 +10,7 @@ import {
   ref,
   type App,
 } from "vue";
-import type { DmsFooterConfig } from "../layers/dms-core/shared/types/app-config";
+import type { DmsFooterConfig } from "../layers/dms-core/app/entries/shared/types/app-config";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -32,7 +32,7 @@ const SelectStub = defineComponent({
 
 async function mountFooter(): Promise<void> {
   const { default: Footer } = await import(
-    "../layers/dms-layout/app/build/components/layout/Footer.vue"
+    "../layers/dms-layout/app/entries/components/layout/Footer"
   );
   host = document.createElement("div");
   document.body.append(host);

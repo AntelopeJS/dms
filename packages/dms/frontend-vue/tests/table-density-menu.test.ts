@@ -11,8 +11,8 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableMenuDensity from "../layers/dms-ui/app/build/components/table/MenuDensity.vue";
-import TableMenuRoot from "../layers/dms-ui/app/build/components/table/MenuRoot.vue";
+import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/MenuDensity";
+import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
 
 describe("table density menu", () => {
   let app: App | undefined;

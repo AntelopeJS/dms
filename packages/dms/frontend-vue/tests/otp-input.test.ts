@@ -8,7 +8,7 @@ import {
   nextTick,
   ref,
 } from "vue";
-import type OtpInputComponent from "../layers/dms-ui/app/build/components/form/OtpInput.vue";
+import type OtpInputComponent from "../layers/dms-ui/app/entries/components/form/OtpInput";
 
 const CELLS = 6;
 
@@ -41,7 +41,7 @@ async function mount(
   props: Partial<InstanceType<typeof OtpInputComponent>["$props"]> = {},
 ) {
   const { default: OtpInput } = await import(
-    "../layers/dms-ui/app/build/components/form/OtpInput.vue"
+    "../layers/dms-ui/app/entries/components/form/OtpInput"
   );
   const exposed = ref<{ focus: () => void } | null>(null);
   const onComplete = vi.fn();

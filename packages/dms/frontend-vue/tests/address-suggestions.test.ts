@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   rankAddressSuggestions,
   suggestionPoolSize,
-} from "../layers/dms-ui/app/build/utils/addressSuggestions";
+} from "../layers/dms-ui/app/entries/utils/addressSuggestions";
 
 const place = (label: string, countryCode?: string) => ({ label, countryCode });
 

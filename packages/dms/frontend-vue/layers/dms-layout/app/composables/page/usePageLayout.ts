@@ -1,4 +1,7 @@
-import { fillRouteParams, pageQueryValues } from "../../utils/pageQuery";
+import {
+  fillRouteParams,
+  pageQueryValues,
+} from "#dms-core/app/utils/pageQuery";
 
 /**
  * Reads the same page cache that Inertia hydrates before navigation. Missing

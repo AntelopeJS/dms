@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { findNavigableCategory } from "../layers/dms-layout/app/composables/page/useSiteLayout";
-import type { SiteLayout } from "../layers/dms-layout/app/types/page";
+import { findNavigableCategory } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import type { SiteLayout } from "../layers/dms-core/app/types/page";
 
 const layout = {
   pages: {},

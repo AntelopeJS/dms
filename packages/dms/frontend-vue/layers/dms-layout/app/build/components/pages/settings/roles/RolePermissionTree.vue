@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import RolePermissionArea from "./RolePermissionArea.vue";
 import RolePermissionBranch from "./RolePermissionBranch.vue";
 import RolePermissionGroup from "./RolePermissionGroup.vue";

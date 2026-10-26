@@ -6,7 +6,7 @@ import DmsIconWell, {
 import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
 import DmsAutoLink from "../../../components/link/AutoLink.vue";
 import { DMS_TONE_TEXT } from "../../utils/tone";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type StatCellSize = "md" | "sm";
 

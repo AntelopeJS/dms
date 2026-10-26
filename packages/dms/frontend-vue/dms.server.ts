@@ -1,8 +1,8 @@
 import { defineDmsServer } from "#dms/server";
-import * as actions from "./layers/dms-auth/server/actions";
-import * as oauth from "./layers/dms-auth/server/oauth";
-import * as session from "./layers/dms-auth/server/session";
-import { renderHtml } from "./layers/dms-layout/server/html-render";
+import * as actions from "./layers/dms-auth/app/entries/server/actions";
+import * as oauth from "./layers/dms-auth/app/entries/server/oauth";
+import * as session from "./layers/dms-auth/app/entries/server/session";
+import { renderHtml } from "./layers/dms-layout/app/entries/server/html-render";
 
 const STORAGE_UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
 

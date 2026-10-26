@@ -11,7 +11,7 @@ import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import {
   numberAdjustment,
   parseTypedNumber,
-} from "../layers/dms-ui/app/build/utils/numberAdjustment";
+} from "../layers/dms-ui/app/entries/utils/numberAdjustment";
 import type { InputNumberAdjustment } from "../layers/dms-ui/app/types/input-number";
 import type InputNumber from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import { NumberFieldInput, NumberFieldRoot } from "reka-ui";

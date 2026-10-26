@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { type Component, createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { createI18n } from "vue-i18n";
-import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
-import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
-import type { DmsBrandingLogo } from "../layers/dms-core/shared/types/app-config";
+import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
+import type { DmsBrandingLogo } from "../layers/dms-core/app/entries/shared/types/app-config";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
 interface EmailModule {

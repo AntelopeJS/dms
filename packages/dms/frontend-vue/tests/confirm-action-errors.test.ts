@@ -15,7 +15,7 @@ import {
   ACTION_ERROR_GENERIC_KEY,
   ACTION_ERROR_NETWORK_KEY,
   resolveActionError,
-} from "../layers/dms-ui/app/build/composables/confirm/actionError";
+} from "../layers/dms-ui/app/entries/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
 import { DialogRoot } from "reka-ui";

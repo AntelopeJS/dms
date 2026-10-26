@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
-import TableEmpty from "#dms-ui/app/build/components/table/Empty.vue";
-import TablePagination from "#dms-ui/app/build/components/table/Pagination.vue";
+import TableEmpty from "#dms-ui/app/entries/components/table/Empty";
+import TablePagination from "#dms-ui/app/entries/components/table/Pagination";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types/display";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
 import { useNotificationCatalog } from "../../../../composables/notification/useNotificationCatalog";
@@ -16,7 +16,7 @@ import {
   groupNotificationsByDay,
   type NotificationSourceTag,
 } from "./notificationDisplay";
-import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
+import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
 interface NotificationInboxDisplayProps {
   context: TableViewDisplayContext<UserNotification>;

@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import type {
   CrossTabEnvironment,
   TabMessageHandler,
-} from "../../layers/dms-core/app/build/utils/crossTab";
+} from "../../layers/dms-core/app/entries/utils/crossTab";
 
 /**
  * One browser profile for the cross-tab tests: the Web Locks every tab shares

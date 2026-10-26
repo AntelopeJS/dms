@@ -18,9 +18,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   mapRelationBeforeState,
   sameRelationValue,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
-import { readonlyFieldValue } from "../layers/dms-ui/app/build/composables/form/readonlyValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
+import { readonlyFieldValue } from "../layers/dms-ui/app/entries/composables/form/readonlyValue";
+import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 const relationType: DataType = {
@@ -94,7 +94,7 @@ describe("a disabled relation field", () => {
 
   it("hands its display the row the server joined, not the id", async () => {
     const { default: FormFieldControl } = await import(
-      "../layers/dms-ui/app/build/components/form/FormFieldControl.vue"
+      "../layers/dms-ui/app/entries/components/form/FormFieldControl"
     );
     const field = {
       id: "customer",

@@ -1,5 +1,5 @@
 import { nextTick, watch, type Ref } from "vue";
-import { focusFirstEmptyCell } from "#dms-ui/app/build/utils/codeCells";
+import { focusFirstEmptyCell } from "#dms-ui/app/entries/utils/codeCells";
 
 /**
  * The inline error of a two-factor code entry. A code the API refused empties

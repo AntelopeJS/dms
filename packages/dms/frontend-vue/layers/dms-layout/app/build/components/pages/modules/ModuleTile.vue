@@ -2,7 +2,7 @@
 import { tv } from "tailwind-variants";
 import type { Slot } from "vue";
 import { DmsLink } from "#dms/frontend-module";
-import type { Tone } from "#dms-ui/app/types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
 
 /** The status pill of the tile's head. */

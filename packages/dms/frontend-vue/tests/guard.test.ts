@@ -18,7 +18,7 @@ import Guard from "../layers/dms-ui/app/components/guard/Guard.vue";
 import {
   isEmptyValue,
   readFieldPath,
-} from "../layers/dms-ui/app/build/composables/blocks/useGuard";
+} from "../layers/dms-ui/app/entries/composables/blocks/useGuard";
 import { engine } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";

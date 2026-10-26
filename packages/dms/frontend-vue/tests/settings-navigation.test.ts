@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,
-} from "../layers/dms-layout/app/build/composables/settings/useSettingsNavigation";
+} from "../layers/dms-layout/app/entries/composables/settings/useSettingsNavigation";
 
 interface NodeFixture {
   fullId: string;

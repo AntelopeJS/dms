@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, ref } from "vue";
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 
 interface CommandPaletteAssistantAnswerFrameProps {
   /** The assistant's resolved label, shown as the frame's eyebrow. */

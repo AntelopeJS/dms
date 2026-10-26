@@ -4,7 +4,7 @@ import PageHeader from "./PageHeader.vue";
 import PageHeaderActionsOutlet from "./PageHeaderActionsOutlet.vue";
 import PageSkeleton from "./PageSkeleton.vue";
 import type { LayoutHeaderAction } from "./PageHeaderActionBar.vue";
-import { providePageHeaderActions } from "../../../composables/layout/usePageHeaderActions";
+import { providePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 
 interface Props {
   hideHeader?: boolean;

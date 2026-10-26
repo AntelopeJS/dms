@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
-import { useSessionHandoff } from "../layers/dms-layout/app/build/composables/security/useSessionHandoff";
+import { useSessionHandoff } from "../layers/dms-layout/app/entries/composables/security/useSessionHandoff";
 import { useMultiAccount } from "../layers/dms-core/app/composables/auth/useMultiAccount";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { browserRuntime } from "./helpers/api-data-runtime";

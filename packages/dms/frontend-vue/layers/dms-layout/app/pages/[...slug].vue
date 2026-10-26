@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { withoutTrailingSlash } from "ufo";
-import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
+import { holdPageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
-import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
-import { usePageDataRefresh } from "#dms-ui/app/build/composables/live/usePageDataRefresh";
+import { usePageLiveHost } from "#dms-ui/app/entries/composables/live/usePageLiveHost";
+import { usePageDataRefresh } from "#dms-ui/app/entries/composables/live/usePageDataRefresh";
 import { usePageRecordDeletion } from "../composables/page/usePageRecordDeletion";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";

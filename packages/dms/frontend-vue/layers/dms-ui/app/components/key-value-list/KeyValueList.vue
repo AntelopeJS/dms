@@ -8,7 +8,7 @@ import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
 import DmsCopyButton from "../copy/CopyButton.vue";
 import { DMS_TONE_TEXT } from "../../build/utils/tone";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /**
  * How a value is drawn: `text` plain, `status` a tinted pill, `money` a

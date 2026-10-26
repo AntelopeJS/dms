@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type Slot, computed } from "vue";
 import DmsListRow from "../list-row/ListRow.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 interface Props {
   icon?: string;

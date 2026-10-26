@@ -17,7 +17,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 const SiteCard = {

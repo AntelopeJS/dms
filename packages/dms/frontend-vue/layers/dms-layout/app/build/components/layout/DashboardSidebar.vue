@@ -3,7 +3,7 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import {
   convertSiteLayoutTreeToTreeItems,
   convertSiteLayoutTreeToTreeItemsForModule,
-} from "#dms-ui/app/build/types/tree";
+} from "#dms-ui/app/entries/types/tree";
 import {
   isSidebarWidgetVisible,
   resolveSidebarWidgetPosition,

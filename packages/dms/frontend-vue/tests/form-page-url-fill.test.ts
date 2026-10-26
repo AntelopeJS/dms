@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillFormPageUrl } from "../layers/dms-ui/app/build/composables/table-view/useTableViewConfig";
+import { fillFormPageUrl } from "../layers/dms-ui/app/entries/composables/table-view/useTableViewConfig";
 
 const ROW = "row-1";
 

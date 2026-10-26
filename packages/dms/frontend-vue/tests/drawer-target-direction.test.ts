@@ -12,7 +12,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/types/action-target";
 import type { useDrawer } from "../layers/dms-ui/app/composables/containers/useDrawer";
 
@@ -130,12 +130,12 @@ describe("the drawer container", () => {
   const mountDrawer = async (
     props: Partial<
       InstanceType<
-        (typeof import("../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"))["default"]
+        (typeof import("../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"))["default"]
       >["$props"]
     >,
   ) => {
     const { default: DynamicDrawer } = await import(
-      "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+      "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
     );
     app = createApp({
       setup: () => () =>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ModuleSourceKind } from "../../../../types/module-store";
+import type { ModuleSourceKind } from "#dms-core/app/types/module-store";
 import { MODULE_SOURCE_ICONS } from "../../../utils/module-store-catalog";
 
 interface ModuleSourceLabelProps {

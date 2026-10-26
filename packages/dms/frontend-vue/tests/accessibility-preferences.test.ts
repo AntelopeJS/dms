@@ -19,7 +19,7 @@ import {
   reduceMotionFromClasses,
   resolveReducedMotion,
   type AccessibilityPreferences,
-} from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
+} from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
 
 interface CookieOptions {
   default: () => AccessibilityPreferences;

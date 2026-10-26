@@ -10,7 +10,7 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 import {
   ROW_ID_ATTRIBUTE,
   useRowScrollAnchor,
-} from "../layers/dms-ui/app/build/composables/table/useRowScrollAnchor";
+} from "../layers/dms-ui/app/entries/composables/table/useRowScrollAnchor";
 
 const ROW_HEIGHT = 40;
 const VIEW_HEIGHT = 200;

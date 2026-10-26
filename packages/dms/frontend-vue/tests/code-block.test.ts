@@ -17,8 +17,17 @@ let host: HTMLDivElement;
 type ComponentProps = NonNullable<VNode["props"]>;
 type MountProps = ComponentProps | (() => ComponentProps);
 
-async function mount(path: string, props: MountProps) {
-  const { default: component } = await import(path);
+const loaders = {
+  "../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue": () =>
+    import("../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue"),
+  "../layers/dms-ui/app/components/blocks/CodeBlock.vue": () =>
+    import("../layers/dms-ui/app/components/blocks/CodeBlock.vue"),
+  "../layers/dms-ui/app/components/blocks/EmptyStateBlock.vue": () =>
+    import("../layers/dms-ui/app/components/blocks/EmptyStateBlock.vue"),
+};
+
+async function mount(path: keyof typeof loaders, props: MountProps) {
+  const { default: component } = await loaders[path]();
   const read = isFunction(props) ? props : () => props;
   app = createApp({ setup: () => () => h(component, read()) });
   runtime?.scope.stop();

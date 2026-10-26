@@ -15,10 +15,10 @@ import { Size } from "../layers/dms-core/app/types/size";
 import * as formatterUtils from "../layers/dms-core/app/utils/formatter";
 import { parse } from "../layers/dms-core/app/utils/stringTypeParser";
 import * as typeChecks from "../layers/dms-core/app/utils/type-check";
-import coreEn from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import coreEn from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 type Messages = import("vue-i18n").LocaleMessage<
   import("vue-i18n").VueMessageType
@@ -95,7 +95,7 @@ const SAMPLE_OPTIONS: unknown[] = [undefined, {}, { multiple: true }];
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });
@@ -195,7 +195,7 @@ describe("a catalog-like table drawn after its setup", () => {
 
   it("renders every column of a row with no setup active", async () => {
     const { useColumnValueRenderer } = await import(
-      "../layers/dms-ui/app/build/composables/data-types/useColumnValueRenderer"
+      "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
     );
     let renderer: ReturnType<typeof useColumnValueRenderer> | undefined;
     const app = createApp(

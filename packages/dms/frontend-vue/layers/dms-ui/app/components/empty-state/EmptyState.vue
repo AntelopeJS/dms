@@ -3,7 +3,7 @@ import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import type { ButtonProps } from "@nuxt/ui";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type EmptyStateVariant = "no-data" | "no-result" | "no-access" | "error";
 export type EmptyStateSize = "sm" | "md" | "lg";

@@ -1,7 +1,7 @@
 import type { TableViewConfig } from "../../../composables/table-view/types";
 import { type Ref } from "vue";
-import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
-import type { TableViewLiveHoldOptions } from "../../../types/live";
+import type { TableField } from "#dms-core/app/entries/composables/user/tablePreferences";
+import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
 export interface RealtimePresenceActor {
   id: string;
   displayName?: string;

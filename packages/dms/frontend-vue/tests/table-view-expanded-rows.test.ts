@@ -5,7 +5,7 @@ import {
   type ExpandedRowsState,
   keepListedRows,
   nextExpandedRows,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/expandedRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/expandedRows";
 
 const ROWS = ["a", "b", "c"];
 

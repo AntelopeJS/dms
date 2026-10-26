@@ -1,4 +1,4 @@
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 /**
  * Nuxt UI themes of the data display primitives (DMS design v2, mockup
  * components/table.html, form.html tree picker, shell.html dots and

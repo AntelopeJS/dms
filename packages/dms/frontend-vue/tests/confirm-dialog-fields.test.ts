@@ -14,7 +14,7 @@ import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.v
 import {
   resolveConfirmDialog,
   resolveConfirmText,
-} from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
+} from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
 import type { ConfirmDialogField } from "../layers/dms-core/app/types/confirm-dialog";
 
 import { DialogRoot } from "reka-ui";

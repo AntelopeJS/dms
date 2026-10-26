@@ -10,7 +10,7 @@ import type {
   EmptyStateSize,
   EmptyStateVariant,
 } from "../../../components/empty-state/EmptyState.vue";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** The empty state a guard shows in place of its children (interface-dms `GuardFallback`). */
 export interface GuardFallback {

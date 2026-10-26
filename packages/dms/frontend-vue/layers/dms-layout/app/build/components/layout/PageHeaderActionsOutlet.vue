@@ -3,7 +3,7 @@ import { onServerPrefetch } from "vue";
 import PageHeaderActionBar, {
   type LayoutHeaderAction,
 } from "./PageHeaderActionBar.vue";
-import { injectPageHeaderActionsHost } from "../../../composables/layout/usePageHeaderActions";
+import { injectPageHeaderActionsHost } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { useServedHeaderActions } from "../../../composables/layout/useServedHeaderActions";
 
 interface PageHeaderActionsOutletProps {

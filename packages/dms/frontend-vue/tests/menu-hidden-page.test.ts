@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/build/types/tree";
+import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/entries/types/tree";
 
 type TreeNode = NonNullable<
   Parameters<typeof convertSiteLayoutTreeToTreeItems>[0]

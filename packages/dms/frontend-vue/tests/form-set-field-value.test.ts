@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createStartingValueTracker,
   resolveFieldValueWrite,
-} from "../layers/dms-ui/app/build/composables/form/fieldValueRule";
+} from "../layers/dms-ui/app/entries/composables/form/fieldValueRule";
 
 const PROBABILITY_BY_STAGE = {
   targetField: "probability",

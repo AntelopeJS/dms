@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -8,7 +8,7 @@ import {
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";

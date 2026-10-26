@@ -4,7 +4,7 @@ import { gridColumnsTemplate } from "../grid/columns";
 import {
   useCategoryNavCards,
   usePreviewEntryVeil,
-} from "#dms-layout/app/build/composables/navigation/useCategoryNavCards";
+} from "#dms-ui/app/entries/composables/navigation/useCategoryNavCards";
 import { computed } from "vue";
 import DmsNavCard from "../card/NavCard.vue";
 import DmsPermissionVeil from "../../build/components/permission/PermissionVeil.vue";
@@ -14,7 +14,7 @@ import DmsBlockStatus, {
 } from "../../build/components/blocks/BlockStatus.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";

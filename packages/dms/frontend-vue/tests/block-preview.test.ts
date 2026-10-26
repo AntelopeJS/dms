@@ -11,7 +11,7 @@ import {
   resolvePreviewTree,
   type PreviewBlockTypes,
   type PreviewState,
-} from "../layers/dms-ui/app/build/utils/blockPreview";
+} from "../layers/dms-ui/app/entries/utils/blockPreview";
 
 const BLOCK_TYPES: PreviewBlockTypes = {
   KpiCard: { componentName: "dms-kpi-card" },

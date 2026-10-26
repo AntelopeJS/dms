@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { replaceUrlVariables } from "../layers/dms-ui/app/composables/form/useForm";
 
 const NESTED_FORM_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";

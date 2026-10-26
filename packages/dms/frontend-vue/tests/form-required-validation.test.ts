@@ -13,7 +13,7 @@ import {
   type FormValidationIssue,
   unwrapUnionIssue,
   validateFormState,
-} from "../layers/dms-ui/app/build/composables/form/formValidation";
+} from "../layers/dms-ui/app/entries/composables/form/formValidation";
 
 function roundTrip(
   fields: Record<string, z.ZodTypeAny>,

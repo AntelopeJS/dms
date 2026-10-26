@@ -9,8 +9,8 @@ import { type App, createApp, defineComponent, h, nextTick } from "vue";
 import {
   groupSectionsForNav,
   layoutSections,
-} from "../layers/dms-ui/app/build/composables/form/formSections";
-import FormSectionNav from "../layers/dms-ui/app/build/components/form/FormSectionNav.vue";
+} from "../layers/dms-ui/app/entries/composables/form/formSections";
+import FormSectionNav from "../layers/dms-ui/app/entries/components/form/FormSectionNav";
 
 const field = (id: string) => ({
   id,

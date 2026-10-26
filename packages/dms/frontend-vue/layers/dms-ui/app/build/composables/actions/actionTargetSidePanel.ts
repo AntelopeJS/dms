@@ -5,7 +5,7 @@ import {
   openRowSidePanel,
   rowSidePanelOwnerKey,
   useRowSidePanelContent,
-} from "#dms-layout/app/build/composables/layout/rowSidePanel";
+} from "#dms-ui/app/build/composables/layout/rowSidePanel";
 import type { ActionTargetsConfig } from "./useActionTargets";
 import type { SidePanelTargetRun } from "./actionTargetTypes";
 import {

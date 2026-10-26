@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { horizontalScrollEdges } from "../layers/dms-ui/app/build/composables/table/utils/scrollEdges";
+import { horizontalScrollEdges } from "../layers/dms-ui/app/entries/composables/table/utils/scrollEdges";
 
 describe("Table horizontal scroll fades", () => {
   const area = (scrollLeft: number, scrollWidth = 1250, clientWidth = 340) => ({

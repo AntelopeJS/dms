@@ -12,8 +12,8 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NotificationPreferencesForm from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationPreferencesForm.vue";
-import { NOTIFICATION_GROUP_STORAGE_PREFIX } from "../layers/dms-layout/app/build/composables/notification/useNotificationGroupsOpen";
+import NotificationPreferencesForm from "../layers/dms-layout/app/entries/components/pages/settings/notification/NotificationPreferencesForm";
+import { NOTIFICATION_GROUP_STORAGE_PREFIX } from "../layers/dms-layout/app/entries/composables/notification/useNotificationGroupsOpen";
 import {
   browserRuntime,
   engine,

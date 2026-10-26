@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, ref } from "vue";
-import { useCategoryNavCards } from "../layers/dms-layout/app/build/composables/navigation/useCategoryNavCards";
-import type { NavBadge } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
+import { useCategoryNavCards } from "../layers/dms-ui/app/entries/composables/navigation/useCategoryNavCards";
+import type { NavBadge } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { engine } from "./helpers/api-data-runtime";
-import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
+import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
 
 const badges = () =>
   engine.useDmsState<Record<string, NavBadge>>("dms-nav-badges", () => ({}));

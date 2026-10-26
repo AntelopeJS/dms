@@ -19,10 +19,10 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { registerBlockAnchor } from "../layers/dms-ui/app/build/composables/page/blockAnchors";
+import { registerBlockAnchor } from "../layers/dms-ui/app/entries/composables/page/blockAnchors";
 import { scrollToBlock } from "../layers/dms-ui/app/utils/scrollToBlock";
 import { useRealDataEngine } from "./fixtures/dataEngine";
-import type { ResolvedComponentInfo } from "../layers/dms-layout/app/types/page";
+import type { ResolvedComponentInfo } from "../layers/dms-core/app/types/page";
 
 let app: App | undefined;
 let host: HTMLDivElement;

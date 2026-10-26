@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   scrollParent,
   scrollWithin,
-} from "../layers/dms-ui/app/build/utils/scrollWithin";
+} from "../layers/dms-ui/app/entries/utils/scrollWithin";
 
 function box(element: HTMLElement, top: number, height: number): void {
   element.getBoundingClientRect = () => new DOMRect(0, top, 0, height);

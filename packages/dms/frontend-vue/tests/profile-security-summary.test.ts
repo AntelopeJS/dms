@@ -4,7 +4,7 @@ import { createApp, ref, type App } from "vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import iconsPlugin from "@nuxt/ui/runtime/vue/plugins/icons.js";
 import { icons } from "@iconify-json/ph/icons.json";
-import ProfileSecuritySummary from "../layers/dms-layout/app/build/components/pages/settings/profile/ProfileSecuritySummary.vue";
+import ProfileSecuritySummary from "../layers/dms-layout/app/entries/components/pages/settings/profile/ProfileSecuritySummary";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 

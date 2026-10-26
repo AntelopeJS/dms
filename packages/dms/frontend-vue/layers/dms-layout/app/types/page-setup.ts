@@ -1,4 +1,4 @@
-import type { PageInfo } from "./page";
+import type { PageInfo } from "#dms-core/app/types/page";
 import type { ComponentEventData } from "#dms-core/app/types/component";
 
 /** Cleanup callback returned by a PageSetupFunction. Called on page unmount. */

@@ -2,7 +2,7 @@
 import { expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import type { FormProps } from "../layers/dms-ui/app/composables/form/types/props";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import {
   button,
   host,

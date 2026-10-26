@@ -5,11 +5,11 @@ import {
   closeRowSidePanel,
   ROW_SIDE_PANEL_ID,
   useRowSidePanelContent,
-} from "../layers/dms-layout/app/build/composables/layout/rowSidePanel";
+} from "../layers/dms-ui/app/entries/composables/layout/rowSidePanel";
 import {
   isDeepLinkAction,
   resolveDeepLinkedRow,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   type Row,
   openPanelId,

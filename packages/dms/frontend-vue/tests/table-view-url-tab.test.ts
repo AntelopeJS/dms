@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   readTableUrlTab,
   useTableUrlTab,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableUrlTab";
-import type { TableUrlScope } from "../layers/dms-ui/app/build/composables/table-view/utils/views";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableUrlTab";
+import type { TableUrlScope } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 
 const OPENABLE_TABS = new Set(["all", "active", "archived"]);
 const mounted: Array<{ unmount: () => void }> = [];

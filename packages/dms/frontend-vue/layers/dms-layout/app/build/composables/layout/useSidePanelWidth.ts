@@ -2,18 +2,18 @@ import type { Ref } from "vue";
 import {
   RESIZE_KEYBOARD_STEP_PX,
   useResizableSize,
-} from "#dms-ui/app/build/composables/containers/useResizableSize";
+} from "#dms-ui/app/entries/composables/containers/useResizableSize";
 import {
   resolveSidePanelWidthBounds,
   type SidePanel,
   type SidePanelWidthBounds,
-} from "../../../composables/useAppSidePanels";
+} from "#dms-ui/app/composables/useAppSidePanels";
 import {
   readSidePanelPreferences,
   storeSidePanelWidth,
   useSidePanelDragWidth,
   useSidePanelPreferences,
-} from "./sidePanelState";
+} from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 /** @internal */
 export const SIDE_PANEL_KEYBOARD_STEP_PX = RESIZE_KEYBOARD_STEP_PX;

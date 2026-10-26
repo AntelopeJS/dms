@@ -26,7 +26,7 @@ const { registerPeriodScope } = await import(
   "../layers/dms-core/app/composables/period/usePeriodScope"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 
 const SCOPE = "block-items-period";

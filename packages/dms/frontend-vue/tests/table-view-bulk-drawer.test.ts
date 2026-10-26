@@ -5,17 +5,17 @@ import {
   isAllMatchingAction,
   targetWithSelection,
   withQuery,
-} from "../layers/dms-ui/app/build/composables/actions/bulkSelection";
+} from "../layers/dms-ui/app/entries/composables/actions/bulkSelection";
 import {
   listenRowSteps,
   trackRowNavigation,
-} from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+} from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import {
   deepLinkOutcome,
   readRecordId,
   recordUrlKey,
   writeRecordId,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 

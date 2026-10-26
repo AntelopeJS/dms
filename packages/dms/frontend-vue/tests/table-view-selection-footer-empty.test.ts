@@ -12,9 +12,9 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableRowSelection from "../layers/dms-ui/app/build/components/table/RowSelection.vue";
-import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
-import TablePagination from "../layers/dms-ui/app/build/components/table/Pagination.vue";
+import TableRowSelection from "../layers/dms-ui/app/entries/components/table/RowSelection";
+import TableEmpty from "../layers/dms-ui/app/entries/components/table/Empty";
+import TablePagination from "../layers/dms-ui/app/entries/components/table/Pagination";
 
 const ButtonStub = defineComponent({
   props: { label: String, ariaLabel: String, to: String },

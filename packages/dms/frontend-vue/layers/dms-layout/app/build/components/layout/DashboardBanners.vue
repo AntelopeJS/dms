@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsBlockActions from "#dms-ui/app/build/components/blocks/BlockActions.vue";
+import DmsBlockActions from "#dms-ui/app/entries/components/blocks/BlockActions";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
 /**

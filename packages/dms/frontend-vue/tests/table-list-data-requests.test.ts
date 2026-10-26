@@ -14,10 +14,10 @@ vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 
 const { useTableRows } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRows"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
 );
 const { useTableCountsData, useTableListData } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableListData"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableListData"
 );
 
 const LOCATION = "/api/orders";

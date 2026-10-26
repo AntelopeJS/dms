@@ -11,7 +11,7 @@ import {
   keptServerErrors,
   serverErrorValue,
   type KeptServerError,
-} from "../layers/dms-ui/app/build/composables/form/serverFieldErrors";
+} from "../layers/dms-ui/app/entries/composables/form/serverFieldErrors";
 
 const RATE_ERROR = { name: "rate", message: "A business pays 21%." };
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FULL_TABLE_CHROME,
   resolveTableChrome,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 import {
   applyQuickFilter,
   quickFilterButtonLabel,
@@ -11,10 +11,10 @@ import {
   relationQuickFilterItems,
   relationQuickFilterSource,
   staticQuickFilterItems,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/quickFilters";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/quickFilters";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 
 const column = (
   id: string,

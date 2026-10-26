@@ -4,7 +4,7 @@ import {
   processSourceRows,
   sourceRouteQuery,
   useTableRows,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 interface LogRow extends Record<string, unknown> {

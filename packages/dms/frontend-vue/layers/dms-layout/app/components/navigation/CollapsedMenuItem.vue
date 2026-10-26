@@ -58,7 +58,7 @@ const theme = tv({
 
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
 
 interface Props {
   item: DmsMenuItem;

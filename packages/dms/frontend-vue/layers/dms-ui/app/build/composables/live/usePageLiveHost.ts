@@ -1,5 +1,5 @@
 import { onMounted, onScopeDispose, watch } from "vue";
-import type { PageLiveOptions } from "../../../types/live";
+import type { PageLiveOptions } from "#dms-core/app/types/live";
 import { provideServerPageLive, setCurrentPageLive } from "./currentPageLive";
 import {
   createPageLiveController,

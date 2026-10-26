@@ -2,7 +2,7 @@
 import { http, router, usePage } from "@inertiajs/vue3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installShellRuntime } from "./helpers/live-shell-runtime";
-import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 
 type Request = Parameters<ReturnType<typeof http.getClient>["request"]>[0];
 type Response = Awaited<

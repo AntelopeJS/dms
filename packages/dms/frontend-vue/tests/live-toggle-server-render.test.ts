@@ -7,7 +7,7 @@
 import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { provideServerPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+import { provideServerPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import LiveToggleBlock from "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue";
 import { engine } from "./helpers/api-data-runtime";
 

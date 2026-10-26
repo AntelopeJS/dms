@@ -3,7 +3,7 @@ import {
   SECURITY_PAGE_PATH,
   useSecurityOverview,
 } from "../../../../composables/settings/security/useSecurityOverview";
-import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
+import { iconWellToneOf } from "#dms-ui/app/entries/utils/tone";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
 const { t, locale } = useI18n();

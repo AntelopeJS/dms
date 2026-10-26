@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import { useAuthFormError } from "../../build/composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";

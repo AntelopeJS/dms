@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import DmsModalEscHint from "#dms-ui/app/build/components/modal/ModalEscHint.vue";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
+import DmsModalEscHint from "#dms-ui/app/entries/components/modal/ModalEscHint";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,

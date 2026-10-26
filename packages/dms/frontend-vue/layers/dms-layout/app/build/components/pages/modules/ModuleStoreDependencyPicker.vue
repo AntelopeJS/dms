@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { InputEmits, RadioGroupEmits, TextareaEmits } from "@nuxt/ui";
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import type { MissingInterface } from "../../../../types/module-store";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
+import type { MissingInterface } from "#dms-core/app/types/module-store";
 import {
   type DependencyDraft,
   type DependencyDraftError,

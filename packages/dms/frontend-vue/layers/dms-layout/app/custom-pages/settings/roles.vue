@@ -16,15 +16,15 @@ import {
   useRoleEditor,
 } from "../../build/components/pages/settings/roles/useRoleEditor";
 import { useRolesApi } from "../../build/components/pages/settings/roles/useRolesApi";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import {
   type PermissionPreviewInput,
   usePermissionPreview,
-} from "#dms-core/app/build/composables/auth/usePermissionPreview";
+} from "#dms-core/app/entries/composables/auth/usePermissionPreview";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
-import { useActionConfirm } from "#dms-ui/app/build/composables/confirm/useActionConfirm";
+import { useActionConfirm } from "#dms-ui/app/entries/composables/confirm/useActionConfirm";
 
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;

@@ -6,7 +6,7 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";

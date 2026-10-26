@@ -56,7 +56,7 @@ async function submit(): Promise<void> {
 
 async function mount(): Promise<void> {
   const { default: SecurityPasswordModal } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecurityPasswordModal.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPasswordModal"
   );
   app = createApp(() =>
     h(SecurityPasswordModal, {

@@ -4,9 +4,9 @@ import {
   formatRecordLabel,
   resolveFormContainerTexts,
   type FormContainerTextSource,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/formTexts";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/formTexts";
+import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 const TASKS = {
   en: {

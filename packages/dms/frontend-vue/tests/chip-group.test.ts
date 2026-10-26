@@ -14,12 +14,12 @@ let host: HTMLDivElement;
 async function mount(
   props: Partial<
     InstanceType<
-      (typeof import("../layers/dms-ui/app/build/components/form/ChipGroup.vue"))["default"]
+      (typeof import("../layers/dms-ui/app/entries/components/form/ChipGroup"))["default"]
     >["$props"]
   >,
 ) {
   const { default: ChipGroup } = await import(
-    "../layers/dms-ui/app/build/components/form/ChipGroup.vue"
+    "../layers/dms-ui/app/entries/components/form/ChipGroup"
   );
   const onPick = vi.fn();
   app = createApp({

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import { navBadgeClass } from "#dms-ui/app/build/utils/navBadge";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import { navBadgeClass } from "#dms-ui/app/entries/utils/navBadge";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,

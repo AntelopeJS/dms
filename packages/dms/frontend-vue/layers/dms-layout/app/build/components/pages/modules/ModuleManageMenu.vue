@@ -4,7 +4,7 @@ import {
   type StoreAction,
   storeBlockMessage,
 } from "../../../utils/module-store-catalog";
-import type { StoreOperationKind } from "../../../../types/module-store";
+import type { StoreOperationKind } from "#dms-core/app/types/module-store";
 
 interface ModuleManageMenuProps {
   entry: ModuleStoreEntry;

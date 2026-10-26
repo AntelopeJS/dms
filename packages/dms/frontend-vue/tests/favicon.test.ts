@@ -13,7 +13,7 @@ import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import layoutAppConfig from "../layers/dms-layout/app/app.config";
-import type { DmsLogoSources } from "../layers/dms-core/shared/types/app-config";
+import type { DmsLogoSources } from "../layers/dms-core/app/entries/shared/types/app-config";
 
 interface FaviconAppConfig {
   branding: { logo?: { favicon?: Partial<DmsLogoSources> } };

@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import type { ButtonProps } from "@nuxt/ui";
 import { buttonLinkProps } from "../../utils/link";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
+import type { BlockAction } from "#dms-core/app/entries/types/block-action";
 
-/** A link button a block option declares (interface-dms `BlockLinkAction`). */
-export interface BlockAction {
-  label: string;
-  /** Route, `#anchor` or URL; an absolute URL opens in a new tab. */
-  to: string;
-  icon?: string;
-  variant?: ButtonProps["variant"];
-  color?: Tone;
-}
+export type { BlockAction } from "#dms-core/app/entries/types/block-action";
 
 /**
  * A button running a target (interface-dms `BannerButtonAction`): the block

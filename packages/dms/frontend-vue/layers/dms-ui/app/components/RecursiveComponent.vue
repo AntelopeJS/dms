@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, useAttrs } from "vue";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { childLayoutPath } from "#dms-core/app/build/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { childLayoutPath } from "#dms-core/app/entries/utils/permission-preview";
 import { childComponentId } from "../utils/componentId";
 import {
   GRID_DECLARED_COLUMNS,

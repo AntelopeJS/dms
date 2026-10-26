@@ -11,7 +11,7 @@ import type {
   TableViewReorderConfig,
 } from "../../composables/table-view/types";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
-import type { TableViewLiveHoldOptions } from "../../types/live";
+import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
 import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";

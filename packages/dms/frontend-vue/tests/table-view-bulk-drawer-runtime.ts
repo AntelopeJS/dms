@@ -1,14 +1,14 @@
 import { createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type {
   DrawerOptions,
   DrawerPatch,
 } from "../layers/dms-ui/app/composables/containers/types";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
-import type { ShowRow } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
-import type { BulkSelection } from "../layers/dms-ui/app/build/composables/actions/bulkSelection";
+import type { ShowRow } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
+import type { BulkSelection } from "../layers/dms-ui/app/entries/composables/actions/bulkSelection";
 import type { resolveComponentChildren } from "../layers/dms-ui/app/utils/componentTree";
 
 interface DrawerBody {

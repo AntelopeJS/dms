@@ -4,9 +4,9 @@
  */
 import { createI18n } from "vue-i18n";
 import { describe, expect, it } from "vitest";
-import { formatArchivedCount } from "../layers/dms-ui/app/build/composables/table/utils/archivedCount";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import { formatArchivedCount } from "../layers/dms-ui/app/entries/composables/table/utils/archivedCount";
+import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 const invoices = {
   invoices: {

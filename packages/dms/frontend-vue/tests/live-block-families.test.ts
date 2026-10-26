@@ -33,8 +33,8 @@ import { refreshLivePageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 
 const requests: string[] = [];
 vi.stubGlobal("defineDmsPlugin", engine.defineDmsPlugin);
@@ -43,7 +43,7 @@ const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 const { useApiData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"

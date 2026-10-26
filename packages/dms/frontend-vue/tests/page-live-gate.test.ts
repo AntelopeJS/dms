@@ -16,14 +16,14 @@ import {
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 
 const realtime = liveShellRuntime();
 
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 
 const PAGE = "monitoring.logs";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
-import { resolveFormSuccessTarget } from "../layers/dms-ui/app/build/composables/table-view/registerDefaultFunctions";
+import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { resolveFormSuccessTarget } from "../layers/dms-ui/app/entries/composables/table-view/registerDefaultFunctions";
 
 const EDIT_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NEW_PATTERN = "/workspaces/:id/invoiceTable/new";

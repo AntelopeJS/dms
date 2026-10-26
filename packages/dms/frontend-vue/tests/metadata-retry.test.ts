@@ -21,7 +21,7 @@ import {
   isDefinitiveMetadataFailure,
   resolveMetadataRetryDelay,
 } from "../layers/dms-ui/app/utils/metadataRetry";
-import type { FileMetadata } from "../layers/dms-ui/app/build/composables/files/useFileMetadata";
+import type { FileMetadata } from "../layers/dms-ui/app/entries/composables/files/useFileMetadata";
 
 const authFetch = vi.fn();
 const LONG_WAIT_MS = 120000;

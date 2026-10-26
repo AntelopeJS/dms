@@ -11,7 +11,7 @@ import {
   entryRowLayout,
   GROUP_MEMBER_CLASSES,
 } from "../../composables/form/formLayout";
-import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
 import DmsFieldRow from "../../../components/field-row/FieldRow.vue";

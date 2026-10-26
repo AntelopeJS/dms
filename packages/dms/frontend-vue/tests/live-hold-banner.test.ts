@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 type BannerProps = InstanceType<
-  typeof import("../layers/dms-ui/app/build/components/table-view/LiveHoldBanner.vue").default
+  typeof import("../layers/dms-ui/app/entries/components/table-view/LiveHoldBanner").default
 >["$props"];
 
 async function mountBanner(props: BannerProps) {
@@ -23,7 +23,7 @@ async function mountBanner(props: BannerProps) {
       params ? `${key}:${params.count}` : key,
   }));
   const { default: LiveHoldBanner } = await import(
-    "../layers/dms-ui/app/build/components/table-view/LiveHoldBanner.vue"
+    "../layers/dms-ui/app/entries/components/table-view/LiveHoldBanner"
   );
   const host = document.createElement("div");
   app = createApp({ render: () => h(LiveHoldBanner, props) });

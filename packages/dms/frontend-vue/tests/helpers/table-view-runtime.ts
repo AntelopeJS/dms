@@ -9,7 +9,7 @@ import * as displays from "../../layers/dms-ui/app/composables/table-view/useTab
 import { usePreferences } from "../../layers/dms-core/app/composables/user/usePreferences";
 import { useDataTypes } from "../../layers/dms-core/app/composables/data-types/useDataType";
 import { useTableViewExport } from "../../layers/dms-ui/app/composables/table-view/useTableViewExport";
-import { useSiteLayout } from "../../layers/dms-layout/app/composables/page/useSiteLayout";
+import { useSiteLayout } from "../../layers/dms-core/app/composables/page/useSiteLayout";
 import { usePresenceEditWarning } from "../../layers/dms-ui/app/composables/confirm/usePresenceEditWarning";
 import { useRealtimeTopic } from "../../layers/dms-core/app/composables/realtime/useRealtimeTopic";
 import { useEventedAction } from "../../layers/dms-core/app/composables/useEventedAction";

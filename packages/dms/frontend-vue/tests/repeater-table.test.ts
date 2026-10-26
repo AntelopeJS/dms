@@ -13,11 +13,11 @@ import RepeaterTable from "../layers/dms-ui/app/components/form/components/Repea
 import {
   joinRelationValue,
   relationLabelSource,
-} from "../layers/dms-ui/app/build/composables/form/repeaterTable";
+} from "../layers/dms-ui/app/entries/composables/form/repeaterTable";
 import {
   NotFoundRelation,
   relationSelectSource,
-} from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
 const RELATION_TYPE = { selectSource: relationSelectSource };

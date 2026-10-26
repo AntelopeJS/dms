@@ -12,7 +12,7 @@ import {
   type PreviewLockableEntry,
   resolveActivePreviewBlock,
   resolvePreviewBlock,
-} from "#dms-core/app/build/utils/permission-preview";
+} from "#dms-core/app/entries/utils/permission-preview";
 
 const SESSION = {
   id: "p1",

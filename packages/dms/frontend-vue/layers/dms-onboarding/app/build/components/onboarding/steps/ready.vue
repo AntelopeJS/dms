@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "vue";
-import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/build/utils/tileRow";
+import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/entries/utils/tileRow";
 import type { KeyValueItem } from "#dms-ui/app/components/key-value-list/KeyValueList.vue";
-import StageCard from "../../../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import type {
   OnboardingAdministrator,
   OnboardingPlatform,

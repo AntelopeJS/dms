@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import { useShortcutRegistry } from "#dms-ui/app/build/composables/shortcuts/useShortcutRegistry";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
+import { useShortcutRegistry } from "#dms-ui/app/entries/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
   keyboardKeyLabel,
   type KeyboardPlatform,

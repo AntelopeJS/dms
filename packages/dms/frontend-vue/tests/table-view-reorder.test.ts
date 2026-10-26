@@ -1,10 +1,10 @@
 import { computed, ref, watch } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useTableReorder } from "../layers/dms-ui/app/build/composables/table-view/useTableReorder";
+import { useTableReorder } from "../layers/dms-ui/app/entries/composables/table-view/useTableReorder";
 import {
   moveRow,
   reorderEdits,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/reorder";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
 import type { TableViewListResponse } from "../layers/dms-ui/app/composables/table-view/types";
 
 type Api = Parameters<typeof useTableReorder>[0]["api"];

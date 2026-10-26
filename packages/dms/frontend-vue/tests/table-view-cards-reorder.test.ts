@@ -11,9 +11,9 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
-import { useTableReorder } from "../layers/dms-ui/app/build/composables/table-view/useTableReorder";
-import { moveRow } from "../layers/dms-ui/app/build/composables/table-view/utils/reorder";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
+import { useTableReorder } from "../layers/dms-ui/app/entries/composables/table-view/useTableReorder";
+import { moveRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 type Row = { _id: string; name: string };

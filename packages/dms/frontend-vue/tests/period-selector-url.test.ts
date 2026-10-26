@@ -27,7 +27,7 @@ import {
 } from "vitest";
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
-import type { RememberedPeriods } from "../layers/dms-ui/app/build/composables/period/periodQuery";
+import type { RememberedPeriods } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
 const preferences = new Map<string, RememberedPeriods>();
@@ -55,7 +55,7 @@ const { usePeriod } = await import(
   "../layers/dms-core/app/composables/period/usePeriod"
 );
 const { usePeriodLocation, PERIOD_PREFERENCE_KEY } = await import(
-  "../layers/dms-ui/app/build/composables/period/usePeriodLocation"
+  "../layers/dms-ui/app/entries/composables/period/usePeriodLocation"
 );
 
 type Period = ReturnType<typeof usePeriod>;

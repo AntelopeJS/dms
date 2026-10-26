@@ -1,14 +1,14 @@
 /** @vitest-environment jsdom */
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableViews from "../layers/dms-ui/app/build/components/table/Views.vue";
-import { mergeColumnOrder } from "../layers/dms-ui/app/build/composables/table/utils/columnOrder";
+import TableViews from "../layers/dms-ui/app/entries/components/table/Views";
+import { mergeColumnOrder } from "../layers/dms-ui/app/entries/composables/table/utils/columnOrder";
 import {
   isSameTableState,
   readTableUrlKey,
   snapshotViewState,
   viewSnapshot,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/views";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
 describe("table view states", () => {
   it("opens a view over the table's defaults", () => {

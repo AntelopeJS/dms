@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import frFR from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import {
   defaultSortingState,
   headerSortCue,
@@ -15,7 +15,7 @@ import {
   sortDirectionLabelKey,
   sortingOrDefault,
   sortValueKind,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/sortableColumns";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/sortableColumns";
 
 const columns = [
   { id: "name", accessorKey: "name", enableSorting: false },

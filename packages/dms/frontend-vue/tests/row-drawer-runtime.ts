@@ -8,9 +8,9 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
-import type { RowNavigationSource } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
-import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
+import type { RowNavigationSource } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
+import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type {
   DrawerOptions,

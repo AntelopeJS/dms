@@ -11,7 +11,7 @@ import { usePageLive } from "../../../composables/live/usePageLive";
 import type {
   PageLiveNote,
   TableViewLiveHoldOptions,
-} from "../../../types/live";
+} from "#dms-core/app/types/live";
 import type { LiveGate } from "../live/currentPageLive";
 import { useScrolledPastTop, useTableReached } from "./useScrolledPastTop";
 import { LIVE_HELD_AT_QUERY_KEY, type TableCountQuery } from "./useTableRows";

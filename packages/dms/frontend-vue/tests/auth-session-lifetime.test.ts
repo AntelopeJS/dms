@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPersistent } from "../layers/dms-auth/server/accounts";
+import { isPersistent } from "../layers/dms-auth/app/entries/server/accounts";
 
 describe("a session's lifetime", () => {
   it("outlives the browser only when written persistent", () => {

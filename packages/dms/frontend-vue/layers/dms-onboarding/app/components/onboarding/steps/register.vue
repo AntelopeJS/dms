@@ -3,13 +3,13 @@ import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import striptags from "striptags";
-import StageCard from "../../../../../dms-layout/app/build/components/layout/StageCard.vue";
-import AuthFormAlert from "../../../../../dms-auth/app/build/components/AuthFormAlert.vue";
-import AuthNewPasswordField from "../../../../../dms-auth/app/build/components/AuthNewPasswordField.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
+import AuthFormAlert from "#dms-auth/app/entries/components/AuthFormAlert";
+import AuthNewPasswordField from "#dms-auth/app/entries/components/AuthNewPasswordField";
 import {
   type AuthFormHandle,
   useAuthFormError,
-} from "../../../../../dms-auth/app/build/composables/useAuthFormError";
+} from "#dms-auth/app/entries/composables/useAuthFormError";
 import type {
   OnboardingAdministrator,
   OnboardingPlatform,

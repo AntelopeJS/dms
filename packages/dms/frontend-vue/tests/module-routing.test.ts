@@ -10,7 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
-import { MODULE_URL_PREFIX } from "../layers/dms-layout/app/types/page";
+import { MODULE_URL_PREFIX } from "../layers/dms-core/app/types/page";
 
 interface TreeNode {
   id: string;

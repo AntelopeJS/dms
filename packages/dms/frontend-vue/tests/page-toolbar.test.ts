@@ -12,21 +12,21 @@ import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import {
   setCurrentPageLive,
   useLiveGate,
-} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import {
   markPageRead,
   pageReadAt,
-} from "../layers/dms-ui/app/build/composables/live/pageReadClock";
+} from "../layers/dms-ui/app/entries/composables/live/pageReadClock";
 import {
   onPageBlocksRefresh,
   refreshPageBlocks,
   waitForPageBlocksRefresh,
 } from "../layers/dms-ui/app/utils/blockRefresh";
-import type { PageToolbarSize } from "../layers/dms-ui/app/build/composables/page-toolbar/pageToolbarContext";
+import type { PageToolbarSize } from "../layers/dms-ui/app/entries/composables/page-toolbar/pageToolbarContext";
 import { usePageToolbarSize } from "../layers/dms-ui/app/composables/page-toolbar/usePageToolbarSize";
 import type PageToolbarComponent from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import type LiveToggleComponent from "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue";

@@ -53,7 +53,7 @@ async function flush(): Promise<void> {
 
 async function mount(): Promise<void> {
   const { default: SecuritySessions } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecuritySessions"
   );
   app = createApp(SecuritySessions);
   browserRuntime(app);

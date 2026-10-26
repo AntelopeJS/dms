@@ -16,8 +16,8 @@ import {
   buildTimeZoneOptions,
   timeZoneLabel,
   timeZoneOffset,
-} from "../layers/dms-layout/app/build/components/pages/settings/region/timeZones";
-import { groupNotificationsByDay } from "../layers/dms-layout/app/build/components/pages/settings/notification/notificationDisplay";
+} from "../layers/dms-layout/app/entries/components/pages/settings/region/timeZones";
+import { groupNotificationsByDay } from "../layers/dms-layout/app/entries/components/pages/settings/notification/notificationDisplay";
 import type { UserNotification } from "../layers/dms-layout/app/composables/notification/useNotifications";
 
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));

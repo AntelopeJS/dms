@@ -27,7 +27,7 @@ import {
   componentSizeKey,
   DRAWER_SIZE_COOKIE,
   readDrawerSizePreferences,
-} from "../layers/dms-ui/app/build/composables/containers/drawerSize";
+} from "../layers/dms-ui/app/entries/composables/containers/drawerSize";
 
 import { DialogRoot } from "reka-ui";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
@@ -97,7 +97,7 @@ async function mountDrawer(props: DrawerProps): Promise<void> {
   app?.unmount();
   host.replaceChildren();
   const { default: DynamicDrawer } = await import(
-    "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
   );
   app = createApp({
     setup: () => () =>
@@ -426,10 +426,10 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     wrap: (options: DrawerOptions) => DrawerOptions,
   ) {
     const { default: DynamicDrawer } = await import(
-      "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+      "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
     );
     const { DMS_CONTAINER_KEY } = await import(
-      "../layers/dms-ui/app/build/composables/containers/context"
+      "../layers/dms-ui/app/entries/composables/containers/context"
     );
     const { formFieldInjectionKey } = await import(
       "@nuxt/ui/runtime/composables/useFormField.js"
@@ -507,7 +507,7 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
 
   it("keeps the DMS's own drawers on the app's provides", async () => {
     const { dmsOwnDrawer } = await import(
-      "../layers/dms-ui/app/build/composables/containers/context"
+      "../layers/dms-ui/app/entries/composables/containers/context"
     );
     expect(await injectedByBody(dmsOwnDrawer)).toEqual({
       explorer: null,

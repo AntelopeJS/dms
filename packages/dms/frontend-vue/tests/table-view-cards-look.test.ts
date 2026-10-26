@@ -2,7 +2,7 @@
 import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type {
   TableViewCardConfig,

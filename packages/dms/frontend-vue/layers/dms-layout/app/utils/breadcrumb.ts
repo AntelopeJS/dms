@@ -1,5 +1,5 @@
 import { isString } from "../../../dms-core/app/utils/type-check";
-import type { PageValidation } from "../types/page";
+import type { PageValidation } from "#dms-core/app/types/page";
 import type { MenuRouteState } from "#dms-core/app/types/menu";
 
 export interface BreadcrumbTargetSource {

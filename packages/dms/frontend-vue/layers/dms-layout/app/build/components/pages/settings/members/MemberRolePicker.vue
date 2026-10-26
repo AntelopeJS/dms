@@ -8,7 +8,7 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 import DmsChipGroup, {
   type ChipGroupItem,
-} from "#dms-ui/app/build/components/form/ChipGroup.vue";
+} from "#dms-ui/app/entries/components/form/ChipGroup";
 
 /**
  * The roles of a member as pills, one per role of the workspace, each with

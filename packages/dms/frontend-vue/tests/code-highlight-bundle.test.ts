@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 const ROOT = resolve(__dirname, "..");
 const HIGHLIGHTER = resolve(
   ROOT,
-  "layers/dms-ui/app/build/utils/codeHighlight.ts",
+  "layers/dms-ui/app/entries/utils/codeHighlight.ts",
 );
 const BUILD_TIMEOUT_MS = 60_000;
 

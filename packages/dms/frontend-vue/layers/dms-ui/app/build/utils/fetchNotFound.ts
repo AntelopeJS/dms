@@ -6,7 +6,7 @@ import { HTTP_NOT_FOUND } from "../../../../dms-core/app/utils/http-status";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import type { BlockAction } from "../components/blocks/BlockActions.vue";
 import { userFacingText } from "../composables/confirm/actionError";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** Translation key of the not-found title, shared by blocks and guards. */
 export const NOT_FOUND_TITLE_KEY = "dms.blocks.not_found";

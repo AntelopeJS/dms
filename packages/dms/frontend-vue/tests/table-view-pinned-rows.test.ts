@@ -7,12 +7,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   processSourceRows,
   useTableRows,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import {
   pinRows,
   pinRowsBySpan,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/pinnedRows";
-import { rowLocator } from "../layers/dms-ui/app/build/composables/table-view/utils/locateRow";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/pinnedRows";
+import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 interface LanguageRow extends Record<string, unknown> {

@@ -1,4 +1,4 @@
-import type { PageLiveOptions, PageLivePeriod } from "../../../types/live";
+import type { PageLiveOptions, PageLivePeriod } from "#dms-core/app/types/live";
 
 const MS_PER_SECOND = 1000;
 const MS_PER_UNIT = {

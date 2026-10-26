@@ -6,7 +6,7 @@ import {
   type ComposableText,
   isComposedText,
 } from "../../../../../dms-core/app/utils/composedText";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 
 export type Row = Parameters<DataTypeFormatter>[3];

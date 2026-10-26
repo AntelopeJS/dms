@@ -11,7 +11,7 @@ import {
   type Component,
   type Ref,
 } from "vue";
-import GithubStarPrompt from "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue";
+import GithubStarPrompt from "../layers/dms-layout/app/entries/components/layout/GithubStarPrompt";
 import EmptyLayout from "../layers/dms-layout/app/custom-layouts/EmptyLayout.vue";
 import DefaultLayout from "../layers/dms-layout/app/custom-layouts/DefaultLayout.vue";
 import {
@@ -24,10 +24,10 @@ import {
   GITHUB_STAR_PROMPT_KEYS,
   GITHUB_STAR_PROMPT_SNOOZE_MS,
   GITHUB_STAR_PROMPT_TICK_MS,
-} from "../layers/dms-layout/app/build/composables/general/useGithubStarPrompt";
-import { GITHUB_REPOSITORY_URL } from "../layers/dms-layout/app/build/utils/github-repository";
-import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
-import { registerSidePanel } from "../layers/dms-layout/app/composables/useAppSidePanels";
+} from "../layers/dms-layout/app/entries/composables/general/useGithubStarPrompt";
+import { GITHUB_REPOSITORY_URL } from "../layers/dms-layout/app/entries/utils/github-repository";
+import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
+import { registerSidePanel } from "../layers/dms-ui/app/composables/useAppSidePanels";
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;

@@ -10,7 +10,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useGroupedRows } from "../layers/dms-ui/app/build/composables/table-view/useGroupedRows";
+import { useGroupedRows } from "../layers/dms-ui/app/entries/composables/table-view/useGroupedRows";
 import {
   dateGroupLabel,
   groupedOptionsFor,
@@ -23,7 +23,7 @@ import {
   orderGroupedRows,
   pickedTableSorting,
   rowGroupKey,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/groupedRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 const LABELS = {

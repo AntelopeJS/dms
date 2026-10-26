@@ -13,12 +13,12 @@ import {
   type SummaryTranslate,
   tallySubjects,
   weekdayName,
-} from "../layers/dms-layout/app/build/composables/settings/profile/preferencesSummary";
-import type { NotificationSubject } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
-import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
+} from "../layers/dms-layout/app/entries/composables/settings/profile/preferencesSummary";
+import type { NotificationSubject } from "../layers/dms-layout/app/entries/composables/notification/useNotificationCatalog";
+import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
-import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { useNotifications } from "../layers/dms-layout/app/composables/notification/useNotifications";
 import { useComponentEvent } from "../layers/dms-core/app/composables/components/useComponentEvent";
 import { useColorModePreference } from "../layers/dms-layout/app/composables/general/useColorModePreference";
@@ -241,7 +241,7 @@ const flush = async () => {
 
 async function mountSection(): Promise<void> {
   const { default: ProfilePreferencesSummary } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePreferencesSummary.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/profile/ProfilePreferencesSummary"
   );
   app = createApp(ProfilePreferencesSummary);
   browserRuntime(app);

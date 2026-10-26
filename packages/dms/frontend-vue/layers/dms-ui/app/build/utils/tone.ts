@@ -1,4 +1,4 @@
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 const KNOWN_TONES = new Set<string>([
   "neutral",

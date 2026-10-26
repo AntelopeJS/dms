@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, reactive } from "vue";
-import { combineSaveStates } from "../layers/dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "../layers/dms-ui/app/composables/layout/useInstantSaveHeader";
 import {
   INSTANT_SAVE_DEBOUNCE_MS,
   INSTANT_SAVED_STATE_MS,
   useInstantSave,
-} from "../layers/dms-ui/app/build/composables/instant-save/useInstantSave";
+} from "../layers/dms-ui/app/entries/composables/instant-save/useInstantSave";
 
 interface Settings {
   name: string;

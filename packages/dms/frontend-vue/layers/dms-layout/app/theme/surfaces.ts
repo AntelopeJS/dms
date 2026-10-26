@@ -8,11 +8,11 @@
  * Every class stays a literal string so Tailwind finds it when scanning.
  */
 
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import {
   CLOSING_OVERLAY_CLASS,
   UNCOVERED_PANEL_CLASS,
-} from "#dms-ui/app/build/components/containers/constants";
+} from "#dms-ui/app/entries/components/containers/constants";
 
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =

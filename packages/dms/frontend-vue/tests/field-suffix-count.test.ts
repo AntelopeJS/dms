@@ -14,7 +14,7 @@ import {
   h,
   nextTick,
 } from "vue";
-import { characterCountText } from "../layers/dms-ui/app/build/utils/characterCount";
+import { characterCountText } from "../layers/dms-ui/app/entries/utils/characterCount";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -48,9 +48,16 @@ async function mount(
   await nextTick();
 }
 
-const load = async (name: string): Promise<Component> =>
-  (await import(`../layers/dms-ui/app/components/form/components/${name}.vue`))
-    .default;
+const loaders = {
+  InputText: () =>
+    import("../layers/dms-ui/app/components/form/components/InputText.vue"),
+  Textarea: () =>
+    import("../layers/dms-ui/app/components/form/components/Textarea.vue"),
+  InputNumber: () =>
+    import("../layers/dms-ui/app/components/form/components/InputNumber.vue"),
+};
+const load = async (name: keyof typeof loaders): Promise<Component> =>
+  (await loaders[name]()).default;
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));

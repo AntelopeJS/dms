@@ -24,18 +24,22 @@ const mounted: Array<{ unmount: () => void }> = [];
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const BLOCKS = {
-  StatGroupBlock: "../layers/dms-ui/app/components/blocks/StatGroupBlock.vue",
-  KeyValueListBlock:
-    "../layers/dms-ui/app/components/blocks/KeyValueListBlock.vue",
-  NavCardGridBlock:
-    "../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue",
-  ActivityFeed:
-    "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue",
-  MeterBlock: "../layers/dms-ui/app/components/meter/MeterBlock.vue",
-  ChartCard: "../layers/dms-ui/app/components/chart/ChartCard.vue",
-  TopListCard: "../layers/dms-ui/app/components/top-list/TopListCard.vue",
-  KpiCard: "../layers/dms-ui/app/components/kpi/KpiCard.vue",
-  Guard: "../layers/dms-ui/app/components/guard/Guard.vue",
+  StatGroupBlock: () =>
+    import("../layers/dms-ui/app/components/blocks/StatGroupBlock.vue"),
+  KeyValueListBlock: () =>
+    import("../layers/dms-ui/app/components/blocks/KeyValueListBlock.vue"),
+  NavCardGridBlock: () =>
+    import("../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue"),
+  ActivityFeed: () =>
+    import("../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue"),
+  MeterBlock: () =>
+    import("../layers/dms-ui/app/components/meter/MeterBlock.vue"),
+  ChartCard: () =>
+    import("../layers/dms-ui/app/components/chart/ChartCard.vue"),
+  TopListCard: () =>
+    import("../layers/dms-ui/app/components/top-list/TopListCard.vue"),
+  KpiCard: () => import("../layers/dms-ui/app/components/kpi/KpiCard.vue"),
+  Guard: () => import("../layers/dms-ui/app/components/guard/Guard.vue"),
 };
 const SCOPE = "dashboard";
 const TOPICS = ["stats:first", "stats:second"];
@@ -91,8 +95,8 @@ afterEach(async () => {
 
 it.each(Object.entries(BLOCKS))(
   "%s forwards periodScope and realtimeTopic",
-  async (_name, path) => {
-    const block: Component = (await import(path)).default;
+  async (_name, load) => {
+    const block: Component = (await load()).default;
     const changePeriod = await mount(block);
     await settle();
     expect(requests).toHaveLength(1);

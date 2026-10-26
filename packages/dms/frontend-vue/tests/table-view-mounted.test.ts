@@ -13,7 +13,7 @@ import type {
 } from "../layers/dms-ui/app/composables/table-view/types";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
-import type { TableCountQuery } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
 const apps: Array<{ unmount: () => void }> = [];
 const requests: string[] = [];

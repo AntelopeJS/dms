@@ -16,7 +16,7 @@
   "oversizeFiles": {
     "packages/dms/frontend-vue/layers/dms-layout/app/assets/css/main.css": 23018,
     "packages/dms/frontend-vue/layers/dms-layout/app/theme/form-controls.ts": 20449,
-    "packages/dms/frontend-vue/layers/dms-ui/app/components/form/Form.vue": 22698,
+    "packages/dms/frontend-vue/layers/dms-ui/app/components/form/Form.vue": 22694,
     "packages/dms/playground/src/feature-index/blocks.ts": 33307,
     "packages/dms/playground/src/feature-index/table-view.ts": 22573,
     "packages/dms/playground/src/table-view/defaultValues.ts": 41993,

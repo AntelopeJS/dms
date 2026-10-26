@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
-import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
-import { providePageHeaderActions } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { providePageHeaderActions } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 
 type Messages = typeof uiEn | typeof uiFr;
 
@@ -99,7 +99,7 @@ describe("DmsInstantSaveBadge", () => {
 describe("useInstantSaveHeader", () => {
   it("puts the badge in the page header actions of the layout", async () => {
     const { useInstantSaveHeader } = await import(
-      "../layers/dms-layout/app/composables/layout/useInstantSaveHeader"
+      "../layers/dms-ui/app/composables/layout/useInstantSaveHeader"
     );
     let actions: ReturnType<typeof providePageHeaderActions> | undefined;
     const Page = defineComponent({
@@ -125,7 +125,7 @@ describe("useInstantSaveHeader", () => {
 
   it("folds per-control states: saving wins, then saved, else idle", async () => {
     const { combineSaveStates } = await import(
-      "../layers/dms-layout/app/composables/layout/useInstantSaveHeader"
+      "../layers/dms-ui/app/composables/layout/useInstantSaveHeader"
     );
     expect(combineSaveStates([])).toBe("idle");
     expect(combineSaveStates(["idle", undefined])).toBe("idle");

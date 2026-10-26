@@ -5,7 +5,7 @@
  * The menu badge of a `navBadge` tab stays the page's global count.
  */
 import { describe, expect, it } from "vitest";
-import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
 import {
   buildTableCountQueries,
   isCountNarrowed,
@@ -13,8 +13,8 @@ import {
   navBadgeCount,
   type TableCountQueriesInput,
   VIEW_COUNT_ID_PREFIX,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/tableCounts";
-import { buildTableQuery } from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/tableCounts";
+import { buildTableQuery } from "../layers/dms-ui/app/entries/composables/table-view/utils/tableQuery";
 
 const outstanding: TableFilter = {
   accessorKey: "dueState",

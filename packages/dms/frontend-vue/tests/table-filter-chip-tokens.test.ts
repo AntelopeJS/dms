@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   formatFilterValue,
   resolveNowTokens,
-} from "../layers/dms-ui/app/build/composables/table/utils/formatFilterValue";
-import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+} from "../layers/dms-ui/app/entries/composables/table/utils/formatFilterValue";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 const NOW = Date.parse("2026-10-19T12:00:00.000Z");

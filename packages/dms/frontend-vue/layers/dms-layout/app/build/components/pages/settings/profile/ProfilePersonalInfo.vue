@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 import {
   type AvatarFieldOptions,
   useProfileAvatar,

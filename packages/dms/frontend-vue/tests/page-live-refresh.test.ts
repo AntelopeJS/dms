@@ -13,8 +13,8 @@ import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import type {
   PageLiveRefresh,
   PageLiveRefreshOptions,

@@ -11,8 +11,8 @@ import type {
 import type {
   ModuleCatalogEntry,
   ModuleReadoutTone,
-} from "../../../../types/page";
-import type { StoreOperationKind } from "../../../../types/module-store";
+} from "#dms-core/app/types/page";
+import type { StoreOperationKind } from "#dms-core/app/types/module-store";
 import { moduleCategory } from "../../../utils/modules-catalog";
 import {
   type ModuleStoreEntry,

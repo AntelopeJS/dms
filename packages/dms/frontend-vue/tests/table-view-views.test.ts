@@ -15,16 +15,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PHONE_VIEWPORT_QUERY,
   useMobileDisplay,
-} from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
-import { useTableViews } from "../layers/dms-ui/app/build/composables/table-view/useTableViews";
-import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
-import { linkedArrivalPreferences } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
-import { type TableStateDefaults } from "../layers/dms-ui/app/build/composables/table-view/utils/views";
+} from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
+import { useTableViews } from "../layers/dms-ui/app/entries/composables/table-view/useTableViews";
+import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { linkedArrivalPreferences } from "../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
+import { type TableStateDefaults } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import type { TableViewViewsConfig } from "../layers/dms-ui/app/composables/table-view/types";
 import type {
   TableDensity,
   TableFilter,
-} from "../layers/dms-ui/app/build/components/table/Table.vue";
+} from "../layers/dms-ui/app/entries/components/table/Table";
 import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
 import type { ToastProps } from "@nuxt/ui";
 
