@@ -39,8 +39,10 @@ import {
   unscheduleTask,
 } from "./tasks";
 
-// The task a colleague moves while the user looks at it: its first change
-// meets a conflict (see `colleagueMoves`).
+/**
+ * The task a colleague moves while the user looks at it: its first change
+ * meets a conflict (see `colleagueMoves`).
+ */
 const COLLEAGUE_TASK = "45073-ME-1-Validation-ValCOORD";
 const COLLEAGUE = "Torrekens L.";
 const STATUSES = new Set(STATUS_OPTIONS.map((option) => option.value));
@@ -68,7 +70,7 @@ let colleagueMoved = false;
 const store = new AgendaStore(seedPlanning, {
   idPrefix: "planning",
   anchor: currentWeek,
-  // A reseeded week gives the colleague's move back to the demo.
+  /** A reseeded week gives the colleague's move back to the demo. */
   onReset: () => {
     colleagueMoved = false;
   },
@@ -96,10 +98,10 @@ function movesTask(change: AgendaChange): boolean {
 }
 
 function colleagueMoves(input: AgendaSaveInput): void {
-  // A new week reseeds first, giving the colleague's move back.
+  /** A new week reseeds first, giving the colleague's move back. */
   store.reanchor();
   if (colleagueMoved) return;
-  // A remark edited on the task leaves the colleague's move for a real one.
+  /** A remark edited on the task leaves the colleague's move for a real one. */
   if (!input.changes.some(movesTask)) return;
   const task = store.find(COLLEAGUE_TASK);
   if (!task?.end) return;

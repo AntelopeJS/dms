@@ -10,8 +10,14 @@ import type {
   AgendaSaveRequest,
   FullAgendaProps,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types/json";
 
 const COMPONENT_NAME = "dms-full-agenda-block";
+
+/** Block options as a page could write them, valid or not. */
+interface RawBlockOptions {
+  [option: string]: JsonValue;
+}
 
 /** Every option set at once but the action targets, as a page author may write them. */
 const FULL_OPTIONS: FullAgendaProps = {
@@ -219,6 +225,7 @@ describe("[unit] interfaces/dms-base — FullAgenda", () => {
   });
 
   it("keeps a save request's answers and cleared fields apart on the wire", () => {
+    // SAFETY: a JSON round trip of an AgendaSaveRequest keeps its shape.
     const sent = JSON.parse(JSON.stringify(SAVE_REQUEST)) as AgendaSaveRequest;
     expect(sent).to.deep.include({ force: true, overwrite: true });
     const [change] = sent.changes;
@@ -383,7 +390,7 @@ describe("[unit] interfaces/dms-base — FullAgenda", () => {
   });
 
   it("refuses values outside its enums and ranges", () => {
-    const valid = (options: Record<string, unknown>) =>
+    const valid = (options: RawBlockOptions) =>
       ValidateBlockOptions("FullAgenda", options).valid;
     expect(valid({ saveMode: "later" })).to.equal(false);
     expect(valid({ conflicts: "merge" })).to.equal(false);

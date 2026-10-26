@@ -93,7 +93,7 @@ export class PageAgendaLeave extends PageController(
       { id: "months", type: "year", yearLayout: "months", label: "12 mois" },
     ],
     weekStartsOn: 1,
-    // Days of the Belgian calendar, whatever the reader's zone.
+    /** Days of the Belgian calendar, whatever the reader's zone. */
     timeZone: DEMO_TIME_ZONE,
     businessHours: [{ days: [1, 2, 3, 4, 5], start: "09:30", end: "18:30" }],
     rangeSelect: "twoClicks",

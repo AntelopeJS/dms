@@ -16,7 +16,7 @@ export const AGENDA_SCHEDULE_SLUG = "agenda-schedule";
 export const AGENDA_SCHEDULE_API = `${AGENDA_API}/schedule`;
 
 const ONE_WEEK = 7;
-// Wide enough for a first name and most of a last name under a column.
+/** Wide enough for a first name and most of a last name under a column. */
 const COLUMN_MIN_WIDTH = 96;
 const SNAP_MINUTES = 30;
 const SHIFT_MINUTES = 540;

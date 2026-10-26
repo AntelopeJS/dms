@@ -4,6 +4,7 @@ import type {
   AgendaResource,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState } from "../store";
+import { plainText } from "../text";
 import { addDays, mondayOf, todayKey, zonedInstant } from "../time";
 
 /** The meeting rooms of the office: the resources of the bookings. */
@@ -18,7 +19,7 @@ export const ROOMS: AgendaResource[] = [
 /** A room's name. */
 export function roomName(id: string | undefined): string {
   const label = ROOMS.find((room) => room.id === id)?.label;
-  return typeof label === "string" ? label : "Salle";
+  return plainText(label, "Salle");
 }
 
 /**

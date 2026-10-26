@@ -21,8 +21,12 @@ export const TEAM_CALENDARS: AgendaCalendar[] = [
   { id: "direction", label: "Direction", color: "oklch(0.70 0.14 55)" },
 ];
 
-// Who leads each calendar's meetings, drawn as the event's avatar.
-const OWNERS: Record<string, AgendaAvatar> = {
+/** Who leads each calendar's meetings, drawn as the event's avatar. */
+interface CalendarOwners {
+  [calendarId: string]: AgendaAvatar;
+}
+
+const OWNERS: CalendarOwners = {
   design: { initials: "CR", color: "oklch(0.62 0.15 258)" },
   eng: { initials: "YB", color: "oklch(0.65 0.13 165)" },
   marketing: { initials: "LM", color: "oklch(0.64 0.16 330)" },
@@ -35,9 +39,11 @@ const OWNERS: Record<string, AgendaAvatar> = {
  */
 type SeedMeeting = [string, string, number, string, string, string];
 
-// The prototype's seed (week of Monday 29 June 2026), moved to the current
-// week: day 0 is this Monday, -4 last Thursday, 7 next Monday. Its five
-// "Design standup" are the weekday series below.
+/**
+ * The prototype's seed (week of Monday 29 June 2026), moved to the current
+ * week: day 0 is this Monday, -4 last Thursday, 7 next Monday. Its five
+ * "Design standup" are the weekday series below.
+ */
 const MEETINGS: SeedMeeting[] = [
   ["design", "Prep atelier", -4, "14:00", "15:00", "Studio"],
   ["eng", "Infra sync", -3, "10:00", "10:45", "Visio"],
@@ -84,7 +90,7 @@ function seedMeeting(
 }
 
 function standup(monday: string): AgendaEvent {
-  // Started two weeks ago, so last week's days show it too.
+  /** Started two weeks ago, so last week's days show it too. */
   const first = addDays(monday, -14);
   return {
     id: STANDUP_ID,
@@ -95,7 +101,7 @@ function standup(monday: string): AgendaEvent {
     location: "Visio",
     description:
       "<p>Quinze minutes, debout : <strong>hier</strong>, <strong>aujourd'hui</strong>, ce qui bloque.</p>",
-    // The standup is at 09:00 in Brussels, whatever the reader's zone.
+    /** The standup is at 09:00 in Brussels, whatever the reader's zone. */
     recurrence: {
       frequency: "weekly",
       weekdays: WEEKDAYS,
@@ -105,7 +111,7 @@ function standup(monday: string): AgendaEvent {
   };
 }
 
-// A few days off and an offsite, for the all-day row and the month bars.
+/** A few days off and an offsite, for the all-day row and the month bars. */
 function allDayEvents(monday: string): AgendaEvent[] {
   return [
     {

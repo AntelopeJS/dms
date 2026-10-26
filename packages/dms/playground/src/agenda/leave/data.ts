@@ -5,6 +5,7 @@ import type {
   AgendaEvent,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState } from "../store";
+import { plainText } from "../text";
 import { addDays, mondayOf, todayKey, weekdayOf } from "../time";
 
 /** The absence types, with the prototype's colours. */
@@ -19,7 +20,7 @@ export const LEAVE_CALENDARS: AgendaCalendar[] = [
 /** The label of an absence type. */
 export function leaveLabel(type: string | undefined): string {
   const label = LEAVE_CALENDARS.find((calendar) => calendar.id === type)?.label;
-  return typeof label === "string" ? label : "Absence";
+  return plainText(label, "Absence");
 }
 
 /** The person whose year this is: a 38-hour week over five days. */
@@ -113,9 +114,11 @@ export function workingDays(from: string, to: string): string[] {
 /** An absence: type, first day (MM-DD of the year), last day, note. */
 type AbsenceSeed = [string, string, string, string];
 
-// The prototype's year blocks for one person: winter, Easter and summer
-// leave (15 working days of 20, the 21st of July being a holiday), a
-// sickness, a recovery day, a training.
+/**
+ * The prototype's year blocks for one person: winter, Easter and summer
+ * leave (15 working days of 20, the 21st of July being a holiday), a
+ * sickness, a recovery day, a training.
+ */
 const TAKEN: AbsenceSeed[] = [
   ["conge", "02-16", "02-17", ""],
   ["conge", "04-07", "04-10", "Vacances de Pâques"],
@@ -153,8 +156,10 @@ export function asRequest(event: AgendaEvent): AgendaEvent {
   };
 }
 
-// The pending requests, from the prototype's: autumn leave next week, a
-// recovery day in two weeks.
+/**
+ * The pending requests, from the prototype's: autumn leave next week, a
+ * recovery day in two weeks.
+ */
 function requests(monday: string): AgendaEvent[] {
   return [
     asRequest({

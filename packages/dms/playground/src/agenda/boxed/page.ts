@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FullAgenda } from "@antelopejs/interface-dms/base/full-agenda";
 import { demoGuide } from "../../table-view/guide";
 import { AGENDA_API, agendaCategory } from "../category";
+import type { FacetFields } from "../query";
 import { DEMO_TIME_ZONE } from "../time";
 import { BOXED_CALENDARS, BOXED_LOCATIONS } from "./data";
 
@@ -10,7 +11,7 @@ export const AGENDA_BOXED_SLUG = "agenda-boxed";
 export const AGENDA_BOXED_API = `${AGENDA_API}/boxed`;
 
 /** The facet ids of the page, mapped by the route to the event fields they filter. */
-export const BOXED_FACET_FIELDS: Record<string, string> = {
+export const BOXED_FACET_FIELDS: FacetFields = {
   location: "location",
   calendar: "calendarId",
 };
@@ -85,7 +86,7 @@ export class PageAgendaBoxed extends PageController(
       "list",
     ],
     weekStartsOn: 1,
-    // The agency's hours and Sundays are Brussels ones.
+    /** The agency's hours and Sundays are Brussels ones. */
     timeZone: DEMO_TIME_ZONE,
     hiddenDays: [0],
     dayStart: "08:00",

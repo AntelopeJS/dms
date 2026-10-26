@@ -7,6 +7,7 @@ import type {
   AgendaSaveRequest,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import { HTTPResult } from "@antelopejs/interface-api";
+import { z } from "zod";
 import { badRequest } from "../matrix/save";
 import { isDayKey } from "./time";
 
@@ -23,7 +24,7 @@ const CHANGE_KINDS = new Set<AgendaChangeKind>([
   "unschedule",
 ]);
 
-// The kinds naming the event (or the pending item) they apply to.
+/** The kinds naming the event (or the pending item) they apply to. */
 const KINDS_WITH_ID = new Set<AgendaChangeKind>([
   "update",
   "move",
@@ -52,6 +53,8 @@ export interface AgendaSaveInput {
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SCOPES = new Set(["occurrence", "series"]);
+const CHANGE_ID = z.string();
+const OCCURRENCE_DAY = z.string().refine((text) => isCalendarDay(text));
 
 /** Whether a text is a day that exists (`2026-02-28`, not `2026-02-30`). */
 function isCalendarDay(text: string): boolean {
@@ -63,10 +66,11 @@ function isCalendarDay(text: string): boolean {
 /** An occurrence is a day that exists (`YYYY-MM-DD`), a scope one of the two. */
 function hasValidOccurrence(change: AgendaChange): boolean {
   const { occurrence, scope } = change;
-  if (occurrence !== undefined) {
-    if (typeof occurrence !== "string" || !isCalendarDay(occurrence)) {
-      return false;
-    }
+  if (
+    occurrence !== undefined &&
+    !OCCURRENCE_DAY.safeParse(occurrence).success
+  ) {
+    return false;
   }
   return scope === undefined || SCOPES.has(scope);
 }
@@ -74,7 +78,9 @@ function hasValidOccurrence(change: AgendaChange): boolean {
 function isChange(change: AgendaChange | null | undefined): boolean {
   if (!change || !CHANGE_KINDS.has(change.kind)) return false;
   if (!hasValidOccurrence(change)) return false;
-  if (KINDS_WITH_ID.has(change.kind)) return typeof change.id === "string";
+  if (KINDS_WITH_ID.has(change.kind)) {
+    return CHANGE_ID.safeParse(change.id).success;
+  }
   return true;
 }
 
@@ -109,13 +115,18 @@ function sameInstant(left: string, right: string): boolean {
   return Date.parse(left) === Date.parse(right);
 }
 
-// `previous` may hold anything a client sends: a list that is not one
-// compares as none (never a 500).
-function listOf(value: unknown): string[] {
+/**
+ * `previous` may hold anything a client sends: a list that is not one
+ * compares as none (never a 500).
+ */
+function listOf(value: string[] | undefined): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
-function sameList(left: unknown, right: unknown): boolean {
+function sameList(
+  left: string[] | undefined,
+  right: string[] | undefined,
+): boolean {
   return listOf(left).sort().join() === listOf(right).sort().join();
 }
 
@@ -126,8 +137,10 @@ function text(value: string | null | undefined): string {
   return value ?? "";
 }
 
-// Each field `previous` may hold, and how it compares with what is stored.
-// `previous` names a field `null` when the event did not have it.
+/**
+ * Each field `previous` may hold, and how it compares with what is stored.
+ * `previous` names a field `null` when the event did not have it.
+ */
 const PREVIOUS_CHECKS: Record<keyof AgendaEventPatch, FieldCheck> = {
   title: (previous, current) => previous.title === current.title,
   start: (previous, current) =>
@@ -147,7 +160,7 @@ const PREVIOUS_CHECKS: Record<keyof AgendaEventPatch, FieldCheck> = {
     text(previous.location) === text(current.location),
   description: (previous, current) =>
     text(previous.description) === text(current.description),
-  // The details form's own fields are checked by the fields the route owns.
+  /** The details form's own fields are checked by the fields the route owns. */
   data: () => true,
 };
 
@@ -160,8 +173,8 @@ export function stillAsRead(
   current: AgendaEvent,
 ): boolean {
   if (!previous) return true;
-  return (Object.keys(previous) as (keyof AgendaEventPatch)[]).every(
-    (field) => PREVIOUS_CHECKS[field]?.(previous, current) ?? true,
+  return Object.entries(PREVIOUS_CHECKS).every(
+    ([field, check]) => !(field in previous) || check(previous, current),
   );
 }
 

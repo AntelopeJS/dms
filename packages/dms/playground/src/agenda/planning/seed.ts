@@ -23,8 +23,10 @@ export type TaskSeed = [
   string,
 ];
 
-// The prototype's tasks (week of Monday 23 March 2026), on the current
-// week; the last four were added to show a spill-over and every status.
+/**
+ * The prototype's tasks (week of Monday 23 March 2026), on the current
+ * week; the last four were added to show a spill-over and every status.
+ */
 export const TASK_SEEDS: TaskSeed[] = [
   [
     "45533-DC-1-Dessin-AP1",

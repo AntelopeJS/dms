@@ -2,12 +2,14 @@ import type {
   AgendaBadge,
   AgendaConfirm,
   AgendaEvent,
+  AgendaEventData,
   AgendaEventPatch,
   AgendaIssue,
   AgendaNotice,
   AgendaPendingItem,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState, RuleContext } from "../store";
+import { plainText } from "../text";
 import { mondayOf, todayKey } from "../time";
 import {
   FROZEN_STATUSES,
@@ -15,8 +17,7 @@ import {
   groupOf,
   RESTRICTED_TYPES,
   resourceName,
-  TASK_GROUPS,
-  type TaskType,
+  taskGroupOf,
 } from "./data";
 import { pendingDossiers, TASK_SEEDS, type TaskSeed } from "./seed";
 import {
@@ -31,27 +32,25 @@ import {
 const DELEGATED: AgendaBadge = { label: "⚡ Délégué", tone: "warning" };
 const BLOCKED_ICON = "i-ph-link";
 const MOVING_KINDS = new Set(["move", "resize", "update", "schedule"]);
-// Planned on the agenda: what a task id is made of when the dossier is
-// dropped for the first time.
+/**
+ * Planned on the agenda: what a task id is made of when the dossier is
+ * dropped for the first time.
+ */
 const FIRST_TASK_SUFFIX = "-DC-1-Dessin-AP1";
 const DRAGGED_KINDS = new Set(["move", "resize"]);
 const LOCKED_STATUSES = new Set(["termine", "annule"]);
 
 function readItemText(item: AgendaPendingItem, key: string): string {
-  const value = item.data?.[key];
-  return typeof value === "string" ? value : "";
+  return plainText(item.data?.[key]);
 }
 
-function withoutTaskId(
-  data: Record<string, unknown> | undefined,
-): Record<string, unknown> {
+function withoutTaskId(data: AgendaEventData | undefined): AgendaEventData {
   const { taskId: _taskId, ...rest } = data ?? {};
   return rest;
 }
 
 function readText(event: AgendaEvent, key: string): string {
-  const value = event.data?.[key];
-  return typeof value === "string" ? value : "";
+  return plainText(event.data?.[key]);
 }
 
 /** "Devis Recap": a task's type and subtype. */
@@ -70,7 +69,7 @@ function taskFromSeed(monday: string, seed: TaskSeed): AgendaEvent {
     resourceIds: [resource],
     ...span,
     allowedResourceIds: RESTRICTED_TYPES.has(tache)
-      ? groupMembers(TASK_GROUPS[tache])
+      ? groupMembers(taskGroupOf(tache) ?? "")
       : undefined,
     data: { dossier, commune, op, tache, sub, statut, pred, remarque },
   };
@@ -98,9 +97,9 @@ function startsBefore(event: AgendaEvent, other: AgendaEvent): boolean {
 }
 
 function isDelegated(event: AgendaEvent): boolean {
-  const tache = readText(event, "tache") as TaskType;
+  const tache = readText(event, "tache");
   const resource = event.resourceIds?.[0];
-  const expected = TASK_GROUPS[tache];
+  const expected = taskGroupOf(tache);
   return !!resource && !!expected && groupOf(resource) !== expected;
 }
 
@@ -148,7 +147,7 @@ function restrictionOf(event: AgendaEvent): string | undefined {
   const tache = readText(event, "tache");
   const resource = event.resourceIds?.[0];
   if (!resource || !RESTRICTED_TYPES.has(tache)) return undefined;
-  const allowed = groupMembers(TASK_GROUPS[tache as TaskType]);
+  const allowed = groupMembers(taskGroupOf(tache) ?? "");
   if (allowed.includes(resource)) return undefined;
   const names = allowed.map(resourceName).join(", ");
   return `Un ${tache} ne se confie qu'à ${names} : ${resourceName(resource)} ne peut pas le prendre.`;
@@ -193,7 +192,9 @@ export function confirmTask(
   { change, state, before }: RuleContext,
 ): AgendaConfirm | undefined {
   if (!MOVING_KINDS.has(change.kind)) return undefined;
-  // A remark or a status edited on a task already out of order asks nothing.
+  /**
+   * A remark or a status edited on a task already out of order asks nothing.
+   */
   if (before && !movedInTime(before, event)) return undefined;
   const pred = predecessorOf(event, state.events);
   if (pred && startsBefore(event, pred)) {

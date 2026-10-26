@@ -1,4 +1,4 @@
-/*
+/**
  * Days and instants of the demos, in the zone of the stores and offices they
  * describe. The server may run in any zone (UTC in a container): every wall
  * time is turned into an instant through Intl, so a day of 23 or 25 hours
@@ -17,7 +17,7 @@ const DAYS_PER_WEEK = 7;
 const DAY_KEY_LENGTH = 10;
 const PAD = 2;
 const MONDAY = 1;
-// ISO 8601: week 1 holds the year's first Thursday.
+/** ISO 8601: week 1 holds the year's first Thursday. */
 const THURSDAY = 4;
 
 function zoneFormat(timeZone: string): Intl.DateTimeFormat {
@@ -35,8 +35,10 @@ function zoneFormat(timeZone: string): Intl.DateTimeFormat {
 const ZONE_FORMAT = zoneFormat(DEMO_TIME_ZONE);
 const OTHER_ZONES = new Map<string, Intl.DateTimeFormat>();
 
-// The formats of the zones readers send (`tz`), built once each; an unknown
-// zone reads in the demo zone.
+/**
+ * The formats of the zones readers send (`tz`), built once each; an unknown
+ * zone reads in the demo zone.
+ */
 function formatOf(timeZone: string | undefined): Intl.DateTimeFormat {
   if (!timeZone || timeZone === DEMO_TIME_ZONE) return ZONE_FORMAT;
   const known = OTHER_ZONES.get(timeZone);
@@ -127,9 +129,11 @@ export function zonedInstant(
   const [year, month, date] = splitDay(day);
   const [hour = 0, minute = 0] = time.split(":").map(Number);
   const wall = Date.UTC(year, month - 1, date, hour, minute);
-  // The zone's offsets around that day, largest first: a wall time the
-  // clock goes through twice (02:30 on the last Sunday of October) is its
-  // first, earlier instant, as the block takes it.
+  /**
+   * The zone's offsets around that day, largest first: a wall time the
+   * clock goes through twice (02:30 on the last Sunday of October) is its
+   * first, earlier instant, as the block takes it.
+   */
   const offsets = [
     ...new Set([
       offsetMinutes(wall - HALF_DAY_MS, format),
@@ -142,8 +146,10 @@ export function zonedInstant(
       return isoInstant(instant, timeZone);
     }
   }
-  // A wall time the clock skips (02:30 on the last Sunday of March): the
-  // offset after the change. Twice: the first guess may be either side.
+  /**
+   * A wall time the clock skips (02:30 on the last Sunday of March): the
+   * offset after the change. Twice: the first guess may be either side.
+   */
   const guess = wall - offsetMinutes(wall, format) * MS_PER_MINUTE;
   return isoInstant(
     wall - offsetMinutes(guess, format) * MS_PER_MINUTE,

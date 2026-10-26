@@ -39,8 +39,10 @@ export const BOXED_LOCATIONS: AgendaFieldOption[] = [
  */
 type SeedMeeting = [string, string, string, number, string, string, string];
 
-// Two weeks of a sales team, with a few overlaps on Tuesday and Thursday so
-// the stacked layout has something to stack.
+/**
+ * Two weeks of a sales team, with a few overlaps on Tuesday and Thursday so
+ * the stacked layout has something to stack.
+ */
 const MEETINGS: SeedMeeting[] = [
   ["interne", "Point commercial du lundi", "", 0, "09:00", "09:45", "Liège"],
   [
@@ -167,7 +169,7 @@ const MEETINGS: SeedMeeting[] = [
   ["interne", "Comité commercial mensuel", "", 11, "16:00", "17:30", "Liège"],
 ];
 
-// Done meetings of last week, for the "Fait" badge and the dimmed chips.
+/** Done meetings of last week, for the "Fait" badge and the dimmed chips. */
 const DONE: SeedMeeting[] = [
   ["rdv", "Premier contact", "Garage Hennen", -4, "11:00", "11:45", "Visio"],
   [
@@ -209,7 +211,7 @@ export function markedDone(event: AgendaEvent): AgendaEvent {
   };
 }
 
-// A trade fair over two days, for the all-day row.
+/** A trade fair over two days, for the all-day row. */
 function fair(monday: string): AgendaEvent {
   return {
     id: "boxed-fair",

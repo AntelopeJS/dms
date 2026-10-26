@@ -17,7 +17,7 @@ import {
   zonedInstant,
 } from "./time";
 
-/*
+/**
  * A series keeps its wall clock and its days in its own zone
  * (`recurrence.timeZone`; the demos' pages draw in Europe/Brussels, so that
  * is the default here). The rules below are the block's, so the answer
@@ -143,7 +143,7 @@ function movedSeries(
         : addDays(firstDay, daysBetween(first, last));
     return { start: firstDay, end, allDay: true };
   }
-  // An all-day series turned timed without times gets a one-hour slot.
+  /** An all-day series turned timed without times gets a one-hour slot. */
   if (isDayKey(patch.start ?? occurrence.start)) {
     const seriesStart = zonedInstant(firstDay, DEFAULT_START, zone);
     return {

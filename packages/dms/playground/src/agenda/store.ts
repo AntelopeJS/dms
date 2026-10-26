@@ -163,7 +163,7 @@ function targetOf(
     step.outcome.errors.push(notFound(step.index, GONE));
     return undefined;
   }
-  // An occurrence is compared by the series rules, not by its own fields.
+  /** An occurrence is compared by the series rules, not by its own fields. */
   const checks = step.input.detectsConflicts && !step.change.occurrence;
   if (checks && !stillAsRead(step.change.previous, current)) {
     const message = store.rules.conflictMessage?.(current) ?? DEFAULT_CONFLICT;
@@ -257,7 +257,7 @@ function scheduleItem(store: AgendaStore, step: ChangeStep): void {
   const schedule = store.rules.schedule ?? defaultSchedule;
   const fresh = store.nextId();
   const proposed = schedule(item, patch, fresh);
-  // An item never takes the place of an event still planned.
+  /** An item never takes the place of an event still planned. */
   const taken = step.draft.events.some((event) => event.id === proposed.id);
   const next = taken ? { ...proposed, id: fresh } : proposed;
   if (!rulesAllow(store, step, next)) return;
@@ -285,8 +285,10 @@ function unscheduleEvent(store: AgendaStore, step: ChangeStep): void {
   if (!current) return;
   const unschedule = store.rules.unschedule ?? defaultUnschedule;
   const { occurrence } = step.change;
-  // One occurrence goes back to the list: its day leaves the series, the
-  // rest of the series stays planned.
+  /**
+   * One occurrence goes back to the list: its day leaves the series, the
+   * rest of the series stays planned.
+   */
   const single =
     occurrence && current.recurrence
       ? occurrenceEvent(current, occurrence, `${current.id}-${occurrence}`)

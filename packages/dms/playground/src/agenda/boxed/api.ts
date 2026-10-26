@@ -60,8 +60,10 @@ const store = new AgendaStore(seedBoxed, {
 });
 
 function nextWeek(event: AgendaEvent, id: string): AgendaEvent {
-  // Seven days later at the same wall time: a week across the end of
-  // summer time is 169 hours, not 168.
+  /**
+   * Seven days later at the same wall time: a week across the end of
+   * summer time is 169 hours, not 168.
+   */
   const shift = (value: string) =>
     isDayKey(value)
       ? addDays(value, DAYS_PER_WEEK)

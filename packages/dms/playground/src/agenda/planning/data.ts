@@ -5,6 +5,7 @@ import type {
   AgendaResourceGroup,
   AgendaSlot,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
+import { plainText } from "../text";
 
 /** The quarter days a task is planned in. */
 export const PLANNING_SLOTS: AgendaSlot[] = [
@@ -78,7 +79,12 @@ export const PLANNING_GROUPS: AgendaResourceGroup[] = [
 /** A person of the referential: code, name, zone. */
 type Person = [string, string, string];
 
-const PEOPLE: Record<string, Person[]> = {
+/** The people of each group, by group id. */
+interface PeopleByGroup {
+  [group: string]: Person[];
+}
+
+const PEOPLE: PeopleByGroup = {
   architectes: [
     ["STMU", "Muriel St.", "Tournai"],
     ["BEG", "Gérald Be.", "Namur"],
@@ -143,7 +149,7 @@ export function resourceName(resourceId: string): string {
   const label = PLANNING_RESOURCES.find(
     (resource) => resource.id === resourceId,
   )?.label;
-  return typeof label === "string" ? label : resourceId;
+  return plainText(label, resourceId);
 }
 
 /**
@@ -159,6 +165,13 @@ export const TASK_GROUPS: Record<TaskType, string> = {
   Transport: "transport",
   Validation: "coordinateurs",
 };
+
+const GROUP_BY_TYPE = new Map<string, string>(Object.entries(TASK_GROUPS));
+
+/** The group a type of task goes to; none for a type the demo does not know. */
+export function taskGroupOf(type: string): string | undefined {
+  return GROUP_BY_TYPE.get(type);
+}
 
 /** The types of task only their own group may take. */
 export const RESTRICTED_TYPES = new Set<string>([

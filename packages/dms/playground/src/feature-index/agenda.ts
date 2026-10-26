@@ -3,7 +3,7 @@ import { FEATURE_AREAS, type PlaygroundFeature } from "./types";
 const AREA = FEATURE_AREAS.agenda;
 const ROOT = "/agenda";
 
-// The release the FullAgenda block ships in, with the Matrix.
+/** The release the FullAgenda block ships in, with the Matrix. */
 const AGENDA_RELEASE = "0.12.0";
 
 const PAGES = {

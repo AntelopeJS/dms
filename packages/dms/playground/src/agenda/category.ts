@@ -1,8 +1,10 @@
 import { Category } from "@antelopejs/interface-dms/page";
 import { componentsSection } from "../sections";
 
-// Right after the Matrix (35), before the Form (40): the other block built
-// around editing in place, by time instead of by cell.
+/**
+ * Right after the Matrix (35), before the Form (40): the other block built
+ * around editing in place, by time instead of by cell.
+ */
 export const agendaCategory = Category("agenda", {
   displayName: "Agenda",
   icon: "i-ph-calendar-dots",

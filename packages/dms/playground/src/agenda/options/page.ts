@@ -138,8 +138,10 @@ export class PageAgendaOptions extends PageController(
     code: DECLARATION,
   });
 
-  // The full-page demos keep one guide line, so their agenda keeps the
-  // height: their steps are listed here.
+  /**
+   * The full-page demos keep one guide line, so their agenda keeps the
+   * height: their steps are listed here.
+   */
   static teamSteps = stepList(
     "Team calendar — what to try",
     AGENDA_TEAM_SLUG,

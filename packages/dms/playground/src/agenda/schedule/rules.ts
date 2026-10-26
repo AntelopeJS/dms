@@ -4,6 +4,7 @@ import type {
   AgendaNotice,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState, RuleContext } from "../store";
+import { plainText } from "../text";
 import {
   addDays,
   dayOf,
@@ -44,8 +45,7 @@ function pauseOf(shift: AgendaEvent): number {
 }
 
 function storeIdOf(shift: AgendaEvent): string {
-  const store = shift.data?.store;
-  return typeof store === "string" ? store : "";
+  return plainText(shift.data?.store);
 }
 
 function span(shift: AgendaEvent): number {
@@ -120,7 +120,7 @@ export function decorateShift(
   state: AgendaState,
 ): AgendaEvent {
   const person = personOf(shift.resourceIds?.[0]);
-  const note = typeof shift.data?.note === "string" ? shift.data.note : "";
+  const note = plainText(shift.data?.note);
   const parts = [`pause ${pauseOf(shift)} min`, storeIdOf(shift), note];
   return {
     ...shift,

@@ -20,13 +20,13 @@ const BOOKINGS = {
   calendars: TEAM_CALENDARS,
   resources: ROOMS,
   weekStartsOn: 1 as const,
-  // The office's rooms are booked in Brussels time.
+  /** The office's rooms are booked in Brussels time. */
   timeZone: DEMO_TIME_ZONE,
   dayStart: "08:00",
   dayEnd: "19:00",
 };
 
-// The room planning opened in a modal: a column per room for one day.
+/** The room planning opened in a modal: a column per room for one day. */
 const roomsModal = FullAgenda({
   ...BOOKINGS,
   views: [
@@ -39,7 +39,7 @@ const roomsModal = FullAgenda({
   height: "fill",
 });
 
-// The bookings opened in a drawer: the list of the next days, or one day.
+/** The bookings opened in a drawer: the list of the next days, or one day. */
 const bookingsDrawer = FullAgenda({
   ...BOOKINGS,
   views: [{ id: "next", type: "list", duration: 14, label: "À venir" }, "day"],
@@ -163,8 +163,10 @@ export class PageAgendaEmbedded extends PageController(
 
   static onCall = FullAgenda({
     title: "Astreintes IT",
-    // Read-only: a route and no saveUrl. The turns are computed on each
-    // read, so they follow the current week.
+    /**
+     * Read-only: a route and no saveUrl. The turns are computed on each
+     * read, so they follow the current week.
+     */
     fetchUrl: `${AGENDA_EMBEDDED_API}/on-call`,
     views: ["month"],
     weekStartsOn: 1,

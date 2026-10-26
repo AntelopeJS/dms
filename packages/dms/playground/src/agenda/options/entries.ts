@@ -16,8 +16,13 @@ export interface OptionEntry {
   page?: string;
 }
 
+/** A name for each demo page, by slug. */
+export interface PageNames {
+  [slug: string]: string;
+}
+
 /** The demo pages' names, as the overview links them. */
-export const PAGE_NAMES: Record<string, string> = {
+export const PAGE_NAMES: PageNames = {
   [AGENDA_OPTIONS_SLUG]: "This page",
   [AGENDA_TEAM_SLUG]: "Team calendar",
   [AGENDA_BOXED_SLUG]: "Sales agenda",

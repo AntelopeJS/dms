@@ -5,6 +5,7 @@ import type {
   AgendaResourceGroup,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 import type { AgendaState } from "../store";
+import { plainText } from "../text";
 import { addDays, daysBetween, weekdayOf, zonedInstant } from "../time";
 
 /** The first and last day of the published roster: weeks 40 to 42 of 2026. */
@@ -33,7 +34,11 @@ const S10: Hours = ["10:00", "18:00"];
 const SA: Hours = ["14:00", "18:00"];
 
 /** A store: label, then hours from Sunday (0) to Saturday (6). */
-const STORE_HOURS: Record<string, [string, Hours[]]> = {
+interface StoreHours {
+  [store: string]: [string, Hours[]];
+}
+
+const STORE_HOURS: StoreHours = {
   NE1: ["Neupré", [S10, null, D9, D9, D9, D9, D9]],
   LG4: ["Liège", [null, D9, D9, D9, D9, D9, D9]],
   SPA: ["Spa", [S10, null, D9, D9, D9, D9, D9]],
@@ -54,7 +59,7 @@ export const ROSTER_GROUPS: AgendaResourceGroup[] = Object.entries(
 /** One person: last name, first name, function, store, hours a week. */
 type StaffSeed = [string, string, string, string, number];
 
-// The prototype's staff (RH-Planning) for five of its stores.
+/** The prototype's staff (RH-Planning) for five of its stores. */
 const STAFF: StaffSeed[] = [
   ["Delforge", "Bénédicte", "Responsable", "NE1", 38],
   ["Hubert", "Charlotte", "Vendeuse 1", "NE1", 38],
@@ -101,8 +106,10 @@ export function storeOfPerson(id: string): string | undefined {
 /** One absence: person, type, first day, last day, note. */
 type AbsenceSeed = [string, string, string, string, string];
 
-// The weeks' exceptions to the template, from the prototype's week 40 and
-// its pending requests.
+/**
+ * The weeks' exceptions to the template, from the prototype's week 40 and
+ * its pending requests.
+ */
 const ABSENCES: AbsenceSeed[] = [
   ["bertrand", "conge", "2026-09-28", "2026-10-03", "Vacances"],
   ["leroy", "formation", "2026-10-01", "2026-10-01", "Formation caisse"],
@@ -125,8 +132,10 @@ const ABSENCES: AbsenceSeed[] = [
   ["lhoest", "maladie", "2026-09-29", "2026-09-30", ""],
 ];
 
-// Days worked a week by contract: 30 hours and more work five days, 24
-// hours three, less two.
+/**
+ * Days worked a week by contract: 30 hours and more work five days, 24
+ * hours three, less two.
+ */
 const FIVE_DAYS_FROM = 30;
 const THREE_DAYS_FROM = 24;
 const FIVE_DAYS = 5;
@@ -134,7 +143,7 @@ const THREE_DAYS = 3;
 const TWO_DAYS = 2;
 const DAYS_PER_WEEK = 7;
 const MINUTES_PER_HOUR = 60;
-// A shift past 6 hours takes a one-hour break.
+/** A shift past 6 hours takes a one-hour break. */
 const PAUSE_AFTER_MINUTES = 360;
 
 function workDaysFor(hours: number): number {
@@ -201,7 +210,7 @@ function absence([id, type, from, to, note]: AbsenceSeed): AgendaEvent {
   const label = PRESTATION_CALENDARS.find((calendar) => calendar.id === type);
   return {
     id: `roster-${id}-${type}-${from}`,
-    title: typeof label?.label === "string" ? label.label : type,
+    title: plainText(label?.label, type),
     calendarId: type,
     resourceIds: [id],
     allDay: true,

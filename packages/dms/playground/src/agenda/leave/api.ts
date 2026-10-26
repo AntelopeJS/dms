@@ -20,6 +20,7 @@ import { badRequest } from "../../matrix/save";
 import { eventsFor, readAgendaQuery } from "../query";
 import { actionId, missing, readAgendaSave } from "../save";
 import { AgendaStore, type AgendaState, type RuleContext } from "../store";
+import { plainText } from "../text";
 import { currentWeek, eventDays, todayKey } from "../time";
 import {
   asRequest,
@@ -108,7 +109,7 @@ function refuseAbsence(
 /** A new absence is a request, all-day, titled by its type. */
 function completeAbsence(event: AgendaEvent): AgendaEvent {
   const type = event.calendarId ?? "conge";
-  const note = typeof event.data?.note === "string" ? event.data.note : "";
+  const note = plainText(event.data?.note);
   return asRequest({
     ...event,
     allDay: true,
@@ -121,8 +122,10 @@ function completeAbsence(event: AgendaEvent): AgendaEvent {
 
 const store = new AgendaStore(seedLeave, {
   idPrefix: "leave",
-  // The seed is the year's absences and next weeks' requests: a new year
-  // or a new week reseeds it.
+  /**
+   * The seed is the year's absences and next weeks' requests: a new year
+   * or a new week reseeds it.
+   */
   anchor: () => `${todayKey().slice(0, 4)}:${currentWeek()}`,
   refuse: refuseAbsence,
   complete: completeAbsence,

@@ -1,10 +1,14 @@
 import type { AgendaEvent } from "@antelopejs/interface-dms/base/full-agenda-types";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types/json";
+import { z } from "zod";
 import { badRequest } from "../matrix/save";
 import { addDays, dayOf, eventDays } from "./time";
 
 const FACET_PREFIX = "facet_";
 const LIST_SEPARATOR = ",";
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TEXT_VALUE = z.string();
+const SCALAR_VALUE = z.union([z.string(), z.number(), z.boolean()]);
 
 /**
  * What a FullAgenda sends its `fetchUrl`: the first and last day shown, the
@@ -20,16 +24,25 @@ export interface AgendaQuery {
   search: string;
   /** The calendars shown; absent when the block does not filter on the server. */
   calendars?: string[];
-  /** The values picked in each facet, by facet id. */
-  facets: Record<string, string[]>;
+  facets: FacetPicks;
+}
+
+/** The values picked in each facet, by facet id. */
+export interface FacetPicks {
+  [facetId: string]: string[];
+}
+
+/** The event field each facet of a page filters on, by facet id. */
+export interface FacetFields {
+  [facetId: string]: string;
 }
 
 function readList(value: string | null): string[] {
   return (value ?? "").split(LIST_SEPARATOR).filter(Boolean);
 }
 
-function readFacets(params: URLSearchParams): Record<string, string[]> {
-  const facets: Record<string, string[]> = {};
+function readFacets(params: URLSearchParams): FacetPicks {
+  const facets: FacetPicks = {};
   params.forEach((value, key) => {
     if (!key.startsWith(FACET_PREFIX)) return;
     const picked = readList(value);
@@ -77,7 +90,7 @@ export function eventInRange(
   if (event.recurrence) {
     const until = event.recurrence.until;
     const first = dayOf(event.start, event.recurrence.timeZone);
-    // A day of slack each side: the series' days are not the reader's.
+    /** A day of slack each side: the series' days are not the reader's. */
     return (
       first <= addDays(query.to, 1) &&
       (!until || until >= addDays(query.from, -1))
@@ -89,25 +102,25 @@ export function eventInRange(
 
 /** One value or several of an event's field, as a facet reads it. */
 export function eventField(event: AgendaEvent, field: string): string[] {
-  const builtIn: Record<string, unknown> = {
-    calendarId: event.calendarId,
-    resourceIds: event.resourceIds,
-    location: event.location,
-    status: event.status,
-  };
-  const value = field in builtIn ? builtIn[field] : event.data?.[field];
-  const values: unknown[] = Array.isArray(value) ? value : [value];
-  return values.flatMap((item) => (isScalar(item) ? [String(item)] : []));
-}
-
-function isScalar(value: unknown): value is string | number | boolean {
-  return ["string", "number", "boolean"].includes(typeof value);
+  const builtIn = new Map<string, JsonValue | undefined>([
+    ["calendarId", event.calendarId],
+    ["resourceIds", event.resourceIds],
+    ["location", event.location],
+    ["status", event.status],
+  ]);
+  const value = builtIn.has(field) ? builtIn.get(field) : event.data?.[field];
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap((item) => {
+    const scalar = SCALAR_VALUE.safeParse(item);
+    return scalar.success ? [String(scalar.data)] : [];
+  });
 }
 
 function searchableTexts(event: AgendaEvent): string[] {
-  const data = Object.values(event.data ?? {}).filter(
-    (value): value is string => typeof value === "string",
-  );
+  const data = Object.values(event.data ?? {}).flatMap((value) => {
+    const text = TEXT_VALUE.safeParse(value);
+    return text.success ? [text.data] : [];
+  });
   return [
     event.title,
     event.subtitle ?? "",
@@ -125,7 +138,7 @@ function searchableTexts(event: AgendaEvent): string[] {
 export function eventMatches(
   event: AgendaEvent,
   query: AgendaQuery,
-  facetFields: Record<string, string> = {},
+  facetFields: FacetFields = {},
 ): boolean {
   if (query.calendars && !query.calendars.includes(event.calendarId ?? "")) {
     return false;
@@ -146,7 +159,7 @@ export function eventMatches(
 export function eventsFor(
   events: AgendaEvent[],
   query: AgendaQuery,
-  facetFields?: Record<string, string>,
+  facetFields?: FacetFields,
 ): AgendaEvent[] {
   return events.filter(
     (event) =>

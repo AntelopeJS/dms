@@ -165,7 +165,7 @@ export class PageAgendaPlanning extends PageController(
     ],
     weekStartsOn: 1,
     hiddenDays: [0, 6],
-    // The office plans in its own hours, whatever the reader's zone.
+    /** The office plans in its own hours, whatever the reader's zone. */
     timeZone: DEMO_TIME_ZONE,
     dayStart: "08:00",
     dayEnd: "17:00",
