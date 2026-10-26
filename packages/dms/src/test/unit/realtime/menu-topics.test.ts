@@ -4,7 +4,7 @@ import {
   buildMenuTopic,
   MENU_BROADCAST_TOPIC,
 } from "../../../realtime";
-import { menuTopicsFor } from "../../../routes/realtime";
+import { menuTopicsFor } from "../../../routes";
 
 describe("[unit] realtime menu topics", () => {
   it("subscribes a session to its workspace and to its member's own topic", () => {

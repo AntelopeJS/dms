@@ -28,8 +28,8 @@ import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/perm
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { loadRoleEditorTree } from "../../../../pages/settings/users/role-editor-store";
-import type { RoleEditorPermissionNode } from "../../../../pages/settings/users/role-editor";
+import { loadRoleEditorTree } from "../../../../pages/permissions";
+import type { RoleEditorPermissionNode } from "../../../../pages/permissions";
 
 const TENANT = "cc-tenant";
 const PAGE_ID = "cc-children";

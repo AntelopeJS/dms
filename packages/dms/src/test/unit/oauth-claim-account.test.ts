@@ -5,8 +5,8 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
-import { claimUnvalidatedAccount } from "../../routes/auth/oauth/identity-resolution";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+import { claimUnvalidatedAccount } from "../../routes/oauth";
+import type { ProviderIdentity } from "../../routes/oauth";
 
 const IDENTITY: ProviderIdentity = {
   providerAccountId: "42",

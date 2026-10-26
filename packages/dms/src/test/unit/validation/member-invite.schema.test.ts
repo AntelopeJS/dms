@@ -2,7 +2,7 @@ import { expect } from "chai";
 import {
   INVITE_NAME_MAX_LENGTH,
   memberInviteSchema,
-} from "../../../validation/member-invite.schema";
+} from "../../../validation";
 
 const basePayload = {
   emails: ["invitee@test.local"],

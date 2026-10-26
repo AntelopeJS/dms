@@ -1,6 +1,6 @@
 import { isIP, isIPv4 } from "node:net";
 import type { ClientAddressSource } from "@antelopejs/interface-dms/client-ip";
-import type { AuthConfig } from "../../config";
+import type { AuthConfig } from "../config";
 
 const FORWARDED_FOR_SEPARATOR = ",";
 const IPV4_MAPPED_PREFIX = "::ffff:";

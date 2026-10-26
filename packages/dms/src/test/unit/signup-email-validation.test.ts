@@ -5,7 +5,7 @@ import type {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { applyConfig, getAuthConfig } from "../../config";
-import { signup } from "../../routes/auth/signup";
+import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
 
 const INVITEE_NAME = "Invitee";

@@ -10,22 +10,18 @@ import {
   countSuccessfulInvites,
   type InviteEmailResult,
   inviteNotice,
-} from "../../../../pages/settings/users/member-invite-batch";
-import {
   detectOwnerChange,
   type MemberRemovalImpact,
   memberRemovalConfirm,
-} from "../../../../pages/settings/users/member-management";
-import {
   buildInviteRoleOptions,
   collectGrantablePermissionIds,
-} from "../../../../pages/settings/users/member-role-options";
+} from "../../../../pages/members";
 import {
   INVITE_EMAILS_MAX,
   memberInviteSchema,
   resolveInviteeNameParts,
   uniqueInviteEmails,
-} from "../../../../validation/member-invite.schema";
+} from "../../../../validation";
 
 const HTTP_CONFLICT = 409;
 

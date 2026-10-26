@@ -1,6 +1,6 @@
 import type { HtmlRenderConfig } from "@antelopejs/interface-dms/html-render";
 import { defu } from "defu";
-import type { RealtimeConfig } from "./realtime";
+import type { RealtimeConfig } from "../../types";
 import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_HOUR,

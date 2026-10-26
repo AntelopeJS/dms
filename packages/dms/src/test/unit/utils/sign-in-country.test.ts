@@ -8,7 +8,7 @@ import {
   normalizeCountryCode,
   resetCountryLookup,
   resolveClientOrigin,
-} from "../../../utils/sign-in-country";
+} from "../../../utils";
 
 const PUBLIC_IP = "203.0.113.7";
 const MISSING_DATABASE = "/nonexistent/sign-in-country.mmdb";

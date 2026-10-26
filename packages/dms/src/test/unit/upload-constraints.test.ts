@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  buildUploadConstraints,
-  isUploadValidationError,
-} from "../../utils/upload-constraints";
+import { buildUploadConstraints, isUploadValidationError } from "../../utils";
 
 describe("[unit] upload-constraints", () => {
   describe("buildUploadConstraints", () => {

@@ -1,7 +1,7 @@
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
-import { applyArchiveFilter } from "../../../../implementations/dms-base/search-route";
+import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";

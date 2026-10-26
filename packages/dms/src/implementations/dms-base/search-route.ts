@@ -27,7 +27,7 @@ import {
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
-import type { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
+import type { evaluateRowActionRule } from "../../utils";
 
 type SearchRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
 

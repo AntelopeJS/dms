@@ -17,9 +17,9 @@ import {
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
-} from "../../utils/admin-invite-email";
+  recordUserActivity,
+} from "../../utils";
 import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
@@ -490,6 +490,6 @@ export async function sendAdminInviteEmail(
   Logging.Info(`[DMS-AUTH] Invite email sent to "${email}"`);
 }
 
-export { notifyWelcome as NotifyWelcome } from "../../utils/account-notifications";
-export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../utils/workspace-notifications";
-export { parseUserAgent as ParseUserAgent } from "../../utils/user-agent";
+export { notifyWelcome as NotifyWelcome } from "../../utils";
+export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../hooks";
+export { parseUserAgent as ParseUserAgent } from "../../utils";

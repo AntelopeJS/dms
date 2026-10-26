@@ -1,5 +1,5 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import { getRegisteredSubjects } from "../../implementations/dms-notifications/registry";
+import { getRegisteredSubjects } from "../../utils/notification-registry/index";
 import {
   UserNotificationPreferences,
   userNotificationPreferencesTableName,

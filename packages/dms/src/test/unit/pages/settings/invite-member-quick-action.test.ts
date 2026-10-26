@@ -22,8 +22,8 @@ import {
   MEMBER_INVITE_BUTTON_ID,
   MembersSettingsController,
   membersTableAddAction,
-} from "../../../../pages/settings/users/members";
-import { inviteMemberQuickAction } from "../../../../pages/settings/users/quick-actions";
+} from "../../../../pages/members";
+import { inviteMemberQuickAction } from "../../../../pages/account";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const ACTION_KEY = `${inviteMemberQuickAction.category.id}:${inviteMemberQuickAction.id}`;

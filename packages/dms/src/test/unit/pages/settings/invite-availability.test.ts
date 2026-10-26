@@ -16,11 +16,11 @@ import { internal as pageImplInternal } from "../../../../implementations/dms/pa
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import { resolveInviteLanguage } from "../../../../pages/settings/users/member-invite-form";
 import {
+  resolveInviteLanguage,
   MEMBER_INVITE_BUTTON_ID,
   MembersSettingsController,
-} from "../../../../pages/settings/users/members";
+} from "../../../../pages/members";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const FULL_TENANT = "invite-availability-full-tenant";

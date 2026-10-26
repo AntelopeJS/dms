@@ -45,12 +45,12 @@ import {
   resolvePermissionPreviewAccess,
   resolvePreviewPermissions,
 } from "../../../implementations/dms/page";
-import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
+import { notifyRolePermissionsChanged } from "../../../hooks";
 import {
   roleDuplicateSchema,
   roleEditorSchema,
   rolePreviewSchema,
-} from "../../../validation/role-editor.schema";
+} from "../../../validation";
 import type {
   RoleEditorCapabilities,
   RoleEditorPermissionNode,

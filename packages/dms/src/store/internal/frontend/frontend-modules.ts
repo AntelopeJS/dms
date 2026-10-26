@@ -13,7 +13,11 @@ import type {
 } from "@antelopejs/interface-dms/page";
 import { FrontendModulesChanged } from "@antelopejs/interface-dms/page";
 import { coerce, major } from "semver";
-import { getConfig, setDevApiBaseUrl, setDevClientBaseUrl } from "../../config";
+import {
+  getConfig,
+  setDevApiBaseUrl,
+  setDevClientBaseUrl,
+} from "../../../config";
 import { scheduleBroadcast } from "./dev-reload";
 import {
   assertFrontendBootstrap,
@@ -36,7 +40,7 @@ import {
   resolveRequestOrigin,
   stripPrivateManifestFields,
 } from "./manifest";
-import { isStoreOperationRunning } from "../../store/activity";
+import { isStoreOperationRunning } from "../../activity";
 import { warnOnceFor } from "./warn-once";
 import {
   copyPublicEndpoints,

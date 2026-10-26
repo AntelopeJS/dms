@@ -36,7 +36,7 @@ import {
   registerUser,
 } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
-import { setMemberOwnership } from "../../pages/settings/users/member-management";
+import { setMemberOwnership } from "../../pages/members";
 
 const TENANT = "tenant-lifecycle-test";
 const OTHER_TENANT = "tenant-lifecycle-other";

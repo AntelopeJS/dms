@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import type { Config } from "../../config";
 import { frontendModule } from "../../frontend-module";
-import { findVersionDrift } from "../../implementations/dms/frontend-ready";
+import { findVersionDrift } from "../../store/frontend";
 
 const PRODUCTION = { dev: false };
 const CLIENT_ORIGIN = "https://dashboard.example.com";

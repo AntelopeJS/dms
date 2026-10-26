@@ -11,7 +11,7 @@ import {
   messageKeyValues,
   parseNotificationFeedQuery,
   rawTextPattern,
-} from "../../../db/models/notification-feed-filter";
+} from "../../../db/models";
 import type { UserNotification } from "../../../db/tables";
 
 const INLINE_CASE_FLAG = "(?i)";

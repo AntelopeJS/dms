@@ -1,6 +1,6 @@
 import { assertValidation } from "@antelopejs/interface-api-util";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { authSchema } from "../../validation/auth.schema";
+import { authSchema } from "../../validation";
 import { assertResetCode } from "./reset-code";
 
 export async function validateForgotPasswordToken(

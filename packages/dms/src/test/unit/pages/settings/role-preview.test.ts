@@ -11,7 +11,7 @@ import {
   losesOnPreviewPage,
   type RolePreviewLayoutNode,
   sanitizePreviewPermissions,
-} from "../../../../pages/settings/users/role-preview";
+} from "../../../../pages/permissions";
 
 function leaf(id: string, title = id): PermissionTree {
   return { data: { id, title }, children: {} };

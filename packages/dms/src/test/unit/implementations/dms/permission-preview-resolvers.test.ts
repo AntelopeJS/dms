@@ -8,7 +8,7 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import { sanitizePreviewPermissions } from "../../../../pages/settings/users/role-preview";
+import { sanitizePreviewPermissions } from "../../../../pages/permissions";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import {

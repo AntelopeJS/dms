@@ -11,12 +11,10 @@ import {
   changePassword,
   listSessions,
   revokeOtherSessions,
-} from "../../../../pages/settings/users/account-credentials";
-import { requestEmailChange } from "../../../../pages/settings/users/email-change";
-import {
+  requestEmailChange,
   getTwoFactorStatus,
   markBackupCodesSaved,
-} from "../../../../pages/settings/users/two-factor-operations";
+} from "../../../../pages/account";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;

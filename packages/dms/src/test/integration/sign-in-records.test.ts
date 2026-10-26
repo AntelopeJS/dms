@@ -1,7 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { UserKnownDevicesModel } from "../../db/models/userKnownDevices.model";
+import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
 import { resetDatabase } from "../helpers/db";
 
 const USER_ID = "sign-in-records-user";

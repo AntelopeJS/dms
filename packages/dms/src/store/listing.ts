@@ -1,10 +1,10 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { satisfies, valid, validRange } from "semver";
-import { frontendModuleNamesUnder } from "../implementations/dms/frontend-modules";
+import { frontendModuleNamesUnder } from "./internal/frontend/frontend-modules";
 import {
   type FrontendAcknowledgement,
   getFrontendAcknowledgement,
-} from "../implementations/dms/frontend-ready";
+} from "./internal/frontend/frontend-ready";
 import { loadStoreCatalog } from "./catalog";
 import { installedInterfaceVersion, isCompatible } from "./compatibility";
 import { listCatalogDeclarations } from "./declarations";

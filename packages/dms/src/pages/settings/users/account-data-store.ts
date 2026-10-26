@@ -31,8 +31,8 @@ import {
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../../db";
-import { deleteUserExportsInTenant } from "../../../utils/export-jobs";
-import { accountDeletionSchema } from "../../../validation/account-deletion.schema";
+import { deleteUserExportsInTenant } from "../../../utils";
+import { accountDeletionSchema } from "../../../validation";
 import { assertCurrentPassword } from "./current-password";
 import {
   type AccountExport,

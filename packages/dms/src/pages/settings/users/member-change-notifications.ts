@@ -7,13 +7,13 @@ import {
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
-import { haveSameMembers } from "../../../utils/notification-rules";
+import { haveSameMembers } from "../../../utils";
 import {
   type NotificationActor,
   notifyMemberRemoved,
   notifyOwnershipChanged,
   notifyRolesChanged,
-} from "../../../utils/workspace-notifications";
+} from "../../../hooks";
 
 async function requestActor(ctx: RequestContext): Promise<NotificationActor> {
   const { user } = await authenticateRequestPrincipal(ctx);

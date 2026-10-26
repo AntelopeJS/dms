@@ -4,7 +4,7 @@ import {
   previewCacheKey,
   PreviewScopeCache,
   type PreviewMenuNode,
-} from "../../../../implementations/dms/permission-preview";
+} from "../../../../implementations/dms/services";
 
 function page(fullId: string): PreviewMenuNode {
   return { fullId, opensPage: true, children: [] };

@@ -1,6 +1,6 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { userCanAccessPage } from "../implementations/dms/page";
+import { userCanAccessPage } from "../utils";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetEffectiveUserPermissions,
@@ -9,7 +9,7 @@ import {
 import type { NativeUploadFieldRegistration } from "@antelopejs/interface-dms/internal/uploads";
 import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import type { RequestPrincipal } from "@antelopejs/interface-dms/auth";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import type { UploadTokenClaims } from "../utils";
 import { denyAttachment } from "./registry";
 
 interface RegistrationEntry {

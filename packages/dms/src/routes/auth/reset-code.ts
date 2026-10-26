@@ -2,7 +2,7 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../../config";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
+import { SignInAttemptsModel } from "../../db/models";
 
 const HTTP_BAD_REQUEST = 400;
 const INVALID_CODE_MESSAGE = "error.invalid_or_expired_token";

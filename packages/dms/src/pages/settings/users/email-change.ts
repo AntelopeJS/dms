@@ -11,18 +11,16 @@ import { getAuthConfig } from "../../../config";
 import {
   type PendingEmailChange,
   UserEmailChangesModel,
-} from "../../../db/models/userEmailChanges.model";
-import { notifyEmailChanged } from "../../../utils/account-notifications";
+} from "../../../db/models";
 import {
+  notifyEmailChanged,
   sendEmailChangeCode,
   sendEmailChangeNotice,
-} from "../../../utils/email-change-mail";
-import {
   generateCode,
   hashCode,
   hashesMatch,
-} from "../../../utils/one-time-code";
-import { securitySchema } from "../../../validation/security.schema";
+} from "../../../utils";
+import { securitySchema } from "../../../validation";
 import { assertCurrentPassword } from "./current-password";
 import { assertEmailAvailable } from "./profile-helpers";
 

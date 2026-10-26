@@ -4,7 +4,7 @@ import {
   internal as pageImplInternal,
   buildSiteLayoutPayload,
 } from "../../../../implementations/dms/page";
-import { overrideResolverTimeout } from "../../../../implementations/dms/resolver-timeout";
+import { overrideResolverTimeout } from "../../../../implementations/dms/services";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";

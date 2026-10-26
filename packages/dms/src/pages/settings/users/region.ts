@@ -5,7 +5,7 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { regionalPreferencesSchema } from "../../../validation/regional-preferences.schema";
+import { regionalPreferencesSchema } from "../../../validation";
 import { userCategory } from "./category";
 import {
   applyRegionalPreferences,

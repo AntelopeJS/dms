@@ -72,26 +72,26 @@ export default defineConfig({
     "attachment-host": {
       source: {
         type: "local",
-        path: "src/test/attachment-host",
+        path: "test-hosts/attachment-host",
       },
     },
 
     "reload-host": {
       source: {
         type: "local",
-        path: "dist/test/reload-host",
+        path: "test-hosts/reload-host",
       },
     },
     "invite-extension-host": {
       source: {
         type: "local",
-        path: "dist/test/invite-extension-host",
+        path: "test-hosts/invite-extension-host",
       },
     },
     "api-endpoint": {
       source: {
         type: "local",
-        path: "src/test/api-endpoint",
+        path: "test-hosts/api-endpoint",
       },
       config: {
         apiBaseUrl: API_LOCAL_BASE_URL,

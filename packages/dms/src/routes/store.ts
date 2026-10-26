@@ -13,13 +13,9 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { isPlatformOwner } from "../implementations/dms/page";
-import { buildStoreListing } from "../store/listing";
-import { startStoreOperation } from "../store/operations";
-import type { StoreListing, StoreOperationKind } from "../store/types";
-import {
-  storeInstallSchema,
-  storeOperationSchema,
-} from "../validation/store.schema";
+import { buildStoreListing, startStoreOperation } from "../store";
+import type { StoreListing, StoreOperationKind } from "../store";
+import { storeInstallSchema, storeOperationSchema } from "../validation";
 
 const HTTP_FORBIDDEN = 403;
 const ERROR_UNAUTHORIZED = "error.unauthorized";

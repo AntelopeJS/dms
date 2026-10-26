@@ -7,7 +7,7 @@ import {
 import type { BlockLinkAction } from "@antelopejs/interface-dms/base/display";
 import type { BlockText } from "@antelopejs/interface-dms/base/types/composed-text";
 import { withResolverTimeout } from "./resolver-timeout";
-import { warnOnceFor } from "./warn-once";
+import { warnOnceFor } from "../../store/frontend";
 
 const DEFAULT_BANNER_ORDER = 0;
 

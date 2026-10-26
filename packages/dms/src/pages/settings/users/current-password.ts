@@ -1,12 +1,9 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { SignInAttemptsModel } from "../../../db/models/signInAttempts.model";
-import {
-  FAILURES_PER_ACCOUNT,
-  LOGIN_WINDOW_MS,
-} from "../../../routes/auth/login-throttle";
-import { ATTEMPT_RETENTION_MS } from "../../../utils/sign-in-monitor";
+import { SignInAttemptsModel } from "../../../db/models";
+import { FAILURES_PER_ACCOUNT, LOGIN_WINDOW_MS } from "../../../utils";
+import { ATTEMPT_RETENTION_MS } from "../../../hooks";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_TOO_MANY_REQUESTS = 429;

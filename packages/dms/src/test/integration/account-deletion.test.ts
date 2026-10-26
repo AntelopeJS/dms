@@ -8,10 +8,9 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { FileExists } from "@antelopejs/interface-file-storage";
 import { expect } from "chai";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { UserKnownDevicesModel } from "../../db/models/userKnownDevices.model";
-import { deleteAccount } from "../../pages/settings/users/account-data-store";
-import { uploadExportToStorage } from "../../utils/export-jobs";
+import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
+import { deleteAccount } from "../../pages/account";
+import { uploadExportToStorage } from "../../utils";
 import { authorizedClient, loginUser, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 

@@ -36,9 +36,8 @@ import type {
   ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
-import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
-import { memberInviteSchema } from "../../../validation/member-invite.schema";
-import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
+import { requestEmailVerification } from "../../../utils";
+import { memberInviteSchema, memberOwnershipSchema } from "../../../validation";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
 import { declarePermissionWarning } from "./permission-warnings";
 import {
@@ -68,7 +67,7 @@ import {
   announceMemberEdit,
   announceMemberRemovals,
 } from "./member-change-notifications";
-import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
+import { notifyOwnershipChanged } from "../../../hooks";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 

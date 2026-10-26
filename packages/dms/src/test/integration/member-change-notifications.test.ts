@@ -3,7 +3,7 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
-import { UserNotificationsModel } from "../../db/models/userNotifications.model";
+import { UserNotificationsModel } from "../../db/models";
 import {
   authorizedClient,
   type RegisteredUser,

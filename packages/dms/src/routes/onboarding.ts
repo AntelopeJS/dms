@@ -5,7 +5,7 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { normalizeEmail, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { SystemStateModel } from "../db";
-import { generateAuthKey } from "../utils/auth-key";
+import { generateAuthKey } from "../utils";
 import {
   type OnboardingRegisterAdmin,
   onboardingRegisterAdminSchema,

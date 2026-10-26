@@ -10,7 +10,7 @@ import {
   internal as saasModeInternal,
 } from "@antelopejs/interface-dms/utils/saas-mode";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { assertNotLastPlatformOwnerOnDelete } from "../../pages/settings/users/members";
+import { assertNotLastPlatformOwnerOnDelete } from "../../pages/members";
 import { resetDatabase } from "../helpers/db";
 
 const USER_ID = "saas-mode-user";

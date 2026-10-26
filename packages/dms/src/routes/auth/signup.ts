@@ -11,10 +11,10 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { generateAuthKey } from "../../utils/auth-key";
-import type { ClientOrigin } from "../../utils/sign-in-country";
-import { rememberSignInDevice } from "../../utils/sign-in-monitor";
-import { authSchema } from "../../validation/auth.schema";
+import { generateAuthKey } from "../../utils";
+import type { ClientOrigin } from "../../utils";
+import { rememberSignInDevice } from "../../hooks";
+import { authSchema } from "../../validation";
 import { consumeInvite, resolveValidInvite } from "./invite";
 import { issueAuthResponse } from "./session-response";
 import type { AuthResponse } from "./types";

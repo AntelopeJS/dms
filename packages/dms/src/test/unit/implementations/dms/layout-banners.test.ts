@@ -22,7 +22,7 @@ import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access"
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { LayoutBannerSerialized } from "../../../../implementations/dms/layout-banners";
-import { overrideResolverTimeout } from "../../../../implementations/dms/resolver-timeout";
+import { overrideResolverTimeout } from "../../../../implementations/dms/services";
 import {
   denyingTenantGate,
   stubPageAccessModels,

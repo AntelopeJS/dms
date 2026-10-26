@@ -10,7 +10,7 @@ import {
   DEFAULT_API_BASE_URL,
   DEFAULT_CLIENT_BASE_URL,
 } from "./config";
-import { describeEnabledOAuthProviders } from "./routes/auth/oauth/config";
+import { describeEnabledOAuthProviders } from "./routes/oauth";
 
 /**
  * Where the frontend server opens the session a credential change handed back

@@ -10,7 +10,7 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { listUserInvitesByEmail, seedUserInvite } from "../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-import type { prepareRoleDeletion } from "../../pages/settings/users/role-editor-store";
+import type { prepareRoleDeletion } from "../../pages/permissions";
 
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../index";
-import { signUploadToken, verifyUploadToken } from "../../utils/upload-token";
+import { getAuthConfig } from "../..";
+import { signUploadToken, verifyUploadToken } from "../../utils";
 
 describe("[unit] upload-token", () => {
   describe("sign/verify round-trip", () => {

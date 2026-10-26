@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
-import { type BootstrapEnforcement, getFrontendConfig } from "../../config";
+import { type BootstrapEnforcement, getFrontendConfig } from "../../../config";
 
 const HTTP_UNAUTHORIZED = 401;
 const BOOTSTRAP_REQUIRED_MESSAGE = "error.frontend.bootstrap_required";

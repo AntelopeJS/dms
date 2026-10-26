@@ -2,7 +2,7 @@ import { assert } from "@antelopejs/interface-api-util";
 import { sendEmailValidationEmail } from "@antelopejs/interface-dms/auth";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import randomstring from "randomstring";
-import { getAuthConfig } from "../../config";
+import { getAuthConfig } from "../config";
 
 const EMAIL_VERIFICATION_RATE_LIMIT_MS = 60 * 1000;
 

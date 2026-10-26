@@ -11,14 +11,9 @@ import {
 import { assertValidation } from "@antelopejs/interface-api-util";
 import { AuthTenantMember } from "@antelopejs/interface-dms/guards";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { readAttachment } from "../attachments/read";
-import { createAttachmentUpload } from "../attachments/uploads";
-import { isUploadValidationError } from "../utils/upload-constraints";
-import { verifyUploadToken } from "../utils/upload-token";
-import {
-  metadataQuerySchema,
-  presignBodySchema,
-} from "../validation/file.schema";
+import { readAttachment, createAttachmentUpload } from "../attachments";
+import { isUploadValidationError, verifyUploadToken } from "../utils";
+import { metadataQuerySchema, presignBodySchema } from "../validation";
 
 const UPLOAD_REJECTED_STATUS = 400;
 const UPLOAD_TOKEN_REJECTED_STATUS = 403;

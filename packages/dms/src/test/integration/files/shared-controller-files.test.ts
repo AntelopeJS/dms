@@ -4,7 +4,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 import {
   findUploadToken,
   nativeUploadToken,

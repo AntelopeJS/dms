@@ -4,7 +4,7 @@ import {
   findQuickActionsHiddenByPreview,
   type HeaderActionAccess,
   readHeaderActions,
-} from "../../../../implementations/dms/permission-preview";
+} from "../../../../implementations/dms/services";
 
 const DOCS = {
   id: "docs",

@@ -14,7 +14,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { HasPermission } from "@antelopejs/interface-dms/permissions";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
-import { collectGrantablePermissionIds } from "../../../../pages/settings/users/member-role-options";
+import { collectGrantablePermissionIds } from "../../../../pages/members";
 import { registerTestCategory } from "../../../helpers/page-access";
 
 const CATEGORY_ID = "pages.ma-personal";

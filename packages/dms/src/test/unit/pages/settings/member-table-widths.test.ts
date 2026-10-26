@@ -2,7 +2,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { inviteSettingDataAPI } from "../../../../pages/settings/users/invites";
+import { inviteSettingDataAPI } from "../../../../pages/members";
 
 const SETTINGS_TABLE_WIDTH = 865;
 

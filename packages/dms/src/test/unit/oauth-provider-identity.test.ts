@@ -1,6 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import { OAUTH_PROVIDERS } from "../../routes/auth/oauth/providers";
+import { OAUTH_PROVIDERS } from "../../routes/oauth";
 
 const HTTP_BAD_GATEWAY = 502;
 const ACCESS_TOKEN = "provider-access-token";

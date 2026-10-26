@@ -4,7 +4,7 @@ import type {
   NotificationData,
   NotificationTone,
 } from "@antelopejs/interface-dms/notifications/types";
-import { runInBatches } from "../../utils/run-in-batches";
+import { runInBatches } from "../../utils/run-in-batches/index";
 import { UserNotification, userNotificationsTableName } from "../tables";
 import type { NavBadgeCount } from "@antelopejs/interface-dms/component";
 import type { Tone } from "@antelopejs/interface-dms/base/types/tone";

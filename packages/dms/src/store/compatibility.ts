@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
+import { findPackageJSON } from "node:module";
 import path from "node:path";
 import { satisfies, validRange } from "semver";
 import { INTERFACE_PACKAGE } from "./registry";
 import type { PackageRelease } from "./types";
 
 const PACKAGE_JSON = "package.json";
-const INTERFACE_ENTRY = `${INTERFACE_PACKAGE}/page`;
 
 interface PackageManifest {
   name?: string;
@@ -23,13 +23,19 @@ function readManifest(folder: string): PackageManifest | undefined {
 }
 
 /**
- * The version of the `@antelopejs/interface-dms` copy this process runs, the
- * one every module shares. Its `package.json` is not exported, so it is found
- * by walking up from a file that is.
+ * The version of the `@antelopejs/interface-dms` copy this process resolves.
+ * Find its manifest without evaluating an interface entry.
  */
 export function installedInterfaceVersion(): string {
   if (interfaceVersion) return interfaceVersion;
-  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));
+  const manifestPath = findPackageJSON(
+    "@antelopejs/interface-dms/page",
+    __filename,
+  );
+  if (!manifestPath) {
+    throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
+  }
+  let folder = path.dirname(manifestPath);
   while (folder !== path.dirname(folder)) {
     const manifest = readManifest(folder);
     if (manifest?.name === INTERFACE_PACKAGE && manifest.version) {

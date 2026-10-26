@@ -1,11 +1,8 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../index";
-import {
-  assertValidOAuthState,
-  signOAuthState,
-} from "../../routes/auth/oauth/state";
+import { getAuthConfig } from "../..";
+import { assertValidOAuthState, signOAuthState } from "../../routes/oauth";
 
 const HTTP_BAD_REQUEST = 400;
 const INVALID_STATE_MESSAGE = "error.oauth.invalid_state";

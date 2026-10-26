@@ -31,26 +31,30 @@ import {
   getExporter,
   getExportJobStatus,
   runExportJob,
+  evaluateRowActionRule,
 } from "../../utils";
 import {
   acquireTableViewPresence,
   publishTableViewMutation,
-} from "../../realtime/table-view";
-import { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
+} from "../../realtime/table-view/index";
 import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
+import {
+  type RuleRow,
+  fetchRowForGuard as fetchRowForGuardHelper,
+} from "../../db";
 
 type DataControllerThis =
   | DataControllerCallback
   | DataControllerCallbackWithOptions;
-type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
+
 const TABLE_VIEW_EXPORT_SCOPE = "table-view";
 
 interface TableViewExportContext {
@@ -370,11 +374,7 @@ export async function fetchRowForGuard(
   id: string,
   idField: string,
 ): Promise<RuleRow | undefined> {
-  const controllerMetadata = GetDataControllerMeta(controller);
-  const model = Query.GetModel(controller, controllerMetadata);
-  const rows = await model.table.getAll([id], idField);
-  const row: RuleRow | undefined = rows[0];
-  return row;
+  return fetchRowForGuardHelper(controller, id, idField);
 }
 
 async function readRuleRow(
@@ -506,8 +506,11 @@ export async function restoreRows(
 }
 
 export const listWithSearch = listWithSearchFunc;
+
 export const countWithSearch = countWithSearchFunc;
+
 export { summarizeWithSearch } from "./footer-summary";
+
 export { resolveBulkRowIds } from "./bulk-selection";
 
 export namespace internal {

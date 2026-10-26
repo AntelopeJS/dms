@@ -8,8 +8,8 @@ import {
   buildAccountExport,
   findDeletionBlockers,
   isDeletionConfirmed,
-} from "../../../../pages/settings/users/account-data";
-import { selfDeletionPayload } from "../../../../pages/settings/users/account-data-store";
+  selfDeletionPayload,
+} from "../../../../pages/account";
 
 const USER_ID = "account-data-user";
 const PASSWORD_HASH = "$2b$10$secret-password-hash";

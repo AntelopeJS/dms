@@ -6,7 +6,7 @@ import type {
 import {
   mapPermissionTree,
   permissionLabel,
-} from "../../../../pages/settings/users/permission-tree-nodes";
+} from "../../../../pages/permissions";
 
 interface LabelledNode {
   id: string;

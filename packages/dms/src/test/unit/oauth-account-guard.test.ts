@@ -3,9 +3,8 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import type { OAuthPolicy } from "../../routes/auth/oauth/config";
-import { resolveOAuthUser } from "../../routes/auth/oauth/identity-resolution";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+import type { OAuthPolicy, ProviderIdentity } from "../../routes/oauth";
+import { resolveOAuthUser } from "../../routes/oauth";
 
 const HTTP_FORBIDDEN = 403;
 const ACCOUNT_NOT_VALIDATED = "error.oauth.account_not_validated";

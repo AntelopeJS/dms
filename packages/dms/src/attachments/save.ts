@@ -11,7 +11,7 @@ import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import { findConstraintViolation } from "./constraints";
 import {

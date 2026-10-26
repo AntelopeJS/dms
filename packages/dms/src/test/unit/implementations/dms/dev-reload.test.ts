@@ -6,7 +6,7 @@ import {
   DevReloadController,
   scheduleBroadcast,
   setSlugProvider,
-} from "../../../../implementations/dms/dev-reload";
+} from "../../../../store/frontend";
 
 const SETTLE_MS = 400;
 

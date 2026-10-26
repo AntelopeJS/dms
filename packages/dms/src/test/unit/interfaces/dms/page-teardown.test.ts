@@ -25,7 +25,7 @@ import {
   internal as realtimeInterface,
 } from "@antelopejs/interface-dms/realtime";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { getPageTopics } from "../../../../realtime/registry";
+import { getPageTopics } from "../../../../realtime";
 
 const PAGE_ID = "teardown-full";
 const PAGE_FULL_ID = `pages.${PAGE_ID}`;

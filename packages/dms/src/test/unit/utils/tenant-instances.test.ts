@@ -16,7 +16,7 @@ import { expect } from "chai";
 import {
   registerExistingTenantInstances,
   registerTenantInstance,
-} from "../../../utils/tenant-instances";
+} from "../../../utils";
 import { resetDatabase } from "../../helpers/db";
 import { reloadHostProvisionedTenants } from "../../helpers/reload-host";
 

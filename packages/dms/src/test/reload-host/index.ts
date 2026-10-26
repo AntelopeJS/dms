@@ -5,8 +5,6 @@ import { registerRealtimeMutationListener } from "@antelopejs/interface-dms/base
 import { Hook, RegisterHook } from "@antelopejs/interface-dms/hooks";
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
 
-import "./package.json";
-
 const PROBE_KEY = Symbol.for("@antelopejs/dms-test/reload-host");
 const PROBE_TENANT = "reload-host-tenant";
 const PROBE_LOCATION = "/reload-host/rows";

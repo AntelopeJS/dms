@@ -3,7 +3,7 @@ import {
   listDroppedBackendProxies,
   type ManifestModuleEntry,
   stripPrivateManifestFields,
-} from "../../../../implementations/dms/manifest";
+} from "../../../../store/frontend";
 
 interface LayerEntry extends ManifestModuleEntry {
   name: string;

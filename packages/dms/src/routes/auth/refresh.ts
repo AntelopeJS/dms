@@ -12,8 +12,8 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { decode } from "jsonwebtoken";
-import { authSchema } from "../../validation/auth.schema";
-import { REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "./constants";
+import { authSchema } from "../../validation";
+import { REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "../../utils";
 import type { AuthResponse } from "./types";
 
 export const HTTP_FORBIDDEN = 403;

@@ -9,7 +9,7 @@ import {
   type FormFieldSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
-import { verifyUploadToken } from "../../../../utils/upload-token";
+import { verifyUploadToken } from "../../../../utils";
 
 function fieldOptions(field: FormFieldSerialized): { uploadToken?: string } {
   return field.component.options ?? {};

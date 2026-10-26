@@ -41,7 +41,7 @@ import {
   type NotificationFeedFilter,
   type NotificationReadState,
   parseNotificationFeedQuery,
-} from "../../../db/models/notification-feed-filter";
+} from "../../../db/models";
 import {
   findSubjectByPreferenceKey,
   getRegisteredCategories,
@@ -54,7 +54,7 @@ import {
 import {
   userNotificationPreferencesPatchSchema,
   userNotificationPreferencesSchema,
-} from "../../../validation/user-notification-preferences.schema";
+} from "../../../validation";
 import { userCategory } from "./category";
 
 const DEFAULT_PAGE_SIZE = 20;

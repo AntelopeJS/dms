@@ -6,10 +6,10 @@ import {
   fromRegionFormValues,
   readRegionalPreferences,
   toRegionFormValues,
-} from "../../../../pages/settings/users/regional-preferences";
+  regionPreferencesForm,
+} from "../../../../pages/account";
 import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form-types";
-import { regionPreferencesForm } from "../../../../pages/settings/users/region-form";
-import { regionalPreferencesSchema } from "../../../../validation/regional-preferences.schema";
+import { regionalPreferencesSchema } from "../../../../validation";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
 

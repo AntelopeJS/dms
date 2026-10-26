@@ -5,8 +5,6 @@ import {
   notifyBackupCodesRegenerated,
   notifyTwoFactorDisabled,
   notifyTwoFactorEnabled,
-} from "../../../utils/account-notifications";
-import {
   acceptTotpCode,
   assertEmailCodeNotRateLimited,
   consumeEmailCode,
@@ -15,9 +13,8 @@ import {
   sendNewEmailCode,
   type TwoFactorMethod,
   verifyTwoFactorCode,
-} from "../../../utils/two-factor-codes";
-import { authSchema } from "../../../validation/auth.schema";
-import { securitySchema } from "../../../validation/security.schema";
+} from "../../../utils";
+import { authSchema, securitySchema } from "../../../validation";
 import { assertCurrentPasswordIfSet } from "./current-password";
 import {
   BACKUP_CODE_COUNT,

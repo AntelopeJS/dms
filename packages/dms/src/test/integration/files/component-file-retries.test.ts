@@ -2,12 +2,12 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { RequestContext } from "@antelopejs/interface-api";
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
-import { SaveComponentFiles } from "../../../attachments/save";
+import { SaveComponentFiles } from "../../../attachments";
 import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 import { nativeUploadToken, uploadAttachment } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";

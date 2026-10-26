@@ -11,17 +11,16 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { notifyBackupCodeUsed } from "../../utils/account-notifications";
-import type { ClientOrigin } from "../../utils/sign-in-country";
-import { recordSignIn } from "../../utils/sign-in-monitor";
 import {
+  notifyBackupCodeUsed,
   acceptTotpCode,
   consumeEmailCode,
   emailCodeMatches,
   isEmailCodeExpired,
-} from "../../utils/two-factor-codes";
-import { authSchema } from "../../validation/auth.schema";
-import { firstIssueMessage } from "../../validation/issue-message";
+} from "../../utils";
+import type { ClientOrigin } from "../../utils";
+import { recordSignIn } from "../../hooks";
+import { authSchema, firstIssueMessage } from "../../validation";
 import { answerTwoFactorChallenge } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";

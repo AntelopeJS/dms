@@ -7,7 +7,7 @@ import {
 import {
   type NotifiedInviteOutcome,
   notifyInviteOutcome,
-} from "../utils/workspace-notifications";
+} from "./internal/workspace-notifications";
 
 const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
   "accepted",

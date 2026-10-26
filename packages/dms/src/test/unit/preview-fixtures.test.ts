@@ -3,7 +3,7 @@ import {
   getRegisteredRoutes,
   UnregisterRoute,
 } from "@antelopejs/interface-api";
-import { registerPreviewFixtures } from "../../pages/public/preview/fixtures";
+import { registerPreviewFixtures } from "../../pages/preview";
 import { createClient } from "../helpers/http";
 
 const BASE = "/api/block-preview/fixtures";

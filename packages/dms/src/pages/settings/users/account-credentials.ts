@@ -4,11 +4,10 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { notifyPasswordChanged } from "../../../utils/account-notifications";
-import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
+import { notifyPasswordChanged, generateAuthKey } from "../../../utils";
+import { generateSessionHandoffToken } from "../../../implementations/dms-auth/services";
 import { SESSION_HANDOFF_ENDPOINT } from "../../../frontend-module";
-import { generateAuthKey } from "../../../utils/auth-key";
-import { securitySchema } from "../../../validation/security.schema";
+import { securitySchema } from "../../../validation";
 import { assertCurrentPasswordIfSet } from "./current-password";
 import { findPendingEmail } from "./email-change";
 import {

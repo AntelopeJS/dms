@@ -8,7 +8,7 @@ import {
   subscribeRealtime,
   unregisterPageTopic,
 } from "../../realtime";
-import type { Unsubscribe } from "../../realtime/broker";
+import type { Unsubscribe } from "../../realtime";
 
 interface PageTopicBinding {
   pageId: string;
