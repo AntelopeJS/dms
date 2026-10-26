@@ -99,6 +99,50 @@ function usePreviewState() {
   };
 }
 
+function createPreviewSharing() {
+  function share(id: string, input: PermissionPreviewInput): void {
+    const session: PermissionPreviewSession = {
+      ...input,
+      id,
+      updatedAt: Date.now(),
+    };
+    writeStorage(localStorage, storageKey(id), JSON.stringify(session));
+  }
+
+  /** Open a preview tab on `path`; returns the id to keep it in sync. */
+  function start(input: PermissionPreviewInput, path: string): string {
+    pruneStaleSessions(Date.now());
+    const id = newPreviewId();
+    share(id, input);
+    window.open(buildPreviewUrl(path, id), "_blank");
+    return id;
+  }
+
+  /** Push the editor's latest edits to an open preview tab. */
+  function update(id: string, input: PermissionPreviewInput): void {
+    if (readStorage(localStorage, storageKey(id)) === null) return;
+    share(id, input);
+  }
+
+  function readSession(id: string): PermissionPreviewSession | null {
+    const session = parsePreviewSession(
+      readStorage(localStorage, storageKey(id)),
+    );
+    return session && session.id === id ? session : null;
+  }
+
+  function takeIdFromLocation(): string | null {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get(PERMISSION_PREVIEW_QUERY_KEY);
+    if (!id) return null;
+    url.searchParams.delete(PERMISSION_PREVIEW_QUERY_KEY);
+    window.history.replaceState(window.history.state, "", url.href);
+    return id;
+  }
+
+  return { start, update, readSession, takeIdFromLocation };
+}
+
 /**
  * "Preview as role": the roles editor opens a tab that browses the real
  * dashboard as a role would see it — its unsaved edits included. The server
@@ -163,45 +207,8 @@ export function usePermissionPreview() {
     return isPreviewEntryLocked(isActive.value, hiddenQuickActions.value, key);
   }
 
-  function share(id: string, input: PermissionPreviewInput): void {
-    const session: PermissionPreviewSession = {
-      ...input,
-      id,
-      updatedAt: Date.now(),
-    };
-    writeStorage(localStorage, storageKey(id), JSON.stringify(session));
-  }
-
-  /** Open a preview tab on `path`; returns the id to keep it in sync. */
-  function start(input: PermissionPreviewInput, path: string): string {
-    pruneStaleSessions(Date.now());
-    const id = newPreviewId();
-    share(id, input);
-    window.open(buildPreviewUrl(path, id), "_blank");
-    return id;
-  }
-
-  /** Push the editor's latest edits to an open preview tab. */
-  function update(id: string, input: PermissionPreviewInput): void {
-    if (readStorage(localStorage, storageKey(id)) === null) return;
-    share(id, input);
-  }
-
-  function readSession(id: string): PermissionPreviewSession | null {
-    const session = parsePreviewSession(
-      readStorage(localStorage, storageKey(id)),
-    );
-    return session && session.id === id ? session : null;
-  }
-
-  function takeIdFromLocation(): string | null {
-    const url = new URL(window.location.href);
-    const id = url.searchParams.get(PERMISSION_PREVIEW_QUERY_KEY);
-    if (!id) return null;
-    url.searchParams.delete(PERMISSION_PREVIEW_QUERY_KEY);
-    window.history.replaceState(window.history.state, "", url.href);
-    return id;
-  }
+  const { start, update, readSession, takeIdFromLocation } =
+    createPreviewSharing();
 
   /**
    * Turn this tab into a preview when it was opened as one (or reloaded while

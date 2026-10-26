@@ -120,6 +120,12 @@ describe("resolveActionError", () => {
 });
 
 describe("ConfirmModal failures", () => {
+  const fixture = createConfirmActionErrorsFixture();
+  registerConfirmationRetryTests(fixture);
+  registerConfirmationOutcomeTests(fixture);
+});
+
+function createConfirmActionErrorsFixture() {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
@@ -208,7 +214,21 @@ describe("ConfirmModal failures", () => {
     host.remove();
     vi.unstubAllGlobals();
   });
+  return {
+    mount,
+    flush,
+    button,
+    closed,
+    alert,
+    get host() {
+      return host;
+    },
+  };
+}
 
+function registerConfirmationRetryTests(
+  fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
+) {
   it("stays open on a refusal, shows why, and lets the user retry", async () => {
     const onConfirm = vi
       .fn()
@@ -216,37 +236,41 @@ describe("ConfirmModal failures", () => {
         fetchError(403, "Forbidden: missing permission tasks.delete"),
       )
       .mockResolvedValueOnce(undefined);
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "Gone",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
+    await fixture.flush();
 
-    button("Delete")!.click();
-    await flush();
-    expect(closed).not.toHaveBeenCalled();
-    expect(alert()?.dataset.alert).toBe("error");
-    expect(alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    expect(fixture.closed).not.toHaveBeenCalled();
+    expect(fixture.alert()?.dataset.alert).toBe("error");
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
 
-    expect(host.textContent).not.toContain("[DELETE]");
+    expect(fixture.host.textContent).not.toContain("[DELETE]");
 
-    expect(button("Delete")!.dataset.loading).toBeUndefined();
-    expect(button("Delete")!.disabled).toBe(false);
-    expect(button("dms.confirm.cancel")!.disabled).toBe(false);
+    expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
+    expect(fixture.button("Delete")!.disabled).toBe(false);
+    expect(fixture.button("dms.confirm.cancel")!.disabled).toBe(false);
 
-    button("Delete")!.click();
-    await flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
     expect(onConfirm).toHaveBeenCalledTimes(2);
-    expect(closed).toHaveBeenCalledWith(true);
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("names one button Cancel: the corner one closes", async () => {
-    mount({ title: "Delete?", description: "Gone", confirmLabel: "Delete" });
-    await flush();
+    fixture.mount({
+      title: "Delete?",
+      description: "Gone",
+      confirmLabel: "Delete",
+    });
+    await fixture.flush();
     const named = (label: string) =>
-      [...host.querySelectorAll("button")].filter(
+      [...fixture.host.querySelectorAll("button")].filter(
         (candidate) =>
           (candidate.getAttribute("aria-label") ?? candidate.textContent) ===
           label,
@@ -263,42 +287,46 @@ describe("ConfirmModal failures", () => {
       .mockImplementationOnce(
         () => new Promise<void>((resolve) => (settle = resolve)),
       );
-    mount({
+    fixture.mount({
       title: "Archive?",
       description: "",
       confirmLabel: "Archive",
       onConfirm,
     });
-    await flush();
+    await fixture.flush();
 
-    button("Archive")!.click();
-    await flush();
-    expect(alert()?.textContent).toBe(ACTION_ERROR_NETWORK_KEY);
+    fixture.button("Archive")!.click();
+    await fixture.flush();
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_NETWORK_KEY);
 
-    button("Archive")!.click();
-    await flush();
-    expect(alert()).toBeNull();
-    expect(button("Archive")!.dataset.loading).toBe("true");
+    fixture.button("Archive")!.click();
+    await fixture.flush();
+    expect(fixture.alert()).toBeNull();
+    expect(fixture.button("Archive")!.dataset.loading).toBe("true");
     settle();
-    await flush();
-    expect(closed).toHaveBeenCalledWith(true);
+    await fixture.flush();
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("cancelling after a failure resolves false", async () => {
     const onConfirm = vi.fn().mockRejectedValue(fetchError(500));
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
-    button("Delete")!.click();
-    await flush();
-    button("dms.confirm.cancel")!.click();
-    expect(closed).toHaveBeenCalledWith(false);
+    await fixture.flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    fixture.button("dms.confirm.cancel")!.click();
+    expect(fixture.closed).toHaveBeenCalledWith(false);
   });
+}
 
+function registerConfirmationOutcomeTests(
+  fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
+) {
   it("shows a message already worded by the action, with its reason", async () => {
     const onConfirm = vi.fn().mockRejectedValue(
       new ConfirmActionError({
@@ -306,19 +334,19 @@ describe("ConfirmModal failures", () => {
         description: "Their rules don’t allow this action.",
       }),
     );
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
-    button("Delete")!.click();
-    await flush();
-    expect(alert()?.querySelector("strong")?.textContent).toBe(
+    await fixture.flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
       "These 2 items couldn’t be deleted.",
     );
-    expect(alert()?.querySelector("p")?.textContent).toBe(
+    expect(fixture.alert()?.querySelector("p")?.textContent).toBe(
       "Their rules don’t allow this action.",
     );
   });
@@ -330,24 +358,24 @@ describe("ConfirmModal failures", () => {
         description: "Their rules don’t allow this action.",
       },
     });
-    mount({
+    fixture.mount({
       title: "Archive?",
       description: "",
       confirmLabel: "Archive",
       onConfirm,
     });
-    await flush();
-    button("Archive")!.click();
-    await flush();
+    await fixture.flush();
+    fixture.button("Archive")!.click();
+    await fixture.flush();
 
-    expect(closed).not.toHaveBeenCalled();
-    expect(alert()?.dataset.alert).toBe("warning");
-    expect(alert()?.querySelector("strong")?.textContent).toBe(
+    expect(fixture.closed).not.toHaveBeenCalled();
+    expect(fixture.alert()?.dataset.alert).toBe("warning");
+    expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
       "2 of 5 items couldn’t be archived.",
     );
 
-    expect(button("Archive")).toBeUndefined();
-    button("dms.confirm.close")!.click();
-    expect(closed).toHaveBeenCalledWith(true);
+    expect(fixture.button("Archive")).toBeUndefined();
+    fixture.button("dms.confirm.close")!.click();
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
-});
+}

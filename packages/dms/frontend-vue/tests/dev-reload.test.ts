@@ -85,61 +85,79 @@ function createHarness(
 }
 
 describe("dev reload coordinator", () => {
+  const fixture = createDevReloadFixture();
+  registerAwaitRouteTests(fixture);
+  registerRefreshTests(fixture);
+});
+
+function createDevReloadFixture() {
   let harness: Harness;
 
   beforeEach(() => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
+  return {
+    get harness() {
+      return harness;
+    },
+    set harness(value: typeof harness) {
+      harness = value;
+    },
+  };
+}
 
+function registerAwaitRouteTests(
+  fixture: ReturnType<typeof createDevReloadFixture>,
+) {
   describe("awaitRoute", () => {
     it("answers from the committed layout without probing the backend", async () => {
-      harness = createHarness();
-      harness.committed.add("/pages/a");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      fixture.harness.committed.add("/pages/a");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/a")).resolves.toBe(true);
 
-      expect(harness.probes).toBe(0);
-      expect(harness.reloadingLog).toEqual([]);
+      expect(fixture.harness.probes).toBe(0);
+      expect(fixture.harness.reloadingLog).toEqual([]);
     });
 
     it("holds until the re-registering backend serves the route", async () => {
-      harness = createHarness({ probesBeforeServed: 3 });
-      harness.backend.add("/pages/new");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ probesBeforeServed: 3 });
+      fixture.harness.backend.add("/pages/new");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/new")).resolves.toBe(true);
-      expect(harness.probes).toBe(4);
-      expect(harness.committed.has("/pages/new")).toBe(true);
+      expect(fixture.harness.probes).toBe(4);
+      expect(fixture.harness.committed.has("/pages/new")).toBe(true);
 
-      expect(harness.commits).toBe(0);
+      expect(fixture.harness.commits).toBe(0);
     });
 
     it("resolves false when the route never comes back", async () => {
-      harness = createHarness();
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/gone")).resolves.toBe(false);
 
-      expect(harness.commits).toBe(1);
-      expect(harness.clearedFor).toEqual([]);
+      expect(fixture.harness.commits).toBe(1);
+      expect(fixture.harness.clearedFor).toEqual([]);
     });
 
     it("honours a caller-supplied timeout", async () => {
-      harness = createHarness();
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(
         coordinator.awaitRoute("/pages/gone", { timeoutMs: 600 }),
       ).resolves.toBe(false);
-      expect(harness.elapsed()).toBeLessThan(1000);
+      expect(fixture.harness.elapsed()).toBeLessThan(1000);
     });
 
     it("joins an in-flight refresh instead of racing a second fetch loop", async () => {
-      harness = createHarness({ probesBeforeServed: 4 });
-      harness.backend.add("/current");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ probesBeforeServed: 4 });
+      fixture.harness.backend.add("/current");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       const refresh = coordinator.requestRefresh("/current");
       const waited = coordinator.awaitRoute("/current");
@@ -147,36 +165,36 @@ describe("dev reload coordinator", () => {
       await expect(waited).resolves.toBe(true);
       await refresh;
 
-      expect(harness.probes).toBe(5);
+      expect(fixture.harness.probes).toBe(5);
     });
 
     it("clears the transient 404 once the route is committed", async () => {
-      harness = createHarness({ probesBeforeServed: 1 });
-      harness.backend.add("/current");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ probesBeforeServed: 1 });
+      fixture.harness.backend.add("/current");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await coordinator.awaitRoute("/current");
-      expect(harness.clearedFor).toEqual(["/current"]);
+      expect(fixture.harness.clearedFor).toEqual(["/current"]);
     });
   });
 
   describe("awaitRoute outside dev", () => {
     it("never probes and only reads the committed layout", async () => {
-      harness = createHarness({ isDev: false });
-      harness.backend.add("/pages/a");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ isDev: false });
+      fixture.harness.backend.add("/pages/a");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/a")).resolves.toBe(false);
-      expect(harness.probes).toBe(0);
-      expect(harness.commits).toBe(0);
-      expect(harness.reloadingLog).toEqual([]);
+      expect(fixture.harness.probes).toBe(0);
+      expect(fixture.harness.commits).toBe(0);
+      expect(fixture.harness.reloadingLog).toEqual([]);
     });
 
     it("resolves true when a refresh driven elsewhere commits the route", async () => {
-      harness = createHarness({ isDev: false });
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ isDev: false });
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
       let reads = 0;
-      harness.deps.isRouteKnown = (path) => {
+      fixture.harness.deps.isRouteKnown = (path) => {
         reads += 1;
         return reads > 3 && path === "/pages/a";
       };
@@ -185,22 +203,26 @@ describe("dev reload coordinator", () => {
     });
 
     it("caps the wait well short of the dev timeout", async () => {
-      harness = createHarness({ isDev: false });
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness({ isDev: false });
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(
         coordinator.awaitRoute("/pages/a", { timeoutMs: 60000 }),
       ).resolves.toBe(false);
-      expect(harness.elapsed()).toBeLessThan(3000);
+      expect(fixture.harness.elapsed()).toBeLessThan(3000);
     });
   });
+}
 
+function registerRefreshTests(
+  fixture: ReturnType<typeof createDevReloadFixture>,
+) {
   describe("requestRefresh", () => {
     it("coalesces a burst into a single trailing re-run on the current route", async () => {
-      harness = createHarness();
-      harness.backend.add("/pages/a");
-      harness.backend.add("/current");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      fixture.harness.backend.add("/pages/a");
+      fixture.harness.backend.add("/current");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       const first = coordinator.requestRefresh("/pages/a");
       const second = coordinator.requestRefresh("/pages/a");
@@ -209,37 +231,37 @@ describe("dev reload coordinator", () => {
 
       await coordinator.settled();
 
-      expect(harness.derivedFor).toEqual(["/pages/a", "/current"]);
+      expect(fixture.harness.derivedFor).toEqual(["/pages/a", "/current"]);
     });
 
     it("keeps the reload flag raised across the trailing re-run", async () => {
-      harness = createHarness();
-      harness.backend.add("/current");
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      fixture.harness.backend.add("/current");
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       const first = coordinator.requestRefresh("/current");
       coordinator.requestRefresh("/current");
       await first;
       await coordinator.settled();
 
-      expect(harness.reloadingLog).toEqual([true, true, false]);
+      expect(fixture.harness.reloadingLog).toEqual([true, true, false]);
     });
 
     it("lowers the reload flag when a pass throws", async () => {
-      harness = createHarness({
+      fixture.harness = createHarness({
         commitLayout: () => Promise.reject(new Error("backend down")),
       });
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.requestRefresh("/pages/a")).resolves.toBe(false);
-      expect(harness.reloadingLog).toEqual([true, false]);
+      expect(fixture.harness.reloadingLog).toEqual([true, false]);
     });
 
     it("settles immediately when nothing is in flight", async () => {
-      harness = createHarness();
-      const coordinator = createDevReloadCoordinator(harness.deps);
+      fixture.harness = createHarness();
+      const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       await expect(coordinator.settled()).resolves.toBeUndefined();
     });
   });
-});
+}

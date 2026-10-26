@@ -114,6 +114,11 @@ describe("confirmation dialog texts", () => {
 });
 
 describe("ConfirmModal fields", () => {
+  const fixture = createConfirmDialogFieldsFixture();
+  registerConfirmationFieldTests(fixture);
+});
+
+function createConfirmDialogFieldsFixture() {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
@@ -223,43 +228,61 @@ describe("ConfirmModal fields", () => {
     host.remove();
     vi.unstubAllGlobals();
   });
+  return {
+    mount,
+    reassign,
+    flush,
+    get host() {
+      return host;
+    },
+    typeIn,
+    confirmButton,
+    closed,
+  };
+}
 
+function registerConfirmationFieldTests(
+  fixture: ReturnType<typeof createConfirmDialogFieldsFixture>,
+) {
   it("draws the fields and confirms with their values", async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
-    expect(host.textContent).toContain("Move them to");
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
+    expect(fixture.host.textContent).toContain("Move them to");
 
-    await typeIn("role-2");
-    confirmButton().click();
-    await flush();
+    await fixture.typeIn("role-2");
+    fixture.confirmButton().click();
+    await fixture.flush();
 
     expect(onConfirm).toHaveBeenCalledWith({ reassignTo: "role-2" });
-    expect(closed).toHaveBeenCalledWith(true);
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("says what the required mark means under the fields", async () => {
-    mount({ title: "Delete?", fields: [reassign] });
-    await flush();
-    expect(host.textContent).toContain("dms.form.required_legend");
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign] });
+    await fixture.flush();
+    expect(fixture.host.textContent).toContain("dms.form.required_legend");
   });
 
   it("draws no legend when no field is required", async () => {
-    mount({ title: "Delete?", fields: [{ ...reassign, required: false }] });
-    await flush();
-    expect(host.textContent).not.toContain("dms.form.required_legend");
+    fixture.mount({
+      title: "Delete?",
+      fields: [{ ...fixture.reassign, required: false }],
+    });
+    await fixture.flush();
+    expect(fixture.host.textContent).not.toContain("dms.form.required_legend");
   });
 
   it("flags a required field left empty instead of confirming", async () => {
     const onConfirm = vi.fn();
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
 
-    confirmButton().click();
-    await flush();
+    fixture.confirmButton().click();
+    await fixture.flush();
 
     expect(onConfirm).not.toHaveBeenCalled();
-    expect(host.querySelector("em")?.textContent).toBe(
+    expect(fixture.host.querySelector("em")?.textContent).toBe(
       "dms.field_errors.required",
     );
   });
@@ -275,16 +298,16 @@ describe("ConfirmModal fields", () => {
         },
       }),
     );
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
 
-    await typeIn("role-1");
-    confirmButton().click();
-    await flush();
+    await fixture.typeIn("role-1");
+    fixture.confirmButton().click();
+    await fixture.flush();
 
-    expect(host.querySelector("em")?.textContent).toBe(
+    expect(fixture.host.querySelector("em")?.textContent).toBe(
       "t($page.settings.roles.error.invalid_reassign)",
     );
-    expect(closed).not.toHaveBeenCalled();
+    expect(fixture.closed).not.toHaveBeenCalled();
   });
-});
+}

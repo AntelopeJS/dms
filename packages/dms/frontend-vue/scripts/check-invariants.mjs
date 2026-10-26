@@ -154,7 +154,10 @@ function checkAsyncDataScopeRegistration() {
 }
 
 function checkFontAssetUrls() {
-  const stylesheet = join(LAYERS_DIR, "dms-layout/app/assets/css/main.css");
+  const stylesheet = join(
+    LAYERS_DIR,
+    "dms-layout/app/assets/css/foundation.css",
+  );
   const urls = [
     ...readFileSync(stylesheet, "utf8").matchAll(
       /@font-face\s*{[^}]*?src:\s*url\("([^"]+)"\)/g,

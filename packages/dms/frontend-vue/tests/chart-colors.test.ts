@@ -41,6 +41,11 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("chart color tokens", () => {
+  registerChartTokenTests();
+  registerChartRenderingTests();
+});
+
+function registerChartTokenTests() {
   it("falls back without accessing the DOM during SSR", () => {
     expect(resolveChartColors(TOKENS)).toEqual(TOKENS.map(() => FALLBACK));
     expect(resolveChartColor(undefined)).toBe(FALLBACK);
@@ -145,7 +150,9 @@ describe("chart color tokens", () => {
       yaxis: [expect.objectContaining({ borderColor: LIGHT })],
     });
   });
+}
 
+function registerChartRenderingTests() {
   it("refreshes mixed series colors without mutating the input", () => {
     mockBrowser();
     const input = reactive<UseApexChartInput>({
@@ -188,4 +195,4 @@ describe("chart color tokens", () => {
     expect(resolveChartColor("primary-500")).toBe("rgb(92, 76, 200)");
     expect(context.fillStyle).toBe(computedColor);
   });
-});
+}

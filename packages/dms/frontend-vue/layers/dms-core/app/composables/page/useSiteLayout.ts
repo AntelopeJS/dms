@@ -171,7 +171,23 @@ function applySiteLayoutResponse(
   state.lastRefreshTime.value = Date.now();
 }
 
-export const useSiteLayout = () => {
+function useSiteLayoutRequestsInFlight() {
+  const dmsApp = useDmsApp();
+  const pageLayoutPromises =
+    dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] ?? new Map<string, PageLayoutRequest>();
+  dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] = pageLayoutPromises;
+  const loadingPromise = {
+    get value(): Promise<boolean> | null {
+      return dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] ?? null;
+    },
+    set value(promise: Promise<boolean> | null) {
+      dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] = promise;
+    },
+  };
+  return { pageLayoutPromises, loadingPromise };
+}
+
+const useSiteLayoutRequests = () => {
   const state = useSiteLayoutState();
   const {
     siteLayout,
@@ -190,18 +206,8 @@ export const useSiteLayout = () => {
     () => ({}),
   );
 
-  const dmsApp = useDmsApp();
-  const pageLayoutPromises =
-    dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] ?? new Map<string, PageLayoutRequest>();
-  dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] = pageLayoutPromises;
-  const loadingPromise = {
-    get value(): Promise<boolean> | null {
-      return dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] ?? null;
-    },
-    set value(promise: Promise<boolean> | null) {
-      dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] = promise;
-    },
-  };
+  const { pageLayoutPromises, loadingPromise } =
+    useSiteLayoutRequestsInFlight();
 
   const SITE_LAYOUT_ERROR_MESSAGE = "Error loading siteLayout";
   const UNKNOWN_SITE_LAYOUT_ERROR = "Unknown error loading siteLayout";
@@ -305,6 +311,82 @@ export const useSiteLayout = () => {
     await refresh();
   };
 
+  return {
+    state,
+    siteLayout,
+    siteLayoutTree,
+    quickActions,
+    modules,
+    isOwner,
+    pageLayouts,
+    pageLayoutPromises,
+    isLoading,
+    loadingError,
+    loadSiteLayout,
+    refresh,
+    resync,
+    refreshIfStale,
+    clearPageLayoutCaches,
+  };
+};
+
+function matchRoute(
+  path: string,
+  layout: SiteLayout,
+  options: MatchRouteOptions,
+): MatchRouteResult | null {
+  const normalizedPath = withoutTrailingSlash(path) || "/";
+
+  if (layout.pages[normalizedPath]) {
+    return {
+      pattern: normalizedPath,
+      metadata: layout.pages[normalizedPath],
+      params: {},
+    };
+  }
+
+  const category = options.includeCategories
+    ? findNavigableCategory(layout, normalizedPath)
+    : undefined;
+  if (category) {
+    return { pattern: normalizedPath, metadata: category, params: {} };
+  }
+
+  for (const [pattern, metadata] of Object.entries(layout.pages)) {
+    if (pattern.includes(":")) {
+      const params = extractRouteParams(pattern, normalizedPath);
+      if (params) {
+        return {
+          pattern,
+          metadata,
+          params,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+export const useSiteLayout = () => {
+  const {
+    state,
+    siteLayout,
+    siteLayoutTree,
+    quickActions,
+    modules,
+    isOwner,
+    pageLayouts,
+    pageLayoutPromises,
+    isLoading,
+    loadingError,
+    loadSiteLayout,
+    refresh,
+    resync,
+    refreshIfStale,
+    clearPageLayoutCaches,
+  } = useSiteLayoutRequests();
+
   /**
    * The layout of a page, cached by its layout URL. `query` is the page
    * URL's, which the first request carries for the header buttons whose
@@ -346,44 +428,6 @@ export const useSiteLayout = () => {
       }
     }
   };
-
-  function matchRoute(
-    path: string,
-    layout: SiteLayout,
-    options: MatchRouteOptions,
-  ): MatchRouteResult | null {
-    const normalizedPath = withoutTrailingSlash(path) || "/";
-
-    if (layout.pages[normalizedPath]) {
-      return {
-        pattern: normalizedPath,
-        metadata: layout.pages[normalizedPath],
-        params: {},
-      };
-    }
-
-    const category = options.includeCategories
-      ? findNavigableCategory(layout, normalizedPath)
-      : undefined;
-    if (category) {
-      return { pattern: normalizedPath, metadata: category, params: {} };
-    }
-
-    for (const [pattern, metadata] of Object.entries(layout.pages)) {
-      if (pattern.includes(":")) {
-        const params = extractRouteParams(pattern, normalizedPath);
-        if (params) {
-          return {
-            pattern,
-            metadata,
-            params,
-          };
-        }
-      }
-    }
-
-    return null;
-  }
 
   const findMatchingRoute = (
     path: string,

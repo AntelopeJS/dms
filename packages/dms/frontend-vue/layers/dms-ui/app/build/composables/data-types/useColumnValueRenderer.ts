@@ -39,6 +39,20 @@ const DETAIL_FALLBACK = "—";
 /** Where a value is drawn: a grid cell gets the `cell` formatter first. */
 export type ColumnValueSurface = "cell" | "detail";
 
+function renderEmptyFallback(
+  options: ResolvedColumnRenderer["options"],
+  surface: ColumnValueSurface,
+  isNumeric: boolean,
+): VNodeChild {
+  const fallback =
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin options have no fallback schema; this preserves the unchecked value rather than coercing or rejecting malformed inputs.
+    (options?.fallback as string) ??
+    (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
+  return isNumeric
+    ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
+    : fallback;
+}
+
 /**
  * Renders a row's value for a column through the formatter of its data type
  * (or of its `display` data type), the way the grid draws its cells. The row
@@ -83,13 +97,7 @@ export function useColumnValueRenderer() {
         // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown for plugin extensions; the existing render boundary forwards it without VNodeChild validation.
         return formatter.empty(value, locale.value, options, row) as VNodeChild;
       }
-      const fallback =
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin options have no fallback schema; this preserves the unchecked value rather than coercing or rejecting malformed inputs.
-        (options?.fallback as string) ??
-        (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
-      return isNumeric
-        ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
-        : fallback;
+      return renderEmptyFallback(options, surface, isNumeric);
     }
 
     const format =

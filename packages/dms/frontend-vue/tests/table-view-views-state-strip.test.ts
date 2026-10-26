@@ -11,169 +11,8 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
 describe("table view states", () => {
-  it("opens a view over the table's defaults", () => {
-    const snapshot = viewSnapshot(
-      {
-        filters: [
-          { accessorKey: "status", mode: "is", value: "closed" },
-          { accessorKey: "owner", mode: "is", value: "{{user.id}}" },
-        ],
-        search: "invoice",
-        sort: [{ field: "title" }],
-        columns: { visible: ["email"], hidden: ["owner"], order: ["email"] },
-        display: "grouped",
-        density: "compact",
-      },
-      DEFAULTS,
-    );
-    expect(snapshot).toEqual({
-      filters: [
-        { ...pinnedStatus, value: "closed" },
-        {
-          accessorKey: "owner",
-          mode: "is",
-          value: "{{user.id}}",
-          pinned: false,
-        },
-      ],
-      search: "invoice",
-      sorting: [{ id: "title", desc: false }],
-      visibility: { title: true, owner: false, email: true },
-      order: ["email"],
-      display: "grouped",
-      density: "compact",
-    });
-  });
-
-  it("falls back to the defaults for what a view leaves out, and for a display the table lacks", () => {
-    expect(viewSnapshot({ display: "kanban" }, DEFAULTS)).toEqual({
-      filters: [pinnedStatus],
-      search: "",
-      sorting: DEFAULTS.sorting,
-      visibility: DEFAULTS.visibility,
-      order: [],
-      display: "table",
-      density: "default",
-    });
-  });
-
-  it("tells a changed state from the view's, ignoring empty filters and blank searches", () => {
-    const opened = viewSnapshot({ search: "invoice" }, DEFAULTS);
-    expect(
-      isSameTableState(
-        opened,
-        {
-          ...opened,
-          search: " invoice ",
-          filters: [...opened.filters, { accessorKey: "owner", mode: "is" }],
-        },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, sorting: [{ id: "createdAt", desc: false }] },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, visibility: { ...opened.visibility, email: true } },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, density: "compact" },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-  });
-
-  it("compares column orders on the columns they move", () => {
-    const opened = viewSnapshot({}, DEFAULTS);
-    const fullDeclared = ["select", "title", "owner", "email", "actions"];
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, order: fullDeclared },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, order: ["select", "email", "title", "owner", "actions"] },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-  });
-
-  it("keeps a state as a view that opens on the same state", () => {
-    const state = viewSnapshot(
-      {
-        filters: [{ accessorKey: "owner", mode: "is", value: "u1" }],
-        search: "late",
-        sort: [{ field: "title", desc: true }],
-        columns: { hidden: ["title"], order: ["owner", "title"] },
-        display: "grouped",
-      },
-      DEFAULTS,
-    );
-    expect(
-      isSameTableState(
-        viewSnapshot(snapshotViewState(state), DEFAULTS),
-        state,
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-  });
-
-  it("reads a view or a tab off the URL, the short key only for a page's only table", () => {
-    const query = { "content.view": "mine", view: "other", tab: "open" };
-    expect(
-      readTableUrlKey(
-        query,
-        { tableId: "content", isSoleTableView: false },
-        "view",
-      ),
-    ).toEqual({ value: "mine" });
-    expect(
-      readTableUrlKey(
-        { tab: "open" },
-        { tableId: "content", isSoleTableView: true },
-        "tab",
-      ),
-    ).toEqual({ value: "open" });
-    expect(
-      readTableUrlKey(
-        { tab: "open" },
-        { tableId: "content", isSoleTableView: false },
-        "tab",
-      ),
-    ).toEqual({ ignoredShortKey: true });
-    expect(readTableUrlKey({}, { tableId: "content" }, "view")).toEqual({});
-  });
-
-  it("reads an empty key as cleared, not as absent", () => {
-    const sole = { tableId: "content", isSoleTableView: true };
-    expect(readTableUrlKey({ "content.view": "" }, sole, "view")).toEqual({
-      isCleared: true,
-    });
-    expect(readTableUrlKey({ view: "" }, sole, "view")).toEqual({
-      isCleared: true,
-    });
-    expect(
-      readTableUrlKey(
-        { view: "" },
-        { tableId: "content", isSoleTableView: false },
-        "view",
-      ),
-    ).toEqual({});
-  });
+  registerViewSnapshotTests();
+  registerViewOrderAndUrlTests();
 });
 
 describe("table views strip", () => {
@@ -313,3 +152,171 @@ describe("column order", () => {
     expect(mergeColumnOrder([], declared)).toEqual(declared);
   });
 });
+
+function registerViewSnapshotTests() {
+  it("opens a view over the table's defaults", () => {
+    const snapshot = viewSnapshot(
+      {
+        filters: [
+          { accessorKey: "status", mode: "is", value: "closed" },
+          { accessorKey: "owner", mode: "is", value: "{{user.id}}" },
+        ],
+        search: "invoice",
+        sort: [{ field: "title" }],
+        columns: { visible: ["email"], hidden: ["owner"], order: ["email"] },
+        display: "grouped",
+        density: "compact",
+      },
+      DEFAULTS,
+    );
+    expect(snapshot).toEqual({
+      filters: [
+        { ...pinnedStatus, value: "closed" },
+        {
+          accessorKey: "owner",
+          mode: "is",
+          value: "{{user.id}}",
+          pinned: false,
+        },
+      ],
+      search: "invoice",
+      sorting: [{ id: "title", desc: false }],
+      visibility: { title: true, owner: false, email: true },
+      order: ["email"],
+      display: "grouped",
+      density: "compact",
+    });
+  });
+
+  it("falls back to the defaults for what a view leaves out, and for a display the table lacks", () => {
+    expect(viewSnapshot({ display: "kanban" }, DEFAULTS)).toEqual({
+      filters: [pinnedStatus],
+      search: "",
+      sorting: DEFAULTS.sorting,
+      visibility: DEFAULTS.visibility,
+      order: [],
+      display: "table",
+      density: "default",
+    });
+  });
+
+  it("tells a changed state from the view's, ignoring empty filters and blank searches", () => {
+    const opened = viewSnapshot({ search: "invoice" }, DEFAULTS);
+    expect(
+      isSameTableState(
+        opened,
+        {
+          ...opened,
+          search: " invoice ",
+          filters: [...opened.filters, { accessorKey: "owner", mode: "is" }],
+        },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(true);
+    expect(
+      isSameTableState(
+        opened,
+        { ...opened, sorting: [{ id: "createdAt", desc: false }] },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(false);
+    expect(
+      isSameTableState(
+        opened,
+        { ...opened, visibility: { ...opened.visibility, email: true } },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(false);
+    expect(
+      isSameTableState(
+        opened,
+        { ...opened, density: "compact" },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(false);
+  });
+}
+
+function registerViewOrderAndUrlTests() {
+  it("compares column orders on the columns they move", () => {
+    const opened = viewSnapshot({}, DEFAULTS);
+    const fullDeclared = ["select", "title", "owner", "email", "actions"];
+    expect(
+      isSameTableState(
+        opened,
+        { ...opened, order: fullDeclared },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(true);
+    expect(
+      isSameTableState(
+        opened,
+        { ...opened, order: ["select", "email", "title", "owner", "actions"] },
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps a state as a view that opens on the same state", () => {
+    const state = viewSnapshot(
+      {
+        filters: [{ accessorKey: "owner", mode: "is", value: "u1" }],
+        search: "late",
+        sort: [{ field: "title", desc: true }],
+        columns: { hidden: ["title"], order: ["owner", "title"] },
+        display: "grouped",
+      },
+      DEFAULTS,
+    );
+    expect(
+      isSameTableState(
+        viewSnapshot(snapshotViewState(state), DEFAULTS),
+        state,
+        DEFAULTS.columnOrder,
+      ),
+    ).toBe(true);
+  });
+
+  it("reads a view or a tab off the URL, the short key only for a page's only table", () => {
+    const query = { "content.view": "mine", view: "other", tab: "open" };
+    expect(
+      readTableUrlKey(
+        query,
+        { tableId: "content", isSoleTableView: false },
+        "view",
+      ),
+    ).toEqual({ value: "mine" });
+    expect(
+      readTableUrlKey(
+        { tab: "open" },
+        { tableId: "content", isSoleTableView: true },
+        "tab",
+      ),
+    ).toEqual({ value: "open" });
+    expect(
+      readTableUrlKey(
+        { tab: "open" },
+        { tableId: "content", isSoleTableView: false },
+        "tab",
+      ),
+    ).toEqual({ ignoredShortKey: true });
+    expect(readTableUrlKey({}, { tableId: "content" }, "view")).toEqual({});
+  });
+
+  it("reads an empty key as cleared, not as absent", () => {
+    const sole = { tableId: "content", isSoleTableView: true };
+    expect(readTableUrlKey({ "content.view": "" }, sole, "view")).toEqual({
+      isCleared: true,
+    });
+    expect(readTableUrlKey({ view: "" }, sole, "view")).toEqual({
+      isCleared: true,
+    });
+    expect(
+      readTableUrlKey(
+        { view: "" },
+        { tableId: "content", isSoleTableView: false },
+        "view",
+      ),
+    ).toEqual({});
+  });
+}

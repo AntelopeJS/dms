@@ -203,6 +203,21 @@ const unauthorizedError = (): Error =>
     status: HTTP_UNAUTHORIZED,
   });
 
+const closeStraySession = (
+  sessionCloseUrl: string,
+  forConnection: string,
+  sessionId: string,
+) => {
+  void fetch(sessionCloseUrl, {
+    method: "POST",
+    headers: {
+      [CONNECTION_HEADER]: forConnection,
+      [SESSION_HEADER]: sessionId,
+    },
+    credentials: "include",
+  }).catch(() => {});
+};
+
 /**
  * Keeps a session of this tab on the browser's shared realtime connection
  * until cancelled: a new one each time the connection changes, its leader tab
@@ -222,17 +237,6 @@ const connectTab = (
   let attempt = 0;
 
   let buffered: BufferedFrame[] | undefined;
-
-  const closeStraySession = (forConnection: string, sessionId: string) => {
-    void fetch(sessionCloseUrl, {
-      method: "POST",
-      headers: {
-        [CONNECTION_HEADER]: forConnection,
-        [SESSION_HEADER]: sessionId,
-      },
-      credentials: "include",
-    }).catch(() => {});
-  };
 
   const adopt = (forConnection: string, greeting: SessionGreeting) => {
     const sessionId = String(greeting.sessionId);
@@ -274,7 +278,7 @@ const connectTab = (
     const sessionId = greeting?.sessionId;
     if (!isCurrent()) {
       if (isString(sessionId)) {
-        closeStraySession(forConnection, sessionId);
+        closeStraySession(sessionCloseUrl, forConnection, sessionId);
       }
       return;
     }
@@ -301,7 +305,7 @@ const connectTab = (
     if (retries.isCancelled() || !connectionId) return;
     const sessionId = state.sessionId.value;
     if (sessionId) {
-      closeStraySession(connectionId, sessionId);
+      closeStraySession(sessionCloseUrl, connectionId, sessionId);
       callbacks.onDisconnected();
     }
     void openSession(connectionId);

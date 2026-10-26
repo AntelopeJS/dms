@@ -25,6 +25,11 @@ const SESSION = {
 };
 
 describe("permission preview", () => {
+  registerPreviewSessionAndRenderingTests();
+  registerPreviewLockTests();
+});
+
+function registerPreviewSessionAndRenderingTests() {
   describe("parsePreviewSession", () => {
     it("reads a stored session", () => {
       expect(parsePreviewSession(JSON.stringify(SESSION))).toEqual(SESSION);
@@ -126,7 +131,9 @@ describe("permission preview", () => {
       expect(isPreviewEntryLocked(true, HIDDEN, undefined)).toBe(false);
     });
   });
+}
 
+function registerPreviewLockTests() {
   describe("applyPreviewLocks", () => {
     interface Entry extends PreviewLockableEntry {
       label: string;
@@ -191,4 +198,4 @@ describe("permission preview", () => {
       expect(lockedLabels(locked)).toEqual([]);
     });
   });
-});
+}

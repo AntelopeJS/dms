@@ -70,6 +70,12 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime reconnection", () => {
+  registerRealtimeSessionSwitchTests();
+  registerRealtimeStreamRecoveryTests();
+  registerRealtimeAuthRefreshTests();
+});
+
+function registerRealtimeSessionSwitchTests() {
   it("opens a new session on the same connection in the workspace the session switched to, and resubscribes the page", async () => {
     const api = await loadApi();
     await settle();
@@ -176,7 +182,9 @@ describe("useUserRealtime reconnection", () => {
     await settle();
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
   });
+}
 
+function registerRealtimeStreamRecoveryTests() {
   it("names the dev reload topic its session carries, while it is open", async () => {
     server.devReloadTopic = "dms:dev-reload";
     const api = await loadApi();
@@ -289,7 +297,9 @@ describe("useUserRealtime reconnection", () => {
     expect(api.sessionId.value).toBe("session-1");
     expect(received).toEqual([snapshot]);
   });
+}
 
+function registerRealtimeAuthRefreshTests() {
   it("refreshes the browser session when a session is refused with a 401", async () => {
     const refreshSession = vi.fn(async () => {
       server.sessionStatus = undefined;
@@ -309,4 +319,4 @@ describe("useUserRealtime reconnection", () => {
     await settle();
     expect(api.sessionId.value).toBe("session-1");
   });
-});
+}
