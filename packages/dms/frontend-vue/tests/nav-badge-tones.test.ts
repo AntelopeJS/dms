@@ -131,15 +131,27 @@ describe("NavigationMenu badges", () => {
         required: true,
       },
     },
-    setup(props) {
+    setup(props, { slots }) {
       const renderItem = (item: NavigationMenuItem): VNode =>
-        h("div", {
-          "data-entry": item.fullId,
-          "data-badge": item.badge?.label,
-          "data-color": item.badge?.color,
-          "data-variant": item.badge?.variant,
-          "data-prefetch": String(item.prefetch),
-        });
+        h(
+          "div",
+          {
+            "data-entry": item.fullId,
+            "data-badge": item.badge?.label,
+            "data-color": item.badge?.color,
+            "data-variant": item.badge?.variant,
+            "data-prefetch": String(item.prefetch),
+            "data-trailing-icon": item.trailingIcon,
+          },
+          [
+            slots["item-leading"]?.({
+              item,
+              active: item.active,
+              ui: { linkLeadingIcon: () => "size-4" },
+            }),
+            ...(item.children?.map(renderItem) ?? []),
+          ],
+        );
       return () => h("nav", props.items.flat().map(renderItem));
     },
   });
@@ -165,11 +177,28 @@ describe("NavigationMenu badges", () => {
   const badgeOf = (fullId: string) =>
     host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
 
-  function mount(): void {
+  function mount(items = ITEMS): void {
     state.set("dms-permission-preview-session", ref(null));
     state.set("dms-permission-preview-result", ref(null));
-    app = createApp(NavigationMenu, { items: ITEMS });
+    app = createApp(NavigationMenu, { items });
     app.component("UNavigationMenu", MenuStub);
+    app.component(
+      "UIcon",
+      defineComponent({
+        props: ["name"],
+        setup: (props) => () => h("i", { "data-icon": props.name }),
+      }),
+    );
+    app.component(
+      "UChip",
+      defineComponent({
+        props: ["color"],
+        setup:
+          (props, { slots }) =>
+          () =>
+            h("span", { "data-chip-color": props.color }, slots.default?.()),
+      }),
+    );
     app.mount(host);
   }
 
@@ -212,6 +241,35 @@ describe("NavigationMenu badges", () => {
       color: "warning",
     });
     expect(badgeOf("settings.user.security").badge).toBeUndefined();
+  });
+
+  it("puts parent status on the leading icon while leaves retain a trailing dot or badge", () => {
+    mount([
+      {
+        fullId: "project",
+        label: "Project",
+        icon: "i-ph-folder",
+        status: "success",
+        children: [
+          { fullId: "project.api", label: "API", status: "warning" },
+          {
+            fullId: "project.more",
+            label: "More",
+            status: "error",
+            badge: "+3",
+          },
+        ],
+      },
+    ]);
+    expect(
+      host.querySelector(
+        '[data-chip-color="success"] [data-icon="i-ph-folder"]',
+      ),
+    ).not.toBeNull();
+    expect(badgeOf("project").trailingIcon).toBeUndefined();
+    expect(badgeOf("project.api").trailingIcon).toBe("i-ph-circle-fill");
+    expect(badgeOf("project.more").trailingIcon).toBeUndefined();
+    expect(badgeOf("project.more").badge).toBe("+3");
   });
 });
 

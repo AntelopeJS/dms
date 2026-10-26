@@ -185,12 +185,8 @@ const items = computed((): NavigationMenuItem[][] => {
       moduleRootNode.value,
     );
     const translatedItems = translateMenuItems(moduleMenuItems, processI18n);
-    const openItems = addDefaultOpenToMenuItems(
+    return applyMenuRouteState(
       translatedItems,
-      currentFullId.value,
-    );
-    return addActiveStateToMenuItems(
-      openItems,
       currentFullId.value,
       currentRoute.value,
     );
@@ -204,12 +200,8 @@ const items = computed((): NavigationMenuItem[][] => {
     siteLayout.siteLayoutTree.value,
   );
   const translatedItems = translateMenuItems(menuItems, processI18n);
-  const openItems = addDefaultOpenToMenuItems(
+  return applyMenuRouteState(
     translatedItems,
-    currentFullId.value,
-  );
-  return addActiveStateToMenuItems(
-    openItems,
     currentFullId.value,
     currentRoute.value,
   );
@@ -220,7 +212,7 @@ const openCategories = ref<string[]>([]);
 watch(
   () => items.value,
   (menuItems) => {
-    const requiredIds = getExpandedItemIds(menuItems, currentFullId.value);
+    const requiredIds = collectOpenItemIds(menuItems);
     const current = new Set(openCategories.value);
     for (const id of requiredIds) {
       current.add(id);
