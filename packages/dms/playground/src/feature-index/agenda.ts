@@ -84,8 +84,8 @@ export const AGENDA_FEATURES: PlaygroundFeature[] = [
     PAGES.boxed,
   ),
   feature(
-    "Details in a panel beside the views, the form at once",
-    'details: { container: "panel", editDirectly: true }',
+    "Details in a drawer on the right, the form at once",
+    "details: { editDirectly: true }",
     PAGES.boxed,
   ),
   feature(

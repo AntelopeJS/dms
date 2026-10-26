@@ -28,7 +28,7 @@ export class PageAgendaBoxed extends PageController(
     category: agendaCategory,
     order: 20,
     description:
-      "The same kind of agenda in a boxed page: the sidebar on the right, the details in a panel beside the views, filters by place and calendar, tooltips, actions on each meeting and in the toolbar, overlapping meetings stacked.",
+      "The same kind of agenda in a boxed page: the sidebar on the right, the meeting's form in a drawer on the right, filters by place and calendar, tooltips, actions on each meeting and in the toolbar, overlapping meetings stacked.",
   },
   DefaultLayout({
     fullWidth: false,
@@ -49,7 +49,7 @@ export class PageAgendaBoxed extends PageController(
   static guide = demoGuide([
     {
       label: "Click a meeting",
-      text: 'details: { container: "panel", editDirectly: true }: the form opens at once in a column beside the views (a drawer once the agenda is narrow). Save writes it through saveUrl.',
+      text: "details: { editDirectly: true }: the form opens at once in a drawer on the right. Save writes it through saveUrl.",
     },
     {
       label: "Run a meeting's action",
@@ -95,7 +95,7 @@ export class PageAgendaBoxed extends PageController(
     overlap: "stack",
     tooltips: true,
     height: "40rem",
-    details: { container: "panel", editDirectly: true },
+    details: { editDirectly: true },
     fields: [
       { id: "title", label: "Objet", required: true },
       { id: "client", label: "Client", kind: "text" },

@@ -10,12 +10,12 @@ import type { AgendaContext } from "../../composables/agenda/agendaModel";
  * The details of the open event (`ctx.details`): its read view, or the form
  * of the event or of a new one. The body of the details drawer and modal
  * (which hand it the agenda as `context`: a modal does not inherit the
- * block's provides), of the panel column and of the popover, which also
- * draw a header with its title and a close button.
+ * block's provides) and of the popover, which also draws a header with
+ * its title and a close button.
  */
 interface AgendaDetailsProps {
   context?: AgendaContext;
-  surface?: "drawer" | "modal" | "panel" | "popover";
+  surface?: "drawer" | "modal" | "popover";
   /** Given by the drawer or modal it renders in. */
   containerId?: string;
 }
@@ -31,9 +31,7 @@ const details = useAgendaDetails(ctx);
 const { t } = useI18n();
 const formId = `agenda-form-${useId()}`;
 
-const hasHeader = computed(
-  () => props.surface === "panel" || props.surface === "popover",
-);
+const hasHeader = computed(() => props.surface === "popover");
 const title = computed(() =>
   details.occurrence.value
     ? details.occurrence.value.event.title

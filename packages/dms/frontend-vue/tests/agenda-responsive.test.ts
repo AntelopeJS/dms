@@ -35,7 +35,7 @@ function at(
     sidebar: resolveSidebar({ sidebar: true }),
     sidebarOpen: true,
     overlayOpen: false,
-    details: "panel",
+    details: "drawer",
     viewCount: 4,
     viewSwitcher: true,
     ...overrides,
@@ -60,7 +60,7 @@ describe("container widths", () => {
     );
   });
 
-  it("keeps the sidebar at 700 px but opens the panel as a drawer", () => {
+  it("keeps the sidebar at 700 px, details in their drawer or popover", () => {
     expect(resolveShellLayout(at(700))).toEqual({
       sidebar: "column",
       switcher: "select",
@@ -75,7 +75,7 @@ describe("container widths", () => {
     expect(resolveShellLayout(at(1400))).toEqual({
       sidebar: "column",
       switcher: "segmented",
-      details: "panel",
+      details: "drawer",
     });
     expect(resolveShellLayout(at(1400, { sidebarOpen: false })).sidebar).toBe(
       "folded",

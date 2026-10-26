@@ -144,14 +144,10 @@ export type AgendaSidebarMode = "none" | "column" | "folded" | "overlay";
 export interface AgendaShellLayout {
   sidebar: AgendaSidebarMode;
   switcher: "none" | "segmented" | "select";
-  /** Where details open: a panel or a popover becomes a drawer when there is no room. */
+  /** Where details open: a popover becomes a drawer in a compact container. */
   details: AgendaDetailsContainer;
 }
 
-/** Pixels the details panel column takes. */
-export const AGENDA_PANEL_WIDTH = 360;
-/** Pixels a view keeps beside the sidebar and the panel before the panel becomes a drawer. */
-const VIEW_MIN_WIDTH = 420;
 /** Pixels the toolbar needs besides the views' segments. */
 const TOOLBAR_BASE_WIDTH = 480;
 const SEGMENT_WIDTH = 80;
@@ -169,26 +165,16 @@ function switcherMode(input: AgendaShellInput): AgendaShellLayout["switcher"] {
   return input.width >= needed ? "segmented" : "select";
 }
 
-function detailsMode(
-  input: AgendaShellInput,
-  sidebar: AgendaSidebarMode,
-): AgendaDetailsContainer {
-  if (input.details === "modal" || input.details === "drawer")
-    return input.details;
-  if (input.compact) return "drawer";
-  if (input.details === "popover") return "popover";
-  const sidebarWidth = sidebar === "column" ? (input.sidebar?.width ?? 0) : 0;
-  const room = input.width - sidebarWidth - AGENDA_PANEL_WIDTH;
-  return room >= VIEW_MIN_WIDTH ? "panel" : "drawer";
+function detailsMode(input: AgendaShellInput): AgendaDetailsContainer {
+  return input.details === "popover" && input.compact ? "drawer" : input.details;
 }
 
 /** The shell at a container width. */
 export function resolveShellLayout(input: AgendaShellInput): AgendaShellLayout {
-  const sidebar = sidebarMode(input);
   return {
-    sidebar,
+    sidebar: sidebarMode(input),
     switcher: switcherMode(input),
-    details: detailsMode(input, sidebar),
+    details: detailsMode(input),
   };
 }
 

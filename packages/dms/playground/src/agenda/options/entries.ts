@@ -223,12 +223,12 @@ export const EDITING_OPTIONS: OptionEntry[] = [
 export const DETAILS_OPTIONS: OptionEntry[] = [
   {
     option: "details.container: drawer",
-    text: "The read view and the form in a drawer, kept in the URL.",
+    text: "The read view and the form in a drawer on the right, kept in the URL.",
     page: AGENDA_TEAM_SLUG,
   },
   {
-    option: "details.container: panel / editDirectly",
-    text: "A column beside the views (a drawer when narrow); the form at once.",
+    option: "details.editDirectly",
+    text: "The form at once in the drawer, without the read view first.",
     page: AGENDA_BOXED_SLUG,
   },
   {

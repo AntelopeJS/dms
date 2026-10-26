@@ -48,7 +48,7 @@ const DEFAULT_ICON = "i-ph-calendar-dots";
  * A calendar of events by month, week, day, list, year, resource columns or
  * resource timeline, moved and resized by dragging, with a sidebar (mini
  * calendar, legend, pending items to drag in) and the details of an event in
- * a drawer, a panel, a modal or a popover. It fills a full page, sits in a
+ * a drawer, a modal or a popover. It fills a full page, sits in a
  * boxed one, in a grid column or in a modal, and adapts to the width it is
  * given. `options` is optional so a page under construction may write the
  * bare call `FullAgenda()`.

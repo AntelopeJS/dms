@@ -3,10 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AgendaDetails from "./AgendaDetails.vue";
 import { useAgendaContext } from "../../composables/agenda/useAgenda";
 import { syncAgendaDraft } from "../../composables/agenda/useAgendaDetails";
-import {
-  AGENDA_PANEL_WIDTH,
-  attributeSelector,
-} from "../../composables/agenda/agendaShell";
+import { attributeSelector } from "../../composables/agenda/agendaShell";
 import type { AgendaDetailsState } from "../../composables/agenda/agendaModel";
 import { useDrawer } from "../../../composables/containers/useDrawer";
 import { useModal } from "../../../composables/containers/useModal";
@@ -14,14 +11,14 @@ import type { ContainerInstance } from "../../../composables/containers/types";
 import type { AgendaDetailsContainer } from "../../../types/full-agenda";
 
 /**
- * Where the details of the open event (`ctx.details`) show: a drawer
- * (`useDrawer`) or a modal (`useModal`) opened with `AgendaDetails` as their
- * body, a panel column beside the views, or a popover anchored on the
- * event's chip. Closing the container clears `ctx.details`; clearing it
- * closes the container. Focus goes back to what had it on opening.
+ * Where the details of the open event (`ctx.details`) show: a drawer on the
+ * right (`useDrawer`) or a modal (`useModal`) opened with `AgendaDetails` as
+ * their body, or a popover anchored on the event's chip. Closing the
+ * container clears `ctx.details`; clearing it closes the container. Focus
+ * goes back to what had it on opening.
  */
 interface AgendaDetailsHostProps {
-  /** The container, after the container width (a panel without room is a drawer). */
+  /** The container, after the container width (a compact popover is a drawer). */
   container: AgendaDetailsContainer;
 }
 
@@ -100,7 +97,11 @@ function openInstance(kind: OverlayKind, open: AgendaDetailsState): void {
   };
   const opened =
     kind === "drawer"
-      ? openDrawer({ ...options, size: ctx.options.value.raw.details?.size })
+      ? openDrawer({
+          ...options,
+          direction: "right",
+          size: ctx.options.value.raw.details?.size,
+        })
       : openModal(options);
   instance = opened;
   instanceKind = kind;
@@ -148,31 +149,18 @@ watch(
 onMounted(() => sync(state.value, props.container));
 onBeforeUnmount(closeInstance);
 
-const panelOpen = computed(
-  () => props.container === "panel" && Boolean(state.value),
-);
 const popoverOpen = computed(
   () =>
     props.container === "popover" &&
     Boolean(state.value) &&
     Boolean(anchor.value),
 );
-const panelWidth = `${AGENDA_PANEL_WIDTH}px`;
 const onPopover = (open: boolean) => {
   if (!open) ctx.closeDetails();
 };
 </script>
 
 <template>
-  <aside
-    v-if="panelOpen"
-    class="border-default bg-default flex min-h-0 shrink-0 flex-col border-s"
-    :style="{ width: panelWidth }"
-    :aria-label="t('dms.agenda.details.label')"
-    data-agenda-details-panel
-  >
-    <AgendaDetails :context="ctx" surface="panel" class="min-h-0 flex-1" />
-  </aside>
   <UPopover
     v-if="props.container === 'popover'"
     :open="popoverOpen"

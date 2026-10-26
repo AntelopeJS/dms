@@ -236,7 +236,7 @@ describe("an occurrence", () => {
     agenda.ctx.details.value = {
       occurrence: meeting,
       mode: "view",
-      container: "panel",
+      container: "popover",
     };
     api.edit();
     expect(agenda.ctx.details.value?.mode).toBe("edit");
@@ -337,16 +337,16 @@ describe("round 1", () => {
     agenda.ctx.details.value = {
       occurrence: meeting,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     api.touch("title", "Typed");
-    // The panel became a drawer: a new form on the same event.
+    // The popover became a drawer: a new form on the same event.
     expect(detailsOn(agenda).initialValues().title).toBe("Typed");
     api.cancel();
     agenda.ctx.details.value = {
       occurrence: meeting,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     expect(detailsOn(agenda).initialValues().title).toBe("Sprint planning");
   });
@@ -366,7 +366,7 @@ describe("round 2", () => {
     const editFirst = {
       occurrence: first!,
       mode: "edit" as const,
-      container: "panel" as const,
+      container: "popover" as const,
     };
     agenda.ctx.details.value = editFirst;
     api.touch("title", "Abandoned");
@@ -374,7 +374,7 @@ describe("round 2", () => {
     const other = {
       occurrence: second!,
       mode: "view" as const,
-      container: "panel" as const,
+      container: "popover" as const,
     };
     agenda.ctx.details.value = other;
     syncAgendaDraft(agenda.ctx, other);
@@ -398,7 +398,7 @@ describe("round 2", () => {
     agenda.ctx.details.value = {
       occurrence: meeting,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     const typed = typeIn(api, { title: "Renamed" });
     // A drag moved the event an hour later meanwhile; the form still holds 09:00.
@@ -410,7 +410,7 @@ describe("round 2", () => {
     agenda.ctx.details.value = {
       occurrence: moved,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     expect(await api.save(typed)).toBe(true);
     expect(agenda.applied[0]).toMatchObject({
@@ -427,7 +427,7 @@ describe("round 2", () => {
     agenda.ctx.details.value = {
       occurrence: meeting,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     agenda.ctx.apply = vi.fn(async () => {
       agenda.ctx.lastRefusal!.value = {
@@ -438,7 +438,7 @@ describe("round 2", () => {
     });
     expect(await api.save(typeIn(api, { title: "Refused" }))).toBe(false);
     expect(api.errors.value._form).toBe("Locked by payroll");
-    // The panel became a drawer: the new form shows it too.
+    // The popover became a drawer: the new form shows it too.
     expect(detailsOn(agenda).errors.value._form).toBe("Locked by payroll");
   });
 });

@@ -76,8 +76,10 @@ interface AgendaDraft {
   base?: AgendaFormValues;
 }
 
-// One open form per agenda. Kept beside the context, not in the form: the
-// form mounts afresh when the details move between a panel and a drawer.
+/**
+ * One open form per agenda. Kept beside the context, not in the form: the
+ * form mounts afresh when the details move between a popover and a drawer.
+ */
 const drafts = new WeakMap<AgendaContext, AgendaDraft>();
 
 /** The key of the form the details show, `null` outside a form. */
@@ -94,7 +96,7 @@ export function clearAgendaDraft(ctx: AgendaContext): void {
 
 /**
  * Forgets the draft once the details leave its form: another event, the
- * read view, closed. A panel turned drawer keeps it (same event, same mode).
+ * read view, closed. A popover turned drawer keeps it (same event, same mode).
  */
 export function syncAgendaDraft(
   ctx: AgendaContext,

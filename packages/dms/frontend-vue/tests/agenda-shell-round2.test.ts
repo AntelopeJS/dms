@@ -123,26 +123,26 @@ describe("details", () => {
   it("N5 drops what was typed on an event once another one opens", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
     });
     const [first, second] = agenda.ctx.occurrences.value;
     agenda.ctx.details.value = {
       occurrence: first!,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     await settle();
     type(titleInput(el), "Abandoned");
     agenda.ctx.details.value = {
       occurrence: second!,
       mode: "view",
-      container: "panel",
+      container: "popover",
     };
     await settle();
     agenda.ctx.details.value = {
       occurrence: first!,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     await settle();
     expect(titleInput(el).value).toBe("Sprint planning");
@@ -151,7 +151,7 @@ describe("details", () => {
   it("N28 shows the route's refusal in the form", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
     });
     agenda.ctx.apply = vi.fn(async () => {
       agenda.ctx.lastRefusal!.value = {
@@ -163,7 +163,7 @@ describe("details", () => {
     agenda.ctx.details.value = {
       occurrence: agenda.ctx.occurrences.value[0]!,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     await settle();
     type(titleInput(el), "Refused");

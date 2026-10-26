@@ -212,22 +212,22 @@ describe("sidebar", () => {
 });
 
 describe("details", () => {
-  it("#10 keeps what was typed when the panel becomes a drawer and back", async () => {
+  it("#10 keeps what was typed when the popover becomes a drawer and back", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
     });
     const occurrence = agenda.ctx.occurrences.value[0]!;
-    agenda.ctx.details.value = { occurrence, mode: "edit", container: "panel" };
+    agenda.ctx.details.value = { occurrence, mode: "edit", container: "popover" };
     await settle();
     const typed = el.querySelector<HTMLInputElement>(
       '[data-agenda-field="title"] input',
     )!;
     typed.value = "Sprint review";
     typed.dispatchEvent(new Event("input"));
-    agenda.ctx.width.value = 700;
+    agenda.ctx.width.value = 320;
     await settle();
-    expect(query(el, "[data-agenda-details-panel]")).toBeNull();
+    expect(query(el, '[data-agenda-details="popover"]')).toBeNull();
     expect(harness.drawerOpen).toHaveBeenCalled();
     agenda.ctx.width.value = 1400;
     await settle();
@@ -240,13 +240,13 @@ describe("details", () => {
   it("#21 leaves the form open on what was typed when the route refuses", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
     });
     agenda.applyResult.value = false;
     agenda.ctx.details.value = {
       occurrence: agenda.ctx.occurrences.value[0]!,
       mode: "edit",
-      container: "panel",
+      container: "popover",
     };
     await settle();
     const title = el.querySelector<HTMLInputElement>(
@@ -270,7 +270,7 @@ describe("details", () => {
   it("offers Overwrite / Take theirs on an event the route answered a conflict for", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
     });
     const occurrence = {
       ...agenda.ctx.occurrences.value[0]!,
@@ -284,7 +284,7 @@ describe("details", () => {
         change: { kind: "move" as const, id: "e1" },
       },
     ]);
-    agenda.ctx.details.value = { occurrence, mode: "view", container: "panel" };
+    agenda.ctx.details.value = { occurrence, mode: "view", container: "popover" };
     await settle();
     const banner = query(el, "[data-agenda-details-conflict]")!;
     expect(banner.textContent).toContain("Moved by Julie meanwhile");

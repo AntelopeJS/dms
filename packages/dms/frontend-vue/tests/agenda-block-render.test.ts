@@ -3,7 +3,7 @@
  * The FullAgenda block around its views, from static data through a fake
  * context: toolbar, sidebar (mini calendar, legend with toggles and counts,
  * pending items as drag sources over a drop surface, notices, tip), the view
- * of the context, the details panel with its read view and form, the staged
+ * of the context, the details popover with its read view and form, the staged
  * save bar and Ctrl+S, the error and empty states, the height, and how it
  * lays out at 320, 700 and 1400 px wide.
  */
@@ -170,10 +170,10 @@ describe("a full agenda", () => {
     expect(agenda.surfaces[0]!.resolve(0, 0)).toMatchObject({ pending: true });
   });
 
-  it("shows the details in a panel: read view, actions, then the form", async () => {
+  it("shows the details in a popover: read view, actions, then the form", async () => {
     const { el, agenda } = await mountBlock({
       saveUrl: "/save",
-      details: { container: "panel" },
+      details: { container: "popover" },
       fields: [{ id: "dossier", label: "Dossier" }],
       eventActions: [
         {
@@ -190,29 +190,29 @@ describe("a full agenda", () => {
       ],
     });
     const occurrence = agenda.ctx.occurrences.value[0]!;
-    agenda.ctx.details.value = { occurrence, mode: "view", container: "panel" };
+    agenda.ctx.details.value = { occurrence, mode: "view", container: "popover" };
     await nextTick();
     await nextTick();
-    const panel = query(el, "[data-agenda-details-panel]")!;
-    expect(panel).not.toBeNull();
-    expect(panel.textContent).toContain("Sprint planning");
+    const surface = query(el, '[data-agenda-details="popover"]')!;
+    expect(surface).not.toBeNull();
+    expect(surface.textContent).toContain("Sprint planning");
     expect(
-      query(panel, '[data-agenda-details-field="dossier"]')?.textContent,
+      query(surface, '[data-agenda-details-field="dossier"]')?.textContent,
     ).toContain("45601");
-    expect(panel.querySelectorAll("[data-agenda-event-action]")).toHaveLength(
+    expect(surface.querySelectorAll("[data-agenda-event-action]")).toHaveLength(
       1,
     );
-    query(panel, '[data-agenda-event-action="done"]')!.click();
+    query(surface, '[data-agenda-event-action="done"]')!.click();
     expect(agenda.ctx.runEventAction).toHaveBeenCalled();
-    query(panel, "[data-agenda-details-edit]")!.click();
+    query(surface, "[data-agenda-details-edit]")!.click();
     await nextTick();
-    const title = panel.querySelector<HTMLInputElement>(
+    const title = surface.querySelector<HTMLInputElement>(
       '[data-agenda-field="title"] input',
     )!;
     title.value = "Sprint review";
     title.dispatchEvent(new Event("input"));
     await nextTick();
-    panel
+    surface
       .querySelector("form")!
       .dispatchEvent(new Event("submit", { cancelable: true }));
     await vi.waitFor(() => expect(agenda.applied).toHaveLength(1));
@@ -330,11 +330,8 @@ describe("container widths", () => {
     expect(query(el, "[data-agenda-sidebar]")).toBeNull();
   });
 
-  it("keeps the sidebar at 700 px and opens a panel as a drawer", async () => {
-    const { el, agenda } = await mountBlock(
-      { sidebar: true, details: { container: "panel" } },
-      700,
-    );
+  it("keeps the sidebar at 700 px and opens the details in a drawer on the right", async () => {
+    const { el, agenda } = await mountBlock({ sidebar: true }, 700);
     expect(query(el, "[data-agenda-sidebar]")?.dataset.agendaSidebar).toBe(
       "column",
     );
@@ -342,12 +339,13 @@ describe("container widths", () => {
     agenda.ctx.details.value = {
       occurrence: agenda.ctx.occurrences.value[0]!,
       mode: "view",
-      container: "panel",
+      container: "drawer",
     };
     await nextTick();
     await nextTick();
-    expect(query(el, "[data-agenda-details-panel]")).toBeNull();
-    expect(drawerOpen).toHaveBeenCalled();
+    expect(drawerOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ direction: "right" }),
+    );
   });
 
   it("follows the container as it widens to 1400 px", async () => {

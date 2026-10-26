@@ -459,5 +459,5 @@ export type AgendaSaveMode = "immediate" | "staged";
 /** `detect`: each change carries `previous`; the route answers a conflict when the event moved meanwhile. */
 export type AgendaConflictMode = "overwrite" | "detect";
 
-/** Where an event's details open. `panel` is a column inside the agenda, beside the views. */
-export type AgendaDetailsContainer = "drawer" | "panel" | "modal" | "popover";
+/** Where an event's details open: a drawer on the right, a modal, or a popover on the event. */
+export type AgendaDetailsContainer = "drawer" | "modal" | "popover";

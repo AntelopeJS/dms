@@ -98,7 +98,7 @@ const FULL_OPTIONS: FullAgendaProps = {
       visibleWhen: { field: "tache", in: ["Dessin"] },
     },
   ],
-  details: { container: "panel", editDirectly: true, deepLink: false },
+  details: { container: "popover", editDirectly: true, deepLink: false },
   toolbar: { datePicker: true, exportIcs: true, refresh: true },
   sidebar: {
     position: "right",

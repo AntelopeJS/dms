@@ -239,9 +239,9 @@ export interface AgendaEventContent {
   description?: boolean;
 }
 
-/** The details of an event (drawer, panel, modal or popover). */
+/** The details of an event (drawer, modal or popover). */
 export interface AgendaDetails {
-  /** Defaults to `drawer`. In a narrow container `panel` opens as a drawer. */
+  /** Defaults to `drawer`. In a narrow container `popover` opens as a drawer. */
   container?: AgendaDetailsContainer;
   /** Defaults to `click`. */
   openOn?: AgendaOpenTrigger;
