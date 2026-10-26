@@ -42,7 +42,7 @@ function completeShift(shift: AgendaEvent): AgendaEvent {
     ...shift,
     calendarId: person?.role,
     data: {
-      store: person?.home,
+      ...(person && { store: person.home }),
       pause: length > LONG_SHIFT_MINUTES ? LONG_SHIFT_PAUSE : 0,
       note: "",
       ...shift.data,

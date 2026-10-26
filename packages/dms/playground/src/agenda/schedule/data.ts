@@ -22,8 +22,10 @@ const WEEKDAY_HOURS = { start: "09:30", end: "18:30" };
 const SATURDAY_HOURS = { start: "10:00", end: "18:00" };
 const SATURDAY = 6;
 
-// The prototype's stores (RH-Planning), each closed on Sunday; the two
-// Ardennes stores are closed on Monday too.
+/**
+ * The prototype's stores (RH-Planning), each closed on Sunday; the two
+ * Ardennes stores are closed on Monday too.
+ */
 export const STORES: Store[] = [
   {
     id: "NE1",
@@ -64,7 +66,11 @@ export function storeOf(id: string): Store | undefined {
 }
 
 /** The roles: label and colour. */
-const ROLES: Record<string, [string, AgendaCalendar["color"]]> = {
+interface Roles {
+  [role: string]: [string, AgendaCalendar["color"]];
+}
+
+const ROLES: Roles = {
   responsable: ["Responsable", "#1a3d99"],
   vendeuse: ["Vendeuse", "#14606b"],
   volante: ["Volante", "#5b3aa6"],
@@ -179,10 +185,12 @@ function shifts(
   ]);
 }
 
-// The week drafted from the stores' template, with the four things the
-// checks are meant to catch: Noémie Leroy's Tuesday without a break, Virginie
-// Defays' inventory Thursday past 9 hours, Manon Bertrand back at 7:30 the
-// morning after a late inventory, and two people for NE1's Saturday.
+/**
+ * The week drafted from the stores' template, with the four things the
+ * checks are meant to catch: Noémie Leroy's Tuesday without a break, Virginie
+ * Defays' inventory Thursday past 9 hours, Manon Bertrand back at 7:30 the
+ * morning after a late inventory, and two people for NE1's Saturday.
+ */
 const SHIFT_SEEDS: ShiftSeed[] = [
   ...shifts("delforge", [
     [1, FULL],
@@ -253,7 +261,12 @@ const SHIFT_SEEDS: ShiftSeed[] = [
   ...shifts("piette", [[4, AFTERNOON]]),
 ];
 
-const NOTES: Record<string, string> = {
+/** A shift's note, by `<person>-<day offset>`. */
+interface ShiftNotes {
+  [shift: string]: string;
+}
+
+const NOTES: ShiftNotes = {
   "bertrand-1": "Inventaire",
   "bertrand-2": "Réception livraison",
   "defays-3": "Inventaire",
@@ -264,6 +277,7 @@ function shiftFromSeed(monday: string, seed: ShiftSeed): AgendaEvent {
   const person = personOf(personId);
   const day = addDays(monday, offset);
   const key = `${personId}-${offset}`;
+  const homeStore = store || person?.home;
   return {
     id: `shift-${key}`,
     title: person ? fullName(person) : personId,
@@ -271,7 +285,11 @@ function shiftFromSeed(monday: string, seed: ShiftSeed): AgendaEvent {
     resourceIds: [personId],
     start: zonedInstant(day, start),
     end: zonedInstant(day, end),
-    data: { store: store || person?.home, pause, note: NOTES[key] ?? "" },
+    data: {
+      ...(homeStore && { store: homeStore }),
+      pause,
+      note: NOTES[key] ?? "",
+    },
   };
 }
 

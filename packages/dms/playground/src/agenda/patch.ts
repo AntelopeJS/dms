@@ -1,5 +1,6 @@
 import type {
   AgendaEvent,
+  AgendaEventData,
   AgendaEventPatch,
 } from "@antelopejs/interface-dms/base/full-agenda-types";
 
@@ -8,17 +9,17 @@ import type {
  * `null` is cleared, a `null` the event already held is kept.
  */
 function mergeData(
-  data: Record<string, unknown> | undefined,
-  patch: Record<string, unknown>,
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...data, ...patch };
+  data: AgendaEventData | undefined,
+  patch: AgendaEventData,
+): AgendaEventData {
+  const merged: AgendaEventData = { ...data, ...patch };
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete merged[key];
   }
   return merged;
 }
 
-// The fields a patch may clear with `null`.
+/** The fields a patch may clear with `null`. */
 const CLEARABLE_FIELDS = [
   "end",
   "calendarId",
