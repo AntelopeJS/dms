@@ -153,12 +153,13 @@ export type TableViewDensity = "default" | "compact";
 
 /**
  * What runs a row's click action (its `isDefault` custom action, else `edit`
- * or `details`): a double-click (`"double"`, the default), or a single click
- * (`"single"`), for a list read row after row in a side panel. A single click
- * on a control of the row (a button, a link, a checkbox) or one ending a text
- * selection runs nothing.
+ * or `details`): a double-click (`"double"`, the default), a single click
+ * (`"single"`), for a list read row after row in a side panel, or nothing
+ * (`"none"`): the row opens from its actions only, as a table edited cell by
+ * cell may want. A single click on a control of the row (a button, a link, a
+ * checkbox) or one ending a text selection runs nothing.
  */
-export type TableViewRowClick = "single" | "double";
+export type TableViewRowClick = "single" | "double" | "none";
 
 /**
  * Everything a view sets on the table when it is opened. What a view leaves
@@ -950,7 +951,7 @@ export interface TableViewOptions<
   maxHeight?: string;
   /**
    * What runs the row's click action: a double-click by default, a single
-   * click with `"single"`. See {@link TableViewRowClick}.
+   * click with `"single"`, nothing with `"none"`. See {@link TableViewRowClick}.
    * @example "single"
    */
   rowClick?: TableViewRowClick;

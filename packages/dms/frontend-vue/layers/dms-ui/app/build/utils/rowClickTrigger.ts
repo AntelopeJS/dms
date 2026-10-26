@@ -1,8 +1,8 @@
 /**
  * What runs a row's click action (backend `TableViewRowClick`): a double-click
- * by default, or a single click.
+ * by default, a single click, or nothing.
  */
-export type TableViewRowClick = "single" | "double";
+export type TableViewRowClick = "single" | "double" | "none";
 
 /** A reason a pointer event on a row must not run its click action. */
 type RowClickGuard = (event: MouseEvent) => boolean;
@@ -50,13 +50,15 @@ const endsTextSelection: RowClickGuard = () => {
   return !!selection && !selection.isCollapsed && selection.toString() !== "";
 };
 
-const ROW_CLICK_TRIGGERS: Record<TableViewRowClick, RowClickTrigger> = {
+const ROW_CLICK_TRIGGERS: Record<TableViewRowClick, RowClickTrigger | null> = {
   // Unchanged from before `rowClick` existed: any double-click on the row.
   double: { eventType: "dblclick", guards: [] },
   single: {
     eventType: "click",
     guards: [isRepeatClick, isOnRowControl, endsTextSelection],
   },
+  // The row opens from its actions only.
+  none: null,
 };
 
 /**

@@ -995,6 +995,11 @@ describe("row click mode", () => {
     expectTrigger("single", "click", false, { detail: 2 });
   });
 
+  it("runs it on neither click with rowClick: none", () => {
+    expectTrigger("none", "click", false, { detail: 1 });
+    expectTrigger("none", "dblclick", false);
+  });
+
   it("leaves a single click on a control of the row to the control", () => {
     expectTrigger(
       "single",

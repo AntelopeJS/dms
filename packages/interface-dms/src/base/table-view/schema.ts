@@ -264,9 +264,9 @@ export const TableViewSchema = z.object({
   ),
   rowClick: ui(
     z
-      .enum(["single", "double"])
+      .enum(["single", "double", "none"])
       .optional()
-      .describe("Whether a row opens with one click or two."),
+      .describe("Whether a row opens with one click, two, or not at all."),
     { label: "Row click", group: "features", widget: "segmented" },
   ),
   inlineEdit: ui(
