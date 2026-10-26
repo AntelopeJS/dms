@@ -22,9 +22,9 @@ module.exports = {
   options: {
     doNotFollow: { path: "(?:^|/)(?:node_modules|dist)/" },
     exclude: { path: "(?:^|/)(?:node_modules|\\.nuxt|\\.output)/" },
-    includeOnly: "^packages/",
+    includeOnly: "^(?:packages/|#dms-)",
     tsPreCompilationDeps: true,
-    tsConfig: { fileName: "tsconfig.json" },
+    tsConfig: { fileName: ".dependency-cruiser.tsconfig.json" },
     enhancedResolveOptions: {
       exportsFields: ["exports"],
       conditionNames: ["require", "node", "default"],
