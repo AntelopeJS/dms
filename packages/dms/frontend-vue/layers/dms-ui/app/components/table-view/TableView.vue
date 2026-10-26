@@ -163,6 +163,7 @@ import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
+import { useTableRowPresence } from "../../build/composables/table-view/useTableRowPresence";
 import { useTableInlineEdit } from "../../build/composables/table-view/useTableInlineEdit";
 import InlineEditCell from "../../build/components/table/InlineEditCell.vue";
 import {
@@ -204,20 +205,7 @@ const REALTIME_EVENT_TYPE = {
   CREATED: "created",
   UPDATED: "updated",
   DELETED: "deleted",
-  ACQUIRED: "acquired",
-  RELEASED: "released",
-  SNAPSHOT: "snapshot",
 } as const;
-
-interface RealtimePresenceActor {
-  id: string;
-  displayName?: string;
-  avatarUrl?: string;
-  sessionId: string;
-  since?: number;
-}
-
-type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
 /** A kept field of the table, its state, and its default. */
 // The default may move once mounted (a phone's display): read when written.
@@ -1771,9 +1759,6 @@ const realtimePresenceTopic = computed(() =>
     : undefined,
 );
 
-const presenceByRow = ref<RealtimePresenceMap>({});
-const { user: realtimeUser } = useDmsUserSession();
-
 const getRowId = (row: T): string | undefined => {
   const value = (row as Record<string, unknown>)[rowIdKey];
   if (value === undefined || value === null) return undefined;
@@ -1852,102 +1837,8 @@ useRealtimeTopic(realtimeRowTopic, (event) => {
   void handler(ids);
 });
 
-const replacePresenceMap = (next: RealtimePresenceMap) => {
-  presenceByRow.value = next;
-};
-
-const upsertPresence = (rowId: string, actor: RealtimePresenceActor) => {
-  const current = presenceByRow.value[rowId] ?? [];
-  if (current.some((entry) => entry.sessionId === actor.sessionId)) return;
-  replacePresenceMap({
-    ...presenceByRow.value,
-    [rowId]: [...current, actor],
-  });
-};
-
-const removePresence = (rowId: string, sessionId: string) => {
-  const current = presenceByRow.value[rowId];
-  if (!current) return;
-  const next = current.filter((entry) => entry.sessionId !== sessionId);
-  if (next.length === 0) {
-    const { [rowId]: _removed, ...rest } = presenceByRow.value;
-    replacePresenceMap(rest);
-    return;
-  }
-  replacePresenceMap({ ...presenceByRow.value, [rowId]: next });
-};
-
-const applySnapshot = (
-  entries: Array<{
-    rowId: string;
-    actor: { id: string; displayName?: string; avatarUrl?: string };
-    sessionId: string;
-    since?: number;
-  }>,
-) => {
-  const next: RealtimePresenceMap = {};
-  for (const entry of entries) {
-    const list = next[entry.rowId] ?? [];
-    list.push({
-      ...entry.actor,
-      sessionId: entry.sessionId,
-      since: entry.since,
-    });
-    next[entry.rowId] = list;
-  }
-  replacePresenceMap(next);
-};
-
-useRealtimeTopic(realtimePresenceTopic, (event) => {
-  const eventTyped = event as {
-    type?: string;
-    payload?: {
-      rowId?: string;
-      actor?: { id: string; displayName?: string; avatarUrl?: string };
-      sessionId?: string;
-      since?: number;
-    };
-    entries?: Array<{
-      rowId: string;
-      actor: { id: string; displayName?: string; avatarUrl?: string };
-      sessionId: string;
-      since?: number;
-    }>;
-  };
-  if (Array.isArray(eventTyped.entries)) {
-    applySnapshot(eventTyped.entries);
-    return;
-  }
-  const { rowId, actor, sessionId, since } = eventTyped.payload ?? {};
-  if (!rowId || !sessionId) return;
-  if (eventTyped.type === REALTIME_EVENT_TYPE.ACQUIRED && actor) {
-    upsertPresence(rowId, { ...actor, sessionId, since });
-    return;
-  }
-  if (eventTyped.type === REALTIME_EVENT_TYPE.RELEASED) {
-    removePresence(rowId, sessionId);
-  }
-});
-
-const filterSelf = (
-  entries: RealtimePresenceActor[],
-): RealtimePresenceActor[] => {
-  const myId = realtimeUser.value?._id;
-  return myId ? entries.filter((entry) => entry.id !== myId) : entries;
-};
-
-const otherEditorsForRow = (rowId: string): RealtimePresenceActor[] => {
-  return filterSelf(presenceByRow.value[rowId] ?? []);
-};
-
-const presenceByRowFiltered = computed<RealtimePresenceMap>(() => {
-  const result: RealtimePresenceMap = {};
-  for (const [rowId, entries] of Object.entries(presenceByRow.value)) {
-    const others = filterSelf(entries);
-    if (others.length > 0) result[rowId] = others;
-  }
-  return result;
-});
+const { othersByRow: presenceByRowFiltered, otherEditorsForRow } =
+  useTableRowPresence(realtimePresenceTopic);
 
 // Expandable rows: which rows are open. A newly listed set (page, filter,
 // search, sort, tab, archive view) starts from `defaultExpanded`; a refresh of
