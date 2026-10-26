@@ -192,8 +192,10 @@ const allToWarehouse: FillRule = (store, size) =>
 
 const clearAll: FillRule = () => null;
 
-// The stores in the order they are served: the current store first, the
-// e-shop last, the warehouse taking what is left.
+/**
+ * The stores in the order they are served: the current store first, the
+ * e-shop last, the warehouse taking what is left.
+ */
 const SERVED_STORES = [
   ...STORES.filter((store) => store.id === CURRENT_STORE),
   ...STORES.filter(
@@ -315,9 +317,11 @@ export class MatrixAllocationController extends Controller(
     return { rows: STORES.map(allocationRow) };
   }
 
-  // Atomic: a split is written whole or not at all, a delivery being split
-  // once. The grid already waits for the targets (blockSave); the route
-  // checks them again.
+  /**
+   * Atomic: a split is written whole or not at all, a delivery being split
+   * once. The grid already waits for the targets (blockSave); the route
+   * checks them again.
+   */
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
     const { changes } = readSaveRequest(body);

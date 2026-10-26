@@ -72,8 +72,20 @@ export const STORES: Store[] = [
   },
 ];
 
+/** Pairs by size. */
+export interface SizeQuantities {
+  [size: string]: number;
+}
+
 /** Quantities by store, then by size. */
-export type StoreQuantities = Record<string, Record<string, number>>;
+export interface StoreQuantities {
+  [storeId: string]: SizeQuantities;
+}
+
+/** The last delivery of each store, by store id. */
+export interface StoreDeliveries {
+  [storeId: string]: Delivery;
+}
 
 /** Pairs in stock today. */
 export const STOCK: StoreQuantities = {
@@ -101,7 +113,7 @@ export interface Delivery {
   inTransit?: boolean;
 }
 
-export const LAST_DELIVERIES: Record<string, Delivery> = {
+export const LAST_DELIVERIES: StoreDeliveries = {
   ENT: { number: "BL-26-04117", date: "2026-10-21" },
   NE1: { number: "BL-26-04122", date: "2026-10-14" },
   LG4: { number: "BL-26-04131", date: "2026-10-23", inTransit: true },

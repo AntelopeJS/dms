@@ -25,8 +25,10 @@ const DAY_COLUMNS: MatrixColumn[] = WEEK.map((day) => ({
   width: DAY_WIDTH,
 }));
 
-// The legend reads the shifts' own labels and tones, so it cannot drift
-// from the pills drawn in the cells.
+/**
+ * The legend reads the shifts' own labels and tones, so it cannot drift
+ * from the pills drawn in the cells.
+ */
 const LEGEND: MatrixLegendItem[] = [
   ...SHIFT_OPTIONS.map(({ label, tone }) => ({ label, tone })),
   { label: "Magasins fermés", hatched: true },

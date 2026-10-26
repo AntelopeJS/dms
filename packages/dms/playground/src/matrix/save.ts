@@ -1,11 +1,13 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import type {
   MatrixCellError,
+  MatrixCellState,
   MatrixChange,
   MatrixConflict,
   MatrixRow,
   MatrixSaveRequest,
 } from "@antelopejs/interface-dms/base/matrix-types";
+import { z } from "zod";
 import { type MatrixQuery, readMatrixQuery } from "./query";
 
 const HTTP_BAD_REQUEST = 400;
@@ -20,13 +22,9 @@ export function badRequest(message: string): HTTPResult {
   );
 }
 
-function isChange(change: MatrixChange | null | undefined): boolean {
-  return (
-    !!change &&
-    typeof change.rowId === "string" &&
-    typeof change.columnId === "string"
-  );
-}
+/** What every change of a save names: the cell it writes. */
+const CHANGES = z.array(z.object({ rowId: z.string(), columnId: z.string() }));
+const QUERY_TEXT = z.string();
 
 /** A save request checked for its shape, with the list query it was sent from. */
 export interface SaveRequest {
@@ -40,7 +38,8 @@ export interface SaveRequest {
 function listQuery(query: MatrixSaveRequest["query"]): URLSearchParams {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (typeof value === "string") params.set(key, value);
+    const text = QUERY_TEXT.safeParse(value);
+    if (text.success) params.set(key, text.data);
   }
   return params;
 }
@@ -55,7 +54,7 @@ export function readSaveRequest(
   body: MatrixSaveRequest | undefined,
 ): SaveRequest {
   const changes = body?.changes;
-  if (!Array.isArray(changes) || !changes.every(isChange)) {
+  if (!changes || !CHANGES.safeParse(changes).success) {
     throw badRequest("Expected { changes: [{ rowId, columnId, value }] }.");
   }
   return {
@@ -87,6 +86,11 @@ export function conflictOf(
 export interface MatrixFillRequest {
   rows?: MatrixRow[];
   selected?: string[];
+}
+
+/** The state of a row's cells, by column id. */
+export interface CellStates {
+  [columnId: string]: MatrixCellState;
 }
 
 /** A refusal of one cell, or of a whole row without `columnId`. */

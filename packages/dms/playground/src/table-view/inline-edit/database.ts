@@ -29,8 +29,10 @@ interface InlineProductSeed {
   notes?: string;
 }
 
-// A small furniture catalogue: a few products out of stock, a few inactive,
-// a few with notes, a long text edited in the form only.
+/**
+ * A small furniture catalogue: a few products out of stock, a few inactive,
+ * a few with notes, a long text edited in the form only.
+ */
 const PRODUCTS: InlineProductSeed[] = [
   {
     name: "Oak standing desk",
@@ -232,7 +234,7 @@ function seedProducts() {
 export class InlineProduct extends Table {
   @Field("string") declare _id: string;
 
-  // Indexed: the columns the table sorts on.
+  /** Indexed: the columns the table sorts on. */
   @Index() @Field("string") declare name: string;
   @Field("string") declare sku: string;
   @Index() @Field("number") declare price: number;

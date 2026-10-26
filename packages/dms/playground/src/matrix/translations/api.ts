@@ -13,6 +13,7 @@ import {
   MATRIX_LONG_TEXT_LENGTH,
   type MatrixCellError,
   type MatrixCellState,
+  type MatrixCellValue,
   type MatrixChange,
   type MatrixColumn,
   type MatrixConflict,
@@ -23,6 +24,7 @@ import {
   type MatrixSaveResponse,
 } from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import { z } from "zod";
 import {
   facetAllows,
   facetItems,
@@ -39,13 +41,9 @@ import {
   type SaveRequest,
 } from "../save";
 import {
-  BASE_LANGUAGE,
   CONTESTED_KEY,
   CONTESTED_LANGUAGE,
   CONTESTED_WORDINGS,
-  LANGUAGE_INFO,
-  LANGUAGES,
-  type Language,
   MODULE_TEXTS,
   NAMESPACES,
   OVERRIDDEN_FIELD,
@@ -53,6 +51,12 @@ import {
   TRANSLATION_KEYS,
   type TranslationKey,
 } from "./data";
+import {
+  BASE_LANGUAGE,
+  LANGUAGE_INFO,
+  LANGUAGES,
+  type Language,
+} from "./languages";
 import { MATRIX_TRANSLATIONS_API, PageMatrixTranslations } from "./page";
 
 const PLACEHOLDERS = /\{(\w+)\}/g;
@@ -79,9 +83,22 @@ interface TranslationView {
   languages: Language[];
   columns: MatrixColumn[];
   groups: MatrixGroup[];
-  counts: Record<string, number>;
+  counts: StatusCounts;
   footer: string;
 }
+
+/** How many keys each status filter lists, by status id. */
+interface StatusCounts {
+  [status: string]: number;
+}
+
+/** A row's cells, by column id: its texts, by language, and its override flag. */
+interface KeyRowValues {
+  [columnId: string]: MatrixCellValue;
+}
+
+/** A translation as a cell holds it: a text, or `null` once emptied. */
+const TRANSLATION_TEXT = z.string().nullable();
 
 let contestedWording = 0;
 
@@ -116,13 +133,18 @@ const hasIssues: StatusTest = (entry, languages) =>
 const hasMissing: StatusTest = (entry, languages) =>
   languages.some((language) => isMissing(entry, language));
 
-const STATUS_TESTS: Record<string, StatusTest> = {
-  all: () => true,
-  missing: hasMissing,
-  complete: (entry, languages) =>
-    !hasMissing(entry, languages) && !hasIssues(entry, languages),
-  issues: hasIssues,
-};
+const matchesAll: StatusTest = () => true;
+
+const STATUS_TESTS = new Map<string, StatusTest>([
+  [ALL_STATUS, matchesAll],
+  ["missing", hasMissing],
+  [
+    "complete",
+    (entry, languages) =>
+      !hasMissing(entry, languages) && !hasIssues(entry, languages),
+  ],
+  ["issues", hasIssues],
+]);
 
 function isLanguage(id: string): id is Language {
   return LANGUAGES.some((language) => language === id);
@@ -186,8 +208,10 @@ function isLongText(text: string): boolean {
   return text.includes(LINE_BREAK) || text.length > MATRIX_LONG_TEXT_LENGTH;
 }
 
-// An empty cell holds no value for `editIn: "auto"` to judge by: the base
-// text it translates decides where it is edited.
+/**
+ * An empty cell holds no value for `editIn: "auto"` to judge by: the base
+ * text it translates decides where it is edited.
+ */
 function missingCellState(
   base: string | undefined,
 ): MatrixCellState | undefined {
@@ -210,7 +234,7 @@ function cellState(
 
 function toRow(entry: TranslationKey, languages: Language[]): MatrixRow {
   const isOverridden = OVERRIDDEN_KEYS.has(entry.key);
-  const values: Record<string, string | boolean | null> = {
+  const values: KeyRowValues = {
     [OVERRIDDEN_FIELD]: isOverridden,
   };
   const cells: Record<string, MatrixCellState> = {};
@@ -257,9 +281,9 @@ function searchKeys(query: MatrixQuery): TranslationKey[] {
 function statusCounts(
   entries: TranslationKey[],
   languages: Language[],
-): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const [status, test] of Object.entries(STATUS_TESTS)) {
+): StatusCounts {
+  const counts: StatusCounts = {};
+  for (const [status, test] of STATUS_TESTS) {
     counts[status] = entries.filter((entry) => test(entry, languages)).length;
   }
   return counts;
@@ -292,11 +316,10 @@ function rewordContestedKey(): void {
 }
 
 function checkValue(change: MatrixChange): string | undefined {
-  const { value } = change;
-  if (value !== null && typeof value !== "string") {
-    return "A translation is text.";
-  }
-  if (typeof value === "string" && value.length > MAX_TEXT_LENGTH) {
+  const parsed = TRANSLATION_TEXT.safeParse(change.value);
+  if (!parsed.success) return "A translation is text.";
+  const value = parsed.data;
+  if (value !== null && value.length > MAX_TEXT_LENGTH) {
     return `A translation holds ${MAX_TEXT_LENGTH} characters at most.`;
   }
   if (change.columnId === BASE_LANGUAGE && !value?.trim()) {
@@ -326,7 +349,7 @@ function applyChange(
   if (problem) return { error: cellError(change, problem) };
   const conflict = conflictOf(request, change, entry.texts[language] ?? null);
   if (conflict) return { conflict };
-  const text = typeof change.value === "string" ? change.value : "";
+  const text = TRANSLATION_TEXT.safeParse(change.value).data ?? "";
   if (text) entry.texts[language] = text;
   else delete entry.texts[language];
   OVERRIDDEN_KEYS.add(entry.key);
@@ -365,8 +388,7 @@ export class MatrixTranslationsController extends Controller(
   list(@Context() ctx: RequestContext): MatrixData {
     const query = readMatrixQuery(ctx.url.searchParams);
     const { languages, ...view } = viewOf(query);
-    const test =
-      STATUS_TESTS[query.status ?? ALL_STATUS] ?? STATUS_TESTS[ALL_STATUS]!;
+    const test = STATUS_TESTS.get(query.status ?? ALL_STATUS) ?? matchesAll;
     const matching = searchKeys(query).filter((entry) =>
       test(entry, languages),
     );

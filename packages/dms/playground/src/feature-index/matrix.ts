@@ -3,7 +3,7 @@ import { FEATURE_AREAS, type PlaygroundFeature } from "./types";
 const AREA = FEATURE_AREAS.matrix;
 const ROOT = "/matrix";
 
-// The release the Matrix block ships in: the next minor after 0.11.0.
+/** The release the Matrix block ships in: the next minor after 0.11.0. */
 const MATRIX_RELEASE = "0.12.0";
 
 const PAGES = {

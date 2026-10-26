@@ -277,7 +277,7 @@ export const TableViewSchema = z.object({
           columns: ui(z.array(z.string()).optional(), {
             label: "Columns",
             widget: "field",
-            // Only a listed column has a cell to edit.
+            /** Only a listed column has a cell to edit. */
             fieldAspect: "listable",
           }),
           inputs: ui(z.enum(["hover", "always"]).optional(), {

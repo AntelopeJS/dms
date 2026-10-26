@@ -20,14 +20,14 @@ interface OptionEntry {
   page?: string;
 }
 
-const PAGE_NAMES: Record<string, string> = {
-  [MATRIX_OPTIONS_SLUG]: "This page",
-  [MATRIX_RECORDS_SLUG]: "Records",
-  [MATRIX_TRANSLATIONS_SLUG]: "Translations",
-  [MATRIX_STOCK_SLUG]: "Stock",
-  [MATRIX_ALLOCATION_SLUG]: "Allocation",
-  [MATRIX_ROSTER_SLUG]: "Roster",
-};
+const PAGE_NAMES = new Map<string, string>([
+  [MATRIX_OPTIONS_SLUG, "This page"],
+  [MATRIX_RECORDS_SLUG, "Records"],
+  [MATRIX_TRANSLATIONS_SLUG, "Translations"],
+  [MATRIX_STOCK_SLUG, "Stock"],
+  [MATRIX_ALLOCATION_SLUG, "Allocation"],
+  [MATRIX_ROSTER_SLUG, "Roster"],
+]);
 
 function optionList(title: string, entries: OptionEntry[]) {
   return KeyValueList({
@@ -36,7 +36,7 @@ function optionList(title: string, entries: OptionEntry[]) {
     items: entries.map(({ option, text, page }) => ({
       label: option,
       value: text,
-      detail: page ? PAGE_NAMES[page] : "Not shown in a demo",
+      detail: page ? PAGE_NAMES.get(page) : "Not shown in a demo",
       to: page ? matrixPagePath(page) : undefined,
     })),
   });

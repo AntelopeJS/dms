@@ -6,6 +6,7 @@ import type {
 import type { FieldCondition } from "./form-types";
 import type { BlockText } from "./types/composed-text";
 import type { HttpMethod } from "./types/http";
+import type { JsonValue } from "./types/json";
 import type { Tone } from "./types/tone";
 import type { BaseComponentProps, EnumOption } from "./types";
 
@@ -171,6 +172,12 @@ export interface MatrixCellState {
   previous?: unknown;
 }
 
+/**
+ * What a cell holds, as the routes answer it in JSON: a text, a number, a
+ * boolean, a date as an ISO string, an object or a list, or `null` when empty.
+ */
+export type MatrixCellValue = JsonValue;
+
 /** One row: a record, or one value of the vertical axis (a store, a person). */
 export interface MatrixRow {
   id: string;
@@ -181,7 +188,7 @@ export interface MatrixRow {
   /** The id of the group the row is filed under. */
   group?: string;
   /** The cells, by column id. */
-  values: Record<string, unknown>;
+  values: Record<string, MatrixCellValue>;
   /** Per-cell state, by column id. */
   cells?: Record<string, MatrixCellState>;
   readOnly?: boolean;

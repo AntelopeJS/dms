@@ -3,14 +3,8 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { Matrix } from "@antelopejs/interface-dms/base/matrix";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
-import {
-  BASE_LANGUAGE,
-  CONTESTED_KEY,
-  LANGUAGE_INFO,
-  LANGUAGES,
-  OVERRIDDEN_FIELD,
-  TRANSLATION_KEYS,
-} from "./data";
+import { CONTESTED_KEY, OVERRIDDEN_FIELD, TRANSLATION_KEYS } from "./data";
+import { BASE_LANGUAGE, LANGUAGE_INFO, LANGUAGES } from "./languages";
 
 export const MATRIX_TRANSLATIONS_SLUG = "matrix-translations";
 export const MATRIX_TRANSLATIONS_API = `${MATRIX_API}/translations`;

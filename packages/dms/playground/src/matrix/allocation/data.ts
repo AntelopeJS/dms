@@ -1,7 +1,12 @@
-import { STOCK, STORES, type StoreQuantities } from "../stock/data";
+import {
+  type SizeQuantities,
+  STOCK,
+  STORES,
+  type StoreQuantities,
+} from "../stock/data";
 
 /** The pairs of the delivery, by size: 24 in all. */
-export const RECEIVED: Record<string, number> = {
+export const RECEIVED: SizeQuantities = {
   36: 2,
   37: 3,
   38: 6,
@@ -24,8 +29,10 @@ interface CountDiscrepancy {
   pairs: number;
 }
 
-// What the stock count found unlike the system: a pair found in the back
-// room, two pairs gone.
+/**
+ * What the stock count found unlike the system: a pair found in the back
+ * room, two pairs gone.
+ */
 const DISCREPANCIES: CountDiscrepancy[] = [
   { store: "NE1", size: "38", pairs: 3 },
   { store: "LG4", size: "39", pairs: 2 },

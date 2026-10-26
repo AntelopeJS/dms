@@ -1,8 +1,10 @@
 import { Category } from "@antelopejs/interface-dms/page";
 import { componentsSection } from "../sections";
 
-// Right after the Table View (30), before the Form (40): the grid edited in
-// place is read next to the table it complements.
+/**
+ * Right after the Table View (30), before the Form (40): the grid edited in
+ * place is read next to the table it complements.
+ */
 export const matrixCategory = Category("matrix", {
   displayName: "Matrix",
   icon: "i-ph-grid-nine",

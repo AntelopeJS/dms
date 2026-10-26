@@ -7,7 +7,12 @@ import type {
 } from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
-import { HTTP_METHODS, PURGED_REF, REQUEST_LABELS } from "./data";
+import {
+  HTTP_METHODS,
+  type HttpVerb,
+  PURGED_REF,
+  REQUEST_LABELS,
+} from "./data";
 
 export const MATRIX_RECORDS_SLUG = "matrix-records";
 export const MATRIX_RECORDS_API = `${MATRIX_API}/records`;
@@ -18,7 +23,7 @@ const UNDO_SECONDS = 10;
 const LOWEST_STATUS = 100;
 const HIGHEST_STATUS = 599;
 
-const METHOD_TONES: Record<string, MatrixSelectOption["tone"]> = {
+const METHOD_TONES: Record<HttpVerb, MatrixSelectOption["tone"]> = {
   GET: "info",
   POST: "success",
   PUT: "warning",
@@ -37,8 +42,10 @@ const LABEL_OPTIONS: MatrixSelectOption[] = REQUEST_LABELS.map((label) => ({
   label,
 }));
 
-// Database style: the headers are the field names, the description their
-// stored type, as a collection browser shows them.
+/**
+ * Database style: the headers are the field names, the description their
+ * stored type, as a collection browser shows them.
+ */
 const COLUMNS: MatrixColumn[] = [
   {
     id: "_id",
@@ -148,7 +155,7 @@ const COLUMNS: MatrixColumn[] = [
   },
 ];
 
-// The grouped grid keeps the scalar fields: the grouping is the point.
+/** The grouped grid keeps the scalar fields: the grouping is the point. */
 const GROUPED_COLUMNS = [
   "_id",
   "method",
@@ -240,7 +247,7 @@ export class PageMatrixRecords extends PageController(
     pageSizes: PAGE_SIZES,
     sortable: true,
     search: true,
-    // The scalar fields: a json or code cell has no text to match.
+    /** The scalar fields: a json or code cell has no text to match. */
     columnFilters: [
       "method",
       "path",

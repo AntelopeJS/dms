@@ -6,6 +6,7 @@ import {
 import { CodeBlock } from "@antelopejs/interface-dms/base";
 import { Matrix } from "@antelopejs/interface-dms/base/matrix";
 import type { MatrixProps } from "@antelopejs/interface-dms/base/matrix-types";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types/json";
 
 const COMPONENT_NAME = "dms-matrix-block";
 
@@ -207,7 +208,7 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
   });
 
   it("refuses values outside its enums", () => {
-    const valid = (options: Record<string, unknown>) =>
+    const valid = (options: Record<string, JsonValue>) =>
       ValidateBlockOptions("Matrix", options).valid;
     expect(valid({ saveMode: "later" })).to.equal(false);
     expect(valid({ pageSize: 0 })).to.equal(false);

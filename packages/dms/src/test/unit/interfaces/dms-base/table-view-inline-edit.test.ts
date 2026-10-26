@@ -25,9 +25,11 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
-// `inlineEdit` writes through the edit route, and the frontend reads the
-// fields it may edit from the edit form: both reach only a caller holding the
-// edit action.
+/**
+ * `inlineEdit` writes through the edit route, and the frontend reads the
+ * fields it may edit from the edit form: both reach only a caller holding the
+ * edit action.
+ */
 
 const TABLE = "inline-edit-rows";
 const COMPONENT_PERMISSION_ID = "pages.inline-edit-demo.table";

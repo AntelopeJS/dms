@@ -22,7 +22,9 @@ export const SHIFT_OPTIONS: MatrixSelectOption[] = [
   { value: "sick", label: "Malade", tone: "error", icon: "i-ph-first-aid" },
 ];
 
-// A full-time week is 38 hours in Belgian retail: 7.6 hours a day, five days.
+/**
+ * A full-time week is 38 hours in Belgian retail: 7.6 hours a day, five days.
+ */
 const FULL_DAY_HOURS = 7.6;
 const HALF_DAY_HOURS = 3.8;
 
