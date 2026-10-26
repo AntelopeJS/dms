@@ -226,9 +226,6 @@ export interface BaseComponentChild {
   [key: string]: unknown;
 }
 
-// Each option is set only when the caller passed it, so a watch without params
-// carries no `params` key -- which is what the serialised component contract
-// distinguishes from a key holding undefined.
 function buildWatchAction<F extends string>(
   event: string,
   functionId: F,
@@ -420,15 +417,8 @@ export class Component<T = unknown> {
     return this.setPlacement({ order: value });
   }
 
-  // Loosely typed like `_onFilter` above: a protected member typed on `T`
-  // would make ComponentBuilder<X> incompatible with Component<unknown>. The
-  // public `transformOptions` keeps the strong signature.
   protected _optionTransforms: Array<(options: any) => MaybePromise<any>> = [];
 
-  // Serialization can run more than once (a hot reload re-registers the page),
-  // so transforms always start from the original options and must return new
-  // values rather than mutate — otherwise the second pass would transform an
-  // already-transformed state.
   private async applyOptionTransforms(
     options: T | undefined,
   ): Promise<T | undefined> {
@@ -469,10 +459,6 @@ export class Component<T = unknown> {
     };
   }
 
-  // Transforms do not run here: synchronous serialization is how a component
-  // gets embedded into another component's options, and the host's own
-  // transform is what finalizes everything it embeds. A host that forgets is
-  // fail-closed — the embedded field renders and refuses its use with a 403.
   serializeSync(): ComponentInfoSerialized<T> {
     const componentInfo = this.componentInfo as ComponentInfo<T>;
 
@@ -678,9 +664,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
       }
       next = (await this.applyWatchFilters(
         permissions,
-        // A generic parameter and a dictionary type do not overlap, so this
-        // cannot be one assertion; the filters read the payload by key.
-        // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+        // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The generic component payload has no dictionary index signature; watch filters read its option keys.
         next as unknown as Record<string, unknown>,
         permissionId,
       )) as T;

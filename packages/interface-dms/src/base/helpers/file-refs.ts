@@ -116,9 +116,7 @@ type ScopedKeyMapper = (key: string, storage?: string) => Promise<string>;
 type ValueRemapper = (value: unknown, mapKey: KeyMapper) => Promise<unknown>;
 
 async function remapObjectValues(
-  // `object` is the contract: this walks whatever it is given with
-  // Object.entries and remaps the values.
-  // oxlint-disable-next-line anti-slop/no-object-parameters
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Object.entries walks arbitrary object values and remaps them without requiring a dictionary index signature.
   value: object,
   mapKey: KeyMapper,
   remap: ValueRemapper,

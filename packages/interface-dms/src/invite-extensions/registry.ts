@@ -15,8 +15,6 @@ function resolvePlacement(
   options: InviteExtensionOptions<never>["placement"],
 ): ResolvedInvitePlacement {
   if (!options) return DEFAULT_PLACEMENT;
-  // `anchorField` is set only when the placement names one: its absence is
-  // what the assembler reads as "append at the end".
   const placement: ResolvedInvitePlacement = {
     side: options.side ?? DEFAULT_PLACEMENT.side,
     order: options.order ?? DEFAULT_PLACEMENT.order,
@@ -83,10 +81,7 @@ export function RegisterInviteExtension<T>(
   const info: InviteExtensionInfo = {
     key: options.key,
     component: options.component,
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only.
     schema: options.schema as unknown as InviteExtensionInfo["schema"],
     onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
     onCleanup: options.onCleanup as InviteExtensionInfo["onCleanup"],
@@ -95,8 +90,6 @@ export function RegisterInviteExtension<T>(
     label: options.label,
     description: options.description,
     placement: resolvePlacement(options.placement),
-    // The core answers an empty string when it resolves no module, which
-    // must not read as one module shared by every unresolved registration.
     moduleId: GetResponsibleModule() || undefined,
   };
 

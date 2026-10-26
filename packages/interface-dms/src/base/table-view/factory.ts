@@ -86,11 +86,6 @@ export function TableView<T extends ControllerClass>(
     meta.setBypassTenantAccessGate();
   }
   meta.recordGateBypassRegistration(options.bypassTenantAccessGate === true);
-  // The flag is latched controller-wide: once any registration opens the data
-  // routes, every other registration of the same controller shares the
-  // opening and has no way to re-gate them. Warn as soon as the two kinds
-  // coexist, whichever registered first — checking only the later one would
-  // stay silent on the exact same end state.
   if (meta.hasMixedGateBypassRegistrations) {
     Logging.Warn(
       `[DMS] TableView on "${controller.name}" is mounted both with and without bypassTenantAccessGate: its data routes stay reachable while a gate denies the tenant, for every page that mounts it.`,
@@ -156,7 +151,6 @@ export function TableView<T extends ControllerClass>(
   const serializedRowActions = options.rowActions
     ? serializeRowActions(options.rowActions)
     : undefined;
-  // Kept for the per-request filter, whose `options` are the serialized ones.
   const declaredCustomRowActions = options.rowActions?.custom;
   const declaredTabs = options.tabs;
   const declaredViews = options.views;
@@ -167,17 +161,12 @@ export function TableView<T extends ControllerClass>(
   const builder = new ComponentBuilder<TableViewOptionsSerialized>(
     TABLE_VIEW_COMPONENT_NAME,
   );
-  // The table view embeds its new/edit/view forms synchronously into its own
-  // options, so it is the async host that claims their upload tokens.
   builder.transformOptions(StampUploadFieldTokens);
   for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
     if (id) builder.button(id, { permission, permissionId });
   }
   declareTabNavBadges(builder, options.tabs, controller);
 
-  // Declared from what the controller offers, a read-only TableView's write
-  // actions included: they keep guarding the write routes of a controller no
-  // TableView writes through.
   registerTableViewActions(builder, {
     ...capabilities,
     hasViewForm: !!viewForm,
@@ -274,8 +263,6 @@ export function TableView<T extends ControllerClass>(
         GetPermissionId(parentPage.target) ?? parentInfo.fullId,
       );
 
-      // Every kind, `customPage` entries included: they register no sub-page
-      // below and are still the URL the frontend navigates to.
       builder.mergeOptions({
         formPages: buildFormPageUrls(
           parentInfo.fullSlug,
@@ -293,8 +280,6 @@ export function TableView<T extends ControllerClass>(
         const definition = FORM_PAGE_DEFINITIONS[kind];
         const urlSlug = formPageSlug(kind, routeKey, customPages);
         const fullSlug = joinPageSlug(parentInfo.fullSlug, urlSlug);
-        // The page's own id would be the same for every table view it carries,
-        // so the sub-page is filed under the table view's key as well.
         const id = `${routeKey}.${kind}`;
 
         claimFormPageRoute({
@@ -326,14 +311,9 @@ export function TableView<T extends ControllerClass>(
         if (definition.submitsFilterDefaults) {
           applyFormPageSubmitDefaults(form, options, frame);
         }
-        // The edit and details pages end their breadcrumb with the row's
-        // label once the form has loaded it.
         if (kind !== "new" && options.labelKey) {
           form.mergeOptions({ labelKey: options.labelKey });
         }
-        // A record's form page: Cancel leads back to the list while there
-        // is nothing to save, as in a drawer or a modal. The list's page
-        // names its own placeholders with page tokens, as the redirect does.
         const listUrl = buildFormRedirectUrl(frame);
         form.mergeOptions({ backTo: listUrl });
         if (definition.redirectsOnSubmit) {
@@ -403,8 +383,6 @@ export function TableView<T extends ControllerClass>(
 
       return {
         ...options,
-        // The export routes refuse a caller without the action: its toolbar
-        // entry is left out too, like the add/edit/delete buttons.
         enableTableExport: options.enableTableExport && grants.export,
         formComponents: adaptedFormComponents,
         rowActions: adaptedRowActions,
@@ -481,8 +459,6 @@ function buildTableViewForms<T extends ControllerClass>(
           }),
           view: viewForm,
         };
-  // Each form is handed to the module before it is embedded or mounted, so
-  // what it declares on the builder (its watches) reaches every container.
   for (const kind of FORM_PAGE_KINDS) {
     const form = forms[kind];
     if (form) options.forms?.[kind]?.(form);

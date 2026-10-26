@@ -26,7 +26,6 @@ import { displayIds } from "./internal/column-display";
 export abstract class ColumnDisplay<
   Options extends object = Record<string, unknown>,
 > {
-  // Nominal: a plain `{ options }` object is no display, it has no id.
   protected readonly isColumnDisplay = true;
 
   constructor(public readonly options?: Options) {}

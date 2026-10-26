@@ -1,7 +1,3 @@
-// The data routes hold to the `visibleWhen` / `disabledWhen` of the columns,
-// as the generated forms do: whichever client writes, a hidden or disabled
-// field's value is ignored, and a hidden field is not mandatory.
-
 import {
   type ControllerClass,
   HTTPResult,
@@ -113,8 +109,6 @@ export const withColumnConditions = (
     const conditional = Object.keys(columns).filter(
       (key) => columns[key].visibleWhen,
     );
-    // A disabled field is not mandatory, as in the form; the fields without
-    // a condition are checked as the data API would.
     const exempt = new Set([...conditional, ...disabled]);
     Validation.MandatoryFields(
       Object.assign(Object.create(dataMeta) as DataAPIMeta, {

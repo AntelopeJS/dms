@@ -129,9 +129,6 @@ const realtimeTenantOf = (
     ? undefined
     : getRequestTenantId(ctx);
 
-// The counts the bulk routes answer with: delete sends the number of deleted
-// rows (or `{ deleted }`), archive and restore `{ archivedCount }` and
-// `{ restoredCount }`.
 const CHANGED_COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"];
 
 /**

@@ -1,8 +1,3 @@
-// The form over a resource: its fields and the routes it loads and submits
-// through, derived from the DataController for a mode. The forms a TableView
-// opens and the ones a ResourceForm block renders are built here and nowhere
-// else, so the shape of a route changes in one place for both.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { getDataTypeId } from "../../data-types/core";
@@ -33,8 +28,6 @@ function formRoutes(
   switch (mode) {
     case "new":
       return {
-        // A row being duplicated seeds the new one; without the query the
-        // token stays unresolved and nothing is fetched.
         fetchUrl: `${location}/get?id={{query.duplicate}}`,
         fetchUrlMethod: HttpMethod.get,
         submitUrl: `${location}/new`,
@@ -106,10 +99,6 @@ export function resourceForm<T extends ControllerClass>(
     fields,
     ...formRoutes(location, mode, rowId),
   });
-  // A form that submits to the controller's write routes is a provenance the
-  // routes accept files from, as each of its TableViews is. That covers a
-  // TableView's own form too: a page-mode TableView mounts it as the component
-  // of its form sub-page, whose upload tokens are claimed under that form.
   if (mode !== "view") meta.addResourceFormBuilder(form);
   return form;
 }

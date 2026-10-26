@@ -12,8 +12,6 @@ import { OwnedRegistry } from "./utils/internal/owned-registry";
 
 export * from "./tenant-export";
 
-// A hook may be synchronous or asynchronous; `any` already covers both, and
-// `Promise<any> | any` collapsed to exactly the same type.
 export type HookCallback = (...args: any[]) => any;
 
 export enum Hook {
@@ -250,8 +248,6 @@ export interface HookSignatures {
   };
   [Hook.TENANT_DATA_EXPORT]: {
     args: [tenantId: string, archive: TenantExportArchive, signal: AbortSignal];
-    // `void` rather than `undefined`, which would reject a handler that only
-    // writes to the archive.
     result: TenantDataExportContribution | void;
   };
   [Hook.INVITE_BEING_CREATED]: {
@@ -341,8 +337,6 @@ interface SettledHook {
 
 const hooksRegistry = new Map<Hook, OwnedRegistry<HookEntry>>();
 
-// Owned by the module generation that settles a hook, so a destroyed DMS
-// takes the settled state down with it even when `stop()` never ran.
 const settledHooks = new OwnedRegistry<SettledHook>();
 
 function getHooks(name: Hook): OwnedRegistry<HookEntry> {

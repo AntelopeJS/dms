@@ -44,8 +44,6 @@ export async function runTenantLifecycleOperation<T>(
     result = await work();
   } catch (error) {
     if (isDeliberateRefusal(error)) {
-      // The refusal is what the caller has to see; an admission that fails to
-      // release stays retained, which only fails closed.
       await model.finish(tenantId, attemptId).catch(() => undefined);
     }
     throw error;

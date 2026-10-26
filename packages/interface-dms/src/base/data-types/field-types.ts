@@ -1,6 +1,3 @@
-// Form field types built from the others: rows of fields, key-value pairs,
-// secrets, code and tags. They live apart from `default-types.ts`, which
-// re-exports them in `DefaultDataTypes`.
 import { z } from "zod";
 import { adaptFieldValidationSchema, FormComponents } from "../form-schema";
 import { DefaultDataCompareTypes } from "./compare-types";
@@ -295,7 +292,6 @@ export class TagsType extends DataType {
     return FormComponents.InputTags(options);
   }
 
-  // A filter keeps the rows holding a tag, typed in: one text, not a list.
   override filterComponents() {
     return {
       default: FormComponents.InputText({

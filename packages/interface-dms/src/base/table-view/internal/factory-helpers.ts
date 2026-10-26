@@ -1,11 +1,3 @@
-// The helpers the TableView factory chains together: action and display
-// serialization, the actions it declares, and its page-mode form pages (their
-// slugs, URLs, redirection and filter defaults).
-//
-// Split out of factory.ts. The declaration checks live in `./validation`, the
-// filter tabs in `./tabs`, the per-request filtering in `./request-filter` and
-// the one writing TableView of a controller in `./writer`.
-
 import { ComponentBuilder } from "../../../component";
 import { type FormBuilder, FormEvents } from "../../form-types";
 import { serializeActionTarget } from "../../types/internal/action-target";
@@ -63,8 +55,6 @@ export function applyFormRedirect<T>(
   redirectUrl: string,
   preserveQuery?: string[],
 ): void {
-  // `preserveQuery` is set only when there is something to preserve, so the
-  // params carry no key for it otherwise.
   const params: { url: string; preserveQuery?: string[] } = {
     url: redirectUrl,
   };
@@ -382,9 +372,7 @@ const BUILTIN_DISPLAY_OPTIONS: Record<string, BuiltinDisplayOptions> = {
   [KANBAN_DISPLAY_ID]: ({ kanban }, card) => {
     if (!kanban) return undefined;
     const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
-    // The serialised options and a bare dictionary do not overlap, so this
-    // cannot be one assertion; the display registry reads it by key.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Serialized Kanban options have no dictionary index signature; the display registry reads them by key.
     return kanbanOptions as unknown as Record<string, unknown>;
   },
   [GROUPED_DISPLAY_ID]: ({ grouped }) => (grouped ? { ...grouped } : undefined),
@@ -514,10 +502,6 @@ export function joinPageSlug(pageSlug: string, slug: string): string {
   return `${pageSlug}/${slug}`.replace(/\/+/g, "/");
 }
 
-// A slug starting with "/" addresses a page of its own and is navigated
-// verbatim, query string included; leading ".." segments each drop one segment
-// of the carrying page. Registration joins the slug as it stands instead —
-// these two forms name a page the table view does not register.
 function toFormPageUrl(pageSlug: string, slug: string): string {
   if (slug.startsWith("/")) return slug;
   const parts = slug.split("/");
@@ -627,8 +611,6 @@ export interface FormRouteFrame {
   formSlug: string;
 }
 
-// Mirrors how the frontend reads a route pattern (extractRouteParams): one
-// placeholder per segment, in pattern order.
 function slugPlaceholders(slug: string): string[] {
   return slug
     .split("/")

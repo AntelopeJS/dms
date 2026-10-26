@@ -1,6 +1,3 @@
-// The navigation badges a table view publishes: the counter of a tab declared
-// with `navBadge`, counted on the server when the menu loads.
-
 import {
   type ControllerClass,
   GetControllerInstance,

@@ -1,16 +1,4 @@
-// The default comparators: what each data type can do as a filter, and the
-// shape its operand takes.
-//
-// A namespace of its own, separate from DefaultDataTypes and without a
-// decorator: splitting it touches no registration.
-//
-// Split out of default-types.ts.
-
-// Every DataCompareMode receives a `ValueProxy<unknown>` from the interface and
-// narrows it to the shape its own data type stores. The two never overlap, so
-// each of the thirteen narrowings needs the chain; the alternative is a generic
-// on DataCompareMode.filter, which would ripple through every implementation.
-/* oxlint-disable anti-slop/no-chained-type-assertions */
+/* oxlint-disable anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only. */
 import type { RequestContext } from "@antelopejs/interface-api";
 import type {
   ValueProxy,
@@ -22,15 +10,7 @@ import {
 } from "../../utils/internal/value-parser";
 import { isNumber } from "../../utils/internal/type-check";
 import { whenValueSet } from "./internal/compare-types";
-// Import from the defining leaf, not the table-view barrel: the barrel pulls
-// in the assembled routes, whose composition runs at module evaluation — and
-// this module sits on the import path of the pieces being composed.
-// The cycle is what registers the default data types: they declare
-// themselves through decorators, and this barrel is the only value
-// path that evaluates them. Breaking it left the registry empty and
-// every column serialised without a type, silently. Safe because
-// neither side dereferences the other while it evaluates.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- Built-in comparator decorators register through the shared core registry before column serialization.
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
 
 export namespace DefaultDataCompareTypes {
@@ -236,10 +216,6 @@ export namespace DefaultDataCompareTypes {
     }
   }
 
-  // An optional array field is null or missing on rows saved without a
-  // value, and a database may refuse an array operator over it (MongoDB's
-  // `$in` fails the whole query). Reading it as an empty array keeps such rows
-  // out of an include filter and in an exclude one.
   function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
     return (proxy as unknown as ValueProxy<unknown[]>).default([]);
   }

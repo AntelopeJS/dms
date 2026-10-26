@@ -46,8 +46,6 @@ export function CreateJwtAuthDecorator<
       const provider = async (ctx: RequestContext): Promise<R> => {
         const data = await callbacks.authenticator(bearerToken(ctx));
         const result = await validate(data);
-        // A replacement validator may skip the signature check: only the
-        // configured one, which verifies the token, binds its tenant.
         if (!validator && data && isVerifiedUser(result)) {
           bindVerifiedRequestPrincipal(ctx, {
             userId: result._id,

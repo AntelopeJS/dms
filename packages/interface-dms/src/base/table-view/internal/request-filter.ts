@@ -1,9 +1,3 @@
-// What one request is served of a table view's options: the actions, row
-// actions and custom buttons the caller's permissions admit, with the rules
-// the server enforces on them.
-//
-// Split out of factory-helpers.ts.
-
 import { applyButtonAvailability } from "../../internal/button-availability";
 import type { ComponentFilterContext } from "../../../component";
 import { holdsPermissionGate } from "../../../internal/permission-gate";
@@ -160,8 +154,6 @@ export function adaptRowActions({
     menuLabel: rowActions?.menuLabel,
   };
 
-  // The table's own rules are already in its options; the controller's rule
-  // applies where it declared none, as the routes enforce it.
   if (controllerRules) {
     for (const actionName of CONTROLLER_RULED_ACTIONS) {
       adapted[actionName] = mergeControllerRule(

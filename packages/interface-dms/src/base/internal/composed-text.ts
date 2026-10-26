@@ -34,8 +34,6 @@ const TypedParamSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("count"), value: z.number() }),
 ]);
 
-// A parameter may itself be a composed text, so the two schemas name each
-// other through `z.lazy`.
 const ComposedTextParamSchema: z.ZodType<ComposedTextParam> = z.lazy(() =>
   z.union([z.string(), z.number(), TypedParamSchema, ComposedTextSchema]),
 );

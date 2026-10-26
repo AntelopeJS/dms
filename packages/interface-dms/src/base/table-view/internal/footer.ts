@@ -1,7 +1,3 @@
-// The footer band and the empty states of a table view: the figures the
-// `summary` route computes over the listed rows, the legend, and what an
-// empty body says.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";

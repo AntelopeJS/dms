@@ -42,10 +42,7 @@ export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
 };
 
 interface GuardInvocationConfig {
-  // A published contract: the runtime calls this positionally and every
-  // implementing module declares the same shape, so an options object
-  // cannot be introduced from this side.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- Guard adapters share six positional inputs, including the edit adapter configured row-id field.
   invokeGuard: (
     controller: unknown,
     ctx: RequestContext,
@@ -58,10 +55,7 @@ interface GuardInvocationConfig {
 
 const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
   edit: {
-    // A published contract: the runtime calls this positionally and every
-    // implementing module declares the same shape, so an options object
-    // cannot be introduced from this side.
-    // oxlint-disable-next-line eslint/max-params
+    // oxlint-disable-next-line eslint/max-params -- The edit adapter consumes the six positional inputs declared by GuardInvocationConfig.
     invokeGuard: async (controller, ctx, params, args, guard, idField) => {
       const id = String((params as Parameters.EditParameters).id);
       const body = parseGuardBody(args[0]);
@@ -153,16 +147,12 @@ async function runAfterWrite(
   }
 }
 
-// Their routes read no body of their own: the guard is handed the one the
-// confirmation sends, read here and kept from the route.
 const CONFIRM_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "delete",
   "archive",
   "restore",
 ]);
 
-// Their route writes the body it reads: the guard is handed that body parsed,
-// and the route writes it as the guard left it.
 const WRITE_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "new",
   "edit",
@@ -203,7 +193,6 @@ export const createGuardedRoute = (
             getIdField(this),
           )
         : undefined;
-      // The data API writes a parsed body as it is handed.
       const writtenArgs = writtenBody
         ? [writtenBody, ...routeArgs.slice(1)]
         : routeArgs;

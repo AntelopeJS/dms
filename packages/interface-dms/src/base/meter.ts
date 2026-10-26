@@ -220,7 +220,6 @@ export const MeterSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  // A generated source answers the value; the maximum stays the block's own.
   fetchUrl: blockFetchUrlOption(
     "Where the figures come from.",
     "periodScope",

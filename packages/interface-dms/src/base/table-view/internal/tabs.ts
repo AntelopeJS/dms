@@ -1,8 +1,3 @@
-// The filter tabs of a table view: how the options carry them, which ones a
-// request is served, and the warning when their counters have no route.
-//
-// Split out of factory-helpers.ts.
-
 import {
   type ControllerClass,
   ControllerMeta,
@@ -119,8 +114,6 @@ const EDGE_SLASHES = /^\/+|\/+$/g;
 
 const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
 
-// Matched on the mounted path and method rather than on the route object: a
-// module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
 /** @internal */
 export function servesRoute(
   endpoints: Record<string, DataControllerCallbackWithOptions>,

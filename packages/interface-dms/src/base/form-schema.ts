@@ -1,7 +1,3 @@
-// Building and serializing a form's schema, from its fields, its props or a
-// builder. The shapes it works on live in `form-types.ts`; both halves are
-// re-exported together by `form.ts`, the documented subpath.
-
 import { ComponentBuilder, type ComponentInfoSerialized } from "../component";
 import { StampUploadFieldTokens } from "../uploads";
 import { z } from "zod";
@@ -89,8 +85,6 @@ export function adaptFieldValidationSchema(
 }
 
 const BOOLEAN_TYPE_ID = "boolean";
-// Controls a boolean is ticked in rather than switched: required, such a box
-// is an agreement ("I accept the terms") only `true` satisfies.
 const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
 
 /** Whether a field is a box to tick: required, only `true` passes. */
@@ -226,10 +220,6 @@ export const Form = (options?: FormProps): FormBuilder => {
       }),
       schema: zodToJsonSchema(schema),
     })
-    // The form claims the upload tokens its fields need — its own, and those
-    // of the forms embedded in them (a relation's inline add form) — when it
-    // serializes: once, at page registration. The page system knows nothing
-    // about uploads.
     .transformOptions(StampUploadFieldTokens)
     .meta({
       name: options?.title || "Form",
