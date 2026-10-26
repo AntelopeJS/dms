@@ -18,10 +18,13 @@ function node(overrides: Partial<TreeNode>): TreeNode {
     children: {},
     childrenOrders: [],
     ...overrides,
-  } as TreeNode;
+  };
 }
 
-function route(path: string, query: Record<string, unknown> = {}) {
+function route(
+  path: string,
+  query: NonNullable<Parameters<typeof isMenuItemActive>[2]>["query"] = {},
+) {
   return { path, query };
 }
 

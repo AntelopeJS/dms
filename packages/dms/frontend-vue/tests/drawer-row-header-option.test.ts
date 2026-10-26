@@ -9,13 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, type Component } from "vue";
 import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
+import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 
 const Editor = defineComponent({ name: "KeyEditor", render: () => null });
 
 interface CreatedDrawer {
-  props: Record<string, unknown>;
+  props: DrawerOptions;
   patch: ReturnType<typeof vi.fn>;
-  settle: (value?: unknown) => void;
+  settle: () => void;
 }
 
 let created: CreatedDrawer[];
@@ -24,12 +25,9 @@ beforeEach(() => {
   created = [];
   vi.stubGlobal("markRaw", <T>(value: T) => value);
   vi.stubGlobal("useOverlay", () => ({
-    create: (
-      _component: unknown,
-      { props }: { props: Record<string, unknown> },
-    ) => {
-      let settle!: (value?: unknown) => void;
-      const opened = new Promise((resolve) => {
+    create: (_component: Component, { props }: { props: DrawerOptions }) => {
+      let settle!: () => void;
+      const opened = new Promise<void>((resolve) => {
         settle = resolve;
       });
       const patch = vi.fn();
@@ -52,7 +50,7 @@ const navigation = (index: number): RowNavigation => ({
   next: vi.fn(),
 });
 
-async function openDrawer(options: Record<string, unknown>) {
+async function openDrawer(options: Partial<DrawerOptions>) {
   const { useDrawer } = await import(
     "../layers/dms-ui/app/composables/containers/useDrawer"
   );
@@ -96,10 +94,7 @@ describe("useDrawer's row header", () => {
         componentOptions: { missing: 2 },
       },
     });
-    const options = created[0]!.props.headerComponentOptions as Record<
-      string,
-      unknown
-    >;
+    const options = created[0]!.props.headerComponentOptions!;
     expect(options.headingClass).toMatch(/text-\[17px\].* font-mono$/);
     expect(options).toMatchObject({
       headingBreakAfter: ".",

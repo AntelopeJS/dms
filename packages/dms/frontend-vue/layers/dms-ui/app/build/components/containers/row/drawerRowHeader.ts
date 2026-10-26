@@ -12,10 +12,7 @@ const DRAWER_ROW_HEADER_PART = "dms-row-drawer";
  *
  * @internal
  */
-export function drawerRowHeaderProps(
-  header: DrawerRowHeader,
-  title: string,
-): Record<string, unknown> {
+export function drawerRowHeaderProps(header: DrawerRowHeader, title: string) {
   return {
     part: DRAWER_ROW_HEADER_PART,
     heading: header.title ?? title,

@@ -1,4 +1,10 @@
-type CallableFunction = (...args: any[]) => unknown;
+import type { isFunction } from "../../utils/type-check";
+
+type CallableFunction = typeof isFunction extends (
+  value: Parameters<typeof isFunction>[0],
+) => value is infer Fn
+  ? Fn
+  : never;
 
 const registeredFunctions = ref<Map<string, CallableFunction>>(new Map());
 

@@ -14,6 +14,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableFiltersRow from "../layers/dms-ui/app/build/components/table/FiltersRow.vue";
 import type { TableUrlFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   visibleUrlFilters,
   withoutQueryParam,
@@ -120,7 +121,7 @@ describe("filters row URL chips", () => {
     }));
     vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
-    vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+    vi.stubGlobal("isString", isString);
     vi.stubGlobal("resolveDmsComponent", () => undefined);
   });
 

@@ -21,11 +21,10 @@ const DATETIME = {
 };
 
 let app: ReturnType<typeof createApp> | undefined;
-const options = ref<Record<string, unknown>>({});
+type HostOptions = InstanceType<typeof ApexChartHost>["$props"]["options"];
+const options = ref<HostOptions>({});
 
-async function mountHost(
-  initial: Record<string, unknown>,
-): Promise<HTMLElement> {
+async function mountHost(initial: HostOptions): Promise<HTMLElement> {
   options.value = { chart: { animations: { enabled: false } }, ...initial };
   const root = document.createElement("div");
   document.body.append(root);

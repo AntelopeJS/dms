@@ -1,9 +1,11 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type App, createApp, h, ref } from "vue";
+import { type App, type VNode, createApp, h, ref } from "vue";
+import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- The transport double passes unparsed responses to the block's real boundary; a CodeBlock-only return type would misrepresent the shared network helper.
 const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
 
 let app: App | undefined;
@@ -12,11 +14,12 @@ let runtime: ReturnType<typeof browserRuntime> | undefined;
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 let host: HTMLDivElement;
 
-type MountProps = Record<string, unknown> | (() => Record<string, unknown>);
+type ComponentProps = NonNullable<VNode["props"]>;
+type MountProps = ComponentProps | (() => ComponentProps);
 
 async function mount(path: string, props: MountProps) {
   const { default: component } = await import(path);
-  const read = typeof props === "function" ? props : () => props;
+  const read = isFunction(props) ? props : () => props;
   app = createApp({ setup: () => () => h(component, read()) });
   runtime?.scope.stop();
   runtime = browserRuntime(app);
@@ -33,7 +36,7 @@ async function mount(path: string, props: MountProps) {
 
 const mountSnippet = (props: MountProps) =>
   mount("../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue", props);
-const mountBlock = (props: Record<string, unknown>) =>
+const mountBlock = (props: ComponentProps) =>
   mount("../layers/dms-ui/app/components/blocks/CodeBlock.vue", {
     componentId: "code",
     pageId: "page",
@@ -160,7 +163,9 @@ describe("CodeBlock", () => {
   });
 
   it("draws placeholder lines until the first answer", async () => {
-    let answer = (_value: unknown) => {};
+    let answer = (
+      _value: Parameters<typeof authFetch.mockResolvedValue>[0],
+    ) => {};
     authFetch.mockImplementation(
       () => new Promise((resolve) => (answer = resolve)),
     );

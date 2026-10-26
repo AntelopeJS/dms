@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from "vue";
+import { computed, useId, type SVGAttributes } from "vue";
 import {
   closeSparkArea,
   projectSparkPoints,
@@ -30,7 +30,9 @@ const FLAT_AREA_OPACITY = 0.12;
 const PERCENT = 100;
 const DEFAULT_ARIA_LABEL = "Trend";
 
-const STROKE_BY_ACCENT: Record<string, string> = {
+type AccentStroke = Extract<SVGAttributes["stroke"], string>;
+
+const STROKE_BY_ACCENT: Record<NonNullable<Props["accent"]>, AccentStroke> = {
   primary: "var(--dms-sparkline)",
   secondary: "var(--ui-secondary)",
   success: "var(--ui-success)",

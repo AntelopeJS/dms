@@ -1,3 +1,4 @@
+import { isFunction } from "../../../../dms-core/app/utils/type-check";
 import { type StreamParser, StringStream } from "@codemirror/streamparser";
 import { type Highlighter, type Tag, tags } from "@lezer/highlight";
 
@@ -13,8 +14,8 @@ const INDENT_UNIT = 2;
 
 const MAX_EMPTY_TOKENS = 10;
 
-type TagValue = Tag | readonly Tag[] | ((tag: Tag) => Tag);
-const TAG_TABLE = tags as unknown as Record<string, TagValue | undefined>;
+type TagValue = (typeof tags)[keyof typeof tags];
+const TAG_TABLE: Record<string, TagValue | undefined> = tags;
 const tagsByName = new Map<string, Tag[]>();
 
 function tagsOf(type: string): Tag[] {
@@ -24,9 +25,9 @@ function tagsOf(type: string): Tag[] {
     let found: Tag[] = [];
     for (const part of name.split(".")) {
       const value = TAG_TABLE[part];
-      if (typeof value === "function") found = found.map(value);
+      if (isFunction(value)) found = found.map(value);
       else if (value && !found.length)
-        found = Array.isArray(value) ? [...value] : [value as Tag];
+        found = Array.isArray(value) ? [...value] : [value];
     }
     return found;
   });
@@ -48,6 +49,7 @@ export function highlightStream<State>(
   highlighter: Highlighter,
   put: HighlightedRange,
 ): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The CodeMirror-compatible fallback is true regardless of State; retain that unchecked parser default.
   const state = parser.startState?.(INDENT_UNIT) ?? (true as State);
   let pending: { from: number; to: number; classes: string } | null = null;
   const flush = () => {

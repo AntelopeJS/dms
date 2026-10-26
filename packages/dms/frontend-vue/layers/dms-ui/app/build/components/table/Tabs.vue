@@ -4,7 +4,6 @@ import { MONO_CHIP_CLASS } from "../../utils/monoChip";
 import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { toneTextClass } from "../../utils/tone";
 import { PREVIEW_LOCK_ICON } from "../../utils/permissionPreview";
 
@@ -93,13 +92,14 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableTabs: Partial<typeof theme> };
 };
 
 const uiVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableTabs || {}),
+  ...appConfig.ui?.tableTabs,
 });
 
 const ui = computed(() => uiVariant({ inline: props.inline }));

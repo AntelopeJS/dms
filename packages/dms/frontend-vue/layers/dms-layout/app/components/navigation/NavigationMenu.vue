@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
+import type { NavigationMenuItem } from "@nuxt/ui";
 import { MENU_STATUS_CHIP_COLORS } from "#dms-core/app/utils/menu";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
@@ -113,7 +114,7 @@ function resolveMenuBadge(
   badge: DmsMenuItem["badge"],
   tone: MenuItemBadgeTone | undefined,
 ): DmsMenuItem["badge"] {
-  if (typeof badge === "string" || typeof badge === "number") {
+  if (isString(badge) || isNumber(badge)) {
     return {
       ...MENU_BADGE_PROPS,
       color: tone ?? DEFAULT_BADGE_TONE,
@@ -146,25 +147,24 @@ function drawPreviewEntry(
   const title = t(PREVIEW_ENTRY_TITLES[state], {
     role: preview.session.value?.roleName ?? "",
   });
-  return {
+  const result: DmsMenuItem = {
     ...item,
     previewState: state,
     previewLocked: state === "hidden",
     class: [item.class, PREVIEW_ENTRY_LINK_CLASSES[state]],
     title,
     "aria-label": `${String(item.label ?? "")} · ${title}`,
-    ...(hasChildren
-      ? {}
-      : {
-          trailingIcon: PREVIEW_LOCK_ICON,
-          badge: undefined,
-          ui: {
-            ...UNSET_MENU_ITEM_UI,
-            ...item.ui,
-            linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
-          },
-        }),
   };
+  if (!hasChildren) {
+    result.trailingIcon = PREVIEW_LOCK_ICON;
+    result.badge = undefined;
+    result.ui = {
+      ...UNSET_MENU_ITEM_UI,
+      ...item.ui,
+      linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
+    };
+  }
+  return result;
 }
 
 const { badges: navBadges } = useNavBadges();
@@ -186,16 +186,14 @@ function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
       : undefined;
   const ui = buildItemUi(item, variant, statusClass);
 
-  return {
-    ...item,
-
-    ...(item.to ? { prefetch: true } : {}),
-    ...(variant.link ? { class: [item.class, variant.link] } : {}),
-    ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
-    badge,
-    ...(ui ? { ui } : {}),
-    children: item.children?.map(decorateMenuItem),
-  };
+  const result: DmsMenuItem = { ...item };
+  if (item.to) result.prefetch = true;
+  if (variant.link) result.class = [item.class, variant.link];
+  if (statusClass) result.trailingIcon = STATUS_DOT_ICON;
+  result.badge = badge;
+  if (ui) result.ui = ui;
+  result.children = item.children?.map(decorateMenuItem);
+  return result;
 }
 
 const groupedItems = computed((): NavigationMenuItem[][] => {
@@ -255,7 +253,7 @@ function onStateChange(id: string, open: boolean): void {
       />
       <UAvatar
         v-if="item.avatar"
-        :size="ui.linkLeadingAvatarSize() as AvatarProps['size']"
+        :size="ui.linkLeadingAvatarSize()"
         v-bind="item.avatar"
         :class="
           ui.linkLeadingAvatar({

@@ -44,7 +44,7 @@ export interface UseUnsavedChangesReturn {
 function resolveElement(source: ElementSource): Element | null {
   if (!source) return null;
   if (source instanceof Element) return source;
-  const element = (source as ComponentPublicInstance).$el;
+  const element = source.$el;
   return element instanceof Element ? element : null;
 }
 

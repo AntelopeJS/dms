@@ -20,7 +20,7 @@ const route = useDmsRoute();
 const { formError, clearFormError, showError } = useAuthFormError();
 const form = useTemplateRef<AuthFormHandle>("form");
 
-const token = computed(() => (route.query.token as string) || "");
+const token = computed(() => route.query.token || "");
 
 const twoFactorTarget = computed(() => ({
   path: "/auth/2fa",

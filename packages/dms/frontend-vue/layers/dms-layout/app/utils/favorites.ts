@@ -15,7 +15,7 @@ export interface FavoritePageMetadata {
 export interface FavoritePageSource {
   path: string;
   metadata: FavoritePageMetadata;
-  query: Record<string, unknown>;
+  query: Parameters<typeof buildPageTarget>[2];
   translate: (text: string) => string;
 }
 
@@ -25,7 +25,7 @@ export type FavoriteRouteResolver = (
 
 function requiredQueryValues(
   validation: PageValidation | undefined,
-  query: Record<string, unknown>,
+  query: FavoritePageSource["query"],
 ): string[] {
   return (validation?.requiredQueryParams ?? []).map((param) =>
     String(query[param]),

@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
 import { isConfirmTextMatch } from "../layers/dms-ui/app/build/composables/confirm/confirmTextMatch";
+import type { NamedValue } from "vue-i18n";
 
 const authFetch = vi.fn();
 const confirm = vi.fn(async () => true);
@@ -38,7 +39,7 @@ beforeEach(() => {
   vi.stubGlobal("useConfirm", () => ({ confirm }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
+    t: (key: string, params?: NamedValue) =>
       params?.name ? `${key}(${String(params.name)})` : key,
   }));
   vi.stubGlobal("interpolateUrl", interpolateUrl);

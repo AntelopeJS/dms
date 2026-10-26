@@ -123,12 +123,12 @@ async function serverRender() {
   }
 }
 
-async function hydrate(html: string, payload: unknown) {
+async function hydrate(
+  html: string,
+  payload: Parameters<typeof engine.restoreDmsPayload>[1],
+) {
   const browser = engine.createDmsFrontendRuntime(undefined, {});
-  engine.restoreDmsPayload(
-    browser,
-    structuredClone(payload) as Parameters<typeof engine.restoreDmsPayload>[1],
-  );
+  engine.restoreDmsPayload(browser, structuredClone(payload));
   const container = document.createElement("div");
   container.innerHTML = html;
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

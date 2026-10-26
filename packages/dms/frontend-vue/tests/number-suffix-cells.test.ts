@@ -74,8 +74,12 @@ describe("withNumberSuffix", () => {
 });
 
 describe("the numeric data types", () => {
-  const draw = (id: string, value: unknown, options: unknown) =>
-    formatters.get(id)?.default(value, "en-US", options);
+  type Formatter = NonNullable<DataType["formatter"]>["default"];
+  const draw = (
+    id: string,
+    value: Parameters<Formatter>[0],
+    options: Parameters<Formatter>[2],
+  ) => formatters.get(id)?.default(value, "en-US", options);
 
   it("write the unit in every place they are drawn", () => {
     expect(draw("number", 12.5, { suffix: "kWp" })).toBe(`12.5${NBSP}kWp`);

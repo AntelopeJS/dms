@@ -51,9 +51,7 @@ function isDrawnInBrowser(
   return typeof window !== "undefined" && from?.path === to.path;
 }
 
-function ensureSiteLayoutLoaded(
-  siteLayout: ReturnType<typeof useSiteLayout>,
-): Promise<unknown> | undefined {
+function ensureSiteLayoutLoaded(siteLayout: ReturnType<typeof useSiteLayout>) {
   if (siteLayout.siteLayout.value) return undefined;
   return siteLayout.loadSiteLayout();
 }

@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
@@ -11,16 +11,9 @@ const HEATMAP_SERIES = [
   { name: "Tue", data: [{ x: "09:00", y: 3400 }] },
 ];
 
-type Formatter = (value: unknown) => string;
-
-interface ProbeOptions {
-  yaxis: { labels: { formatter: Formatter } };
-  tooltip: { y?: { formatter: Formatter } };
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ProbeOptions>, required: true },
+    options: { type: Object, required: true },
   },
   setup: (props) => () =>
     h("output", [

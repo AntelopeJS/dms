@@ -50,12 +50,14 @@ describe("rows ordered by hand", () => {
   const reorderOf = (
     api: ReturnType<typeof vi.fn>,
     narrowed = false,
-    data = ref<TableViewListResponse<Record<string, unknown>> | null>({
-      results: ranked([1, 2, 3]),
-      total: 3,
-      offset: 0,
-      limit: 10,
-    }),
+    data = ref<TableViewListResponse<ReturnType<typeof ranked>[number]> | null>(
+      {
+        results: ranked([1, 2, 3]),
+        total: 3,
+        offset: 0,
+        limit: 10,
+      },
+    ),
   ) => {
     const refresh = vi.fn();
     const onError = vi.fn();
@@ -64,7 +66,7 @@ describe("rows ordered by hand", () => {
       data,
       rowIdKey: "_id",
       location: "/api/features",
-      api: api as unknown as Api,
+      api,
       canEdit: computed(() => true),
       isNarrowed: computed(() => narrowed),
       isOrderedDisplay: computed(() => true),
@@ -110,7 +112,7 @@ describe("rows ordered by hand", () => {
       data: ref(null),
       rowIdKey: "_id",
       location: "/api/features",
-      api: vi.fn() as unknown as Api,
+      api: vi.fn<Api>(),
       canEdit: computed(() => false),
       isNarrowed: computed(() => false),
       isOrderedDisplay: computed(() => true),

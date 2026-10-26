@@ -37,11 +37,11 @@ function layOut(): void {
     configurable: true,
     get: () => VIEW_HEIGHT,
   });
-  scroller.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+  scroller.getBoundingClientRect = () => new DOMRect();
   const rowTop = (row: Element) =>
     [...scroller.querySelectorAll("tr")].indexOf(row) * ROW_HEIGHT - scrollTop;
   Element.prototype.getBoundingClientRect = function (this: Element) {
-    return { top: rowTop(this) } as DOMRect;
+    return new DOMRect(0, rowTop(this));
   };
 }
 

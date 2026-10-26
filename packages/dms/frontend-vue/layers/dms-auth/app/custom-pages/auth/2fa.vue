@@ -17,9 +17,9 @@ const { processApiMessage } = useTranslation();
 const { formError, showFormError, clearFormError, showError } =
   useAuthFormError();
 
-const token = computed(() => (route.query.token as string) || "");
+const token = computed(() => route.query.token || "");
 const availableMethods = computed(() =>
-  ((route.query.methods as string) || "").split(",").filter(Boolean),
+  (route.query.methods || "").split(",").filter(Boolean),
 );
 
 const PIN_LENGTH = 6;

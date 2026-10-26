@@ -1,4 +1,5 @@
 import type { PageInfo } from "./page";
+import type { ComponentEventData } from "#dms-core/app/types/component";
 
 /** Cleanup callback returned by a PageSetupFunction. Called on page unmount. */
 export type PageSetupCleanup = () => void;
@@ -14,9 +15,13 @@ export interface PageSetupContext {
   on(
     component: string,
     event: string,
-    handler: (data: unknown) => void,
+    handler: (data: ComponentEventData["data"]) => void,
   ): () => void;
-  emit(component: string, event: string, data?: unknown): void;
+  emit(
+    component: string,
+    event: string,
+    data?: ComponentEventData["data"],
+  ): void;
 }
 
 /**
@@ -24,8 +29,6 @@ export interface PageSetupContext {
  * frontend via useDefinedFunctions().registerFunction(). Runs in onMounted;
  * cleanup runs on onUnmounted.
  */
-/* eslint-disable @typescript-eslint/no-invalid-void-type -- void permits callers to omit return */
 export type PageSetupFunction = (
   context: PageSetupContext,
 ) => Promise<PageSetupCleanup | void> | PageSetupCleanup | void;
-/* eslint-enable @typescript-eslint/no-invalid-void-type */

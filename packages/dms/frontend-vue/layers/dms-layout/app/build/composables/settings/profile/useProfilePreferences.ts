@@ -21,7 +21,6 @@ import {
   buildRegionSummary,
   type ProfileAccess,
   resolvePreferenceRows,
-  type SummaryTranslate,
   tallySubjects,
 } from "./preferencesSummary";
 
@@ -60,8 +59,7 @@ const MONDAY = 1;
  * mount so the server and the hydrating browser render the same skeleton.
  */
 export function useProfilePreferences() {
-  const { t: translate, locale } = useI18n();
-  const t = translate as SummaryTranslate;
+  const { t, locale } = useI18n();
   const { groups } = useSettingsNavigation();
   const isOwner = useIsOwner();
   const isMounted = ref(false);

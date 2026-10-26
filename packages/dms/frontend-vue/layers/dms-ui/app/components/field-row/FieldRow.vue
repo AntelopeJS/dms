@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -43,13 +43,13 @@ interface FieldRowProps extends Partial<DefaultComponentProps> {
 
 interface FieldRowSlots {
   /** The control (a switch, a select, a button, a child block…). */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Replaces the label text (a ListRow lead, a rich label). */
-  label?: () => unknown;
+  label?: () => ReturnType<Slot>;
   /** Inline after the label (a badge, a save status). */
-  "label-extra"?: () => unknown;
+  "label-extra"?: () => ReturnType<Slot>;
   /** Under the description, outside the label (a save status with a retry). */
-  details?: () => unknown;
+  details?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<FieldRowProps>(), {

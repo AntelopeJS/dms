@@ -23,7 +23,7 @@ import type {
 
 function field(
   componentName: string,
-  options?: Record<string, unknown>,
+  options?: FormField["component"]["options"],
   type?: string,
 ): FormField {
   return { id: componentName, type, component: { componentName, options } };

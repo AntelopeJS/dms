@@ -247,10 +247,10 @@ describe("SSE transport lifecycle", () => {
     let cursor: string | null = null;
     let token = "first";
     const options: Partial<SseStreamOptions> = {
-      headers: () => ({
-        Authorization: `Bearer ${token}`,
-        ...(cursor ? { "Last-Event-ID": cursor } : {}),
-      }),
+      headers: () =>
+        cursor
+          ? { Authorization: `Bearer ${token}`, "Last-Event-ID": cursor }
+          : { Authorization: `Bearer ${token}` },
       onEvent: (_name, _data, id) => {
         if (id !== null) cursor = id;
       },

@@ -24,7 +24,7 @@ interface Answer {
 interface DeferredRead {
   signal: AbortSignal;
   resolve: (value: Answer) => void;
-  reject: (reason: unknown) => void;
+  reject: Parameters<ConstructorParameters<typeof Promise<Answer>>[0]>[1];
 }
 let deferredReads: DeferredRead[] | null = null;
 

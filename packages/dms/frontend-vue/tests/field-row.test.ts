@@ -8,15 +8,17 @@ import {
   onMounted,
   onUnmounted,
   ref,
+  type VNodeChild,
 } from "vue";
+import type FieldRow from "../layers/dms-ui/app/components/field-row/FieldRow.vue";
 const FORM_COLUMNS = "@min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)]";
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
 async function mount(
-  props: Record<string, unknown>,
-  slots: Record<string, () => unknown> = {},
+  props: Partial<InstanceType<typeof FieldRow>["$props"]>,
+  slots: Record<string, () => VNodeChild> = {},
 ) {
   const { default: FieldRow } = await import(
     "../layers/dms-ui/app/components/field-row/FieldRow.vue"
@@ -26,7 +28,7 @@ async function mount(
   await nextTick();
 }
 
-const body = () => host.firstElementChild!.firstElementChild as HTMLElement;
+const body = () => host.querySelector<HTMLElement>(":scope > * > *")!;
 
 beforeEach(() => {
   vi.stubGlobal("ref", ref);
@@ -111,7 +113,7 @@ describe("form rows", () => {
       { label: "data", layout: "stack", fill: true },
       { default: () => h("div", { "data-code": "" }) },
     );
-    const root = host.firstElementChild as HTMLElement;
+    const root = host.querySelector<HTMLElement>(":scope > *")!;
     const control = host.querySelector("[data-code]")!.parentElement!;
     for (const part of [root, body(), control]) {
       expect(part.className.split(/\s+/)).toEqual(

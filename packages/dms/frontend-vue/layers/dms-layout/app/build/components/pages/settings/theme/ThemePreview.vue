@@ -16,7 +16,7 @@ interface PreviewVariant {
 
 const DEFAULT_VARIANT: PreviewVariant = { frame: L.side, side: L, main: D };
 
-const MODE_VARIANTS: Record<string, PreviewVariant> = {
+const MODE_VARIANTS: Record<Props["mode"], PreviewVariant> = {
   light: { frame: L.side, side: L, main: L },
   dark: { frame: D.side, side: D, main: D },
   system: DEFAULT_VARIANT,

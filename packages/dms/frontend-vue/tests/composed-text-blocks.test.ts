@@ -59,7 +59,7 @@ const mounted: Array<{ unmount: () => void }> = [];
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function render(component: Component, props: Record<string, unknown>) {
+function render(component: Component, props: Parameters<typeof createApp>[1]) {
   const root = document.createElement("div");
   const app = createApp(() =>
     h(Suspense, null, { default: () => h(component, props) }),

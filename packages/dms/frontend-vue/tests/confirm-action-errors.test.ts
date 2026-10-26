@@ -21,13 +21,14 @@ import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/typ
 import { DialogRoot } from "reka-ui";
 
 /** An ofetch `FetchError` as a refused (or unreachable) request throws it. */
-function fetchError(status: number | undefined, data?: unknown) {
+function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
   return Object.assign(
     new Error(`[DELETE] "/api/task/delete": ${status ?? "<no response>"}`),
     { name: "FetchError", statusCode: status, data },
   );
 }
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Translation is indexed by arbitrary server keys and preserves the existing missing-key fallback. Inference removes that index signature and I18nTranslate owns a callable, not a finite message dictionary.
 const TRANSLATIONS: Record<string, string> = {
   "error.not_found": "Not found",
   "page.settings.invites.error.expired": "This invitation has expired",
@@ -55,7 +56,12 @@ describe("resolveActionError", () => {
   });
 
   it("names the fields the data API refused by their labels", () => {
-    const named = (key: string, params: Record<string, unknown>) =>
+    const named = (
+      key: string,
+      params: Parameters<
+        import("../layers/dms-core/app/composables/translation/useTranslation").I18nTranslate
+      >[1],
+    ) =>
       key === "dms.field_errors.named_required"
         ? `${String(params.field)} is required.`
         : key;
@@ -157,7 +163,9 @@ describe("ConfirmModal failures", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
     app = createApp({
       render: () =>
         h(DialogRoot, null, () =>
@@ -248,12 +256,12 @@ describe("ConfirmModal failures", () => {
   });
 
   it("clears the error when the user retries", async () => {
-    let settle: (value?: unknown) => void = () => undefined;
+    let settle: () => void = () => undefined;
     const onConfirm = vi
       .fn()
       .mockRejectedValueOnce(fetchError(undefined))
       .mockImplementationOnce(
-        () => new Promise((resolve) => (settle = resolve)),
+        () => new Promise<void>((resolve) => (settle = resolve)),
       );
     mount({
       title: "Archive?",

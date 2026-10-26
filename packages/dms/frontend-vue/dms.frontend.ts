@@ -1,6 +1,7 @@
 import { defineAsyncComponent, type Component } from "vue";
 import {
   type DmsFrontendModule,
+  type DmsFrontendSdk,
   useDmsRuntimeConfig,
 } from "#dms/frontend-module";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
@@ -35,15 +36,11 @@ interface VueModule {
 
 type VueLoader = () => Promise<VueModule>;
 
-interface DmsPublicOptions {
-  dms?: {
-    baseURL?: string;
-  };
-}
-
 const components = import.meta.glob<VueModule>([
   "./layers/**/app/components/**/*.vue",
   "./layers/**/app/build/components/**/*.vue",
+  "!./layers/dms-ui/app/build/components/table/TableBody.vue",
+  "!./layers/dms-ui/app/components/form/components/ImagePresentation.vue",
 ]);
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
@@ -91,7 +88,10 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
-const COMPONENT_ALIASES: Record<string, string> = {
+const COMPONENT_ALIASES: Record<
+  ReturnType<typeof componentName>,
+  Parameters<DmsFrontendSdk["registerComponent"]>[0]
+> = {
   ActivityFeed: "ActivityFeedBlock",
   Section: "SectionBlock",
   FieldRow: "FieldRowBlock",
@@ -215,7 +215,7 @@ const frontendModule: DmsFrontendModule = {
   componentPrefix: "Dms",
 
   setup(sdk) {
-    const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
+    const runtimeDms = useDmsRuntimeConfig().public.dms;
     if (runtimeDms && typeof window !== "undefined")
       runtimeDms.baseURL = window.location.origin;
     registerPlugins(sdk);

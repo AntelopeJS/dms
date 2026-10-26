@@ -73,12 +73,10 @@ describe("sanitizeSorting", () => {
   it("survives malformed preferences", () => {
     expect(sanitizeSorting(undefined, sortable)).toEqual([]);
     expect(sanitizeSorting(null, sortable)).toEqual([]);
-    expect(sanitizeSorting("due_date" as unknown as never[], sortable)).toEqual(
-      [],
-    );
-    expect(sanitizeSorting([{ id: 3 } as unknown as never], sortable)).toEqual(
-      [],
-    );
+    // @ts-expect-error Malformed persisted data must be rejected even outside the declared sorting contract.
+    expect(sanitizeSorting("due_date", sortable)).toEqual([]);
+    // @ts-expect-error A numeric persisted sort id must be rejected, not coerced to a column id.
+    expect(sanitizeSorting([{ id: 3 }], sortable)).toEqual([]);
   });
 
   it("drops a sort on a column the route refused since", () => {
@@ -293,18 +291,17 @@ describe("sort direction labels", () => {
   });
 
   it("are translated in English and French", () => {
-    const lookup = (messages: unknown, key: string) =>
-      key
-        .split(".")
-        .reduce<unknown>(
-          (node, part) => (node as Record<string, unknown>)?.[part],
-          messages,
-        );
+    type Message = string | { [key: string]: Message };
+    const lookup = (messages: Message, key: string) =>
+      key.split(".").reduce<Message | undefined>((node, part) => {
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale messages are recursive branches or string leaves; only branches can be traversed.
+        return typeof node === "object" ? node[part] : undefined;
+      }, messages);
     for (const kind of ["number", "date", "text"] as const) {
       for (const desc of [false, true]) {
         const key = sortDirectionLabelKey(kind, desc);
-        expect(typeof lookup(enGB, key), key).toBe("string");
-        expect(typeof lookup(frFR, key), key).toBe("string");
+        expect(lookup(enGB, key), key).toBeTypeOf("string");
+        expect(lookup(frFR, key), key).toBeTypeOf("string");
       }
     }
     expect(lookup(enGB, "dms.sort.direction.date.desc")).toBe(

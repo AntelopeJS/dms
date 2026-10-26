@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsListRow from "../list-row/ListRow.vue";
 import type { Tone } from "../../types/tone";
 
@@ -30,9 +30,9 @@ interface Props {
 }
 
 interface Slots {
-  default?: () => unknown;
-  subtitle?: () => unknown;
-  trailing?: () => unknown;
+  default?: () => ReturnType<Slot>;
+  subtitle?: () => ReturnType<Slot>;
+  trailing?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<Props>(), {

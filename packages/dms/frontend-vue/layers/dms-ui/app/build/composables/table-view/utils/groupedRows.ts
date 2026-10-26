@@ -16,6 +16,8 @@ import type {
 import type { TableFilter } from "../../../components/table/Table.vue";
 import { compareValues } from "./compareValues";
 import { sortValueKind } from "./sortableColumns";
+import { isObject } from "#dms-core/app/utils/type-check";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 
 /** Key of the group of rows without a value. */
 export const NO_GROUP_KEY = "";
@@ -26,8 +28,9 @@ const DAYS_PER_WEEK = 7;
 const EPOCH_WEEKDAY = 4;
 const DAY_KEY_LENGTH = 10;
 
-const toDate = (value: unknown): Date | undefined => {
+const toDate = (value: Parameters<DataTypeFormatter>[0]): Date | undefined => {
   if (value === null || value === undefined || value === "") return undefined;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Row values have no date schema. Date's constructor declaration excludes coercible objects and booleans that the implementation already accepts; inference cannot preserve that coercion contract.
   const date = new Date(value as string | number | Date);
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
@@ -41,17 +44,20 @@ function weekStartDay(dayNumber: number, weekStart: number): number {
   return dayNumber - ((weekday - weekStart + DAYS_PER_WEEK) % DAYS_PER_WEEK);
 }
 
-function valueKey(value: unknown): string {
+function valueKey(value: Parameters<DataTypeFormatter>[0]): string {
   if (value === null || value === undefined) return NO_GROUP_KEY;
   if (Array.isArray(value)) return value.map(valueKey).join(",");
-  if (typeof value === "object") {
-    const id = (value as Record<string, unknown>)._id;
+  if (isObject(value)) {
+    const id = value._id;
     return id === undefined ? JSON.stringify(value) : String(id);
   }
   return String(value);
 }
 
-type GroupKeyReader = (value: unknown, locale: string) => string;
+type GroupKeyReader = (
+  value: Parameters<DataTypeFormatter>[0],
+  locale: string,
+) => string;
 
 const GROUP_KEY_READERS: Record<TableViewGroupBy, GroupKeyReader> = {
   value: (value) => valueKey(value),
@@ -76,7 +82,7 @@ const GROUP_KEY_READERS: Record<TableViewGroupBy, GroupKeyReader> = {
  * falls on in the reader's time zone.
  */
 export function rowGroupKey(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   by: TableViewGroupBy,
   locale: string,
 ): string {
@@ -214,7 +220,8 @@ export function orderGroupedRows<T>(
   const groupOf = new Map<string, number>();
   const entries = rows.map((row, index) => {
     const key = rowGroupKey(
-      get(row as Record<string, unknown>, grouped.groupByField),
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained. Nuxt get's object input declaration cannot prove generic rows or preserve its primitive handling through inference; keep its unchecked lookup.
+      get(row as Parameters<typeof get>[0], grouped.groupByField),
       by,
       locale,
     );
@@ -222,7 +229,8 @@ export function orderGroupedRows<T>(
     return { row, index, group: groupOf.get(key)! };
   });
   const direction = sort.desc ? -1 : 1;
-  const valueOf = (row: T) => get(row as Record<string, unknown>, sort.id);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained and Nuxt get's input owner is object-only. A guard or generic constraint would change accepted rows; keep the dynamic lookup.
+  const valueOf = (row: T) => get(row as Parameters<typeof get>[0], sort.id);
   return entries
     .sort(
       (a, b) =>
@@ -269,7 +277,7 @@ export function groupedOptionsFor(
 /** The rows of one group, under its key. */
 export interface RowGroup<T> {
   key: string;
-  rows: T[];
+  rows: [T, ...T[]];
 }
 
 /**
@@ -282,7 +290,7 @@ export function groupRows<T>(
   rows: readonly T[],
   keyOf: (row: T) => string,
 ): RowGroup<T>[] {
-  const groups = new Map<string, T[]>();
+  const groups = new Map<string, RowGroup<T>["rows"]>();
   for (const row of rows) {
     const key = keyOf(row);
     const group = groups.get(key);

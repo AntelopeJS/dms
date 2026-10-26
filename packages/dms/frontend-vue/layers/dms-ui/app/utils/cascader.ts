@@ -1,3 +1,5 @@
+/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Cascader mappings read arbitrary custom row fields and picked values. JSON-only or id-only owner contracts would exclude currently supported objects, arrays and values converted with String. */
+import { isObject } from "../../../dms-core/app/utils/type-check";
 export interface CascaderKeyMapping {
   label: string;
   value: string;
@@ -204,9 +206,7 @@ export function buildCascaderPathLabels(
 }
 
 function asPickedRow(item: unknown): CascaderRow | undefined {
-  return typeof item === "object" && item !== null
-    ? (item as CascaderRow)
-    : undefined;
+  return isObject(item) && item !== null ? item : undefined;
 }
 
 /**

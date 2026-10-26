@@ -1,4 +1,5 @@
-import type { DmsServerEvent } from "#dms/server";
+import { isString } from "../../dms-core/app/utils/type-check";
+import type { DmsBackendRequest, DmsServerEvent } from "#dms/server";
 import {
   isPersistent,
   persistAccountSession,
@@ -16,7 +17,7 @@ const PENDING_LOGIN_LIFETIME_S = 300;
 const BACKEND_API_PATH =
   /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/[A-Za-z0-9][A-Za-z0-9._~-]*)*$/;
 
-type Input = Record<string, unknown>;
+type Input = Record<string, DmsBackendRequest["body"]>;
 
 interface EstablishResult extends SessionTokens {
   requires_2fa?: boolean;
@@ -36,14 +37,14 @@ interface PendingLogin {
 async function establishWith(
   event: DmsServerEvent,
   endpoint: string,
-  payload: unknown,
+  payload: DmsBackendRequest["body"],
   persistent = true,
 ) {
   const result = await event.backend<EstablishResult>(endpoint, {
     method: "POST",
     body: payload,
   });
-  if (result.requires_2fa && typeof result.two_factor_token === "string")
+  if (result.requires_2fa && isString(result.two_factor_token))
     event.cookies.writeSealed(
       PENDING_LOGIN,
       { token: result.two_factor_token, persistent },
@@ -84,7 +85,7 @@ export async function verifyTwoFactor(event: DmsServerEvent) {
   const input = await event.readJson<Input>();
   const pending = event.cookies.readSealed<PendingLogin>(PENDING_LOGIN);
   const persistent =
-    typeof input.token === "string" && pending?.token === input.token
+    isString(input.token) && pending?.token === input.token
       ? isPersistent(pending)
       : true;
   return establishWith(event, "/api/auth/verify-2fa", input, persistent);
@@ -109,7 +110,7 @@ export function isAllowedEstablishEndpoint(
   allowed: readonly string[],
 ): endpoint is string {
   return (
-    typeof endpoint === "string" &&
+    isString(endpoint) &&
     BACKEND_API_PATH.test(endpoint) &&
     allowed.includes(endpoint)
   );
@@ -181,6 +182,7 @@ export async function switchAccount(event: DmsServerEvent) {
     const descriptor = persistAccountSession(
       event,
       session,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- readAccount gates a prior accountId read, not this later property access. Preserve unchecked forwarding and repeated getter calls without claiming the current value is validated.
       input.accountId as string,
     );
     return { success: true, user, account: descriptor };
@@ -237,6 +239,7 @@ export async function validateAccount(event: DmsServerEvent) {
       method: "POST",
       body: { token: account.refreshToken },
     });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- readAccount gates a prior accountId read, not this later property access. Preserve unchecked forwarding and repeated getter calls without claiming the current value is validated.
     storeValidatedAccount(event, account, input.accountId as string, tokens);
     return { valid: true };
   } catch (error) {

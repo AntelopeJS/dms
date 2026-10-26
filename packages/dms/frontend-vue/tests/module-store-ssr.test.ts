@@ -154,7 +154,9 @@ it("waits for the background read of a return to the page, instead of looping on
 
 it("sizes the tile skeleton like the tile: icon well, pill, title, description and footer", async () => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
-  const render = async (props: Record<string, unknown>) => {
+  const render = async (
+    props: InstanceType<typeof ModuleTileSkeleton>["$props"],
+  ) => {
     const app = createSSRApp({ render: () => h(ModuleTileSkeleton, props) });
     app.component("USkeleton", {
       props: { class: { type: String, default: undefined } },

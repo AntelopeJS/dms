@@ -234,9 +234,8 @@ function placedTable(tableTop: number, rowBottom: number) {
   document.body.append(element);
   const row = element.querySelector("tr")!;
   const place = (top: number, bottom: number) => {
-    element.getBoundingClientRect = () =>
-      ({ top, bottom: top + 400 }) as DOMRect;
-    row.getBoundingClientRect = () => ({ bottom, top: bottom - 40 }) as DOMRect;
+    element.getBoundingClientRect = () => new DOMRect(0, top, 0, 400);
+    row.getBoundingClientRect = () => new DOMRect(0, bottom - 40, 0, 40);
   };
   place(tableTop, rowBottom);
   vi.stubGlobal("requestAnimationFrame", (run: () => void) =>

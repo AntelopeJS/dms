@@ -1,4 +1,5 @@
 import type { HeaderAction } from "../../../composables/useHeaderActions";
+import { isFunction, isString } from "#dms-core/app/utils/type-check";
 import {
   isSidePanelOpen,
   toggleSidePanel,
@@ -26,7 +27,7 @@ const ACTION_CALLABLES = ["onSelect", "isVisible", "isActive"] as const;
  * @internal
  */
 export function isPlainDataHeaderAction(action: HeaderAction): boolean {
-  return ACTION_CALLABLES.every((key) => typeof action[key] !== "function");
+  return ACTION_CALLABLES.every((key) => !isFunction(action[key]));
 }
 
 /**
@@ -40,21 +41,18 @@ export function useHeaderActionControls(): HeaderActionControls {
   const preferences = useSidePanelPreferences();
 
   function isToggle(action: HeaderAction): boolean {
-    return (
-      typeof action.sidePanelId === "string" ||
-      typeof action.isActive === "function"
-    );
+    return isString(action.sidePanelId) || isFunction(action.isActive);
   }
 
   function isActive(action: HeaderAction): boolean {
-    if (typeof action.sidePanelId === "string") {
+    if (isString(action.sidePanelId)) {
       return isSidePanelOpen(preferences, action.sidePanelId);
     }
-    return typeof action.isActive === "function" && action.isActive();
+    return isFunction(action.isActive) && action.isActive();
   }
 
   function select(action: HeaderAction): void {
-    if (typeof action.sidePanelId === "string") {
+    if (isString(action.sidePanelId)) {
       toggleSidePanel(preferences, action.sidePanelId);
       return;
     }

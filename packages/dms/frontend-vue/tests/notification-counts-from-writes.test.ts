@@ -22,7 +22,10 @@ interface Counts {
   unread: number;
   unreadTone?: Tone;
 }
-type StreamEvent = { type: string; payload?: Record<string, unknown> };
+type StreamEvent = {
+  type: string;
+  payload?: { ids?: string[]; counts?: Counts };
+};
 
 const TONE_ORDER: Tone[] = ["error", "warning", "primary", "neutral"];
 const feed: Row[] = [];
@@ -55,15 +58,15 @@ const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   return { success: true, counts };
 });
 
-let streamHandler: ((event: unknown) => void) | undefined;
-stubApiData(authFetch as never);
+let streamHandler: ((event: StreamEvent) => void) | undefined;
+stubApiData(authFetch);
 vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
 vi.stubGlobal("useDmsUserSession", () => ({
   user: ref({ _id: "u1" }),
   loggedIn: ref(true),
 }));
 vi.stubGlobal("useUserRealtime", () => ({
-  subscribe: (_topic: string, handler: (event: unknown) => void) => {
+  subscribe: (_topic: string, handler: (event: StreamEvent) => void) => {
     streamHandler = handler;
     return () => {
       streamHandler = undefined;
@@ -88,7 +91,8 @@ function openTab(): HTMLElement {
   const Tab = defineComponent({
     setup() {
       bell = useNotifications();
-      (notificationStream as unknown as () => void)();
+      // SAFETY: defineDmsPlugin is stubbed above to return the setup callback unchanged.
+      (notificationStream as () => void)();
       return () =>
         h("span", `${bell.unreadCount.value}:${bell.unreadTone.value ?? "-"}`);
     },

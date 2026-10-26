@@ -18,6 +18,7 @@ const items = computed<StepperItem[]>(() =>
     title: label,
     icon: index < props.current ? DONE_ICON : undefined,
 
+    // SAFETY: UStepper reads each item.ui slot optionally; its Pick type requires slots the renderer permits omitting.
     ui:
       index !== props.current
         ? ({ wrapper: "max-sm:hidden" } as StepperItem["ui"])

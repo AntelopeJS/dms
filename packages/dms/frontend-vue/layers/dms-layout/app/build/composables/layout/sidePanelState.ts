@@ -1,4 +1,5 @@
 import type { ComputedRef, Ref } from "vue";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import {
   resolveSidePanelWidthBounds,
   type SidePanel,
@@ -42,15 +43,14 @@ function emptyPreferences(): SidePanelPreferences {
   return { openId: null, widths: {} };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Cookie widths are untrusted, including arrays and primitives. Inference has no source type, and SidePanelPreferences would exclude the malformed values this parser handles.
 function readWidths(value: unknown): Record<string, number> {
-  if (!isRecord(value)) return {};
+  if (!isObject(value) || value === null) return {};
   return Object.fromEntries(
-    Object.entries(value).filter(([, width]) => Number.isFinite(width)),
-  ) as Record<string, number>;
+    Object.entries(value).filter((entry): entry is [string, number] =>
+      Number.isFinite(entry[1]),
+    ),
+  );
 }
 
 /**
@@ -59,9 +59,10 @@ function readWidths(value: unknown): Record<string, number> {
  *
  * @internal
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This public cookie parser accepts arbitrary decoded browser data. Inference is unavailable and its parsed SidePanelPreferences output cannot describe invalid inputs.
 export function readSidePanelPreferences(value: unknown): SidePanelPreferences {
-  if (!isRecord(value)) return emptyPreferences();
-  const openId = typeof value.openId === "string" ? value.openId : null;
+  if (!isObject(value) || value === null) return emptyPreferences();
+  const openId = isString(value.openId) ? value.openId : null;
   return { openId, widths: readWidths(value.widths) };
 }
 
@@ -131,7 +132,7 @@ export function useSidePanelDragWidth(): Ref<number | null> {
 }
 
 /** @internal */
-export function sidePanelWidthStyle(width: number): Record<string, string> {
+export function sidePanelWidthStyle(width: number) {
   return { [SIDE_PANEL_WIDTH_VARIABLE]: `${width}px` };
 }
 

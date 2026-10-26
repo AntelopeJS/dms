@@ -13,6 +13,7 @@ export interface PersistedPaginationOptions {
    * What lists other rows without the user picking it: the hidden filters
    * the page URL sets. A change of value lists from the first page.
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The scope is an opaque value serialized for equality, not a query sent to an endpoint. No schema owns all scope values; narrowing would exclude existing serializable callers.
   scope: () => unknown;
 }
 

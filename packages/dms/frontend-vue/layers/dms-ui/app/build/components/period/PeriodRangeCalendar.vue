@@ -93,7 +93,9 @@ const rekaValue = computed<DateRange>(() =>
 );
 
 function onUpdate(value: DateRange | null) {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka's DateRange admits other DateValue variants; retain unchecked event forwarding without converting or rejecting those variants.
   const start = value?.start as CalendarDate | undefined;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka's DateRange admits other DateValue variants; retain unchecked event forwarding and read end before testing start.
   const end = value?.end as CalendarDate | undefined;
   if (start && end) {
     pendingStart.value = null;
@@ -108,6 +110,7 @@ function onUpdate(value: DateRange | null) {
 function isDateDisabled(date: DateValue): boolean {
   const picked = pendingStart.value;
   return (
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies DateValue while the range helper accepts CalendarDate; preserve unchecked forwarding and short-circuiting instead of adding variant validation.
     !!picked && isBeyondMaxDays(date as CalendarDate, picked, props.maxDays)
   );
 }
@@ -198,6 +201,7 @@ function triggerClass(date: DateValue): (string | false)[] {
   ];
 }
 
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This public prop remains Number at runtime and accepts unchecked numbers; narrowing its declaration or validating values would change the existing contract.
 const weekStart = computed(() => props.weekStartsOn as WeekStart);
 </script>
 

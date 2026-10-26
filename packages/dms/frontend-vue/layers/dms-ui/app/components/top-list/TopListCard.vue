@@ -75,7 +75,7 @@ const PLAIN_RANK_CLASS =
   "text-dimmed font-semibold ring-1 ring-default ring-inset";
 const QUIET_BAR_OPACITY_CLASS = "opacity-45";
 
-const RANK_FILL_CLASSES: Record<string, string> = {
+const RANK_FILL_CLASSES = {
   primary: "bg-(--dms-accent-fill)",
   secondary: "bg-(--ui-color-secondary-400)",
   info: "bg-(--ui-color-info-400)",
@@ -133,7 +133,7 @@ function withPageValues(item: TopListItem): TopListItem {
     ...item,
     to: resolveLinkVariables(item.to, {
       routeParams: props.routeParams,
-      routeQuery: useDmsRoute().query as Record<string, unknown>,
+      routeQuery: useDmsRoute().query,
     }),
   };
 }

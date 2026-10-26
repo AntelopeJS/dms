@@ -53,6 +53,7 @@ export interface RowSidePanelContent {
   positionLabel?: string;
   component: Component;
   /** Props of the component besides `rowData` and `navigation`. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The selected module component owns these arbitrary props; Vue Component is an open union and cannot derive one shared prop schema without excluding existing component options.
   componentOptions: Record<string, unknown>;
   row?: Data;
   /** Id of `row`: the key the component is mounted under, the row the table highlights. */

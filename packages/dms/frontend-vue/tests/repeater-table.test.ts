@@ -18,6 +18,7 @@ import {
   NotFoundRelation,
   relationSelectSource,
 } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 
 const RELATION_TYPE = { selectSource: relationSelectSource };
 
@@ -87,28 +88,45 @@ afterEach(() => {
 });
 
 async function mountTable(
-  rows: Record<string, unknown>[],
-  columns: Record<string, unknown>[] = [PRODUCT, UNIT_PRICE],
+  rows: {
+    product?: string;
+    replaces?: string;
+    quantity?: number;
+    unitPrice?: number;
+  }[],
+  columns: InstanceType<typeof RepeaterTable>["$props"]["columns"] = [
+    PRODUCT,
+    UNIT_PRICE,
+  ],
 ) {
-  for (const name of ["computed", "ref"]) {
-    vi.stubGlobal(name, vue[name as keyof typeof vue]);
+  for (const [name, value] of Object.entries({
+    computed: vue.computed,
+    ref: vue.ref,
+  })) {
+    vi.stubGlobal(name, value);
   }
-  const formatters: Record<string, (value: unknown) => string> = {
-    relation: (value) =>
-      typeof value === "object" && value
-        ? String((value as { name: string }).name)
-        : String(value),
-    price: (value) => `€${value}`,
-    number: (value) => String(value),
-  };
+  const formatters = new Map<
+    string,
+    (value: string | number | { name: string } | null | undefined) => string
+  >(
+    Object.entries({
+      relation: (
+        value: string | number | { name: string } | null | undefined,
+      ) => (isObject(value) && value ? String(value.name) : String(value)),
+      price: (value: string | number | { name: string } | null | undefined) =>
+        `€${value}`,
+      number: (value: string | number | { name: string } | null | undefined) =>
+        String(value),
+    }),
+  );
   vi.stubGlobal("useDataTypes", () => ({
-    getDataType: (id: string) =>
-      formatters[id]
-        ? {
-            formatter: { default: formatters[id] },
-            ...(id === "relation" ? RELATION_TYPE : {}),
-          }
-        : undefined,
+    getDataType: (id: string) => {
+      const formatter = formatters.get(id);
+      if (!formatter) return undefined;
+      if (id === "relation")
+        return { formatter: { default: formatter }, ...RELATION_TYPE };
+      return { formatter: { default: formatter } };
+    },
   }));
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en"),
@@ -122,15 +140,12 @@ async function mountTable(
     }),
   }));
   const requested: string[] = [];
-  vi.stubGlobal(
-    "useDmsAsyncData",
-    (key: string, read: () => Promise<unknown>) => {
-      requested.push(key);
-      const data = ref<unknown>();
-      void read().then((rows) => (data.value = rows));
-      return { data };
-    },
-  );
+  vi.stubGlobal("useDmsAsyncData", <T>(key: string, read: () => Promise<T>) => {
+    requested.push(key);
+    const data = ref<unknown>();
+    void read().then((rows) => (data.value = rows));
+    return { data };
+  });
   const host = document.createElement("div");
   document.body.append(host);
   app = createApp({

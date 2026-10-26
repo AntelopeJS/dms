@@ -75,7 +75,7 @@ const props = withDefaults(defineProps<StatGroupProps>(), {
 const MIN_COLUMNS = 1;
 const MAX_COLUMNS = 6;
 
-const JOINED_COLUMNS: Record<number, string> = {
+const JOINED_COLUMNS: Record<NonNullable<StatGroupProps["columns"]>, string> = {
   1: "grid-cols-1",
   2: "grid-cols-1 @sm:grid-cols-2",
   3: "grid-cols-1 @xl:grid-cols-3",
@@ -83,7 +83,7 @@ const JOINED_COLUMNS: Record<number, string> = {
   5: "grid-cols-1 @sm:grid-cols-2 @4xl:grid-cols-5",
   6: "grid-cols-1 @lg:grid-cols-3 @5xl:grid-cols-6",
 };
-const CARD_COLUMNS: Record<number, string> = {
+const CARD_COLUMNS: Record<NonNullable<StatGroupProps["columns"]>, string> = {
   1: "grid-cols-1",
   2: "grid-cols-2",
   3: "grid-cols-1 @xl:grid-cols-3",

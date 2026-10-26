@@ -149,7 +149,8 @@ describe("useChartFetch with a templated fetchUrl", () => {
     fetchUrl: string,
     routeParams: () => Record<string, string> | undefined,
   ) {
-    const state: { isLoading?: { value: boolean } } = {};
+    const state: Partial<Pick<ReturnType<typeof useChartFetch>, "isLoading">> =
+      {};
     const Probe = defineComponent({
       setup() {
         const { isLoading } = useChartFetch<unknown>({ fetchUrl, routeParams });
@@ -197,7 +198,9 @@ describe("useChartFetch with a templated fetchUrl", () => {
 
 describe("useBlockItems with a templated fetchUrl", () => {
   function mountItems(routeParams: Record<string, string>) {
-    const state: { items?: { value: unknown[] } } = {};
+    const state: Partial<
+      Pick<ReturnType<typeof useBlockItems<{ label: string }>>, "items">
+    > = {};
     const Probe = defineComponent({
       setup() {
         const { items } = useBlockItems<{ label: string }>({

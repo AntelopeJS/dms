@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { Table } from "@tanstack/vue-table";
 import TablePagination from "../table/Pagination.vue";
 import TableEmpty from "../table/Empty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
@@ -67,6 +66,7 @@ const subtitleOf = (item: T): string | undefined =>
 
 const card = computed(
   () =>
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are supplied by backend configuration; retain the existing unchecked card shape.
     (props.context.options as { card?: TableViewCardConfig } | undefined)?.card,
 );
 
@@ -96,7 +96,8 @@ const rowActionsFor = (id: string): Component => {
         name: "CardRowActionsOf",
         render: () =>
           h(CardRowActions, {
-            table: props.context.table as Table<Record<string, unknown>>,
+            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dynamic h erases the row generic; retain the existing unchecked table handoff without asserting that TanStack's row types are covariant.
+            table: props.context.table as TableViewDisplayContext["table"],
             rowId: id,
           }),
       }),

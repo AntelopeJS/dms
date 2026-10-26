@@ -15,7 +15,7 @@ const t = (key: string) => key;
 
 async function render(
   isLive: boolean,
-  props: Record<string, unknown> = {},
+  props: Partial<InstanceType<typeof LiveToggleBlock>["$props"]> = {},
 ): Promise<string> {
   const Page = defineComponent({
     setup() {

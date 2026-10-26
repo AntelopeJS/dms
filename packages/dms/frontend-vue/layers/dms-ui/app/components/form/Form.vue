@@ -11,7 +11,6 @@ import {
   fieldValuesOfSubmitDefaults,
   type FormServerFieldError,
   formShowsActions,
-  isAcceptanceField,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
 import {
@@ -27,12 +26,6 @@ import {
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
 import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
-import type { ZodErrorMap } from "zod";
-import {
-  formIssueMessage,
-  REQUIRED_MESSAGE,
-} from "#dms-core/app/composables/useFormValidation";
-import { validateFormState } from "../../build/composables/form/formValidation";
 import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
@@ -50,17 +43,13 @@ import {
   type FormSurface,
   SECTION_LAYOUT_CLASSES,
 } from "../../build/composables/form/formLayout";
+import { formComponentFocus } from "../../build/composables/form/formComponentFocus";
+import { formComponentRealtime } from "../../build/composables/form/formComponentRealtime";
+import { formComponentSections } from "../../build/composables/form/formComponentSections";
 import {
-  entryFieldIds,
-  errorFieldId,
-  invalidFieldIds,
-  layoutSections,
-  type FormErrorRef,
-  type FormSectionState,
-  resolveSectionNav,
-  sectionState,
-} from "../../build/composables/form/formSections";
-import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/formControlErrors";
+  formComponentValidation,
+  watchFormComponentFieldFlags,
+} from "../../build/composables/form/formComponentValidation";
 import {
   changedServerErrorFields,
   keptServerErrors,
@@ -81,16 +70,8 @@ import {
 } from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
-import { scrollWithin } from "../../build/utils/scrollWithin";
 import { isHiddenOnCreate } from "../../build/composables/form/createFormFields";
-
-const REALTIME_PRESENCE_FLAG = "_presence=1";
-const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
-const REALTIME_RELEASE_PATH = "/api/realtime/release";
-const REALTIME_PRESENCE_TOPIC_PREFIX = "tableview:presence:";
-const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
-const REALTIME_GET_SEGMENT = "/get";
-const REALTIME_EVENT_UPDATED = "updated";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const props = defineProps<FormProps>();
 const form = useTemplateRef("form");
@@ -109,82 +90,11 @@ const { processI18n, processApiMessage } = useTranslation();
 
 const serverErrors = new Map<string, KeptServerError>();
 
-/** The control of a field, by its id, inside this form only. */
-function fieldControl(name: string | undefined): HTMLElement | null {
-  const element = form.value?.$el as HTMLElement | undefined;
-  if (!name || !element?.querySelector) return null;
-  return element.querySelector<HTMLElement>(`[id="${CSS.escape(name)}"]`);
-}
-
-/** The names a field's errors go under: its own, and one per language. */
-function errorNames(field: FormField): string[] {
-  if (!field.localized) return [field.id];
-  return [field.id, ...locales.value.map((lang) => `${field.id}.${lang.code}`)];
-}
-
-const PREFERRED_FOCUS =
-  "[data-reka-calendar-cell-trigger][tabindex='0'], [role='grid'] [tabindex='0']";
-const FOCUSABLE =
-  "input:not([type='hidden']):not([disabled]):not([tabindex='-1']), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
-
-/** The row of a field (its `UFormField`), by the name it validates under. */
-function fieldRow(name: string | undefined): HTMLElement | null {
-  const element = form.value?.$el as HTMLElement | undefined;
-  if (!name || !element?.querySelector) return null;
-  return element.querySelector<HTMLElement>(
-    `[data-field="${CSS.escape(name)}"]`,
-  );
-}
-
-/**
- * Resolves once UForm is done with a submit: while it validates, it disables
- * every control, and a disabled control cannot take focus.
- */
-async function formSettled(): Promise<void> {
-  await nextTick();
-  if (!form.value?.loading) return;
-  await new Promise<void>((resolve) => {
-    const stop = watch(
-      () => form.value?.loading,
-      (busy) => {
-        if (busy) return;
-        stop();
-        resolve();
-      },
-    );
-  });
-  await nextTick();
-}
-
-/**
- * Focuses the control an error names (the part of a field it names, or the
- * field), or its first focusable part (a pill group, a picker trigger); a
- * field with nothing to focus is scrolled into view.
- */
-async function focusField(name: string | undefined): Promise<void> {
-  await formSettled();
-  const fieldId = errorFieldId(name, allFieldIds.value) ?? name;
-  const control = fieldControl(name) ?? fieldControl(fieldId);
-  const row = fieldRow(fieldId);
-  const target = control?.matches(FOCUSABLE)
-    ? control
-    : (control?.querySelector<HTMLElement>(PREFERRED_FOCUS) ??
-      control?.querySelector<HTMLElement>(FOCUSABLE) ??
-      row?.querySelector<HTMLElement>(FOCUSABLE));
-  if (target) {
-    target.focus();
-    return;
-  }
-  if (row) scrollWithin(row, { block: "center" });
-}
-
-/** Brings a field into view and focuses it: a link's anchor, a field's request. */
-async function revealField(fieldId: string): Promise<void> {
-  await formSettled();
-  const row = fieldRow(fieldId);
-  if (row) scrollWithin(row, { block: "center" });
-  await focusField(fieldId);
-}
+const { focusField, revealField } = formComponentFocus({
+  element: () => form.value?.$el,
+  loading: () => form.value?.loading,
+  fieldIds: () => allFieldIds.value,
+});
 
 /**
  * A refused submit: its field errors go under the fields, the first focused.
@@ -255,7 +165,6 @@ const {
   disabledFields,
   hiddenFields,
   requiredFields,
-  isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
   createsRecord,
@@ -273,16 +182,8 @@ watch(
   { deep: true },
 );
 
-const validateServerErrors = (current: Record<string, unknown>) =>
+const validateServerErrors = (current: typeof state.value) =>
   keptServerErrors(serverErrors, current, !!form.value?.loading);
-
-/** A saved form: what the server refused before no longer stands. */
-function clearServerErrors(): void {
-  for (const name of serverErrors.keys()) {
-    form.value?.clear(fieldErrorPattern(name));
-  }
-  serverErrors.clear();
-}
 
 const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
@@ -291,72 +192,27 @@ const saveMode = formSaveMode(props.saveMode, props.kind);
 
 const isInstant = saveMode === "instant";
 
-const issueErrorMap: ZodErrorMap = (issue, context) => ({
-  message: processApiMessage(formIssueMessage(issue, context.data)),
-});
-
-/**
- * The validation schema, as a Standard Schema validating with that map: a
- * required field left empty, whatever its type, gets the one "required"
- * message (see `validateFormState`).
- */
-const localizedSchema = computed(() => {
-  const schema = validationSchema.value;
-  const validationFields = toValue(allFields).map((field) => ({
-    id: field.id,
-    type: field.type,
-    localized: field.localized,
-    fallbackLocale: field.fallbackLocale,
-    required: isFieldRequired(field),
-    acceptance: isAcceptanceField(field),
-  }));
-  return {
-    "~standard": {
-      version: 1 as const,
-      vendor: "dms",
-      validate: (value: unknown) =>
-        validateFormState(schema, value as Record<string, unknown>, {
-          fields: validationFields,
-          requiredMessage: processApiMessage(REQUIRED_MESSAGE),
-          locale: locale.value,
-          parseParams: { errorMap: issueErrorMap },
-          controlErrors,
-        }),
+const { localizedSchema, errorNames, clearServerErrors } =
+  formComponentValidation({
+    validationSchema,
+    allFields,
+    state,
+    isFieldRequired,
+    processApiMessage,
+    locale: () => locale.value,
+    locales: () => locales.value,
+    serverErrors,
+    clearError: (name) => form.value?.clear(fieldErrorPattern(name)),
+    validateControl(fieldId) {
+      void form.value?.validate({ name: fieldId, silent: true });
     },
-  };
-});
-
-const controlErrors = reactive(new Map<string, string>());
-provide(FORM_CONTROL_ERRORS_KEY, {
-  report(fieldId, message) {
-    if (message) controlErrors.set(fieldId, processApiMessage(message));
-    else controlErrors.delete(fieldId);
-    void form.value?.validate({ name: fieldId, silent: true });
-  },
-});
-
-/**
- * A control that tells UForm nothing (a picker, a tree, a rich-text editor)
- * still gets its error refreshed as its value changes: once a field shows an
- * error, each change re-validates it, so the message clears once fixed.
- */
-const fieldValueSnapshots = new Map<string, string>();
-watch(
-  state,
-  (current) => {
-    for (const field of toValue(allFields)) {
-      const snapshot = JSON.stringify(current[field.id]) ?? "";
-      const previous = fieldValueSnapshots.get(field.id);
-      fieldValueSnapshots.set(field.id, snapshot);
-      if (previous === undefined || previous === snapshot) continue;
-      if (!form.value || serverErrors.has(field.id)) continue;
+    revalidateChangedField(field) {
+      if (!form.value || serverErrors.has(field.id)) return;
       const pattern = fieldErrorPattern(field.id);
-      if (!form.value.getErrors(pattern).length) continue;
+      if (!form.value.getErrors(pattern).length) return;
       void form.value.validate({ name: errorNames(field), silent: true });
-    }
-  },
-  { deep: true, immediate: true },
-);
+    },
+  });
 
 const { t, locale, locales } = useI18n();
 
@@ -367,31 +223,14 @@ const submitButtonLabel = computed(() =>
   props.submitLabel ? processI18n(props.submitLabel) : t(DEFAULT_SUBMIT_LABEL),
 );
 
-watch(disabledFields, (newDisabled, oldDisabled) => {
-  if (!newDisabled || !form.value) return;
-
-  for (const fieldId of newDisabled) {
-    if (!oldDisabled?.has(fieldId)) {
-      form.value.clear(fieldId);
-    }
-  }
-});
-
-watch(hiddenFields, (newHidden, oldHidden) => {
-  if (!newHidden || !form.value) return;
-
-  for (const fieldId of newHidden) {
-    if (!oldHidden?.has(fieldId)) {
-      form.value.clear(fieldId);
-    }
-  }
-});
+watchFormComponentFieldFlags(disabledFields, () => form.value);
+watchFormComponentFieldFlags(hiddenFields, () => form.value);
 
 const container = inject(DMS_CONTAINER_KEY, undefined);
 const containerId = props.containerId ?? container?.id;
 
 /** The value of every field, by id: what "unsaved changes" compares. */
-function fieldValues(): Record<string, unknown> {
+function fieldValues(): typeof state.value {
   return Object.fromEntries(
     toValue(allFields).map((field) => [field.id, state.value[field.id]]),
   );
@@ -412,7 +251,7 @@ function markTouched(): void {
   isTouched = true;
 }
 onMounted(() => {
-  const element = form.value?.$el as HTMLElement | undefined;
+  const element = form.value?.$el;
   for (const type of TOUCH_EVENTS) {
     element?.addEventListener?.(type, markTouched, { capture: true });
   }
@@ -475,6 +314,7 @@ const instantSave = isInstant
       fields: allFields,
       isTouched: () => isTouched,
       isFieldValid,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Instant changes have unknown values while submitChanges accepts FormData. This legacy handoff forwards them without validating or narrowing their contents.
       submit: (changes) => submitChanges(changes as FormData),
       onRefused: reportSubmitError,
     })
@@ -497,8 +337,8 @@ const route = useDmsRoute();
  * a bookmark or a new tab, where going back would leave the app.
  */
 function previousAppPage(): string | undefined {
-  const back = (window.history.state as { back?: unknown } | null)?.back;
-  return typeof back === "string" ? back : undefined;
+  const back: unknown = window.history.state?.back;
+  return isString(back) ? back : undefined;
 }
 
 /**
@@ -575,6 +415,7 @@ provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 allFields.value.forEach((field) => {
   if (field.defaultValue === undefined) return;
   state.value[field.id] = cloneFormValue(field.defaultValue);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- cloneFormValue can return undefined, and defaultValue is reread after the check. This legacy baseline assignment does not prove the narrower field value or validate the JSON clone's result.
   initialValues.value[field.id] = cloneFormValue(
     field.defaultValue,
   ) as FormFieldValue;
@@ -584,6 +425,7 @@ for (const [id, value] of Object.entries(
   fieldValuesOfSubmitDefaults(allFields.value, effectiveSubmitDefaults.value),
 )) {
   state.value[id] = cloneFormValue(value);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- FormData excludes undefined although submit defaults may contain it; inference and the baseline's owner cannot justify this existing unchecked assignment.
   initialValues.value[id] = cloneFormValue(value) as FormFieldValue;
 }
 
@@ -725,208 +567,35 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   retrySave: () => instantSave?.retry(),
 });
 
-const sectionsLayout = computed(() =>
-  hasSections ? layoutSections(fields.value, props.sections ?? []) : undefined,
-);
-const sectionNav = resolveSectionNav(
-  props.sectionNav,
-  props.sections?.length ?? 0,
-);
-
-const invalidFields = computed<ReadonlySet<string>>(() => {
-  const errors: readonly FormErrorRef[] = form.value?.errors ?? [];
-  return new Set(invalidFieldIds(errors, allFieldIds.value));
-});
-
-const changedFieldIds = computed(
-  () => new Set(isInstant ? [] : changedFields.value.map((field) => field.id)),
-);
-const sectionStates = computed<Record<string, FormSectionState>>(() =>
-  Object.fromEntries(
-    (sectionsLayout.value?.sections ?? []).map((section) => [
-      section.id,
-      sectionState(section, changedFieldIds.value, invalidFields.value),
-    ]),
-  ),
-);
-
-/** What the form names a field by: its label, or its group's. */
-const fieldLabels = computed(() => {
-  const labels = new Map<string, string>();
-  for (const entry of fields.value) {
-    const fieldsOfEntry = isFieldGroup(entry) ? entry.fields : [entry];
-    for (const field of fieldsOfEntry) {
-      const label = field.label || entry.label || field.id;
-      labels.set(field.id, processI18n(label));
-    }
-  }
-  return labels;
-});
-
-const sectionOfField = computed(() => {
-  const owners = new Map<string, string>();
-  for (const section of sectionsLayout.value?.sections ?? []) {
-    for (const id of section.fieldIds) owners.set(id, section.label);
-  }
-  return owners;
-});
-
-const errorSummaryItems = computed(() => {
-  if (!showsErrorSummary.value) return [];
-  const items = [...invalidFields.value].map((id) => {
-    const section = sectionOfField.value.get(id);
-    return {
-      id,
-      label: fieldLabels.value.get(id) ?? id,
-      section: section ? processI18n(section) : undefined,
-    };
-  });
-  return items.filter(
-    (item, index) =>
-      items.findIndex(
-        (other) => other.label === item.label && other.section === item.section,
-      ) === index,
-  );
+const {
+  sectionsLayout,
+  sectionNav,
+  changedFieldIds,
+  sectionStates,
+  errorSummaryItems,
+  changedFieldLabels,
+} = formComponentSections({
+  props,
+  hasSections,
+  fields,
+  allFieldIds,
+  errors: () => form.value?.errors ?? [],
+  changedFields,
+  isInstant,
+  showsErrorSummary,
+  usesSaveBar,
+  processI18n,
 });
 
 const formElementId = `dms-form-${props.componentId}`;
-const changedFieldLabels = computed<string[]>(() => {
-  if (!usesSaveBar) return [];
-  const layout = sectionsLayout.value;
-  if (!layout)
-    return changedFields.value.map((field) => field.label || field.id);
-  const leadIds = new Set(layout.lead.flatMap(entryFieldIds));
-  return [
-    ...changedFields.value
-      .filter((field) => leadIds.has(field.id))
-      .map((field) => field.label || field.id),
-    ...layout.sections
-      .filter((section) => sectionStates.value[section.id]?.dirty)
-      .map((section) => section.label),
-  ];
-});
-
-interface RealtimeFormContext {
-  location: string;
-  rowId: string;
-  presenceTopic: string;
-  rowTopic: string;
-}
-
-const parseRealtimeContext = (
-  fetchUrl: string | undefined,
-): RealtimeFormContext | null => {
-  if (!fetchUrl || !fetchUrl.includes(REALTIME_PRESENCE_FLAG)) return null;
-  const url = new URL(fetchUrl, "http://placeholder");
-  const idx = url.pathname.lastIndexOf(REALTIME_GET_SEGMENT);
-  if (idx === -1) return null;
-  const location = url.pathname.slice(0, idx);
-  const rowId = url.searchParams.get("id");
-  if (!location || !rowId) return null;
-  return {
-    location,
-    rowId,
-    presenceTopic: `${REALTIME_PRESENCE_TOPIC_PREFIX}${location}`,
-    rowTopic: `${REALTIME_ROW_TOPIC_PREFIX}${location}`,
-  };
-};
-
-const realtimeContext = computed(() =>
-  parseRealtimeContext(resolvedFetchUrl.value),
-);
-const showConcurrentEditBanner = ref(false);
-const { user: realtimeUser } = useDmsUserSession();
-const { $authFetch } = useAuthFetch();
-const pageRealtime = useUserRealtime();
-const acquired = ref<{
-  sessionId: string;
-  pageId: string;
-  topic: string;
-  key: string;
-} | null>(null);
-
-watch(
-  () =>
-    [
-      pageRealtime.sessionId.value,
-      pageRealtime.pageId.value,
-      realtimeContext.value,
-    ] as const,
-  async ([sessionId, pageId, ctx]) => {
-    if (!sessionId || !pageId || !ctx) return;
-    if (
-      acquired.value &&
-      acquired.value.sessionId === sessionId &&
-      acquired.value.topic === ctx.presenceTopic &&
-      acquired.value.key === ctx.rowId
-    ) {
-      return;
-    }
-    try {
-      await $authFetch(REALTIME_ACQUIRE_PATH, {
-        method: "POST",
-        body: { pageId, topic: ctx.presenceTopic, key: ctx.rowId },
-      });
-      acquired.value = {
-        sessionId,
-        pageId,
-        topic: ctx.presenceTopic,
-        key: ctx.rowId,
-      };
-    } catch (error) {
-      console.warn("[Form] acquire failed", error);
-    }
-  },
-  { immediate: true },
-);
-
-useRealtimeTopic(
-  () => realtimeContext.value?.rowTopic,
-  (event) => {
-    const ctx = realtimeContext.value;
-    if (!ctx) return;
-    const eventTyped = event as {
-      type: string;
-      payload?: { ids?: string[] };
-      actorId?: string;
-    };
-    if (eventTyped.type !== REALTIME_EVENT_UPDATED) return;
-    if (!eventTyped.payload?.ids?.includes(ctx.rowId)) return;
-    if (eventTyped.actorId === realtimeUser.value?._id) return;
-    showConcurrentEditBanner.value = true;
-  },
-);
-
-const handleDiscardAndRefresh = async () => {
-  const fresh = await fetchData();
-  if (fresh && Object.keys(fresh).length > 0) {
-    Object.assign(state.value, fresh);
-  }
-
-  markFormClean();
-  showConcurrentEditBanner.value = false;
-};
-
-const handleKeepEditing = () => {
-  showConcurrentEditBanner.value = false;
-};
-
-onUnmounted(async () => {
-  const captured = acquired.value;
-  if (!captured || submitSucceeded.value) return;
-  try {
-    await $authFetch(REALTIME_RELEASE_PATH, {
-      method: "POST",
-      body: {
-        pageId: captured.pageId,
-        topic: captured.topic,
-        key: captured.key,
-      },
-    });
-  } catch (error) {
-    console.warn("[Form] release on close failed", error);
-  }
-});
+const { showConcurrentEditBanner, handleDiscardAndRefresh, handleKeepEditing } =
+  formComponentRealtime({
+    resolvedFetchUrl,
+    state,
+    fetchData,
+    submitSucceeded,
+    markFormClean,
+  });
 </script>
 
 <template>

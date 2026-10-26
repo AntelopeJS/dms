@@ -16,6 +16,8 @@ import {
   h,
   nextTick,
   ref,
+  type App,
+  type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -91,11 +93,11 @@ const Passthrough = defineComponent({
 const Skeleton = defineComponent({ setup: () => () => h("div", "SKELETON") });
 
 /** Defer a component's resolution to mimic a lazily chunked global. */
-function lazy(component: unknown, delayMs: number) {
+function lazy(component: Component, delayMs: number) {
   return defineAsyncComponent(
     () =>
-      new Promise((resolve) =>
-        setTimeout(() => resolve(component as never), delayMs),
+      new Promise<Component>((resolve) =>
+        setTimeout(() => resolve(component), delayMs),
       ),
   );
 }
@@ -133,11 +135,11 @@ function sameFlushPage() {
 const mounted: Array<{ unmount: () => void }> = [];
 
 async function ssrThenHydrate(
-  root: unknown,
-  components: Record<string, unknown> = {},
+  root: Component,
+  components: Record<string, Component> = {},
 ) {
   const html = await renderToString(
-    withComponents(createSSRApp(root as never), components),
+    withComponents(createSSRApp(root), components),
   );
   const container = document.createElement("div");
   container.innerHTML = html;
@@ -146,7 +148,7 @@ async function ssrThenHydrate(
   const payload = structuredClone(engine.serializeDmsPayload(renderRuntime));
   const browser = engine.createDmsFrontendRuntime(undefined, {});
   engine.restoreDmsPayload(browser, payload);
-  const app = withComponents(createSSRApp(root as never), components);
+  const app = withComponents(createSSRApp(root), components);
   engine.provideDmsFrontendRuntime(app, browser);
   app.mount(container);
   mounted.push(app);
@@ -158,11 +160,9 @@ async function ssrThenHydrate(
   return { container, html };
 }
 
-function withComponents<
-  A extends { component: (n: string, c: never) => unknown },
->(app: A, components: Record<string, unknown>): A {
+function withComponents(app: App, components: Record<string, Component>): App {
   for (const [name, component] of Object.entries(components)) {
-    app.component(name, component as never);
+    app.component(name, component);
   }
   return app;
 }
@@ -250,7 +250,7 @@ describe("period-scoped cards on first paint", () => {
   it("shows a loading placeholder server-side rather than an empty value", async () => {
     const app = createSSRApp({
       render: () =>
-        h(KpiCard as never, {
+        h(KpiCard, {
           title: "Revenue",
           componentId: "card",
           pageId: "page",
@@ -314,12 +314,12 @@ describe("chart fetch loading state", () => {
   it("stays loading when an aborted request settles after a newer one started", async () => {
     const pending: Array<{
       url: string;
-      resolve: (value: unknown) => void;
-      reject: (error: unknown) => void;
+      resolve: (value: { value: number }) => void;
+      reject: (error: Error) => void;
     }> = [];
     vi.stubGlobal("useAuthFetch", () => ({
       $authFetch: (url: string, opts: { signal: AbortSignal }) =>
-        new Promise((resolve, reject) => {
+        new Promise<{ value: number }>((resolve, reject) => {
           pending.push({ url, resolve, reject });
           opts.signal.addEventListener("abort", () =>
             reject(Object.assign(new Error("aborted"), { name: "AbortError" })),

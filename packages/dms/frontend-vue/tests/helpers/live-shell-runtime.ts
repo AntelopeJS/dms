@@ -7,7 +7,10 @@ import {
   installRealtimeFetch,
 } from "../fixtures/realtimeServer";
 import { createFakeBrowser } from "../fixtures/fakeBrowser";
-import { useUserRealtime } from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
+import {
+  useUserRealtime,
+  type RealtimeEvent,
+} from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { createI18n } from "vue-i18n";
 import { App as InertiaApp } from "@inertiajs/vue3";
 import { useToast } from "@nuxt/ui/composables/useToast";
@@ -89,15 +92,19 @@ export async function installShellRuntime(path = "/") {
 
 export function registerShellUi(app: vue.App) {
   app.config.globalProperties.$t = (key: string) => key;
-  app.component("UDashboardSidebar", (_: unknown, { slots }) =>
-    vue.h("nav", [
-      slots.header?.({ collapsed: false }),
-      slots.default?.({ collapsed: false }),
-      slots.footer?.({ collapsed: false }),
-    ]),
+  app.component(
+    "UDashboardSidebar",
+    (_: Parameters<vue.FunctionalComponent>[0], { slots }) =>
+      vue.h("nav", [
+        slots.header?.({ collapsed: false }),
+        slots.default?.({ collapsed: false }),
+        slots.footer?.({ collapsed: false }),
+      ]),
   );
-  app.component("UDashboardNavbar", (_: unknown, { slots }) =>
-    vue.h("header", [slots.leading?.(), slots.right?.(), slots.default?.()]),
+  app.component(
+    "UDashboardNavbar",
+    (_: Parameters<vue.FunctionalComponent>[0], { slots }) =>
+      vue.h("header", [slots.leading?.(), slots.right?.(), slots.default?.()]),
   );
 }
 
@@ -134,7 +141,7 @@ export function liveShellRuntime() {
       await settle();
       expect(server.openConnections()).toHaveLength(0);
     },
-    async publish(topic: string, payload?: Record<string, unknown>) {
+    async publish(topic: string, payload?: RealtimeEvent["payload"]) {
       const sessionId = useUserRealtime().sessionId.value;
       if (!sessionId) throw new Error("Realtime session is not open");
       server.send(sessionId, "event", {

@@ -73,7 +73,7 @@ export interface CodeEditor {
   destroy: () => void;
 }
 
-const LANGUAGES: Record<string, () => Extension> = {
+const LANGUAGES: Record<CodeEditorOptions["language"], () => Extension> = {
   json: () => json(),
   sql: () => sql(),
   html: () => html(),

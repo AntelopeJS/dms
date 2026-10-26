@@ -6,7 +6,10 @@ import {
   chartFrameHeight,
   useApexChart,
 } from "../../composables/chart/useApexChart";
-import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types";
+import type {
+  ApexClickHandler,
+  MixedSeriesDef,
+} from "../../composables/chart/useApexChart.types";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import { formatValue } from "../../composables/chart/formatValue";
@@ -128,6 +131,7 @@ function localized(series: ChartSeries[]): ChartSeries[] {
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy non-circular handoff assumes series without validating or transforming mismatched datasets.
   return localized(props.staticDataset as ChartSeries[]);
 });
 
@@ -135,6 +139,7 @@ const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
   return localizeDonutRecords(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy circular handoff assumes donut records without validating or transforming mismatched datasets.
     props.staticDataset as DonutRecord[],
     processI18n,
   );
@@ -201,8 +206,9 @@ function buildXyClickPayload(opts: {
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
   const label =
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof preserves the ChartSeries field without a cast or changed payload validation.
     typeof point === "object" && point !== null && "label" in point
-      ? (point as { label?: string }).label
+      ? point.label
       : undefined;
   return {
     dataPointIndex,
@@ -214,8 +220,8 @@ function buildXyClickPayload(opts: {
 }
 
 function emitDataClick(
-  _e: unknown,
-  _ctx: unknown,
+  _e: Parameters<ApexClickHandler>[0],
+  _ctx: Parameters<ApexClickHandler>[1],
   opts: { dataPointIndex: number; seriesIndex: number },
 ) {
   const isSegment = isSegmentChart(props.type);

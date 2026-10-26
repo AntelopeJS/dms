@@ -8,6 +8,7 @@ import type {
 } from "#dms/frontend-module";
 import { getCurrentInstance, toValue, watch, type MaybeRefOrGetter } from "vue";
 import { useLivePauseSource } from "../live/livePauseSource";
+import { isFunction } from "../../utils/type-check";
 
 /** The authenticated fetch `useAuthFetch` returns. */
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -90,7 +91,7 @@ export function useApiData<T>(
   options?: UseAsyncDataOptions<T>,
 ): ApiDataResult<T> {
   const { $authFetch } = useAuthFetch();
-  if (typeof handlerOrOptions === "function")
+  if (isFunction(handlerOrOptions))
     return followLivePause(
       useDmsAsyncData<T>(
         source,
@@ -102,7 +103,7 @@ export function useApiData<T>(
   return followLivePause(
     useDmsFetch<T>(source, {
       ...gateLivePolling(handlerOrOptions),
-      $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
+      $fetch: $authFetch,
     }),
     handlerOrOptions,
   );

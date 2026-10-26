@@ -72,7 +72,7 @@ async function onSubmit(event: FormSubmitEvent<CodeState>) {
       method: "POST",
       body: {
         token: (event.data.pin ?? []).join(""),
-        user_id: route.query.id as string,
+        user_id: route.query.id,
       },
     });
 

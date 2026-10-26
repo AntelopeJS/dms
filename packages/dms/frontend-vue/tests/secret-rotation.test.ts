@@ -1,5 +1,14 @@
 /** @vitest-environment jsdom */
-import { computed, createApp, h, inject, nextTick, ref, type App } from "vue";
+import {
+  computed,
+  createApp,
+  h,
+  inject,
+  nextTick,
+  ref,
+  type App,
+  type Component,
+} from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fieldSavedMarker } from "../layers/dms-ui/app/build/composables/form/fieldSaved";
 import { useInstantForm } from "../layers/dms-ui/app/build/composables/form/useInstantForm";
@@ -14,7 +23,7 @@ const NEW_KEY = "sk_live_new00004b2d";
 
 describe("a field the server saved on its own", () => {
   function form() {
-    const state = ref<Record<string, unknown>>({
+    const state = ref({
       name: "Acme",
       apiKey: OLD_KEY,
     });
@@ -68,10 +77,10 @@ describe("a field the server saved on its own", () => {
 describe("an instant form told a field was saved", () => {
   it("does not save that value again", async () => {
     vi.useFakeTimers();
-    const state = ref<Record<string, unknown>>({ apiKey: OLD_KEY });
-    const fields = computed(
-      () => [{ id: "apiKey", type: "secret" }] as unknown as FormField[],
-    );
+    const state = ref({ apiKey: OLD_KEY });
+    const fields = computed<FormField[]>(() => [
+      { id: "apiKey", type: "secret", component: {} },
+    ]);
     const submit = vi.fn(async () => {});
     const instant = useInstantForm({
       state,
@@ -107,7 +116,7 @@ describe("DmsInputSecret", () => {
     vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
     vi.stubGlobal("useOverlay", () => ({
       create: (
-        _component: unknown,
+        _component: Component,
         { props }: { props: { onConfirm: () => Promise<void> } },
       ) => ({
         open: async () => {

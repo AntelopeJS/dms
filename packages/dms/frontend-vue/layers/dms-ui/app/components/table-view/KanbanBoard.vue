@@ -61,7 +61,7 @@ interface KanbanBoardProps {
   /** CSS max-height of a column card list before it scrolls */
   columnMaxHeight?: string;
   /** Filters/search/sort query params shared with the table view */
-  baseQuery: Record<string, unknown>;
+  baseQuery: TableViewDisplayContext<T>["query"];
   componentId?: string;
   pageId?: string;
   /** Edit action config; gates dragging globally and per row (rule) */
@@ -164,12 +164,12 @@ watch(
       Object.entries(next).map(([value, page]) => [
         value,
         {
-          items: [...((page as ListResponse | undefined)?.results ?? [])],
-          total: (page as ListResponse | undefined)?.total ?? 0,
+          items: [...(page?.results ?? [])],
+          total: page?.total ?? 0,
           loadingMore: false,
         },
       ]),
-    ) as Record<string, BoardCellState>;
+    );
   },
   { immediate: true },
 );
@@ -217,7 +217,7 @@ const isActionAllowedForItem = (
   const config = normalizeActionConfig(action);
   if (!config.isEnabled) return false;
   if (!config.rule) return true;
-  return evaluateRowActionRule(config.rule, item as Record<string, unknown>);
+  return evaluateRowActionRule(config.rule, item);
 };
 
 const isDragEnabled = computed(
@@ -238,17 +238,14 @@ const isItemLocked = (item: T): boolean =>
 const persistGroupChange = async (
   itemId: string,
   fieldKey: string,
-  rawValue: unknown,
+  rawValue: KanbanColumnDef["rawValue"],
 ) => {
-  const fullItem = await $authFetch<Record<string, unknown>>(
-    `${props.location}/get`,
-    {
-      query: { id: itemId },
-      headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-    },
-  );
+  const fullItem = await $authFetch<Data>(`${props.location}/get`, {
+    query: { id: itemId },
+    headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
+  });
 
-  const body: Record<string, unknown> = {};
+  const body: Data = {};
   for (const column of props.columns) {
     if (column.accessMode === AccessMode.ReadOnly) continue;
     let value = fullItem[column.accessorKey];
@@ -281,7 +278,8 @@ const applyOptimisticMove = (
     (col) => col.value === String(previousValue),
   );
 
-  (item as Record<string, unknown>)[fieldKey] = target.rawValue;
+  const writableItem: Data = item;
+  writableItem[fieldKey] = target.rawValue;
   const targetCell = cells.value[target.value];
   if (targetCell) targetCell.total += 1;
   const sourceCell = source ? cells.value[source.value] : undefined;
@@ -297,7 +295,9 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   }
 };
 
-const notifyMoveError = (error: unknown) => {
+const notifyMoveError = (
+  error: Parameters<typeof describeTableWriteError>[0],
+) => {
   toast.add({
     color: Color.error,
     title: t("dms.table.kanban.move_error"),
@@ -346,6 +346,7 @@ const onColumnChange = async (
 
 const customCardProps = (item: T, groupValue: string) => ({
   ...props.cardComponent?.options,
+  // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Retain spread evaluation order and own-property copying of module card options before context and groupValue.
   ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
   groupValue,
 });

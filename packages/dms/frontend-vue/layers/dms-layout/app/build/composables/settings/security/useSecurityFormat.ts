@@ -1,4 +1,5 @@
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
@@ -71,9 +72,11 @@ export function useSecurityFormat() {
    * @param error What `$authFetch` threw
    * @param fallbackKey Message used when the error carries no known code
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values. FetchError-derived parameters would reject the boundary inputs this formatter already handles.
   const errorMessage = (error: unknown, fallbackKey: string): string => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property projection preserves primitive and nullish thrown values; this is not a validated FetchError and owner typing cannot guarantee one.
     const code = (error as FetchErrorLike | undefined)?.data;
-    if (typeof code !== "string" || !code.startsWith(ERROR_CODE_PREFIX)) {
+    if (!isString(code) || !code.startsWith(ERROR_CODE_PREFIX)) {
       return t(fallbackKey);
     }
     const ownKey = `${SECURITY_ERRORS_PREFIX}${code.slice(ERROR_CODE_PREFIX.length)}`;
@@ -82,9 +85,11 @@ export function useSecurityFormat() {
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values; a FetchError parameter would narrow this public error boundary.
   const errorCode = (error: unknown): string | undefined => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This historical projection is deliberately unchecked, including nullish and primitive errors; inference cannot project data from unknown without changing the boundary.
     const code = (error as FetchErrorLike | undefined)?.data;
-    return typeof code === "string" ? code : undefined;
+    return isString(code) ? code : undefined;
   };
 
   return {

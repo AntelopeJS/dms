@@ -11,8 +11,7 @@ import {
 } from "../layers/dms-ui/app/build/utils/scrollWithin";
 
 function box(element: HTMLElement, top: number, height: number): void {
-  element.getBoundingClientRect = () =>
-    ({ top, bottom: top + height, height }) as DOMRect;
+  element.getBoundingClientRect = () => new DOMRect(0, top, 0, height);
 }
 
 function scroller(overflowY: string, scrollTop = 0): HTMLDivElement {
@@ -21,7 +20,7 @@ function scroller(overflowY: string, scrollTop = 0): HTMLDivElement {
   Object.defineProperty(element, "scrollHeight", { value: 2000 });
   Object.defineProperty(element, "clientHeight", { value: 500 });
   element.scrollTop = scrollTop;
-  element.scrollTo = vi.fn() as typeof element.scrollTo;
+  element.scrollTo = vi.fn();
   return element;
 }
 

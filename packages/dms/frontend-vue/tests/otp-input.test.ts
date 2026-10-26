@@ -8,6 +8,7 @@ import {
   nextTick,
   ref,
 } from "vue";
+import type OtpInputComponent from "../layers/dms-ui/app/build/components/form/OtpInput.vue";
 
 const CELLS = 6;
 
@@ -36,7 +37,9 @@ PinInput.emits = ["complete"];
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown> = {}) {
+async function mount(
+  props: Partial<InstanceType<typeof OtpInputComponent>["$props"]> = {},
+) {
   const { default: OtpInput } = await import(
     "../layers/dms-ui/app/build/components/form/OtpInput.vue"
   );

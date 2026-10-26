@@ -14,6 +14,7 @@ import type {
 import {
   readTranslationKey,
   resolveI18nKey,
+  type I18nTranslate,
 } from "../composables/translation/useTranslation";
 import {
   formatDate,
@@ -21,11 +22,12 @@ import {
   formatRelativeDistance,
   readableNumberFormat,
 } from "./formatter";
+import { isNumber, isObject, isString } from "./type-check";
 
 /** `t` as vue-i18n takes it: the key, the named values, the plural count. */
 export type ComposedTextTranslate = (
   key: string,
-  named: Record<string, unknown>,
+  named: Parameters<I18nTranslate>[1],
   plural?: number,
 ) => string;
 
@@ -84,20 +86,16 @@ const NUMBER_FORMATS: Record<
 };
 
 /** Whether a value is a composed text rather than a plain string. */
-export function isComposedText(value: unknown): value is ComposedText {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ComposedText).key === "string"
-  );
+export function isComposedText(
+  value: Parameters<typeof isObject>[0],
+): value is ComposedText {
+  return isObject(value) && value !== null && isString(value.key);
 }
 
-function isTypedParam(value: unknown): value is ComposedTextTypedParam {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ComposedTextTypedParam).type === "string"
-  );
+function isTypedParam(
+  value: Parameters<typeof isObject>[0],
+): value is ComposedTextTypedParam {
+  return isObject(value) && value !== null && isString(value.type);
 }
 
 function formatMoney(
@@ -159,11 +157,12 @@ function formatParam(
   param: ComposedTextParam,
   context: ComposedTextContext,
 ): string {
-  if (typeof param === "string") return param;
-  if (typeof param === "number") {
+  if (isString(param)) return param;
+  if (isNumber(param)) {
     return String(formatNumber(param, context.locale));
   }
   if (isComposedText(param)) return composeText(param, context);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ParamFormatters preserves the nominal discriminator correlation, which indexed union inference loses. A switch would change legacy lookup behavior for malformed and inherited type keys.
   const formatter = PARAM_FORMATTERS[param.type] as
     | ParamFormatter<ComposedTextTypedParam>
     | undefined;
@@ -172,8 +171,8 @@ function formatParam(
 }
 
 function numberOf(param: ComposedTextParam | undefined): number | undefined {
-  if (typeof param === "number") return param;
-  if (isTypedParam(param) && typeof param.value === "number") {
+  if (isNumber(param)) return param;
+  if (isTypedParam(param) && isNumber(param.value)) {
     return param.value;
   }
   return undefined;
@@ -219,7 +218,7 @@ export function resolveComposedText(
   context: ComposedTextContext,
 ): string {
   if (text === null || text === undefined) return "";
-  if (typeof text === "number") {
+  if (isNumber(text)) {
     return String(formatNumber(text, context.locale));
   }
   if (isComposedText(text)) return composeText(text, context);

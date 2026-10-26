@@ -72,6 +72,7 @@ const hasHead = computed(
 );
 const hasFloatingCopy = computed(() => isHeadless.value && props.copy);
 const wrapClass = computed(
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep String coercion and direct lookup for malformed wrap props; a checked key guard would change those inputs.
   () => WRAP_CLASSES[String(props.wrap) as keyof typeof WRAP_CLASSES],
 );
 const tokens = computed<CodeToken[]>(() =>

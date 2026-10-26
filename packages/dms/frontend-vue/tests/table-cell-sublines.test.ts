@@ -5,17 +5,14 @@
  * row in the reader's language and in the tone the row gives it; an identity
  * without a value stands as its empty label and icon.
  */
-import {
-  createApp,
-  defineComponent,
-  h,
-  ref,
-  type App,
-  type VNodeChild,
-} from "vue";
+import { createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";
-import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "../layers/dms-core/app/composables/data-types/useDataType";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 import { readSubline } from "../layers/dms-ui/app/build/composables/data-types/cellHelpers";
 import { registerMetricCellTypes } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
@@ -58,13 +55,6 @@ const i18n = createI18n({
   },
 });
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => VNodeChild;
-
 const formatters = new Map<string, DataType["formatter"]>();
 const register = (dataType: DataType) =>
   formatters.set(dataType.id, dataType.formatter);
@@ -80,6 +70,7 @@ register({
 register({
   id: "select",
   formatter: {
+    // SAFETY: The select stub is called only with the items option declared in the status-pill fixture below.
     default: (value, _locale, options) =>
       (
         options as { items: Array<{ value: string; label: string }> }
@@ -88,11 +79,11 @@ register({
 });
 
 const format = (id: string, kind: "default" | "empty" = "default") =>
-  formatters.get(id)![kind] as Formatter;
+  formatters.get(id)![kind];
 
 let app: App | undefined;
 
-const render = (content: () => VNodeChild): HTMLElement => {
+const render = (content: () => ReturnType<DataTypeFormatter>): HTMLElement => {
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => content }));
   app.component(
@@ -149,8 +140,9 @@ afterEach(() => {
 });
 
 describe("readSubline", () => {
-  const processText = (value: unknown) =>
-    typeof value === "string" ? value.replace(/^\$/, "i18n:") : "composed";
+  const processText = (
+    value: Parameters<Parameters<typeof readSubline>[1]["processText"]>[0],
+  ) => (isString(value) ? value.replace(/^\$/, "i18n:") : "composed");
 
   it("reads a text with its tone, a composed text, a string, or nothing", () => {
     const reading = { processText, isStringTranslated: true };
@@ -336,7 +328,7 @@ describe("two_line", () => {
 });
 
 describe("IdentityCell", () => {
-  const mountIdentity = (props: Record<string, unknown>) =>
+  const mountIdentity = (props: InstanceType<typeof IdentityCell>["$props"]) =>
     render(() => h(IdentityCell, props));
 
   it("stands an empty row as its muted label and icon tile", () => {
@@ -411,7 +403,7 @@ describe("identity sub-line", () => {
   it("composes a subtitle the row gives as a composed text, in its tone", async () => {
     const identity = await identityFormatter();
     const cell = render(() =>
-      (identity.default as Formatter)(
+      identity.default(
         "Camille Martin",
         "en",
         { subtitleField: "ownerState" },
@@ -426,7 +418,7 @@ describe("identity sub-line", () => {
   it("keeps a plain subtitle as written, in subtitleTone", async () => {
     const identity = await identityFormatter();
     const cell = render(() =>
-      (identity.default as Formatter)(
+      identity.default(
         "Acme",
         "en",
         { subtitleField: "price", subtitleTone: "muted" },
@@ -441,10 +433,8 @@ describe("identity sub-line", () => {
   it("reads each row's tile icon from iconField, falling back to icon", async () => {
     const identity = await identityFormatter();
     const options = { iconField: "icon", icon: "i-ph-puzzle-piece" };
-    const tileOf = (row: Record<string, unknown>) =>
-      render(() =>
-        (identity.default as Formatter)("Exports", "en", options, row),
-      )
+    const tileOf = (row: { icon?: string }) =>
+      render(() => identity.default("Exports", "en", options, row))
         .querySelector("[data-icon]")
         ?.getAttribute("data-icon");
 
@@ -456,7 +446,7 @@ describe("identity sub-line", () => {
   it("draws an empty issuer as its translated empty label and icon", async () => {
     const identity = await identityFormatter();
     const cell = render(() =>
-      (identity.empty as Formatter)(
+      identity.empty(
         null,
         "en",
         { emptyLabel: "$saas.automatic", emptyIcon: "i-ph-robot" },

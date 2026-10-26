@@ -26,34 +26,36 @@ import { useAccessibilityPreferences } from "../layers/dms-layout/app/composable
 
 const KEY = "page.settings.profile.preferences";
 
-const MESSAGES: Record<string, string> = {
-  access_roles: "Role: {roles} | Roles: {roles}",
-  access_no_role: "No role in this workspace",
-  access_workspace_owner: "workspace owner",
-  access_platform_owner: "platform owner, full access",
-  access_platform_owner_alone: "Platform owner, full access",
-  access_workspace_owner_alone: "Workspace owner, no role",
-  access_unavailable: "Your roles couldn't be loaded.",
-  region_summary:
-    "{language} · {zone}: dates {date}, {clock}, weeks start on {weekday}",
-  clock_h23: "24-hour time",
-  clock_h12: "12-hour time",
-  notifications_unread:
-    "No unread notifications | {count} unread notification | {count} unread notifications",
-  notifications_subjects: "{on} of {total} subjects on",
-  notifications_email_soon: "email coming soon",
-  theme_light: "Light theme",
-  theme_dark: "Dark theme",
-  theme_system_light: "System theme (light now)",
-  theme_system_dark: "System theme (dark now)",
-  density_small: "compact density",
-  density_normal: "normal density",
-  density_large: "large density",
-  accessibility_on: "{options} on",
-  a11y_reduce_motion: "reduced motion",
-  a11y_increase_contrast: "increased contrast",
-  a11y_underline_links: "underlined links",
-};
+const MESSAGES = new Map(
+  Object.entries({
+    access_roles: "Role: {roles} | Roles: {roles}",
+    access_no_role: "No role in this workspace",
+    access_workspace_owner: "workspace owner",
+    access_platform_owner: "platform owner, full access",
+    access_platform_owner_alone: "Platform owner, full access",
+    access_workspace_owner_alone: "Workspace owner, no role",
+    access_unavailable: "Your roles couldn't be loaded.",
+    region_summary:
+      "{language} · {zone}: dates {date}, {clock}, weeks start on {weekday}",
+    clock_h23: "24-hour time",
+    clock_h12: "12-hour time",
+    notifications_unread:
+      "No unread notifications | {count} unread notification | {count} unread notifications",
+    notifications_subjects: "{on} of {total} subjects on",
+    notifications_email_soon: "email coming soon",
+    theme_light: "Light theme",
+    theme_dark: "Dark theme",
+    theme_system_light: "System theme (light now)",
+    theme_system_dark: "System theme (dark now)",
+    density_small: "compact density",
+    density_normal: "normal density",
+    density_large: "large density",
+    accessibility_on: "{options} on",
+    a11y_reduce_motion: "reduced motion",
+    a11y_increase_contrast: "increased contrast",
+    a11y_underline_links: "underlined links",
+  }),
+);
 
 /** vue-i18n's plural choice: 2 forms are one|other, 3 are zero|one|other. */
 function pickPlural(forms: string[], count?: number): string {
@@ -63,7 +65,7 @@ function pickPlural(forms: string[], count?: number): string {
 }
 
 const t: SummaryTranslate = (key, params = {}, plural) => {
-  const message = MESSAGES[key.replace(`${KEY}.`, "")];
+  const message = MESSAGES.get(key.replace(`${KEY}.`, ""));
   if (message === undefined) return key;
   const form = pickPlural(message.split(" | "), plural);
   return form.replace(/\{(\w+)\}/g, (_, name: string) =>
@@ -222,8 +224,8 @@ describe("access gating", () => {
 
 const navPages = ref<{ fullId: string; to: string }[]>([]);
 let authFetch: ReturnType<typeof vi.fn>;
-let resolveAccess: (value: unknown) => void;
-let resolvePreferences: (value: unknown) => void;
+let resolveAccess: (value: Parameters<typeof buildAccessSummary>[1]) => void;
+let resolvePreferences: (value: Record<string, boolean>) => void;
 let feed: ReturnType<typeof useNotifications>;
 let theme: "dark" | "system" = "dark";
 const readsPreferences = () =>
@@ -342,7 +344,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useSiteLayout", useSiteLayout);
   vi.stubGlobal("useComponentEvent", useComponentEvent);
-  stubApiData((...args: unknown[]) => authFetch(...(args as [])));
+  stubApiData(authFetch);
   host = document.createElement("div");
   document.body.append(host);
 });

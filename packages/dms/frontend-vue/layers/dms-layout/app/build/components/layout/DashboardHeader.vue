@@ -27,6 +27,7 @@ const TOOLBAR_BUTTON_CLASS =
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
 
+// SAFETY: UBreadcrumb reads each item.ui slot optionally; its Pick type requires slots the renderer permits omitting.
 const RECORD_CRUMB_UI = {
   linkLabel: RECORD_CRUMB_LABEL_CLASS,
 } as NonNullable<BreadcrumbItem["ui"]>;
@@ -141,10 +142,11 @@ const parentCrumb = computed((): BreadcrumbItem | null => {
   const parent = siteLayout.findMatchingRoute(path)?.metadata;
   if (!parent || parent.hasAccess === false) return null;
   const target = buildBreadcrumbTarget(path, parent, route.query);
-  return {
+  const crumb: BreadcrumbItem = {
     label: processI18n(parent.displayName),
-    ...(target ? { to: target } : {}),
   };
+  if (target) crumb.to = target;
+  return crumb;
 });
 
 const breadcrumb = computed((): BreadcrumbItem[] => {
@@ -178,10 +180,11 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
           route.query,
         );
 
-        return {
+        const crumb: BreadcrumbItem = {
           label: processI18n(matchingRoute.metadata?.displayName || path),
-          ...(target ? { to: target } : {}),
         };
+        if (target) crumb.to = target;
+        return crumb;
       })
       .filter((item) => item !== null),
   );

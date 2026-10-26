@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Slot } from "vue";
+
 import type { ButtonProps } from "@nuxt/ui";
 import { tv } from "tailwind-variants";
 import DmsIconWell from "../icon-well/IconWell.vue";
@@ -40,11 +42,11 @@ interface RecordCardProps {
 
 interface RecordCardSlots {
   /** Content between the description and the footer. */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Replaces the badge (a switch, a menu). */
-  aside?: () => unknown;
+  aside?: () => ReturnType<Slot>;
   /** Replaces the footer's buttons. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<RecordCardProps>(), {

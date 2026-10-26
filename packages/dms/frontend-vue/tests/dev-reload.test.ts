@@ -35,8 +35,7 @@ function createHarness(
 ): Harness {
   const { probesBeforeServed = 0, ...depOverrides } = overrides;
   let time = 0;
-  const harness: Harness = {
-    deps: undefined as unknown as DevReloadDeps,
+  const harness: Omit<Harness, "deps"> = {
     backend: new Set<string>(),
     committed: new Set<string>(),
     probes: 0,
@@ -47,7 +46,7 @@ function createHarness(
     elapsed: () => time,
   };
 
-  harness.deps = {
+  const deps: DevReloadDeps = {
     isDev: true,
     currentPath: () => "/current",
     isRouteKnown: (path) => harness.committed.has(path),
@@ -82,7 +81,7 @@ function createHarness(
     ...depOverrides,
   };
 
-  return harness;
+  return Object.assign(harness, { deps });
 }
 
 describe("dev reload coordinator", () => {

@@ -78,10 +78,10 @@ it("shows a refused listing as forbidden", async () => {
 });
 
 it("renders each request's own listing when two renders are in flight at once", async () => {
-  let answerFirst!: (value: unknown) => void;
+  let answerFirst!: (value: (typeof ordersModule)[]) => void;
   authFetch
     .mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<(typeof ordersModule)[]>((resolve) => {
         answerFirst = resolve;
       }),
     )

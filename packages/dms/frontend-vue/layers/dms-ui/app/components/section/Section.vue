@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide } from "vue";
+import { type Slot, computed, provide } from "vue";
 import { tv } from "tailwind-variants";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
@@ -19,13 +19,13 @@ interface SectionProps extends Partial<DefaultComponentProps> {
 
 interface SectionSlots {
   /** The card content: field rows, list rows… */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Inline after the title (a count, a status pill). */
-  badge?: () => unknown;
+  badge?: () => ReturnType<Slot>;
   /** Right of the heading (a section-level action). */
-  trail?: () => unknown;
+  trail?: () => ReturnType<Slot>;
   /** Muted band at the bottom of the card. */
-  footer?: () => unknown;
+  footer?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<SectionProps>(), {

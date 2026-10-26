@@ -32,11 +32,7 @@ const i18n = createI18n({
     },
   },
 });
-const t = i18n.global.t as (
-  key: string,
-  params: Record<string, unknown>,
-  plural?: number,
-) => string;
+const t = i18n.global.t;
 
 describe("confirmation dialog texts", () => {
   it("translates keys with the dialog's params, pluralized on its count", () => {
@@ -156,6 +152,7 @@ describe("ConfirmModal fields", () => {
       () =>
         h("input", {
           value: props.modelValue ?? "",
+          // SAFETY: This handler is attached to the input rendered immediately above.
           onInput: (event: Event) =>
             emit("update:modelValue", (event.target as HTMLInputElement).value),
         }),
@@ -174,7 +171,9 @@ describe("ConfirmModal fields", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
     app = createApp({
       render: () =>
         h(DialogRoot, null, () =>

@@ -11,6 +11,7 @@ import type {
   TableRowGrouping,
 } from "../../components/table/Table.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import type { TableCountQuery } from "./useTableRows";
 import {
   dateGroupLabel,
   groupFilter,
@@ -29,11 +30,9 @@ export interface GroupedRowsOptions {
   /** The rows listed. */
   rows: ComputedRef<Data[] | undefined>;
   /** The count query of the rows listed, narrowed by one more filter. */
-  countQuery: (filter: TableFilter) => Record<string, unknown>;
+  countQuery: (filter: TableFilter) => TableCountQuery["query"];
   /** Asks the counts, by id, in one request (`count/batch`). */
-  countBatch: (
-    queries: { id: string; query: Record<string, unknown> }[],
-  ) => Promise<Record<string, number>>;
+  countBatch: (queries: TableCountQuery[]) => Promise<Record<string, number>>;
 }
 
 /**

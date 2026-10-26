@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { DmsPublicSession, DmsServerEvent, DmsSession } from "#dms/server";
 import { isPersistent, persistAccountSession, removeAccount } from "./accounts";
+import { isNumber } from "../../dms-core/app/utils/type-check";
 
 const REFRESH_TTL_MS = 15_000;
 const REFUSED = [400, 401, 403];
@@ -19,9 +20,11 @@ interface RefreshFlight {
 
 const refreshes = new Map<string, RefreshFlight>();
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This rejection boundary handles arbitrary thrown values; a backend error owner type would exclude primitive errors.
 export function isRefusal(error: unknown): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property access intentionally preserves primitive boxing and getter behavior; no owner contract validates thrown values.
   const status = (error as { status?: unknown } | undefined)?.status;
-  return typeof status === "number" && REFUSED.includes(status);
+  return isNumber(status) && REFUSED.includes(status);
 }
 
 /**
@@ -39,7 +42,7 @@ export function sessionFrom(
       result.access_token.split(".")[1] ?? "",
       "base64url",
     ).toString() || "{}",
-  ) as { tenantId?: string };
+  );
   return {
     user: result.user,
     accessToken: result.access_token,

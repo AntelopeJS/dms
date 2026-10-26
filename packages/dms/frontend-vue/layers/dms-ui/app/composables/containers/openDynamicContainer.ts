@@ -66,7 +66,9 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
 
   let opened = false;
   let resolveResult!: (value: Result) => void;
-  let rejectResult!: (reason?: unknown) => void;
+  let rejectResult!: Parameters<
+    ConstructorParameters<typeof Promise<Result>>[0]
+  >[1];
   const result = new Promise<Result>((resolve, reject) => {
     resolveResult = resolve;
     rejectResult = reject;
@@ -74,7 +76,7 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
   const cancelPendingOpen = openWhenMenusClosed(() => {
     opened = true;
 
-    (instance.open() as Promise<Result>).then(resolveResult, rejectResult);
+    instance.open().then(resolveResult, rejectResult);
   });
 
   return {
@@ -86,6 +88,7 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
       } else {
         cancelPendingOpen();
         instance.close(value);
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Closing before open historically resolves undefined when no value is passed, even for a non-optional Result.
         resolveResult(value as Result);
       }
     },

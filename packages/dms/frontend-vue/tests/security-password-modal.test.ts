@@ -29,15 +29,16 @@ const Input = defineComponent({
   inheritAttrs: false,
   props: { modelValue: String },
   emits: ["update:modelValue"],
-  setup:
-    (props, { attrs, emit }) =>
-    () =>
+  setup: (props, { attrs, emit }) => {
+    const input = ref<HTMLInputElement>();
+    return () =>
       h("input", {
         ...attrs,
+        ref: input,
         value: props.modelValue,
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
-      }),
+        onInput: () => emit("update:modelValue", input.value!.value),
+      });
+  },
 });
 
 async function flush(): Promise<void> {

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
+import { isObject } from "../../../../dms-core/app/utils/type-check";
+import {
+  type Slot,
+  nextTick,
+  useTemplateRef,
+  watch,
+  type FunctionalComponent,
+} from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsModalEscHint from "../../build/components/modal/ModalEscHint.vue";
@@ -76,7 +83,7 @@ interface ConfirmModalProps {
 
 interface ConfirmModalSlots {
   /** Extra content under the impact list (a select, a note…). */
-  body?: () => unknown;
+  body?: () => ReturnType<Slot>;
 }
 
 interface ConfirmModalEmits {
@@ -133,7 +140,7 @@ watch(
   { deep: true },
 );
 
-const isEmptyValue = (value: unknown): boolean =>
+const isEmptyValue = (value: ConfirmValues[string]): boolean =>
   value === undefined ||
   value === null ||
   value === "" ||
@@ -205,11 +212,11 @@ const modalContent = computed(() =>
   props.initialFocus
     ? {
         onOpenAutoFocus: (event: Event) => {
-          const button = (
-            event.target as HTMLElement | null
-          )?.querySelector<HTMLElement>(
-            `[data-confirm-action="${props.initialFocus}"]`,
-          );
+          const button =
+            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies the dialog target; preserve the existing unchecked querySelector call and malformed-target behavior.
+            (event.target as HTMLElement | null)?.querySelector<HTMLElement>(
+              `[data-confirm-action="${props.initialFocus}"]`,
+            );
           if (!button) return;
           event.preventDefault();
           button.focus();
@@ -233,10 +240,14 @@ function close(value: boolean) {
   emit("close", value);
 }
 
-const isPartialOutcome = (value: unknown): value is ConfirmPartialOutcome =>
-  typeof value === "object" && value !== null && "partial" in value;
+const isPartialOutcome = (
+  value: Awaited<ReturnType<NonNullable<ConfirmModalProps["onConfirm"]>>>,
+): value is ConfirmPartialOutcome =>
+  isObject(value) && value !== null && "partial" in value;
 
-function errorNotice(error: unknown): ConfirmNotice {
+function errorNotice(
+  error: Parameters<typeof resolveActionError>[0],
+): ConfirmNotice {
   if (error instanceof ConfirmActionError) {
     return { title: error.message, description: error.description };
   }
@@ -247,7 +258,9 @@ function errorNotice(error: unknown): ConfirmNotice {
  * Shows under their field the field errors the server answered with; true
  * when nothing else is left to tell in the alert.
  */
-function showFieldErrors(error: unknown): boolean {
+function showFieldErrors(
+  error: Parameters<typeof resolveFieldErrors>[0],
+): boolean {
   if (props.fields.length === 0) return false;
   const resolved = resolveFieldErrors(error, {
     fields: props.fields.map((field) => field.id),

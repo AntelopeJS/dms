@@ -6,7 +6,6 @@
  */
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DmsAppContext } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
 const { default: devErrorLogPlugin } = await import(
@@ -17,7 +16,8 @@ let app: App;
 let showErrorPage: ReturnType<typeof vi.fn>;
 
 const install = () =>
-  devErrorLogPlugin({ vueApp: app } as unknown as DmsAppContext);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only vueApp is consumed by the error-handler plugin; the fixture deliberately omits unrelated app-context services.
+  devErrorLogPlugin({ vueApp: app } as never);
 
 beforeEach(() => {
   app = createApp({ render: () => null });
@@ -75,6 +75,7 @@ describe("dev error log", () => {
     engine.provideDmsFrontendRuntime(page, runtime);
     await engine.installDmsPlugins(
       page,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This no-translation fixture supplies only the locale and message setter used during plugin installation.
       { locale: { value: "en" }, setLocaleMessage() {} } as never,
       runtime,
       async () => ({}),

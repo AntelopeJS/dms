@@ -45,7 +45,9 @@ export interface UseExportJobLabels {
 export interface RunExportJobOptions {
   startUrl: string;
   startMethod?: "GET" | "POST";
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own query values; the fetch owner's broader query type would widen this existing object contract.
   startQuery?: Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own body values; the fetch owner's body type also admits non-object payloads excluded by this contract.
   startBody?: Record<string, unknown>;
   /** Function from jobId → URL. Defaults to `${startBase}/status/${jobId}`. */
   statusUrl?: (ticket: ExportJobTicket) => string;
@@ -197,7 +199,8 @@ export const useExportJob = () => {
 
   async function startJob(opts: RunExportJobOptions): Promise<ExportJobTicket> {
     const method = opts.startMethod ?? "POST";
-    const init: Record<string, unknown> = { method };
+    const init: NonNullable<Parameters<typeof $authFetch<ExportJobTicket>>[1]> =
+      { method };
     if (opts.startQuery) init.query = opts.startQuery;
     if (opts.startBody && method !== "GET") init.body = opts.startBody;
     const ticket = await $authFetch<ExportJobTicket>(opts.startUrl, init);
@@ -249,6 +252,7 @@ export const useExportJob = () => {
       );
     }
 
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reader chunks are not checked for SharedArrayBuffer backing; preserve Blob's existing rejection rather than copy or validate the bytes.
     return new Blob(chunks as BlobPart[]);
   }
 
@@ -290,11 +294,14 @@ export const useExportJob = () => {
   ): Promise<void> {
     updateProgressToast(toastId, labels.downloading, 0);
 
-    const response = await $authFetch.raw(downloadUrl, {
+    const response = await $authFetch.raw<
+      ReadableStream<Uint8Array> | null,
+      "stream"
+    >(downloadUrl, {
       responseType: "stream",
     });
 
-    const stream = response._data as ReadableStream<Uint8Array> | null;
+    const stream = response._data;
     if (!stream) throw new Error("Empty download stream");
     const totalBytes = Number(response.headers.get("content-length")) || 0;
     const serverFilename = parseFilenameFromContentDisposition(
@@ -314,10 +321,13 @@ export const useExportJob = () => {
     }
   }
 
-  function getErrorMessage(error: unknown): string | undefined {
-    const err = error as { data?: unknown; message?: unknown };
-    const data = err?.data as string | undefined;
-    const message = err?.message as string | undefined;
+  function getErrorMessage(
+    error: Parameters<typeof apiErrorText>[0],
+  ): string | undefined {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
+    const err = error as { data?: string; message?: string };
+    const data = err?.data;
+    const message = err?.message;
     return data || message;
   }
 
@@ -348,6 +358,7 @@ export const useExportJob = () => {
     } catch (error) {
       const message = getErrorMessage(error);
       if (message) showFailure(exportToast.id, opts, labels, message);
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are not checked as Error; retain showError's existing message access and failure behavior for malformed values.
       else showError(exportToast.id, opts, labels, error as Error);
     }
   }

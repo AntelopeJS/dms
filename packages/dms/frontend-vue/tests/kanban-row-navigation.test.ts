@@ -97,6 +97,7 @@ async function mountBoard(onRowsShown: (rows: Deal[]) => void) {
     render: () =>
       h(Suspense, null, {
         default: () =>
+          // SAFETY: KanbanBoard is a Vue component; erase its generic row type only at Vue's h overload boundary.
           h(KanbanBoard as Component, {
             groupByField: "stage",
             location: "/deals",

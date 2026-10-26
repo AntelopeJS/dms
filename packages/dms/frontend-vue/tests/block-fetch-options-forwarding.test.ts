@@ -23,7 +23,7 @@ const requests: string[] = [];
 const mounted: Array<{ unmount: () => void }> = [];
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
-const BLOCKS: Record<string, string> = {
+const BLOCKS = {
   StatGroupBlock: "../layers/dms-ui/app/components/blocks/StatGroupBlock.vue",
   KeyValueListBlock:
     "../layers/dms-ui/app/components/blocks/KeyValueListBlock.vue",
@@ -89,10 +89,10 @@ afterEach(async () => {
   await stopBlockRealtime();
 });
 
-it.each(Object.keys(BLOCKS))(
+it.each(Object.entries(BLOCKS))(
   "%s forwards periodScope and realtimeTopic",
-  async (name) => {
-    const block = (await import(BLOCKS[name])).default as Component;
+  async (_name, path) => {
+    const block: Component = (await import(path)).default;
     const changePeriod = await mount(block);
     await settle();
     expect(requests).toHaveLength(1);

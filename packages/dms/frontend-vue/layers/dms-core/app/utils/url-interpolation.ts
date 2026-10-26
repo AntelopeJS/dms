@@ -1,3 +1,5 @@
+import type { DataTypeFormatter } from "../composables/data-types/useDataType";
+
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 
 const ROW_TOKEN = /\{\{\s*row\.([^{}\s]+)\s*\}\}/g;
@@ -10,18 +12,23 @@ export const namesRowField = (template: string): boolean =>
 
 const RELATED_ROW_ID_KEYS = ["_id", "id"] as const;
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+const isPlainObject = (
+  value: Parameters<typeof rowValue>[0][string],
+): value is NonNullable<Parameters<DataTypeFormatter>[3]> =>
   Object.prototype.toString.call(value) === "[object Object]";
 
-const relatedRowId = (value: Record<string, unknown>): unknown =>
+const relatedRowId = (value: NonNullable<Parameters<DataTypeFormatter>[3]>) =>
   RELATED_ROW_ID_KEYS.map((key) => value[key]).find(
     (id) => id !== undefined && id !== null,
   );
 
-const scalarOf = (value: unknown): unknown =>
+const scalarOf = (value: Parameters<typeof rowValue>[0][string]) =>
   isPlainObject(value) ? relatedRowId(value) : value;
 
-const rowValue = (data: Record<string, unknown>, key: string): string => {
+const rowValue = (
+  data: NonNullable<Parameters<DataTypeFormatter>[3]>,
+  key: string,
+): string => {
   const field: unknown = get(data, key);
   const value = Array.isArray(field) ? field.map(scalarOf) : scalarOf(field);
   return value === undefined || value === null ? "" : String(value);
@@ -38,7 +45,10 @@ function hasSafeScheme(url: string): boolean {
   return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase());
 }
 
-const fillRowTokens = (url: string, data: Record<string, unknown>): string => {
+const fillRowTokens = (
+  url: string,
+  data: NonNullable<Parameters<DataTypeFormatter>[3]>,
+): string => {
   const wholeKey = WHOLE_ROW_TOKEN.exec(url)?.[1];
   if (wholeKey !== undefined) return rowValue(data, wholeKey);
   return url.replace(ROW_TOKEN, (_, key: string) =>
@@ -54,7 +64,7 @@ const fillRowTokens = (url: string, data: Record<string, unknown>): string => {
  */
 export const interpolateUrl = (
   url: string,
-  data: Record<string, unknown>,
+  data: NonNullable<Parameters<DataTypeFormatter>[3]>,
 ): string => {
   const interpolated = fillRowTokens(url, data);
   return hasSafeScheme(interpolated) ? interpolated : REFUSED_URL;
@@ -66,5 +76,5 @@ export const interpolateUrl = (
  */
 export const interpolateRowText = (
   text: string,
-  data: Record<string, unknown>,
+  data: NonNullable<Parameters<DataTypeFormatter>[3]>,
 ): string => text.replace(ROW_TOKEN, (_, key: string) => rowValue(data, key));

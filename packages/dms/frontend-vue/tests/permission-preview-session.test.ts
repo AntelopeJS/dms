@@ -12,7 +12,7 @@ const states = new Map<string, unknown>();
 beforeEach(() => {
   states.clear();
   vi.stubGlobal("computed", computed);
-  vi.stubGlobal("useDmsState", (key: string, init: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
     if (!states.has(key)) states.set(key, ref(init()));
     return states.get(key);
   });
@@ -30,9 +30,10 @@ afterEach(() => {
 
 it("removes the previews of every tab and the session in memory", () => {
   const preview = usePermissionPreview();
-  preview.session.value = {
-    id: "a",
-  } as unknown as typeof preview.session.value;
+  // SAFETY: purge discards this deliberately partial session without reading its fields.
+  preview.session.value = { id: "a" } as NonNullable<
+    typeof preview.session.value
+  >;
 
   preview.purge();
 

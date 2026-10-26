@@ -154,6 +154,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Page-link tests never call the HTTP client; the callable mock intentionally omits fetch methods.
           api: vi.fn() as never,
           pageId: "orders-page",
           componentId: "orders",

@@ -45,7 +45,7 @@ const plainLayout = layoutSections(
   ],
 );
 
-type NavProps = Record<string, unknown>;
+type NavProps = Partial<InstanceType<typeof FormSectionNav>["$props"]>;
 
 async function mount(variant: "list" | "chips", props: NavProps = {}) {
   app = createApp({

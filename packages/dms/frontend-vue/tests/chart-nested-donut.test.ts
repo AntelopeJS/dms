@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
@@ -16,14 +16,10 @@ const CARD_SERIES = [
   },
 ];
 
-interface CircularOptions {
-  labels?: string[];
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<CircularOptions>, required: true },
-    series: { type: Array as PropType<unknown[]>, required: true },
+    options: { type: Object, required: true },
+    series: { type: Array, required: true },
   },
   setup: (props) => () =>
     h("output", [

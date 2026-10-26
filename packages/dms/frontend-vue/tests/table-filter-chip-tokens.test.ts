@@ -9,27 +9,42 @@ import {
   resolveNowTokens,
 } from "../layers/dms-ui/app/build/composables/table/utils/formatFilterValue";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 const NOW = Date.parse("2026-10-19T12:00:00.000Z");
-const day = (value: unknown) =>
-  Number.isNaN(new Date(value as string).getTime())
+const day = (value: Parameters<DataTypeFormatter>[0]) => {
+  // SAFETY: These date fixtures and the resolved tokens supply ISO date strings to the formatter.
+  const text = value as string;
+  return Number.isNaN(new Date(text).getTime())
     ? "Unknown"
-    : new Date(value as string).toISOString().slice(0, 10);
+    : new Date(text).toISOString().slice(0, 10);
+};
 
-const dateType = {
+const dateType: DataType = {
   id: "date",
   formatter: {
     default: day,
-    is_between: (value: unknown) =>
+    is_between: (value: Parameters<DataTypeFormatter>[0]) =>
       Array.isArray(value) ? value.map(day).join(" - ") : "Unknown - Unknown",
   },
-} as unknown as DataType;
-const columns = [{ value: "paidAt", label: "Paid", type: { id: "date" } }];
+};
+const columns: Parameters<typeof formatFilterValue>[1] = [
+  {
+    value: "paidAt",
+    label: "Paid",
+    type: {
+      id: "date",
+      compareModes: [],
+      filterComponents: {},
+      inputComponent: {},
+    },
+  },
+];
 
-const chip = (mode: string, value: unknown) =>
+const chip = (mode: string, value: TableFilter["value"]) =>
   formatFilterValue(
-    { accessorKey: "paidAt", mode, value } as TableFilter,
-    columns as never,
+    { accessorKey: "paidAt", mode, value },
+    columns,
     () => dateType,
     "en",
   );

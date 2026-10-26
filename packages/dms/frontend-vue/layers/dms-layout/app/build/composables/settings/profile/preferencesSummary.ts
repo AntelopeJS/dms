@@ -1,4 +1,5 @@
 import type { TimeFormatPreference } from "#dms-core/app/utils/regional";
+import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import type { AccessibilityPreferences } from "#dms-ui/app/build/utils/accessibilityPreferences";
 import type { NotificationSubject } from "../../notification/useNotificationCatalog";
 import type {
@@ -9,7 +10,7 @@ import type {
 /** `t` as vue-i18n takes it: key, named params, plural count. */
 export type SummaryTranslate = (
   key: string,
-  params?: Record<string, unknown>,
+  params?: Parameters<I18nTranslate>[1],
   plural?: number,
 ) => string;
 

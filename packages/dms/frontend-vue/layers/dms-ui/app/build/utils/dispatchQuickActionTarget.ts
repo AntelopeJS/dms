@@ -6,7 +6,9 @@ import {
   QUICK_ACTION_QUERY_KEY,
 } from "../../types/quick-actions";
 
-type QuickActionTargetHandler = (target: QuickActionTarget) => unknown;
+type QuickActionTargetHandler = (
+  target: QuickActionTarget,
+) => ReturnType<typeof navigateDms> | void;
 
 const targetHandlers: Record<
   QuickActionTarget["type"],
@@ -53,6 +55,7 @@ const targetHandlers: Record<
  * action's page, `event` dispatches a window `CustomEvent` in place for whoever
  * listens.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- The public auto-import contract returns unknown; inference and navigateDms-derived returns reject base-compatible implementations.
 export function dispatchQuickActionTarget(target: QuickActionTarget): unknown {
   const handler = targetHandlers[target.type];
   return handler?.(target);

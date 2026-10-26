@@ -5,7 +5,7 @@
  * or when the route answers no banner (`null`, `{}`, a 204); reads its route
  * again on a page refresh; and runs the button targets the route answers.
  */
-import { createApp, defineComponent, h } from "vue";
+import { createApp, defineComponent, h, type Component } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   installBlockNetwork,
@@ -13,8 +13,10 @@ import {
   registerBlockUi,
 } from "./helpers/block-network-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import type { ConfirmValues } from "../layers/dms-ui/app/composables/confirm/types";
 
 const requests: string[] = [];
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The transport fixture must retain arbitrary raw responses, including null, empty objects, and 204 undefined, for the banner parser.
 let answer: unknown = null;
 
 const { default: BannerBlock } = await import(
@@ -35,7 +37,9 @@ const UButton = defineComponent({
 
 const mounted: Array<{ unmount: () => void }> = [];
 
-function mountBanner(props: Record<string, unknown>) {
+function mountBanner(
+  props: Partial<InstanceType<typeof BannerBlock>["$props"]>,
+) {
   const root = document.createElement("div");
   const app = createApp(BannerBlock, {
     componentId: "health",
@@ -80,6 +84,7 @@ function mountBanner(props: Record<string, unknown>) {
 
 beforeEach(async () => {
   requests.length = 0;
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Reset the raw transport payload; parsing belongs to BannerBlock, not this stub.
   answer = null;
   await installBlockNetwork(async (url: string) => {
     requests.push(url);
@@ -92,6 +97,7 @@ afterEach(() => {
 });
 
 it("draws the fetched props over the static options", async () => {
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Feed a raw response to BannerBlock's parser rather than pre-validating it in the fixture.
   answer = { tone: "error", title: "Provider down" };
   const banner = mountBanner({ title: "Static", description: "Kept" });
   expect(banner.read()).toBeNull();
@@ -121,11 +127,13 @@ it("follows a page refresh, appearing and going away", async () => {
   await settle();
   expect(banner.read()).toBeNull();
 
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Feed the next raw transport response to the banner parser on refresh.
   answer = { title: "Degraded" };
   refreshPageBlocks();
   await settle();
   expect(banner.read()).toMatchObject({ text: "Degraded" });
 
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- A raw null response exercises removal, not a parsed banner contract.
   answer = null;
   refreshPageBlocks();
   await settle();
@@ -137,9 +145,12 @@ it("runs a button target the route answers", async () => {
   const confirm = vi.fn(async () => {});
   vi.stubGlobal("useOverlay", () => ({
     create: (
-      _component: unknown,
+      _component: Component,
       options: {
-        props: { title: string; onConfirm: (values: object) => Promise<void> };
+        props: {
+          title: string;
+          onConfirm: (values: ConfirmValues) => Promise<void>;
+        };
       },
     ) => ({
       open: async () => {
@@ -156,6 +167,7 @@ it("runs a button target the route answers", async () => {
     target: { type: "api", url: "/api/replay", successMessage: "Replayed" },
     confirm: { title: "Replay the queue?" },
   };
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve serialized button data for BannerBlock to parse and execute.
   answer = { title: "Outage", actions: [replay] };
   const banner = mountBanner({});
   await settle();

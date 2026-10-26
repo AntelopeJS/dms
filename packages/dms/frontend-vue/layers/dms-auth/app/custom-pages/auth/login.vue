@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
+import { isObject } from "#dms-core/app/utils/type-check";
 
 const route = useDmsRoute();
 const homepage = useHomepage();
@@ -44,18 +45,14 @@ useLiveFormErrors(form, state);
 function isTwoFactorRequired(
   response: unknown,
 ): response is TwoFactorRequiredResponse {
-  return (
-    !!response && typeof response === "object" && "requires_2fa" in response
-  );
+  return !!response && isObject(response) && "requires_2fa" in response;
 }
 
 function isTenantAssignmentRequired(
   response: unknown,
 ): response is TenantAssignmentRequiredResponse {
   return (
-    !!response &&
-    typeof response === "object" &&
-    "requires_tenant_assignment" in response
+    !!response && isObject(response) && "requires_tenant_assignment" in response
   );
 }
 
@@ -81,7 +78,7 @@ async function handleTenantAssignmentRedirect(
 }
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-  const redirectUrl = route.query.redirect as string | undefined;
+  const redirectUrl = route.query.redirect;
 
   try {
     isLoading.value = true;

@@ -14,9 +14,9 @@ import type {
 } from "../../../types/live";
 import type { LiveGate } from "../live/currentPageLive";
 import { useScrolledPastTop, useTableReached } from "./useScrolledPastTop";
-import { LIVE_HELD_AT_QUERY_KEY } from "./useTableRows";
+import { LIVE_HELD_AT_QUERY_KEY, type TableCountQuery } from "./useTableRows";
 
-type Query = Record<string, unknown>;
+type Query = TableCountQuery["query"];
 
 /** What the table tells its hold about the user's reading. */
 export interface TableLiveHoldSignals {
@@ -30,6 +30,7 @@ export interface TableLiveHoldSignals {
    * The table's element: whether it is on screen, and where its first row
    * stands for `whileScrolled`.
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The resolver may return unparsed or missing element refs. useLocalHold accepts only HTMLElement instances and treats other values as absent; an HTMLElement-only contract would exclude those existing fallback cases.
   tableElement?: () => unknown;
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { nextTick, ref, watch, type Slot } from "vue";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 import DmsUnsavedStatus from "#dms-ui/app/build/components/form/UnsavedStatus.vue";
 
@@ -31,11 +31,11 @@ interface SecurityEditPanelProps {
 
 interface SecurityEditPanelSlots {
   /** The row lead (a DmsListRow with the icon, the value and its meta). */
-  label?: () => unknown;
+  label?: Slot;
   /** The form fields, laid out on the panel's two-column grid. */
-  default?: () => unknown;
+  default?: Slot;
   /** Left of the Cancel / Submit buttons (a checkbox, a note). */
-  footer?: () => unknown;
+  footer?: Slot;
 }
 
 const props = withDefaults(defineProps<SecurityEditPanelProps>(), {

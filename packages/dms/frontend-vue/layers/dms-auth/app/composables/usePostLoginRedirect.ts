@@ -1,3 +1,6 @@
+import { isFunction } from "../../../dms-core/app/utils/type-check";
+import type { User } from "#dms-core/app/types/user";
+
 type PostLoginDestination = string | (() => string | undefined);
 
 interface PostLoginRedirectOptions {
@@ -16,7 +19,7 @@ export async function usePostLoginRedirect(
   options: PostLoginRedirectOptions = {},
 ) {
   const dmsApp = useDmsApp();
-  const { fetch: refreshUser, user } = useDmsUserSession();
+  const { fetch: refreshUser, user } = useDmsUserSession<User>();
   const { addCurrentAccount } = useMultiAccount();
   const siteLayout = useSiteLayout();
   const homepage = useHomepage();
@@ -32,10 +35,9 @@ export async function usePostLoginRedirect(
   await siteLayout.refresh();
 
   if (user.value?.language) {
-    await dmsApp.$i18n.setLocale(user.value.language as "en" | "fr");
+    await dmsApp.$i18n.setLocale(user.value.language);
   }
 
-  const destination =
-    typeof redirectUrl === "function" ? redirectUrl() : redirectUrl;
+  const destination = isFunction(redirectUrl) ? redirectUrl() : redirectUrl;
   await navigateDms(destination || homepage, options);
 }

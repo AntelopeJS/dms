@@ -64,7 +64,7 @@ const sourceOf = (
 
 let ownChanges = 0;
 
-const runThenRefresh = async (action: () => Promise<unknown>) => {
+const runThenRefresh = async (action: () => ReturnType<typeof markAsRead>) => {
   ownChanges++;
   try {
     await action();

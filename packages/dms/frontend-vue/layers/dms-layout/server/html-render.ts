@@ -1,6 +1,7 @@
 import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { validRenderToken } from "./render-token";
+import { isObject, isString } from "../../dms-core/app/utils/type-check";
 
 const SERVICE_TOKEN_HEADER = "x-dms-service-token";
 
@@ -37,15 +38,15 @@ export async function renderHtml(event: DmsServerEvent): Promise<Response> {
     return failure(401, "Invalid service token");
   const input = await event.readJson<RenderInput>();
   if (
-    typeof input.templateName !== "string" ||
+    !isString(input.templateName) ||
     input.templateName.trim() === "" ||
-    typeof input.props !== "object"
+    !isObject(input.props)
   )
     return failure(400, "Invalid request body");
   try {
     const html = await event.renderEmail(
       input.templateName,
-      (input.props ?? {}) as Record<string, unknown>,
+      input.props ?? {},
       { locale: event.request.headers.get("x-content-language") ?? undefined },
     );
     return Response.json({ html });

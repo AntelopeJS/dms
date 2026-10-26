@@ -1,13 +1,14 @@
+import { isString as isStringType } from "../../../../dms-core/app/utils/type-check";
 /**
  * The index of the tab a URL names: its slot (`?tab=tester`), or its index
  * (`?tab=2`) as written before tabs were named. `null` when it names none.
  */
 function tabIndexOf(
-  value: unknown,
+  value: ReturnType<typeof useDmsRoute>["query"][string],
   slots: readonly string[],
   tabCount: number,
 ): number | null {
-  if (typeof value !== "string" || value === "") return null;
+  if (!isStringType(value) || value === "") return null;
   const bySlot = slots.indexOf(value);
   if (bySlot >= 0) return bySlot;
   const index = Number(value);
@@ -35,7 +36,7 @@ export function useTab(
   );
   const slots = computed(() => (props.items ?? []).map((item) => item.slot));
 
-  const urlTabIndex = (value: unknown) =>
+  const urlTabIndex = (value: (typeof route.query)[string]) =>
     tabIndexOf(value, slots.value, totalTabs.value);
 
   const getInitialTab = () => {

@@ -1,4 +1,5 @@
 import { computed, type ComputedRef } from "vue";
+import { isObject } from "#dms-core/app/utils/type-check";
 import { useChartFetch } from "../../../composables/chart/useChartFetch";
 import {
   type FetchNotFound,
@@ -42,6 +43,7 @@ export interface GuardSource {
 /** What the route answers: any value, maybe with an `emptyState` laid over the fallback. */
 export interface GuardResponse {
   emptyState?: GuardFallback;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Guard fields are arbitrary endpoint values; deriving from GuardFallback would exclude the response fields checked by a caller's dot path.
   [field: string]: unknown;
 }
 
@@ -57,25 +59,28 @@ export interface GuardState {
 const FIELD_PATH_SEPARATOR = ".";
 
 /** The value at a dot path of an answer, `undefined` where the path stops. */
-export function readFieldPath(source: unknown, path: string): unknown {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This public path reader traverses arbitrary endpoint answers; GuardResponse would exclude primitive inputs without establishing nested field types.
+export function readFieldPath(source: unknown, path: string) {
   return path.split(FIELD_PATH_SEPARATOR).reduce<unknown>((value, key) => {
-    if (value === null || typeof value !== "object") return undefined;
-    return (value as Record<string, unknown>)[key];
+    if (value === null || !isObject(value)) return undefined;
+    return value[key];
   }, source);
 }
 
 /** Absent, `null`, `false`, `0`, `""` or an empty list: nothing to show. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- The emptiness predicate accepts every endpoint value; an inferred or response-object parameter would exclude primitive answers.
 export function isEmptyValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.length === 0;
   return !value;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- The route can answer any JavaScript value; this boundary preserves the primitive and array cases that return undefined.
 function answerOverride(answer: unknown): GuardFallback | undefined {
-  if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
+  if (!answer || !isObject(answer) || Array.isArray(answer)) {
     return undefined;
   }
-  const { emptyState } = answer as GuardResponse;
-  return emptyState && typeof emptyState === "object" ? emptyState : undefined;
+  const { emptyState } = answer;
+  return emptyState && isObject(emptyState) ? emptyState : undefined;
 }
 
 /**

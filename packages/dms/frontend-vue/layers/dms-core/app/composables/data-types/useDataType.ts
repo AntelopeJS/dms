@@ -11,6 +11,7 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * shorter grid rendering), `empty` (drawn instead of the fallback for a
  * null/undefined value), and one per compare mode for filter chips.
  */
+/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns, anti-slop/no-unsafe-dictionary-type -- These declarations own the open module data-type extension contract. No shared schema exists for plugin values, options, rows or render results; inference from built-in implementations would exclude third-party formats. */
 export type DataTypeFormatter = (
   value: unknown,
   locale: string,
@@ -43,6 +44,7 @@ export type DataTypeValueComparer = (
  * keeps its text, so the query is unchanged.
  */
 export type DataTypeFilterEditorValue = (text: string, mode: string) => unknown;
+/* oxlint-enable anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns, anti-slop/no-unsafe-dictionary-type */
 
 /**
  * Where the rows a value names are read: the `select` route of the table a
@@ -71,7 +73,9 @@ export interface DataType {
    * relation): where those rows are read, from the options of the type's
    * control. A filter chip or a read-only list names the ids through it.
    */
-  selectSource?: (options: unknown) => DataTypeSelectSource | undefined;
+  selectSource?: (
+    options: Parameters<DataTypeFormatter>[2],
+  ) => DataTypeSelectSource | undefined;
   displayComponent?: Component;
 }
 const dataTypes: Record<string, DataType> = {};

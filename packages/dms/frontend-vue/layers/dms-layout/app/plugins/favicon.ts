@@ -1,7 +1,12 @@
 import { computed } from "vue";
 import type { DmsLogoSources } from "#dms-core/shared/types/app-config";
 
-const ICON_TYPES: Record<string, string> = {
+const ICON_TYPES: Record<
+  ReturnType<
+    NonNullable<ReturnType<typeof FILE_EXTENSION.exec>>[number]["toLowerCase"]
+  >,
+  string
+> = {
   svg: "image/svg+xml",
   png: "image/png",
   ico: "image/x-icon",
@@ -21,12 +26,10 @@ type IconLink = {
 function iconLink(href: string, media?: string): IconLink {
   const extension = FILE_EXTENSION.exec(href)?.[1].toLowerCase() ?? "";
   const type = ICON_TYPES[extension];
-  return {
-    rel: "icon",
-    href,
-    ...(type ? { type } : {}),
-    ...(media ? { media } : {}),
-  };
+  const link: IconLink = { rel: "icon", href };
+  if (type) link.type = type;
+  if (media) link.media = media;
+  return link;
 }
 
 function faviconLinks(favicon: Partial<DmsLogoSources> = {}): IconLink[] {

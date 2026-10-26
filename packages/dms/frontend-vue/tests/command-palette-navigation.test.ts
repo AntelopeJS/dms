@@ -73,7 +73,8 @@ it("leaves the account destinations to the session group", async () => {
   const { default: setup } = await import(
     "../layers/dms-layout/app/plugins/command-palette-navigation.client"
   );
-  (setup as unknown as () => void)();
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
+  (setup as () => void)();
 
   const targets = registered!
     .groups()

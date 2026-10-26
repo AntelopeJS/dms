@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { EXTERNAL_LINK_ATTRIBUTES, linkKind } from "../../build/utils/link";
 
 interface AutoLinkProps {
@@ -8,7 +8,7 @@ interface AutoLinkProps {
 }
 
 interface AutoLinkSlots {
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
 }
 
 const props = defineProps<AutoLinkProps>();

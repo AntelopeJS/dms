@@ -14,6 +14,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
 import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/types/action-target";
+import type { useDrawer } from "../layers/dms-ui/app/composables/containers/useDrawer";
 
 import { DialogRoot } from "reka-ui";
 
@@ -33,7 +34,7 @@ afterEach(() => {
 });
 
 describe("a drawer action target's direction", () => {
-  const opened: Array<Record<string, unknown>> = [];
+  const opened: Array<Parameters<ReturnType<typeof useDrawer>["open"]>[0]> = [];
 
   const mountTargets = () => {
     let targets: ReturnType<typeof useActionTargets> | undefined;
@@ -41,6 +42,7 @@ describe("a drawer action target's direction", () => {
       defineComponent({
         setup() {
           targets = useActionTargets({
+            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These drawer-target tests never call api; a Vitest callable cannot implement ofetch's generic callable and raw/create members required by the owner.
             api: vi.fn() as never,
             pageId: "page",
             componentId: "table",
@@ -72,7 +74,7 @@ describe("a drawer action target's direction", () => {
     vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
     vi.stubGlobal("useModal", () => ({ open: vi.fn() }));
     vi.stubGlobal("useDrawer", () => ({
-      open: (options: Record<string, unknown>) => {
+      open: (options: Parameters<ReturnType<typeof useDrawer>["open"]>[0]) => {
         opened.push(options);
         return {
           result: new Promise(() => {}),
@@ -125,7 +127,13 @@ describe("the drawer container", () => {
 
   const rendered = reactive<DrawerStubProps>({});
 
-  const mountDrawer = async (props: Record<string, unknown>) => {
+  const mountDrawer = async (
+    props: Partial<
+      InstanceType<
+        (typeof import("../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"))["default"]
+      >["$props"]
+    >,
+  ) => {
     const { default: DynamicDrawer } = await import(
       "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
     );

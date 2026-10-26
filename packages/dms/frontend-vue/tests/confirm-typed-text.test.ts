@@ -62,6 +62,7 @@ const Input = defineComponent({
       h("input", {
         ref: inputRef,
         value: props.modelValue,
+        // SAFETY: This handler is attached to the input created here; dispatched input events target that HTMLInputElement.
         onInput: (event: Event) =>
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       });
@@ -74,7 +75,9 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-function mount(props: Record<string, unknown>): void {
+function mount(
+  props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+): void {
   app = createApp({
     render: () =>
       h(DialogRoot, null, () => h(ConfirmModal, { onClose: closed, ...props })),
@@ -107,8 +110,12 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
-      params ? `${key} ${JSON.stringify(params)}` : key,
+    t: (
+      key: string,
+      params?: Parameters<
+        import("../layers/dms-core/app/composables/translation/useTranslation").I18nTranslate
+      >[1],
+    ) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }));
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => message,

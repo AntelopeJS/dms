@@ -47,11 +47,12 @@ function mount(initialState?: PreviewState): HTMLElement {
   return host;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Message payloads are raw cross-window input; the embed, not its test sender, must validate them.
 function postFromParent(data: unknown): void {
   window.dispatchEvent(
     new MessageEvent("message", {
       data,
-      source: parentWindow as unknown as Window,
+      source: window.parent,
     }),
   );
 }

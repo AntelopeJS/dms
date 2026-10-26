@@ -45,7 +45,7 @@ function createSiteLayoutRefresher(
 
 function deferred() {
   let resolve!: () => void;
-  let reject!: (error: unknown) => void;
+  let reject!: (error: Error) => void;
   const promise = new Promise<void>((res, rej) => {
     resolve = () => res();
     reject = rej;
@@ -100,7 +100,9 @@ describe("useSiteLayout refresh", () => {
     const first = deferred();
     const answers = [first.promise, Promise.resolve()];
     const fetchLayout = vi.fn(() => answers.shift() ?? Promise.resolve());
-    const holder = { loadingPromise: null as Promise<void> | null };
+    const holder: Parameters<typeof createSiteLayoutRefresher>[1] = {
+      loadingPromise: null,
+    };
     const instanceA = createSiteLayoutRefresher(fetchLayout, holder);
     const instanceB = createSiteLayoutRefresher(fetchLayout, holder);
 

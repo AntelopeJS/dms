@@ -41,14 +41,15 @@ const savesByHeader = new WeakMap<object, AppearanceSave>();
 
 function createAppearanceSave(): AppearanceSave {
   const preferences = usePreferenceRefs();
+  const preferenceValues: {
+    [K in AppearanceKey]: Ref<AppearancePreferences[K]>;
+  } = preferences;
 
   const instant: InstantSave<AppearancePreferences> =
     useInstantSave<AppearancePreferences>({
-      read: (key) =>
-        preferences[key].value as AppearancePreferences[typeof key],
+      read: (key) => preferenceValues[key].value,
       write: (key, value) => {
-        (preferences[key] as Ref<AppearancePreferences[typeof key]>).value =
-          value;
+        preferenceValues[key].value = value;
       },
       save: () => Promise.resolve(),
     });

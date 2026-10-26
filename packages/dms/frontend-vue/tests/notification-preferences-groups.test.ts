@@ -9,7 +9,6 @@ import {
   onMounted,
   ref,
   type App,
-  type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -49,7 +48,7 @@ let runtime: ReturnType<typeof engine.createDmsFrontendRuntime>;
 function createFormApp(create: typeof createApp): App {
   const formApp = create(
     defineComponent({
-      setup: () => () => h(NotificationPreferencesForm as Component),
+      setup: () => () => h(NotificationPreferencesForm),
     }),
   );
   if (create === createSSRApp) {
@@ -164,7 +163,7 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("onMounted", onMounted);
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
+    t: (key: string, params?: { name?: string }) =>
       params?.name ? `${key}:${String(params.name)}` : key,
   }));
 });

@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type { FormField } from "../../composables/form/types";
 import { resolveDmsComponent } from "../../composables/resolveDmsComponent";
 import { escapeRegExp } from "../../build/composables/form/formEntryContext";
+import type { validateFormState } from "../../build/composables/form/formValidation";
 import DmsFormErrorText from "../../build/components/form/FormErrorText.vue";
 
 interface LocalizedFieldProps {
   field: FormField;
-  initialValues?: Record<string, unknown>;
+  initialValues?: Record<
+    string,
+    Parameters<typeof validateFormState>[1][string]
+  >;
   loading: boolean;
   componentId: string;
   pageId: string;
@@ -22,9 +27,7 @@ const { processI18n } = useTranslation();
 
 const isExpanded = ref(false);
 
-function withAllLocales(
-  current: Record<string, string>,
-): Record<string, string> {
+function withAllLocales(current: Record<string, string>) {
   const updated = { ...current };
   locales.value.forEach((lang) => {
     if (!(lang.code in updated)) {
@@ -37,7 +40,7 @@ function withAllLocales(
 watch(
   fieldValue,
   (value) => {
-    if (!value || typeof value !== "object") {
+    if (!value || !isObject(value)) {
       fieldValue.value = withAllLocales({});
       return;
     }
@@ -50,14 +53,12 @@ watch(
 
 const EMPTY_TEXT = "";
 const localeValues = computed<Record<string, string>>(() =>
-  fieldValue.value && typeof fieldValue.value === "object"
-    ? fieldValue.value
-    : {},
+  fieldValue.value && isObject(fieldValue.value) ? fieldValue.value : {},
 );
 
 function setLocaleValue(code: string, value: string): void {
   const current = fieldValue.value;
-  if (current && typeof current === "object") {
+  if (current && isObject(current)) {
     current[code] = value;
     return;
   }

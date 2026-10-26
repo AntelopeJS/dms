@@ -134,7 +134,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
+    <Value>(_key: string, options: { default: () => Value }) =>
       ref(options.default()),
   );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));

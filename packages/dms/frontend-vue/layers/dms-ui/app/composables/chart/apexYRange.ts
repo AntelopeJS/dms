@@ -1,3 +1,4 @@
+import { isNumber, isObject } from "../../../../dms-core/app/utils/type-check";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import type { ChartSeries } from "./types";
 import type { UseApexChartInput } from "./useApexChart.types";
@@ -21,17 +22,17 @@ interface AutoYBounds {
   max?: (nativeMax: number) => number;
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return isNumber(value) && Number.isFinite(value);
 }
 
 function withoutFloatNoise(value: number): number {
   return Number(value.toPrecision(SIGNIFICANT_DIGITS));
 }
 
-function pointValues(point: ChartSeries["data"][number]): unknown[] {
-  if (typeof point === "number") return [point];
-  if (!point || typeof point !== "object") return [];
+function pointValues(point: ChartSeries["data"][number]) {
+  if (isNumber(point)) return [point];
+  if (!point || !isObject(point)) return [];
   return Array.isArray(point.y) ? point.y : [point.y];
 }
 

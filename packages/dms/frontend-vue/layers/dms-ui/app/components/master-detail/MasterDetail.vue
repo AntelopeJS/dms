@@ -14,6 +14,7 @@ defineProps<{
 const selected = defineModel<string | number>();
 
 defineSlots<{
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
   default?: (props: { selected: string | number | undefined }) => unknown;
 }>();
 </script>

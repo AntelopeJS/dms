@@ -10,6 +10,7 @@ import type { ComposedText } from "../layers/dms-core/app/types/composed-text";
 import {
   isComposedText,
   resolveComposedText,
+  type ComposedTextTranslate,
 } from "../layers/dms-core/app/utils/composedText";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 
@@ -57,7 +58,7 @@ function write(
   const { global } = makeI18n(locale);
   const translate = (
     key: string,
-    named: Record<string, unknown>,
+    named: Parameters<ComposedTextTranslate>[1],
     plural?: number,
   ) =>
     plural === undefined ? global.t(key, named) : global.t(key, named, plural);
@@ -226,6 +227,7 @@ describe("resolveComposedText — fallbacks", () => {
     expect(
       write({
         key: "saas.stats.mrr",
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately sends a future backend variant outside ComposedTextParam. Neither inference nor the current owner union admits it; the assertion keeps the forward-compatibility test unparsed.
         params: { amount: { type: "duration", value: 90 } as never },
       }),
     ).toBe("90 MRR");

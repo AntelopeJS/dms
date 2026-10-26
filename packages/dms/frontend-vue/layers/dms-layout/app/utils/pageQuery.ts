@@ -1,11 +1,14 @@
+import { isString } from "#dms-core/app/utils/type-check";
+
 /** The page query as the server reads it: one value per name, the last one. */
 export function pageQueryValues(
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the query parsing boundary. Route query types exclude malformed values this public function already discards.
   query: Record<string, unknown> | undefined,
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries(query ?? {}).flatMap(([name, value]) => {
       const last = Array.isArray(value) ? value.at(-1) : value;
-      return typeof last === "string" ? [[name, last]] : [];
+      return isString(last) ? [[name, last]] : [];
     }),
   );
 }

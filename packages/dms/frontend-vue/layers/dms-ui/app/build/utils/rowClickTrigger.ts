@@ -32,9 +32,11 @@ const ROW_CONTROL_SELECTOR = [
 const isRepeatClick: RowClickGuard = (event) => event.detail > 1;
 
 const isOnRowControl: RowClickGuard = (event) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- EventTarget does not establish an Element. This legacy projection keeps optional closest access, including inert targets without that method, without validating the target.
   const target = event.target as Element | null;
   const control = target?.closest?.(ROW_CONTROL_SELECTOR);
   if (!control) return false;
+  // SAFETY: The row listener is attached to the row element; a detached event has a null currentTarget.
   const row = event.currentTarget as Element | null;
   return !row || row.contains(control);
 };

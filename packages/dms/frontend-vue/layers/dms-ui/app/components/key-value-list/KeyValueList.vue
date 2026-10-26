@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
+import { isNumber } from "#dms-core/app/utils/type-check";
 import { pageLink } from "../../build/composables/page/pageUrlValues";
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
@@ -60,7 +61,10 @@ interface KeyValueListProps {
 
 interface KeyValueListSlots {
   /** Replaces a value cell; receives the item and its formatted text. */
-  value?: (props: { item: KeyValueItem; formatted: string }) => unknown;
+  value?: (props: {
+    item: KeyValueItem;
+    formatted: string;
+  }) => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<KeyValueListProps>(), {
@@ -76,7 +80,10 @@ const slots = defineSlots<KeyValueListSlots>();
 const EMPTY_VALUE = "—";
 const MAX_COLUMNS = 3;
 
-const COLUMN_CLASSES: Record<number, string> = {
+const COLUMN_CLASSES: Record<
+  NonNullable<KeyValueListProps["columns"]>,
+  string
+> = {
   1: "[&>div:first-child]:border-t-0",
   2: "gap-x-8 @min-[560px]:grid-cols-2 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0",
   3: "gap-x-8 @min-[560px]:grid-cols-2 @min-[840px]:grid-cols-3 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0 @min-[840px]:[&>div:nth-child(3)]:border-t-0",
@@ -102,12 +109,12 @@ const showPlaceholders = computed(
 type ValueFormatter = (item: KeyValueItem, value: string | number) => string;
 
 function formatNumber(_item: KeyValueItem, value: string | number): string {
-  if (typeof value !== "number") return value;
+  if (!isNumber(value)) return value;
   return readableNumberFormat(locale.value).format(value);
 }
 
 function formatMoney(item: KeyValueItem, value: string | number): string {
-  if (typeof value !== "number") return value;
+  if (!isNumber(value)) return value;
   try {
     return readableNumberFormat(locale.value, {
       style: "currency",

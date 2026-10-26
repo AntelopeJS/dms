@@ -1,3 +1,4 @@
+import { isObject } from "../../../dms-core/app/utils/type-check";
 interface AuthMiddlewareOptions {
   navigateAuthenticatedTo?: string;
   navigateUnauthenticatedTo?: string;
@@ -6,7 +7,7 @@ interface AuthMiddlewareOptions {
 type MiddlewareMeta = boolean | AuthMiddlewareOptions;
 
 function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
-  return typeof value === "object" && value !== null;
+  return isObject(value) && value !== null;
 }
 
 async function loadPermissionsIfNeeded() {
@@ -73,7 +74,7 @@ export default defineDmsMiddleware(async (to) => {
 
   if (useDmsError().value) return abortDmsNavigation();
 
-  const options = to.meta.auth as MiddlewareMeta | undefined;
+  const options = to.meta.auth;
   if (!options) return;
 
   if (await isPublicAccessRoute(to)) return;

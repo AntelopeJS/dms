@@ -11,7 +11,9 @@ beforeEach(async () => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-function render(props: Record<string, unknown>): Promise<string> {
+function render(
+  props: InstanceType<typeof DmsSection>["$props"],
+): Promise<string> {
   return renderToString(
     createSSRApp({
       render: () => h(DmsSection, props, { default: () => "Rows" }),

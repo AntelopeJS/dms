@@ -112,6 +112,7 @@ function pickFile(): void {
 }
 
 async function onFileChange(event: Event): Promise<void> {
+  // SAFETY: The template binds this change listener directly to the file input, which supplies the event target.
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";

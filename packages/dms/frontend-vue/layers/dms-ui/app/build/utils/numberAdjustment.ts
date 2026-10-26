@@ -1,3 +1,4 @@
+import { isNumber } from "../../../../dms-core/app/utils/type-check";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type {
   InputNumberAdjustment,
@@ -14,7 +15,7 @@ const SEPARATOR_SAMPLE = 11111.1;
 const WHITESPACE = /\s/g;
 const NOT_NUMERIC = /[^\d.+-]/g;
 
-function separatorsOf(locale: string): { group?: string; decimal: string } {
+function separatorsOf(locale: string) {
   const parts = readableNumberFormat(locale).formatToParts(SEPARATOR_SAMPLE);
   return {
     group: parts.find((part) => part.type === "group")?.value,
@@ -56,7 +57,6 @@ export function numberAdjustment(
   value: number | null | undefined,
   bounds: NumberFieldBounds,
 ): InputNumberAdjustment | null {
-  if (typed === null || typeof value !== "number" || value === typed)
-    return null;
+  if (typed === null || !isNumber(value) || value === typed) return null;
   return { typed, value, reason: reasonOf(typed, bounds) };
 }

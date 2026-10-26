@@ -1,7 +1,12 @@
 import { type Ref, watch } from "vue";
+import type { Form } from "@nuxt/ui";
 import type { ZodErrorMap, ZodType, ZodTypeDef } from "zod";
-import { resolveApiMessage } from "./translation/useTranslation";
+import {
+  type I18nTranslate,
+  resolveApiMessage,
+} from "./translation/useTranslation";
 import { type ValidationIssue, validationIssueMessage } from "./useFieldErrors";
+import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
 /**
  * Client-side checks of the hand-built forms (auth pages, onboarding,
@@ -16,7 +21,7 @@ export const CODE_INCOMPLETE_MESSAGE = "$dms.field_errors.code_incomplete";
 /** A new password that misses one of the listed rules. */
 export const PASSWORD_RULES_MESSAGE = "$dms.field_errors.password_rules";
 
-type Translate = (key: string, params?: Record<string, unknown>) => string;
+type Translate = (key: string, params?: Parameters<I18nTranslate>[1]) => string;
 
 /** A UForm validation issue, as a Standard Schema reports it. */
 interface FormIssue {
@@ -33,7 +38,9 @@ export interface LocalizedSchema<Output> {
   "~standard": {
     version: 1;
     vendor: string;
-    validate: (value: unknown) => Promise<FormValidationResult<Output>>;
+    validate: (
+      value: Parameters<ZodType<Output>["safeParseAsync"]>[0],
+    ) => Promise<FormValidationResult<Output>>;
   };
 }
 
@@ -56,19 +63,22 @@ export function isRichTextBlank(html: string): boolean {
  *
  * @param type The DMS data type id of the value, when it changes the reading
  */
-export function isBlankValue(value: unknown, type?: string): boolean {
+export function isBlankValue(
+  value: Parameters<typeof isString>[0],
+  type?: string,
+): boolean {
   if (value === undefined || value === null) return true;
-  if (typeof value === "string") {
+  if (isString(value)) {
     return type === "rich_text" ? isRichTextBlank(value) : value.trim() === "";
   }
-  if (typeof value === "number") return Number.isNaN(value);
+  if (isNumber(value)) return Number.isNaN(value);
   if (value instanceof Date) return Number.isNaN(value.getTime());
   if (Array.isArray(value)) {
     return value.every((item) => isBlankValue(item, type));
   }
-  if (typeof value === "object") {
+  if (isObject(value)) {
     return Object.values(value)
-      .filter((part) => typeof part !== "boolean")
+      .filter((part) => !isBoolean(part))
       .every((part) => isBlankValue(part, type));
   }
   return false;
@@ -81,7 +91,7 @@ export function isBlankValue(value: unknown, type?: string): boolean {
  */
 export function formIssueMessage(
   issue: ValidationIssue,
-  data: unknown,
+  data: Parameters<typeof isBlankValue>[0],
 ): string {
   return isBlankValue(data) ? REQUIRED_MESSAGE : validationIssueMessage(issue);
 }
@@ -146,14 +156,19 @@ export function codeEntryError(
 }
 
 /** The message key of a required value left empty, else `undefined`. */
-export function requiredError(value: unknown): string | undefined {
+export function requiredError(
+  value: Parameters<typeof isBlankValue>[0],
+): string | undefined {
   return isBlankValue(value) ? REQUIRED_MESSAGE : undefined;
 }
 
 /** What `UForm` exposes that {@link useLiveFormErrors} needs. */
 export interface LiveFormHandle {
   getErrors: (name?: string) => ReadonlyArray<unknown>;
-  validate: (options: { name: string; silent: boolean }) => Promise<unknown>;
+  validate: (options: {
+    name: string;
+    silent: boolean;
+  }) => ReturnType<Form<Parameters<typeof watch>[0]>["validate"]>;
 }
 
 /**
@@ -167,10 +182,13 @@ export interface LiveFormHandle {
  */
 export function useLiveFormErrors(
   form: Ref<LiveFormHandle | null | undefined>,
-  state: object,
+  state: Parameters<typeof watch>[0],
 ): void {
   watch(
-    () => ({ ...state }) as Record<string, unknown>,
+    (): Record<
+      ReturnType<typeof Object.keys>[number],
+      Parameters<typeof isBlankValue>[0]
+    > => ({ ...state }),
     (current, previous) => {
       const handle = form.value;
       if (!handle) return;

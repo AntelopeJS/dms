@@ -1,4 +1,8 @@
 import {
+  isString,
+  isObject,
+} from "../../../../../dms-core/app/utils/type-check";
+import {
   END_OF_DAY_HOURS,
   END_OF_DAY_MINUTES,
   END_OF_DAY_MS,
@@ -42,6 +46,7 @@ export interface PeriodChoices {
 }
 
 /** A page URL query, or a selection kept in the preferences. */
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the decoding boundary for URL and persisted values, including malformed non-text entries.
 export type PeriodQuery = Record<string, unknown>;
 
 /** A source the halves of a selection are read from, in order. */
@@ -66,7 +71,7 @@ const YEAR_PART_LENGTH = 4;
 function readText(query: PeriodQuery, key: string): string | undefined {
   const raw = query[key];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return typeof value === "string" && value ? value : undefined;
+  return isString(value) && value ? value : undefined;
 }
 
 type DayBoundary = "start" | "end";
@@ -93,15 +98,17 @@ function dayBoundary(
 
 /** A local calendar day, refused when it does not exist (`2026-02-30`). */
 function parseIsoDay(match: RegExpExecArray, boundary: DayBoundary) {
-  const [year, month, day] = match.slice(1).map(Number);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
   const date = dayBoundary(
-    { year: year!, month: month! - MONTH_OFFSET, day: day! },
+    { year, month: month - MONTH_OFFSET, day },
     boundary,
   );
   const wall = readerClock().wall(date);
   const exists =
     wall.year === year &&
-    wall.month === month! - MONTH_OFFSET &&
+    wall.month === month - MONTH_OFFSET &&
     wall.day === day;
   return exists ? date : null;
 }
@@ -348,13 +355,14 @@ export function isRangeOffered(
  * cookie, which must not grow with every page a user ever opened.
  */
 export function rememberPeriod(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A malformed stored value is accepted here; only the outer object is required to retain its existing entries.
   store: unknown,
   key: string,
   query: Record<string, string>,
   limit = REMEMBERED_PERIODS_LIMIT,
 ): RememberedPeriods {
-  const entries = Object.entries(
-    store && typeof store === "object" ? (store as RememberedPeriods) : {},
-  ).filter(([entry]) => entry !== key);
+  const entries = Object.entries(store && isObject(store) ? store : {}).filter(
+    ([entry]) => entry !== key,
+  );
   return Object.fromEntries([...entries, [key, query]].slice(-limit));
 }

@@ -12,14 +12,11 @@ import {
 const ROW = { values: { email: "zz-invitee@example.com" }, initial: {} };
 const FORBIDDEN = Object.assign(new Error("Forbidden"), { statusCode: 403 });
 
-interface Payload {
-  values: Record<string, unknown>;
-  initial: Record<string, unknown>;
-}
+type Payload = typeof ROW;
 
 function loadOf(
   data: Payload | null,
-  error: unknown,
+  error: FormLoadSource<Payload>["error"]["value"],
   next?: { data: Payload; error: unknown },
 ): FormLoadSource<Payload> {
   const load: FormLoadSource<Payload> = {

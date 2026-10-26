@@ -5,6 +5,7 @@ import { useSessionHandoff } from "../layers/dms-layout/app/build/composables/se
 import { useMultiAccount } from "../layers/dms-core/app/composables/auth/useMultiAccount";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { browserRuntime } from "./helpers/api-data-runtime";
+import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
 const session = ref({ accountId: "account-before" });
 const user = ref({ _id: "user", email: "member@example.test", name: "Member" });
@@ -20,10 +21,16 @@ beforeEach(() => {
   fetchCalls.length = 0;
   refreshUser.mockClear();
   session.value = { accountId: "account-before" };
-  vi.stubGlobal("$fetch", async (url: string, options: unknown) => {
-    fetchCalls.push([url, options]);
-    return {};
-  });
+  vi.stubGlobal(
+    "$fetch",
+    async (
+      url: string,
+      options: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
+    ) => {
+      fetchCalls.push([url, options]);
+      return {};
+    },
+  );
   vi.stubGlobal("useDmsUserSession", () => ({
     session,
     user,

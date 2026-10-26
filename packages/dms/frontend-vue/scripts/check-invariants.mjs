@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliDecompressSync } from "node:zlib";
+import { z } from "zod";
 import "./check-page-invariants.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -99,7 +100,7 @@ function checkFormErrorSummaryLabels() {
     );
     const resolved = messages.dms?.form?.error_summary?.resolved;
     assert.ok(
-      typeof resolved === "string" && resolved.trim().length > 0,
+      z.string().regex(/\S/).safeParse(resolved).success,
       `${locale}: translate dms.form.error_summary.resolved`,
     );
   }

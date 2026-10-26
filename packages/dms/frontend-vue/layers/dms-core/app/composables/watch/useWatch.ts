@@ -1,11 +1,15 @@
 import { isUndefined } from "../../utils/type-check";
 import { ComponentId } from "../../types/watch";
 
-function getValueByPath(obj: unknown, path: string): unknown {
+function getValueByPath(
+  obj: WatchEventDetail["data"],
+  path: string,
+): WatchActionCondition["value"] {
   const keys = path.split(".");
   let current: unknown = obj;
   for (const key of keys) {
     if (current === null || current === undefined) return undefined;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Event data has no common schema; this unchecked access intentionally retains primitive boxing and arbitrary nested property traversal rather than rejecting non-record values.
     current = (current as Record<string, unknown>)[key];
   }
   return current;
@@ -36,9 +40,11 @@ interface WatchEventDetail {
   data?: unknown;
 }
 
+type WatchEvent = Event & Partial<Pick<CustomEvent, "detail">>;
+
 function checkParamConditions(
   onParam: WatchAction["onParam"],
-  data: unknown,
+  data: WatchEventDetail["data"],
 ): boolean {
   if (!onParam) return true;
   const conditions = Array.isArray(onParam) ? onParam : [onParam];
@@ -53,7 +59,7 @@ function checkParamConditions(
 
 function isMatchingAction(
   action: WatchAction,
-  event: CustomEvent,
+  event: WatchEvent,
   detail: WatchEventDetail,
   componentId?: string,
 ): boolean {
@@ -68,24 +74,22 @@ function isMatchingAction(
 export function useWatch(
   actions: WatchAction[],
   componentId?: string,
-  defaultState: Record<string, unknown> = {},
+  defaultState: Parameters<WatchActionFunction>[2]["value"] = {},
 ) {
   const isLoading = ref(false);
-  const componentState = ref<Record<string, unknown>>(defaultState);
+  const componentState = ref(defaultState);
   const { getFunction } = useDefinedFunctions();
 
   const requiredEvents = new Set<string>(actions.map((action) => action.event));
 
   function runMatchingActions(
     matchingActions: WatchAction[],
-    event: CustomEvent,
+    event: WatchEvent,
   ) {
     isLoading.value = true;
     try {
       for (const action of matchingActions) {
-        const actionFn = getFunction(action.functionId) as
-          | WatchActionFunction
-          | undefined;
+        const actionFn = getFunction(action.functionId);
         if (!actionFn) {
           continue;
         }
@@ -101,7 +105,7 @@ export function useWatch(
     }
   }
 
-  function handleWatchEvent(event: CustomEvent) {
+  function handleWatchEvent(event: WatchEvent) {
     const { detail } = event;
     if (!detail) {
       return;
@@ -119,11 +123,11 @@ export function useWatch(
   }
 
   onMounted(() => {
-    registerEventListeners(requiredEvents, handleWatchEvent as EventListener);
+    registerEventListeners(requiredEvents, handleWatchEvent);
   });
 
   onUnmounted(() => {
-    unregisterEventListeners(requiredEvents, handleWatchEvent as EventListener);
+    unregisterEventListeners(requiredEvents, handleWatchEvent);
   });
 
   return {

@@ -1,4 +1,8 @@
-import { ref, type Component, type Ref } from "vue";
+import {
+  isObject,
+  isNumber,
+} from "../../../../../dms-core/app/utils/type-check";
+import { ref, type Component, type ComponentOptions, type Ref } from "vue";
 import type { DrawerDirection } from "../../../composables/containers/types";
 import type { ModalSize } from "../../../types/modal";
 import type { ResizeBounds, ResizeStorage } from "./useResizableSize";
@@ -69,13 +73,16 @@ function emptyPreferences(): DrawerSizePreferences {
   return { widths: {}, heights: {} };
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This cookie decoder accepts malformed persisted values and filters them here.
 function readSizes(value: unknown): Record<string, number> {
-  if (typeof value !== "object" || value === null) return {};
+  if (!isObject(value) || value === null) return {};
+  const entries: [string, unknown][] = Object.entries(value);
   return Object.fromEntries(
-    Object.entries(value).filter(
-      ([, size]) => typeof size === "number" && Number.isFinite(size),
+    entries.filter(
+      (entry): entry is [string, number] =>
+        isNumber(entry[1]) && Number.isFinite(entry[1]),
     ),
-  ) as Record<string, number>;
+  );
 }
 
 /**
@@ -85,10 +92,11 @@ function readSizes(value: unknown): Record<string, number> {
  * @internal
  */
 export function readDrawerSizePreferences(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The persisted cookie is decoded here, not trusted as DrawerSizePreferences.
   value: unknown,
 ): DrawerSizePreferences {
-  if (typeof value !== "object" || value === null) return emptyPreferences();
-  const record = value as Record<string, unknown>;
+  if (!isObject(value) || value === null) return emptyPreferences();
+  const record = value;
   return {
     widths: readSizes(record.widths),
     heights: readSizes(record.heights),
@@ -152,12 +160,6 @@ const COMPONENT_SIZE_KEY_PREFIX = "component:";
 
 const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
 
-interface NamedComponent {
-  name?: string;
-  /** The file name a `<script setup>` component is compiled with. */
-  __name?: string;
-}
-
 /**
  * The key a drawer opened without `sizeKey` or `containerId` keeps its size
  * under: its component's name, the same at every opening. Undefined for an
@@ -166,7 +168,9 @@ interface NamedComponent {
  * @internal
  */
 export function componentSizeKey(component: Component): string | undefined {
-  const { name, __name } = component as NamedComponent;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Component's constructor branch does not constrain these metadata fields; retain unchecked name selection and interpolation.
+  const named = component as Pick<ComponentOptions, "name" | "__name">;
+  const { name, __name } = named;
   const componentName = [name, __name].find(
     (candidate) => candidate && candidate !== ASYNC_WRAPPER_NAME,
   );

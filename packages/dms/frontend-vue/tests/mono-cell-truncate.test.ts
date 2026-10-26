@@ -16,7 +16,7 @@ function mountCell(copy: boolean) {
   app.component("UButton", ButtonStub);
   const container = document.createElement("div");
   app.mount(container);
-  return container.firstElementChild as HTMLElement;
+  return container.firstElementChild!;
 }
 
 beforeEach(() => {

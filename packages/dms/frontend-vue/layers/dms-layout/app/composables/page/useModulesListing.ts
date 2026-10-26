@@ -12,13 +12,16 @@ export interface ModulesListingError {
 
 export const ENDPOINT_MODULES_LISTING = "/dms/modules-listing";
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- API failures can be any thrown value. Inference is unavailable here and the parsed ModulesListingError owner would exclude malformed and network failures.
 function readStatus(error: unknown): number | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy projection does not validate status fields. Deriving from the fetch error cannot prove arbitrary thrown values; adding validation would change malformed-input behavior.
   const details = error as
     | { response?: { status?: number }; statusCode?: number; status?: number }
     | undefined;
   return details?.response?.status ?? details?.statusCode ?? details?.status;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This boundary maps arbitrary API failures. The parsed result type cannot describe rejection reasons, and inference provides no parameter contract.
 function toListingError(error: unknown): ModulesListingError {
   const status = readStatus(error);
   if (status === HTTP_FORBIDDEN) return { kind: "forbidden", status };

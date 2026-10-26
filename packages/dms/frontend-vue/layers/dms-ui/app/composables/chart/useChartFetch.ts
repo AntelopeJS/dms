@@ -1,3 +1,4 @@
+import { isFunction } from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   getCurrentScope,
@@ -19,7 +20,6 @@ import {
 } from "../../build/utils/urlVariables";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
-import type { UseApiDataOptions } from "../../../../dms-core/app/composables/auth/useApiData";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -33,6 +33,7 @@ export interface UseChartFetchOptions<T> {
   fetchUrlMethod?: string;
   periodScope?: string;
   realtimeTopic?: string | string[];
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This source is only JSON-stringified for equality; inference has no value and Vue WatchSource's generic owner deliberately permits any result.
   watchSource?: () => unknown;
   staticData?: T | null | (() => T | null);
 }
@@ -71,7 +72,9 @@ function isSameRequest(left: ChartRequest, right: ChartRequest): boolean {
 function readStaticData<T>(
   source: UseChartFetchOptions<T>["staticData"],
 ): T | null {
-  if (typeof source === "function") return (source as () => T | null)();
+  if (isFunction(source)) {
+    return source();
+  }
   return source ?? null;
 }
 
@@ -88,7 +91,7 @@ function useResolvedFetchUrl<T>(
   return computed(() =>
     resolveUrlVariables(fetchUrl, {
       routeParams: options.routeParams?.(),
-      routeQuery: route.query as Record<string, unknown>,
+      routeQuery: route.query,
     }),
   );
 }
@@ -156,7 +159,7 @@ function useScopeWait(isWaiting: () => boolean): ComputedRef<boolean> {
 }
 
 function useDebouncedRefresh(
-  refresh: () => Promise<unknown>,
+  refresh: () => Promise<void>,
   isPending: () => boolean,
 ): () => Promise<void> {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -215,11 +218,11 @@ export function useChartFetch<T>(
     };
   });
   const request = useScheduledRequest(target);
-  const loaded = useApiData<T>(() => request.current.value.url, {
-    method: options.fetchUrlMethod as UseApiDataOptions<T>["method"],
+  const loaded = useApiData<T | null>(() => request.current.value.url, {
+    method: options.fetchUrlMethod,
 
     lazy: true,
-    default: () => readStaticData(options.staticData) as T,
+    default: () => readStaticData(options.staticData),
     watch: [() => request.current.value.watched],
 
     refreshOnPageRefresh: false,
@@ -250,17 +253,18 @@ export function useChartFetch<T>(
       () => status.value === "pending",
     ),
   );
-  return { data: data as Ref<T | null>, isLoading, error, refresh };
+  return { data, isLoading, error, refresh };
 }
 
 /** A block without `fetchUrl`: its `staticData`, followed as it changes. */
 function useStaticChartData<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue deeply unwraps static data, which need not remain T; retain the existing public ref contract and reactive behavior.
   const data = ref<T | null>(
     readStaticData(options.staticData),
   ) as Ref<T | null>;
-  if (typeof options.staticData === "function")
+  if (isFunction(options.staticData))
     watch(
       () => readStaticData(options.staticData),
       (next) => {

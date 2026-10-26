@@ -122,7 +122,7 @@ const notFound = computed(() =>
   hasError.value ? readFetchNotFound(error.value) : null,
 );
 
-const SKELETON_TRACK_HEIGHTS: Record<string, string> = {
+const SKELETON_TRACK_HEIGHTS = {
   xs: "h-1",
   sm: "h-1.5",
   md: "h-2",

@@ -107,12 +107,14 @@ describe("a disabled relation field", () => {
         return () => h(FormFieldControl, { field });
       },
     });
+    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- This fixture intentionally provides only the context fields read by the disabled control. The full FormEntryContext owner requires unrelated callbacks; inference cannot make the partial provider complete.
     app.provide(FORM_ENTRY_CONTEXT_KEY, {
       state: ref({ customer: "cust-025" }),
       initialValues: ref({ customer }),
       loading: false,
       isFieldDisabled: () => true,
     } as never);
+    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion
     app.component(
       "UFormField",
       defineComponent({

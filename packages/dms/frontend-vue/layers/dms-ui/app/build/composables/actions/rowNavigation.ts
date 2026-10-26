@@ -204,15 +204,22 @@ export function trackRowNavigation(
   };
 }
 
-const ROW_STEP_KEYS: Record<
-  string,
-  keyof Pick<RowNavigation, "prev" | "next">
-> = { j: "next", k: "prev" };
+const ROW_STEP_KEYS: Record<KeyboardEvent["key"], "prev" | "next"> = {
+  j: "next",
+  k: "prev",
+};
 
-const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+const TYPING_TAGS = new Set<HTMLElement["tagName"] | undefined>([
+  "INPUT",
+  "TEXTAREA",
+  "SELECT",
+]);
 
 const isTypingTarget = (target: EventTarget | null): boolean => {
-  const element = target as HTMLElement | null;
+  const element:
+    | (EventTarget &
+        Partial<Pick<HTMLElement, "isContentEditable" | "tagName">>)
+    | null = target;
   if (!element) return false;
   return element.isContentEditable || TYPING_TAGS.has(element.tagName);
 };

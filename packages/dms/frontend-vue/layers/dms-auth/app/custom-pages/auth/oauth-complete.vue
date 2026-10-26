@@ -12,10 +12,14 @@ const redirect = computed(
   () => sanitizeRedirectPath(route.query.redirect) || homepage,
 );
 
+type HandoffByKind = {
+  [K in OAuthHandoff["kind"]]: Extract<OAuthHandoff, { kind: K }>;
+};
+
 type HandoffActions = {
-  [K in OAuthHandoff["kind"]]: (
-    handoff: Extract<OAuthHandoff, { kind: K }>,
-  ) => unknown;
+  [K in keyof HandoffByKind]: (
+    handoff: HandoffByKind[K],
+  ) => ReturnType<typeof navigateDms> | ReturnType<typeof usePostLoginRedirect>;
 };
 
 const REPLACE = { replace: true } as const;
@@ -40,14 +44,14 @@ const HANDOFF_ACTIONS: HandoffActions = {
   none: () => usePostLoginRedirect(redirect.value, REPLACE),
 };
 
-function runHandoffAction(handoff: OAuthHandoff): unknown {
-  const action = HANDOFF_ACTIONS[handoff.kind] as (
-    value: OAuthHandoff,
-  ) => unknown;
+function runHandoffAction<K extends keyof HandoffByKind>(
+  handoff: HandoffByKind[K],
+) {
+  const action = HANDOFF_ACTIONS[handoff.kind];
   return action(handoff);
 }
 
-function redirectToLoginWithError(): unknown {
+function redirectToLoginWithError() {
   return navigateDms(
     { path: "/auth", query: { oauth_error: OAUTH_FAILED_KEY } },
     REPLACE,
@@ -65,9 +69,15 @@ async function completeOAuth(): Promise<void> {
   }
 }
 
+declare module "#dms/frontend-module" {
+  interface DmsAppContext {
+    [IN_FLIGHT_COMPLETION_KEY]?: Promise<void>;
+  }
+}
+
 function joinCompletion(): Promise<void> {
-  const holder = dmsApp as unknown as Record<PropertyKey, unknown>;
-  const running = holder[IN_FLIGHT_COMPLETION_KEY] as Promise<void> | undefined;
+  const holder = dmsApp;
+  const running = holder[IN_FLIGHT_COMPLETION_KEY];
   if (running) return running;
   const completion = completeOAuth().finally(() => {
     if (holder[IN_FLIGHT_COMPLETION_KEY] === completion) {

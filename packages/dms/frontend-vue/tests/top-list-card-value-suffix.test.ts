@@ -8,7 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chartRuntime } from "./helpers/charts-runtime";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 
-const rows = ref<Array<Record<string, unknown>>>([]);
+type CardProps = InstanceType<typeof TopListCard>["$props"];
+const rows = ref<NonNullable<CardProps["staticItems"]>>([]);
 
 const Slot = defineComponent({
   setup:
@@ -17,7 +18,7 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(props: Partial<CardProps>): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(TopListCard, {

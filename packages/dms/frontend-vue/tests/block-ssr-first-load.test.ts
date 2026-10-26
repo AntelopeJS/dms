@@ -16,6 +16,7 @@ import {
 } from "./helpers/block-network-runtime";
 
 const SHOWN = "Pending orders";
+// oxlint-disable-next-line anti-slop/no-known-value-widening, anti-slop/no-unsafe-dictionary-type -- These endpoint fixtures answer arbitrary requested URLs with heterogeneous raw block data. Inference removes arbitrary indexing and the block components have separate private response owners, not one shared response schema; parsing here would bypass their input boundary.
 const ANSWERS: Record<string, unknown> = {
   "/api/orders/kpi": { value: 4321 },
   "/api/orders/facts": { items: [{ label: SHOWN, value: "12" }] },

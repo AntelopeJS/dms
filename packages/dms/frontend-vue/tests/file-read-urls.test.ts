@@ -205,6 +205,7 @@ describe("file read URLs in the browser", () => {
   });
 
   it("does not restart refresh timers when an in-flight lookup finishes after disposal", async () => {
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This resolver completes an unparsed network response after disposal; the real file URL composable owns parsing, not this transport double.
     let finish!: (value: unknown) => void;
     authFetch.mockReturnValue(
       new Promise((resolve) => {

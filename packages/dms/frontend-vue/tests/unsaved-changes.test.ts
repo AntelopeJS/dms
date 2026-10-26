@@ -145,7 +145,8 @@ describe("leave guard", () => {
 
   it("only asks for the forms of the scope left", async () => {
     const prompt = vi.fn(async () => true);
-    const panel = { contains: (element: unknown) => element === inside };
+    const panel = { contains: (element: Node | null) => element === inside };
+    // SAFETY: The guard uses this sentinel solely for identity comparison in contains.
     const inside = {} as Element;
     registerUnsavedChanges(
       { isDirty: () => true, containerId: "modal-1" },
@@ -157,9 +158,8 @@ describe("leave guard", () => {
     );
     expect(await confirmLeave({ containerId: "modal-2" })).toBe(true);
     expect(prompt).not.toHaveBeenCalled();
-    expect(await confirmLeave({ within: panel as unknown as Element })).toBe(
-      true,
-    );
+    // SAFETY: confirmLeave only calls contains on within; the stub supplies that exact operation.
+    expect(await confirmLeave({ within: panel as Element })).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
 
     expect(hasUnsavedChanges({ containerId: "modal-1" })).toBe(true);

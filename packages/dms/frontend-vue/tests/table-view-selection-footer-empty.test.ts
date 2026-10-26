@@ -47,10 +47,10 @@ const I18nTStub = defineComponent({
 
 let app: App | undefined;
 
-function mount(
+function mount<Shared>(
   component: Component,
-  props: Record<string, unknown>,
-  shared: Record<string, unknown>,
+  props: Parameters<typeof h>[1],
+  shared: Shared,
 ) {
   const emitted: unknown[][] = [];
   const Host = defineComponent({
@@ -86,13 +86,16 @@ function mount(
 beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
+    t: (key: string, params?: { count?: string | number }) =>
       params ? `${key}:${JSON.stringify(params)}` : key,
     te: () => false,
     locale: ref("en-GB"),
   }));
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string, params?: Record<string, unknown>) =>
+    processI18n: (
+      text: string,
+      params?: { search?: string; count?: string | number },
+    ) =>
       text.startsWith("$")
         ? `${text.slice(1)}${params ? JSON.stringify(params) : ""}`
         : text,

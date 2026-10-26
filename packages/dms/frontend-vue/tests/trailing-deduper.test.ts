@@ -3,7 +3,7 @@ import { createTrailingDeduper } from "../layers/dms-core/app/utils/trailingDedu
 
 function deferred() {
   let resolve!: () => void;
-  let reject!: (error: unknown) => void;
+  let reject!: (error: Error) => void;
   const promise = new Promise<void>((res, rej) => {
     resolve = () => res();
     reject = rej;

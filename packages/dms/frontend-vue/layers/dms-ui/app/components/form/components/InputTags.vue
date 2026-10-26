@@ -21,12 +21,6 @@ interface InputTagsProps {
   disabled?: boolean;
 }
 
-/** A form error naming some of the items (`values`), as the form keeps it. */
-interface ItemsError {
-  name?: string;
-  values?: unknown;
-}
-
 const props = defineProps<InputTagsProps>();
 const model = defineModel<string[] | null | undefined>();
 const { t } = useI18n();
@@ -48,11 +42,9 @@ const invalid = computed(
 
 const refused = computed(() => {
   const name = formField?.value?.name;
-  const error = (formErrors?.value as ItemsError[] | undefined)?.find(
-    (entry) => entry.name === name,
-  );
+  const error = formErrors?.value.find((entry) => entry.name === name);
   return new Set(
-    Array.isArray(error?.values)
+    error && "values" in error && Array.isArray(error.values)
       ? error.values.map((value) => String(value).toLowerCase())
       : [],
   );

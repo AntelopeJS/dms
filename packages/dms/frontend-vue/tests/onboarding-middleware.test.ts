@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-type Middleware = (to: { path: string }) => Promise<unknown>;
+type Middleware = (to: { path: string }) => Promise<void>;
+let middleware: Middleware;
 
 const navigateDms = vi.fn();
 const onboarding = vi.fn();
@@ -8,7 +9,10 @@ const session = { loggedIn: { value: false } };
 
 beforeEach(() => {
   vi.resetModules();
-  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
+  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => {
+    middleware = handler;
+    return handler;
+  });
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useOnboarding", onboarding);
   vi.stubGlobal("useDmsUserSession", () => session);
@@ -23,10 +27,8 @@ afterEach(() => {
 });
 
 async function loadMiddleware(): Promise<Middleware> {
-  const module = await import(
-    "../layers/dms-onboarding/app/middleware/onboarding.global"
-  );
-  return module.default as unknown as Middleware;
+  await import("../layers/dms-onboarding/app/middleware/onboarding.global");
+  return middleware;
 }
 
 describe("onboarding middleware", () => {

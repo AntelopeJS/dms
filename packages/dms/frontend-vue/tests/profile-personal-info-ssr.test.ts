@@ -89,7 +89,7 @@ beforeEach(async () => {
   vi.stubGlobal("useProfileAvatar", () => ({ upload: vi.fn() }));
   vi.stubGlobal("useUploadWithProgress", () => ({}));
   vi.stubGlobal("useFileReadUrls", useFileReadUrls);
-  stubApiData(authFetch as never);
+  stubApiData(authFetch);
 });
 
 afterEach(() => {

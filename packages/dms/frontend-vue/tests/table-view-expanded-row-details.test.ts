@@ -11,7 +11,7 @@ interface Order {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
+  let reject!: (error: Error) => void;
   const promise = new Promise<T>((done, fail) => {
     resolve = done;
     reject = fail;
@@ -68,7 +68,22 @@ describe("expanded row props", () => {
   it("hands a band its row, actions, open and the table's refresh", () => {
     const open = vi.fn();
     const refresh = vi.fn();
-    const actions = { open } as unknown as TableViewDisplayActions<Order>;
+    const actions: TableViewDisplayActions<Order> = {
+      open,
+      canAdd: false,
+      canEdit: false,
+      canDelete: false,
+      canDetails: false,
+      canEditRow: () => false,
+      canDeleteRow: () => false,
+      add: vi.fn(),
+      edit: vi.fn(),
+      delete: vi.fn(),
+      duplicate: vi.fn(),
+      details: vi.fn(),
+      custom: vi.fn(),
+      customFor: () => [],
+    };
     const row = { _id: "a1", number: "A-1" };
     const props = buildExpandedRowProps(row, {
       columns: [],

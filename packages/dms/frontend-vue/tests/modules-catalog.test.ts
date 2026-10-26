@@ -140,15 +140,17 @@ describe("parseModuleSortMode", () => {
 });
 
 describe("findModulePageMatch", () => {
-  const page = (slug: string, extra: Record<string, unknown>): PageInfo =>
-    ({
-      id: slug,
-      fullId: slug,
-      fullSlug: slug,
-      layoutUrl: `${slug}/pagelayout`,
-      displayName: "",
-      ...extra,
-    }) as unknown as PageInfo;
+  const page = (
+    slug: string,
+    extra: Partial<PageInfo> & { module?: string },
+  ): PageInfo => ({
+    id: slug,
+    fullId: slug,
+    fullSlug: slug,
+    layoutUrl: `${slug}/pagelayout`,
+    displayName: "",
+    ...extra,
+  });
 
   const pages = {
     "/modules/saas/billing/invoices": page("/modules/saas/billing/invoices", {
@@ -216,6 +218,7 @@ describe("recentModules", () => {
       children: Object.fromEntries(pages.map((page) => [page.id, page])),
       childrenOrders: pages.map((page) => page.id),
     };
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately sparse landing tree omits displayName and fullId because recentModules only reads slugs, children, ordering and module-root flags; it is not a complete SiteLayoutTree.
     return {
       id: "",
       fullSlug: "/",
@@ -228,8 +231,9 @@ describe("recentModules", () => {
         },
       },
       childrenOrders: ["modules"],
-    } as unknown as SiteLayoutTree;
+    } as SiteLayoutTree;
   };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This sparse module omits description because recentModules only reads its title, icon and access; it is not a complete ModuleWithAccess.
   const cms = {
     id: "cms",
     title: "$cms.title",

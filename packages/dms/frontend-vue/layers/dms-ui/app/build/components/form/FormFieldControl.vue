@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pageLink } from "../../composables/page/pageUrlValues";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type {
   FormField,
   FormFieldReadonly,
@@ -25,8 +26,8 @@ const { processI18n } = useTranslation();
 const isDisabled = computed(() => context.isFieldDisabled(props.field));
 
 const READS_AS_CONTROL = new Set(["array", "key_value"]);
-const hasRows = (value: unknown): boolean =>
-  !!value && typeof value === "object" && Object.keys(value).length > 0;
+const hasRows = (value: (typeof state)["value"][string]): boolean =>
+  !!value && isObject(value) && Object.keys(value).length > 0;
 const showsDisplay = computed(
   () =>
     isDisabled.value &&
@@ -64,7 +65,7 @@ const readonlyValue = computed(() =>
 );
 
 const readonly = computed<FormFieldReadonly>(() =>
-  typeof props.field.readonly === "object" ? props.field.readonly : {},
+  isObject(props.field.readonly) ? props.field.readonly : {},
 );
 </script>
 
@@ -74,7 +75,7 @@ const readonly = computed<FormFieldReadonly>(() =>
   <div class="grid min-w-0 grid-cols-1 gap-1.5">
     <DmsLocalizedField
       v-if="field.localized"
-      v-model="state[field.id] as Record<string, string> | undefined"
+      v-model="state[field.id]"
       :field
       :initial-values="initialValues"
       :loading

@@ -1,3 +1,4 @@
+import { isNumber } from "../../../../dms-core/app/utils/type-check";
 import type { ChartXAxisFormatter } from "./types";
 
 /**
@@ -52,7 +53,7 @@ export function thinnedCategoryFormatter(
     const label = write(value, timestamp);
     const index = opts?.i;
     const globals = opts?.w?.globals;
-    if (typeof index !== "number" || !globals) return label;
+    if (!isNumber(index) || !globals) return label;
     const labels = globals.labels ?? [];
     const longest = labels.reduce<number>(
       (max, entry) => Math.max(max, write(String(entry ?? "")).length),

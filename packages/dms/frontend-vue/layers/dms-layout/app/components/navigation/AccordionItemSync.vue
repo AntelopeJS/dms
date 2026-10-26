@@ -29,7 +29,7 @@ watch(
 watchEffect(() => {
   const desired = props.isDesiredOpen(props.itemId);
   if (desired !== itemContext.open.value) {
-    rootContext.changeModelValue(itemContext.value.value as string);
+    rootContext.changeModelValue(itemContext.value.value);
   }
 });
 </script>

@@ -26,7 +26,7 @@ import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/con
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/shop/stores/s1",
   query: {},
 });
@@ -40,7 +40,8 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: api as never,
+          // SAFETY: These target cases invoke only the callable API mock, never $fetch's raw/create/native members.
+          api: api as Parameters<typeof useActionTargets>[0]["api"],
           pageId: "store-page",
           componentId: "orders",
           handleApiError: vi.fn(),

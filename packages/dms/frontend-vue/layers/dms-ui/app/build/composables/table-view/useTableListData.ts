@@ -1,9 +1,9 @@
 import { computed, type ComputedRef } from "vue";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
-import type { useTableRows } from "./useTableRows";
+import type { TableCountQuery, useTableRows } from "./useTableRows";
 import { buildTableDataKey } from "./utils/tableQuery";
 
-type Query = Record<string, unknown>;
+type Query = TableCountQuery["query"];
 type TableRows<T extends Record<string, unknown>> = ReturnType<
   typeof useTableRows<T>
 >;

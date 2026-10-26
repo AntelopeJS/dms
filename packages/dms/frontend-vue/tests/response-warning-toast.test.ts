@@ -13,7 +13,11 @@ const SUCCESS = { color: "success", title: "Invitation sent successfully" };
 
 const translation = {
   processI18n: (key: string) => `i18n:${key}`,
-  processApiMessage: (message: unknown) => `api:${String(message)}`,
+  processApiMessage: (
+    message: Parameters<
+      Parameters<typeof resolveResponseToast>[2]["processApiMessage"]
+    >[0],
+  ) => `api:${String(message)}`,
 };
 
 describe("response warning toast", () => {

@@ -20,6 +20,7 @@ import {
   watch,
   type App,
   type Component,
+  type FunctionalComponent,
 } from "vue";
 import { compile } from "tailwindcss";
 import {
@@ -34,6 +35,7 @@ import {
 import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/build/components/containers/constants";
 
 import { DialogRoot } from "reka-ui";
+import type DynamicDrawer from "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue";
 
 const require = createRequire(import.meta.url);
 let overlayCss = "";
@@ -42,7 +44,10 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 const ContainerStub = defineComponent({
-  props: { open: Boolean, ui: Object },
+  props: {
+    open: Boolean,
+    ui: Object,
+  },
   emits: ["update:open"],
   setup(props, { slots }) {
     return () =>
@@ -50,7 +55,7 @@ const ContainerStub = defineComponent({
         h("div", {
           "data-slot": "overlay",
           "data-state": props.open ? "open" : "closed",
-          class: (props.ui as Record<string, string> | undefined)?.overlay,
+          class: props.ui?.overlay,
           style: { pointerEvents: "auto" },
         }),
         h(DialogRoot, null, () =>
@@ -72,7 +77,7 @@ const passThroughStub = defineComponent({
 
 async function mountContainer(
   container: Component,
-  props: Record<string, unknown> = {},
+  props: Partial<InstanceType<typeof DynamicDrawer>["$props"]> = {},
 ): Promise<void> {
   const isOpen = ref(true);
   app = createApp({
@@ -89,7 +94,7 @@ async function mountContainer(
   app.component("UDrawer", ContainerStub);
   app.component("UModal", ContainerStub);
   app.component("UContainer", passThroughStub);
-  app.component("UButton", (buttonProps: Record<string, unknown>) =>
+  app.component("UButton", (buttonProps: Parameters<FunctionalComponent>[0]) =>
     h("button", { ...buttonProps }),
   );
   app.component("USkeleton", () => h("span"));
@@ -180,7 +185,13 @@ const loadModal: ContainerLoader = () =>
     "../layers/dms-ui/app/build/components/containers/modal/DynamicModal.vue"
   );
 
-const CONTAINERS: Array<[string, ContainerLoader, Record<string, unknown>]> = [
+const CONTAINERS: Array<
+  [
+    string,
+    ContainerLoader,
+    Partial<InstanceType<typeof DynamicDrawer>["$props"]>,
+  ]
+> = [
   ["side drawer", loadDrawer, { direction: "right" }],
   ["bottom drawer", loadDrawer, { direction: "bottom" }],
   ["modal", loadModal, {}],

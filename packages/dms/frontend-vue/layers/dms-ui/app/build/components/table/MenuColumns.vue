@@ -2,11 +2,9 @@
 import { injectLocal } from "@vueuse/core";
 import type { Column } from "@tanstack/vue-table";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
-import type { TableColumnMeta } from "../../composables/table/types";
 import SortableList from "../sortable/SortableList.vue";
 
 const theme = tv({
@@ -29,7 +27,8 @@ const tableSharedData =
 
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuColumn: Partial<typeof theme> };
 };
 
@@ -57,11 +56,11 @@ const columnKey = (column: ListedColumn) => column.id;
 function mapColumns() {
   return order.value
     .map((id) => rawColumns.value.find((col) => col.id === id))
-    .filter((col) => col && (col!.columnDef.meta as TableColumnMeta)?.label)
+    .filter((col): col is Column<T> => !!col?.columnDef.meta?.label)
     .map((col) => ({
-      label: (col!.columnDef.meta as TableColumnMeta)!.label!,
-      id: col!.id,
-      column: col!,
+      label: col.columnDef.meta!.label!,
+      id: col.id,
+      column: col,
     }));
 }
 
@@ -90,7 +89,7 @@ function resetColumns() {
 
 const uiTableMenuColumnVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuColumn || {}),
+  ...appConfig.ui?.tableMenuColumn,
 });
 const uiTableMenuColumn = computed(() => uiTableMenuColumnVariant());
 </script>

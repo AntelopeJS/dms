@@ -67,7 +67,10 @@ const i18n = createI18n({
   },
 });
 
-let meterData: Record<string, unknown> | null = null;
+let meterData: Pick<
+  InstanceType<typeof MeterBlock>["$props"],
+  "value" | "max" | "hint"
+> | null = null;
 
 const ActivityFeed = (
   await import("../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue")
@@ -86,7 +89,7 @@ const NavCardGridBlock = (
 
 const mounted: Array<{ unmount: () => void }> = [];
 
-function mount(component: Component, props: Record<string, unknown>) {
+function mount(component: Component, props: Parameters<typeof mountExtra>[1]) {
   const { root, app } = mountExtra(component, props);
   mounted.push(app);
   return root;

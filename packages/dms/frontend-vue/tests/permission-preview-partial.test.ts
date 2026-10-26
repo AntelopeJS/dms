@@ -130,6 +130,7 @@ describe("NavigationMenu in a role preview", () => {
   const MenuStub = defineComponent({
     props: {
       items: {
+        // SAFETY: Vue's Array constructor validates the container; every supplied item comes from ITEMS.
         type: Array as PropType<NavigationMenuItem[][]>,
         required: true,
       },
@@ -188,7 +189,7 @@ describe("NavigationMenu in a role preview", () => {
       t: (key: string, values?: { role?: string }) =>
         values?.role ? `${key}(${values.role})` : key,
     }));
-    vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+    vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
       if (!state.has(key)) state.set(key, ref(initial()));
       return state.get(key);
     });

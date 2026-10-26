@@ -1,3 +1,5 @@
+import { isObject, isString } from "../utils/type-check";
+
 interface Options {
   context?: string;
   title?: string;
@@ -17,20 +19,18 @@ const FALLBACK_ERROR_KEY = "error.500.description";
 const CLIENT_ERROR_STATUS_MIN = 400;
 const CLIENT_ERROR_STATUS_MAX = 499;
 
-function isApiError(error: unknown): error is ApiError {
-  return typeof error === "object" && error !== null;
+function isApiError(
+  error: Parameters<typeof resolveApiErrorTitle>[0],
+): error is ApiError {
+  return isObject(error) && error !== null;
 }
 
 function resolveDescription(error: ApiError): string {
-  const errorData = error.data as Record<string, unknown> | string | undefined;
-  if (
-    errorData &&
-    typeof errorData === "object" &&
-    typeof errorData.message === "string"
-  ) {
+  const errorData = error.data;
+  if (errorData && isObject(errorData) && isString(errorData.message)) {
     return errorData.message;
   }
-  if (typeof errorData === "string") {
+  if (isString(errorData)) {
     return errorData;
   }
   return FALLBACK_ERROR_KEY;
@@ -48,7 +48,9 @@ function isClientErrorStatus(status: number | undefined): boolean {
  * The i18n title key matching a fetch error's HTTP status: a 4xx is a request
  * the backend refused, anything else (5xx, network failure) a server error.
  */
-export function resolveApiErrorTitle(error: unknown): string {
+export function resolveApiErrorTitle(
+  error: Parameters<typeof isObject>[0],
+): string {
   const status = isApiError(error)
     ? (error.statusCode ?? error.status)
     : undefined;
@@ -61,11 +63,16 @@ export function resolveApiErrorTitle(error: unknown): string {
  * Extract the backend's error body from a fetch error — an i18n message key
  * per the API error contract — falling back to the generic 500 key.
  */
-export function resolveApiErrorMessage(error: unknown): string {
+export function resolveApiErrorMessage(
+  error: Parameters<typeof resolveApiErrorTitle>[0],
+): string {
   return isApiError(error) ? resolveDescription(error) : FALLBACK_ERROR_KEY;
 }
 
-export function useApiError(error: unknown, options?: Options) {
+export function useApiError(
+  error: Parameters<typeof resolveApiErrorTitle>[0],
+  options?: Options,
+) {
   const toast = useToast();
   const { processApiMessage } = getAppTranslation();
 

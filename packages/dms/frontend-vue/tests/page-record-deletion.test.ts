@@ -10,7 +10,7 @@ import { usePageRecordDeletion } from "../layers/dms-layout/app/composables/page
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 
 const LAYOUT_URL = "/dms/pages/sites/site/:id/pagelayout";
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/sites/site/s1",
   query: {},
 });
@@ -35,7 +35,7 @@ function start(served = layoutWith("found")) {
   scope = effectScope();
   scope.run(() =>
     usePageRecordDeletion({
-      pageLayout: () => served as never,
+      pageLayout: () => served,
       pageTopics: ref(["tableview:row:/api/sites"]),
       subscribe: (topic, handler) => {
         handlers.set(topic, handler);
@@ -45,8 +45,15 @@ function start(served = layoutWith("found")) {
   );
 }
 
-async function publish(event: object = { type: "deleted" }) {
-  handlers.get("tableview:row:/api/sites")?.(event as never);
+async function publish(
+  event: { type: string } | { topic: string; sessions: never[] } = {
+    type: "deleted",
+  },
+) {
+  // SAFETY: This test intentionally supplies only the fields the deletion subscriber reads, including an ignored snapshot-shaped event.
+  handlers.get("tableview:row:/api/sites")?.(
+    event as Parameters<RealtimeTopicHandler>[0],
+  );
   await new Promise((resolve) => setTimeout(resolve, 30));
   await nextTick();
 }

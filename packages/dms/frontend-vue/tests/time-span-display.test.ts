@@ -9,11 +9,11 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isNumber, isObject } from "../layers/dms-core/app/utils/type-check";
 
-type Formatter = (value: unknown, locale: string) => unknown;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
-const formatters = new Map<string, Formatter>();
+const formatters = new Map<string, Formatter | undefined>();
 const register = (dataType: DataType) =>
-  formatters.set(dataType.id, dataType.formatter?.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter?.default);
 
 beforeAll(async () => {
   vi.stubGlobal("h", h);

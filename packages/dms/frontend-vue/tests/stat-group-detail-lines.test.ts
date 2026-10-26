@@ -11,7 +11,11 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-async function render(component: Component, props: Record<string, unknown>) {
+type DetailProps =
+  | InstanceType<typeof StatGroup>["$props"]
+  | InstanceType<typeof NavCard>["$props"];
+
+async function render(component: Component, props: DetailProps) {
   const app = createSSRApp({ render: () => h(component, props) });
   for (const name of ["UIcon", "USkeleton", "DmsLink"]) {
     app.component(name, Slot);
@@ -33,7 +37,9 @@ function detailClasses(html: string): string {
 }
 
 describe("StatGroup detail", () => {
-  it.each(["joined", "cards"])(
+  it.each(["joined", "cards"] satisfies NonNullable<
+    InstanceType<typeof StatGroup>["$props"]["layout"]
+  >[])(
     "gives a %s cell's detail two lines before its ellipsis",
     async (layout) => {
       const html = await render(StatGroup, {

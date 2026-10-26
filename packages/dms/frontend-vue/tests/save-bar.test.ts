@@ -7,6 +7,7 @@ import {
   h,
   nextTick,
 } from "vue";
+import type SaveBarComponent from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
 
 interface ButtonStubProps {
   label?: string;
@@ -26,7 +27,9 @@ Button.inheritAttrs = false;
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown>) {
+async function mount(
+  props: Partial<InstanceType<typeof SaveBarComponent>["$props"]>,
+) {
   const { default: SaveBar } = await import(
     "../layers/dms-ui/app/components/save-bar/SaveBar.vue"
   );

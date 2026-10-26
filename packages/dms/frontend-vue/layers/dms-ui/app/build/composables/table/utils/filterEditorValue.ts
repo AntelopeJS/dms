@@ -2,6 +2,8 @@ import type {
   DataType,
   DataTypeFilterEditorValue,
 } from "#dms-core/app/composables/data-types/useDataType";
+import type { TableFilter } from "../../../components/table/Table.vue";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const LIST_SEPARATOR = ",";
 const BETWEEN_MODE = "is_between";
@@ -25,8 +27,8 @@ export const dateFilterEditorValue: DataTypeFilterEditorValue = (text, mode) =>
 export function filterEditorValue(
   dataType: Pick<DataType, "filterEditorValue"> | undefined,
   mode: string,
-  value: unknown,
-): unknown {
-  if (typeof value !== "string" || !dataType?.filterEditorValue) return value;
+  value: TableFilter["value"],
+): TableFilter["value"] {
+  if (!isString(value) || !dataType?.filterEditorValue) return value;
   return dataType.filterEditorValue(value, mode);
 }

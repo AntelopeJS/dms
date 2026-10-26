@@ -14,6 +14,7 @@ import {
   type Ref,
 } from "vue";
 import NotificationPopover from "../layers/dms-layout/app/build/components/notification/NotificationPopover.vue";
+import type { useNavBadges } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;
@@ -101,7 +102,7 @@ function installRuntime(): void {
     onMounted,
     onUnmounted,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useDmsState", (key: string, init: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
     if (!state.has(key)) state.set(key, ref(init()));
     return state.get(key);
   });
@@ -163,9 +164,10 @@ function badgeText(): string {
 }
 
 /** The badge the bell keeps on the Notifications entry of the navigation. */
-function menuBadge(): unknown {
+function menuBadge() {
+  // SAFETY: useNavBadges owns dms-nav-badges and stores one badge per page key.
   const badges = state.get("dms-nav-badges")?.value as
-    | Record<string, unknown>
+    | ReturnType<typeof useNavBadges>["badges"]["value"]
     | undefined;
   return badges?.[NOTIFICATIONS_PAGE];
 }

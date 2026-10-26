@@ -62,9 +62,8 @@ export function useServedHeaderActions({
         layoutUrlWithQuery(url, query),
       );
       if (request !== latestRequest) return;
-      const options = layout.layout.options as
-        | { headerActions?: LayoutHeaderAction[] }
-        | undefined;
+      const options: { headerActions?: LayoutHeaderAction[] } | undefined =
+        layout.layout.options;
       refreshed.value = options?.headerActions ?? [];
     } catch {
       // eslint-disable-line no-empty -- A failed refresh retains prior buttons; availability is not authorization, so target operations must enforce their own access checks.
@@ -73,7 +72,7 @@ export function useServedHeaderActions({
 
   function follow() {
     const served = servedQuery();
-    const current = pageQueryValues(route.query as Record<string, unknown>);
+    const current = pageQueryValues(route.query);
     const match = pageRoute();
     const layoutUrl = match?.metadata?.layoutUrl;
     const params = match?.params ?? {};
@@ -96,7 +95,7 @@ export function useServedHeaderActions({
     if (!servedQuery() || !layoutUrl) return;
     void askFor(
       fillRouteParams(layoutUrl, pageRoute()?.params ?? {}),
-      pageQueryValues(route.query as Record<string, unknown>),
+      pageQueryValues(route.query),
     );
   }
 

@@ -13,6 +13,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NamedValue } from "vue-i18n";
 import DashboardBanners from "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue";
 import {
   isLayoutBannerInScope,
@@ -107,7 +108,7 @@ beforeEach(() => {
     processI18n: (key: string) => key.replace(/^\$/, "t:"),
   }));
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, named?: Record<string, unknown>) =>
+    t: (key: string, named?: NamedValue) =>
       named && Object.keys(named).length
         ? `t:${key}:${JSON.stringify(named)}`
         : `t:${key}`,
@@ -137,6 +138,7 @@ describe("resolveLayoutBannerPresentation", () => {
 
   it("renders an unknown variant as info rather than unstyled", () => {
     const presentation = resolveLayoutBannerPresentation(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Deliberately inject an unsupported server variant to test the fallback, not a valid variant.
       banner({ variant: "success" as LayoutBannerVariant }),
     );
     expect(presentation).toEqual(

@@ -17,9 +17,9 @@ import TableMenuRoot from "../layers/dms-ui/app/build/components/table/MenuRoot.
 describe("table density menu", () => {
   let app: App | undefined;
 
-  const mount = (
+  const mount = <SharedData>(
     component: ReturnType<typeof defineComponent>,
-    sharedData: Record<string, unknown>,
+    sharedData: SharedData,
   ) => {
     const Host = defineComponent({
       setup() {
@@ -76,7 +76,7 @@ describe("table density menu", () => {
     ]);
     expect(items[0]!.querySelector('[data-icon="i-check"]')).not.toBeNull();
 
-    (items[1] as HTMLElement).click();
+    items[1]!.click();
     await nextTick();
 
     expect(densityState.value).toBe("compact");

@@ -9,7 +9,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 
-const items = ref<Array<Record<string, unknown>>>([]);
+type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
+const items = ref<FeedProps["items"]>([]);
 
 const Stub = defineComponent({
   inheritAttrs: false,
@@ -26,7 +27,7 @@ const Stub = defineComponent({
 
 let app: ReturnType<typeof createApp> | undefined;
 
-async function mountFeed(props: Record<string, unknown>): Promise<HTMLElement> {
+async function mountFeed(props: FeedProps): Promise<HTMLElement> {
   const host = document.createElement("div");
   app = createApp(() =>
     h(ActivityFeed, {

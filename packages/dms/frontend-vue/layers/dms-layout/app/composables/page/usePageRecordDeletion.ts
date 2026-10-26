@@ -30,8 +30,9 @@ export interface PageRecordDeletionSource {
   subscribe(topic: string, handler: RealtimeTopicHandler): () => void;
 }
 
-const optionsOf = (layout: PageLayout | null | undefined) =>
-  layout?.layout.options as RecordLayoutOptions | undefined;
+const optionsOf = (
+  layout: PageLayout | null | undefined,
+): RecordLayoutOptions | undefined => layout?.layout.options;
 
 /**
  * Leaves a detail page whose record was deleted, in every tab and for every
@@ -50,8 +51,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   const { t } = useI18n();
 
   const pageRoute = () => siteLayout.findMatchingRoute(route.path);
-  const currentQuery = () =>
-    pageQueryValues(route.query as Record<string, unknown>);
+  const currentQuery = () => pageQueryValues(route.query);
   /** The page URL the record is named by, leaving out the view's state. */
   const recordKey = () =>
     JSON.stringify([

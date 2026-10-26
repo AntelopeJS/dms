@@ -63,9 +63,11 @@ describe("resolveFieldValueWrite", () => {
 });
 
 describe("createStartingValueTracker", () => {
-  const started: Record<string, unknown> = { stage: "won" };
-  const isStarting = (fieldId: string, value: unknown) =>
-    started[fieldId] === value;
+  const started = new Map([["stage", "won"]]);
+  const isStarting = (
+    fieldId: string,
+    value: Parameters<Parameters<typeof createStartingValueTracker>[0]>[1],
+  ) => started.get(fieldId) === value;
 
   it("flags the value a field started from", () => {
     const isInitial = createStartingValueTracker(isStarting);

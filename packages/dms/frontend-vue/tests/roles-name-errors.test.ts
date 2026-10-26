@@ -8,6 +8,8 @@ import {
   ref,
   Suspense,
   type App,
+  type Component,
+  type PropType,
 } from "vue";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
@@ -58,8 +60,7 @@ const Input = defineComponent({
       h("input", {
         ref: inputRef,
         value: props.modelValue,
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: () => emit("update:modelValue", inputRef.value!.value),
       });
   },
 });
@@ -106,12 +107,16 @@ async function mountRolesPage() {
   app.component(
     "UDropdownMenu",
     defineComponent({
-      props: { items: Array },
+      props: {
+        items:
+          // SAFETY: The roles page supplies dropdown items with labels and selection handlers.
+          Array as PropType<{ label: string; onSelect: () => void }[]>,
+      },
       setup: (props) => () =>
         h(
           "div",
-          (props.items as { label: string; onSelect: () => void }[]).map(
-            (item) => h("button", { onClick: item.onSelect }, item.label),
+          props.items!.map((item) =>
+            h("button", { onClick: item.onSelect }, item.label),
           ),
         ),
     }),
@@ -167,10 +172,10 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useOverlay", () => ({
     create: (
-      _component: unknown,
+      _component: Component,
       options: {
         props: {
-          onConfirm?: (values: Record<string, unknown>) => Promise<unknown>;
+          onConfirm?: (values: { reassignTo: string }) => Promise<void>;
         };
       },
     ) => ({

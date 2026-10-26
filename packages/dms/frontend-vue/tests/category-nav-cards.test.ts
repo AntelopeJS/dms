@@ -4,11 +4,12 @@ import { useCategoryNavCards } from "../layers/dms-layout/app/build/composables/
 import type { NavBadge } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { engine } from "./helpers/api-data-runtime";
+import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
 
 const badges = () =>
   engine.useDmsState<Record<string, NavBadge>>("dms-nav-badges", () => ({}));
 
-const node = (fullId: string, extra: Record<string, unknown> = {}) => ({
+const node = (fullId: string, extra: Partial<SiteLayoutTree> = {}) => ({
   fullId,
   displayName: `$${fullId}`,
   fullSlug: `/${fullId.replaceAll(".", "/")}`,

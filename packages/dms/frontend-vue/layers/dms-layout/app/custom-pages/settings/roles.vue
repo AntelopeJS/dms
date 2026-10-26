@@ -227,6 +227,7 @@ async function requestDelete(): Promise<void> {
     {
       urlParams: { id: encodeURIComponent(role._id) },
       run: (values) =>
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Confirmation fields are arbitrary backend-defined values; the assertion preserves existing unchecked forwarding rather than filtering malformed reassignment values.
         deleteRole(role, (values.reassignTo as string | null) ?? null),
     },
   );

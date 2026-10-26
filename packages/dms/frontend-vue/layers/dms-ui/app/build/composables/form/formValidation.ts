@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
+import { isObject } from "#dms-core/app/utils/type-check";
 
 /**
  * How the generic form validates its state on top of the schema the backend
@@ -43,8 +44,8 @@ export interface FormValidationIssue {
 }
 
 export type FormValidationResult =
-  | { value: Record<string, unknown> }
-  | { issues: FormValidationIssue[] };
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Server-supplied schemas permit arbitrary field values; the result must retain the schema's open object contract.
+  { value: Record<string, unknown> } | { issues: FormValidationIssue[] };
 
 export interface FormValidationContext {
   fields: readonly FormValidationField[];
@@ -71,17 +72,14 @@ function issueField(issue: { path: PropertyKey[] }): PropertyKey | undefined {
 /** Whether a localized value fills some language but not its fallback one. */
 function lacksFallbackLocale(
   field: FormValidationField,
-  value: unknown,
+  value: Parameters<typeof validateFormState>[1][string],
 ): boolean {
   if (!field.localized || !field.fallbackLocale) return false;
-  if (typeof value !== "object" || value === null) return false;
-  const languages = value as Record<string, unknown>;
-  const isAnyFilled = Object.values(languages).some(
+  if (!isObject(value) || value === null) return false;
+  const isAnyFilled = Object.values(value).some(
     (text) => !isBlankValue(text, field.type),
   );
-  return (
-    isAnyFilled && isBlankValue(languages[field.fallbackLocale], field.type)
-  );
+  return isAnyFilled && isBlankValue(value[field.fallbackLocale], field.type);
 }
 
 /** Where a localized field's required error goes: the language to fill. */
@@ -137,10 +135,11 @@ function emptyValueOf(field: FormValidationField): false | null {
  */
 export async function validateFormState(
   schema: z.ZodObject<Record<string, z.ZodTypeAny>>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the parsing boundary for a server-defined schema; malformed values must reach validation unchanged.
   state: Record<string, unknown>,
   context: FormValidationContext,
 ): Promise<FormValidationResult> {
-  const input: Record<string, unknown> = { ...state };
+  const input = { ...state };
   const missing = new Set<string>();
 
   const reported = context.controlErrors ?? new Map<string, string>();
@@ -199,7 +198,7 @@ export async function validateFormState(
   }
 
   if (issues.length === 0 && result.success) {
-    return { value: result.data as Record<string, unknown> };
+    return { value: result.data };
   }
 
   const order = new Map(

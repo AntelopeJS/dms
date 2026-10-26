@@ -1,4 +1,5 @@
 import type { TableFilter } from "../../../components/table/Table.vue";
+import { isString } from "#dms-core/app/utils/type-check";
 
 interface FilterColumn {
   value: string;
@@ -24,8 +25,8 @@ export function resolveNowTokens(value: string, now = Date.now()): string {
  * The value as the formatters read it: tokens resolved, and an `is_between`
  * bound pair written as text (`a,b`, the way the query sends it) split.
  */
-const readableValue = (filter: TableFilter): unknown => {
-  if (typeof filter.value !== "string") return filter.value;
+const readableValue = (filter: TableFilter): TableFilter["value"] => {
+  if (!isString(filter.value)) return filter.value;
   const value = resolveNowTokens(filter.value);
   if (filter.mode !== BETWEEN_MODE) return value;
   return value.split(BETWEEN_SEPARATOR).map((bound) => bound.trim());
@@ -50,9 +51,7 @@ export function formatFilterValue(
 
   try {
     const result = formatter(readableValue(filter), locale);
-    return typeof result === "string" && result !== ""
-      ? result
-      : String(filter.value);
+    return isString(result) && result !== "" ? result : String(filter.value);
   } catch {
     return String(filter.value);
   }

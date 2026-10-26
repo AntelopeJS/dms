@@ -4,17 +4,12 @@
  * `UrlType` asks for a `preview`, the image it points to: a remote photo
  * reads as a picture, not as its address.
  */
-import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
+import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => VNodeChild;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
 const registered = new Map<string, DataType["formatter"]>();
 const PHOTO = "https://i.pravatar.cc/150?img=47";
@@ -22,16 +17,11 @@ const PHOTO = "https://i.pravatar.cc/150?img=47";
 let app: App | undefined;
 
 function renderUrl(
-  value: unknown,
-  options: unknown = {},
-  row?: Record<string, unknown>,
+  value: Parameters<Formatter>[0],
+  options: Parameters<Formatter>[2] = {},
+  row?: Parameters<Formatter>[3],
 ): HTMLElement {
-  const content = (registered.get("url")!.default as Formatter)(
-    value,
-    "en",
-    options,
-    row,
-  );
+  const content = registered.get("url")!.default(value, "en", options, row);
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => () => content }));
   app.mount(container);

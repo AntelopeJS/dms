@@ -11,6 +11,7 @@ import {
   type App,
 } from "vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 import {
   installAuthSettingsRuntime,
   PinInput,
@@ -45,18 +46,19 @@ const Input = defineComponent({
   inheritAttrs: false,
   props: { modelValue: String },
   emits: ["update:modelValue"],
-  setup:
-    (props, { attrs, emit, slots }) =>
-    () =>
+  setup: (props, { attrs, emit, slots }) => {
+    const input = ref<HTMLInputElement>();
+    return () =>
       h("div", [
         h("input", {
           ...attrs,
+          ref: input,
           value: props.modelValue,
-          onInput: (event: Event) =>
-            emit("update:modelValue", (event.target as HTMLInputElement).value),
+          onInput: () => emit("update:modelValue", input.value!.value),
         }),
         slots.trailing?.(),
-      ]),
+      ]);
+  },
 });
 
 const Collapsible = defineComponent({
@@ -156,10 +158,14 @@ beforeEach(() => {
     te: () => false,
   }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  stubApiData(async (url: string, options?: unknown) =>
-    url === "/dms/pages/settings/user/security"
-      ? refresh()
-      : authFetch(url, options),
+  stubApiData(
+    async (
+      url: string,
+      options?: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
+    ) =>
+      url === "/dms/pages/settings/user/security"
+        ? refresh()
+        : authFetch(url, options),
   );
   vi.stubGlobal("useCurrentUser", () => ({ refresh: refreshSession }));
   vi.stubGlobal("useTranslation", () => ({

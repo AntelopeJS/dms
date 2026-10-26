@@ -40,7 +40,9 @@ const SKELETON_COUNT = 3;
 
 const BROWSER_VERSION = /\s+[\d.]+$/;
 const DEFAULT_DEVICE_ICON = "i-ph-desktop";
-const DEVICE_ICONS: Record<string, string> = {
+const DEVICE_ICONS: Readonly<
+  Partial<Record<SessionInfo["deviceType"], string>>
+> = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
   tablet: "i-ph-device-tablet",
@@ -55,6 +57,7 @@ const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- useApiData exposes transform input as unknown. The endpoint supplies SessionInfo[] by convention; SessionsRead["sessions"] cannot prove that unchecked response shape without new validation.
     sessions: sessions as SessionInfo[],
     readAt: Date.now(),
   }),

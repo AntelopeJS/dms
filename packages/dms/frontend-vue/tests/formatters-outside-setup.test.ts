@@ -20,7 +20,9 @@ import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
 
-type Messages = Record<string, unknown>;
+type Messages = import("vue-i18n").LocaleMessage<
+  import("vue-i18n").VueMessageType
+>;
 
 const mergeMessages = (...sources: Messages[]): Messages =>
   sources.reduce<Messages>((merged, source) => {

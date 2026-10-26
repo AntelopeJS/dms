@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isObject } from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   defineAsyncComponent,
@@ -10,11 +11,13 @@ import {
   watch,
   type Component,
 } from "vue";
+import type { VueApexChartsComponentMethods } from "vue3-apexcharts";
 import { ensureApexLocale } from "../../composables/chart/apexLocales";
 
 interface Props {
   apexType: string;
   height: number | string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The existing public prop accepts raw Apex overrides; ApexOptions would narrow that contract and cannot type arbitrary dotted-path values.
   options: Record<string, unknown>;
   series: unknown;
 }
@@ -32,12 +35,7 @@ interface ApexCore {
 
 interface ApexChartInstance {
   chart: ApexCore | null;
-  updateOptions: (
-    options: Record<string, unknown>,
-    redrawPaths?: boolean,
-    animate?: boolean,
-    updateSyncedCharts?: boolean,
-  ) => Promise<unknown>;
+  updateOptions: VueApexChartsComponentMethods["updateOptions"];
 }
 
 const props = defineProps<Props>();
@@ -50,13 +48,13 @@ const WIDTH_TOLERANCE_PX = 1;
 
 const { locale } = useI18n();
 
-const ApexChart = defineAsyncComponent(async () => {
+const ApexChart = defineAsyncComponent<Component>(async () => {
   const [mod] = await Promise.all([
     import("vue3-apexcharts"),
     import("apexcharts"),
     ensureApexLocale(locale.value),
   ]);
-  return (mod.default ?? mod) as unknown as Component;
+  return mod.default ?? mod;
 });
 
 onMounted(() => {
@@ -76,33 +74,33 @@ const chartRef = ref<ApexChartInstance | null>(null);
  * (formatters, event handlers) and dates are kept as they are.
  */
 function toApexInput<T>(value: T): T {
-  const raw = toRaw(value) as unknown;
-  if (Array.isArray(raw)) return raw.map((entry) => toApexInput(entry)) as T;
-  if (raw && typeof raw === "object" && !(raw instanceof Date)) {
-    const copy: Record<string, unknown> = {};
+  const raw = toRaw(value);
+  if (Array.isArray(raw)) {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T may contain class instances or array properties this existing traversal does not preserve; its callers have no narrower validated options owner.
+    return raw.map((entry) => toApexInput(entry)) as T;
+  }
+  if (raw && isObject(raw) && !(raw instanceof Date)) {
+    const copy: Props["options"] = {};
     for (const [key, entry] of Object.entries(raw)) {
       copy[key] = toApexInput(entry);
     }
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T does not establish a plain object; the existing clone drops prototypes and non-enumerable fields, so inference cannot prove it retains T.
     return copy as T;
   }
-  return raw as T;
+  return raw;
 }
 
 function rawApexInput<T extends object>(value: T): T {
   return markRaw(toApexInput(value));
 }
 
-const apexSeries = computed(() =>
-  rawApexInput((props.series ?? []) as unknown[]),
-);
+const apexSeries = computed(() => rawApexInput(props.series ?? []));
 
-const pinnedOptions = shallowRef<Record<string, unknown>>(
-  rawApexInput(props.options),
-);
+const pinnedOptions = shallowRef<Props["options"]>(rawApexInput(props.options));
 
 function pushOptionsWithoutGroupBroadcast(
   instance: ApexChartInstance,
-  next: Record<string, unknown>,
+  next: Props["options"],
 ): void {
   void instance
     .updateOptions(
@@ -114,8 +112,9 @@ function pushOptionsWithoutGroupBroadcast(
     .catch(() => undefined);
 }
 
-function axisTypeOf(options: Record<string, unknown>): unknown {
-  return (options.xaxis as Record<string, unknown> | undefined)?.type;
+function axisTypeOf(options: Props["options"]) {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option overrides leave xaxis unknown; no owner proves this object shape, and validation would change the existing optional-property projection.
+  return (options.xaxis as { type?: unknown } | undefined)?.type;
 }
 
 /**

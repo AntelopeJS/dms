@@ -16,7 +16,7 @@ import {
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { useChartFetch } from "../layers/dms-ui/app/composables/chart/useChartFetch";
 
-const pending: Array<(answer: unknown) => void> = [];
+const pending: Array<(answer: BlockCase["answer"]) => void> = [];
 const mounted: Array<{ unmount: () => void }> = [];
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 

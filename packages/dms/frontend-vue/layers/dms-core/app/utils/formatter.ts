@@ -4,6 +4,7 @@ import {
   regionalDayNumber,
 } from "./regional";
 import { isNumber } from "./type-check";
+import type { I18nTranslate } from "../composables/translation/useTranslation";
 
 const DEFAULT_LOCALE = "en-US";
 const DEFAULT_CURRENCY = "EUR";
@@ -22,7 +23,7 @@ const TIME_UNITS = {
 
 type TranslateFunction = (
   key: string,
-  params?: Record<string, unknown>,
+  params?: Parameters<I18nTranslate>[1],
 ) => string;
 
 type RelativeTimeRule = {
@@ -178,6 +179,7 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function formatDate(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Public formatter accepts arbitrary values for Date coercion; Date constructor types exclude supported runtime inputs such as booleans.
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
@@ -193,6 +195,7 @@ export function formatDate(
     if (date instanceof Date) {
       validDate = date;
     } else {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This is deliberately unchecked Date coercion inside the existing catch; narrowing to constructor parameter types would change accepted inputs.
       validDate = new Date(date as string | number);
     }
 
@@ -251,15 +254,15 @@ export function formatNumber(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatNumber(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatNumber(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   if (!isNumber(value)) return value;
   try {
     return readableNumberFormat(locale, options).format(value);
@@ -275,15 +278,15 @@ export function formatPrice(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatPrice(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatPrice(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "currency",
     currency: DEFAULT_CURRENCY,
@@ -300,15 +303,15 @@ export function formatPercentage(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatPercentage(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatPercentage(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "percent",
     minimumFractionDigits: 0,
@@ -317,7 +320,10 @@ export function formatPercentage(
   });
 }
 
-const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
+const TIME_SPAN_UNITS: Record<
+  NonNullable<ReturnType<typeof UNIT_SPAN_PART.exec>>[number],
+  keyof typeof TIME_UNITS
+> = {
   y: "y",
   M: "M",
   mo: "M",

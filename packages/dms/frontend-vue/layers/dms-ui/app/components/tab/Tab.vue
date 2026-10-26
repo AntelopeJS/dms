@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isNumber, isString } from "../../../../dms-core/app/utils/type-check";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type { TabProps } from "../../composables/tab/types";
 import { type TabBadges, TabVariant } from "../../composables/tab/types/props";
@@ -46,20 +47,16 @@ type TabBadge = TabProps["items"][number]["badge"];
 function writtenBadge(
   badge: TabBadge,
 ): string | number | BadgeProps | undefined {
-  if (badge === undefined || typeof badge === "number") return badge;
-  if (typeof badge === "string" || "key" in badge) return processText(badge);
+  if (badge === undefined || isNumber(badge)) return badge;
+  if (isString(badge) || "key" in badge) return processText(badge);
   const { label } = badge;
-  return typeof label === "string"
-    ? { ...badge, label: processText(label) }
-    : badge;
+  return isString(label) ? { ...badge, label: processText(label) } : badge;
 }
 
 function badgeOf(item: TabProps["items"][number]) {
   const fetched = fetchedBadges.value?.[item.slot];
   if (fetched === undefined) return writtenBadge(item.badge);
-  return typeof fetched === "number"
-    ? countFormat.value.format(fetched)
-    : fetched;
+  return isNumber(fetched) ? countFormat.value.format(fetched) : fetched;
 }
 
 const tabCount = computed(() => props.items.length);
@@ -157,7 +154,7 @@ defineExpose({
     <UTabs
       :model-value="activeTab"
       :items="tabItems"
-      :color="props.color as ColorValue"
+      :color="props.color"
       :size="props.size"
       :variant="props.variant"
       :orientation="props.orientation"

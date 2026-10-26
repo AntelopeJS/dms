@@ -16,9 +16,12 @@ import {
 } from "vue";
 import { CalendarDate } from "@internationalized/date";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
+import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- The calendar stub forwards raw emitted values, including half-picked ranges. Inference needs a callable initializer and the completed DatePicker model contract would exclude those intermediate events.
 let pick: (value: unknown) => void = () => {};
 
 async function flush(): Promise<void> {
@@ -43,13 +46,17 @@ const Popover = defineComponent({
 const Calendar = defineComponent({
   inheritAttrs: false,
   setup(_, { attrs }) {
+    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unknown-parameters -- Vue attrs do not type event listeners. Inference and the DatePicker prop owner cannot describe this raw callback forwarding boundary, which must keep intermediate picker values untouched.
     pick = (value) =>
       (attrs["onUpdate:modelValue"] as (value: unknown) => void)(value);
+    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unknown-parameters
     return () => h("div");
   },
 });
 
-async function mount(props: Record<string, unknown> = {}) {
+async function mount(
+  props: Pick<CalendarProps<boolean, boolean>, "range" | "multiple"> = {},
+) {
   const { default: DatePicker } = await import(
     "../layers/dms-ui/app/components/form/components/DatePicker.vue"
   );
@@ -73,10 +80,10 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("useFormField", useFormField);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal(
     "isObject",
-    (value: unknown) => typeof value === "object" && value !== null,
+    <Value>(value: Value) => isObject(value) && value !== null,
   );
   vi.stubGlobal("useI18n", () => ({
     t: (key: string) => key,

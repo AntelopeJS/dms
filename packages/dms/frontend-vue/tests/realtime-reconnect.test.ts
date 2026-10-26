@@ -40,7 +40,7 @@ beforeEach(() => {
   vi.stubEnv("SSR", false);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
+  vi.stubGlobal("useDmsState", <State>(_key: string, init: () => State) =>
     ref(init()),
   );
   vi.stubGlobal("useDmsRuntimeConfig", () => ({

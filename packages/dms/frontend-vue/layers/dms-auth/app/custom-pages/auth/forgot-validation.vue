@@ -33,7 +33,7 @@ const CODE_ERRORS = {
 } as const;
 const COOLDOWN_DURATION = 60;
 
-const email = computed(() => route.query.email as string);
+const email = computed(() => route.query.email);
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");

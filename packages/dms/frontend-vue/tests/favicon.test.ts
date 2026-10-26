@@ -24,7 +24,7 @@ const ICON_TAG_START = '<link rel="icon"';
 
 const appConfig = ref<FaviconAppConfig>({ branding: {} });
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <T>(setup: T) => setup);
 vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsAppConfig", () => appConfig.value);
 
@@ -40,6 +40,7 @@ async function renderIconTags(): Promise<string[]> {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
   app.runWithContext(() => faviconPlugin({} as never));
   const { headTags } = await renderSSRHead(head);
   return headTags.split("\n").filter((tag) => tag.startsWith(ICON_TAG_START));
@@ -108,6 +109,7 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
     app.runWithContext(() => faviconPlugin({} as never));
     await renderDOMHead(head);
     expect(

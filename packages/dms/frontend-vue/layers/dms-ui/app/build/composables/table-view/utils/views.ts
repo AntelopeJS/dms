@@ -1,4 +1,5 @@
 import type { SortingState, VisibilityState } from "@tanstack/vue-table";
+import { isString } from "#dms-core/app/utils/type-check";
 import type {
   TableViewViewConfig,
   TableViewViewStateConfig,
@@ -9,6 +10,7 @@ import type {
 } from "../../../components/table/Table.vue";
 import { mergeColumnOrder } from "../../table/utils/columnOrder";
 import { isFilterEffective } from "./tableQuery";
+import type { LocationQuery } from "#dms/frontend-module";
 
 /** Everything a view sets on the table, as the table holds it. */
 export interface TableStateSnapshot {
@@ -232,14 +234,14 @@ const readUrlValue = (value: string): UrlKeyReading =>
  * left empty reads as cleared, not as absent.
  */
 export function readTableUrlKey(
-  query: Record<string, unknown>,
+  query: LocationQuery,
   scope: TableUrlScope,
   key: string,
 ): UrlKeyReading {
   const prefixed = scope.tableId ? query[`${scope.tableId}.${key}`] : undefined;
-  if (typeof prefixed === "string") return readUrlValue(prefixed);
+  if (isString(prefixed)) return readUrlValue(prefixed);
   const short = query[key];
-  if (typeof short !== "string") return {};
+  if (!isString(short)) return {};
   if (scope.isSoleTableView) return readUrlValue(short);
   return short ? { ignoredShortKey: true } : {};
 }

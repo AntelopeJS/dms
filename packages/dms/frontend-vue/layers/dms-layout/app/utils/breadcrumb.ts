@@ -1,4 +1,6 @@
+import { isString } from "../../../dms-core/app/utils/type-check";
 import type { PageValidation } from "../types/page";
+import type { MenuRouteState } from "#dms-core/app/types/menu";
 
 export interface BreadcrumbTargetSource {
   layoutUrl?: string;
@@ -16,14 +18,14 @@ export interface BreadcrumbTargetSource {
 export function buildPageTarget(
   path: string,
   validation: PageValidation | undefined,
-  currentQuery: Record<string, unknown>,
+  currentQuery: MenuRouteState["query"],
 ): string | undefined {
   const requiredParams = validation?.requiredQueryParams ?? [];
   const carriedQuery = new URLSearchParams();
 
   for (const param of requiredParams) {
     const value = currentQuery[param];
-    if (typeof value !== "string" || value === "") {
+    if (!isString(value) || value === "") {
       return undefined;
     }
     carriedQuery.set(param, value);
@@ -41,7 +43,7 @@ export function buildPageTarget(
 export function buildBreadcrumbTarget(
   path: string,
   metadata: BreadcrumbTargetSource,
-  currentQuery: Record<string, unknown>,
+  currentQuery: MenuRouteState["query"],
 ): string | undefined {
   if (!metadata.layoutUrl) {
     return metadata.landingSlug;
@@ -60,6 +62,7 @@ export interface FoldedCrumbs<T> {
 export function isFoldedCrumbs<T>(
   crumb: T | FoldedCrumbs<T>,
 ): crumb is FoldedCrumbs<T> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained and no full FoldedCrumbs validation exists. Constraining T or adding object guards would change the existing public predicate and malformed-input behavior.
   return (crumb as Partial<FoldedCrumbs<T>>).isFolded === true;
 }
 
@@ -95,11 +98,10 @@ export function withParentCrumb<T extends object>(
   parent: T | null | undefined,
 ): T[] {
   if (!parent || crumbs.length < 2) return [...crumbs];
-  const parentTo = (parent as LinkedCrumb).to;
+  const { to: parentTo }: LinkedCrumb = parent;
   if (
     crumbs.some(
-      (crumb) =>
-        parentTo !== undefined && (crumb as LinkedCrumb).to === parentTo,
+      (crumb: LinkedCrumb) => parentTo !== undefined && crumb.to === parentTo,
     )
   ) {
     return [...crumbs];

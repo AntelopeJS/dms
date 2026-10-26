@@ -41,7 +41,7 @@ let host: HTMLDivElement;
 const completionLayout: PageLayout = {
   components: { complete: { options: {} } },
   layout: {},
-} as unknown as PageLayout;
+};
 
 const siteResponse = {
   siteLayout: {
@@ -78,13 +78,13 @@ const Page = defineComponent({
 
 function installRuntime() {
   const runtime = {
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <T>(fn: () => T) => fn(),
     $i18n: { setLocale: vi.fn() },
   };
   Object.entries({ computed, ref, watch }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("onMounted", (hook: () => unknown) =>
+  vi.stubGlobal("onMounted", (hook: Parameters<typeof onMounted>[0]) =>
     onMounted(() => {
       mounts += 1;
       return hook();
@@ -92,7 +92,7 @@ function installRuntime() {
   );
   vi.stubGlobal("useDmsApp", () => runtime);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -106,15 +106,17 @@ function installRuntime() {
   vi.stubGlobal("useMultiAccount", () => ({ addCurrentAccount: vi.fn() }));
   vi.stubGlobal("usePostLoginRedirect", usePostLoginRedirect);
   vi.stubGlobal("navigateDms", navigate);
-  vi.stubGlobal("$fetch", (url: string, options: unknown) =>
-    url === HANDOFF_URL ? fetchHandoff(options) : Promise.reject(url),
+  vi.stubGlobal(
+    "$fetch",
+    (url: string, options: Parameters<typeof $fetch>[1]) =>
+      url === HANDOFF_URL ? fetchHandoff(options) : Promise.reject(url),
   );
 }
 
 function mountCompletionPage() {
   route.path = PATH;
   const layout = useSiteLayout();
-  layout.siteLayout.value = siteResponse.siteLayout as never;
+  layout.siteLayout.value = siteResponse.siteLayout;
   layout.pageLayouts.value = { [LAYOUT_URL]: completionLayout };
   app = createApp({
     render: () => h(Suspense, null, { default: () => h(Page) }),
@@ -147,6 +149,7 @@ beforeEach(() => {
   route = reactive({ path: PATH, query: {} });
 
   navigate.mockImplementation(async (to: string | { path: string }) => {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The navigation stub accepts the router's string and object destination variants.
     route.path = typeof to === "string" ? to : to.path;
   });
   installRuntime();

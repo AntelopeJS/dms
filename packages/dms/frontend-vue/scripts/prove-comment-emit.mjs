@@ -19,7 +19,7 @@ const head = process.argv.includes("--working")
   : git("rev-parse", "HEAD").trim();
 const printer = ts.createPrinter({ removeComments: true });
 
-async function syntaxShape(source, file) {
+async function scriptSyntax(source, file) {
   const parsed = ts.createSourceFile(
     file,
     source,
@@ -29,14 +29,14 @@ async function syntaxShape(source, file) {
   return prettier.format(printer.printFile(parsed), { parser: "typescript" });
 }
 
-async function sourceShape(source, file) {
+async function sourceEmit(source, file) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   assert.deepEqual(tree.parseDiagnostics, [], `${file}: syntax diagnostics`);
   return {
-    syntax: await syntaxShape(source, file),
+    syntax: await scriptSyntax(source, file),
     javascript: file.endsWith(".d.ts")
       ? null
-      : await syntaxShape(
+      : await scriptSyntax(
           ts.transpileModule(source, {
             fileName: file,
             compilerOptions: {
@@ -53,7 +53,7 @@ async function sourceShape(source, file) {
   };
 }
 
-async function vueShape(source, file) {
+async function vueOutput(source, file) {
   const { descriptor, errors } = parse(source, { filename: file });
   assert.deepEqual(errors, [], `${file}: SFC parse errors`);
   const scripts = await Promise.all(
@@ -61,7 +61,7 @@ async function vueShape(source, file) {
       script
         ? {
             attributes: script.attrs,
-            ...(await sourceShape(script.content, `${file}.ts`)),
+            ...(await sourceEmit(script.content, `${file}.ts`)),
           }
         : null,
     ),
@@ -122,18 +122,18 @@ const before = files(base);
 const after = files(head);
 assert.deepEqual(after, before, "Product source file set changed");
 for (const file of before) {
-  const shape = (ref) => {
+  const compileProduct = (ref) => {
     const source =
       ref === "WORKTREE"
         ? readFileSync(join(root, file), "utf8")
         : git("show", `${ref}:${file}`);
-    if (file.endsWith(".vue")) return vueShape(source, file);
+    if (file.endsWith(".vue")) return vueOutput(source, file);
     if (file.endsWith(".css")) return source;
-    return sourceShape(source, file);
+    return sourceEmit(source, file);
   };
   assert.deepEqual(
-    await shape(head),
-    await shape(base),
+    await compileProduct(head),
+    await compileProduct(base),
     `${file}: non-comment source or emit changed`,
   );
 }

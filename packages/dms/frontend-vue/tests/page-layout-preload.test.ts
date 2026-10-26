@@ -8,15 +8,15 @@ import {
 const LAYOUT = {
   layout: {
     componentName: "dms-default-layout",
-    children: [{ component: { componentName: "PageBanner" } }],
+    children: [{ id: "banner", component: { componentName: "PageBanner" } }],
   },
   components: {
     main: {
       componentName: "DmsCard",
-      children: [{ component: { componentName: "DmsTable" } }],
+      children: [{ id: "table", component: { componentName: "DmsTable" } }],
     },
   },
-} as never;
+} satisfies NonNullable<Parameters<typeof collectPageLayoutComponentNames>[0]>;
 
 afterEach(() => {
   vi.unstubAllGlobals();

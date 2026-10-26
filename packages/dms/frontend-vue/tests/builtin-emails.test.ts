@@ -5,6 +5,7 @@ import { createI18n } from "vue-i18n";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 import type { DmsBrandingLogo } from "../layers/dms-core/shared/types/app-config";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 interface EmailModule {
   default: Component;
@@ -22,7 +23,7 @@ const EMAIL_LOGOS: Partial<DmsBrandingLogo> = {
   default: { light: SVG_LOGO, dark: SVG_LOGO },
   email: { light: "/branding/email.png", dark: "/branding/email-dark.png" },
 };
-const ELEMENTS: Record<string, string> = {
+const ELEMENTS = {
   EHtml: "html",
   EHead: "head",
   EBody: "body",
@@ -48,7 +49,7 @@ function element(tag: string) {
 
 /** A path stands for `branding.logo.default.light`. */
 function brandingLogo(logo: string | Partial<DmsBrandingLogo>) {
-  return typeof logo === "string" ? { default: { light: logo } } : logo;
+  return isString(logo) ? { default: { light: logo } } : logo;
 }
 
 function templateName(path: string): string {

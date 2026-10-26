@@ -30,6 +30,7 @@ function useAccountsStorage(): AccountsRef {
   const existing = accountsStorageByApp.get(dmsApp);
   if (existing) return existing;
 
+  // SAFETY: A newly created effect scope is active, so run synchronously returns this callback's useStorage result.
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
   ) as AccountsRef;
@@ -55,7 +56,9 @@ interface UpstreamError {
   statusCode?: number;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Request failures can throw arbitrary JavaScript values. FetchError owner types cannot describe every thrown value.
 function isTokenRejection(error: unknown): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked projection intentionally preserves property access on primitive errors. It does not establish an UpstreamError contract.
   const { status, statusCode } = (error ?? {}) as UpstreamError;
   const upstreamStatus = statusCode ?? status;
   return (
@@ -77,7 +80,7 @@ function buildActiveAccount(
     name: user.name,
     lastUsed: new Date(),
     isExpired: false,
-  } as StoredAccount;
+  };
 }
 
 function upsertAccount(
@@ -120,6 +123,7 @@ async function requestAccountSwitch(account: StoredAccount) {
  * @internal
  */
 export async function refreshSessionSurfaces(
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Refresh results are awaited and discarded. Deriving from the session fetch owner would reject otherwise valid callbacks with other results.
   refreshUser: () => Promise<unknown>,
 ): Promise<void> {
   await refreshUser();
@@ -149,7 +153,7 @@ export async function validateAccount(account: StoredAccount) {
 function createSwitchAccount(
   accounts: AccountsRef,
   addCurrentAccount: () => void,
-  refreshUser: () => Promise<unknown>,
+  refreshUser: Parameters<typeof refreshSessionSurfaces>[0],
 ) {
   return async function switchAccount(userId: string) {
     const account = accounts.value.find((a) => a.userId === userId);
@@ -195,16 +199,13 @@ export function useMultiAccount() {
   } = useDmsUserSession<User, BrowserSession>();
 
   const getActiveAccount = (): StoredAccount | undefined =>
-    buildActiveAccount(
-      user.value,
-      session.value?.accountId as string | undefined,
-    );
+    buildActiveAccount(user.value, session.value?.accountId);
 
   const addCurrentAccount = () => {
     if (!user.value || !session.value) {
       return;
     }
-    const accountId = session.value.accountId as string | undefined;
+    const accountId = session.value.accountId;
     if (accountId) upsertAccount(accounts, user.value, accountId);
   };
 

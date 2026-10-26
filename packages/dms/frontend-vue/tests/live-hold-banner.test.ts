@@ -13,7 +13,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountBanner(props: Record<string, unknown>) {
+type BannerProps = InstanceType<
+  typeof import("../layers/dms-ui/app/build/components/table-view/LiveHoldBanner.vue").default
+>["$props"];
+
+async function mountBanner(props: BannerProps) {
   vi.stubGlobal("useI18n", () => ({
     t: (key: string, params?: { count?: number }) =>
       params ? `${key}:${params.count}` : key,

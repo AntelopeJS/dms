@@ -15,6 +15,8 @@ import {
   type Component,
 } from "vue";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
+import type { DmsFrontendRuntime } from "#dms/frontend-module";
+import type { withAccountsFlag } from "../layers/dms-auth/app/utils/accountsFlow";
 import {
   installAuthSettingsRuntime,
   PinInput,
@@ -33,7 +35,7 @@ const { default: BackupCodePage } = await import(
 const HOMEPAGE = "/home";
 const navigate = vi.fn();
 const fetchApi = vi.fn();
-let route: { path: string; query: Record<string, string> };
+let route: Pick<DmsFrontendRuntime["route"], "path" | "query">;
 let app: App;
 let host: HTMLDivElement;
 
@@ -80,7 +82,7 @@ function installRuntime() {
   vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("useHomepage", () => HOMEPAGE);
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <Result>(fn: () => Result) => fn(),
     $i18n: { setLocale: vi.fn() },
   }));
   vi.stubGlobal("useDmsUserSession", () => ({
@@ -89,7 +91,10 @@ function installRuntime() {
   }));
   vi.stubGlobal("useMultiAccount", () => ({ addCurrentAccount: vi.fn() }));
   vi.stubGlobal("useSiteLayout", () => ({ refresh: async () => undefined }));
-  vi.stubGlobal("withAccountsFlag", (_query: unknown, extra = {}) => extra);
+  vi.stubGlobal(
+    "withAccountsFlag",
+    (_query: Parameters<typeof withAccountsFlag>[0], extra = {}) => extra,
+  );
   vi.stubGlobal("usePostLoginRedirect", usePostLoginRedirect);
   vi.stubGlobal("navigateDms", navigate);
   vi.stubGlobal("$fetch", fetchApi);
@@ -171,9 +176,7 @@ it("replaces the backup code page with the destination", async () => {
   fetchApi.mockResolvedValueOnce(undefined);
   mountPage(BackupCodePage);
   await settle();
-  (host.querySelector("form") as HTMLFormElement).dispatchEvent(
-    new Event("submit"),
-  );
+  host.querySelector("form")!.dispatchEvent(new Event("submit"));
   await settle();
 
   expect(fetchApi).toHaveBeenCalledWith(

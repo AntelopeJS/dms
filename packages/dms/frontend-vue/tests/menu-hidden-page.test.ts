@@ -22,7 +22,7 @@ function node({ children = [], ...fixture }: NodeFixture): TreeNode {
       children.map((child) => [child.id, node(child)]),
     ),
     childrenOrders: children.map((child) => child.id),
-  } as unknown as TreeNode;
+  };
 }
 
 const page = (
@@ -53,10 +53,12 @@ function tree(members: NodeFixture, extra: NodeFixture[] = []): TreeNode {
 }
 
 function sidebarIds(root: TreeNode): string[] {
-  const ids = (items: Array<{ fullId?: unknown; children?: unknown }>) =>
+  const ids = (
+    items: ReturnType<typeof convertSiteLayoutTreeToTreeItems>[number],
+  ) =>
     items.flatMap((item): string[] => [
       String(item.fullId),
-      ...ids((item.children as typeof items | undefined) ?? []),
+      ...ids(item.children ?? []),
     ]);
   return ids(convertSiteLayoutTreeToTreeItems(root).flat());
 }

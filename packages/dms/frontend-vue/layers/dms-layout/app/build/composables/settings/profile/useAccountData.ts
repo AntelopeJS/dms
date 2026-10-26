@@ -1,8 +1,9 @@
+import { isString } from "../../../../../../dms-core/app/utils/type-check";
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import UFormField from "@nuxt/ui/components/FormField.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import UInput from "@nuxt/ui/components/Input.vue";
-import type { Component, Ref } from "vue";
+import type { Ref } from "vue";
 import { downloadFile } from "#dms-core/app/utils/downloadFile";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
 import {
@@ -76,7 +77,10 @@ export function useAccountData() {
   const isCheckingDeletion = ref(false);
 
   /** A message key the API answers with (`$…`), else a known error code. */
-  function describeError(error: unknown, fallbackKey: string): string {
+  function describeError(
+    error: Parameters<typeof errorCode>[0],
+    fallbackKey: string,
+  ): string {
     const code = errorCode(error);
     if (code?.startsWith("$")) return processI18n(code);
     return errorMessage(error, fallbackKey);
@@ -153,14 +157,14 @@ export function useAccountData() {
         { label: t(`${I18N}.delete_password`), error: error.value },
         {
           default: () =>
-            h(UInput as Component, {
+            h(UInput<typeof password.value, {}>, {
               ref: input,
               modelValue: password.value,
               type: "password",
               autocomplete: "current-password",
               class: "w-full",
-              "onUpdate:modelValue": (value: unknown) => {
-                password.value = typeof value === "string" ? value : "";
+              "onUpdate:modelValue": (value) => {
+                password.value = isString(value) ? value : "";
                 error.value = undefined;
               },
             }),

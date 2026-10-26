@@ -58,15 +58,16 @@ vi.stubGlobal("useSiteLayout", () => ({
 
 const ONBOARDING = "/api/onboarding/informations";
 const PERMISSIONS = "/dms/permissions";
-const ANSWERS: Record<string, unknown> = {
+const ANSWERS = {
   [ONBOARDING]: { has_onboarded: true },
   [PERMISSIONS]: ["orders.read"],
 };
 const asked: string[] = [];
 
+// oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The URL-dispatched test backend cannot implement the transport's caller-selected generic response type; it returns these two raw endpoint payloads, not arbitrary T.
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
-  return ANSWERS[url];
+  return Object.entries(ANSWERS).find(([path]) => path === url)?.[1];
 }) as unknown as NonNullable<DmsFrontendRuntime["serverFetch"]>;
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch: engine.$fetch }));
 
@@ -115,9 +116,10 @@ const settle = async () => {
 
 /** Attaches `runtime` to `app` the way the DMS app does, and runs its plugins. */
 function install(app: App, runtime: DmsFrontendRuntime): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Guard preload plugins require only runWithContext; unrelated app-context services are absent in this SSR fixture.
   const context = {
-    runWithContext: (callback: () => unknown) => app.runWithContext(callback),
-  } as unknown as DmsAppContext;
+    runWithContext: app.runWithContext.bind(app),
+  } as DmsAppContext;
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = "/orders";
@@ -204,10 +206,7 @@ describe("the reads of a server render's guards", () => {
 
     runtime.hydrating = false;
     await app.runWithContext(async () => {
-      await onboardingMiddleware(
-        runtime.route as never,
-        runtime.route as never,
-      );
+      await onboardingMiddleware(runtime.route, runtime.route);
       await usePermissions().loadPermissions();
     });
     await settle();

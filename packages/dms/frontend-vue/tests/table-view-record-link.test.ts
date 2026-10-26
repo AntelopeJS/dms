@@ -28,18 +28,19 @@ interface Row {
 
 const ROWS: Row[] = [{ id: "r1" }, { id: "r2" }];
 const SCOPE = { tableId: "sends", isSoleTableView: true };
+// SAFETY: Record-link resolution reads only the deep-link flag and target kind; no drawer is instantiated here.
 const DRAWER = {
   id: "details",
   deepLink: true,
   target: { type: "drawer" },
-} as unknown as CustomRowAction;
+} as CustomRowAction;
 
 const mounted: Array<{ unmount: () => void }> = [];
 
 const flush = () => new Promise<void>((done) => setTimeout(done));
 
 /** A visit of the page: Inertia pushes its URL, then announces it. */
-async function visit(route: { query: Record<string, unknown> }, url: string) {
+async function visit(route: { query: Record<string, string> }, url: string) {
   window.history.pushState({}, "", url);
   route.query = Object.fromEntries(new URL(url, "http://x").searchParams);
   await nextTick();
@@ -52,10 +53,7 @@ async function visit(route: { query: Record<string, unknown> }, url: string) {
 function mountTable(url: string) {
   window.history.replaceState({}, "", url);
   const route = reactive({
-    query: Object.fromEntries(new URL(url, "http://x").searchParams) as Record<
-      string,
-      unknown
-    >,
+    query: Object.fromEntries(new URL(url, "http://x").searchParams),
   });
   const opened: string[] = [];
   const notify = vi.fn();

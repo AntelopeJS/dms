@@ -11,7 +11,7 @@ import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/lang/queue/de",
   query: {},
 });
@@ -26,7 +26,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: vi.fn() as never,
+          api: vi.fn(),
           pageId: "queue-page",
           componentId: "page-header",
           handleApiError,

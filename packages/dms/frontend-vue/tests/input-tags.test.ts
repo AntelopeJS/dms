@@ -17,8 +17,12 @@ import {
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
 import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
+import type InputTagsComponent from "../layers/dms-ui/app/components/form/components/InputTags.vue";
+import type { NamedValue } from "vue-i18n";
 
-const formErrors = ref<Array<Record<string, unknown>>>([]);
+const formErrors = ref<
+  Array<{ name: string; message: string; values: string[] }>
+>([]);
 const model = ref<string[]>([]);
 const reported = new Map<string, string | undefined>();
 let emitTags: (tags: string[]) => void = () => {};
@@ -45,7 +49,9 @@ const InputTagsStub = defineComponent({
   },
 });
 
-async function mountTags(props: Record<string, unknown>): Promise<void> {
+async function mountTags(
+  props: Partial<InstanceType<typeof InputTagsComponent>["$props"]>,
+): Promise<void> {
   const { default: InputTags } = await import(
     "../layers/dms-ui/app/components/form/components/InputTags.vue"
   );
@@ -53,9 +59,9 @@ async function mountTags(props: Record<string, unknown>): Promise<void> {
     setup() {
       provide(
         formFieldInjectionKey,
-        computed(() => ({ name: "emails", ariaId: "field-emails" })) as never,
+        computed(() => ({ name: "emails", ariaId: "field-emails" })),
       );
-      provide(formErrorsInjectionKey, formErrors as never);
+      provide(formErrorsInjectionKey, formErrors);
       provide(FORM_CONTROL_ERRORS_KEY, {
         report: (field: string, message: string | undefined) =>
           reported.set(field, message),
@@ -93,7 +99,7 @@ beforeEach(() => {
     vi.stubGlobal(name, value);
   }
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, named?: Record<string, unknown>) =>
+    t: (key: string, named?: NamedValue) =>
       `${key} ${Object.values(named ?? {}).join("/")}`,
   }));
   formErrors.value = [];

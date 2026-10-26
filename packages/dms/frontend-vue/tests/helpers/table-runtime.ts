@@ -8,7 +8,10 @@ import {
   evaluateRowActionRule,
   normalizeActionConfig,
 } from "../../layers/dms-core/app/utils/row-action-rule-evaluator";
-import { useUserRealtime } from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
+import {
+  useUserRealtime,
+  type RealtimeEvent,
+} from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { createFakeBrowser } from "../fixtures/fakeBrowser";
 import {
   BASE_URL,
@@ -52,7 +55,7 @@ export async function startTableRealtime() {
 export async function publishTableEvent(
   topic: string,
   snapshot = false,
-  event: object = { type: "request", ts: 1 },
+  event: Partial<Omit<RealtimeEvent, "topic">> = { type: "request", ts: 1 },
 ) {
   if (!realtime?.sessionId.value) throw new Error("Realtime session not open");
   server.send(

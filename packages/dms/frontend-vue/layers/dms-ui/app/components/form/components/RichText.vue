@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChainedCommands } from "@tiptap/core";
-import { useEditor, EditorContent, type AnyExtension } from "@tiptap/vue-3";
+import { useEditor, EditorContent } from "@tiptap/vue-3";
 import TiptapStarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
@@ -29,14 +29,14 @@ const editor = useEditor({
           class: "text-primary underline cursor-pointer",
         },
       },
-    }) as AnyExtension,
+    }),
     TextAlign.configure({
       types: ["heading", "paragraph"],
     }),
   ],
   editorProps: {
     attributes: {
-      ...(props.id ? { id: props.id } : {}),
+      ...(props.id ? { id: props.id } : undefined),
       class:
         "min-h-[140px] px-3 py-2.5 text-[13px] focus:outline-none prose prose-neutral dark:prose-invert max-w-none [&_h1]:text-3xl [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:leading-relaxed [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-3 [&_li]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-default [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted [&_blockquote]:my-4 [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_pre]:my-4 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono [&_code]:text-sm [&_hr]:my-4 [&_hr]:border-default",
     },
@@ -82,15 +82,10 @@ watch(
   { flush: "sync" },
 );
 
-interface CharacterCountStorage {
-  characterCount?: { characters: () => number };
-}
-
 const characterCount = computed(
   () =>
-    (
-      editor.value?.storage as CharacterCountStorage | undefined
-    )?.characterCount?.characters() || editor.value?.getText().length,
+    editor.value?.storage.characterCount?.characters() ||
+    editor.value?.getText().length,
 );
 
 const chain = (): ChainedCommands | undefined => editor.value?.chain().focus();

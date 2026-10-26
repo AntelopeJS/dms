@@ -42,8 +42,8 @@ afterEach(() => {
 
 it("lays the panes out from its own width, not the viewport's", async () => {
   await mount();
-  const container = host.firstElementChild as HTMLElement;
-  const grid = container.firstElementChild as HTMLElement;
+  const container = host.firstElementChild!;
+  const grid = container.firstElementChild!;
   expect(container.classList).toContain("@container");
   expect(grid.classList).toContain("grid-cols-1");
   expect(grid.classList).toContain(SIDE_BY_SIDE_COLUMNS);

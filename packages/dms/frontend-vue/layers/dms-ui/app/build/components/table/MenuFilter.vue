@@ -1,14 +1,8 @@
 <script setup lang="ts" generic="T extends Data">
 import { injectLocal } from "@vueuse/core";
 
-import type {
-  Data,
-  TableColumn,
-  TableFilter,
-  TableSharedData,
-} from "./Table.vue";
+import type { Data, TableFilter, TableSharedData } from "./Table.vue";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 import defu from "defu";
 import type { SelectItem } from "@nuxt/ui";
@@ -50,7 +44,8 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 const { getDataType } = useDataTypes();
 const { t, locale } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuFilter: Partial<typeof theme> };
 };
 
@@ -65,7 +60,7 @@ const columns = computed(() =>
     .map((col) => ({
       value: col.column.id,
       label: col.label,
-      type: (col.column.columnDef as TableColumn<unknown>).type,
+      type: col.column.columnDef.type,
     })),
 );
 
@@ -246,7 +241,7 @@ if (props.isFormOnly) {
 
 const uiTableMenuFilterVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuFilter || {}),
+  ...appConfig.ui?.tableMenuFilter,
 });
 const uiTableMenuFilter = computed(() => uiTableMenuFilterVariant());
 

@@ -71,7 +71,7 @@ export function registerTextBoundaries(app: App) {
 
 export function mountExtra(
   component: Component,
-  props: Record<string, unknown>,
+  props: Parameters<typeof createApp>[1],
 ) {
   const root = document.createElement("div");
   const app = createApp(component, props);

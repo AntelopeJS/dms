@@ -141,13 +141,13 @@ beforeEach(async () => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useCurrentUser", () => ({ user }));
   const state = new Map<string, Ref>();
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <Value>(key: string, initial: () => Value) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
   vi.stubGlobal(
     "useDmsCookie",
-    (key: string, options: { default: () => unknown }) => {
+    <Value>(key: string, options: { default: () => Value }) => {
       if (!state.has(key)) state.set(key, ref(options.default()));
       return state.get(key);
     },

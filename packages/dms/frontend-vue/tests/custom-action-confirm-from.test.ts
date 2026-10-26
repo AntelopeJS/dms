@@ -15,6 +15,7 @@ function mountTargets(rowIdKey?: string) {
     defineComponent({
       setup() {
         targets = useActionTargets({
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These page-target tests never call api; a Vitest callable cannot implement ofetch's generic callable and raw/create members required by the owner.
           api: vi.fn() as never,
           pageId: "orders-page",
           componentId: "orders",

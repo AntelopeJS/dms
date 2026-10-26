@@ -21,7 +21,7 @@ function translator(locale: "en" | "fr") {
     fallbackLocale: "en",
     messages: { en, fr: { ...fr, ...invoices } },
   });
-  return i18n.global.t as Parameters<typeof formatArchivedCount>[0];
+  return i18n.global.t;
 }
 
 describe("formatArchivedCount", () => {
