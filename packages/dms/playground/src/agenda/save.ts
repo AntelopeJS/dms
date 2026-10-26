@@ -53,11 +53,18 @@ export interface AgendaSaveInput {
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SCOPES = new Set(["occurrence", "series"]);
 
-/** An occurrence is a day (`YYYY-MM-DD`), a scope one of the two. */
+/** Whether a text is a day that exists (`2026-02-28`, not `2026-02-30`). */
+function isCalendarDay(text: string): boolean {
+  if (!DAY_PATTERN.test(text)) return false;
+  const date = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(text);
+}
+
+/** An occurrence is a day that exists (`YYYY-MM-DD`), a scope one of the two. */
 function hasValidOccurrence(change: AgendaChange): boolean {
   const { occurrence, scope } = change;
   if (occurrence !== undefined) {
-    if (typeof occurrence !== "string" || !DAY_PATTERN.test(occurrence)) {
+    if (typeof occurrence !== "string" || !isCalendarDay(occurrence)) {
       return false;
     }
   }

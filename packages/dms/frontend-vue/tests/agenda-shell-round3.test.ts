@@ -173,6 +173,22 @@ describe("at 420 px", () => {
     ]);
     expect(select.value).toBe("week");
   });
+
+  it("R2 reads Day, not blank, when the picked view is 3 days", async () => {
+    const { el, agenda } = await mountBlock(
+      { views: ["week", "month", "days", "list"] },
+      PHONE,
+    );
+    agenda.ctx.pickedViewId.value = "days";
+    await nextTick();
+    expect(agenda.ctx.view.value.id).toBe("days:compact");
+    const select = query(
+      el,
+      "[data-agenda-view-switcher]",
+    ) as HTMLSelectElement;
+    expect(select.value).toBe("week");
+    expect(select.selectedOptions[0]?.textContent).toBe("dms.agenda.views.day");
+  });
 });
 
 describe("review", () => {

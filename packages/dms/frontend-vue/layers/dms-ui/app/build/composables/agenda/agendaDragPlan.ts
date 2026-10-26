@@ -16,6 +16,7 @@ import { dropRules, viewDragConfig } from "./agendaDragPreview";
 import type { AgendaDragDeps } from "./agendaDragPreview";
 import { scheduleChange } from "./agendaDragChange";
 import { parseSlots } from "./agendaSlots";
+import { openIntervals } from "./agendaOpenHours";
 import { addDays, parseTimeOfDay, weekdayOf, zonedDayKey } from "./agendaTime";
 
 /**
@@ -27,15 +28,41 @@ const MAX_CHECKS = 20_000;
 const FALLBACK_DAYS = 14;
 const MINUTES_PER_DAY = 1440;
 
-/** Refusals that hold for every time of a day and row: the rest of it is skipped. */
+/**
+ * Refusals that hold for every time of a day and row: the rest of it is
+ * skipped. `closed` is not one of them: a closed background may cover only
+ * part of the day (see {@link isClosedAllDay}).
+ */
 const ROW_REFUSALS: ReadonlySet<AgendaDragRefusal> = new Set([
   "resourceReadOnly",
   "resourceNotAllowed",
   "outOfRange",
-  "closed",
   "tooShort",
   "tooLong",
 ]);
+
+/** The day has business hours and none of them is open (a closed Sunday). */
+function isClosedAllDay(deps: AgendaDragDeps, { day, row }: PlanRow): boolean {
+  const hasHours =
+    deps.options.value.businessHours.length > 0 ||
+    (deps.resources.value.find((resource) => resource.id === row.resourceId)
+      ?.businessHours?.length ?? 0) > 0;
+  if (!hasHours) return false;
+  const open = openIntervals(
+    deps.hoursOn(weekdayOf(day), row.resourceId),
+    deps.hoursOn(weekdayOf(addDays(day, -1)), row.resourceId),
+  );
+  return open.length === 0;
+}
+
+/** A refusal that holds for the rest of the day and row. */
+const refusesRow = (
+  deps: AgendaDragDeps,
+  row: PlanRow,
+  refusal: AgendaDragRefusal,
+) =>
+  ROW_REFUSALS.has(refusal) ||
+  (refusal === "closed" && isClosedAllDay(deps, row));
 
 /** A row of spots: one resource (or none) on one day. */
 interface PlanRow {
@@ -170,7 +197,7 @@ function firstPlacement(
       if (refusal === null) return placement;
       // A read-only calendar refuses everywhere; a row-wide refusal skips the row.
       if (refusal === "calendarReadOnly") return null;
-      if (ROW_REFUSALS.has(refusal)) break;
+      if (refusesRow(deps, row, refusal)) break;
     }
   }
   return null;

@@ -276,3 +276,24 @@ describe("planning in round 3", () => {
     expect(applied[0]?.patch?.resourceIds).toEqual(["bob"]);
   });
 });
+
+describe("planning in round 4", () => {
+  it("plans after a closed background that covers part of the day (R1)", async () => {
+    const { deps: planner, applied } = deps({
+      raw: {
+        constraints: { withinBusinessHours: true },
+        staticData: { events: [] },
+      },
+      businessHours: [{ days: [1, 2, 3, 4, 5], start: "08:00", end: "18:00" }],
+    });
+    planner.backgrounds = ref([
+      {
+        start: "2026-10-26T08:00:00+01:00",
+        end: "2026-10-26T09:00:00+01:00",
+        kind: "closed" as const,
+      },
+    ]);
+    expect(await planPendingItem(planner, ITEM)).toBe(true);
+    expect(applied[0]?.patch?.start).toBe("2026-10-26T09:00:00+01:00");
+  });
+});

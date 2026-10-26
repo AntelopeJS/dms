@@ -55,6 +55,14 @@ export function afterRefused(
   refused: AgendaChange,
   queued: AgendaChange,
 ): AgendaChange {
+  // Through another occurrence of a series, `previous` names that
+  // occurrence's own times: nothing of the refused change applies.
+  if (
+    refused.occurrence &&
+    queued.occurrence &&
+    refused.occurrence !== queued.occurrence
+  )
+    return queued;
   const stored = refused.previous ?? {};
   const shared = Object.keys(queued.patch ?? {}).filter(
     (key) => key in stored,

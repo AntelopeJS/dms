@@ -134,6 +134,12 @@ export class AgendaSaveEngine {
   record(
     change: AgendaChange,
     extras: AgendaRecordExtras = {},
+    /**
+     * Sent behind the write of the event that just settled: it goes at
+     * once (that write still counts as running for a moment), so an Undo
+     * waiting for the event waits for it too.
+     */
+    followsWrite = false,
   ): Promise<boolean> {
     const key = agendaEditKey(change);
     const existing = this.map.get(key);
@@ -152,7 +158,8 @@ export class AgendaSaveEngine {
     this.map.set(key, this.editOfChange(key, merged, existing, extras));
     if (!this.isImmediate) return Promise.resolve(true);
     // An Undo of this event still running goes first: one write at a time.
-    if (this.inFlight.has(key)) return this.sendAfterRunning(key);
+    if (!followsWrite && this.inFlight.has(key))
+      return this.sendAfterRunning(key);
     // The map hands back its reactive copy: the one the engine compares.
     return this.send([this.map.get(key)!]);
   }
@@ -346,7 +353,7 @@ export class AgendaSaveEngine {
     }
     const queued = readdressQueued(edit, ids);
     if (!queued) return;
-    void this.record(queued, { base: edit.base, ghost: edit.ghost });
+    void this.record(queued, { base: edit.base, ghost: edit.ghost }, true);
   }
 
   /** A change queued behind a new event the route gave no id: told, not sent. */
@@ -366,8 +373,13 @@ export class AgendaSaveEngine {
   }
 
   /** A change made during a write that failed joins the change kept. */
-  private takeQueued(edit: AgendaEdit): void {
-    if (!edit.queued) return;
+  /**
+   * A change made during a write that failed joins the change kept.
+   * Resolves `false` when they cancel out (a new event deleted meanwhile):
+   * nothing is left to write again.
+   */
+  private takeQueued(edit: AgendaEdit): boolean {
+    if (!edit.queued) return true;
     const merged = mergeChanges(
       edit.change,
       edit.queued,
@@ -375,6 +387,7 @@ export class AgendaSaveEngine {
     );
     edit.queued = undefined;
     if (merged) edit.change = merged;
+    return merged !== null;
   }
 
   /**
@@ -387,15 +400,24 @@ export class AgendaSaveEngine {
     edit.message = message;
     // A new event refused takes the change made to it along: they go again
     // together, from the Retry copy (its temporary id means nothing to the route).
-    if (!this.isImmediate || makesNewEvent(edit.change)) this.takeQueued(edit);
-    if (!this.isImmediate) return edit;
+    const isLeft =
+      this.isImmediate && !makesNewEvent(edit.change)
+        ? true
+        : this.takeQueued(edit);
+    // Cancelled meanwhile (a new event deleted): nothing to keep, nor retry.
+    if (!isLeft) edit.retryable = false;
+    if (!this.isImmediate && isLeft) return edit;
     this.map.delete(edit.key);
     const { queued, ...refused } = toRaw(edit);
     // A change made during the refused write is the user's own: it goes on
     // its own, never merged into what the route refused.
     if (queued)
       void Promise.resolve().then(() =>
-        this.record(afterRefused(refused.change, queued), { base: edit.base }),
+        this.record(
+          afterRefused(refused.change, queued),
+          { base: edit.base },
+          true,
+        ),
       );
     return refused;
   }

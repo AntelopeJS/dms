@@ -21,8 +21,11 @@ const { t } = useI18n();
 interface ViewItem {
   label: string;
   value: string;
+  /** What it draws: a listed view's id, or `made-up:<type>` for a view made up for the width. */
   draws: string;
 }
+
+const MADE_UP = "made-up:";
 
 /**
  * The views offered. Compact, a wide grid draws another view: one of the
@@ -45,23 +48,30 @@ const items = computed<ViewItem[]>(() => {
     const isListed = views.some((item) => item.id === drawn.id);
     if (drawn.id !== view.id && isListed) continue;
     const madeUp = drawn.id !== view.id;
-    const key = madeUp ? `made-up:${drawn.type}` : view.id;
+    const key = madeUp ? `${MADE_UP}${drawn.type}` : view.id;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push({
       label: madeUp ? t(`dms.agenda.views.${drawn.type}`) : view.label,
       value: view.id,
-      draws: drawn.id,
+      draws: key,
     });
   }
   return result;
 });
-/** The item of the view drawn, else the one picked. */
-const value = computed(
-  () =>
-    items.value.find((item) => item.draws === ctx.view.value.id)?.value ??
-    ctx.pickedViewId.value,
-);
+/**
+ * The item of the view drawn: a listed view by its id, a made-up one by its
+ * type (the "Day" item stands for a week and for 3 days drawn as a day).
+ */
+const value = computed(() => {
+  const drawn = ctx.view.value;
+  const isListed = ctx.views.value.some((view) => view.id === drawn.id);
+  const draws = isListed ? drawn.id : `${MADE_UP}${drawn.type}`;
+  return (
+    items.value.find((item) => item.draws === draws)?.value ??
+    ctx.pickedViewId.value
+  );
+});
 const label = computed(() => t("dms.agenda.toolbar.view"));
 </script>
 
