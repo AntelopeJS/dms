@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import type { FrontendModuleRegistration } from "@antelopejs/interface-dms/page";
 import { applyConfig } from "../../config";
 import { AddFrontendModule } from "../../implementations/dms/page";
 import { createClient } from "../helpers/http";
@@ -23,7 +24,7 @@ interface FrontendManifestModule {
   name: string;
   renderer: FrontendRenderer;
   path?: string;
-  privateOptions?: Record<string, unknown>;
+  privateOptions?: FrontendModuleRegistration["privateOptions"];
   authEstablishEndpoints?: string[];
 }
 

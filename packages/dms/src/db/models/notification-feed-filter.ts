@@ -52,7 +52,8 @@ export interface NotificationFeedQuery {
 }
 
 function isReadState(value: string): value is NotificationReadState {
-  return (READ_STATES as readonly string[]).includes(value);
+  const states: readonly string[] = READ_STATES;
+  return states.includes(value);
 }
 
 function parseKeys(raw: string | undefined): string[] | undefined {

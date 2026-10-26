@@ -35,7 +35,9 @@ import {
 } from "../../../helpers/page-access";
 
 const TENANT = "nb-tenant";
+// SAFETY: Badge/menu access uses this id and the absent owner flag, not persisted-user methods.
 const USER = { _id: "nb-member" } as User;
+// SAFETY: The badge-source callbacks used here ignore the request; no other RequestContext members are exercised by this fixture.
 const REQUEST = {
   url: new URL("http://localhost/dms/page"),
 } as RequestContext;
@@ -54,7 +56,7 @@ function publishing(
 ): ComponentBuilder<unknown> {
   const component = CustomComponent(name).meta({ name });
   for (const source of sources) component.navBadge(source);
-  return component as ComponentBuilder<unknown>;
+  return component;
 }
 
 class PageNbMembers extends PageController("nb-members", {
@@ -168,10 +170,7 @@ async function menuBadgesFor(
   );
   const pages = payload.siteLayoutTree.children.pages?.children ?? {};
   return Object.fromEntries(
-    Object.values(pages).map((page) => [
-      page.fullId,
-      (page as ServedBadge).badge,
-    ]),
+    Object.values(pages).map((page) => [page.fullId, page.badge]),
   );
 }
 

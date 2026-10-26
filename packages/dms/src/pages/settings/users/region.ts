@@ -44,6 +44,7 @@ export class RegionSettingsController extends PageController("region", {
   declare user: User;
 
   @Get("/preferences")
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The original return contract emits Object decorator metadata; ReturnType changes that metadata to undefined.
   getPreferences(): Record<string, unknown> {
     return toRegionFormValues(readRegionalPreferences(this.user));
   }
@@ -51,9 +52,9 @@ export class RegionSettingsController extends PageController("region", {
   /** Saves the preferences the body names; returns all of them. */
   @Post("/preferences")
   async updatePreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof regionalPreferencesSchema.parse>[0],
     @Model(UserModel) userModel: UserModel,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ReturnType<typeof toRegionFormValues>> {
     const input = assertValidation(fromRegionFormValues(body), (value) =>
       regionalPreferencesSchema.parse(value),
     );

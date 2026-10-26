@@ -42,7 +42,8 @@ interface ReloadHostProbe {
 }
 
 function probe(): ReloadHostProbe {
-  const holder = globalThis as Record<symbol, ReloadHostProbe | undefined>;
+  const holder: typeof globalThis & { [PROBE_KEY]?: ReloadHostProbe } =
+    globalThis;
   holder[PROBE_KEY] ??= {
     generations: [],
     calls: [],

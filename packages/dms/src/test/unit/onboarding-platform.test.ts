@@ -32,7 +32,7 @@ type StateOverrides = Partial<
 >;
 
 function withModel<T extends object>(prototype: T, model: SystemStateModel): T {
-  const controller = Object.create(prototype) as T;
+  const controller: T = Object.create(prototype);
   Object.defineProperty(controller, "model", { value: model });
   return controller;
 }
@@ -48,12 +48,13 @@ function stateWith(base: SystemState, overrides: StateOverrides): SystemState {
     default_language: overrides.default_language ?? base.default_language,
     createdAt: base.createdAt,
     updatedAt: base.updatedAt,
-  } as SystemState;
+  };
 }
 
 async function readState(model: SystemStateModel): Promise<SystemState> {
   const state = await model.getConfig();
   expect(state, "the system state row").to.not.equal(undefined);
+  // SAFETY: Chai has rejected the missing-row case immediately above.
   return state as SystemState;
 }
 
@@ -80,6 +81,7 @@ describe("[unit] onboarding — platform details", () => {
 
   it("records the platform name and language when onboarding completes", async () => {
     await model.updateConfig(stateWith(original, { has_onboarded: false }));
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fixture intentionally invokes the controller's private completion method through a public test view.
     const controller = withModel(
       PublicOnboardingController.prototype,
       model,
@@ -102,7 +104,7 @@ describe("[unit] onboarding — platform details", () => {
     );
     const controller = withModel(PublicSystemStateController.prototype, model);
 
-    const view = (await controller.getSystemState()) as SystemStateView;
+    const view: SystemStateView = await controller.getSystemState();
 
     expect(view.meta.title).to.equal(PLATFORM_NAME);
   });
@@ -113,7 +115,7 @@ describe("[unit] onboarding — platform details", () => {
     );
     const controller = withModel(PublicSystemStateController.prototype, model);
 
-    const view = (await controller.getSystemState()) as SystemStateView;
+    const view: SystemStateView = await controller.getSystemState();
 
     expect(view.meta.title).to.equal(getConfig().meta?.title || "");
   });

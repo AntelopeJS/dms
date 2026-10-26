@@ -29,7 +29,9 @@ interface RecordedUpdate {
   context: InviteExtensionContext;
 }
 
-function plain(value: unknown): unknown {
+function plain(
+  value: Parameters<typeof JSON.stringify>[0],
+): ReturnType<typeof JSON.parse> {
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -39,7 +41,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
   let admin: User;
   const disposers: Array<() => void> = [];
 
-  async function storedExtensions(): Promise<unknown> {
+  async function storedExtensions() {
     return plain((await invites.get(INVITE_ID))?.extensions);
   }
 
@@ -58,8 +60,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
           updates.push({
             payload: plain(payload),
             previous: plain(previous),
-            // SAFETY: InviteExtensionContext contains only strings and optional strings, which JSON cloning preserves while removing context wrappers.
-            context: plain(context) as InviteExtensionContext,
+            context: plain(context),
           });
         },
       }),

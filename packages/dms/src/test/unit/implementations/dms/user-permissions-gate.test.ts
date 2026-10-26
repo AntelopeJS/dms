@@ -36,6 +36,7 @@ const gateInfo = denyingTenantGate("perm-gate", DENIED_TENANT);
 async function resolveFor(
   grantedPermissions: string[],
   tenantId: string,
+  // SAFETY: Permission resolution reads this id and the absent owner flag, not persisted-user methods.
   user: User = { _id: "perm-member" } as User,
 ): Promise<string[]> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
@@ -149,6 +150,7 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
   });
 
   it("keeps the owner wildcard so the recovery page stays usable", async () => {
+    // SAFETY: Permission resolution reads this id and owner flag, not persisted-user methods.
     const owner = { _id: "perm-owner", owner: true } as User;
     expect(await resolveFor([], DENIED_TENANT, owner)).to.deep.equal(["*"]);
   });

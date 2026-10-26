@@ -24,18 +24,18 @@ describe("[integration] table view column conditions", () => {
     client = authorizedClient(owner.accessToken);
   });
 
-  const create = (body: Record<string, unknown>) =>
+  const create = (body: Parameters<AxiosInstance["post"]>[1]) =>
     client.post(`${LOCATION}/new`, body, { validateStatus: () => true });
-  const edit = (id: string, body: Record<string, unknown>) =>
+  const edit = (id: string, body: Parameters<AxiosInstance["put"]>[1]) =>
     client.put(`${LOCATION}/edit?id=${id}`, body, {
       validateStatus: () => true,
     });
   const read = async (title: string): Promise<Deal> => {
-    const response = await client.get(`${LOCATION}/list?limit=50`);
-    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const deal = (response.data.results as Deal[]).find(
-      (entry) => entry.title === title,
+    const response = await client.get<{ results: Deal[] }>(
+      `${LOCATION}/list?limit=50`,
     );
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    const deal = response.data.results.find((entry) => entry.title === title);
     expect(deal, title).to.exist;
     return deal!;
   };
@@ -110,7 +110,7 @@ describe("[integration] table view column conditions", () => {
       vatNumber: "BE0123456749",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = (created.data as { _id: string })._id;
+    const id: string = created.data._id;
     expect(
       await countRawDocuments("condition-customers", {
         vatNumber: "BE0123456749",

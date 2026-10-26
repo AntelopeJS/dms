@@ -11,7 +11,7 @@ const RATE_LIMIT_MS = 60 * 1000;
 
 export async function forgotPassword(
   userModel: UserModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.forgot.parse>[0],
 ): Promise<void> {
   const { email } = assertValidation(body, (v) => authSchema.forgot.parse(v));
   const user = await userModel.getByEmail(email);

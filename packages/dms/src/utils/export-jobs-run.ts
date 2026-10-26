@@ -61,10 +61,9 @@ function assertOwnership<TContext>(
   if (access?.scope !== undefined) {
     assert(record.scope === access.scope, 403, "Export not accessible");
   }
-  const context = record.json_context
-    ? (JSON.parse(record.json_context) as TContext)
-    : // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Jobs without stored context pass null through the existing generic context contract.
-      (null as unknown as TContext);
+  const context: TContext = record.json_context
+    ? JSON.parse(record.json_context)
+    : null;
   if (access?.isOwnedBy) {
     assert(
       access.isOwnedBy(record, context, user),
@@ -212,6 +211,7 @@ export async function runExportJob<TContext = unknown>(
       maxExecutionTimeMs:
         opts.maxExecutionTimeMs ?? DEFAULT_MAX_EXECUTION_TIME_MS,
     },
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The optional context historically reaches generate unchanged, including undefined; requiring or defaulting it would change the generic job API.
     opts.context as TContext,
     opts.generate,
   ).catch((error) => {
@@ -329,8 +329,8 @@ export async function downloadExportJob<TContext = unknown>(
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
   const nodeReadable = Readable.fromWeb(
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The response body is passed to Node's web-stream adapter through its declared stream parameter type.
-    body as unknown as Parameters<typeof Readable.fromWeb>[0],
+    // SAFETY: The fetch response body is a web readable stream accepted by Node's adapter.
+    body as Parameters<typeof Readable.fromWeb>[0],
   );
 
   const cleanup = (): void => {

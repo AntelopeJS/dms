@@ -40,10 +40,11 @@ const INVITE_FAILED_MESSAGE = "$page.settings.members.invite.failed";
 const ALREADY_MEMBER_MESSAGE = "$page.settings.members.invite.already_member";
 const INVITE_EMAILS_FIELD = "emails";
 
-function failureMessage(error: unknown): string {
+function failureMessage(error: PromiseRejectedResult["reason"]): string {
   if (!(error instanceof HTTPResult)) return INVITE_FAILED_MESSAGE;
   if (error.getStatus() >= HTTP_INTERNAL_ERROR) return INVITE_FAILED_MESSAGE;
   const body: unknown = error.getBody();
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- HTTP bodies can be structured; only nonempty strings are suitable failure messages.
   return typeof body === "string" && body ? body : INVITE_FAILED_MESSAGE;
 }
 

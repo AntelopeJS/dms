@@ -78,7 +78,7 @@ type FeatureOptions = NonNullable<
 
 const optionsOf = (options: FeatureOptions) =>
   TableView(FeatureAPI, { realtime: false, ...options }).serializeSync()
-    .options as TableViewOptionsSerialized;
+    .options!;
 
 type SourceOptions = Parameters<typeof TableView.fromSource>[0];
 
@@ -94,6 +94,7 @@ type SourceTableSerialized = TableViewOptionsSerialized & {
   columns: SourceColumnSerialized[];
 };
 
+// SAFETY: fromSource serializes its declared columns and sorting/filter flags, but TableViewOptionsSerialized omits that runtime columns property.
 const sourceOf = (options: Partial<SourceOptions> = {}) =>
   TableView.fromSource({
     fetchUrl: "/api/request-log",
@@ -177,13 +178,13 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
   });
 
   it("refuses tabs filtering a route that reads no filter, and unknown columns", () => {
-    const tabs = [
+    const tabs: SourceOptions["tabs"] = [
       {
         id: "get",
         label: "GET",
         filter: { accessorKey: "method", mode: "is", value: "GET" },
       },
-    ] as SourceOptions["tabs"];
+    ];
     expect(() => sourceOf({ tabs })).to.throw(/needs capabilities\.filter/);
     expect(() =>
       sourceOf({ tabs, capabilities: { filter: true } }),
@@ -250,7 +251,7 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
         to: "/elsewhere",
         filter: { accessorKey: "method", mode: "is", value: "GET" },
       },
-    ] as SourceOptions["tabs"];
+    ];
     expect(() =>
       sourceOf({ tabs: both, capabilities: { filter: true } }),
     ).to.throw(/both a filter and a link/);
@@ -349,6 +350,7 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       },
     };
     const controller = new FeatureAPI();
+    // SAFETY: This guard only reads this.model and never accesses the request context, so none of RequestContext's members are used.
     await guards?.delete?.call(controller, {} as RequestContext, { ids: [] });
     expect(reached).to.deep.equal([controller.model]);
   });

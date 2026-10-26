@@ -39,7 +39,7 @@ async function memberRowId(userId: string): Promise<string> {
 describe("[integration] a member removed from their workspace", () => {
   let removed: AxiosInstance;
 
-  const expectOk = async (request: Promise<AxiosResponse>) => {
+  const expectOk = async <T>(request: Promise<AxiosResponse<T>>) => {
     const response = await request;
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     return response;
@@ -73,8 +73,10 @@ describe("[integration] a member removed from their workspace", () => {
   });
 
   it("reads their inbox and marks a notification read and unread", async () => {
-    const inbox = await expectOk(removed.get(`${NOTIFICATIONS}/inbox`));
-    const rows = (inbox.data as { results: InboxRow[] }).results;
+    const inbox = await expectOk(
+      removed.get<{ results: InboxRow[] }>(`${NOTIFICATIONS}/inbox`),
+    );
+    const rows = inbox.data.results;
     const notification = rows.find((row) => row.title === TITLE);
     expect(notification, JSON.stringify(rows)).to.not.equal(undefined);
 

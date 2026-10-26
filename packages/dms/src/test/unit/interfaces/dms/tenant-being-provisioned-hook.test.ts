@@ -22,17 +22,15 @@ function register(handler: ProvisioningHandler): void {
 }
 
 function buildPayload(
-  extras: Record<string, unknown> = {},
+  extras: TenantProvisioningHookPayload["extras"] = {},
 ): TenantProvisioningHookPayload {
   return { tenantId: TENANT_ID, userId: USER_ID, extras };
 }
 
-async function provision(
-  payload: TenantProvisioningHookPayload,
-): Promise<unknown> {
+async function provision(payload: TenantProvisioningHookPayload) {
   try {
     await ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, payload);
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return error;
   }
   return undefined;
@@ -63,7 +61,7 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
     const error = await provision(buildPayload());
 
     expect(error).to.be.instanceOf(Error);
-    expect((error as Error).message).to.equal(HANDLER_FAILURE);
+    expect(error.message).to.equal(HANDLER_FAILURE);
 
     expect(reached).to.deep.equal(["first"]);
   });
@@ -107,7 +105,7 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
 
   it("carries extras a future consumer invents, with no DMS change", async () => {
     const unknownToTheDms = { whateverTheProductAsks: ["a", "b"] };
-    let seen: Record<string, unknown> | undefined;
+    let seen: TenantProvisioningHookPayload["extras"] | undefined;
     register(async (payload) => {
       seen = payload.extras;
       return undefined;

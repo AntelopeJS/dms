@@ -34,7 +34,7 @@ const ctx: ExecutionCtx = {
   log: () => undefined,
 };
 
-function dryRun(id: string, input: Record<string, unknown>) {
+function dryRun(id: string, input: Parameters<ActionType["execute"]>[0]) {
   const action: ActionType | undefined = ACTIONS.find(
     (candidate) => candidate.id === id,
   );

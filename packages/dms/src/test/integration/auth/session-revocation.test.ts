@@ -30,11 +30,10 @@ async function meStatus(accessToken: string): Promise<number> {
 }
 
 async function currentSessionId(accessToken: string): Promise<string> {
-  const response = await authorizedClient(accessToken).get(SESSIONS_URL);
+  const response =
+    await authorizedClient(accessToken).get<SessionEntry[]>(SESSIONS_URL);
   expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-  const current = (response.data as SessionEntry[]).find(
-    (entry) => entry.isCurrent,
-  );
+  const current = response.data.find((entry) => entry.isCurrent);
   if (!current) throw new Error("No current session listed");
   return current._id;
 }

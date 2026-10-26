@@ -26,6 +26,7 @@ import {
 } from "../../../helpers/page-access";
 
 const DENIED_TENANT = "gc-denied-tenant";
+// SAFETY: Gate and permission evaluation use this id and the omitted owner flag; the fixture does not stand in for persisted-user operations.
 const MEMBER = { _id: "gc-member" } as User;
 const gateInfo = denyingTenantGate("gc-gate", DENIED_TENANT, "gc.suspended");
 

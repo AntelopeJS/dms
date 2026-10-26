@@ -12,12 +12,14 @@ const FREE_EMAIL = "free@acme.dev";
 const OWN_EMAIL = "mine@acme.dev";
 
 function modelHolding(accounts: Record<string, string>): UserModel {
+  // SAFETY: assertEmailAvailable calls only getByEmail and reads only the returned _id; omitted model methods and user fields are never used.
   return {
     getByEmail: async (lookup: string) => {
       const id = accounts[lookup.trim().toLowerCase()];
-      return id ? ({ _id: id } as unknown as User) : undefined;
+      // SAFETY: The availability check compares only _id, so this lookup deliberately omits unrelated user fields.
+      return id ? ({ _id: id } as User) : undefined;
     },
-  } as unknown as UserModel;
+  } as UserModel;
 }
 
 async function attempt(
@@ -41,6 +43,7 @@ describe("[unit] profile — e-mail change is refused for an address another acc
   it("refuses another account's address, whatever its casing", async () => {
     const result = await attempt(userModel, " Holder@ACME.dev ");
     expect(result).to.be.instanceOf(HTTPResult);
+    // SAFETY: The preceding assertion fails unless result is an HTTPResult; Chai's assertion does not narrow the union for TypeScript.
     const refusal = result as HTTPResult;
     expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
     expect(refusal.getBody()).to.equal(EMAIL_TAKEN);

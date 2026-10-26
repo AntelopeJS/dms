@@ -6,11 +6,13 @@ import type {
 const UNTITLED_PERMISSION_LABEL = "Unknown Permission";
 
 /** Node every permission tree mapping produces: a permission and its children. */
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- This exported constraint name is already imported by consumers; renaming it would change the module API.
 export interface PermissionNodeShape<TNode> {
   children?: TNode[];
 }
 
 /** Builds one rendered node from a registered permission and its mapped children. */
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the existing exported permission-node constraint name.
 export type PermissionNodeFactory<TNode extends PermissionNodeShape<TNode>> = (
   permission: Permission,
   children: TNode[] | undefined,
@@ -45,6 +47,7 @@ interface MenuPermissionIds {
  * A category with nothing registered below it stays: a dynamic menu provider
  * may fill it, and its permission is what guards those entries.
  */
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the existing exported permission-node constraint name.
 export function mapPermissionTree<TNode extends PermissionNodeShape<TNode>>(
   permissionTree: Record<string, PermissionTree>,
   createNode: PermissionNodeFactory<TNode>,
@@ -55,6 +58,7 @@ export function mapPermissionTree<TNode extends PermissionNodeShape<TNode>>(
   return mapBranch(permissionTree, createNode, menu);
 }
 
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the existing exported permission-node constraint name.
 function mapBranch<TNode extends PermissionNodeShape<TNode>>(
   branch: Record<string, PermissionTree>,
   createNode: PermissionNodeFactory<TNode>,
@@ -65,6 +69,7 @@ function mapBranch<TNode extends PermissionNodeShape<TNode>>(
   );
 }
 
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the existing exported permission-node constraint name.
 function mapPermissionTreeNode<TNode extends PermissionNodeShape<TNode>>(
   node: PermissionTree,
   createNode: PermissionNodeFactory<TNode>,
@@ -83,6 +88,7 @@ function mapPermissionTreeNode<TNode extends PermissionNodeShape<TNode>>(
   return [createNode(node.data, undefined)];
 }
 
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the existing exported permission-node constraint name.
 function liftFiledEntries<TNode extends PermissionNodeShape<TNode>>(
   branch: Record<string, PermissionTree>,
   createNode: PermissionNodeFactory<TNode>,

@@ -26,6 +26,7 @@ const PAGE_COUNT = 8;
 const MAX_CONCURRENT_PAGES = 4;
 const FILTER_DELAY_MS = 5;
 const TENANT = "pv-cost-tenant";
+// SAFETY: Preview access consumes this id and owner flag, not persisted-user methods.
 const OWNER = { _id: "pv-cost-owner", owner: true } as User;
 const PAGE_IDS = Array.from(
   { length: PAGE_COUNT },

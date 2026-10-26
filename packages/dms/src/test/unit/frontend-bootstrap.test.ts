@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   assertFrontendBootstrap,
   decideLayerAccess,
@@ -11,15 +11,13 @@ import {
 const HTTP_UNAUTHORIZED = 401;
 const SECRET = "a-configured-bootstrap-secret";
 
-function expectRefusal(run: () => unknown): void {
+function expectRefusal<T>(run: () => T): void {
   try {
     run();
   } catch (error: unknown) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_UNAUTHORIZED);
-    expect((error as HTTPResult).getBody()).to.equal(
-      "error.frontend.bootstrap_required",
-    );
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
+    expect(error.getBody()).to.equal("error.frontend.bootstrap_required");
     return;
   }
   expect.fail("expected the bootstrap check to refuse");

@@ -41,31 +41,34 @@ const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
 
 function context(token: string): RequestContext {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The guard context double provides authorization headers only, not the full HTTP request lifecycle.
   return {
     rawRequest: { headers: { authorization: `Bearer ${token}` } },
   } as RequestContext;
 }
 
-async function expectStatus(
-  action: () => Promise<unknown>,
+async function expectStatus<T>(
+  action: () => Promise<T>,
   status: number,
 ): Promise<void> {
   try {
     await action();
     expect.fail("Expected guard rejection");
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(status);
+    expect(error.getStatus()).to.equal(status);
   }
 }
 
-async function refusalOf(action: () => Promise<unknown>): Promise<unknown> {
+async function refusalOf<T>(
+  action: () => Promise<T>,
+): Promise<ReturnType<HTTPResult["getBody"]>> {
   try {
     await action();
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    return (error as HTTPResult).getBody();
+    expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    return error.getBody();
   }
   return expect.fail("Expected guard rejection");
 }
@@ -76,7 +79,8 @@ function forgedToken(genuine: string, tenantId: string): string {
     iat: _iat,
     exp: _exp,
     ...claims
-  } = decode(genuine) as Record<string, unknown>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The helper assumes its genuine locally generated JWT has object claims; decode itself does not verify that shape.
+  } = decode(genuine) as Exclude<ReturnType<typeof decode>, string | null>;
   return sign({ ...claims, tenantId }, "not-the-user-secret");
 }
 
@@ -84,7 +88,7 @@ function forgedToken(genuine: string, tenantId: string): string {
 async function provided(
   decorator: ReturnType<typeof AuthUser>,
   ctx: RequestContext,
-): Promise<unknown> {
+): Promise<Awaited<ReturnType<typeof computeParameter>>> {
   class Probe {
     static location = "/probe";
   }
@@ -163,6 +167,7 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
     const anonymous = context(other);
     expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
     expect(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator computation API erases its result type; this test assumes IfAuthUser supplies a user or undefined.
       ((await provided(IfAuthUser(), anonymous)) as User | undefined)?._id,
     ).to.equal(USER_ID);
     expect(getRequestTenantId(anonymous)).to.equal(OTHER_TENANT);

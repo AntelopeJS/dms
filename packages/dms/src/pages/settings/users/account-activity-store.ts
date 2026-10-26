@@ -30,14 +30,17 @@ const NOTIFICATIONS_SCANNED = 50;
 const INVITE_WORKSPACES_SCANNED = 10;
 
 /** One source's rows, or none when it fails: the others still show. */
-async function orEmpty<T>(label: string, load: () => Promise<T[]>) {
+async function orEmpty<T>(
+  label: string,
+  load: () => Promise<T[]>,
+): Promise<T[]> {
   try {
     return await load();
   } catch (error) {
     Logging.Warn(
       `[DMS] Account activity: ${label} unavailable: ${String(error)}`,
     );
-    return [] as T[];
+    return [];
   }
 }
 

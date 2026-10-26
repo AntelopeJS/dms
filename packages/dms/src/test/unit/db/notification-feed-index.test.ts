@@ -7,7 +7,9 @@ const USER_FEED_INDEX = "userId_createdAt__i";
 const SCHEMA_READY_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 100;
 
-async function feedIndexKey(): Promise<Record<string, unknown> | undefined> {
+async function feedIndexKey(): Promise<
+  Awaited<ReturnType<typeof listRawIndexes>>[string] | undefined
+> {
   const deadline = Date.now() + SCHEMA_READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     // oxfmt-ignore

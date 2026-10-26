@@ -15,6 +15,7 @@ const MISSING_DATABASE = "/nonexistent/sign-in-country.mmdb";
 
 function lookupOf(records: Record<string, string>): CountryLookup {
   return {
+    // SAFETY: lookupCountry only reads country.iso_code; this fixture intentionally omits MaxMind's other country metadata and never exposes it to other consumers.
     get: (ip: string): CountryResponse | null =>
       records[ip] ? { country: { iso_code: records[ip] } as never } : null,
   };

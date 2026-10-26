@@ -21,6 +21,7 @@ import {
 import type { UserNotification } from "../../db/tables/userNotifications.table";
 import { getRealtimeBroker } from "../../realtime/current";
 import { buildUserNotificationTopic } from "../../realtime/registry";
+import type { RealtimeEvent } from "../../realtime/broker";
 import { runInBatches } from "../../utils/run-in-batches";
 import {
   DUPLICATE_WINDOW_MS,
@@ -49,7 +50,7 @@ function buildGroupId(readScope: ReadScope, key?: string): string | undefined {
 async function publishNotificationEvent(
   userId: string,
   type: string,
-  payload?: Record<string, unknown>,
+  payload?: RealtimeEvent["payload"],
 ): Promise<void> {
   try {
     await getRealtimeBroker().publish({

@@ -41,9 +41,13 @@ function captureRenderedEmails(): void {
   ImplementInterface(
     { GenerateHtml },
     {
-      GenerateHtml: async (template: HtmlTemplateRef, props: unknown) => {
+      GenerateHtml: async (
+        template: HtmlTemplateRef,
+        props: Parameters<typeof GenerateHtml>[1],
+      ) => {
         rendered.push({
           template: template.name,
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The email renderer accepts arbitrary template props; this capture assumes the email-change template contract.
           props: props as EmailChangeProps,
         });
         return "<p>email</p>";
@@ -79,7 +83,7 @@ describe("[integration] sign-in email change", () => {
   let newEmail: string;
 
   const currentEmail = async () =>
-    (await client.get("/api/auth/me")).data.email as string;
+    (await client.get<{ email: string }>("/api/auth/me")).data.email;
 
   const request = () =>
     client.post(`${SECURITY}/email`, {

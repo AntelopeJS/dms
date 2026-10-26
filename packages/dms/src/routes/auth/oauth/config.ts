@@ -33,7 +33,9 @@ export interface EnabledOAuthProvider {
   credentials: OAuthProviderCredentials;
 }
 
-function hasCredentials(credentials?: OAuthProviderCredentials): boolean {
+function hasCredentials(
+  credentials?: OAuthProviderCredentials,
+): credentials is OAuthProviderCredentials {
   return Boolean(credentials?.clientId && credentials?.clientSecret);
 }
 
@@ -98,7 +100,7 @@ export function getEnabledOAuthProvider(
   return {
     id: providerId,
     provider,
-    credentials: credentials as OAuthProviderCredentials,
+    credentials,
   };
 }
 

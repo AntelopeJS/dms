@@ -19,6 +19,7 @@ import type { AuthResponse } from "./types";
 export const HTTP_FORBIDDEN = 403;
 
 function shouldRotateRefreshToken(token: string): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode returns JwtPayload|string|null; its owner also cannot guarantee a numeric iat, whose existing truthiness and arithmetic coercion must remain unchanged.
   const payload = decode(token) as { iat?: number } | null;
   if (!payload?.iat) return false;
   const tokenAgeMs = Date.now() - payload.iat * 1000;
@@ -43,7 +44,7 @@ async function assertTenantAccess(
 export async function refresh(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.refresh.parse>[0],
 ): Promise<AuthResponse> {
   const { token } = assertValidation(body, (v) => authSchema.refresh.parse(v));
 

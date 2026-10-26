@@ -23,6 +23,7 @@ const BROWSER_VERSION = /\s+[\d.]+$/;
 
 const UNKNOWN_PART = "unknown";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Device strings from stored sessions are open-ended; an absent lookup must retain the existing fallback icon.
 const DEVICE_ICONS: Record<string, string> = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
@@ -225,8 +226,9 @@ function textsOf(event: AccountActivityType, source: AccountActivityEvent) {
   const entries = (META[event]?.(source) ?? []).filter(
     (entry): entry is string | ActivityText => !!entry,
   );
-  const params: Record<string, string> = { ...title.params };
+  const params = { ...title.params };
   const meta = entries.map((entry) => {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Activity metadata intentionally mixes literal text and translation descriptors; this discriminates those existing variants.
     if (typeof entry === "string") return entry;
     Object.assign(params, entry.params);
     return entry.key;

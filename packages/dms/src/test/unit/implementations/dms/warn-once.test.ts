@@ -27,6 +27,7 @@ import {
 const TENANT = "warn-once-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
 const UNKNOWN_CATEGORY = "pages.warn-once-nowhere";
+// SAFETY: Menu permission resolution consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "warn-once-member" } as User;
 const PAGE_SLUG = "/warn-once-target";
 

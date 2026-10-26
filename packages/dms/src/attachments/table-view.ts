@@ -6,7 +6,10 @@ import {
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../implementations/dms-base/table-view";
-import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
+import type {
+  AttachmentField,
+  internal,
+} from "@antelopejs/interface-dms/attachments";
 import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
 import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import {
@@ -19,7 +22,7 @@ import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
 
 async function loadDocument(
-  controller: unknown,
+  controller: TableViewAttachmentSaveRequest["controller"],
   fields: AttachmentField[],
   id: string,
 ) {
@@ -43,7 +46,7 @@ async function loadDocument(
 
 function retainedFiles(
   fields: AttachmentField[],
-  before: Record<string, unknown>,
+  before: Parameters<typeof collectAttachments>[1],
 ) {
   return Object.fromEntries(
     fields
@@ -55,13 +58,14 @@ function retainedFiles(
 /** Keeps the database/registry implementation out of host modules' interfaces. */
 export async function SaveTableViewAttachments(
   request: TableViewAttachmentSaveRequest,
-): Promise<unknown> {
+): Promise<Awaited<ReturnType<typeof internal.SaveTableViewAttachments>>> {
   const { controller, route, context, params, args, mode, componentIds } =
     request;
   const fields = tableAttachmentFields(
     getTableViewMetaFor(controller),
     getControllerLocation(controller),
   );
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Route params are erased by the wrapper contract; preserve the existing optional edit-id probe before dispatch.
   const documentId = (params as Partial<Parameters.EditParameters>)?.id;
   if (mode === "delete") {
     return deleteDocuments({ ...request, fields });
@@ -89,7 +93,8 @@ export async function SaveTableViewAttachments(
         ...args.slice(1),
       );
 
-      const id = documentId || (result as { _id?: unknown } | undefined)?._id;
+      const id = documentId || result?._id;
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a nonempty string id may be used to reload the saved document.
       if (typeof id !== "string" || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();
@@ -105,6 +110,7 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Delete mode selects delete-route params, but the wrapper's external contract erases that correlation.
   const ids = (params as Parameters.DeleteParameters).id;
   const rows = await Promise.all(
     (Array.isArray(ids) ? ids : [ids]).map((id) =>

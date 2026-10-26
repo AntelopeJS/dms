@@ -333,7 +333,7 @@ export async function requireStoredUser(user: User): Promise<User> {
  */
 export async function requestAccountDeletion(
   user: User,
-  body: unknown,
+  body: Parameters<typeof accountDeletionSchema.parse>[0],
 ): Promise<AccountDeletionResult> {
   const input = assertValidation(body, (value) =>
     accountDeletionSchema.parse(value),

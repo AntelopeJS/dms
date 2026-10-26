@@ -52,8 +52,14 @@ function pageId(page: string): string {
   return `pages.${page}`;
 }
 
-function ownerOf(proxy: unknown, id: string): string | undefined {
-  return (proxy as InspectableProxy).registered.get(id)?.owner;
+function ownerOf(
+  proxy:
+    | typeof permissionsInterface.internal.RegisterPermission
+    | typeof realtimeInterface.internal.RegisterPageTopic,
+  id: string,
+): string | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RegisteringProxy's owner contract hides the private registration map; this test inspects only ownership because no public API exposes it.
+  return (proxy as unknown as InspectableProxy).registered.get(id)?.owner;
 }
 
 function permissionOwner(id: string): string | undefined {
@@ -143,6 +149,7 @@ describe("[unit] interfaces/dms/page — page extension ownership", () => {
   it("keeps an extension with its module when the target page registers again", async () => {
     const pageInfo = GetMetadata(beforeTarget, PageMetadata).pageInfo;
     pageImpl.internal.RegisterPage.unregister(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The suite registers beforeTarget in before; PageMetadata keeps pageInfo optional for unregistered controllers and cannot express that fixture lifecycle.
       pageInfo as NonNullable<typeof pageInfo>,
     );
     expect(permissionOwner(extensionPermission(BEFORE_PAGE))).to.equal(

@@ -35,6 +35,7 @@ interface SendNotificationInput {
   tenantId?: string;
   title: string;
   description?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Wired automation params are arbitrary JSON until toNotificationParams converts supported scalars and drops nested values.
   params?: Record<string, unknown>;
   tone?: string;
   icon?: string;
@@ -51,12 +52,14 @@ interface Recipients {
   roleIds: string[];
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+function isPlainObject(value: SendNotificationInput["params"]) {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-not-array check at the automation input boundary.
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isNotificationTone(value: string): value is NotificationTone {
-  return (NOTIFICATION_TONES as readonly string[]).includes(value);
+  const tones: readonly string[] = NOTIFICATION_TONES;
+  return tones.includes(value);
 }
 
 /**
@@ -65,7 +68,7 @@ function isNotificationTone(value: string): value is NotificationTone {
  * and a nested value, which no message could print, is dropped with a warning.
  */
 function toNotificationParams(
-  params: unknown,
+  params: SendNotificationInput["params"],
   ctx: ExecutionCtx,
 ): NotificationParams | undefined {
   if (params === undefined || params === null) return undefined;
@@ -77,8 +80,10 @@ function toNotificationParams(
   const result: NotificationParams = {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String and numeric interpolation values are retained unchanged.
     if (typeof value === "string" || typeof value === "number") {
       result[key] = value;
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Boolean interpolation values are converted to their existing textual representation.
     } else if (typeof value === "boolean") {
       result[key] = String(value);
     } else {

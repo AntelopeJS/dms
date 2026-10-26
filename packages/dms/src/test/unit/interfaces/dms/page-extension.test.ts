@@ -5,10 +5,6 @@ import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import { Component } from "@antelopejs/interface-dms/component";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   type CategoryInfo,
@@ -16,7 +12,6 @@ import {
   GetRegisteredPageIds,
   PageController,
   type PageExtensionInfo,
-  type PageLayout,
   PageMetadata,
   internal as pageInternal,
   pagesCategory,
@@ -25,11 +20,15 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { GetPendingPageExtensions } from "@antelopejs/interface-dms/page/internal/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { captureErrors, captureWarnings } from "../../../helpers/logging";
+import {
+  grantedTo,
+  loadLayout,
+  layoutKeys,
+  layoutChildIds,
+} from "../../../helpers/page-layout";
 
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
@@ -64,73 +63,7 @@ async function registerPage(cl: ControllerClass): Promise<void> {
 function failingComponent(): Component {
   const rejected = Promise.reject(new Error("component boom"));
   rejected.catch(() => undefined);
-  return new Component(rejected as never, { name: "Failing" });
-}
-
-interface LayoutCaller {
-  user: User | undefined;
-  memberModel: TenantMemberModel;
-  roleModel: RoleModel;
-}
-
-const ANONYMOUS: LayoutCaller = {
-  user: undefined,
-  memberModel: {} as TenantMemberModel,
-  roleModel: {} as RoleModel,
-};
-
-function grantedTo(permissions: string[]): LayoutCaller {
-  return {
-    user: { _id: "pe-user" } as User,
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["pe-role"] }),
-    } as unknown as TenantMemberModel,
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
-  };
-}
-
-async function loadLayout(
-  fullSlug: string,
-  caller = ANONYMOUS,
-): Promise<PageLayout> {
-  const handler = GetPageLayoutBySlug(fullSlug);
-  expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
-    undefined,
-  );
-  return (handler as NonNullable<typeof handler>)({
-    user: caller.user,
-    memberModel: caller.memberModel,
-    roleModel: caller.roleModel,
-    tenantId: "pe-tenant",
-  });
-}
-
-async function layoutKeys(
-  fullSlug: string,
-  caller = ANONYMOUS,
-): Promise<string[]> {
-  return Object.keys((await loadLayout(fullSlug, caller)).components);
-}
-
-async function layoutChildIds(
-  fullSlug: string,
-  rootKey: string,
-): Promise<string[]> {
-  const handler = GetPageLayoutBySlug(fullSlug);
-  expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
-    undefined,
-  );
-  const layout = await (handler as NonNullable<typeof handler>)({
-    user: ANONYMOUS.user,
-    memberModel: ANONYMOUS.memberModel,
-    roleModel: ANONYMOUS.roleModel,
-    tenantId: "pe-tenant",
-  });
-  return layout.components[rootKey]?.children?.map((child) => child.id) ?? [];
+  return new Component(rejected, { name: "Failing" });
 }
 
 describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
@@ -368,7 +301,8 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
   it("settles the syncs of a page whose registration fails before serializing", async () => {
     const brokenCategory: CategoryInfo = {
       ...pagesCategory,
-      category: class NotAPage {} as unknown as ControllerClass,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- NotAPage intentionally violates ControllerClass so registration's failure and pending-sync settlement remain covered.
+      category: class NotAPage {} as ControllerClass,
     };
     class Target extends PageController("pe-failed-registration", {
       displayName: "Broken parent",
@@ -550,6 +484,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
     pageImpl.internal.RegisterPage.unregister(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
       pageInfo as NonNullable<typeof pageInfo>,
     );
     await settle();
@@ -666,6 +601,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
     pageImpl.internal.RegisterPage.unregister(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
       pageInfo as NonNullable<typeof pageInfo>,
     );
     class ReloadedTarget extends definePage("pe-hot-reload") {

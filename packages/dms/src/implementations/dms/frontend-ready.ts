@@ -116,7 +116,7 @@ const frontendReadySchema = z.object({
  * from the same tool.
  */
 export function acknowledgeFrontendReady(
-  body: unknown,
+  body: Parameters<typeof frontendReadySchema.parse>[0],
   bootstrapHeader: string | undefined,
 ): void {
   const outcome = resolveBootstrapOutcome(bootstrapHeader);

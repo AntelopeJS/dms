@@ -23,6 +23,7 @@ interface SignupScenario {
 }
 
 function buildDraft(email: string): User {
+  // SAFETY: The draft takeover path reads and rewrites plain account fields; this fixture does not implement database-row methods.
   return {
     _id: `signup-validation-draft:${email}`,
     email,
@@ -31,7 +32,7 @@ function buildDraft(email: string): User {
     validationToken: "STALE1",
     validationRequestedAt: new Date(),
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 /**
@@ -42,11 +43,13 @@ function buildDraft(email: string): User {
 async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
   let account: User | undefined = scenario.existingDraft;
   const newUserId = `signup-validation:${scenario.email}`;
+  // SAFETY: The harness supplies only signup's account lookups and writes; it records the account before later unserved token interfaces can reject.
   const userModel = {
     getByEmail: async () => scenario.existingDraft,
     get: async () => account,
     getOwners: async () => [],
     insert: async (row: Partial<User>) => {
+      // SAFETY: Signup supplies the creation fields inspected below; this plain captured row is not used as a complete database entity with methods.
       account = { ...row, _id: newUserId } as User;
       return [newUserId];
     },
@@ -61,6 +64,7 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
 
   await signup(
     userModel,
+    // SAFETY: This intentionally empty session model is allowed to fail after account creation; the catch below discards that downstream failure and assertions inspect only the written account.
     {} as SessionModel,
     {
       name: INVITEE_NAME,
@@ -73,6 +77,7 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
   ).catch(() => undefined);
 
   expect(account, "signup wrote no account").to.not.equal(undefined);
+  // SAFETY: The preceding assertion rejects an absent account; Chai does not narrow the closure-assigned variable for TypeScript.
   return account as User;
 }
 

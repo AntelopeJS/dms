@@ -10,6 +10,7 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { listUserInvitesByEmail, seedUserInvite } from "../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
+import type { prepareRoleDeletion } from "../../pages/settings/users/role-editor-store";
 
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
@@ -24,12 +25,17 @@ describe("[integration] role delete with reassignment", () => {
   let readers: string;
 
   async function createRole(name: string): Promise<string> {
-    const response = await client.post(`${ROLES}/create`, { name });
+    const response = await client.post<{ id: string }>(`${ROLES}/create`, {
+      name,
+    });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.id as string;
+    return response.data.id;
   }
 
-  const deleteRole = (roleId: string, answer?: Record<string, unknown>) =>
+  const deleteRole = (
+    roleId: string,
+    answer?: Parameters<typeof prepareRoleDeletion>[2],
+  ) =>
     client.delete(`${ROLES_TABLE}/delete`, {
       params: { id: roleId },
       data: answer,

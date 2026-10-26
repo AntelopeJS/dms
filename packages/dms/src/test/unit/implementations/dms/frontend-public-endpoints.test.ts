@@ -75,6 +75,7 @@ describe("[unit] frontend module public endpoints", () => {
     { path: "/api/hooks", headers: ["authorization"] },
     { path: "/api/hooks", headers: ["x-forwarded-host"] },
     { path: "/api/hooks", headers: ["x-dms-oauth-relay"] },
+    // SAFETY: Intentionally pass a string where the registration contract requires an object to exercise runtime rejection.
     "/api/hooks" as unknown as FrontendPublicEndpoint,
   ]) {
     it(`refuses to register ${JSON.stringify(endpoint)}`, () => {

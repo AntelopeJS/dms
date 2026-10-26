@@ -7,11 +7,11 @@ import type * as DmsRealtimeImplementation from "../../../../implementations/dms
 import type * as DmsTableViewImplementation from "../../../../implementations/dms-base/table-view";
 
 type LoadModule = (
-  this: unknown,
+  this: ModuleLoader,
   request: string,
   parent: NodeModule | undefined,
   isMain: boolean,
-) => unknown;
+) => ReturnType<NodeRequire>;
 
 interface ModuleLoader {
   _load: LoadModule;
@@ -40,6 +40,7 @@ const DMS_REALTIME_MODULES = [
 ];
 
 function enterThroughTableView(): typeof TableViewInterface {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Node's public Module declaration omits _load; this isolated child process deliberately intercepts that private loader to control evaluation order.
   const loader = Module as unknown as ModuleLoader;
   const load = loader._load;
   const tableViewEntry = require.resolve(TABLE_VIEW);
@@ -52,7 +53,7 @@ function enterThroughTableView(): typeof TableViewInterface {
     return load.call(this, request, parent, isMain);
   };
   try {
-    return require(TABLE_VIEW) as typeof TableViewInterface;
+    return require(TABLE_VIEW);
   } finally {
     loader._load = load;
   }
@@ -60,19 +61,23 @@ function enterThroughTableView(): typeof TableViewInterface {
 
 async function run(): Promise<EvaluationOrderResult> {
   const tableView = enterThroughTableView();
-  const realtimeInterface = require(REALTIME) as typeof RealtimeInterface;
-  const realtime = require(DMS_REALTIME) as typeof DmsRealtime;
+  const realtimeInterface: typeof RealtimeInterface = require(REALTIME);
+  const realtime: typeof DmsRealtime = require(DMS_REALTIME);
   const rowTopic = tableView.tableViewRowTopic(LOCATION);
 
   realtimeInterface.RegisterPageTopic(PAGE_ID, rowTopic);
 
   ImplementInterface(
     realtimeInterface,
-    require(DMS_REALTIME_IMPLEMENTATION) as typeof DmsRealtimeImplementation,
+    require(
+      DMS_REALTIME_IMPLEMENTATION,
+    ) satisfies typeof DmsRealtimeImplementation,
   );
   ImplementInterface(
     tableView,
-    require(DMS_TABLE_VIEW_IMPLEMENTATION) as typeof DmsTableViewImplementation,
+    require(
+      DMS_TABLE_VIEW_IMPLEMENTATION,
+    ) satisfies typeof DmsTableViewImplementation,
   );
 
   const published: string[] = [];
@@ -106,7 +111,7 @@ run().then(
   (result) => {
     process.stdout.write(JSON.stringify(result), () => process.exit(0));
   },
-  (error: unknown) => {
+  (error) => {
     const report = error instanceof Error ? error.stack : String(error);
     process.stderr.write(`${report}\n`, () => process.exit(1));
   },

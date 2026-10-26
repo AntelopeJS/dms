@@ -264,6 +264,7 @@ export async function notifyMemberRemoved({
   });
 }
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Counts outside zero and one deliberately miss this lookup and use the plural copy.
 const ROLE_COUNT_TITLE_KEYS: Readonly<Record<number, string>> = {
   0: "title_none",
   1: "title_one",

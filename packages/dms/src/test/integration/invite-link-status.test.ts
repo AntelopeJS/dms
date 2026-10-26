@@ -39,6 +39,7 @@ async function seedInvite(expiresAt: Date): Promise<UserInvite> {
   });
   const invite = await invites.get(INVITE_ID);
   expect(invite).to.not.equal(undefined);
+  // SAFETY: The Chai assertion immediately above rejected an absent invite.
   return invite as UserInvite;
 }
 
@@ -57,13 +58,16 @@ async function retire(
 }
 
 /** The refusal the signup page reads when it opens on this link. */
-async function refusalOf(token: string, email: string): Promise<unknown> {
+async function refusalOf(
+  token: string,
+  email: string,
+): Promise<ReturnType<HTTPResult["getBody"]>> {
   try {
     await validateInviteToken({ token, email });
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_BAD_REQUEST);
-    return (error as HTTPResult).getBody();
+    expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+    return error.getBody();
   }
   return undefined;
 }

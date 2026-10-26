@@ -237,7 +237,7 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   it("keeps the first delivery when a key is reused with other content", async () => {
     await sendable.toUsersIdempotently([USER], EVENT);
     const [row] = await model.table.run();
-    await assert.rejects(model.table.insert(row).run(), (error: unknown) => {
+    await assert.rejects(model.table.insert(row).run(), (error) => {
       assert.ok(IsDuplicateKeyError(error));
       return true;
     });

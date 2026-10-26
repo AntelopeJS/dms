@@ -444,14 +444,14 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
         language: "en",
         roleIds: [],
         asTenantOwner: false,
-      }).catch((error: unknown) => {
+      }).catch((error) => {
         refusal = error;
       });
     } finally {
       UnregisterHook(Hook.INVITE_BEING_CREATED, refuse);
     }
     assert.equal(
-      (refusal as HTTPResult | undefined)?.getStatus(),
+      refusal instanceof HTTPResult && refusal.getStatus(),
       HTTP_PAYMENT_REQUIRED,
     );
     const model = GetModel(TenantLifecycleModel, TENANT);

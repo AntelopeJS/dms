@@ -21,7 +21,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   Column,
   TableView,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
@@ -53,14 +52,12 @@ class NoteAPI extends DataController(
   declare title: string;
 }
 
-function formSlotIds(
-  table: ReturnType<typeof TableView>,
-): Record<string, unknown> {
-  const options = table.serializeSync().options as TableViewOptionsSerialized;
+function formSlotIds(table: ReturnType<typeof TableView>) {
+  const options = table.serializeSync().options!;
   return Object.fromEntries(
     Object.entries(options.formComponents).map(([kind, form]) => [
       kind,
-      (form?.options as { slotId?: string } | undefined)?.slotId,
+      form?.options?.slotId,
     ]),
   );
 }

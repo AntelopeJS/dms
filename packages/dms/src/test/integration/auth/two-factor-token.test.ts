@@ -1,7 +1,7 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
-import { decode, type JwtPayload, sign } from "jsonwebtoken";
+import { assert, expect } from "chai";
+import { decode, sign } from "jsonwebtoken";
 import { generateTwoFactorToken } from "../../../implementations/dms-auth";
 import { generateSecret } from "../../../implementations/dms-auth/token-secret";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
@@ -21,7 +21,10 @@ const FOREIGN_SECRET = "not-the-instance-secret";
 const SECONDS_PER_MINUTE = 60;
 const TOTP_CODE = "123456";
 
-function post(route: string, body: Record<string, unknown>) {
+function post(
+  route: string,
+  body: { token?: string; code?: string; method?: string },
+) {
   return createClient().post(route, body);
 }
 
@@ -36,7 +39,9 @@ async function userSecret(userId: string): Promise<string> {
 }
 
 function tenantOf(user: RegisteredUser): string {
-  return (decode(user.accessToken) as JwtPayload).tenantId as string;
+  const claims = decode(user.accessToken, { json: true });
+  assert.exists(claims);
+  return claims.tenantId;
 }
 
 /** One token for each way a two-factor token can be wrong. */

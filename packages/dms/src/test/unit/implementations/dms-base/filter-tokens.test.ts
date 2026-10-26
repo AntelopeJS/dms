@@ -8,9 +8,12 @@ import {
 const NOW = new Date("2026-10-05T09:30:00.000Z");
 const CONTEXT = { userId: "user-42", now: NOW };
 
-const asFilters = (
+function asFilters(
   filters: Record<string, [string, string] | [string, string][]>,
-) => filters as unknown as Parameters.ListParameters["filters"];
+): Parameters.ListParameters["filters"] {
+  // @ts-expect-error These fixtures preserve opaque frontend modes (is/less_than/greater_than), outside the owner's eq/ne/gt/ge/lt/le union, while testing token interpolation only.
+  return filters;
+}
 
 describe("[unit] dms-base — filter tokens", () => {
   it("replaces the caller's id", () => {

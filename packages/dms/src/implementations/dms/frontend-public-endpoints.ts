@@ -19,21 +19,23 @@ const HEADER_NAME = /^x-[a-z0-9-]+$/;
 const RESERVED_HEADER =
   /^x-(?:forwarded-|real-ip$|dms-|inertia|http-method|method-override|original-|rewrite-)/;
 
-function isValidMethods(methods: unknown): boolean {
+function isValidMethods(methods: FrontendPublicEndpoint["methods"]): boolean {
   return (
     Array.isArray(methods) &&
     methods.length > 0 &&
     methods.every(
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Registration can originate in JavaScript modules; existing validation rejects nonstring method elements before Set lookup.
       (method) => typeof method === "string" && ALLOWED_METHODS.has(method),
     )
   );
 }
 
-function isValidHeaders(headers: unknown): boolean {
+function isValidHeaders(headers: FrontendPublicEndpoint["headers"]): boolean {
   return (
     Array.isArray(headers) &&
     headers.every(
       (name) =>
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Untyped module registrations can supply nonstring headers; the existing validator rejects them before regex matching.
         typeof name === "string" &&
         HEADER_NAME.test(name) &&
         !RESERVED_HEADER.test(name),
@@ -43,8 +45,10 @@ function isValidHeaders(headers: unknown): boolean {
 
 function isValidPublicEndpoint(endpoint: FrontendPublicEndpoint): boolean {
   return (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The registration boundary accepts JavaScript callers; retain rejection of primitive endpoint declarations.
     typeof endpoint === "object" &&
     endpoint !== null &&
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing registration check rejects nonstring paths instead of regex-coercing them.
     typeof endpoint.path === "string" &&
     PUBLIC_PATH.test(endpoint.path) &&
     (endpoint.methods === undefined || isValidMethods(endpoint.methods)) &&
@@ -53,13 +57,16 @@ function isValidPublicEndpoint(endpoint: FrontendPublicEndpoint): boolean {
 }
 
 function normalize(endpoint: FrontendPublicEndpoint): FrontendPublicEndpoint {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Malformed primitive declarations must reach the existing registration error unchanged.
   if (typeof endpoint !== "object" || endpoint === null) return endpoint;
   return {
     path: endpoint.path,
     methods: endpoint.methods?.map((method) =>
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string methods are case-normalized; malformed values stay unchanged for the validator's existing rejection.
       typeof method === "string" ? method.toUpperCase() : method,
     ),
     headers: endpoint.headers?.map((name) =>
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string headers are case-normalized; malformed values stay unchanged for the validator's existing rejection.
       typeof name === "string" ? name.toLowerCase() : name,
     ),
   };

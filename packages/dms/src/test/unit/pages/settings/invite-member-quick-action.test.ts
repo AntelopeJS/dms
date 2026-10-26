@@ -48,12 +48,11 @@ function invitePermission(): string {
   return permissionId;
 }
 
-async function actionsFor(
-  grantedPermissions: string[],
-): Promise<Record<string, unknown>> {
+async function actionsFor(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(
     await withRequiredPermissions(grantedPermissions),
   );
+  // SAFETY: Site layout permission resolution uses only the user id with the provided member and role stubs; no other user fields are read.
   const payload = await buildSiteLayoutPayload(
     { _id: "invite-quick-action-member" } as User,
     memberModel,

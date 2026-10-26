@@ -27,6 +27,9 @@ import {
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
+import type { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
+
+type SearchRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
 
 const MIN_SEARCH_LENGTH = 2;
 const IDS_KEY = "ids";
@@ -66,7 +69,7 @@ function resolveSearchFilter(
 }
 
 function applySearchFilter(
-  row: ValueProxy<Record<string, unknown>>,
+  row: ValueProxy<SearchRow>,
   field: string,
   compareMode: string,
   target: SearchTarget,
@@ -79,38 +82,43 @@ function applySearchFilter(
   }
 
   const contextWithThis = Object.assign({}, context, { this: thisObj });
-  const unlockedValue = Validation.UnlockRequest<
-    Record<string, unknown>,
-    string
-  >(thisObj, meta, row, field);
+  const unlockedValue = Validation.UnlockRequest<SearchRow, string>(
+    thisObj,
+    meta,
+    row,
+    field,
+  );
   return filterFunc(
     contextWithThis,
     unlockedValue,
     field,
     searchValue,
-    compareMode as any,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SearchableMeta exposes arbitrary string modes while the filter owner accepts CompareMode; inference and Parameters<SearchFilter>[4] cannot establish that legacy registration invariant without rejecting modes.
+    compareMode as globalThis.Parameters<SearchFilter>[4],
     row,
   );
 }
 
 function either(a: Condition, b: Condition): Condition {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions combine literal booleans and database expression proxies; retain the literal short-circuit before calling proxy methods.
   if (typeof a === "boolean") return a ? true : b;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The right condition also has a literal boolean branch rather than a query proxy.
   if (typeof b === "boolean") return b ? true : a;
   return a.or(b);
 }
 
 function applyGlobalSearch(
-  query: Stream<Record<string, unknown>>,
+  query: Stream<SearchRow>,
   searchableFields: Record<string, string>,
   target: SearchTarget,
-): Stream<Record<string, unknown>> {
+): Stream<SearchRow> {
   const fieldEntries = Object.entries(searchableFields);
 
   if (fieldEntries.length === 0) {
     return query;
   }
 
-  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
+  return query.filter((row: ValueProxy<SearchRow>) =>
     fieldEntries
       .map(([field, mode]) => applySearchFilter(row, field, mode, target))
       .reduce(either, false),
@@ -178,7 +186,7 @@ async function canViewArchived(
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The filter tuple declares a string value, but the archive query compares the runtime boolean true.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- FilterValue's owner declares string but archive filters intentionally send boolean true; inference and indexed access retain the mismatch, and converting the value would change database comparisons.
   return [true as unknown as string, archived ? "eq" : "ne"];
 }
 
@@ -212,6 +220,7 @@ export async function applyArchiveFilter(
     return { ...filters, [archiveField]: archiveFilter(false) };
   }
 
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The request adapter owns searchParams.get; retain its existing string check and unchanged fallback for absent or malformed archive parameters.
   if (typeof showArchived !== "string") {
     return filters;
   }
@@ -245,11 +254,11 @@ function resolveIdsField(
  * still apply: it only narrows what the caller may already read.
  */
 function applyIdsRestriction(
-  query: Stream<Record<string, unknown>>,
+  query: Stream<SearchRow>,
   ids: string[],
   field: string,
-): Stream<Record<string, unknown>> {
-  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
+): Stream<SearchRow> {
+  return query.filter((row: ValueProxy<SearchRow>) =>
     ids.map((id): Condition => row.key(field).eq(id)).reduce(either, false),
   );
 }
@@ -275,11 +284,8 @@ export async function buildFilteredQuery(
     }),
   );
 
-  const sort = params?.sortKey
-    ? ([params.sortKey, params.sortDirection] as [
-        string,
-        "asc" | "desc" | undefined,
-      ])
+  const sort: globalThis.Parameters<typeof Query.List>[4] = params?.sortKey
+    ? [params.sortKey, params.sortDirection]
     : undefined;
 
   let [query, queryTotal, deferredJoined] = Query.List(
@@ -344,7 +350,7 @@ export async function listWithSearch(
   user?: User,
   permissions?: Set<string>,
 ): Promise<{
-  results: Record<string, any>[];
+  results: Awaited<ReturnType<typeof Query.ReadProperties>>[];
   total: number;
   offset: number;
   limit: number;

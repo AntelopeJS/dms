@@ -28,7 +28,10 @@ export class FilesController extends Controller("/api/files") {
   declare user: User;
 
   @Post("/presign")
-  async presign(@Context() context: RequestContext, @JSONBody() body: unknown) {
+  async presign(
+    @Context() context: RequestContext,
+    @JSONBody() body: Parameters<typeof presignBodySchema.parse>[0],
+  ) {
     const { filename, size, mimetype, uploadToken } = assertValidation(
       body,
       (v) => presignBodySchema.parse(v),

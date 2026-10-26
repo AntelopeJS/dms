@@ -31,6 +31,7 @@ describe("[unit] frontend module metadata", () => {
     expect(modules[0]).to.not.have.property("privateOptions");
     expect(modules[0].sourcePath).to.equal(process.cwd());
     const locale = modules[0].options.locale;
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Frontend options are arbitrary JSON in the owner contract; preserve the existing check before mutating the nested snapshot.
     if (!locale || typeof locale !== "object" || Array.isArray(locale)) {
       throw new Error("Expected nested locale options");
     }

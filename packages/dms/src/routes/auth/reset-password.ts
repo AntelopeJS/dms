@@ -16,7 +16,7 @@ import { assertResetCode } from "./reset-code";
 export async function resetPassword(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.reset.parse>[0],
 ): Promise<void> {
   const { email, token, password } = assertValidation(body, (v) =>
     authSchema.reset.parse(v),

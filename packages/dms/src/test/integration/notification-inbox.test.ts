@@ -37,12 +37,14 @@ describe("[integration] notifications inbox table", () => {
   let client: AxiosInstance;
   let userId: string;
 
-  let baseline: { all: number; unread: number; read: number };
+  let baseline: Record<"all" | "unread" | "read", InboxPage["total"]>;
 
   const inbox = async (query: Record<string, string | number>) => {
-    const response = await client.get(`${LOCATION}/inbox`, { params: query });
+    const response = await client.get<InboxPage>(`${LOCATION}/inbox`, {
+      params: query,
+    });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data as InboxPage;
+    return response.data;
   };
 
   before(async () => {
@@ -96,9 +98,11 @@ describe("[integration] notifications inbox table", () => {
       params: { tag: "$v2-final" },
     }).toUser(userId);
     const search = async (query: Record<string, string>) => {
-      const response = await client.get(`${LOCATION}/list`, { params: query });
+      const response = await client.get<InboxRow[]>(`${LOCATION}/list`, {
+        params: query,
+      });
       expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-      return (response.data as InboxRow[]).map((row) => row.title);
+      return response.data.map((row) => row.title);
     };
 
     expect(

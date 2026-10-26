@@ -44,11 +44,11 @@ describe("[integration] auth/sign-in country", () => {
   };
 
   const newSignInNotices = async (): Promise<StoredNotification[]> => {
-    const response = await owner.get(
+    const response = await owner.get<StoredNotification[]>(
       pageRoutePath("/settings/user/notifications", "/list"),
     );
     expect(response.status).to.equal(HTTP_OK);
-    return (response.data as StoredNotification[]).filter(
+    return response.data.filter(
       (notification) => notification.title === NEW_LOGIN_TITLE,
     );
   };

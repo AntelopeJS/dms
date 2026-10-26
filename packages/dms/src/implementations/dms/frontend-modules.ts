@@ -30,7 +30,7 @@ import {
   type ManifestFieldPolicy,
   type ManifestModuleEntry,
   listDroppedBackendProxies,
-  type ModuleManifestShape,
+  type ModuleManifest,
   type OriginRewrite,
   resolveClientOrigin,
   resolveRequestOrigin,
@@ -175,6 +175,7 @@ function resolveAuthEstablishEndpoints(
   const declared = config.authEstablishEndpoints ?? [];
   const invalid = declared.filter(
     (endpoint) =>
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JavaScript modules can register nonstring endpoints; retain the boundary's existing rejection instead of regex coercion.
       typeof endpoint !== "string" || !BACKEND_API_PATH.test(endpoint),
   );
   if (invalid.length > 0) {
@@ -221,9 +222,10 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
  */
 function shippingPackageVersion(sourcePath: string): string | undefined {
   try {
-    const manifest = JSON.parse(
+    const manifest: { version?: unknown } = JSON.parse(
       readFileSync(join(dirname(sourcePath), "package.json"), "utf-8"),
-    ) as { version?: unknown };
+    );
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- package.json is external JSON and its version may not be a string; retain the existing fallback to undefined.
     return typeof manifest.version === "string" ? manifest.version : undefined;
   } catch {
     return undefined;
@@ -275,6 +277,7 @@ export function removeFrontendModulesUnder(folder: string): string[] {
 }
 
 function copyFrontendValue(value: FrontendModuleValue): FrontendModuleValue {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- FrontendModuleValue is a recursive JSON union; this existing branch leaves scalars intact and only copies containers.
   if (value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(copyFrontendValue);
   return copyFrontendOptions(value);
@@ -334,11 +337,11 @@ function resolveManifestFieldPolicy(
 }
 
 function applyDevManifestOverrides<T extends ManifestModuleEntry>(
-  manifest: ModuleManifestShape<T>,
+  manifest: ModuleManifest<T>,
   requestContext: RequestContext,
   clientUrl: string | undefined,
   outcome: BootstrapOutcome,
-): ModuleManifestShape<T> & { originRewrites: OriginRewrite[] } {
+): ModuleManifest<T> & { originRewrites: OriginRewrite[] } {
   const config = getConfig();
   const clientOrigin = resolveClientOrigin(clientUrl);
   const apiOrigin = resolveRequestOrigin(requestContext.rawRequest);
@@ -375,18 +378,24 @@ export async function buildFrontendManifest(
   );
   const selection = resolveFrontendSelection(renderer, rendererVersion);
   const { dev } = await GetRuntimeInfo();
-  const shaped: ModuleManifestShape<ServedModule> = stripPrivateManifestFields(
-    { modules: selectedModules(selection) },
-    resolveManifestFieldPolicy(outcome, dev),
-  );
+  const servedManifest: ModuleManifest<ServedModule> =
+    stripPrivateManifestFields(
+      { modules: selectedModules(selection) },
+      resolveManifestFieldPolicy(outcome, dev),
+    );
   const manifest: FrontendManifest<ServedModule> = {
     version: FRONTEND_MANIFEST_VERSION,
-    modules: shaped.modules,
+    modules: servedManifest.modules,
     settling: isStoreOperationRunning(),
   };
   if (!dev) return manifest;
   return {
     ...manifest,
-    ...applyDevManifestOverrides(shaped, requestContext, clientUrl, outcome),
+    ...applyDevManifestOverrides(
+      servedManifest,
+      requestContext,
+      clientUrl,
+      outcome,
+    ),
   };
 }

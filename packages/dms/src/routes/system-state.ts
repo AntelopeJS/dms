@@ -22,7 +22,7 @@ export class PublicSystemStateController extends Controller(
 
     const meta = getConfig().meta;
     return {
-      // oxlint-disable-next-line typescript/no-misused-spread -- Return the state's enumerable data fields with response metadata, not its class prototype.
+      // oxlint-disable-next-line typescript/no-misused-spread -- The public response copies the settings row's own persisted fields, not its Table prototype methods.
       ...state,
       meta: {
         title: state.platform_name || meta?.title || "",

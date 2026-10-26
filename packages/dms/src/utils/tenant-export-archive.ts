@@ -49,11 +49,11 @@ const DEDUPE_START_SUFFIX = 2;
 
 type TenantExportContributor = RegisteredHook<Hook.TENANT_DATA_EXPORT>;
 
-function describeError(error: unknown): string {
+function describeError(error: PromiseRejectedResult["reason"]): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function abortReason(signal: AbortSignal): unknown {
+function abortReason(signal: AbortSignal): AbortSignal["reason"] {
   return signal.reason ?? new Error("Tenant export aborted");
 }
 
@@ -70,13 +70,13 @@ class ExportArchiveWriter {
 
     this.archive.pipe(this.output);
 
-    this.archive.on("error", (error: unknown) => {
+    this.archive.on("error", (error) => {
       this.failure ??= error;
     });
-    this.archive.on("warning", (warning: unknown) => {
+    this.archive.on("warning", (warning) => {
       Logging.Warn("[dms] tenant export archive warning:", warning);
     });
-    this.output.on("error", (error: unknown) => {
+    this.output.on("error", (error) => {
       this.failure ??= error;
     });
     this.signal.addEventListener("abort", () => this.archive.abort(), {
@@ -100,7 +100,10 @@ class ExportArchiveWriter {
     }
   }
 
-  appendJson(name: string, data: unknown): Promise<void> {
+  appendJson(
+    name: string,
+    data: Parameters<TenantExportArchive["addJson"]>[1],
+  ): Promise<void> {
     const payload = Buffer.from(JSON.stringify(data, null, JSON_INDENT));
     return this.append(name, () => {
       this.archive.append(payload, { name });
@@ -156,7 +159,8 @@ class ExportArchiveWriter {
       const onEntry = (entry: archiver.EntryData): void => {
         if (entry.name === name) settle(resolve);
       };
-      const onError = (error: unknown): void => settle(() => reject(error));
+      const onError = (error: Parameters<typeof Promise.reject>[0]): void =>
+        settle(() => reject(error));
       const onAbort = (): void =>
         settle(() => reject(abortReason(this.signal)));
 
@@ -180,7 +184,10 @@ class ScopedTenantExportArchive implements TenantExportArchive {
     this.closed = true;
   }
 
-  addJson(path: string, data: unknown): Promise<void> {
+  addJson(
+    path: string,
+    data: Parameters<TenantExportArchive["addJson"]>[1],
+  ): Promise<void> {
     return this.add(path, (name) => this.writer.appendJson(name, data));
   }
 

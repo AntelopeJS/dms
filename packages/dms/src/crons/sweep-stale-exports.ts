@@ -12,7 +12,7 @@ export async function runSweepStaleExports(): Promise<void> {
 
 export function scheduleSweepStaleExports(): ScheduledTask {
   return cron.schedule(SWEEP_STALE_EXPORTS_SCHEDULE, () => {
-    void runSweepStaleExports().catch((error: unknown) => {
+    void runSweepStaleExports().catch((error) => {
       Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
     });
   });

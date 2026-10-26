@@ -5,17 +5,18 @@ import {
   userNotificationPreferencesTableName,
 } from "../tables";
 
-const buildDefaultPreferences = (): Record<string, boolean> => {
-  const subjects = getRegisteredSubjects();
-  const preferences: Record<string, boolean> = {};
+const buildDefaultPreferences =
+  (): UserNotificationPreferences["preferences"] => {
+    const subjects = getRegisteredSubjects();
+    const preferences: Record<string, boolean> = {};
 
-  for (const subject of subjects) {
-    const key = `${subject.category.id}:${subject.id}`;
-    preferences[key] = true;
-  }
+    for (const subject of subjects) {
+      const key = `${subject.category.id}:${subject.id}`;
+      preferences[key] = true;
+    }
 
-  return preferences;
-};
+    return preferences;
+  };
 
 export class UserNotificationPreferencesModel extends BasicDataModel(
   UserNotificationPreferences,
@@ -117,6 +118,7 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
 
     const hasValidPreferences =
       existing &&
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Legacy stored preferences can be missing or malformed; preserve the existing object check and default repair path.
       typeof existing.preferences === "object" &&
       existing.preferences !== null;
 
@@ -128,7 +130,7 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
       const defaultPreferences = buildDefaultPreferences();
       await this.updatePreferences(userId, defaultPreferences);
 
-      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the row's enumerable fields, not its class prototype, before replacing preferences.
+      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the existing repaired row's own persisted fields and replacement preferences without introducing prototype methods into its return value.
       return { ...existing, preferences: defaultPreferences };
     }
 

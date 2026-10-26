@@ -222,6 +222,7 @@ export class UserNotificationsModel extends BasicDataModel(
       }),
     );
     const messageKeys = [...new Set([...titles, ...descriptions])]
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Stored notification text can be malformed; only string translation references belong in the message catalog.
       .filter((value) => typeof value === "string" && value.startsWith("$"))
       .map((value) => value.slice(1))
       .sort();

@@ -182,7 +182,9 @@ export class InvoiceBulkController extends Controller(
   }
 }
 
-const OPEN_SCOPE = { filters: { status: ["open", "is"] as [string, string] } };
+const OPEN_SCOPE = {
+  filters: { status: ["open", "is"] satisfies [string, string] },
+};
 
 @RegisterDataController()
 export class ScopedInvoiceController extends DataController(

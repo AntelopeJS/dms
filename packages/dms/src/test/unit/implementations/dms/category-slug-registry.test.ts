@@ -27,6 +27,7 @@ import {
 type LayoutTree = SiteLayoutPayload["siteLayoutTree"];
 
 const TENANT = "category-slug-tenant";
+// SAFETY: Category-menu access consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "category-slug-member" } as User;
 const COLLISION_MARKER = "claims the slug";
 const UNKNOWN_CATEGORY_MARKER = "targets unknown category";

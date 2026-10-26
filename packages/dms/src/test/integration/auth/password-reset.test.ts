@@ -1,6 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   authorizedClient,
   loginUser,
@@ -30,8 +30,10 @@ async function requestCode(email: string): Promise<string> {
   });
   expect(response.status).to.be.below(HTTP_MULTIPLE_CHOICES);
   const user = await GetModel(UserModel).getByEmail(email);
-  expect(user?.forgotPasswordToken).to.be.a("string");
-  return user?.forgotPasswordToken as string;
+  const token = user?.forgotPasswordToken;
+  assert.isString(token);
+  assert.exists(token);
+  return token;
 }
 
 function validateCode(email: string, token: string) {

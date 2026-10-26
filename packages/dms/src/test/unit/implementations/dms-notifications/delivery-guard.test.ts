@@ -1,10 +1,6 @@
 import { expect } from "chai";
 import { hasNotificationTitle } from "../../../../implementations/dms-notifications/delivery-guard";
 
-interface TitleOnly {
-  title: string;
-}
-
 describe("[unit] implementations/dms-notifications/delivery-guard", () => {
   it("delivers a notification with a title", () => {
     expect(
@@ -18,8 +14,10 @@ describe("[unit] implementations/dms-notifications/delivery-guard", () => {
   });
 
   it("refuses a missing title a request body passed through", () => {
-    const fromBody = JSON.parse('{"title":null}') as TitleOnly;
-    const withoutTitle = JSON.parse("{}") as TitleOnly;
+    const fromBody: Parameters<typeof hasNotificationTitle>[0] =
+      JSON.parse('{"title":null}');
+    const withoutTitle: Parameters<typeof hasNotificationTitle>[0] =
+      JSON.parse("{}");
     expect(hasNotificationTitle(fromBody)).to.equal(false);
     expect(hasNotificationTitle(withoutTitle)).to.equal(false);
   });

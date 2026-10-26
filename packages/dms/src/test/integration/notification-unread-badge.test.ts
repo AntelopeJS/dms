@@ -53,22 +53,19 @@ describe("[integration] notifications unread badge", () => {
   let userId: string;
 
   const counts = async (): Promise<FeedCounts> => {
-    const response = await client.get(`${LOCATION}/counts`);
+    const response = await client.get<FeedCounts>(`${LOCATION}/counts`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data as FeedCounts;
+    return response.data;
   };
 
   const menuEntry = async (): Promise<MenuEntry | undefined> => {
-    const response = await client.get("/dms/page", {
+    const response = await client.get<{
+      navBadges: Record<string, { badge: string; tone?: string }>;
+    }>("/dms/page", {
       params: { path: "/settings", shared: "false" },
     });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const served = (
-      response.data.navBadges as Record<
-        string,
-        { badge: string; tone?: string }
-      >
-    )[NOTIFICATIONS_PAGE_ID];
+    const served = response.data.navBadges[NOTIFICATIONS_PAGE_ID];
     return served && { badge: served.badge, badgeTone: served.tone };
   };
 
@@ -76,12 +73,10 @@ describe("[integration] notifications unread badge", () => {
     new SendableNotification({ ...data, title, tone }).toUser(userId);
 
   const idOf = async (title: string): Promise<string> => {
-    const response = await client.get(`${LOCATION}/list`, {
+    const response = await client.get<InboxRow[]>(`${LOCATION}/list`, {
       params: { limit: 100 },
     });
-    const row = (response.data as InboxRow[]).find(
-      (entry) => entry.title === title,
-    );
+    const row = response.data.find((entry) => entry.title === title);
     if (!row) throw new Error(`no notification titled ${title}`);
     return row._id;
   };
@@ -92,7 +87,7 @@ describe("[integration] notifications unread badge", () => {
     const unsubscribe = getRealtimeBroker().subscribe(
       buildUserNotificationTopic(userId),
       (event) => {
-        events.push(event as FeedEvent);
+        events.push(event);
       },
     );
     return { events, unsubscribe };

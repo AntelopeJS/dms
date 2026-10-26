@@ -36,7 +36,8 @@ function assignPreference<K extends RegionalKey>(
   value: RegionalPreferences[K] | undefined,
 ): void {
   if (value === undefined) return;
-  (user as Pick<User, RegionalKey>)[key] = value;
+  const target: Pick<User, RegionalKey> = user;
+  target[key] = value;
 }
 
 /**
@@ -69,9 +70,8 @@ export function readRegionalPreferences(user: User): RegionalPreferences {
  * The preferences as the Language & region form shows them: each regional
  * one as the text of its select option, "Automatic" when unset.
  */
-export function toRegionFormValues(
-  preferences: RegionalPreferences,
-): Record<string, unknown> {
+export function toRegionFormValues(preferences: RegionalPreferences) {
+  // oxlint-disable-next-line anti-slop/no-known-value-widening, anti-slop/no-unsafe-dictionary-type -- The form adapter accumulates computed regional keys while retaining its existing open record return contract.
   const values: Record<string, unknown> = { language: preferences.language };
   for (const key of REGIONAL_KEYS) {
     const value = preferences[key];
@@ -85,8 +85,11 @@ export function toRegionFormValues(
  * becomes null and the first day of the week a number. Anything else is
  * left for the schema to judge.
  */
-export function fromRegionFormValues(body: unknown): unknown {
+/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter preserves malformed input for regionalPreferencesSchema to reject, while translating only automatic and week-start representations. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Input remains unparsed until regionalPreferencesSchema runs in the route.
+export function fromRegionFormValues(body: unknown) {
   if (!body || typeof body !== "object") return body;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Only container identity is established; field values intentionally remain unknown until schema validation.
   const values = { ...(body as Record<string, unknown>) };
   for (const key of REGIONAL_KEYS) {
     if (values[key] === AUTOMATIC_PREFERENCE) values[key] = null;
@@ -97,3 +100,4 @@ export function fromRegionFormValues(body: unknown): unknown {
   }
   return values;
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */

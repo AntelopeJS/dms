@@ -20,12 +20,18 @@ function requestContext(request: FakeRequest): RequestContext {
     request.forwardedFor === undefined
       ? {}
       : { "x-forwarded-for": request.forwardedFor };
-  return {
+  const context = {
     rawRequest: {
       socket: { remoteAddress: request.socketAddress },
       headers,
     },
-  } as unknown as RequestContext;
+  } satisfies {
+    rawRequest: Pick<RequestContext["rawRequest"], "headers"> & {
+      socket: Pick<RequestContext["rawRequest"]["socket"], "remoteAddress">;
+    };
+  };
+  // SAFETY: getClientIp reads only rawRequest.socket.remoteAddress and rawRequest.headers; this fixture never runs request handling or response methods.
+  return context as RequestContext;
 }
 
 describe("[unit] client ip interface", () => {

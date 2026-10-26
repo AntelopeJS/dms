@@ -8,7 +8,10 @@ import {
   FormFunctions,
 } from "@antelopejs/interface-dms/base/form";
 import type { WatchAction } from "@antelopejs/interface-dms/base/types/watch";
-import { ComponentBuilder } from "@antelopejs/interface-dms/component";
+import {
+  ComponentBuilder,
+  type ComponentInfoSerialized,
+} from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   type ComponentNodeMap,
@@ -69,7 +72,8 @@ const componentMap: ComponentNodeMap = new Map([
   [FORM, { component: form, permissionId: FORM, depth: 0, access: "own" }],
 ]);
 
-const watchTargets = (options: unknown) =>
+const watchTargets = (options: ComponentInfoSerialized["options"]) =>
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialized components erase their option type; these callers supply the Form built above, and the projection reads only its watch actions.
   ((options as { watchActions?: WatchAction[] }).watchActions ?? []).map(
     (watch) => watch.params?.targetField,
   );
@@ -91,7 +95,9 @@ async function servedEmbeddedWatchTargets(permissions: Set<string>) {
     hostMap,
     CONTEXT,
   );
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- filterComponents returns type-erased options; this fixture's DemoDrawerHost embeds the serialized Form under drawer.content.
   const options = served.host!.options as { drawer: { content: unknown } };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The host fixture above embeds form.serializeSync(); the generic filter output cannot retain the embedded component's option type.
   return watchTargets((options.drawer.content as { options: unknown }).options);
 }
 

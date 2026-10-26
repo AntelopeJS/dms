@@ -101,7 +101,7 @@ function renderQrCode(user: User, secret: string): Promise<string> {
 
 async function assertMayAddMethod(
   user: User,
-  body: unknown,
+  body: Parameters<typeof securitySchema.addTwoFactorMethod.parse>[0],
   userModel: UserModel,
 ): Promise<void> {
   const { currentPassword } = assertValidation(body ?? {}, (value) =>
@@ -120,7 +120,7 @@ async function assertMayAddMethod(
  */
 export async function startTotpSetup(
   user: User,
-  body: unknown,
+  body: Parameters<typeof assertMayAddMethod>[1],
   userModel: UserModel,
 ): Promise<TotpSetup> {
   await assertMayAddMethod(user, body, userModel);
@@ -166,7 +166,7 @@ function enableMethod(
  */
 export async function confirmTotpSetup(
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.confirmTotp.parse>[0],
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
   const { code } = assertValidation(body, (value) =>
@@ -204,7 +204,7 @@ const isEmailSetupPending = (user: User): boolean =>
  */
 export async function startEmailSetup(
   user: User,
-  body: unknown,
+  body: Parameters<typeof assertMayAddMethod>[1],
   userModel: UserModel,
 ): Promise<SuccessResult> {
   const needsCode = !isEmailSetupPending(user) || isEmailCodeExpired(user);
@@ -223,7 +223,7 @@ export async function startEmailSetup(
  */
 export async function confirmEmailSetup(
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.confirmEmailMethod.parse>[0],
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
   const { code } = assertValidation(body, (value) =>
@@ -266,7 +266,7 @@ function clearTwoFactorLeftovers(user: User): void {
  */
 export async function disableTwoFactorMethod(
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.disableTwoFactor.parse>[0],
   userModel: UserModel,
 ): Promise<SuccessResult> {
   const { method, code } = assertValidation(body, (value) =>
@@ -294,6 +294,7 @@ async function isValidCodeForAnyMethod(
   user: User,
   code: string,
 ): Promise<boolean> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- User.twoFactorMethods and methodsOf both expose string[] rather than the verifier's literal union; rejecting persisted unknown method names would alter the existing verification loop.
   for (const method of methodsOf(user) as TwoFactorMethod[]) {
     if (await verifyTwoFactorCode(userModel, user, method, code)) return true;
   }
@@ -310,7 +311,7 @@ async function isValidCodeForAnyMethod(
  */
 export async function regenerateBackupCodes(
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.regenerateBackup.parse>[0],
   userModel: UserModel,
 ): Promise<BackupCodesResult> {
   const { code } = assertValidation(body, (value) =>

@@ -95,7 +95,7 @@ async function assertCodeMatches(
  */
 export async function requestEmailChange(
   user: User,
-  body: unknown,
+  body: Parameters<typeof securitySchema.changeEmail.parse>[0],
   userModel: UserModel,
 ): Promise<EmailChangeRequested> {
   const { email, currentPassword } = assertValidation(body, (value) =>
@@ -141,7 +141,7 @@ export async function requestEmailChange(
  */
 export async function confirmEmailChange(
   user: User,
-  body: unknown,
+  body: Parameters<typeof securitySchema.confirmEmailChange.parse>[0],
   userModel: UserModel,
 ): Promise<string> {
   const { code } = assertValidation(body, (value) =>

@@ -50,7 +50,7 @@ function packedFiles(): string[] {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  const [pack] = JSON.parse(output) as [{ files: { path: string }[] }];
+  const [pack]: [{ files: { path: string }[] }] = JSON.parse(output);
   return pack.files.map((file) => file.path);
 }
 

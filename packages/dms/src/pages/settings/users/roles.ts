@@ -354,7 +354,7 @@ export class RolesSettingsController extends PageController("roles", {
   async preview(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(editAction) user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof rolePreviewSchema.parse>[0],
   ): Promise<RolePreviewResult> {
     const { permissions, path } = assertValidation(body, (v) =>
       rolePreviewSchema.parse(v),
@@ -366,7 +366,7 @@ export class RolesSettingsController extends PageController("roles", {
   async create(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(addAction) user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof roleEditorSchema.parse>[0],
   ): Promise<CreatedRole> {
     const input = assertValidation(body, (v) => roleEditorSchema.parse(v));
     return { id: await createRole(await resolveActor(ctx, user), input) };
@@ -377,7 +377,7 @@ export class RolesSettingsController extends PageController("roles", {
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(editAction) user: User,
     @Parameter("id", "param") roleId: string,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof roleEditorSchema.parse>[0],
   ): Promise<void> {
     const input = assertValidation(body, (v) => roleEditorSchema.parse(v));
     const actor = await resolveActor(ctx, user);
@@ -404,7 +404,7 @@ export class RolesSettingsController extends PageController("roles", {
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(addAction) user: User,
     @Parameter("id", "param") roleId: string,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof roleDuplicateSchema.parse>[0],
   ): Promise<CreatedRole> {
     const { name } = assertValidation(body, (v) =>
       roleDuplicateSchema.parse(v),

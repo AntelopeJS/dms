@@ -34,7 +34,7 @@ describe("[unit] utils/workspace-notifications", () => {
         actor: { id: "actor", name: "Actor" },
       }).then(
         () => "resolved",
-        (error: unknown) => `rejected: ${String(error)}`,
+        (error) => `rejected: ${String(error)}`,
       );
 
       expect(ownersRequested).to.equal(true);

@@ -1,4 +1,9 @@
-import { MongoClient } from "mongodb";
+import {
+  MongoClient,
+  type Document,
+  type Filter,
+  type IndexDescriptionInfo,
+} from "mongodb";
 
 const PRESERVED_COLLECTION_PREFIXES = ["system.", "__antelope"];
 const DMS_SCHEMA_DB = "dms-core";
@@ -45,7 +50,7 @@ export async function resetDatabase(): Promise<void> {
 
 export async function countRawDocuments(
   collectionName: string,
-  filter: Record<string, unknown> = {},
+  filter: Filter<Document> = {},
 ): Promise<number> {
   const client = await MongoClient.connect(getMongoUrl());
   try {
@@ -64,7 +69,7 @@ export async function countRawDocuments(
 
 export async function listRawIndexes(
   collectionName: string,
-): Promise<Record<string, Record<string, unknown>>> {
+): Promise<Record<string, IndexDescriptionInfo["key"]>> {
   const client = await MongoClient.connect(getMongoUrl());
   try {
     const indexes = await client

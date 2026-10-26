@@ -29,11 +29,11 @@ describe("[integration] table view tags filter", () => {
   });
 
   async function titles(filter: string): Promise<string[]> {
-    const response = await client.get(`${LOCATION}/list`, {
+    const response = await client.get<{ results: Note[] }>(`${LOCATION}/list`, {
       params: { limit: 50, filter_labels: filter },
     });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return (response.data.results as Note[]).map((note) => note.title).sort();
+    return response.data.results.map((note) => note.title).sort();
   }
 
   it("keeps the rows holding a tag", async () => {

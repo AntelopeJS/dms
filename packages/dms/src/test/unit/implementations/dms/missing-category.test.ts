@@ -26,6 +26,7 @@ import {
 } from "../../../helpers/page-access";
 
 const TENANT = "missing-category-tenant";
+// SAFETY: Menu permission resolution consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "missing-category-member" } as User;
 const OWNER_PERMISSIONS = ["*"];
 const PLACEHOLDER_LABEL = "none";

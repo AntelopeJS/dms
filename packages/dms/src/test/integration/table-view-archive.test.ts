@@ -22,9 +22,11 @@ describe("[integration] table view archive mode", () => {
   });
 
   async function list(query = ""): Promise<Note[]> {
-    const response = await client.get(`${LOCATION}/list?limit=50${query}`);
+    const response = await client.get<{ results: Note[] }>(
+      `${LOCATION}/list?limit=50${query}`,
+    );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.results as Note[];
+    return response.data.results;
   }
 
   const titles = async (showArchived: boolean) =>

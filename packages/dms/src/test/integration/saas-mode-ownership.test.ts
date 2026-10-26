@@ -43,6 +43,7 @@ async function promoteInDefaultTenant(): Promise<void> {
 }
 
 function removeLastOwner(): Promise<void> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The guard fixture supplies ownership fields only, not a full stored member instance.
   const target = { userId: USER_ID, isTenantOwner: true } as TenantMember;
   return assertNotLastPlatformOwnerOnDelete([target]);
 }
@@ -75,9 +76,9 @@ describe("Platform ownership in and out of SaaS mode", () => {
     try {
       await removeLastOwner();
       expect.fail("Expected the last platform owner guard to reject");
-    } catch (error) {
+    } catch (error: PromiseRejectedResult["reason"]) {
       expect(error).to.be.instanceOf(HTTPResult);
-      expect((error as HTTPResult).getStatus()).to.equal(HTTP_CONFLICT);
+      expect(error.getStatus()).to.equal(HTTP_CONFLICT);
     }
   });
 

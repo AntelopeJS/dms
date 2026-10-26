@@ -1,4 +1,4 @@
-import { Controller, type ControllerClass } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   DataController,
@@ -87,14 +87,14 @@ async function registerPage(
   components: Record<string, Component>,
 ): Promise<Error | undefined> {
   class SomePage extends RootPageController(id, { displayName: id }) {}
-  const meta = GetMetadata(SomePage as ControllerClass, PageMetadata);
+  const meta = GetMetadata(SomePage, PageMetadata);
   for (const [key, component] of Object.entries(components)) {
     meta.SetComponent(key, component);
   }
   registered.push(meta);
   return meta.Register().then(
     () => undefined,
-    (error: unknown) => error as Error,
+    (error) => error,
   );
 }
 

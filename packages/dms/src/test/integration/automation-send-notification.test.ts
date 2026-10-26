@@ -2,7 +2,10 @@ import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import type { ExecutionCtx } from "@antelopejs/interface-dms-automation";
+import type {
+  ActionType,
+  ExecutionCtx,
+} from "@antelopejs/interface-dms-automation";
 import { ACTIONS } from "../../automation/actions";
 import { SEND_NOTIFICATION_ACTION_ID } from "../../automation/send-notification";
 import { UserNotificationsModel } from "../../db";
@@ -31,7 +34,7 @@ function ctx(nodeId = "node"): ExecutionCtx {
 
 const action = ACTIONS.find(({ id }) => id === SEND_NOTIFICATION_ACTION_ID);
 
-function send(input: Record<string, unknown>, nodeId?: string) {
+function send(input: Parameters<ActionType["execute"]>[0], nodeId?: string) {
   if (!action) throw new Error(`${SEND_NOTIFICATION_ACTION_ID} not registered`);
   return action.execute(input, ctx(nodeId));
 }
