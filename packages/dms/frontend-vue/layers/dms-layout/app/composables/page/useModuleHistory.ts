@@ -1,4 +1,4 @@
-const MODULE_HISTORY_COOKIE = "dms-module-history";
+export const MODULE_HISTORY_COOKIE = "dms-module-history";
 // Kept for a year and bounded, so the cookie stays small on every request.
 const MODULE_HISTORY_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MODULE_HISTORY_MAX_ENTRIES = 12;

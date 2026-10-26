@@ -11,10 +11,8 @@ import {
   sidePanelWidthStyle,
   useActiveSidePanel,
 } from "../../composables/layout/sidePanelState";
+import { DASHBOARD_STORAGE_KEY } from "../../utils/dashboardStorage";
 
-// Sidebar sizes are in px (the v2 240px sidebar). The storage key changed with
-// the unit, so a width saved in % is not read back as px.
-const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";
 // The v2 page bottom padding (48px, 64px from `lg`) sits on the page region,
 // not on the panel body: the scroll area's own padding would lift every

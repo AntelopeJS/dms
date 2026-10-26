@@ -1,4 +1,4 @@
-const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
+export const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
 
 type LayoutBannerRole = "status" | "alert";
 
