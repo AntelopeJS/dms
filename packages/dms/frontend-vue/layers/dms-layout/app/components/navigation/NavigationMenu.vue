@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
+import { MENU_STATUS_CHIP_COLORS } from "#dms-core/app/utils/menu";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
@@ -191,9 +192,6 @@ function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
   return live.label ? resolveMenuBadge(live.label, live.tone) : undefined;
 }
 
-// A status dot lands in the trailing slot, which a parent entry already uses for
-// its accordion chevron — so it is rendered on leaf entries only, and a badge
-// takes precedence over it.
 function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   const variant = VARIANT_CLASSES[item.variant ?? "default"];
   const hasChildren = (item.children?.length ?? 0) > 0;
@@ -298,6 +296,23 @@ function onStateChange(id: string, open: boolean): void {
           })
         "
       />
+      <UChip
+        v-else-if="item.icon && item.status && item.children?.length"
+        :color="MENU_STATUS_CHIP_COLORS[item.status as MenuItemStatus]"
+        inset
+        size="sm"
+      >
+        <UIcon
+          :name="item.icon"
+          :class="
+            ui.linkLeadingIcon({
+              class: item.ui?.linkLeadingIcon,
+              active,
+              disabled: !!item.disabled,
+            })
+          "
+        />
+      </UChip>
       <UIcon
         v-else-if="item.icon"
         :name="item.icon"

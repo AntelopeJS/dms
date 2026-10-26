@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  addActiveStateToMenuItems,
+  applyMenuRouteState,
+  collectOpenItemIds,
   isMenuItemActive,
 } from "../layers/dms-core/app/utils/menu";
 import { buildMenuItemTarget } from "../layers/dms-ui/app/build/types/tree";
@@ -104,7 +105,7 @@ describe("isMenuItemActive with query entries", () => {
   });
 });
 
-describe("addActiveStateToMenuItems", () => {
+describe("applyMenuRouteState", () => {
   it("marks a single query entry active across a group", () => {
     const groups = [
       [
@@ -113,7 +114,7 @@ describe("addActiveStateToMenuItems", () => {
       ],
     ];
 
-    const [group] = addActiveStateToMenuItems(
+    const [group] = applyMenuRouteState(
       groups,
       null,
       route("/project", { project: "resto" }),
@@ -124,12 +125,104 @@ describe("addActiveStateToMenuItems", () => {
   });
 
   it("leaves the native highlighting of an inactive plain entry alone", () => {
-    const [group] = addActiveStateToMenuItems(
+    const [group] = applyMenuRouteState(
       [[{ id: "orders", to: "/orders" }]],
       null,
       route("/invoices"),
     );
 
     expect(group?.[0]?.active).to.equal(undefined);
+  });
+
+  const projects = ["a", "ab"].map((project) => ({
+    id: `projects.${project}`,
+    fullId: `projects.${project}`,
+    to: `/project?project=${project}`,
+    children: [
+      {
+        id: `projects.${project}.services`,
+        to: `/project/services?project=${project}`,
+        children: [
+          {
+            id: `projects.${project}.services.api`,
+            to: `/project/service?project=${project}&service=api`,
+          },
+        ],
+      },
+    ],
+  }));
+
+  it("opens every ancestor of a query-addressed active descendant", () => {
+    const result = applyMenuRouteState(
+      [projects],
+      "projects.service",
+      route("/project/service", { project: "ab", service: "api", env: "prod" }),
+    );
+    expect(collectOpenItemIds(result)).toEqual([
+      "projects.ab",
+      "projects.ab.services",
+    ]);
+    expect(result[0]?.[0]?.active).toBe(false);
+    expect(result[0]?.[0]?.defaultOpen).toBe(false);
+    expect(result[0]?.[1]?.active).toBe(false);
+    expect(result[0]?.[1]?.children?.[0]?.children?.[0]?.active).toBe(true);
+  });
+
+  it("keeps a parent active on sub-pages with no active descendant", () => {
+    const result = applyMenuRouteState(
+      [projects],
+      "projects.deployment",
+      route("/project/deployment", { project: "a" }),
+    );
+    expect(result[0]?.[0]?.active).toBe(true);
+    expect(result[0]?.[1]?.active).toBe(false);
+    expect(collectOpenItemIds(result)).toEqual(["projects.a"]);
+  });
+
+  it("keeps the parent active and open on its exact query-addressed page", () => {
+    const result = applyMenuRouteState(
+      [projects],
+      "projects.project",
+      route("/project/", { project: "ab" }),
+    );
+    expect(result[0]?.[1]?.active).toBe(true);
+    expect(collectOpenItemIds(result)).toEqual(["projects.ab"]);
+  });
+
+  it("suppresses native parent prefix highlighting when a plain descendant is active", () => {
+    const result = applyMenuRouteState(
+      [
+        [
+          {
+            id: "orders",
+            to: "/orders",
+            children: [{ id: "orders.history", to: "/orders/history" }],
+          },
+        ],
+      ],
+      null,
+      route("/orders/history"),
+    );
+    expect(result[0]?.[0]?.active).toBe(false);
+    expect(result[0]?.[0]?.children?.[0]?.active).toBe(true);
+    expect(collectOpenItemIds(result)).toEqual(["orders"]);
+  });
+
+  it("still opens static categories for hidden pages with unrelated URL paths", () => {
+    const result = applyMenuRouteState(
+      [
+        [
+          {
+            id: "orders",
+            fullId: "pages.orders",
+            children: [{ id: "orders.list", to: "/orders" }],
+          },
+        ],
+      ],
+      "pages.orders.hidden",
+      route("/custom-hidden-page"),
+    );
+    expect(collectOpenItemIds(result)).toEqual(["orders"]);
+    expect(result[0]?.[0]?.children?.[0]?.active).toBeUndefined();
   });
 });

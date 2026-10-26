@@ -18,7 +18,6 @@ import {
 import { renderToString } from "vue/server-renderer";
 import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
-import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
 
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
@@ -59,7 +58,6 @@ function installRuntime(initialCookies: Record<string, unknown>) {
     watch,
     onMounted,
     onBeforeUnmount,
-    addActiveStateToMenuItem,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsAppConfig", () => ({}));
@@ -92,7 +90,7 @@ function installRuntime(initialCookies: Record<string, unknown>) {
   vi.stubGlobal("useCurrentModule", () => computed(() => null));
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
-  vi.stubGlobal("getExpandedItemIds", () => []);
+  vi.stubGlobal("collectOpenItemIds", () => []);
 }
 
 function useNavigator(kind: keyof typeof NAVIGATORS) {

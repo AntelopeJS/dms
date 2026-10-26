@@ -15,7 +15,6 @@ import {
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
-import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
 
 vi.mock(
   "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue",
@@ -54,7 +53,6 @@ function installRuntime() {
     watch,
     onMounted,
     onBeforeUnmount,
-    addActiveStateToMenuItem,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsAppConfig", () => ({}));
@@ -90,7 +88,7 @@ function installRuntime() {
   );
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
-  vi.stubGlobal("getExpandedItemIds", () => []);
+  vi.stubGlobal("collectOpenItemIds", () => []);
 }
 
 beforeEach(() => {

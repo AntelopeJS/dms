@@ -1250,12 +1250,19 @@ function findDynamicEntriesHiddenByPreview(
   previewed: DynamicChildren,
 ): string[] {
   const kept = new Set(
-    [...previewed.values()].flat().map((node) => node.fullId),
+    flattenDynamicNodes(previewed).map((node) => node.fullId),
   );
-  return [...served.values()]
-    .flat()
+  return flattenDynamicNodes(served)
     .map((node) => node.fullId)
     .filter((fullId) => !kept.has(fullId));
+}
+
+function flattenDynamicNodes(served: DynamicChildren): SiteLayoutTree[] {
+  const flatten = (node: SiteLayoutTree): SiteLayoutTree[] => [
+    node,
+    ...Object.values(node.children).flatMap(flatten),
+  ];
+  return [...served.values()].flatMap((nodes) => nodes.flatMap(flatten));
 }
 
 /** Who previews, with which permission set, and on which page. */
@@ -1619,7 +1626,7 @@ function listPreviewLossTargets(
     const page = pagesByFullId.get(node.fullId);
     if (page && !denied.has(page.fullId)) pages.set(page.fullId, page);
   }
-  for (const node of [...served.values()].flat()) {
+  for (const node of flattenDynamicNodes(served)) {
     const target = nodeTargets.get(node);
     if (!target || denied.has(node.fullId) || denied.has(target.fullId)) {
       continue;
@@ -2283,20 +2290,12 @@ function warnHoistedCollision(
   );
 }
 
-// Grafted onto the per-request copy produced above, never onto `navigationTree`:
-// the dynamic entries of one tenant can therefore never reach another tenant's
-// site layout. A dynamic entry never shadows an existing child — static or from
-// an earlier provider.
 function mergeDynamicChildren(
   categoryFullId: string,
   children: Record<string, SiteLayoutTree>,
   dynamicChildren: SiteLayoutTree[],
 ): Record<string, SiteLayoutTree> {
   const merged = { ...children };
-  // Several providers pool their entries into one category, so the verdict
-  // goes to the provider whose entry was dropped rather than to the category:
-  // the one that has to hear about it, and the only key under which a second
-  // provider colliding for its own reasons is still reported.
   const category = findNavigationEntryByFullId(categoryFullId);
   for (const node of dynamicChildren) {
     if (merged[node.id]) {
@@ -2321,13 +2320,6 @@ async function resolveDynamicChildren(
   context: RequestAccessContext,
 ): Promise<DynamicChildren> {
   const resolved: DynamicChildren = new Map();
-  // Providers are independent, so they run together: the request waits for the
-  // slowest instead of the sum. The merge below still walks them in
-  // registration order — which provider wins a colliding id must not depend on
-  // which one happened to answer first.
-  // Snapshot first: a module registering or unregistering while the resolvers
-  // are pending would mutate the live array, and the merge below reads it by
-  // index — entries would land under another provider's category, or vanish.
   const providers = [...dynamicMenuProviders];
   const perProvider = await Promise.all(
     providers.map((provider) =>
@@ -2347,11 +2339,6 @@ async function resolveDynamicChildren(
   return resolved;
 }
 
-// A provider whose category the caller cannot reach is not resolved at all: its
-// resolver never runs (no needless data access) and its entries never reach the
-// payload, which the client could otherwise read even though the menu hides the
-// whole category. Under a category flagged `bypassTenantAccessGate` the caller
-// keeps its real permissions, exactly like the pages of that category.
 async function resolveProviderNodes(
   provider: DynamicMenuProviderInfo,
   user: User | undefined,
@@ -2391,8 +2378,6 @@ async function runDynamicMenuResolver(
       `category "${provider.categoryFullId}"`,
     );
   } catch (error) {
-    // Throwing and hanging land here alike: the provider contributes nothing
-    // to this request, and its entries come back when it does.
     warnOnceFor(
       provider,
       "resolver-failed",
@@ -2445,20 +2430,42 @@ function resolveEntryTarget(
   return { target, link };
 }
 
-async function buildDynamicNodes(
+const MAX_DYNAMIC_MENU_DEPTH = 3;
+
+interface DynamicWalk {
+  provider: DynamicMenuProviderInfo;
+  context: RequestAccessContext;
+  targetAccess: Map<string, boolean>;
+}
+
+interface DynamicLevel {
+  parentFullId: string;
+  depth: number;
+}
+
+function buildDynamicNodes(
   provider: DynamicMenuProviderInfo,
-  items: DynamicMenuItem[],
+  items: readonly DynamicMenuItem[],
   context: RequestAccessContext,
 ): Promise<SiteLayoutTree[]> {
-  const { categoryFullId } = provider;
+  return buildDynamicLevel(
+    { provider, context, targetAccess: new Map() },
+    { parentFullId: provider.categoryFullId, depth: 1 },
+    items,
+  );
+}
+
+async function buildDynamicLevel(
+  walk: DynamicWalk,
+  level: DynamicLevel,
+  items: readonly DynamicMenuItem[],
+): Promise<SiteLayoutTree[]> {
+  const { provider, context, targetAccess } = walk;
   const nodes: SiteLayoutTree[] = [];
-  // Entries of one provider usually share a single target page: resolving that
-  // page's access once per request keeps the check off the per-entry path.
-  const targetAccess = new Map<string, boolean>();
   for (const item of items) {
     const resolved = resolveEntryTarget(provider, item);
     if (!resolved) continue;
-    const { target, link } = resolved;
+    const { target } = resolved;
     if (!(await isTargetPageReachable(target, context, targetAccess))) {
       continue;
     }
@@ -2468,7 +2475,7 @@ async function buildDynamicNodes(
     ) {
       continue;
     }
-    const node = buildDynamicNode(categoryFullId, item, target, link);
+    const node = await buildDynamicNode(walk, level, item, resolved);
     nodeProviders.set(node, provider);
     nodeTargets.set(node, target);
     nodes.push(node);
@@ -2476,13 +2483,7 @@ async function buildDynamicNodes(
   return nodes;
 }
 
-// Mirrors the check the browser itself performs (usePermissions.hasPermission):
-// the wildcard, or a literal member of the set it received. The server-side
-// `defaultGranted` fallback of HasPermission is deliberately not consulted — the
-// client never receives those ids, so an entry granted that way would render
-// controls the browser keeps disabled. Under a denying gate the set is narrowed
-// to the surfaces flagged `bypassTenantAccessGate`, so only recovery entries
-// survive.
+/** Matches browser grants without the server's defaultGranted fallback. */
 function clientHoldsPermission(
   context: RequestAccessContext,
   permissionId: string,
@@ -2491,9 +2492,6 @@ function clientHoldsPermission(
   return permissions.has(WILDCARD_PERMISSION) || permissions.has(permissionId);
 }
 
-// An entry may not offer a link the caller would be refused on: the target page
-// is checked like any other navigation entry, so its own permission — and its
-// own `bypassTenantAccessGate` — decide.
 async function isTargetPageReachable(
   target: PageInfo,
   context: RequestAccessContext,
@@ -2506,32 +2504,68 @@ async function isTargetPageReachable(
   return reachable;
 }
 
-function buildDynamicNode(
-  categoryFullId: string,
+async function buildDynamicNode(
+  walk: DynamicWalk,
+  level: DynamicLevel,
   item: DynamicMenuItem,
-  target: PageInfo,
-  link: string,
-): SiteLayoutTree {
+  resolved: ResolvedEntryTarget,
+): Promise<SiteLayoutTree> {
   const {
     id,
     permissionId: _permissionId,
     params: _params,
+    children: _children,
     ...menuFields
   } = item;
+  const fullId = `${level.parentFullId}.${id}`;
+  const children = await buildDynamicChildRecord(walk, level, item, fullId);
   return {
     ...menuFields,
-    // The browser links an entry to its `fullSlug`, so it carries the filled
-    // link rather than the page's `:name` pattern.
-    fullSlug: link,
+    fullSlug: resolved.link,
     id,
-    fullId: `${categoryFullId}.${id}`,
-    layoutUrl: target.layoutUrl,
+    fullId,
+    layoutUrl: resolved.target.layoutUrl,
     type: "link",
     category: undefined,
-    children: {},
-    childrenOrders: [],
+    children,
+    childrenOrders: sortChildIdsByOrder(children),
     hasAccess: true,
   };
+}
+
+async function buildDynamicChildRecord(
+  walk: DynamicWalk,
+  level: DynamicLevel,
+  item: DynamicMenuItem,
+  fullId: string,
+): Promise<Record<string, SiteLayoutTree>> {
+  if (!item.children?.length) return {};
+  if (level.depth >= MAX_DYNAMIC_MENU_DEPTH) {
+    warnOnceFor(
+      walk.provider,
+      "too-deep",
+      `[dms] dynamic menu entry "${fullId}" exceeds the maximum depth of ${MAX_DYNAMIC_MENU_DEPTH}: its children were skipped.`,
+    );
+    return {};
+  }
+  const nodes = await buildDynamicLevel(
+    walk,
+    { parentFullId: fullId, depth: level.depth + 1 },
+    item.children,
+  );
+  const children = new Map<string, SiteLayoutTree>();
+  for (const node of nodes) {
+    if (children.has(node.id)) {
+      warnOnceFor(
+        walk.provider,
+        "duplicate-child-id",
+        `[dms] dynamic menu entry "${node.id}" under "${fullId}" duplicates a sibling and was skipped.`,
+      );
+      continue;
+    }
+    children.set(node.id, node);
+  }
+  return Object.fromEntries(children);
 }
 
 /** A quick action's page, resolved and admitted for the caller. */
