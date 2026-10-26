@@ -9,7 +9,9 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 async function mount(truncate: boolean) {
-  app = createApp({ render: () => h(ListRow, { title: LONG_TITLE, truncate }) });
+  app = createApp({
+    render: () => h(ListRow, { title: LONG_TITLE, truncate }),
+  });
   app.mount(host);
   await nextTick();
 }

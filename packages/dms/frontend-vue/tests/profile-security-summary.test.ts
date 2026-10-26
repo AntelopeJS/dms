@@ -1,121 +1,100 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import {
-  computed,
-  createApp,
-  defineComponent,
-  h,
-  nextTick,
-  onMounted,
-  ref,
-  type App,
-} from "vue";
+import { afterEach, expect, it, vi } from "vitest";
+import { createApp, ref, type App } from "vue";
+import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
+import iconsPlugin from "@nuxt/ui/runtime/vue/plugins/icons.js";
+import { icons } from "@iconify-json/ph/icons.json";
 import ProfileSecuritySummary from "../layers/dms-layout/app/build/components/pages/settings/profile/ProfileSecuritySummary.vue";
-
-// The profile's "Sign-in and security" row takes the tone of the Security
-// page's navigation badge, the one the server weighs what needs attention
-// with: red when the backup codes run low, amber for two-factor off or codes
-// not saved, quiet when nothing needs attention.
-
-const overview = ref<Record<string, unknown> | null>(null);
-const attention = ref<string[]>([]);
-const attentionTone = ref<string | undefined>(undefined);
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
-  () => ({
-    SECURITY_PAGE_PATH: "/settings/user/security",
-    useSecurityOverview: () => ({
-      overview,
-      attention,
-      attentionTone,
-      isUnavailable: ref(false),
-      refresh: vi.fn(),
-    }),
-  }),
-);
-vi.mock("#dms-ui/app/components/icon-well/IconWell.vue", async () => {
-  const { defineComponent, h } = await import("vue");
-  return {
-    default: defineComponent({
-      props: { icon: String, tone: String },
-      setup: (props) => () =>
-        h("span", { "data-icon": props.icon, "data-tone": props.tone }),
-    }),
-  };
-});
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
 let app: App | undefined;
-let host: HTMLDivElement;
 
-const OVERVIEW = {
-  activeSessions: 9,
-  twoFactor: { methods: ["totp"] },
-};
+afterEach(() => {
+  app?.unmount();
+  vi.unstubAllGlobals();
+});
 
-const wellTone = () =>
-  host.querySelector("[data-icon]")?.getAttribute("data-tone");
-
-function show(items: string[], tone: string | undefined): void {
-  overview.value = OVERVIEW;
-  attention.value = items;
-  attentionTone.value = tone;
-}
-
-beforeEach(() => {
-  overview.value = null;
-  attention.value = [];
-  attentionTone.value = undefined;
-  Object.entries({ computed, onMounted }).forEach(([key, value]) =>
-    vi.stubGlobal(key, value),
-  );
+it("names every point that needs attention, not only the first", async () => {
+  installAuthSettingsRuntime();
   vi.stubGlobal("useI18n", () => ({
     t: (key: string) => key,
     locale: ref("en-GB"),
   }));
-  host = document.createElement("div");
-  document.body.append(host);
+  const authFetch = vi.fn(async () => ({
+    activeSessions: 9,
+    twoFactor: { methods: ["totp"] },
+    attention: ["backup_codes_low", "backup_codes_unsaved"],
+    attentionTone: "error",
+  }));
+  stubApiData(authFetch);
   app = createApp(ProfileSecuritySummary);
-  app.component(
-    "USkeleton",
-    defineComponent({ setup: () => () => h("span", { "data-skeleton": "" }) }),
-  );
-  app.component("UButton", defineComponent({ setup: () => () => h("a") }));
+  browserRuntime(app);
+  app.use(iconsPlugin);
+  app.component("UIcon", UIcon);
+  app.component("UButton", () => null);
+  app.component("USkeleton", () => null);
+  const host = document.createElement("div");
   app.mount(host);
-});
-
-afterEach(() => {
-  app?.unmount();
-  app = undefined;
-  host.remove();
-  vi.unstubAllGlobals();
-});
-
-it("turns red when the server weighs the attention an error", async () => {
-  show(["backup_codes_low", "backup_codes_unsaved"], "error");
-  await nextTick();
-  expect(wellTone()).toBe("error");
-});
-
-it("stays amber for two-factor off", async () => {
-  show(["two_factor_off"], "warning");
-  await nextTick();
-  expect(wellTone()).toBe("warning");
-});
-
-it("is quiet when nothing needs attention", async () => {
-  show([], undefined);
-  await nextTick();
-  expect(wellTone()).toBe("muted");
-  expect(host.querySelector("[data-icon]")?.getAttribute("data-icon")).toBe(
-    "i-ph-shield-check",
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain(
+      "page.settings.profile.security_attention — page.settings.security.attention.backup_codes_low and page.settings.security.attention.backup_codes_unsaved.",
+    ),
   );
+  expect(authFetch).toHaveBeenCalledExactlyOnceWith(
+    "/dms/pages/settings/user/security",
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  );
+  expect(
+    host
+      .querySelector("span[aria-hidden='true']")
+      ?.classList.contains("text-error"),
+  ).toBe(true);
 });
 
-it("names every point that needs attention, not only the first", async () => {
-  show(["backup_codes_low", "backup_codes_unsaved"], "error");
-  await nextTick();
-  expect(host.textContent).toContain(
-    "page.settings.profile.security_attention — page.settings.security.attention.backup_codes_low and page.settings.security.attention.backup_codes_unsaved.",
-  );
-});
+it.each([
+  {
+    attention: ["two_factor_off"],
+    attentionTone: "warning",
+    color: "text-warning",
+    icon: icons["shield-warning"],
+  },
+  {
+    attention: [],
+    attentionTone: null,
+    color: "text-muted",
+    icon: icons["shield-check"],
+  },
+])(
+  "renders $color security status with the matching shield",
+  async ({ attention, attentionTone, color, icon }) => {
+    installAuthSettingsRuntime();
+    vi.stubGlobal("useI18n", () => ({
+      t: (key: string) => key,
+      locale: ref("en-GB"),
+    }));
+    stubApiData(async () => ({
+      activeSessions: 9,
+      twoFactor: { methods: attention.length ? [] : ["totp"] },
+      attention,
+      attentionTone,
+    }));
+    app = createApp(ProfileSecuritySummary);
+    browserRuntime(app);
+    app.use(iconsPlugin);
+    app.component("UIcon", UIcon);
+    app.component("UButton", () => null);
+    app.component("USkeleton", () => null);
+    const host = document.createElement("div");
+    app.mount(host);
+    const expected = document.createElement("div");
+    expected.innerHTML = `<svg>${icon.body}</svg>`;
+    await vi.waitFor(() => {
+      const well = host.querySelector("span[aria-hidden='true']");
+      expect(well?.classList.contains(color)).toBe(true);
+      expect(well?.querySelector("svg")?.innerHTML).toBe(
+        expected.firstElementChild?.innerHTML,
+      );
+    });
+  },
+);

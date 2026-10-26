@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A chart names its series in a legend drawn in the dashboard's colours, at
  * the top of an axis chart or under a circular one unless `legendPosition`
@@ -5,26 +6,20 @@
  * heading its single series, until the card asks for it with
  * `showSeriesLegend`: no raw Apex `legend` option is needed for either.
  */
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
-import { renderToString } from "vue/server-renderer";
+import { createApp, defineComponent, h, ref, type PropType } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
+import { engine } from "./helpers/api-data-runtime";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
 const SERIES: ChartSeries[] = [
   { name: "Average", data: [{ x: "10:00", y: 42 }] },
   { name: "p95", data: [{ x: "10:00", y: 96 }] },
 ];
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ value: 42, series: SERIES }),
-    isLoading: ref(false),
-  }),
-}));
 
 interface LegendOptions {
   show: boolean;
@@ -62,16 +57,14 @@ function legendOf(input: Partial<UseApexChartInput>) {
 }
 
 async function renderCard(cardProps: Record<string, unknown>) {
+  const authFetch = vi.fn().mockResolvedValue({ value: 42, series: SERIES });
+  await stubBlockRuntime(authFetch);
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en"),
     t: (key: string) => key,
   }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
-  const app = createSSRApp({
+  const runtime = engine.createDmsFrontendRuntime();
+  const app = createApp({
     render: () =>
       h(
         ChartCard,
@@ -79,6 +72,7 @@ async function renderCard(cardProps: Record<string, unknown>) {
           title: "Latency",
           componentId: "card",
           pageId: "routes",
+          fetchUrl: "/api/latency",
           ...cardProps,
         },
         () =>
@@ -90,10 +84,23 @@ async function renderCard(cardProps: Record<string, unknown>) {
           }),
       ),
   });
+  engine.provideDmsFrontendRuntime(app, runtime);
   for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"])
     app.component(name, Slot);
   app.component("DmsApexChartHost", LegendProbe);
-  return renderToString(app);
+  const host = document.createElement("div");
+  try {
+    app.mount(host);
+    await vi.waitFor(() => expect(host.querySelector("output")).not.toBeNull());
+    expect(authFetch).toHaveBeenCalledExactlyOnceWith(
+      "/api/latency",
+      expect.any(Object),
+    );
+    return host.innerHTML;
+  } finally {
+    app.unmount();
+    runtime.scope.stop();
+  }
 }
 
 afterEach(() => vi.unstubAllGlobals());

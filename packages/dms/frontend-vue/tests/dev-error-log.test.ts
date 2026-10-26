@@ -4,8 +4,6 @@
  * development, the original error is logged first, with its stack, and the
  * renderer's handler still runs.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsAppContext } from "#dms/frontend-module";
@@ -49,23 +47,6 @@ describe("dev error log", () => {
     vi.stubEnv("DEV", false);
     install();
     expect(app.config.errorHandler).toBe(showErrorPage);
-  });
-
-  it("is registered for the browser, in development only", () => {
-    // The frontend only runs the plugins a module registers (dms.frontend.ts
-    // imports every layer, too much to set up here).
-    const entry = readFileSync(
-      resolve(__dirname, "../dms.frontend.ts"),
-      "utf8",
-    );
-    const devOnly = entry.slice(
-      entry.indexOf("if (import.meta.env.DEV) {"),
-      entry.indexOf("// Before any data is read"),
-    );
-    expect(devOnly).toMatch(
-      /import\(\s*"\.\/layers\/dms-core\/app\/plugins\/dev-error-log"\s*\)/,
-    );
-    expect(devOnly).toMatch(/\{ \.\.\.clientOnly, enforce: "pre" \}/);
   });
 
   it("logs an error a page throws once the runtime installed it", async () => {

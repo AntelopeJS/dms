@@ -20,15 +20,6 @@ import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
 type Messages = Record<string, unknown>;
 
 // The layers' locale files share their top-level keys (`dms`, …).

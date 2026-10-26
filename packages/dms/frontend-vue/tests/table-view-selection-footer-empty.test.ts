@@ -16,31 +16,6 @@ import TableRowSelection from "../layers/dms-ui/app/build/components/table/RowSe
 import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "../layers/dms-ui/app/build/components/table/Pagination.vue";
 
-vi.mock(
-  "../layers/dms-ui/app/components/empty-state/EmptyState.vue",
-  async () => {
-    const vue = await import("vue");
-    const Button = vue.defineComponent({
-      props: { label: String, to: String },
-      setup: (props) => () =>
-        vue.h("button", { "data-to": props.to }, props.label),
-    });
-    return {
-      default: vue.defineComponent({
-        props: { title: String, description: String, actions: Array },
-        setup: (props) => () =>
-          vue.h("section", [
-            vue.h("h3", props.title),
-            vue.h("p", props.description),
-            ...(props.actions ?? []).map((action) =>
-              vue.h(Button, action as Record<string, unknown>),
-            ),
-          ]),
-      }),
-    };
-  },
-);
-
 const ButtonStub = defineComponent({
   props: { label: String, ariaLabel: String, to: String },
   emits: ["click"],
@@ -233,10 +208,12 @@ describe("empty body", () => {
         resetFilters: vi.fn(),
       },
     );
-    expect(container.querySelector("h3")?.textContent).toBe(
+    expect(container.querySelector('[role="status"] > p')?.textContent).toBe(
       'runs.none_for{"search":"zzz"}',
     );
-    expect(container.querySelector("p")?.textContent).toBe("Try another name.");
+    expect(
+      container.querySelector('[role="status"] > p + p')?.textContent,
+    ).toBe("Try another name.");
     expect(
       [...container.querySelectorAll("button")].map((button) => [
         button.textContent,
@@ -266,12 +243,12 @@ describe("empty body", () => {
         resetFilters: vi.fn(),
       },
     );
-    expect(container.querySelector("h3")?.textContent).toBe(
+    expect(container.querySelector('[role="status"] > p')?.textContent).toBe(
       "No run matches “zzz”",
     );
-    expect(container.querySelector("p")?.textContent).toBe(
-      "{other} stays as written.",
-    );
+    expect(
+      container.querySelector('[role="status"] > p + p')?.textContent,
+    ).toBe("{other} stays as written.");
   });
 
   it("keeps the built-in words for a reason the module left out", () => {
@@ -284,7 +261,7 @@ describe("empty body", () => {
         globalFilterState: ref(""),
       },
     );
-    expect(container.querySelector("h3")?.textContent).toBe(
+    expect(container.querySelector('[role="alert"] > p')?.textContent).toBe(
       "dms.table.load_error_title",
     );
   });
@@ -299,7 +276,7 @@ describe("empty body", () => {
         emptyStates: { firstRun: { title: "$inbox.caught_up" } },
       },
     );
-    expect(container.querySelector("h3")?.textContent).toBe(
+    expect(container.querySelector('[role="status"] > p')?.textContent).toBe(
       'inbox.caught_up{"search":""}',
     );
   });

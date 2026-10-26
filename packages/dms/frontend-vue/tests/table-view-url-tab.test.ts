@@ -7,25 +7,12 @@
  * place, under the same key.
  */
 import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   readTableUrlTab,
   useTableUrlTab,
 } from "../layers/dms-ui/app/build/composables/table-view/useTableUrlTab";
 import type { TableUrlScope } from "../layers/dms-ui/app/build/composables/table-view/utils/views";
-
-type NavigateListener = (event: { detail: { page: { url: string } } }) => void;
-const navigateListeners = new Set<NavigateListener>();
-
-vi.mock("@inertiajs/vue3", () => ({
-  router: {
-    on: (type: string, listener: NavigateListener) => {
-      if (type !== "navigate") return () => {};
-      navigateListeners.add(listener);
-      return () => navigateListeners.delete(listener);
-    },
-  },
-}));
 
 const OPENABLE_TABS = new Set(["all", "active", "archived"]);
 const mounted: Array<{ unmount: () => void }> = [];
@@ -62,8 +49,8 @@ afterEach(() => {
 /** A visit of the page already shown: Inertia announces its URL. */
 async function visit(url: string) {
   window.history.pushState(null, "", url);
-  navigateListeners.forEach((listener) =>
-    listener({ detail: { page: { url } } }),
+  document.dispatchEvent(
+    new CustomEvent("inertia:navigate", { detail: { page: { url } } }),
   );
   await nextTick();
 }

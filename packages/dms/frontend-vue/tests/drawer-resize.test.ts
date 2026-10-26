@@ -27,27 +27,7 @@ import {
   readDrawerSizePreferences,
 } from "../layers/dms-ui/app/build/composables/containers/drawerSize";
 
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  // A heading unless told otherwise, as reka's.
-  const title = defineComponent({
-    props: { as: { type: String, default: "h2" } },
-    setup:
-      (props, { slots }) =>
-      () =>
-        h(props.as, slots.default?.()),
-  });
-  return {
-    DialogTitle: title,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot } from "reka-ui";
 
 const SIZE_VARIABLE = "--dms-drawer-size";
 
@@ -89,10 +69,12 @@ const DrawerStub = defineComponent({
       rendered.dismissible = props.dismissible;
       const style = (props.content as { style?: Record<string, string> })
         ?.style;
-      return h("div", { "data-slot": "content", style }, [
-        slots.header?.(),
-        slots.body?.(),
-      ]);
+      return h(DialogRoot, null, () =>
+        h("div", { "data-slot": "content", style }, [
+          slots.header?.(),
+          slots.body?.(),
+        ]),
+      );
     };
   },
 });

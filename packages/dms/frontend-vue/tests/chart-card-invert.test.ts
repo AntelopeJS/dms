@@ -2,12 +2,9 @@ import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const response = ref<Record<string, unknown> | null>(null);
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: response, isLoading: ref(false) }),
-}));
 
 const Slot = defineComponent({
   setup:
@@ -33,14 +30,12 @@ async function render(props: Record<string, unknown> = {}) {
   for (const name of ["DmsCard", "UIcon", "USkeleton"]) {
     app.component(name, Slot);
   }
+  await chartRuntime(app, response.value);
   return renderToString(app);
 }
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

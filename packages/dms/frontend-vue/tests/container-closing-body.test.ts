@@ -37,20 +37,7 @@ import {
   watchClosingLayers,
 } from "../layers/dms-ui/app/build/composables/containers/closingLayers";
 
-// The layer's own reka copy only draws the titles here.
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  return {
-    DialogTitle: passThrough,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot as LayerDialogRoot } from "reka-ui";
 
 // Nuxt UI exports no `package.json`: its installed directory, resolved.
 const nuxtUiDir = realpathSync(join(process.cwd(), "node_modules/@nuxt/ui"));
@@ -102,7 +89,11 @@ const ContainerStub = defineComponent({
                 emit("close:prevent");
               },
             },
-            () => [slots.header?.(), slots.body?.()],
+            () =>
+              h(LayerDialogRoot, null, () => [
+                slots.header?.(),
+                slots.body?.(),
+              ]),
           ),
         ],
       );
@@ -253,7 +244,9 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
     try {
       await mountContainer(container, props);
       host
-        .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
+        .querySelector<HTMLButtonElement>(
+          "button[aria-label='dms.a11y.close']",
+        )!
         .click();
       await vi.advanceTimersByTimeAsync(0);
       expect(bodyPointerEvents()).toBe("none");

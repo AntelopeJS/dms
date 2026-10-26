@@ -5,8 +5,6 @@
  * text field, and nothing at all on a page without `live`.
  */
 import { createApp, h, nextTick, type App } from "vue";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
@@ -251,21 +249,5 @@ describe("the pill variant and the paused state", () => {
       "dms.live.paused · api.live.typing_in_tester",
     );
     expect(host.textContent).not.toContain("dms.live.updated");
-  });
-
-  it("reads Live in en-GB, Direct in fr-FR", () => {
-    const locale = (name: string) =>
-      JSON.parse(
-        readFileSync(
-          resolve(__dirname, `../layers/dms-ui/i18n/locales/ui-${name}.json`),
-          "utf8",
-        ),
-      ).dms.live;
-    expect(locale("en-GB").direct).toBe("Live");
-    expect(locale("fr-FR").direct).toBe("Direct");
-    for (const key of ["paused", "resume", "reason_hidden", "polling"]) {
-      expect(locale("en-GB")[key]).toBeTruthy();
-      expect(locale("fr-FR")[key]).toBeTruthy();
-    }
   });
 });

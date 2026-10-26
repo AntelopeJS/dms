@@ -20,11 +20,7 @@ import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 import { useSecurityOverview } from "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview";
 import { useNotificationPreferences } from "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences";
 import { useNotificationCatalog } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/security/useSessionHandoff",
-  () => ({ useSessionHandoff: () => async () => {} }),
-);
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
 const NOW = new Date("2026-10-15T12:00:00Z").getTime();
 const MINUTE = 60_000;
@@ -53,7 +49,9 @@ const ANSWERS: Record<string, unknown> = {
       { id: "mention", labelKey: "Mention", category: { id: "core" } },
     ],
   },
-  "/dms/pages/settings/user/notifications/preferences": { "core:mention": false },
+  "/dms/pages/settings/user/notifications/preferences": {
+    "core:mention": false,
+  },
 };
 
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
@@ -61,7 +59,9 @@ const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   return structuredClone(ANSWERS[url]);
 });
 const reads = () =>
-  authFetch.mock.calls.filter(([, options]) => !options?.method).map(([url]) => url);
+  authFetch.mock.calls
+    .filter(([, options]) => !options?.method)
+    .map(([url]) => url);
 const mounted: App[] = [];
 
 /** Renders `root` on the server, then hydrates it: the reads of each side. */
@@ -84,6 +84,7 @@ async function renderAndHydrate(root: Component) {
 }
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
   vi.stubGlobal("computed", computed);
@@ -120,7 +121,9 @@ describe("Security", () => {
 
     const { html, server, browser, hydrationWarnings } =
       await renderAndHydrate(Page);
-    expect(html).toBe("<div><p>2:two_factor_off</p><p>2:two_factor_off</p></div>");
+    expect(html).toBe(
+      "<div><p>2:two_factor_off</p><p>2:two_factor_off</p></div>",
+    );
     expect(server).toEqual(["/dms/pages/settings/user/security"]);
     expect(browser).toEqual([]);
     expect(hydrationWarnings).toEqual([]);
@@ -166,7 +169,12 @@ describe("Security", () => {
     vi.setSystemTime(NOW + 2000);
     authFetch.mockClear();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { app, container } = hydrate(SecuritySessions, html, payload, register);
+    const { app, container } = hydrate(
+      SecuritySessions,
+      html,
+      payload,
+      register,
+    );
     mounted.push(app);
     await nextTick();
     await new Promise((done) => setTimeout(done, 0));

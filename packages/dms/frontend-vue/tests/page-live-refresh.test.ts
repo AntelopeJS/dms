@@ -8,7 +8,7 @@
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { liveShellRuntime } from "./helpers/live-shell-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
@@ -20,13 +20,7 @@ import type {
   PageLiveRefreshOptions,
 } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
 
-const topicHandlers = new Map<string, RealtimeTopicHandler[]>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, [...(topicHandlers.get(topic) ?? []), handler]);
-  },
-}));
+const realtime = liveShellRuntime();
 
 const { usePageLiveRefresh } = await import(
   "../layers/dms-ui/app/composables/live/usePageLiveRefresh"
@@ -40,8 +34,7 @@ const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
 
 function publish() {
-  const event = { topic: TOPIC, type: "request", ts: Date.now() };
-  for (const handler of topicHandlers.get(TOPIC) ?? []) handler(event);
+  return realtime.publish(TOPIC);
 }
 
 interface MountedRefresh {
@@ -76,40 +69,41 @@ function installLive(): PageLiveController {
   return controller;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
-  topicHandlers.clear();
+  await realtime.start();
   window.localStorage.clear();
 });
 
-afterEach(() => {
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
   controllers.splice(0).forEach((controller) => controller.dispose());
   setCurrentPageLive(null);
+  await realtime.stop();
   vi.useRealTimers();
 });
 
-it("reads on its topic at the page's maxRate, the last event of a burst kept", () => {
+it("reads on its topic at the page's maxRate, the last event of a burst kept", async () => {
   installLive();
   const { onRefresh } = mountComponent();
 
-  publish();
-  publish();
-  publish();
+  await publish();
+  await publish();
+  await publish();
   expect(onRefresh).toHaveBeenCalledTimes(1);
 
   vi.advanceTimersByTime(MAX_RATE_MS);
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("reads nothing while paused, counts what it missed, and reads once on resume", () => {
+it("reads nothing while paused, counts what it missed, and reads once on resume", async () => {
   const controller = installLive();
   const { onRefresh, handle } = mountComponent();
   controller.pause();
 
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(onRefresh).not.toHaveBeenCalled();
   expect(handle.missed.value).toBe(2);
   expect(controller.missedCount.value).toBe(2);
@@ -161,10 +155,10 @@ it("reads again after a quiet idleRefresh while live, never while paused", () =>
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("reads on every event on a page without live", () => {
+it("reads on every event on a page without live", async () => {
   const { onRefresh } = mountComponent();
 
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });

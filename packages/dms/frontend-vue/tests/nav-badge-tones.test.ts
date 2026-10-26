@@ -28,10 +28,6 @@ import {
 // status pills' soft tints), neutral grey without one, and hidden at zero;
 // the count a page publishes live keeps its tone too.
 
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: defineComponent({ setup: () => () => h("input") }),
-}));
-
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -40,6 +36,8 @@ const liveBadges = () =>
   state.get("dms-nav-badges") as Ref<Record<string, NavBadge>> | undefined;
 
 beforeEach(() => {
+  vi.stubGlobal("defineShortcuts", () => {});
+  vi.stubGlobal("useDmsCookie", () => ref("other"));
   state = new Map();
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),

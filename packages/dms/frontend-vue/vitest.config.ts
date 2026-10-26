@@ -1,9 +1,18 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
+import ui from "@nuxt/ui/vite";
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    ui({
+      router: "inertia",
+      dts: false,
+      autoImport: false,
+      components: false,
+    }),
+  ],
   resolve: {
     alias: {
       "#dms-core": resolve(__dirname, "layers/dms-core"),
@@ -23,7 +32,7 @@ export default defineConfig({
       ),
       "#shortcuts-aggregated": resolve(
         __dirname,
-        "layers/dms-ui/app/config/shortcuts-registry.ts",
+        "tests/fixtures/aggregatedShortcuts.ts",
       ),
     },
   },

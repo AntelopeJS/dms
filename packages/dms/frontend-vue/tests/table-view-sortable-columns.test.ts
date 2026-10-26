@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import frFR from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
@@ -118,22 +116,6 @@ describe("sortingOrDefault", () => {
     expect(
       sortingOrDefault([], new Set(["completion_percentage"]), byDueDate),
     ).toEqual([]);
-  });
-
-  it("is what the table view restores, and corrects, its sort with", () => {
-    const tableView = readFileSync(
-      resolve(
-        __dirname,
-        "../layers/dms-ui/app/components/table-view/TableView.vue",
-      ),
-      "utf8",
-    );
-    expect(tableView).toMatch(
-      /const sorting = ref<SortingState>\(\s*reorderConfig\s*\? defaultSortState\s*: sortingOrDefault\(/,
-    );
-    expect(tableView).toMatch(
-      /const sanitized = sortingOrDefault\(\s*next,\s*sortableIds\.value,\s*defaultSortState,\s*\);/,
-    );
   });
 });
 

@@ -2,14 +2,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, ref } from "vue";
 import { useCategoryNavCards } from "../layers/dms-layout/app/build/composables/navigation/useCategoryNavCards";
 import type { NavBadge } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
+import { useRealDataEngine } from "./fixtures/dataEngine";
+import { engine } from "./helpers/api-data-runtime";
 
-const badges = ref<Record<string, NavBadge>>({});
-vi.mock(
-  "../layers/dms-core/app/build/composables/auth/usePermissionPreview",
-  () => ({
-    usePermissionPreview: () => ({}),
-  }),
-);
+const badges = () =>
+  engine.useDmsState<Record<string, NavBadge>>("dms-nav-badges", () => ({}));
 
 const node = (fullId: string, extra: Record<string, unknown> = {}) => ({
   fullId,
@@ -50,11 +47,11 @@ const tree = ref({
 });
 
 beforeEach(() => {
-  badges.value = {};
+  useRealDataEngine();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useSiteLayout", () => ({ siteLayoutTree: tree }));
-  vi.stubGlobal("useDmsState", () => badges);
+  vi.stubGlobal("useDmsState", engine.useDmsState);
 });
 
 afterEach(() => {
@@ -77,7 +74,7 @@ it("makes a card of each page the viewer can open, in menu order", () => {
 });
 
 it("shows the navigation badge, a fresher count first", () => {
-  badges.value = {
+  badges().value = {
     "settings.user.notifications": { label: "" },
     "settings.user.security": { label: "2", tone: "error" },
   };

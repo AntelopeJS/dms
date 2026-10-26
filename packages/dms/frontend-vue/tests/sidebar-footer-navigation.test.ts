@@ -16,11 +16,6 @@ import {
 import type { NavigationMenuItem } from "@nuxt/ui";
 import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
 
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue",
-  () => ({ default: { render: () => null } }),
-);
-
 const route = reactive({ path: "/modules/automation/runs", query: {} });
 let app: App;
 let host: HTMLDivElement;
@@ -88,6 +83,17 @@ function installRuntime() {
   );
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
+  vi.stubGlobal("useCurrentUser", () => ({ user: ref({ name: "Viewer" }) }));
+  vi.stubGlobal("useLogout", () => ({ logout: vi.fn() }));
+  vi.stubGlobal("useColorModePreference", () => ref("light"));
+  vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
+  vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
+  vi.stubGlobal("useFileReadUrls", () => ({
+    getUrl: () => undefined,
+    resolve: async () => {},
+  }));
+  vi.stubGlobal("SETTINGS_ROUTE", "/settings");
+  vi.stubGlobal("ACCOUNT_MENU_ENTRIES", []);
   vi.stubGlobal("collectOpenItemIds", () => []);
 }
 
@@ -129,6 +135,6 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     );
     // The settings are reached from the account menu only.
     expect(host.querySelector('a[href^="/settings"]')).toBeNull();
-    expect(host.querySelector('[data-active="true"]')).toBeNull();
+    expect(host.querySelector('nav [data-active="true"]')).toBeNull();
   },
 );

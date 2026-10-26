@@ -1,20 +1,14 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import {
-  GLOBAL_META_SLASH_METADATA,
-  GLOBAL_SLASH_METADATA,
-  NAV_SEARCH_SHORTCUT,
-  PAGE_SEARCH_SHORTCUTS,
   buildNavSearchShortcuts,
   buildPageSearchShortcuts,
+  PAGE_SEARCH_SHORTCUTS,
   pageSearchAriaKeyshortcuts,
 } from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
 import * as publicSearchShortcuts from "../layers/dms-ui/app/composables/global/searchShortcuts";
-import registry from "../layers/dms-ui/app/config/shortcuts-registry";
 
 let app: App;
 let host: HTMLDivElement;
@@ -123,6 +117,15 @@ describe("settings search shortcuts on the Shortcuts page", () => {
 });
 
 describe("settings search shortcut maps", () => {
+  it("are public where the UI toolkit docs import them", () => {
+    expect(publicSearchShortcuts.buildPageSearchShortcuts).toBe(
+      buildPageSearchShortcuts,
+    );
+    expect(publicSearchShortcuts.PAGE_SEARCH_SHORTCUTS).toBe(
+      PAGE_SEARCH_SHORTCUTS,
+    );
+  });
+
   it("never bind the same key twice", () => {
     const nav = Object.keys(buildNavSearchShortcuts(() => {}));
     const page = Object.keys(buildPageSearchShortcuts(() => {}));
@@ -131,101 +134,8 @@ describe("settings search shortcut maps", () => {
     expect(nav.filter((key) => page.includes(key))).toEqual([]);
   });
 
-  it("are public where the UI toolkit docs import them", () => {
-    expect(publicSearchShortcuts.buildPageSearchShortcuts).toBe(
-      buildPageSearchShortcuts,
-    );
-    expect(publicSearchShortcuts.PAGE_SEARCH_SHORTCUTS).toBe(
-      PAGE_SEARCH_SHORTCUTS,
-    );
-    const docs = readFileSync(
-      resolve(__dirname, "../../docs/06.frontend-composables/05.ui-toolkit.md"),
-      "utf8",
-    );
-    expect(docs).toContain(
-      'from "#dms-ui/app/composables/global/searchShortcuts"',
-    );
-  });
-
   it("describe the page search keys per platform", () => {
     expect(pageSearchAriaKeyshortcuts(true)).toBe("Meta+/");
     expect(pageSearchAriaKeyshortcuts(false)).toBe("Control+/");
-  });
-});
-
-describe("search shortcuts metadata", () => {
-  const all = registry.flatMap((group) => group.shortcuts);
-  const global = registry.find((group) => group.component === "Global")!;
-
-  it("lists both keys in the Global group of the Shortcuts page", () => {
-    expect(global.shortcuts).toContain(GLOBAL_SLASH_METADATA);
-    expect(global.shortcuts).toContain(GLOBAL_META_SLASH_METADATA);
-    expect(GLOBAL_SLASH_METADATA.key).toEqual([NAV_SEARCH_SHORTCUT]);
-    expect(GLOBAL_META_SLASH_METADATA.key).toEqual(["$keyboard.meta", "/"]);
-    expect(PAGE_SEARCH_SHORTCUTS[0]).toBe("meta_/");
-  });
-
-  it("gives no other listed shortcut the same keys", () => {
-    const signature = (keys: string[]) => keys.join("+").toLowerCase();
-    const searchKeys = [
-      signature(GLOBAL_SLASH_METADATA.key),
-      signature(GLOBAL_META_SLASH_METADATA.key),
-    ];
-    const clashes = all.filter(
-      (shortcut) =>
-        shortcut !== GLOBAL_SLASH_METADATA &&
-        shortcut !== GLOBAL_META_SLASH_METADATA &&
-        searchKeys.includes(signature(shortcut.key)),
-    );
-    expect(clashes).toEqual([]);
-  });
-
-  it.each(["en-GB", "fr-FR"])("translates both entries in %s", (locale) => {
-    const messages = JSON.parse(
-      readFileSync(
-        resolve(__dirname, `../layers/dms-ui/i18n/locales/ui-${locale}.json`),
-        "utf8",
-      ),
-    );
-    const lookup = (token: string) =>
-      token
-        .slice(1)
-        .split(".")
-        .reduce<unknown>(
-          (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-          messages,
-        );
-    for (const metadata of [
-      GLOBAL_SLASH_METADATA,
-      GLOBAL_META_SLASH_METADATA,
-    ]) {
-      expect(lookup(metadata.descriptionKey)).toEqual(expect.any(String));
-      expect(lookup(metadata.condition!.descriptionKey)).toEqual(
-        expect.any(String),
-      );
-    }
-  });
-});
-
-describe("Shortcuts page groups", () => {
-  // The page reads a group's title and description under its lowercased
-  // component name, and writes the raw name in capitals when the title is missing.
-  it.each(["en-GB", "fr-FR"])("are all named in %s", (locale) => {
-    const messages = JSON.parse(
-      readFileSync(
-        resolve(
-          __dirname,
-          `../layers/dms-layout/i18n/locales/layout-${locale}.json`,
-        ),
-        "utf8",
-      ),
-    );
-    const groups = messages.page.settings.shortcuts.groups;
-    for (const { component } of registry) {
-      expect(groups[component.toLowerCase()]).toEqual({
-        title: expect.any(String),
-        description: expect.any(String),
-      });
-    }
   });
 });

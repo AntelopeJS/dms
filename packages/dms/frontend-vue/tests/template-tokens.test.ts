@@ -129,9 +129,9 @@ describe("token syntax", () => {
   });
 
   it("leaves another scope's token whole when filling a row", () => {
-    expect(
-      interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" }),
-    ).toBe("/s/{{params.id}}/o/a");
+    expect(interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" })).toBe(
+      "/s/{{params.id}}/o/a",
+    );
   });
 });
 

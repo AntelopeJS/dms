@@ -6,8 +6,11 @@ import {
   defineComponent,
   h,
   nextTick,
+  onMounted,
+  onUnmounted,
   reactive,
   ref,
+  watch,
   type App,
   type Ref,
 } from "vue";
@@ -21,18 +24,7 @@ import {
   useHeaderActions,
 } from "../layers/dms-layout/app/composables/useHeaderActions";
 import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
-
-vi.mock(
-  "../layers/dms-layout/app/build/components/notification/NotificationPopover.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/QuickActionsPopover.vue",
-  () => ({ default: () => null }),
-);
-vi.mock("#dms-core/app/composables/page/usePageRecordLabel", () => ({
-  usePageRecordLabel: () => ({ label: ref(null) }),
-}));
+import { FormEvents } from "../layers/dms-ui/app/composables/form/types/events";
 
 const ACTIVE_COLOR = "primary";
 const IDLE_COLOR = "neutral";
@@ -78,6 +70,28 @@ const SlotsStub = defineComponent({
 function installRuntime(): void {
   const runtime: Record<string, unknown> = {
     computed,
+    FormEvents,
+    ref,
+    watch,
+    onMounted,
+    onUnmounted,
+    useDmsUserSession: () => ({ loggedIn: ref(false) }),
+    useQuickActions: () => ({ categoryGroups: ref([]) }),
+    useNotifications: () => ({
+      unreadCount: ref(0),
+      unreadTone: ref(undefined),
+      areCountsLoaded: ref(true),
+      notifications: ref([]),
+      hasMore: ref(false),
+      fetchBellCounts: async () => {},
+      fetchNotifications: async () => {},
+      markAsRead: async () => {},
+    }),
+    useInfiniteScroll: () => ({
+      isLoadingMore: ref(false),
+      setupObserver: () => {},
+      disconnectObserver: () => {},
+    }),
     BUILDER_ACTION_ID,
     buildBreadcrumbTarget: () => null,
     buildFavoritePage: () => null,
@@ -101,6 +115,7 @@ function installRuntime(): void {
 
 function createHeaderApp(create: typeof createApp): App {
   const header = create(DashboardHeader);
+  header.config.globalProperties.$t = String;
   header.component("UButton", ButtonStub);
   ["UDashboardNavbar", "UTooltip", "UBreadcrumb", "UDropdownMenu"].forEach(
     (name) => header.component(name, SlotsStub),

@@ -75,9 +75,12 @@ describe("chart color tokens", () => {
     ["rgb(14 165 233)", "rgb(14, 165, 233)"],
     ["rgb(14 165 233 / 0.5)", "rgba(14, 165, 233, 0.5)"],
     ["rgba(14 165 233 / 40%)", "rgba(14, 165, 233, 0.4)"],
-  ])("rewrites space-separated %s in the comma form Apex reads", (color, expected) => {
-    expect(resolveChartColor(color)).toBe(expected);
-  });
+  ])(
+    "rewrites space-separated %s in the comma form Apex reads",
+    (color, expected) => {
+      expect(resolveChartColor(color)).toBe(expected);
+    },
+  );
 
   it.each(["", "transparent", "rgba(0, 0, 0, 0)"])(
     "falls back for unusable computed color %s",

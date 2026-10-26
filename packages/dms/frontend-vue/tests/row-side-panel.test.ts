@@ -22,9 +22,6 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { tv } from "tailwind-variants";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
 import RowSidePanel from "../layers/dms-layout/app/build/components/layout/RowSidePanel.vue";
 import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
@@ -46,17 +43,7 @@ import {
 } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
 import { resolveRowClickAction } from "../layers/dms-ui/app/utils/rowClickAction";
-import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
-import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
-
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    blockFor: () => undefined,
-    isActive: { value: false },
-    session: { value: null },
-  }),
-}));
 
 const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
@@ -1021,35 +1008,5 @@ describe("row click mode", () => {
     expectTrigger("single", "click", false, { detail: 1 });
     window.getSelection()?.removeAllRanges();
     text.remove();
-  });
-});
-
-describe("open row highlight", () => {
-  const tableSource = readFileSync(
-    resolve(__dirname, "../layers/dms-ui/app/build/components/table/Table.vue"),
-    "utf8",
-  );
-  const theme = new Function(
-    "tv",
-    "EYEBROW_CLASS",
-    "REORDER_HANDLE_CLASS",
-    `${tableSource.slice(
-      tableSource.indexOf("const PANEL_MATCH_BG"),
-      tableSource.indexOf("// Grid-like default"),
-    )}; return theme;`,
-  )(tv, EYEBROW_CLASS, REORDER_HANDLE_CLASS);
-
-  it("tints the open row with the accent and its pinned cells opaquely", () => {
-    const ui = theme();
-    expect(ui.row({})).toContain("data-[open=true]:bg-primary/10");
-    expect(ui.rowCell({ pinned: "left" })).toContain(
-      "group-data-[open=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]",
-    );
-  });
-
-  it("draws the accent bar on the open row's first cell", () => {
-    expect(theme().row({})).toContain(
-      "data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]",
-    );
   });
 });

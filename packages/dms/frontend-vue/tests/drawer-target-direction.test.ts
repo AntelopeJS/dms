@@ -15,19 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
 import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/types/action-target";
 
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  return {
-    DialogTitle: passThrough,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot } from "reka-ui";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -157,7 +145,10 @@ describe("the drawer container", () => {
         setup(stubProps, { slots }) {
           return () => {
             Object.assign(rendered, stubProps);
-            return h("div", [slots.header?.(), slots.body?.()]);
+            return h(DialogRoot, null, () => [
+              slots.header?.(),
+              slots.body?.(),
+            ]);
           };
         },
       }),

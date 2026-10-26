@@ -17,11 +17,6 @@ import {
 import { CalendarDate } from "@internationalized/date";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 
-vi.mock(
-  "../layers/dms-core/app/composables/user/useUserRegionalPreferences",
-  () => ({ useUserRegionalPreferences: () => ({ weekStartsOn: ref(1) }) }),
-);
-
 let app: App | undefined;
 let host: HTMLDivElement;
 let pick: (value: unknown) => void = () => {};
@@ -74,6 +69,7 @@ const isOpen = () =>
 const day = (date: number) => new CalendarDate(2026, 10, date);
 
 beforeEach(() => {
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);

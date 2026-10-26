@@ -17,15 +17,6 @@ import {
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { withNumberSuffix } from "../layers/dms-ui/app/build/composables/data-types/numberSuffix";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
 const NBSP = " ";
 const formatters = new Map<string, DataType["formatter"]>();
 

@@ -121,9 +121,7 @@ const toggleCurrentPageFavorite = () => {
 };
 
 /** The page a module's root crumb opens: the module's landing page. */
-function moduleLandingSlug(
-  metadata: CategoryInfo,
-): string | undefined {
+function moduleLandingSlug(metadata: CategoryInfo): string | undefined {
   if (!metadata.isModuleRoot || metadata.hasAccess === false) return undefined;
   const module = siteLayout.modules.value?.[metadata.id];
   if (!module) return undefined;

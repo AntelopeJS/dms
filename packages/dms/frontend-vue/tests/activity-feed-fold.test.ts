@@ -4,21 +4,12 @@
  * entry take the lines it needs instead of an ellipsis, and `visibleItems`
  * shows the first entries with a "Show N more" button that unfolds the rest.
  */
-import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
+import { createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const items = ref<Array<Record<string, unknown>>>([]);
-
-vi.mock("../layers/dms-ui/app/build/composables/blocks/useBlockItems", () => ({
-  useBlockItems: () => ({
-    items: computed(() => items.value),
-    count: computed(() => undefined),
-    isPending: computed(() => false),
-    hasError: computed(() => false),
-    refresh: async () => {},
-  }),
-}));
 
 const Stub = defineComponent({
   inheritAttrs: false,
@@ -35,19 +26,21 @@ const Stub = defineComponent({
 
 let app: ReturnType<typeof createApp> | undefined;
 
-function mountFeed(props: Record<string, unknown>): HTMLElement {
+async function mountFeed(props: Record<string, unknown>): Promise<HTMLElement> {
   const host = document.createElement("div");
   app = createApp(() =>
     h(ActivityFeed, {
       componentId: "attention",
       pageId: "overview",
       groupByDay: false,
+      items: items.value,
       ...props,
     }),
   );
   for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton", "ULink"]) {
     app.component(name, Stub);
   }
+  await chartRuntime(app);
   app.mount(host);
   return host;
 }
@@ -66,7 +59,6 @@ beforeEach(() => {
     t: (key: string, params?: { count?: number }) =>
       params ? `${key}:${params.count}` : key,
   }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 
 afterEach(() => {
@@ -74,14 +66,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("shows every entry, without a fold, by default", () => {
-  const host = mountFeed({});
+it("shows every entry, without a fold, by default", async () => {
+  const host = await mountFeed({});
   expect(entryTitles(host)).toHaveLength(5);
   expect(host.querySelector(".dms-activity-feed__fold")).toBeNull();
 });
 
 it("shows the first visibleItems and unfolds the rest, then folds them back", async () => {
-  const host = mountFeed({ visibleItems: 3 });
+  const host = await mountFeed({ visibleItems: 3 });
   expect(entryTitles(host)).toEqual(["Route 0", "Route 1", "Route 2"]);
   const button = host.querySelector<HTMLButtonElement>(
     ".dms-activity-feed__fold button",
@@ -98,17 +90,17 @@ it("shows the first visibleItems and unfolds the rest, then folds them back", as
   expect(entryTitles(host)).toHaveLength(3);
 });
 
-it("needs no fold when the entries fit in visibleItems", () => {
-  const host = mountFeed({ visibleItems: 5 });
+it("needs no fold when the entries fit in visibleItems", async () => {
+  const host = await mountFeed({ visibleItems: 5 });
   expect(host.querySelector(".dms-activity-feed__fold")).toBeNull();
 });
 
-it("cuts each entry to one line by default, and wraps it whole with wrap", () => {
-  const cut = mountFeed({ mono: true });
+it("cuts each entry to one line by default, and wraps it whole with wrap", async () => {
+  const cut = await mountFeed({ mono: true });
   expect(cut.querySelector(".truncate")).not.toBeNull();
   app?.unmount();
 
-  const wrapped = mountFeed({ mono: true, wrap: true });
+  const wrapped = await mountFeed({ mono: true, wrap: true });
   expect(wrapped.querySelector(".truncate")).toBeNull();
   expect(
     wrapped.querySelector(".\\[overflow-wrap\\:anywhere\\]"),

@@ -10,71 +10,21 @@ import {
   watch,
   type App,
 } from "vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import {
+  installAuthSettingsRuntime,
+  PinInput,
+} from "./helpers/auth-settings-runtime";
 
 const overview = ref({
   email: "admin@example.com",
   isValidated: true,
   hasPassword: true,
 });
-const refresh = vi.fn(async () => {});
+const refresh = vi.fn(async () => ({ ...overview.value }));
 const refreshSession = vi.fn(async () => {});
 const authFetch = vi.fn();
 const addToast = vi.fn();
-
-// The leave guard needs the app (router, confirm dialog): the dirty state only.
-vi.mock(
-  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
-  async () => {
-    const { computed, toValue } = await import("vue");
-    return {
-      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
-        isDirty: computed(() => !!toValue(options.dirty)),
-        confirmLeave: async () => true,
-      }),
-    };
-  },
-);
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
-  () => ({
-    SECURITY_ENDPOINT: "/settings/user/security",
-    useSecurityOverview: () => ({ overview, refresh }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityFormat",
-  () => ({
-    useSecurityFormat: () => ({
-      errorMessage: (_error: unknown, fallback: string) => fallback,
-      errorCode: (error: { data?: unknown } | undefined) => error?.data,
-    }),
-  }),
-);
-
-// The code dialog stands for its confirm button, which sends a fixed code.
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/security/SecurityCodeModal.vue",
-  async () => {
-    const { defineComponent, h } = await import("vue");
-    return {
-      default: defineComponent({
-        props: { open: Boolean },
-        emits: ["confirm"],
-        setup:
-          (props, { emit }) =>
-          () =>
-            props.open
-              ? h("button", {
-                  id: "email-code-confirm",
-                  type: "button",
-                  onClick: () => emit("confirm", "123456"),
-                })
-              : null,
-      }),
-    };
-  },
-);
 
 let app: App;
 let host: HTMLDivElement;
@@ -127,6 +77,7 @@ const I18nT = defineComponent({
 
 async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
+  await new Promise((resolve) => setTimeout(resolve));
 }
 
 async function mountEmail(): Promise<void> {
@@ -134,6 +85,7 @@ async function mountEmail(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/security/SecurityEmail.vue"
   );
   app = createApp(SecurityEmail);
+  browserRuntime(app);
   for (const name of ["DmsSection", "DmsFieldRow", "DmsListRow", "UTooltip"]) {
     app.component(name, Passthrough);
   }
@@ -144,9 +96,27 @@ async function mountEmail(): Promise<void> {
   app.component("UInput", Input);
   app.component("UCollapsible", Collapsible);
   app.component("I18nT", I18nT);
+  app.component("UPinInput", PinInput);
+  app.component(
+    "UModal",
+    defineComponent({
+      props: { open: Boolean },
+      setup:
+        (props, { slots }) =>
+        () =>
+          props.open
+            ? h("div", { "data-code-modal": "" }, [
+                slots.header?.(),
+                slots.body?.(),
+                slots.footer?.(),
+              ])
+            : null,
+    }),
+  );
   app.component("DmsBanner", (_, { slots }) => h("div", slots.description?.()));
   app.mount(host);
   await flush();
+  refresh.mockClear();
 }
 
 const trigger = () =>
@@ -175,13 +145,22 @@ async function openPanel(): Promise<void> {
 }
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("nextTick", nextTick);
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+    te: () => false,
+  }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(async (url: string, options?: unknown) =>
+    url === "/dms/pages/settings/user/security"
+      ? refresh()
+      : authFetch(url, options),
+  );
   vi.stubGlobal("useCurrentUser", () => ({ refresh: refreshSession }));
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => message,
@@ -307,10 +286,13 @@ it("posts the new address with the current password, then asks for the code", as
   form()!.dispatchEvent(new Event("submit"));
   await flush();
 
-  expect(authFetch).toHaveBeenCalledWith("/settings/user/security/email", {
-    method: "POST",
-    body: { email: "new@example.com", currentPassword: "secret" },
-  });
+  expect(authFetch).toHaveBeenCalledWith(
+    "/dms/pages/settings/user/security/email",
+    {
+      method: "POST",
+      body: { email: "new@example.com", currentPassword: "secret" },
+    },
+  );
   expect(addToast).toHaveBeenCalledWith({
     title: "page.settings.security.email.code_sent",
     color: "success",
@@ -318,7 +300,7 @@ it("posts the new address with the current password, then asks for the code", as
   expect(refresh).toHaveBeenCalled();
   expect(refreshSession).not.toHaveBeenCalled();
   expect(form()).toBeNull();
-  expect(host.querySelector("#email-code-confirm")).not.toBeNull();
+  expect(host.querySelector("[data-code-modal]")).not.toBeNull();
 });
 
 it("moves to the new address once its code is confirmed", async () => {
@@ -331,11 +313,14 @@ it("moves to the new address once its code is confirmed", async () => {
   await flush();
   addToast.mockReset();
 
-  host.querySelector<HTMLButtonElement>("#email-code-confirm")!.click();
+  await type(
+    host.querySelector<HTMLInputElement>('[data-testid="code"]'),
+    "123456",
+  );
   await flush();
 
   expect(authFetch).toHaveBeenLastCalledWith(
-    "/settings/user/security/email/confirm",
+    "/dms/pages/settings/user/security/email/confirm",
     { method: "POST", body: { code: "123456" } },
   );
   expect(addToast).toHaveBeenCalledWith({
@@ -343,7 +328,7 @@ it("moves to the new address once its code is confirmed", async () => {
     color: "success",
   });
   expect(refreshSession).toHaveBeenCalled();
-  expect(host.querySelector("#email-code-confirm")).toBeNull();
+  expect(host.querySelector("[data-code-modal]")).toBeNull();
 });
 
 it("shows a wrong current password under its field, without a toast", async () => {

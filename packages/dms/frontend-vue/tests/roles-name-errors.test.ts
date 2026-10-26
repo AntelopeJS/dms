@@ -1,229 +1,185 @@
 // @vitest-environment jsdom
-import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
-  type App,
-  computed,
   createApp,
   defineComponent,
   h,
   nextTick,
   ref,
   Suspense,
-  watch,
+  type App,
 } from "vue";
+import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
+import { useApiError } from "../layers/dms-core/app/composables/useApiError";
+import { useConfirm } from "../layers/dms-ui/app/composables/confirm/useConfirm";
+import SaveBar from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
+const BASE = "/dms/pages/settings/workspace/roles";
 const ROLE = {
   _id: "role-1",
   name: "Editors",
   memberCount: 0,
   inviteCount: 0,
   members: [],
-};
-
-const api = {
-  fetchOverview: vi.fn(),
-  fetchTree: vi.fn(),
-  createRole: vi.fn(),
-  updateRole: vi.fn(),
-  duplicateRole: vi.fn(),
-  deleteRole: vi.fn(),
+  permissions: [],
 };
 const addToast = vi.fn();
-// The delete dialog as the server words it, confirmed with a role picked.
-const authFetch = vi.fn(async () => ({
-  title: "$page.settings.roles.editor.delete_title",
-  params: { name: ROLE.name, count: 0 },
-  fields: [],
-}));
-const confirm = vi.fn(
-  async (options: {
-    onConfirm?: (values: Record<string, unknown>) => Promise<unknown>;
-  }) => {
-    await options.onConfirm?.({ reassignTo: "role-2" });
-    return true;
-  },
-);
-const apiError = vi.fn();
-const draft = ref({ id: ROLE._id, name: ROLE.name, description: "" });
-
-const passthrough = defineComponent({
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", slots.default?.()),
+const write = vi.fn();
+const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
+  if (url.endsWith("/overview"))
+    return {
+      roles: [ROLE],
+      owners: { memberCount: 0, members: [] },
+      totalPermissions: 0,
+      capabilities: { canAdd: true, canEdit: true, canDelete: true },
+    };
+  if (url.endsWith("/editor-tree")) return [];
+  if (url.endsWith("/delete-confirm"))
+    return {
+      title: "$page.settings.roles.editor.delete_title",
+      params: { name: ROLE.name, count: 0 },
+      fields: [],
+    };
+  return write(url, options);
 });
-
-// The leave guard needs the app (router, confirm dialog): the dirty state only.
-vi.mock(
-  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
-  async () => {
-    const { computed, toValue } = await import("vue");
-    return {
-      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
-        isDirty: computed(() => !!toValue(options.dirty)),
-        confirmLeave: async () => true,
-      }),
-    };
-  },
-);
-
-vi.mock("@nuxt/ui/components/Button.vue", () => ({ default: passthrough }));
-vi.mock("@nuxt/ui/components/FormField.vue", () => ({ default: passthrough }));
-vi.mock("@nuxt/ui/components/Select.vue", () => ({ default: passthrough }));
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => ({
-  default: passthrough,
-}));
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/roles/RolesList.vue",
-  () => ({ default: passthrough }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/roles/RoleOwnerPanel.vue",
-  () => ({ default: passthrough }),
-);
-// The editor's head: the name input, its inline error and a save button.
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/roles/RoleEditor.vue",
-  async () => {
-    const vue = await import("vue");
-    return {
-      default: vue.defineComponent({
-        props: { name: String, nameError: String },
-        emits: ["save", "delete", "update:name"],
-        setup(props, { emit, expose }) {
-          const input = vue.ref<HTMLInputElement | null>(null);
-          expose({
-            inputOf: (field: string) =>
-              field === "name" ? input.value : undefined,
-          });
-          return () =>
-            vue.h("div", [
-              vue.h("input", {
-                id: "role-name",
-                ref: input,
-                value: props.name,
-                "aria-invalid": props.nameError ? "true" : undefined,
-                onInput: (event: Event) =>
-                  emit("update:name", (event.target as HTMLInputElement).value),
-              }),
-              props.nameError
-                ? vue.h("p", { id: "role-name-error" }, props.nameError)
-                : null,
-              vue.h("button", {
-                id: "role-save",
-                type: "button",
-                onClick: () => emit("save"),
-              }),
-              vue.h("button", {
-                id: "role-delete",
-                type: "button",
-                onClick: () => emit("delete"),
-              }),
-            ]);
-        },
-      }),
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/roles/useRoleEditor",
-  () => ({
-    useRoleEditor: () => ({
-      selectedId: ref(ROLE._id),
-      selectedRole: computed(() => ROLE),
-      draft,
-      selection: ref(new Set()),
-      autoAdded: ref(new Map()),
-      roles: computed(() => [ROLE]),
-      index: ref({ allIds: [] }),
-      areas: ref([]),
-      isNew: computed(() => false),
-      savedIds: ref(new Set()),
-      isDirty: computed(() => true),
-      changes: ref([]),
-      payload: computed(() => ({ ...draft.value, permissions: [] })),
-      canGrant: () => true,
-      reset: vi.fn(),
-      select: vi.fn(),
-      selectDefault: vi.fn(),
-      toggle: vi.fn(),
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/pages/settings/roles/useRolesApi",
-  () => ({ useRolesApi: () => api }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/layout/usePageHeaderActions",
-  () => ({
-    usePageHeaderActions: vi.fn(),
-  }),
-);
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    isActive: ref(false),
-    start: vi.fn(),
-    update: vi.fn(),
-  }),
-}));
-
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function flush(): Promise<void> {
-  for (let tick = 0; tick < 6; tick++) await nextTick();
+const Input = defineComponent({
+  props: { modelValue: String },
+  emits: ["update:modelValue"],
+  setup: (props, { emit, expose }) => {
+    const inputRef = ref<HTMLInputElement>();
+    expose({ inputRef });
+    return () =>
+      h("input", {
+        ref: inputRef,
+        value: props.modelValue,
+        onInput: (event: Event) =>
+          emit("update:modelValue", (event.target as HTMLInputElement).value),
+      });
+  },
+});
+
+async function flush() {
+  for (let tick = 0; tick < 8; tick++) await nextTick();
   await new Promise((resolve) => setTimeout(resolve));
 }
 
-async function mountRolesPage(): Promise<void> {
+async function mountRolesPage() {
   const { default: RolesPage } = await import(
     "../layers/dms-layout/app/custom-pages/settings/roles.vue"
   );
   app = createApp({ render: () => h(Suspense, null, () => h(RolesPage)) });
+  browserRuntime(app);
+  app.component("DmsSaveBar", SaveBar);
+  app.component("UInput", Input);
+  app.component(
+    "UButton",
+    defineComponent({
+      props: { label: String, disabled: Boolean },
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("button", { disabled: props.disabled }, [
+            props.label,
+            slots.default?.(),
+          ]),
+    }),
+  );
+  app.component(
+    "UFormField",
+    defineComponent({
+      props: { label: String, error: String },
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("div", { "data-field": props.label }, [
+            slots.default?.(),
+            props.error ? h("p", props.error) : null,
+          ]),
+    }),
+  );
+  app.component(
+    "UDropdownMenu",
+    defineComponent({
+      props: { items: Array },
+      setup: (props) => () =>
+        h(
+          "div",
+          (props.items as { label: string; onSelect: () => void }[]).map(
+            (item) => h("button", { onClick: item.onSelect }, item.label),
+          ),
+        ),
+    }),
+  );
+  for (const name of [
+    "UIcon",
+    "UAvatar",
+    "UBadge",
+    "UTooltip",
+    "DmsMeter",
+    "DmsIconWell",
+    "DmsBanner",
+  ])
+    app.component(name, () => null);
   app.mount(host);
-  await flush();
+  await vi.waitFor(() => expect(nameInput()).toBeTruthy());
 }
 
-const nameInput = () => host.querySelector<HTMLInputElement>("#role-name")!;
-const nameError = () => host.querySelector("#role-name-error");
-
-async function save(): Promise<void> {
-  host.querySelector<HTMLButtonElement>("#role-save")!.click();
+const nameInput = () =>
+  host.querySelector<HTMLInputElement>(
+    'input[placeholder="page.settings.roles.editor.placeholder_name"]',
+  )!;
+const nameError = () =>
+  host.querySelector('[data-field="page.settings.roles.editor.field_name"] p');
+async function typeName(value: string) {
+  nameInput().value = value;
+  nameInput().dispatchEvent(new Event("input"));
+  await flush();
+}
+const button = (label: string) =>
+  [...host.querySelectorAll("button")].find(
+    (element) => element.textContent?.trim() === label,
+  )!;
+async function save() {
+  button("dms.save_bar.save").click();
   await flush();
 }
 
 beforeEach(() => {
-  vi.stubGlobal("computed", computed);
-  vi.stubGlobal("ref", ref);
-  vi.stubGlobal("watch", watch);
-  vi.stubGlobal("nextTick", nextTick);
+  installAuthSettingsRuntime();
+  stubApiData(authFetch);
   vi.stubGlobal("h", h);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  vi.stubGlobal("useConfirm", () => ({ confirm }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("useTranslation", useTranslation);
+  vi.stubGlobal("useApiError", useApiError);
+  vi.stubGlobal("useConfirm", useConfirm);
   vi.stubGlobal("interpolateUrl", interpolateUrl);
-  vi.stubGlobal("useTranslation", () => ({
-    processApiMessage: (message: string) => `t(${message})`,
-  }));
-  vi.stubGlobal("useApiError", apiError);
   vi.stubGlobal("useHomepage", () => "/");
-  vi.stubGlobal("useDmsRoute", () => ({ path: "/settings/workspace/roles" }));
-  vi.stubGlobal("useDmsAsyncData", async () => ({
-    data: ref({
-      overview: {
-        roles: [ROLE],
-        owners: [],
-        totalPermissions: 0,
-        capabilities: { canAdd: true, canEdit: true, canDelete: true },
-      },
-      tree: [],
-    }),
-    refresh: vi.fn(async () => {}),
+  vi.stubGlobal("useDmsRoute", () => ({
+    path: "/settings/workspace/roles",
+    query: {},
   }));
-  draft.value = { id: ROLE._id, name: ROLE.name, description: "" };
+  vi.stubGlobal("useOverlay", () => ({
+    create: (
+      _component: unknown,
+      options: {
+        props: {
+          onConfirm?: (values: Record<string, unknown>) => Promise<unknown>;
+        };
+      },
+    ) => ({
+      open: async () => {
+        await options.props.onConfirm?.({ reassignTo: "role-2" });
+        return true;
+      },
+    }),
+  }));
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -236,56 +192,50 @@ afterEach(() => {
 });
 
 it("shows a name already taken under the name, focused, without a toast", async () => {
-  api.updateRole.mockRejectedValue({
+  write.mockRejectedValue({
     statusCode: 409,
     data: "$page.settings.roles.error.name_taken",
   });
   await mountRolesPage();
+  await typeName("Editors 2");
   await save();
-
-  // Translated through `useI18n` (identity here).
   expect(nameError()?.textContent).toBe("page.settings.roles.error.name_taken");
-  expect(nameInput().getAttribute("aria-invalid")).toBe("true");
   expect(document.activeElement).toBe(nameInput());
   expect(addToast).not.toHaveBeenCalled();
-  expect(apiError).not.toHaveBeenCalled();
-
-  // Editing the name clears it.
-  draft.value = { ...draft.value, name: "Editors 2" };
-  await flush();
+  await typeName("Editors 3");
   expect(nameError()).toBeNull();
 });
 
 it("refuses an empty name inline before calling the API", async () => {
-  draft.value = { ...draft.value, name: "  " };
   await mountRolesPage();
+  await typeName("  ");
   await save();
-
-  expect(api.updateRole).not.toHaveBeenCalled();
-  expect(nameError()?.textContent).toBe("t($dms.field_errors.required)");
+  expect(write).not.toHaveBeenCalled();
+  expect(nameError()?.textContent).toBe("dms.field_errors.required");
   expect(addToast).not.toHaveBeenCalled();
 });
 
 it("keeps a failure tied to no field as a toast", async () => {
-  const failure = { statusCode: 403, data: "error.forbidden" };
-  api.updateRole.mockRejectedValue(failure);
+  write.mockRejectedValue({ statusCode: 403, data: "error.forbidden" });
   await mountRolesPage();
+  await typeName("Editors 2");
   await save();
-
   expect(nameError()).toBeNull();
-  expect(apiError).toHaveBeenCalledExactlyOnceWith(failure);
+  expect(addToast).toHaveBeenCalledWith(
+    expect.objectContaining({ color: "error" }),
+  );
 });
 
 it("asks the delete dialog the server words, then deletes with the picked role", async () => {
+  write.mockResolvedValue(1);
   await mountRolesPage();
-  host.querySelector<HTMLButtonElement>("#role-delete")!.click();
+  button("page.settings.roles.editor.delete").click();
   await flush();
-
-  expect(authFetch).toHaveBeenCalledWith(
-    "/dms/pages/settings/workspace/roles/role-1/delete-confirm",
-  );
-  expect(api.deleteRole).toHaveBeenCalledWith("role-1", {
-    reassignTo: "role-2",
+  expect(authFetch).toHaveBeenCalledWith(`${BASE}/role-1/delete-confirm`);
+  expect(write).toHaveBeenCalledWith(expect.stringContaining("/delete"), {
+    method: "DELETE",
+    query: { id: "role-1" },
+    body: { reassignTo: "role-2" },
   });
   expect(addToast).toHaveBeenCalledWith({
     title: "page.settings.roles.editor.deleted",

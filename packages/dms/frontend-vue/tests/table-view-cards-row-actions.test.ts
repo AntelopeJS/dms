@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "./helpers/table-runtime";
 import {
   computed,
   createApp,
@@ -20,13 +21,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
 
 type Row = { _id: string; name: string };
 
@@ -119,8 +113,6 @@ describe("the row actions of the cards display", () => {
       locale: ref("en"),
       t: (t: string) => t,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TicketCard" ? TicketCard : undefined,
     );

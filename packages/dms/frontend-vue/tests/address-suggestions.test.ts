@@ -4,7 +4,6 @@
  * Saint-Lambert" typed for a Belgian address lists Liège, once, before the
  * places of the same name elsewhere.
  */
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   rankAddressSuggestions,
@@ -49,25 +48,5 @@ describe("address suggestions", () => {
     expect(suggestionPoolSize(5)).toBe(20);
     expect(suggestionPoolSize(2)).toBe(8);
     expect(suggestionPoolSize(10)).toBe(20);
-  });
-});
-
-describe("InputAddress", () => {
-  const source = readFileSync(
-    new URL(
-      "../layers/dms-ui/app/components/form/components/InputAddress.vue",
-      import.meta.url,
-    ),
-    "utf8",
-  );
-
-  it("closes its suggestions on Escape", () => {
-    expect(source).toContain('@keydown.esc="onStreetEscape"');
-  });
-
-  it("opens them only while the street has the focus", () => {
-    expect(source).toMatch(
-      /showSuggestions\.value =\s*isStreetFocused\.value && suggestions\.value\.length > 0;/,
-    );
   });
 });

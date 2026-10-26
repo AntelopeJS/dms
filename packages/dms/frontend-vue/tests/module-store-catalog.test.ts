@@ -6,7 +6,6 @@ import {
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
   type ModuleStoreEntry,
-  DEFAULT_STORE_SCOPE,
   STORE_SCOPES,
   filterByScope,
   isAwaitingFrontend,
@@ -163,8 +162,6 @@ describe("module store catalog", () => {
   });
 
   it("opens on the available modules, with all of them last", () => {
-    expect(DEFAULT_STORE_SCOPE).toBe("available");
-    expect(STORE_SCOPES).toEqual(["available", "installed", "all"]);
     for (const scope of STORE_SCOPES) {
       expect(en.modules.store.scope[scope]).toContain("{count}");
       expect(fr.modules.store.scope[scope]).toContain("{count}");

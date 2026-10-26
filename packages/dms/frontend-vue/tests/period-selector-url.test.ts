@@ -16,7 +16,16 @@ import {
   type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
@@ -27,15 +36,14 @@ vi.stubGlobal("useDmsRoute", () => route);
 vi.stubGlobal("isDmsHydrating", () => false);
 // Inertia's client-side replace moves its page URL, which the DMS route
 // follows: the route then holds the query the browser shows.
-function followInertiaPage({ url }: { url: string }): void {
+function followInertiaPage({
+  url,
+}: Parameters<typeof inertiaRouter.replace>[0]): void {
   route.query = Object.fromEntries(
-    new URL(url, "http://dms.local").searchParams,
+    new URL(url ?? window.location.href, "http://dms.local").searchParams,
   );
 }
-const { inertiaReplace } = vi.hoisted(() => ({
-  inertiaReplace: vi.fn(),
-}));
-vi.mock("@inertiajs/vue3", () => ({ router: { replace: inertiaReplace } }));
+const inertiaReplace = vi.spyOn(inertiaRouter, "replace");
 vi.stubGlobal("usePreferences", () => ({
   getPreference: <T>(key: string, fallback?: T) =>
     (preferences.get(key) as T | undefined) ?? fallback,
@@ -143,6 +151,8 @@ beforeEach(() => {
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
 });
+
+afterAll(() => inertiaReplace.mockRestore());
 
 describe("the period a selector starts from", () => {
   it("is the URL's", () => {

@@ -1,6 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 import {
@@ -523,41 +521,5 @@ describe("pageArrivalKind", () => {
     expect(pageArrivalKind()).toBe("history");
     announce(false);
     expect(pageArrivalKind()).toBe("visit");
-  });
-});
-
-describe("table view wiring", () => {
-  const tableView = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/table-view/TableView.vue",
-    ),
-    "utf8",
-  );
-
-  it("reads its state through the link-arrival preferences", () => {
-    expect(tableView).toMatch(
-      /const tablePreferences = linkFollowingPreferences\(\s*isLinked \? linkedArrivalPreferences\(keptPreferences\) : keptPreferences,\s*\{\s*isLinkedArrival: isLinked,/,
-    );
-    expect(tableView).not.toMatch(/keptPreferences\.(set|restore)\(/);
-    expect(tableView).toMatch(
-      /onMounted\(\(\) => void tablePreferences\.settleArrival\(\)\);/,
-    );
-  });
-
-  it("reads how the page was reached, tracked from the app's start", () => {
-    expect(tableView).toMatch(/isVisit: pageArrivalKind\(\) === "visit",/);
-    const register = readFileSync(
-      resolve(__dirname, "../layers/dms-ui/app/plugins/register.ts"),
-      "utf8",
-    );
-    expect(register).toMatch(/trackPageArrivals\(\);/);
-  });
-
-  it("follows a link to the page already shown without keeping its state", () => {
-    expect(tableView).toMatch(/useTableLinkedVisit\(\{/);
-    expect(tableView).toMatch(
-      /tablePreferences\.followLink\(\(\) => \{\s*openLinkedView\(query\);/,
-    );
   });
 });

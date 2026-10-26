@@ -3,6 +3,8 @@ import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { formatDuration } from "../layers/dms-core/app/utils/formatter";
+import Button from "@nuxt/ui/components/Button.vue";
+import { Color } from "../layers/dms-core/app/types/color";
 
 const ROUNDED = { precision: "rounded" } as const;
 import {
@@ -10,15 +12,6 @@ import {
   progressShares,
   registerMetricCellTypes,
 } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
-
-vi.mock("../layers/dms-ui/app/build/components/table/MonoCell.vue", () => ({
-  default: {
-    props: ["value", "copy"],
-    render(this: { value: string; copy: boolean }) {
-      return h("code", { "data-copy": String(this.copy) }, this.value);
-    },
-  },
-}));
 
 type Formatter = (
   value: unknown,
@@ -64,16 +57,31 @@ describe("metric cell formats", () => {
 
 describe("metric cells", () => {
   let app: App | undefined;
+  const copiedValues: string[] = [];
+  const toast = vi.fn();
 
   const render = (content: VNodeChild): HTMLElement => {
     const container = document.createElement("div");
     app = createApp(defineComponent({ setup: () => () => content }));
     app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
+    app.component("UButton", Button);
     app.mount(container);
     return container;
   };
 
   beforeEach(() => {
+    copiedValues.length = 0;
+    toast.mockClear();
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: () => {
+        copiedValues.push(document.querySelector("textarea")!.value);
+        return true;
+      },
+    });
+    vi.stubGlobal("Color", Color);
+    vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+    vi.stubGlobal("useToast", () => ({ add: toast }));
     // The formatters read the application's composer, not `useI18n()`.
     vi.stubGlobal("useDmsApp", () => ({
       $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en-GB" } },
@@ -83,6 +91,7 @@ describe("metric cells", () => {
   afterEach(() => {
     app?.unmount();
     app = undefined;
+    Reflect.deleteProperty(document, "execCommand");
     vi.unstubAllGlobals();
   });
 
@@ -158,11 +167,20 @@ describe("metric cells", () => {
     );
   });
 
-  it("hands a mono value its copy button", () => {
+  it("hands a mono value its copy button", async () => {
     const cell = render(
       formatters.get("mono")!("run_8f3a2c", "en-GB", { copy: true }),
     );
-    expect(cell.querySelector("code")?.getAttribute("data-copy")).toBe("true");
+    cell
+      .querySelector<HTMLButtonElement>('[aria-label="dms.table.cell.copy"]')!
+      .click();
+    await vi.waitFor(() => expect(copiedValues).toEqual(["run_8f3a2c"]));
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        color: "success",
+        title: "dms.table.cell.copied",
+      }),
+    );
     expect(cell.textContent).toBe("run_8f3a2c");
   });
 });

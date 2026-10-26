@@ -1,19 +1,9 @@
 // @vitest-environment jsdom
+import "./helpers/table-runtime";
 import { computed, createApp, h, reactive, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => h("p", { "data-test": "empty" }) },
-}));
-vi.mock(
-  "../layers/dms-ui/app/build/components/table-view/CardGridSkeleton.vue",
-  () => ({ default: { render: () => h("p", { "data-test": "skeleton" }) } }),
-);
 
 interface ReadState {
   loading: boolean;
@@ -45,14 +35,19 @@ describe("the cards display of an empty list", () => {
     app.mount(container);
   };
   const shown = (test: string) =>
-    container.querySelector(`[data-test="${test}"]`) !== null;
+    container.querySelector(
+      test === "skeleton"
+        ? ':scope > div > [aria-hidden="true"]'
+        : '[role="status"]',
+    ) !== null;
 
   beforeEach(() => {
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("h", h);
-    vi.stubGlobal("useI18n", () => ({ locale: ref("en"), t: (t: string) => t }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+    vi.stubGlobal("useI18n", () => ({
+      locale: ref("en"),
+      t: (t: string) => t,
+    }));
     vi.stubGlobal("resolveDmsComponent", () => undefined);
   });
 

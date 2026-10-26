@@ -53,8 +53,9 @@ const navigation = (index: number): RowNavigation => ({
 });
 
 async function openDrawer(options: Record<string, unknown>) {
-  const { useDrawer } =
-    await import("../layers/dms-ui/app/composables/containers/useDrawer");
+  const { useDrawer } = await import(
+    "../layers/dms-ui/app/composables/containers/useDrawer"
+  );
   return useDrawer().open({ title: "Key", component: Editor, ...options });
 }
 

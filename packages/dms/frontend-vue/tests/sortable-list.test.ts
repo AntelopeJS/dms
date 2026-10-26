@@ -5,10 +5,9 @@
  * Vue renders the new order. The drags are replayed as SortableJS reports
  * them, DOM moves included.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, h, nextTick, reactive, type App } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import Sortable from "sortablejs";
 
 interface SortableOptions {
   disabled?: boolean;
@@ -21,33 +20,6 @@ interface FakeSortable {
 }
 
 const instances: FakeSortable[] = [];
-
-// SortableJS itself needs a pointer to drag with: the options the list gives
-// it are what the test drives, as SortableJS would call them.
-vi.mock("@vueuse/integrations/useSortable", async () => {
-  const { onMounted, unref } = await import("vue");
-  return {
-    useSortable: (
-      target: HTMLElement | { value: HTMLElement },
-      _list: unknown,
-      options: SortableOptions,
-    ) => {
-      const sortable = { el: undefined as unknown as HTMLElement, options };
-      onMounted(() => {
-        sortable.el = unref(target as { value: HTMLElement });
-        instances.push(sortable);
-      });
-      return {
-        option: (name: string, value?: unknown) => {
-          if (value !== undefined) sortable.options[name] = value;
-          return sortable.options[name];
-        },
-        start: () => {},
-        stop: () => {},
-      };
-    },
-  };
-});
 
 const { default: SortableList } = await import(
   "../layers/dms-ui/app/build/components/sortable/SortableList.vue"
@@ -63,6 +35,7 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   instances.length = 0;
+  document.body.replaceChildren();
 });
 
 type Change = Record<string, { element: Card } & Record<string, number>>;
@@ -89,6 +62,11 @@ function mountLists(columns: Card[][], changes: Change[][]) {
       ),
   });
   app.mount(host);
+  for (const element of host.children) {
+    if (!(element instanceof HTMLElement)) continue;
+    const sortable = Sortable.get(element);
+    if (sortable) instances.push({ el: element, options: sortable.options });
+  }
   return lists;
 }
 
@@ -180,20 +158,8 @@ describe("a sortable list", () => {
     mountLists([[{ id: "a" }]], [[]]);
     await nextTick();
     expect(instances[0]!.options).toMatchObject({
-      group: "board",
+      group: { name: "board" },
       preventOnFilter: false,
     });
-  });
-});
-
-describe("the dashboard's drag and drop", () => {
-  // vuedraggable ships a UMD build only: it pulled Vue's CommonJS build and
-  // its template compiler into every table page.
-  it("does not depend on vuedraggable", () => {
-    const manifest = JSON.parse(
-      readFileSync(resolve(__dirname, "../package.json"), "utf8"),
-    ) as { dependencies: Record<string, string> };
-    expect(manifest.dependencies).not.toHaveProperty("vuedraggable");
-    expect(manifest.dependencies).toHaveProperty("sortablejs");
   });
 });

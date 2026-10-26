@@ -1,45 +1,27 @@
+// @vitest-environment jsdom
 /**
  * Every block reading its data through useChartFetch hands it the period
  * scope and the realtime topics of its options: a block that dropped them
  * would silently stop following its PeriodSelector or its topics.
  */
-import { type Component, createSSRApp, defineComponent, h, ref } from "vue";
-import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
-import type { UseChartFetchOptions } from "../layers/dms-ui/app/composables/chart/useChartFetch";
+import { type Component, createApp, defineComponent, h, nextTick } from "vue";
+import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
+import {
+  installBlockNetwork,
+  browserRuntime,
+  provideBlockRuntime,
+  registerBlockUi,
+  startBlockRealtime,
+  stopBlockRealtime,
+  publishBlockEvent,
+  disposeBlockRealtime,
+} from "./helpers/block-network-runtime";
+import { usePeriod } from "../layers/dms-core/app/composables/period/usePeriod";
+import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 
-const fetchOptions: Array<UseChartFetchOptions<unknown>> = [];
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: UseChartFetchOptions<unknown>) => {
-    fetchOptions.push(options);
-    return {
-      data: ref(null),
-      isLoading: ref(false),
-      error: ref(null),
-      refresh: async () => {},
-    };
-  },
-}));
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
-// The frames around the blocks are not under test here.
-vi.mock("../layers/dms-ui/app/components/card/Card.vue", () => ({
-  default: defineComponent({ setup: () => () => h("div") }),
-}));
-vi.mock(
-  "#dms-layout/app/build/composables/navigation/useCategoryNavCards",
-  () => ({
-    useCategoryNavCards: () => ({ cards: ref([]) }),
-    usePreviewEntryVeil: () => ({}),
-  }),
-);
+const requests: string[] = [];
+const mounted: Array<{ unmount: () => void }> = [];
+const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const BLOCKS: Record<string, string> = {
   StatGroupBlock: "../layers/dms-ui/app/components/blocks/StatGroupBlock.vue",
@@ -53,57 +35,79 @@ const BLOCKS: Record<string, string> = {
   ChartCard: "../layers/dms-ui/app/components/chart/ChartCard.vue",
   TopListCard: "../layers/dms-ui/app/components/top-list/TopListCard.vue",
   KpiCard: "../layers/dms-ui/app/components/kpi/KpiCard.vue",
+  Guard: "../layers/dms-ui/app/components/guard/Guard.vue",
 };
-const GLOBAL_COMPONENTS = ["DmsCard", "UIcon", "USkeleton", "UButton", "ULink"];
 const SCOPE = "dashboard";
 const TOPICS = ["stats:first", "stats:second"];
 
-const Slot = defineComponent({
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", slots.default?.()),
-});
-
-async function render(block: Component): Promise<void> {
-  const app = createSSRApp({
-    render: () =>
-      h(block, {
-        componentId: "block",
-        pageId: "page",
-        fetchUrl: "/api/data",
-        periodScope: SCOPE,
-        realtimeTopic: TOPICS,
-      }),
+async function mount(block: Component) {
+  let selected: ReturnType<typeof usePeriod> | undefined;
+  const Selector = defineComponent({
+    setup() {
+      selected = usePeriod({ defaultPreset: "last-7-days" });
+      registerPeriodScope(SCOPE, selected.state);
+      return () => h("div");
+    },
   });
-  for (const name of GLOBAL_COMPONENTS) app.component(name, Slot);
-  await renderToString(app);
+  const app = createApp({
+    render: () =>
+      h("main", [
+        h(Selector),
+        h(block, {
+          componentId: "block",
+          pageId: "page",
+          fetchUrl: "/api/data",
+          fetchUrlMethod: "POST",
+          periodScope: SCOPE,
+          realtimeTopic: TOPICS,
+        }),
+      ]),
+  });
+  await provideBlockRuntime(app);
+  registerBlockUi(app);
+  app.mount(document.createElement("div"));
+  mounted.push(app);
+  return () => selected?.setPreset("last-30-days");
 }
 
-beforeEach(() => useRealDataEngine());
-
-beforeEach(() => {
-  fetchOptions.length = 0;
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useDmsCookie", () => ref<string[]>([]));
-  // The cards reach these through auto-imports rather than imports.
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+beforeEach(async () => {
+  requests.length = 0;
+  await installBlockNetwork(
+    async (url: string, options: { method: string }) => {
+      expect(options.method).toBe("POST");
+      requests.push(url);
+      return { items: [], value: 1, series: [] };
+    },
+  );
+  browserRuntime();
+  await startBlockRealtime();
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterAll(disposeBlockRealtime);
+afterEach(async () => {
+  mounted.splice(0).forEach((app) => app.unmount());
+  await stopBlockRealtime();
+});
 
 it.each(Object.keys(BLOCKS))(
   "%s forwards periodScope and realtimeTopic",
   async (name) => {
     const block = (await import(BLOCKS[name])).default as Component;
-    await render(block);
-    expect(fetchOptions).toHaveLength(1);
-    expect(fetchOptions[0]).toMatchObject({
-      fetchUrl: "/api/data",
-      periodScope: SCOPE,
-      realtimeTopic: TOPICS,
-    });
+    const changePeriod = await mount(block);
+    await settle();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain("preset=last-7-days");
+    changePeriod();
+    await nextTick();
+    await settle();
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toContain("preset=last-30-days");
+    for (const topic of TOPICS) {
+      const count = requests.length;
+      await publishBlockEvent(topic);
+      await settle();
+      expect(requests).toHaveLength(count + 1);
+      expect(requests.at(-1)).toBe(requests[1]);
+    }
   },
 );

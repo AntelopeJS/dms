@@ -10,52 +10,15 @@ import {
   watch,
   type App,
 } from "vue";
-import { passwordSchema } from "../layers/dms-ui/app/composables/usePasswordStrength";
+import { usePasswordStrength } from "../layers/dms-ui/app/composables/usePasswordStrength";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
 const overview = ref({ hasPassword: true, activeSessions: 1 });
-const refresh = vi.fn(async () => {});
 const authFetch = vi.fn();
 const addToast = vi.fn();
-const adoptSessionHandoff = vi.fn(async () => {});
-
-// The leave guard needs the app (router, confirm dialog): the dirty state only.
-vi.mock(
-  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
-  async () => {
-    const { computed, toValue } = await import("vue");
-    return {
-      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
-        isDirty: computed(() => !!toValue(options.dirty)),
-        confirmLeave: async () => true,
-      }),
-    };
-  },
-);
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
-  () => ({
-    SECURITY_ENDPOINT: "/settings/user/security",
-    useSecurityOverview: () => ({ overview, refresh }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityFormat",
-  () => ({
-    useSecurityFormat: () => ({
-      formatDate: () => "",
-      daysSince: () => 0,
-      errorMessage: (_error: unknown, fallback: string) => fallback,
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/security/useSessionHandoff",
-  () => ({ useSessionHandoff: () => adoptSessionHandoff }),
-);
-vi.mock("../layers/dms-ui/app/components/check-list/PasswordRules.vue", () => ({
-  default: { render: () => null },
-}));
+const sessionFetch = vi.fn(async () => {});
+const handoffFetch = vi.fn(async () => ({}));
 
 let app: App;
 let host: HTMLDivElement;
@@ -106,6 +69,7 @@ const Collapsible = defineComponent({
 
 async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
+  await new Promise((resolve) => setTimeout(resolve));
 }
 
 const input = (id: string) => host.querySelector<HTMLInputElement>(`#${id}`)!;
@@ -130,6 +94,8 @@ async function mountAndOpen(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/security/SecurityPassword.vue"
   );
   app = createApp(SecurityPassword);
+  app.config.globalProperties.$t = (key: string) => key;
+  browserRuntime(app);
   for (const name of ["DmsSection", "DmsFieldRow", "DmsListRow", "UTooltip"]) {
     app.component(name, Passthrough);
   }
@@ -148,20 +114,36 @@ async function mountAndOpen(): Promise<void> {
 }
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("nextTick", nextTick);
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+    te: () => false,
+  }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(async (url: string, options?: unknown) =>
+    url === "/dms/pages/settings/user/security"
+      ? { ...overview.value }
+      : authFetch(url, options),
+  );
+  vi.stubGlobal("$fetch", handoffFetch);
+  vi.stubGlobal("useDmsUserSession", () => ({
+    session: ref({ accountId: "old-account" }),
+    user: ref(null),
+    fetch: sessionFetch,
+  }));
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => message,
   }));
-  vi.stubGlobal("usePasswordStrength", () => ({ passwordSchema }));
+  vi.stubGlobal("usePasswordStrength", usePasswordStrength);
   authFetch.mockReset();
   addToast.mockReset();
-  adoptSessionHandoff.mockClear();
+  handoffFetch.mockClear();
+  sessionFetch.mockClear();
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -263,5 +245,13 @@ it("keeps this device signed in through the handoff the change sends back", asyn
     currentPassword: "Current1!",
     password: "Abcdefg1!",
   });
-  expect(adoptSessionHandoff).toHaveBeenCalledWith(sessionHandoff);
+  expect(handoffFetch).toHaveBeenCalledWith("/auth/establish", {
+    method: "POST",
+    body: sessionHandoff,
+  });
+  expect(handoffFetch).toHaveBeenCalledWith("/auth/remove-account", {
+    method: "POST",
+    body: { accountId: "old-account" },
+  });
+  expect(sessionFetch).toHaveBeenCalledOnce();
 });

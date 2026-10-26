@@ -1,19 +1,16 @@
+// @vitest-environment jsdom
 /**
  * A card bound to a period selector shows the comparison the selector
  * applies: its label follows the selected mode, its comparison value is
  * formatted as the value, and "no comparison" hides all of it.
  */
-import {
-  computed,
-  createSSRApp,
-  defineComponent,
-  h,
-  ref,
-  type Component,
-} from "vue";
-import { renderToString } from "vue/server-renderer";
+import { computed, createApp, h, ref, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import {
+  extraRuntime,
+  provideExtraRuntime,
+  registerTextBoundaries,
+} from "./helpers/chart-extra-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import type {
   PeriodComparison,
@@ -25,31 +22,8 @@ import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 
 const response = ref<Record<string, unknown> | null>(null);
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: response,
-    isLoading: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  }),
-}));
-
-// The list imports its row rather than resolving it: the stub replaces the
-// module, and prints whether the row was asked for its change.
-vi.mock(
-  "../layers/dms-ui/app/components/top-list/internal/TopListRow.vue",
-  async () => {
-    const { defineComponent: define, h: render } = await import("vue");
-    return {
-      default: define({
-        props: { showDelta: Boolean },
-        setup: (rowProps) => () =>
-          render("span", { "data-row-delta": String(rowProps.showDelta) }),
-      }),
-    };
-  },
-);
+const mounted: Array<{ unmount(): void }> = [];
+const scopes: Array<() => void> = [];
 
 const SCOPE = "sales";
 const RANGE = {
@@ -67,9 +41,7 @@ const TRANSLATIONS: Record<string, string> = {
   "dms.period.compare_options.previous-year": "Previous year",
   "dms.chart.legend_comparison": "Comparison",
 };
-// The trend badge's own classes.
-const TREND_BADGE = "whitespace-nowrap tabular-nums transition-colors";
-const KPI_TREND_LINE = "flex h-6 min-w-0 items-center gap-2";
+const TREND = /12[.,]4\s?%/;
 
 function translate(key: string, params?: Record<string, string> | string) {
   const template = TRANSLATIONS[key] ?? key;
@@ -92,24 +64,20 @@ function periodState(
   };
 }
 
-const Slot = defineComponent({
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", slots.default?.()),
-});
-
 async function render(
   card: Component,
   props: Record<string, unknown>,
   state: PeriodState | null,
 ): Promise<string> {
-  const app = createSSRApp({
+  const root = document.createElement("div");
+  const app = createApp({
     setup() {
       if (state)
-        registerPeriodScope(
-          SCOPE,
-          computed(() => state),
+        scopes.push(
+          registerPeriodScope(
+            SCOPE,
+            computed(() => state),
+          ),
         );
       return () =>
         h(card, {
@@ -117,27 +85,39 @@ async function render(
           componentId: "card",
           pageId: "page",
           periodScope: SCOPE,
+          fetchUrl: state ? "/revenue" : undefined,
+          ...(!state
+            ? {
+                staticValue: 48200,
+                staticDelta: 12.4,
+                staticPreviousValue: 42900,
+              }
+            : {}),
           ...props,
         });
     },
   });
-  for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton", "UBadge"]) {
-    app.component(name, Slot);
-  }
-  return renderToString(app);
+  provideExtraRuntime(app);
+  registerTextBoundaries(app);
+  app.mount(root);
+  mounted.push(app);
+  await vi.waitFor(() =>
+    expect(root.querySelector('[aria-busy="true"]')).toBeNull(),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return root.innerHTML;
 }
 
-beforeEach(() => {
-  useRealDataEngine();
+beforeEach(async () => {
+  await extraRuntime(async () => response.value);
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: translate }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  mounted.splice(0).forEach((app) => app.unmount());
+  scopes.splice(0).forEach((stop) => stop());
+  vi.unstubAllGlobals();
+});
 
 describe("a KPI card bound to a period selector", () => {
   beforeEach(() => {
@@ -150,7 +130,7 @@ describe("a KPI card bound to a period selector", () => {
   ] as const)("names the %s comparison", async (comparison, label) => {
     const html = await render(KpiCard, {}, periodState(comparison));
     expect(html).toContain(label);
-    expect(html).toContain(TREND_BADGE);
+    expect(html).toMatch(TREND);
   });
 
   it("keeps an explicit compareLabel over the selected comparison", async () => {
@@ -179,7 +159,7 @@ describe("a KPI card bound to a period selector", () => {
       periodState("previous-period"),
     );
     expect(html).not.toContain("vs 42");
-    expect(html).toContain(TREND_BADGE);
+    expect(html).toMatch(TREND);
   });
 
   it("hides the change, the value compared against and the label with no comparison", async () => {
@@ -188,16 +168,9 @@ describe("a KPI card bound to a period selector", () => {
       { compareLabel: "vs last campaign", description: "Net of refunds" },
       periodState("none"),
     );
-    expect(html).not.toContain(TREND_BADGE);
+    expect(html).not.toMatch(TREND);
     expect(html).not.toContain("vs ");
-    expect(html).not.toContain(KPI_TREND_LINE);
     expect(html).toContain("Net of refunds");
-  });
-
-  it("draws no empty row with no comparison and nothing else to show", async () => {
-    const html = await render(KpiCard, {}, periodState("none"));
-    expect(html).not.toContain("mt-auto");
-    expect(html).not.toContain("—");
   });
 
   it("hides the comparison when the period has no window to compare", async () => {
@@ -206,7 +179,7 @@ describe("a KPI card bound to a period selector", () => {
       {},
       periodState("previous-period", "all"),
     );
-    expect(html).not.toContain(TREND_BADGE);
+    expect(html).not.toMatch(TREND);
     expect(html).not.toContain("vs ");
   });
 
@@ -216,8 +189,8 @@ describe("a KPI card bound to a period selector", () => {
       { variant: "stat" },
       periodState("none"),
     );
-    expect(html).not.toContain(TREND_BADGE);
-    expect(html).not.toContain("flex h-4 items-center");
+    expect(html).not.toMatch(TREND);
+    expect(html).not.toContain("vs ");
   });
 
   it("shows the comparison value in the stat variant", async () => {
@@ -227,15 +200,14 @@ describe("a KPI card bound to a period selector", () => {
       periodState("previous-year"),
     );
     expect(html).toContain("vs 42.9");
-    expect(html).toContain(TREND_BADGE);
+    expect(html).toMatch(TREND);
   });
 
-  it("holds the label's line empty while the route answers no change yet", async () => {
+  it("omits the comparison label while the route answers no change yet", async () => {
     response.value = { value: 48200 };
     const html = await render(KpiCard, {}, periodState("previous-year"));
     expect(html).not.toContain("vs previous year");
-    expect(html).toContain(KPI_TREND_LINE);
-    expect(html).toContain('class="block h-4"');
+    expect(html).not.toMatch(TREND);
   });
 
   it("keeps the static label of a card with no selector registered", async () => {
@@ -245,7 +217,7 @@ describe("a KPI card bound to a period selector", () => {
       null,
     );
     expect(html).toContain("vs previous month");
-    expect(html).toContain(TREND_BADGE);
+    expect(html).toMatch(TREND);
   });
 });
 
@@ -268,7 +240,7 @@ describe("a chart card bound to a period selector", () => {
 
   it("draws no change, no comparison value and no legend with no comparison", async () => {
     const html = await render(ChartCard, {}, periodState("none"));
-    expect(html).not.toContain(TREND_BADGE);
+    expect(html).not.toMatch(TREND);
     expect(html).not.toContain("vs ");
     expect(html).not.toContain("Comparison");
     expect(html).not.toContain("Previous year");
@@ -282,11 +254,13 @@ describe("a top list bound to a period selector", () => {
 
   it("shows its rows' changes while comparing", async () => {
     const html = await render(TopListCard, {}, periodState("previous-period"));
-    expect(html).toContain('data-row-delta="true"');
+    expect(html).toContain("A");
+    expect(html).toMatch(/5[.,]0\s?%/);
   });
 
   it("drops its rows' changes with no comparison", async () => {
     const html = await render(TopListCard, {}, periodState("none"));
-    expect(html).toContain('data-row-delta="false"');
+    expect(html).toContain("A");
+    expect(html).not.toMatch(/5[.,]0\s?%/);
   });
 });

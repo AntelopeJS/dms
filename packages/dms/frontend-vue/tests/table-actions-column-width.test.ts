@@ -14,19 +14,6 @@ import { useTableColumns } from "../layers/dms-ui/app/build/composables/table/us
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
 
-vi.mock("@nuxt/ui/components/Button.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("@nuxt/ui/components/Checkbox.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("@nuxt/ui/components/DropdownMenu.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("@nuxt/ui/runtime/utils/index.js", () => ({
-  get: (row: Record<string, unknown>, key: string) => row[key],
-}));
-
 type Row = Record<string, unknown>;
 
 // An invitation is pending (Revoke) or expired (Remove), never both: two

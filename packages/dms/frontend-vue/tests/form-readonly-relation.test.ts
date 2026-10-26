@@ -23,13 +23,6 @@ import { readonlyFieldValue } from "../layers/dms-ui/app/build/composables/form/
 import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 
-vi.mock(
-  "../layers/dms-ui/app/build/components/form/FormFieldNotes.vue",
-  () => ({
-    default: { render: () => null },
-  }),
-);
-
 const relationType: DataType = {
   id: "relation",
   beforeStateMapper: mapRelationBeforeState,
@@ -84,6 +77,7 @@ describe("a disabled relation field", () => {
     shown = [];
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("inject", inject);
+    vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en-GB") }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({
       getDataType: (id: string) =>

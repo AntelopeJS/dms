@@ -5,6 +5,9 @@
  * field by its column's label, translated, never the raw fetch error line.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "./helpers/table-runtime";
+import { useRealDataEngine } from "./fixtures/dataEngine";
+import Sortable from "sortablejs";
 import {
   type App,
   type Component,
@@ -20,23 +23,6 @@ import {
 } from "vue";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
-
-type ChangeHandler = (event: { added?: { element: unknown } }) => unknown;
-const changeHandlers: ChangeHandler[] = [];
-
-vi.mock(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue",
-  () => ({
-    default: defineComponent({
-      props: { list: { type: Array, default: () => [] } },
-      emits: ["change"],
-      setup: (_, { emit }) => {
-        changeHandlers.push((event) => emit("change", event));
-        return () => h("div");
-      },
-    }),
-  }),
-);
 
 const DEAL = { _id: "d1", stage: "lead", lostReason: null };
 
@@ -92,7 +78,6 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
-  changeHandlers.length = 0;
   addToast.mockClear();
   for (const [name, value] of Object.entries({
     computed,
@@ -100,28 +85,17 @@ beforeEach(() => {
     watch,
     h,
     inject,
-    useId: () => "board",
     useAuthFetch: () => ({ $authFetch: authFetch }),
-    useTranslation: () => ({
-      processI18n: (text: string) => text,
-      processApiMessage: (text: string) => text,
-    }),
-    useDataTypes: () => ({ getDataType: () => undefined }),
     useI18n: () => ({ locale: ref("fr"), t: translate }),
     useToast: () => ({ add: addToast }),
-    normalizeActionConfig: () => ({ isEnabled: false }),
-    evaluateRowActionRule: () => true,
     resolveDmsComponent: () => undefined,
     Color: { error: "error", success: "success" },
     CONTENT_LANGUAGE_HEADER: "x-content-language",
     AccessMode: { ReadOnly: 1, WriteOnly: 2, ReadWrite: 3 },
-    useDmsAsyncData: async (_key: string, read: () => Promise<unknown>) => {
-      const data = ref(await read());
-      return { data, status: ref("success"), refresh: vi.fn() };
-    },
   })) {
     vi.stubGlobal(name, value);
   }
+  useRealDataEngine();
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -159,9 +133,17 @@ async function mountBoard() {
 describe("a card dropped on a column the server refuses", () => {
   it("names the missing field by its column's label", async () => {
     await mountBoard();
-    // The board's columns in order: lead, then lost.
-    expect(changeHandlers).toHaveLength(2);
-    changeHandlers[1]!({ added: { element: { ...DEAL } } });
+    const lists = [...host.querySelectorAll("div")]
+      .map((element) => Sortable.get(element))
+      .filter((list) => list !== undefined);
+    expect(lists).toHaveLength(2);
+    const [source, target] = lists;
+    const item = source!.el.children[0]!;
+    source!.option("onStart")!({ item, oldIndex: 0 } as never);
+    target!.el.append(item);
+    target!.option("onAdd")!({ item, newIndex: 0 } as never);
+    source!.option("onRemove")!({ item, oldIndex: 0 } as never);
+    source!.option("onEnd")!({} as never);
     await flushPromises();
     await flushPromises();
 

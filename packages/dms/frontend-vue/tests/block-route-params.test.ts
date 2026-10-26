@@ -11,11 +11,11 @@ import {
   defineComponent,
   h,
   nextTick,
-  reactive,
   ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 import {
   replaceUrlVariables,
   resolveTextVariables,
@@ -23,23 +23,12 @@ import {
 } from "../layers/dms-ui/app/build/utils/urlVariables";
 
 const requests: string[] = [];
-const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
+let route: ReturnType<typeof useRealDataEngine>["route"];
 
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
-    requests.push(url);
-    return { items: [{ label: url }] };
-  },
-}));
-vi.stubGlobal("useDmsRoute", () => route);
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
+async function authFetch(url: string) {
+  requests.push(url);
+  return { items: [{ label: url }] };
+}
 
 const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
@@ -60,15 +49,19 @@ function mount(component: Component) {
   mounted.push(app);
 }
 
-beforeEach(() => useRealDataEngine());
-
 beforeEach(() => {
+  route = useRealDataEngine().route;
+});
+
+beforeEach(async () => {
+  await stubBlockRuntime(authFetch);
   requests.length = 0;
   route.query = {};
 });
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
+  vi.unstubAllGlobals();
 });
 
 describe("resolveUrlVariables", () => {

@@ -2,12 +2,10 @@ import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import DmsSection from "../layers/dms-ui/app/components/section/Section.vue";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({}),
-}));
-
-beforeEach(() => {
+beforeEach(async () => {
+  await stubBlockRuntime(vi.fn());
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 

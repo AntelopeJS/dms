@@ -26,7 +26,9 @@ function translator(locale: "en" | "fr") {
 
 describe("formatArchivedCount", () => {
   it("counts the archive without agreeing with a noun", () => {
-    expect(formatArchivedCount(translator("en"), 13, "13")).toBe("Archived: 13");
+    expect(formatArchivedCount(translator("en"), 13, "13")).toBe(
+      "Archived: 13",
+    );
     expect(formatArchivedCount(translator("fr"), 13, "13")).toBe(
       "Archives : 13",
     );
@@ -50,7 +52,12 @@ describe("formatArchivedCount", () => {
 
   it("fills a plain text label", () => {
     expect(
-      formatArchivedCount(translator("en"), 3, "3", "{count} archived invoices"),
+      formatArchivedCount(
+        translator("en"),
+        3,
+        "3",
+        "{count} archived invoices",
+      ),
     ).toBe("3 archived invoices");
   });
 });

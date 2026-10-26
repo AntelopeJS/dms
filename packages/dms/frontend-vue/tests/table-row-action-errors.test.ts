@@ -1,3 +1,4 @@
+import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 import { createI18n } from "vue-i18n";
@@ -13,11 +14,6 @@ import {
 } from "../layers/dms-ui/app/composables/confirm/types";
 import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-
-// The form the row actions open is not under test.
-vi.mock("../layers/dms-ui/app/components/form/Form.vue", () => ({
-  default: {},
-}));
 
 type Messages = Record<string, unknown>;
 const merge = (target: Messages, source: Messages): Messages => {

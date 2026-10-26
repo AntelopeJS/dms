@@ -189,8 +189,7 @@ const theme = tv({
     // end, so the title and meta wrap there instead.
     truncate: {
       true: {
-        title:
-          "truncate flex-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
+        title: "truncate flex-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
         // The text box, not the flex title, carries the ellipsis: a flex
         // container only clips its overflowing children.
         titleText: "truncate max-sm:whitespace-normal",

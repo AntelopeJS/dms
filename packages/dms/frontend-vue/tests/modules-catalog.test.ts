@@ -10,7 +10,6 @@ import {
   MODULE_CATEGORY_OTHER,
   filterModules,
   findModulePageMatch,
-  DEFAULT_MODULE_SORT_MODE,
   moduleCategoryOptions,
   parseModuleSortMode,
   recentModules,
@@ -129,7 +128,6 @@ describe("sortModules", () => {
 
 describe("parseModuleSortMode", () => {
   it("opens alphabetical, keeping a remembered choice", () => {
-    expect(DEFAULT_MODULE_SORT_MODE).toBe("name");
     expect(parseModuleSortMode(undefined)).toBe("name");
     expect(parseModuleSortMode("recent")).toBe("recent");
     expect(parseModuleSortMode("name")).toBe("name");

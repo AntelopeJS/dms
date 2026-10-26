@@ -139,7 +139,10 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
   const app = createSSRApp(Page);
   install(app, runtime);
   const html = await renderToString(app);
-  return { html, payload: structuredClone(engine.serializeDmsPayload(runtime)) };
+  return {
+    html,
+    payload: structuredClone(engine.serializeDmsPayload(runtime)),
+  };
 }
 
 const mounted: App[] = [];
@@ -176,7 +179,9 @@ describe("the reads of a server render's guards", () => {
     expect(asked.sort()).toEqual([ONBOARDING, PERMISSIONS].sort());
     const warnings = warn.mock.calls.map((call) => String(call[0]));
     expect(
-      warnings.filter((message) => message.includes("was read during a server render")),
+      warnings.filter((message) =>
+        message.includes("was read during a server render"),
+      ),
     ).toEqual([]);
     expect(JSON.stringify(payload.data)).toContain("orders.read");
     expect(JSON.stringify(payload.data)).toContain("hasOnboarded");
@@ -201,7 +206,10 @@ describe("the reads of a server render's guards", () => {
     // A client navigation past the hydration runs the guards again.
     runtime.hydrating = false;
     await app.runWithContext(async () => {
-      await onboardingMiddleware(runtime.route as never, runtime.route as never);
+      await onboardingMiddleware(
+        runtime.route as never,
+        runtime.route as never,
+      );
       await usePermissions().loadPermissions();
     });
     await settle();

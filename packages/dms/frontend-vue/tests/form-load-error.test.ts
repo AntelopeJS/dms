@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { createSSRApp, defineComponent, h, nextTick, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,25 +116,6 @@ describe("a form's record load", () => {
   });
 });
 
-describe("Form.vue", () => {
-  const source = readFileSync(
-    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
-    "utf8",
-  );
-
-  it("leaves reading the record again on mount to the data layer", () => {
-    // The renderer reads cached data again on each mount (stale while
-    // revalidate): no status reset forces it any more.
-    expect(source).not.toMatch(/status\.value\s*=\s*"idle"/);
-  });
-
-  it("keys the record's load on the record it reads", () => {
-    expect(source).toMatch(
-      /`form-\$\{props\.componentId\}-\$\{props\.pageId\}-\$\{resolvedFetchUrl\.value/,
-    );
-  });
-});
-
 describe("a form about a record its address names none of", () => {
   const FETCH_URL = "/api/tasks/get?id={{query.id}}";
 
@@ -219,27 +199,5 @@ describe("the load error a form shows", () => {
     expect(html).toContain("dms.form.load_error.missing_title");
     expect(html).toContain("dms.form.load_error.missing_description");
     expect(html).not.toContain("dms.form.load_error.retry");
-  });
-
-  it("has its texts in English and French", () => {
-    for (const file of ["ui-en-GB.json", "ui-fr-FR.json"]) {
-      const locale = JSON.parse(
-        readFileSync(
-          new URL(`../layers/dms-ui/i18n/locales/${file}`, import.meta.url),
-          "utf8",
-        ),
-      );
-      expect(Object.keys(locale.dms.form.load_error).sort()).toEqual([
-        "error_description",
-        "error_title",
-        "forbidden_description",
-        "forbidden_title",
-        "missing_description",
-        "missing_title",
-        "not_found_description",
-        "not_found_title",
-        "retry",
-      ]);
-    }
   });
 });

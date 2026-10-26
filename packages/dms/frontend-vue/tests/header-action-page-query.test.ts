@@ -31,24 +31,19 @@ import {
   type PageHeaderActionsOptions,
 } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
-
-const handleCustomButton = vi.fn();
-vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
-  useActionTargets: () => ({ handleCustomButton }),
-}));
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    isHeaderActionHidden: () => false,
-    session: ref(null),
-  }),
-}));
+import { stubMiscActions } from "./helpers/misc-runtime";
 
 const LAYOUT_URL = "/modules/lang/queue/pagelayout";
 const route = reactive<{ path: string; query: Record<string, unknown> }>({
   path: "/modules/lang/queue/de",
   query: {},
 });
-const authFetch = vi.fn();
+const rawFetch = vi.fn(async () => ({
+  headers: new Headers(),
+  _data: new Blob(["report"]),
+}));
+const authFetch = Object.assign(vi.fn(), { raw: rawFetch });
+const downloads: string[] = [];
 
 const ButtonStub = defineComponent({
   props: { label: String, disabled: Boolean, onClick: Function, to: String },
@@ -69,12 +64,29 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
+  stubMiscActions();
   route.query = { workspace: "web" };
-  handleCustomButton.mockClear();
   authFetch.mockReset();
+  rawFetch.mockClear();
+  downloads.length = 0;
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+    function () {
+      downloads.push(this.download);
+    },
+  );
+  vi.stubGlobal(
+    "URL",
+    class extends URL {
+      static createObjectURL() {
+        return "blob:report";
+      }
+      static revokeObjectURL() {}
+    },
+  );
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
+    processApiMessage: (value: string) => value,
     processI18n: (value: string, params?: Record<string, unknown>) =>
       value.replace(/\{(\w+)\}/g, (_, name: string) =>
         String(params?.[name] ?? `{${name}}`),
@@ -98,6 +110,7 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   host.remove();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -249,11 +262,9 @@ describe("a header button's target URL", () => {
       },
     ]);
     buttons()[0]?.click();
-    expect(handleCustomButton).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({
-          url: "/api/lang/export?workspace=web",
-        }),
+    await vi.waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/lang/export?workspace=web", {
+        method: "POST",
       }),
     );
   });
@@ -271,15 +282,13 @@ describe("a header button's target URL", () => {
     ]);
     expect(buttons()[0]?.dataset.to).toBeUndefined();
     buttons()[0]?.click();
-    expect(handleCustomButton).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: {
-          type: "download",
-          url: "/api/lang/translations/export?workspace=web&locale=de",
-          filename: "{{params.locale}}.json",
-        },
-      }),
+    await vi.waitFor(() =>
+      expect(rawFetch).toHaveBeenCalledWith(
+        "/api/lang/translations/export?workspace=web&locale=de",
+        { responseType: "blob" },
+      ),
     );
+    expect(downloads).toEqual(["de.json"]);
   });
 });
 

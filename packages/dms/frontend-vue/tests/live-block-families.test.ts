@@ -10,10 +10,25 @@
  * suites (table-live-hold, page-data-refresh), `usePageLiveRefresh` too
  * (page-live-refresh).
  */
-import { type App, createApp, defineComponent, h, reactive, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import { type App, createApp, defineComponent, h } from "vue";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import {
+  installBlockNetwork,
+  browserRuntime,
+  startBlockRealtime,
+  stopBlockRealtime,
+  publishBlockEvent,
+  disposeBlockRealtime,
+  engine,
+} from "./helpers/block-network-runtime";
 import { refreshLivePageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
@@ -22,41 +37,23 @@ import {
 import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
 const requests: string[] = [];
-const topicHandlers = new Map<string, RealtimeTopicHandler[]>();
+vi.stubGlobal("defineDmsPlugin", engine.defineDmsPlugin);
 
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
-    requests.push(url);
-    return { items: [], value: requests.length };
-  },
-}));
-vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
+const { useChartFetch } = await import(
+  "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, [...(topicHandlers.get(topic) ?? []), handler]);
-  },
-}));
-
-const { useChartFetch } =
-  await import("../layers/dms-ui/app/composables/chart/useChartFetch");
-const { useBlockItems } =
-  await import("../layers/dms-ui/app/build/composables/blocks/useBlockItems");
-const { useApiData } =
-  await import("../layers/dms-core/app/composables/auth/useApiData");
+const { useBlockItems } = await import(
+  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+);
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
+);
 // The app's pause source, as the DMS registers it.
-const { default: livePauseSourcePlugin } =
-  (await import("../layers/dms-ui/app/plugins/live-pause-source")) as unknown as {
-    default: (context: { vueApp: App }) => void;
-  };
+const { default: livePauseSourcePlugin } = (await import(
+  "../layers/dms-ui/app/plugins/live-pause-source"
+)) as unknown as {
+  default: (context: { vueApp: App }) => void;
+};
 
 const TOPIC = "orders:events";
 const CARD_URL = "/api/orders/kpi";
@@ -73,10 +70,7 @@ const settle = (ms = SETTLE_MS) =>
 const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
 
-function publish(): void {
-  const event = { topic: TOPIC, type: "order.created", ts: Date.now() };
-  for (const handler of topicHandlers.get(TOPIC) ?? []) handler(event);
-}
+const publish = () => publishBlockEvent(TOPIC);
 
 function installLive(): PageLiveController {
   const controller = createPageLiveController("shop.orders", {});
@@ -94,6 +88,7 @@ function mount(setup: () => void): void {
       },
     }),
   );
+  browserRuntime(app);
   livePauseSourcePlugin({ vueApp: app });
   app.mount(document.createElement("div"));
   mounted.push(app);
@@ -102,17 +97,23 @@ function mount(setup: () => void): void {
 /** How many requests went to `url`. */
 const sentTo = (url: string) => requests.filter((sent) => sent === url).length;
 
-beforeEach(() => {
-  useRealDataEngine();
+beforeEach(async () => {
+  await installBlockNetwork(async (url: string) => {
+    requests.push(url);
+    return { items: [], value: requests.length };
+  });
+  browserRuntime();
+  await startBlockRealtime();
   requests.length = 0;
-  topicHandlers.clear();
   window.localStorage.clear();
 });
 
-afterEach(() => {
+afterAll(disposeBlockRealtime);
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
   controllers.splice(0).forEach((controller) => controller.dispose());
   setCurrentPageLive(null);
+  await stopBlockRealtime();
 });
 
 interface BlockFamily {
@@ -146,8 +147,8 @@ describe.each(FAMILIES)("$name on a live page", ({ url, mountBlock }) => {
     expect(sentTo(url)).toBe(1);
 
     live.pause();
-    publish();
-    publish();
+    await publish();
+    await publish();
     await settle();
     expect(sentTo(url)).toBe(1);
     expect(live.missedCount.value).toBe(2);
@@ -179,7 +180,7 @@ describe.each(FAMILIES)("$name on a live page", ({ url, mountBlock }) => {
     await settle();
 
     live.setHidden(true);
-    publish();
+    await publish();
     await settle();
     expect(sentTo(url)).toBe(1);
 
@@ -193,7 +194,7 @@ describe.each(FAMILIES)("$name on a live page", ({ url, mountBlock }) => {
     mountBlock(TOPIC);
     await settle();
 
-    publish();
+    await publish();
     await settle();
     expect(sentTo(url)).toBe(2);
   });
@@ -251,6 +252,7 @@ describe("a component polling with refreshInterval on a live page", () => {
         },
       }),
     );
+    browserRuntime(app);
     app.mount(document.createElement("div"));
     mounted.push(app);
     await settle(POLL_MS * 4);

@@ -20,7 +20,9 @@ export function useLivePeriodSpan(range: () => ShownRange | null): void {
   if (typeof window === "undefined") return;
   const owner = Symbol("live-period");
   const spanOf = (shown: ShownRange | null) =>
-    shown ? shown.to.getTime() - shown.from.getTime() : Number.POSITIVE_INFINITY;
+    shown
+      ? shown.to.getTime() - shown.from.getTime()
+      : Number.POSITIVE_INFINITY;
   const stop = watch(
     [currentPageLive, () => spanOf(range())],
     ([controller, span], _previous, onCleanup) => {

@@ -24,23 +24,6 @@ import {
   withPeriodQuery,
 } from "../layers/dms-core/app/composables/period/periodLink";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({
-      items: [
-        {
-          id: "pricing",
-          title: "/pricing",
-          value: 12,
-          to: "/modules/marketing/pages?path=%2Fpricing&website={{query.website}}&mk.period={{query.mk.period}}&mk.from={{query.mk.from}}",
-        },
-        { id: "plain", title: "/", value: 3, to: "/modules/marketing/pages" },
-      ],
-    }),
-    isLoading: ref(false),
-  }),
-}));
-
 const PAGE_QUERY = {
   website: "site-1",
   "mk.period": "last-7-days",
@@ -125,6 +108,15 @@ async function renderTopList(): Promise<string> {
         title: "Top pages",
         componentId: "pages",
         pageId: "overview",
+        staticItems: [
+          {
+            id: "pricing",
+            title: "/pricing",
+            value: 12,
+            to: "/modules/marketing/pages?path=%2Fpricing&website={{query.website}}&mk.period={{query.mk.period}}&mk.from={{query.mk.from}}",
+          },
+          { id: "plain", title: "/", value: 3, to: "/modules/marketing/pages" },
+        ],
       }),
   });
   for (const name of ["DmsCard", "UBadge", "UIcon", "USkeleton", "UButton"]) {

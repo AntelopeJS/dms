@@ -22,10 +22,9 @@ describe("account menu entries", () => {
   it("opens every setting, the only way to them without a sidebar entry", () => {
     expect(ACCOUNT_MENU_ENTRIES.map((entry) => entry.to)).toEqual([
       PROFILE_ROUTE,
-      SETTINGS_ROUTE,
+      "/settings",
       SWITCH_ACCOUNT_ROUTE,
     ]);
-    expect(SETTINGS_ROUTE).toBe("/settings");
   });
 
   it.each([

@@ -6,6 +6,8 @@
  * drawer steps through them ("3 of 5", previous / next, J and K).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "./helpers/table-runtime";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   type App,
   type Component,
@@ -21,16 +23,6 @@ import {
 } from "vue";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
-
-vi.mock(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue",
-  () => ({
-    default: defineComponent({
-      props: { list: { type: Array, default: () => [] } },
-      setup: () => () => h("div"),
-    }),
-  }),
-);
 
 interface Deal {
   _id: string;
@@ -80,25 +72,14 @@ beforeEach(() => {
     watch,
     h,
     inject,
-    useId: () => "board",
     useAuthFetch: () => ({ $authFetch: authFetch }),
-    useTranslation: () => ({
-      processI18n: (text: string) => text,
-      processApiMessage: (text: string) => text,
-    }),
-    useDataTypes: () => ({ getDataType: () => undefined }),
     useI18n: () => ({ locale: ref("en"), t: (key: string) => key }),
     useToast: () => ({ add: vi.fn() }),
-    normalizeActionConfig: () => ({ isEnabled: false }),
-    evaluateRowActionRule: () => true,
     resolveDmsComponent: () => undefined,
-    useDmsAsyncData: async (_key: string, read: () => Promise<unknown>) => {
-      const data = ref(await read());
-      return { data, status: ref("success"), refresh: vi.fn() };
-    },
   })) {
     vi.stubGlobal(name, value);
   }
+  useRealDataEngine();
   host = document.createElement("div");
   document.body.append(host);
 });

@@ -8,7 +8,7 @@
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { liveShellRuntime } from "./helpers/live-shell-runtime";
 import {
   refreshLivePageBlocks,
   refreshPageBlocks,
@@ -20,13 +20,7 @@ import {
 import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 
-const topicHandlers = new Map<string, RealtimeTopicHandler[]>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, [...(topicHandlers.get(topic) ?? []), handler]);
-  },
-}));
+const realtime = liveShellRuntime();
 
 const { useRefreshTriggers } = await import(
   "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
@@ -40,8 +34,7 @@ const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
 
 function publish(topic = TOPIC) {
-  const event = { topic, type: "request", ts: Date.now() };
-  for (const handler of topicHandlers.get(topic) ?? []) handler(event);
+  return realtime.publish(topic);
 }
 
 function mountBlock(topic: string | undefined = TOPIC) {
@@ -66,24 +59,25 @@ function installLive(maxRate?: number): PageLiveController {
   return controller;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
-  topicHandlers.clear();
+  await realtime.start();
   window.localStorage.clear();
 });
 
-afterEach(() => {
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
   controllers.splice(0).forEach((controller) => controller.dispose());
   setCurrentPageLive(null);
+  await realtime.stop();
   vi.useRealTimers();
 });
 
-it("leaves a page without live as it was: every event refetches", () => {
+it("leaves a page without live as it was: every event refetches", async () => {
   const onRefresh = mountBlock();
-  publish();
-  publish();
+  await publish();
+  await publish();
   refreshPageBlocks();
   refreshLivePageBlocks();
   expect(onRefresh).toHaveBeenCalledTimes(4);
@@ -91,25 +85,25 @@ it("leaves a page without live as it was: every event refetches", () => {
   expect(usePageLive().isLive.value).toBe(true);
 });
 
-it("refetches on each event in Direct when no maxRate is set", () => {
+it("refetches on each event in Direct when no maxRate is set", async () => {
   installLive();
   const onRefresh = mountBlock();
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("in Direct, refetches at most once per maxRate, the last event trailing", () => {
+it("in Direct, refetches at most once per maxRate, the last event trailing", async () => {
   installLive(MAX_RATE_SECONDS);
   const onRefresh = mountBlock();
 
-  publish();
+  await publish();
   expect(onRefresh).toHaveBeenCalledTimes(1);
 
   vi.advanceTimersByTime(1000);
-  publish();
+  await publish();
   vi.advanceTimersByTime(1000);
-  publish();
+  await publish();
   expect(onRefresh).toHaveBeenCalledTimes(1);
 
   vi.advanceTimersByTime(MAX_RATE_MS - 2000);
@@ -119,25 +113,25 @@ it("in Direct, refetches at most once per maxRate, the last event trailing", () 
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("caps each block on its own", () => {
+it("caps each block on its own", async () => {
   installLive(MAX_RATE_SECONDS);
   const first = mountBlock();
   const second = mountBlock("api:routes");
-  publish();
-  publish("api:routes");
+  await publish();
+  await publish("api:routes");
   expect(first).toHaveBeenCalledTimes(1);
   expect(second).toHaveBeenCalledTimes(1);
 });
 
-it("in Pause, requests nothing and counts the events per block", () => {
+it("in Pause, requests nothing and counts the events per block", async () => {
   const live = installLive();
   const logs = mountBlock();
   const chart = mountBlock();
   const routes = mountBlock("api:routes");
   live.pause();
 
-  publish();
-  publish();
+  await publish();
+  await publish();
   refreshLivePageBlocks();
   vi.advanceTimersByTime(60_000);
 
@@ -150,11 +144,11 @@ it("in Pause, requests nothing and counts the events per block", () => {
   expect(usePageLive().isPaused.value).toBe(true);
 });
 
-it("refreshes on a user's refreshPageBlocks even while paused", () => {
+it("refreshes on a user's refreshPageBlocks even while paused", async () => {
   const live = installLive(MAX_RATE_SECONDS);
   const onRefresh = mountBlock();
   live.pause();
-  publish();
+  await publish();
   expect(live.missedCount.value).toBe(1);
 
   refreshPageBlocks();
@@ -176,17 +170,17 @@ it("caps a live refresh like a realtime event in Direct", () => {
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("on resume, refetches once each block that missed an event", () => {
+it("on resume, refetches once each block that missed an event", async () => {
   const live = installLive(MAX_RATE_SECONDS);
   const logs = mountBlock();
   const routes = mountBlock("api:routes");
-  publish("api:routes");
+  await publish("api:routes");
   routes.mockClear();
   live.pause();
 
-  publish();
-  publish();
-  publish();
+  await publish();
+  await publish();
+  await publish();
   live.resume();
 
   expect(logs).toHaveBeenCalledTimes(1);
@@ -196,11 +190,11 @@ it("on resume, refetches once each block that missed an event", () => {
   expect(logs).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a trailing refetch the pause interrupted for the resume", () => {
+it("keeps a trailing refetch the pause interrupted for the resume", async () => {
   const live = installLive(MAX_RATE_SECONDS);
   const onRefresh = mountBlock();
-  publish();
-  publish();
+  await publish();
+  await publish();
   live.pause();
   vi.advanceTimersByTime(MAX_RATE_MS);
   expect(onRefresh).toHaveBeenCalledTimes(1);
@@ -210,12 +204,12 @@ it("keeps a trailing refetch the pause interrupted for the resume", () => {
   expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
-it("dates the page's last update from its refetches", () => {
+it("dates the page's last update from its refetches", async () => {
   const live = installLive();
   mountBlock();
   const before = live.lastUpdatedAt.value;
   vi.advanceTimersByTime(4000);
-  publish();
+  await publish();
   expect(live.lastUpdatedAt.value).toBe(before + 4000);
 });
 

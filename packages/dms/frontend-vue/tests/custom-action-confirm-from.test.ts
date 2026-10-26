@@ -32,7 +32,9 @@ function mountTargets(rowIdKey?: string) {
 const REFUND: CustomRowAction = {
   label: "Refund",
   target: { type: "page", url: "/orders" },
-  confirm: { from: "/api/orders/{{row.id}}/refund-confirm?customer={{row.customer}}" },
+  confirm: {
+    from: "/api/orders/{{row.id}}/refund-confirm?customer={{row.customer}}",
+  },
 };
 
 beforeEach(() => {

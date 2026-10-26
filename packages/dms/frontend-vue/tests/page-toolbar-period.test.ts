@@ -8,8 +8,9 @@
  * other controls, naming the compared window that the range label then leaves
  * out.
  */
-import { createApp, h, nextTick, ref, type App } from "vue";
+import { computed, createApp, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import {
   pageToolbar,
   type PageToolbarOptions,
@@ -20,15 +21,6 @@ import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelecto
 import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
 import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
 import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-
-vi.mock("@inertiajs/vue3", () => ({ router: { replace: vi.fn() } }));
-vi.mock(
-  "#dms-core/app/composables/user/useUserRegionalPreferences",
-  async () => {
-    const { ref: vueRef } = await import("vue");
-    return { useUserRegionalPreferences: () => ({ weekStartsOn: vueRef(1) }) };
-  },
-);
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -107,6 +99,9 @@ const rangeLabel = () =>
 const NOW = new Date(2026, 9, 18, 13, 57);
 
 beforeEach(() => {
+  vi.spyOn(inertiaRouter, "replace").mockImplementation(() => {});
+  vi.stubGlobal("computed", computed);
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref({ weekStart: 1 }) }));
   vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({}));
@@ -126,6 +121,7 @@ afterEach(() => {
   app = undefined;
   host.remove();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("its segments", () => {
