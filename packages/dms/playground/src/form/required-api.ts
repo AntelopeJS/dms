@@ -18,11 +18,7 @@ const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
 const ADDRESS_FIELD = "address";
 const POSTAL_CODE_PART = "postalCode";
 
-interface PostalAddress {
-  postalCode?: string;
-}
-
-function refuseTakenUsername(username: unknown): void {
+function refuseTakenUsername(username: DemoRecord["username"]): void {
   if (username !== TAKEN_USERNAME) return;
   throw new HTTPResult(
     HTTP_CONFLICT,
@@ -35,8 +31,8 @@ function refuseTakenUsername(username: unknown): void {
   );
 }
 
-function refuseUnknownPostalCode(address: unknown): void {
-  const postalCode = (address as PostalAddress | undefined)?.postalCode;
+function refuseUnknownPostalCode(address: DemoRecord["address"]): void {
+  const postalCode = address?.postalCode;
   if (postalCode !== UNKNOWN_POSTAL_CODE) return;
   throw new HTTPResult(
     HTTP_BAD_REQUEST,

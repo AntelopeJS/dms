@@ -67,6 +67,7 @@ const HTTP_STATUS_BY_RUN: Record<JobRunStatus, number> = {
   failing: 502,
 };
 const HTTP_CLASS_SIZE = 100;
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- HTTP classes are computed numbers, while the response contract owns only each tone value.
 const HTTP_TONE_BY_CLASS: Record<number, Tone> = {
   2: "success",
   3: "info",

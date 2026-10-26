@@ -12,6 +12,7 @@ const LATENCY_AVERAGE = [118, 104, 162, 210, 188, 131];
 const LATENCY_P95 = [240, 221, 330, 452, 401, 276];
 const SIGNUPS = [12, 18, 9, 22, 15, 30];
 const NO_SIGNUP = [0, 0, 0, 0, 0, 0];
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
 const PRESET_SCALES: Record<string, number> = {
   "last-month": 0.9,
   "this-quarter": 2.8,

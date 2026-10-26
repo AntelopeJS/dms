@@ -42,8 +42,8 @@ function describe(data: ChartClickData | undefined): string {
   return `${data?.seriesName ?? "?"} · ${where} · ${value ?? "—"}`;
 }
 
-function onChartEvent(event: Event): void {
-  const detail = (event as CustomEvent<ChartClickDetail>).detail;
+function onChartEvent(event: Event & Partial<CustomEvent<ChartClickDetail>>): void {
+  const detail = event.detail;
   nextId += 1;
   entries.value = [
     {

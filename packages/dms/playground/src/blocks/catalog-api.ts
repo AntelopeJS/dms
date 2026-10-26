@@ -19,6 +19,7 @@ RegisterDataSource({
   id: "playground.sales",
   title: "Sales",
   description: "Daily sales of the playground dashboard",
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- DataSourceDefinition.responseShape is the external RegisterDataSource contract.
   responseShape: "card",
   path: "/api/dashboard/sales",
   period: { from: "from", to: "to" },
@@ -27,6 +28,7 @@ RegisterDataSource({
 RegisterDataSource({
   id: "playground.top-routes",
   title: "Slowest routes",
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- DataSourceDefinition.responseShape is the external RegisterDataSource contract.
   responseShape: "items",
   path: "/api/dashboard/top/routes",
 });
@@ -49,7 +51,10 @@ function typeRow(descriptor: BlockTypeDescriptor): KeyValueListItem {
   };
 }
 
-function validationRow(label: string, options: unknown): KeyValueListItem {
+function validationRow(
+  label: string,
+  options: Parameters<typeof ValidateBlockOptions>[1],
+): KeyValueListItem {
   const result = ValidateBlockOptions("TopListCard", options);
   return {
     label,

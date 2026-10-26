@@ -13,6 +13,7 @@ const BATCH_SERVER_ERRORS = 2;
 const BURST_BATCHES = 3;
 const BURST_INTERVAL_MS = 1_500;
 const MAX_FEED_ENTRIES = 30;
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
 const PRESET_SCALES: Record<string, number> = {
   "last-hour": 1,
   "last-24h": 24,
@@ -96,7 +97,7 @@ async function publishBatch(): Promise<void> {
 
 function publishLater(delayMs: number): void {
   setTimeout(() => {
-    publishBatch().catch((error: unknown) => {
+    publishBatch().catch((error: PromiseRejectedResult["reason"]) => {
       console.warn("[playground] live batch failed", error);
     });
   }, delayMs);

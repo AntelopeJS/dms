@@ -11,6 +11,7 @@ import {
 
 /** The projects the validation function of the project page knows. */
 export const DEMO_PROJECT_IDS = ["invoicer", "resto-lucca", "sleepy-api"];
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Project identifiers are strings; missing badge lookups must continue returning undefined.
 const DEMO_BADGES: Record<string, string> = { invoicer: "3" };
 const STATUS_CYCLE: MenuItemStatus[] = [
   "success",

@@ -10,6 +10,7 @@ const QUIET_PRESET = "last-hour";
 const SERIES_LENGTH = 12;
 const SERIES_STEP = 7;
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
 const CALLS_BY_PRESET: Record<string, number> = {
   "last-24h": 48,
   "last-7-days": 312,

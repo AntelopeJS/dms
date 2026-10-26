@@ -10,6 +10,10 @@ import { notFound, serviceUnavailable } from "./demo-errors";
 const DEMO_LATENCY_MS = 900;
 const MINUTE_MS = 60 * 1000;
 
+interface BumpFactsResponse {
+  ok: boolean;
+}
+
 /** Published on each bump of the live facts, which the KeyValueList follows. */
 export const FACTS_DEMO_TOPIC = "blocks:facts-demo";
 /** Published when the mail provider goes down or comes back. */
@@ -27,7 +31,7 @@ let outstanding = 4890;
  */
 function inBackground(job: () => Promise<void>): void {
   setTimeout(() => {
-    job().catch((error: unknown) => {
+    job().catch((error: PromiseRejectedResult["reason"]) => {
       console.warn("[playground] background demo job failed", error);
     });
   }, BACKGROUND_JOB_DELAY_MS);
@@ -40,6 +44,7 @@ async function bumpFactsAndPublish(): Promise<void> {
 }
 
 const DEFAULT_PERIOD = "this-month";
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
 const PERIOD_SCALES: Record<string, number> = {
   "last-7-days": 0.25,
   "last-30-days": 1,
@@ -48,6 +53,7 @@ const PERIOD_SCALES: Record<string, number> = {
   "last-90-days": 3,
   "this-quarter": 3,
 };
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
 const PERIOD_LABELS: Record<string, string> = {
   "last-7-days": "Last 7 days",
   "last-30-days": "Last 30 days",
@@ -241,7 +247,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
   }
 
   @Post("facts/bump")
-  bumpFacts(): { ok: boolean } {
+  bumpFacts(): BumpFactsResponse {
     inBackground(bumpFactsAndPublish);
     return { ok: true };
   }

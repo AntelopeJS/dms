@@ -29,6 +29,10 @@ interface RealtimeTopItem {
   value: number;
 }
 
+interface RealtimeTopResponse {
+  items: RealtimeTopItem[];
+}
+
 let nextSequence = 0;
 
 function buildPoint(): Point {
@@ -67,7 +71,7 @@ export class RealtimeDemoApiController extends Controller(
   }
 
   @Get("top")
-  getTop(): { items: RealtimeTopItem[] } {
+  getTop(): RealtimeTopResponse {
     const items = [...realtimeSeries]
       .sort((left, right) => right.y - left.y)
       .slice(0, TOP_POINTS)

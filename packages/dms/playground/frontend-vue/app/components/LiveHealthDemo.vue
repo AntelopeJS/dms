@@ -35,7 +35,7 @@ useRealtimeTopic(
   () => props.realtimeTopic,
   (event) => {
     if (!live.isPaused.value || !("payload" in event)) return;
-    const payload = (event.payload ?? {}) as BatchPayload;
+    const payload: BatchPayload = (event.payload ?? {});
     if (!payload.server5xx) return;
     missedServerErrors.value += payload.server5xx;
     live.setMissedDetail({

@@ -13,6 +13,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { maxLines: 30 });
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- File extensions come from the caller's string path; unsupported keys intentionally use the text fallback.
 const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   ts: "typescript",
   vue: "html",
