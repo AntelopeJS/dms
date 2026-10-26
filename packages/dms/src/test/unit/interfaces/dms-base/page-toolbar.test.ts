@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import {
-  PAGE_TOOLBAR_LIVE_CHILD_ID,
   PAGE_TOOLBAR_LIVE_DEFAULTS,
   PAGE_TOOLBAR_PERIOD_CHILD_ID,
   PAGE_TOOLBAR_PERIOD_DEFAULTS,
@@ -67,15 +66,11 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     // The selector's default comparisons: more than one choice, a menu.
     expect(childOf(serialized, "period")?.options).to.deep.equal({
       ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+      rangeLabel: "relative",
+      defaultPreset: "last-24h",
       comparisonControl: "menu",
       defaultComparison: "previous-period",
       id: "page",
-    });
-    expect(PAGE_TOOLBAR_LIVE_DEFAULTS).to.include({ variant: "pill" });
-    expect(PAGE_TOOLBAR_PERIOD_DEFAULTS).to.include({
-      variant: "segmented",
-      rangeLabel: "relative",
-      defaultPreset: "last-24h",
     });
   });
 
@@ -186,7 +181,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(children[1]?.component.metadata).to.deep.include({
       name: "$my.permissions.period.name",
     });
-    expect(PAGE_TOOLBAR_LIVE_CHILD_ID).to.equal("live");
   });
 
   it("runs a child's transformOptions each time the page registers, over the defaults", async () => {

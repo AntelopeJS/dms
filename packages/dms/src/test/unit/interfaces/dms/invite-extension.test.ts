@@ -1,62 +1,34 @@
-import {
-  GetResponsibleModule,
-  ImplementInterface,
-} from "@antelopejs/interface-core";
+import { randomUUID } from "node:crypto";
+import { ok, rejects } from "node:assert/strict";
+import { ImplementInterface } from "@antelopejs/interface-core";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { z } from "zod";
-import * as inviteExtensionsImpl from "../../../../implementations/dms/invite-extensions";
-import * as pageImpl from "../../../../implementations/dms/page";
-import * as permissionsImpl from "../../../../implementations/dms/permissions";
-import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
-import type {
+import {
   RoleModel,
-  TenantMember,
+  type TenantMember,
   TenantMemberModel,
+  UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import {
   ExecuteHooks,
   Hook,
   type InviteDeletedReason,
 } from "@antelopejs/interface-dms/hooks";
-import * as inviteExtensionsInterface from "@antelopejs/interface-dms/invite-extensions";
-import {
-  INVITE_EDIT_FORM_SLOT_ID,
-  INVITE_FORM_SLOT_ID,
-} from "@antelopejs/interface-dms/invite-extensions/internal/form-slot";
 import {
   type InviteCleanupContext,
-  type InviteExtensionContext,
   type InviteExtensionOptions,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
-import {
-  CleanupInviteExtensions,
-  CollectInviteExtensionPayloads,
-  DeliverInviteExtensions,
-} from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
-import {
-  CollectInviteExtensionEdits,
-  NotifyInviteExtensionUpdates,
-  ReadInviteExtensionFields,
-} from "@antelopejs/interface-dms/invite-extensions/internal/edit";
-import {
-  applyInviteExtension,
-  getInviteExtension,
-  revokeInviteExtension,
-} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
-import type { InviteExtensionInfo } from "@antelopejs/interface-dms/invite-extensions/internal/types";
-import * as pageInterface from "@antelopejs/interface-dms/page";
+import { sendAdminInviteEmail } from "@antelopejs/interface-dms/auth";
 import {
   GetPageLayoutBySlug,
   PageController,
   pagesCategory,
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
-import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
-import { ResolveComponentSlots } from "@antelopejs/interface-dms/internal/component-slots";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Form,
@@ -65,11 +37,18 @@ import {
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
-import { InvitesSettingsController } from "../../../../pages/settings/users/invites";
 import { captureWarnings } from "../../../helpers/logging";
+import {
+  createUser,
+  directAdd,
+  editPendingInvite,
+  pendingInvite,
+  readPendingInvite,
+  submitInvite,
+  TENANT,
+} from "../../../helpers/invite-entry-fixtures";
 
-const TENANT = "ie-tenant";
-const MEMBER = { _id: "member-1", userId: "user-1" } as TenantMember;
+let admin: User;
 
 // Registration and extension syncing are promise-chained but do no I/O: one
 // macrotask hop is enough for every pending microtask to settle.
@@ -93,7 +72,7 @@ function textField(id: string, required = false) {
 function inviteHostForm(): FormBuilder {
   return Form({
     fields: [textField("emails", true), textField("roles")],
-    slotId: INVITE_FORM_SLOT_ID,
+    slotId: "dms.invite-form",
   });
 }
 
@@ -108,7 +87,7 @@ function inviteEditHostForm(): FormBuilder {
       textField("firstname"),
       textField("roles_ids"),
     ],
-    slotId: INVITE_EDIT_FORM_SLOT_ID,
+    slotId: "dms.invite-edit-form",
   });
 }
 
@@ -122,23 +101,6 @@ function register<T>(options: InviteExtensionOptions<T>): () => void {
   const dispose = RegisterInviteExtension(options);
   disposers.push(dispose);
   return dispose;
-}
-
-/** A registration as the proxy hands it over, owned by `moduleId`. */
-function infoOf(
-  key: string,
-  fieldId: string,
-  moduleId: string,
-): InviteExtensionInfo {
-  const { options } = recordingExtension(key, fieldId);
-  return {
-    key,
-    component: options.component,
-    schema: options.schema,
-    onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
-    placement: { side: "end", order: 0 },
-    moduleId,
-  };
 }
 
 interface Recorded {
@@ -163,19 +125,21 @@ function recordingExtension(key: string, fieldId = "note") {
   return { recorded, options };
 }
 
+async function hostLayout(slug: string) {
+  const handler = GetPageLayoutBySlug(slug);
+  if (!handler) throw new Error(`No layout handler registered for ${slug}`);
+  return handler({
+    user: admin,
+    memberModel: GetModel(TenantMemberModel, TENANT),
+    roleModel: GetModel(RoleModel, TENANT),
+    tenantId: TENANT,
+  });
+}
+
 async function hostLayoutFields(
   slug: string,
 ): Promise<FormFieldOrGroupSerialized[]> {
-  const handler = GetPageLayoutBySlug(slug);
-  expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
-    undefined,
-  );
-  const layout = await (handler as NonNullable<typeof handler>)({
-    user: undefined as unknown as User,
-    memberModel: {} as TenantMemberModel,
-    roleModel: {} as RoleModel,
-    tenantId: TENANT,
-  });
+  const layout = await hostLayout(slug);
   const options = layout.components.invite
     .options as unknown as FormPropsSerialized;
   return options.fields;
@@ -208,16 +172,28 @@ function topLevelIds(fields: FormFieldOrGroupSerialized[]): string[] {
   return fields.map((item) => item.id);
 }
 
+async function registrationHostCommand(userId: string): Promise<void> {
+  await ExecuteHooks(Hook.MEMBER_BEING_ADDED, {
+    tenantId: "ie-registration-command",
+    userId,
+    isTenantOwner: false,
+  });
+}
+
 describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", () => {
   before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(pageInterface, pageImpl);
-    ImplementInterface(inviteExtensionsInterface, inviteExtensionsImpl);
+    ImplementInterface(
+      { sendAdminInviteEmail },
+      {
+        sendAdminInviteEmail: async () => undefined,
+      },
+    );
+    admin = await createUser();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     for (const dispose of disposers.splice(0)) dispose();
+    await registrationHostCommand("dispose");
   });
 
   describe("injection into the invite modal", () => {
@@ -283,13 +259,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
       await registerHostPage("ie-schema");
 
-      const handler = GetPageLayoutBySlug("/ie-schema");
-      const layout = await (handler as NonNullable<typeof handler>)({
-        user: undefined as unknown as User,
-        memberModel: {} as TenantMemberModel,
-        roleModel: {} as RoleModel,
-        tenantId: TENANT,
-      });
+      const layout = await hostLayout("/ie-schema");
       const schema = (
         layout.components.invite.options as unknown as FormPropsSerialized
       ).schema as { properties: Record<string, unknown>; required: string[] };
@@ -394,73 +364,43 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("reaches the edit form the invitations table opens in a modal", async () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      const table = InvitesSettingsController.table.serializeSync()
+      const layout = await hostLayout("/settings/workspace/invites");
+      // SAFETY: The registered invitations page builds this component with TableView.
+      const table = layout.components.table
         .options as TableViewOptionsSerialized;
-      const resolved = await ResolveComponentSlots(table);
-      const editForm = resolved.formComponents.edit
-        ?.options as FormPropsSerialized;
+      const editForm = table.formComponents.edit?.options;
+      ok(editForm);
 
       expect(table.formContainer?.type).to.equal("modal");
       expect(table.formPages).to.equal(undefined);
       expect(fieldIds(editForm.fields)).to.include("billing__costCenter");
     });
 
-    it("prefills the fields with the stored payloads, under their prefixed ids", () => {
+    it("prefills the fields with the stored payloads, under their prefixed ids", async () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      expect(
-        ReadInviteExtensionFields({
-          billing: { costCenter: "CC-42" },
-          gone: { value: "orphan" },
-        }),
-      ).to.deep.equal({ billing__costCenter: "CC-42" });
+      const id = await pendingInvite({
+        billing: { costCenter: "CC-42" },
+        gone: { value: "orphan" },
+      });
+      const row = await readPendingInvite(id, admin);
+      expect(row).to.have.property("billing__costCenter", "CC-42");
+      expect(row).not.to.have.property("gone__value");
     });
 
-    it("prefills nothing for an invitation without payloads", () => {
+    it("prefills nothing for an invitation without payloads", async () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      expect(ReadInviteExtensionFields(null)).to.deep.equal({});
+      const id = await pendingInvite(null);
+      const row = await readPendingInvite(id, admin);
+      expect(row).to.have.property("_id", id);
+      expect(
+        Object.keys(row).filter((key) => key.includes("__")),
+      ).to.deep.equal([]);
     });
   });
 
   describe("payload edited on a pending invitation", () => {
-    const context: InviteExtensionContext = {
-      tenantId: TENANT,
-      email: "someone@acme.dev",
-      inviteId: "invite-1",
-    };
-
-    it("takes the slices the submission carries", () => {
-      register(recordingExtension("billing", "costCenter").options);
-      register(recordingExtension("onboarding", "track").options);
-
-      expect(
-        CollectInviteExtensionEdits({
-          firstname: "Ada",
-          billing__costCenter: "CC-43",
-        }),
-      ).to.deep.equal({ billing: { costCenter: "CC-43" } });
-    });
-
-    it("refuses an edited slice its schema rejects", () => {
-      register(recordingExtension("billing", "costCenter").options);
-
-      expect(() =>
-        CollectInviteExtensionEdits({ billing__costCenter: "" }),
-      ).to.throw();
-    });
-
-    it("ignores the slice of an extension that is not editable", () => {
-      register({
-        ...recordingExtension("frozen", "value").options,
-        editable: false,
-      });
-
-      expect(
-        CollectInviteExtensionEdits({ frozen__value: "changed" }),
-      ).to.deep.equal({});
-    });
-
     it("tells an extension its payload changed, parsed, with the previous one", async () => {
       const updates: unknown[][] = [];
       register({
@@ -473,13 +413,22 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
-        { capacity: { seats: "3" } },
-        { capacity: { seats: "5" } },
-        context,
-      );
+      const id = await pendingInvite({ capacity: { seats: "3" } });
+      await editPendingInvite(id, { capacity__seats: "5" }, admin);
 
-      expect(updates).to.deep.equal([[{ seats: 5 }, { seats: 3 }, context]]);
+      const stored = await GetModel(UserInviteModel, TENANT).get(id);
+      expect(updates).to.deep.equal([
+        [
+          { seats: 5 },
+          { seats: 3 },
+          {
+            tenantId: TENANT,
+            email: stored?.email,
+            inviteId: id,
+          },
+        ],
+      ]);
+      expect(stored?.extensions).to.deep.equal({ capacity: { seats: "5" } });
     });
 
     it("stays quiet when the payload did not change", async () => {
@@ -491,11 +440,11 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
-        { billing: { costCenter: "CC-42" } },
-        { billing: { costCenter: "CC-42" } },
-        context,
-      );
+      const id = await pendingInvite({ billing: { costCenter: "CC-42" } });
+      await editPendingInvite(id, { billing__costCenter: "CC-43" }, admin);
+      expect(calls).to.equal(1);
+      calls = 0;
+      await editPendingInvite(id, { billing__costCenter: "CC-43" }, admin);
 
       expect(calls).to.equal(0);
     });
@@ -515,10 +464,11 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
-        null,
-        { failing: { value: "x" }, billing: { costCenter: "CC-43" } },
-        context,
+      const id = await pendingInvite(null);
+      await editPendingInvite(
+        id,
+        { failing__value: "x", billing__costCenter: "CC-43" },
+        admin,
       );
 
       expect(seen).to.deep.equal(["CC-43"]);
@@ -526,60 +476,57 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
   });
 
   describe("payload collected at submit", () => {
-    it("splits each extension's slice out of the submitted body", () => {
+    it("splits each extension's slice out of the submitted body", async () => {
       register(recordingExtension("billing", "costCenter").options);
       register(recordingExtension("onboarding", "track").options);
 
-      expect(
-        CollectInviteExtensionPayloads({
-          email: "someone@acme.dev",
+      const response = await submitInvite(
+        {
           billing__costCenter: "CC-42",
           onboarding__track: "sales",
-        }),
-      ).to.deep.equal({
+        },
+        admin,
+      );
+      const stored = await GetModel(UserInviteModel, TENANT).getByEmail(
+        response.results[0].email,
+      );
+      expect(stored?.extensions).to.deep.equal({
         billing: { costCenter: "CC-42" },
         onboarding: { track: "sales" },
       });
     });
 
-    it("refuses a body that does not satisfy an extension's schema", () => {
+    it("refuses a body that does not satisfy an extension's schema", async () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      expect(() =>
-        CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
-      ).to.throw();
+      const email = `${randomUUID()}@acme.dev`;
+      await rejects(submitInvite({ emails: [email] }, admin));
+      expect(
+        await GetModel(UserInviteModel, TENANT).getByEmail(email),
+      ).to.equal(undefined);
     });
 
-    it("drops keys of an extension that is no longer registered", () => {
+    it("drops keys of an extension that is no longer registered", async () => {
       const dispose = register(recordingExtension("gone", "value").options);
       dispose();
-      disposers.length = 0;
 
-      expect(
-        CollectInviteExtensionPayloads({ gone__value: "orphan" }),
-      ).to.deep.equal({});
+      const response = await submitInvite({ gone__value: "orphan" }, admin);
+      const stored = await GetModel(UserInviteModel, TENANT).getByEmail(
+        response.results[0].email,
+      );
+      expect(stored?.extensions).to.deep.equal({});
     });
   });
 
-  describe("delivery at acceptance", () => {
-    const context: InviteExtensionContext = {
-      tenantId: TENANT,
-      email: "someone@acme.dev",
-      inviteId: "invite-1",
-    };
-
+  describe("delivery on direct add", () => {
     it("hands each extension its own payload and the new member", async () => {
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
-        { billing: { costCenter: "CC-42" } },
-        MEMBER,
-        context,
-      );
+      const member = await directAdd({ billing: { costCenter: "CC-42" } });
 
       expect(billing.recorded.accepted).to.deep.equal([
-        { payload: { costCenter: "CC-42" }, member: MEMBER },
+        { payload: { costCenter: "CC-42" }, member },
       ]);
     });
 
@@ -587,11 +534,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
-        { billing: { costCenter: 42 } },
-        MEMBER,
-        context,
-      );
+      await directAdd({ billing: { costCenter: 42 } });
 
       expect(billing.recorded.accepted).to.have.length(0);
     });
@@ -610,10 +553,14 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      const stored = CollectInviteExtensionPayloads({
-        capacity__seats: "3",
-      });
-      await DeliverInviteExtensions(stored, MEMBER, context);
+      const user = await createUser();
+      await submitInvite(
+        {
+          emails: [user.email],
+          capacity__seats: "3",
+        },
+        admin,
+      );
 
       expect(seen).to.deep.equal([{ seats: 3 }]);
     });
@@ -629,11 +576,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
-        { failing: { value: "x" }, billing: { costCenter: "CC-42" } },
-        MEMBER,
-        context,
-      );
+      await directAdd({
+        failing: { value: "x" },
+        billing: { costCenter: "CC-42" },
+      });
 
       expect(billing.recorded.accepted).to.have.length(1);
     });
@@ -696,7 +642,11 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       expect(billing.recorded.cleaned).to.have.length(0);
     });
 
-    it("runs once per removed member, keyed on the user", async () => {
+    it("runs once per removed member, skipping extensions without cleanup", async () => {
+      register({
+        ...recordingExtension("no-cleanup", "value").options,
+        onCleanup: undefined,
+      });
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
@@ -709,17 +659,6 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         { reason: "member-removed", tenantId: TENANT, userId: "user-1" },
         { reason: "member-removed", tenantId: TENANT, userId: "user-2" },
       ]);
-    });
-
-    it("leaves an extension that declared no cleanup handler alone", async () => {
-      const { options } = recordingExtension("billing", "costCenter");
-      register({ ...options, onCleanup: undefined });
-
-      await CleanupInviteExtensions(null, {
-        reason: "member-removed",
-        tenantId: TENANT,
-        userId: "user-1",
-      });
     });
   });
 
@@ -736,11 +675,22 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("lets a re-registration under the same key take over", async () => {
       const first = recordingExtension("billing", "a");
       const disposeFirst = register(first.options);
-      const second = recordingExtension("billing", "b");
-      register(second.options);
-      disposeFirst();
       await registerHostPage("ie-reload");
+      expect(fieldIds(await hostLayoutFields("/ie-reload"))).to.deep.equal([
+        "emails",
+        "roles",
+        "billing__a",
+      ]);
+      const second = recordingExtension("billing", "b");
+      const warnings = captureWarnings();
+      try {
+        register(second.options);
+        disposeFirst();
+      } finally {
+        warnings.restore();
+      }
 
+      expect(warnings.messages).to.deep.equal([]);
       expect(fieldIds(await hostLayoutFields("/ie-reload"))).to.deep.equal([
         "emails",
         "roles",
@@ -748,58 +698,52 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       ]);
     });
 
-    // A reload is replayed straight into the registry, the way the proxy hands
-    // it over: the core runs every interface call in the importing module's
-    // context, so a test cannot stand in for another module's generation.
-    it("stays quiet when the next generation of a module reclaims its key", async () => {
-      const departing = infoOf("billing", "a", "ie-reloaded");
-      const next = infoOf("billing", "b", "ie-reloaded");
-      applyInviteExtension(departing);
-      const warnings = captureWarnings();
-      try {
-        applyInviteExtension(next);
-        revokeInviteExtension(departing);
-      } finally {
-        warnings.restore();
-      }
-      await registerHostPage("ie-generation");
-
-      try {
-        expect(warnings.messages).to.deep.equal([]);
-        expect(
-          fieldIds(await hostLayoutFields("/ie-generation")),
-        ).to.deep.equal(["emails", "roles", "billing__b"]);
-      } finally {
-        revokeInviteExtension(next);
-      }
-      expect(fieldIds(await hostLayoutFields("/ie-generation"))).to.deep.equal([
+    it("warns when a different module claims a key already held", async () => {
+      await registrationHostCommand("held");
+      await registerHostPage("ie-ownership");
+      expect(fieldIds(await hostLayoutFields("/ie-ownership"))).to.deep.equal([
         "emails",
         "roles",
+        "billing__held",
       ]);
-    });
-
-    it("warns when a different module claims a key already held", () => {
-      const held = infoOf("billing", "a", "ie-holder");
-      const claimed = infoOf("billing", "b", "ie-claimant");
-      applyInviteExtension(held);
       const warnings = captureWarnings();
       try {
-        applyInviteExtension(claimed);
+        register(recordingExtension("billing", "claimed").options);
       } finally {
         warnings.restore();
-        revokeInviteExtension(claimed);
+        await registrationHostCommand("dispose");
       }
 
       expect(warnings.messages).to.have.length(1);
       expect(warnings.messages[0]).to.include('"billing"');
+      expect(fieldIds(await hostLayoutFields("/ie-ownership"))).to.deep.equal([
+        "emails",
+        "roles",
+        "billing__claimed",
+      ]);
     });
 
-    it("records the module that registered the extension", () => {
-      const registering = GetResponsibleModule();
-      register(recordingExtension("billing", "a").options);
+    it("keeps registrations by the same real module quiet", async () => {
+      await registrationHostCommand("first");
+      const warnings = captureWarnings();
+      try {
+        await registrationHostCommand("second");
+        await registerHostPage("ie-owned");
+        expect(fieldIds(await hostLayoutFields("/ie-owned"))).to.deep.equal([
+          "emails",
+          "roles",
+          "billing__second",
+        ]);
+      } finally {
+        warnings.restore();
+        await registrationHostCommand("dispose");
+      }
 
-      expect(registering).to.be.a("string").that.is.not.empty;
-      expect(getInviteExtension("billing")?.moduleId).to.equal(registering);
+      expect(warnings.messages).to.deep.equal([]);
+      expect(fieldIds(await hostLayoutFields("/ie-owned"))).to.deep.equal([
+        "emails",
+        "roles",
+      ]);
     });
 
     it("delivers to the registration that currently owns the key", async () => {
@@ -809,10 +753,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(second.options);
       disposeFirst();
 
-      await DeliverInviteExtensions({ billing: { b: "value" } }, MEMBER, {
-        tenantId: TENANT,
-        email: "someone@acme.dev",
-      });
+      await directAdd({ billing: { b: "value" } });
 
       expect(first.recorded.accepted).to.have.length(0);
       expect(second.recorded.accepted).to.have.length(1);

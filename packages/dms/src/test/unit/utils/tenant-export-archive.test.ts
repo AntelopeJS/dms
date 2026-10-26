@@ -11,6 +11,7 @@ import {
 } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
 import { buildTenantExportArchive } from "../../../utils/tenant-export-archive";
+import { readText } from "../../helpers/files";
 
 const TENANT_ID = "tenant-1";
 
@@ -35,7 +36,7 @@ async function build(signal?: AbortSignal) {
   });
   // Entry names sit uncompressed in the local file headers, so scanning the
   // raw bytes is enough to assert the archive layout without a zip reader.
-  const raw = fs.readFileSync(localPath).toString("latin1");
+  const raw = readText(localPath, "latin1");
   fs.rmSync(localPath, { force: true });
   return { summary, raw };
 }

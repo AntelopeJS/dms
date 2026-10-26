@@ -94,6 +94,12 @@ export default defineConfig({
         path: "dist/test/reload-host",
       },
     },
+    "invite-extension-host": {
+      source: {
+        type: "local",
+        path: "dist/test/invite-extension-host",
+      },
+    },
     "api-endpoint": {
       source: {
         type: "local",
