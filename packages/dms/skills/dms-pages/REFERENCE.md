@@ -14,7 +14,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
-| Data | `Form`, `ResourceForm(controller, { mode: "new" \| "edit" \| "view" })` (from `/base/table-view`), `TableView(controller, options)` |
+| Data | `Form`, `ResourceForm(controller, { mode: "new" \| "edit" \| "view" })` (from `/base/table-view`), `TableView(controller, options)`, `Matrix(options)` (an editable rows × columns grid over a module's own `fetchUrl` / `saveUrl`, from `/base/matrix`) |
 | Escape hatch | `CustomComponent(name)` (deep import from `@antelopejs/interface-dms/base/custom` — not in the barrel), always with `.meta()` — see **dms-best-practices** |
 
 Nest with `.child("key", builder)`. Builders also carry a behavioral DSL — permissioned
@@ -224,6 +224,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   through the edit route — never a custom cell component calling the route. A table whose every
   cell is an input sets `rowClick: "none"`, the row then opening from its actions only —
   `docs/04.components/08.tables/13.inline-edit.md`.
+- A rows × columns grid edited in place (the languages of each key, the sizes of an article by
+  store, a team's shifts by day) is a `Matrix` over a route answering `MatrixData` and a save route
+  receiving `{ changes }` — never a custom component drawing a grid of inputs —
+  `docs/04.components/14.matrix.md`.
 - A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
   default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
 - A `cards` display whose `card.component` is taller than the built-in card sets
