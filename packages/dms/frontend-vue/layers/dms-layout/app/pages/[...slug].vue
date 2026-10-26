@@ -530,6 +530,7 @@ if (import.meta.env.DEV) {
         { 'dms-fresh-modified': freshComponentIds.has(component.id) },
         component.id === fillingComponentId && fillColumnClass,
       ]"
+      :data-dms-page-fill="component.id === fillingComponentId || undefined"
     >
       <DmsRecursiveComponent
         :component="component"

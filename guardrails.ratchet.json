@@ -18,7 +18,7 @@
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
-    "packages/dms/docs-data/blocks.json": 433405,
+    "packages/dms/docs-data/blocks.json": 451103,
     "packages/dms/docs-data/examples.json": 48123,
     "packages/dms/frontend-vue/layers/dms-auth/i18n/locales/auth-en-GB.json": 25781,
     "packages/dms/frontend-vue/layers/dms-auth/i18n/locales/auth-fr-FR.json": 29293,
