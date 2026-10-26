@@ -271,6 +271,9 @@ export const useTableRowActions = <T extends Data>(
         title,
         description,
         containerId,
+        // One size for the table's form, whatever the row: the container id
+        // names the row, and a size kept per row would be lost on the next.
+        sizeKey: `${config.pageId}-${config.componentId}-form`,
         component: DmsForm,
         componentOptions: {
           ...processedOptions,
