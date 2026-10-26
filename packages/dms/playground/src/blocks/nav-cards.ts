@@ -133,12 +133,9 @@ export class PageBlocksNavCards extends PageController(
     fetchUrl: "/api/blocks/shortcuts",
     realtimeTopic: FACTS_DEMO_TOPIC,
     columns: 2,
-    // The route answers 4 cards: the skeleton draws as many, on every width.
     skeletonCount: 4,
   });
 
-  // One card per page of the category the viewer can open, in menu order,
-  // each with its navigation badge: no item is listed by hand.
   static siblings = NavCardGrid({
     title: "Every Blocks demo",
     description: "category: blocksCategory, one card per page of this section.",

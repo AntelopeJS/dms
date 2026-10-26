@@ -14,9 +14,6 @@ interface CustomRowAction {
 
 const START_ACTION_ID = "start";
 
-// The card props every card display hands a custom card (`card.component`),
-// mirrored locally so this example stays decoupled from the dms package's
-// internal type paths.
 interface TaskCardProps {
   /** The row the card stands for */
   row: Record<string, unknown>;
@@ -53,8 +50,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: "error",
 };
 
-// The row's "Start" action, found by its id among the actions its rule
-// leaves it: absent once the task is no longer pending.
 const startAction = computed(() =>
   props.actions
     .customFor(props.row)

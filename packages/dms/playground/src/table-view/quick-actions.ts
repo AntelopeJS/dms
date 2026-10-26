@@ -29,9 +29,6 @@ interface TablePageSpec {
   page: ControllerClass;
 }
 
-// Each entry opens the creation form of its page's table. Nothing declares a
-// permission: reaching the page and holding its table's `add` permission is
-// what the server checks, both derived from the page itself.
 const tablePages: TablePageSpec[] = [
   {
     id: "table-view-drawer",
@@ -94,9 +91,6 @@ for (const spec of tablePages) {
   });
 }
 
-// Presses the table's "Complete all pending" button: the action opens what the
-// button opens (its confirmation, then its route) and is listed only for a
-// caller the button's own permission admits.
 QuickAction("table-view-complete-all", {
   category: tableViewQuickActionCategory,
   displayName: "Complete all pending tasks",

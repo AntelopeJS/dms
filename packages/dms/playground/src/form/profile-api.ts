@@ -98,8 +98,6 @@ export class ProfileAPIController extends Controller("/api/profile") {
         context,
         componentIds: GetComponentPermissionIds(PageFormProfileEdit.basicInfo),
         fields: PROFILE_ATTACHMENT_FIELDS,
-        // The other forms of the page submit no file field: keep the stored
-        // ones, or cleanup would read their absence as a removal.
         submitted: { ...before, ...profileUpdates },
         before,
       },
@@ -135,8 +133,6 @@ export class ProfileAPIController extends Controller("/api/profile") {
     stored: Profile,
     updates: Partial<Profile>,
   ): Partial<Profile> {
-    // Each form of the page submits its own fields only: one it leaves out
-    // keeps its stored value, one it sends empty (`null`) is cleared.
     return {
       ...updates,
       _id: DEFAULT_PROFILE_ID,
@@ -154,10 +150,7 @@ export class ProfileAPIController extends Controller("/api/profile") {
 
   private formatProfileResponse(profile: Profile) {
     return {
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Profile and Table have no instance methods; this response copies their data fields for JSON.
       ...profile,
     };
   }

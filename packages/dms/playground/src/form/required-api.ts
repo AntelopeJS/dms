@@ -14,7 +14,6 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 const TAKEN_USERNAME = "admin";
 const UNKNOWN_POSTAL_CODE = "0000";
-// Params fill a translated message only: a literal is shown as it is.
 const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
 const ADDRESS_FIELD = "address";
 const POSTAL_CODE_PART = "postalCode";
@@ -64,7 +63,6 @@ export class FormRequiredAPIController extends Controller(
 
   @Put("submit")
   async submit(@JSONBody() body: DemoRecord) {
-    // Business checks need no valid body: they answer first, alone.
     refuseTakenUsername(body.username);
     refuseUnknownPostalCode(body[ADDRESS_FIELD]);
     const parsed = await formSchema(PageFormRequired.form).safeParseAsync(body);

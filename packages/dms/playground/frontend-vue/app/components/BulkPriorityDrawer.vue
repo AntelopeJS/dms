@@ -1,8 +1,4 @@
 <script setup lang="ts">
-// The drawer of the "Custom Row Actions" demo's bulk "Set priority" action:
-// a `bulk` action opening a drawer hands it the `selection` prop (`ids`,
-// `count`) instead of a row. Saving calls the table's own route with the
-// ids, then `onSuccessCallback` closes the drawer and refreshes the table.
 
 interface Selection {
   ids?: string[];

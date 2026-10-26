@@ -65,8 +65,6 @@ const WORKSPACE_ENTRIES: DatedEntry[] = [
     id: "a4",
     icon: "i-ph-translate",
     tone: "warning",
-    // A `$` title takes the entry's typed values: the count picks
-    // the plural form.
     title: "$demo.blocks.activity.missing_keys",
     params: { count: { type: "count", value: 12 } },
     meta: ["Français", "checkout"],
@@ -127,7 +125,6 @@ const WORKSPACE_ENTRIES: DatedEntry[] = [
   },
 ];
 
-// Dated on each request, so "Today" stays today on a long-running backend.
 export function workspaceActivity(): ActivityFeedItem[] {
   return WORKSPACE_ENTRIES.map(({ agoMs, ...entry }) => ({
     ...entry,
@@ -135,8 +132,6 @@ export function workspaceActivity(): ActivityFeedItem[] {
   }));
 }
 
-// Failed requests worth a look, each with a third mono line long enough to
-// show `wrap`.
 export function attentionEntries(): ActivityFeedItem[] {
   return [
     {

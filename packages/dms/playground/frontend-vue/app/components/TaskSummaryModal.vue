@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// The modal of the "Custom Row Actions" demo's "Open in a modal" action: a
-// custom row action whose target is a `modal` hands its component the row.
 
 interface TaskRow {
   name?: string;

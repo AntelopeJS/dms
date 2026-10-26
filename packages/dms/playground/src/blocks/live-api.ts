@@ -33,7 +33,6 @@ interface StatusLook {
   icon: string;
 }
 
-// Checked in order: the first whose `from` the status reaches wins.
 const STATUS_LOOKS: StatusLook[] = [
   { from: 500, tone: "error", icon: "i-ph-x-circle" },
   { from: 400, tone: "warning", icon: "i-ph-warning-circle" },
@@ -81,8 +80,6 @@ function feedEntry(): ActivityFeedItem {
   };
 }
 
-// The payload says how many requests the event stands for: a paused page
-// counts "40 new requests", not "1 new".
 async function publishBatch(): Promise<void> {
   const batch: RequestBatch = {
     count: BATCH_SIZE,
@@ -160,7 +157,6 @@ export class BlocksLiveApiController extends Controller("/api/blocks/live") {
     return { batches: BURST_BATCHES };
   }
 
-  // A row event: a paused page counts each id once, however often it comes.
   @Post("rows")
   async touchRows() {
     const ids = ["order-1", "order-2", "order-3"];

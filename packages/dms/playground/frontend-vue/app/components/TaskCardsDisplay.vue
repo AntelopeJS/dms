@@ -2,16 +2,6 @@
 import DmsEmpty from "#dms-ui/app/build/components/table/Empty.vue";
 import DmsPagination from "#dms-ui/app/build/components/table/Pagination.vue";
 import DmsCardGridSkeleton from "#dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
-// Example project-contributed table view display: a responsive card grid.
-//
-// It receives the single normalized `context` prop every display gets. It
-// leaves `selfManagedData` unset in the page config (the default), so it
-// consumes the shared list query and inherits search/filters/sorting/pagination
-// for free. It renders inside the table card, so the shared footer
-// (`DmsPagination`) and empty state (`DmsEmpty`) plug straight in.
-//
-// The context type is mirrored locally so this example stays decoupled from the
-// dms package's internal type paths (same approach as KanbanTaskCard.vue).
 interface ColumnMeta {
   id: string;
   header: string;
@@ -101,8 +91,6 @@ const fieldColumns = computed(() =>
     .slice(0, MAX_CARD_FIELDS),
 );
 
-// Values go through the column's data type formatter, like table cells do
-// (status pills, links, dates, amounts).
 const FieldValue = (fieldProps: {
   column: ColumnMeta;
   item: Record<string, unknown>;

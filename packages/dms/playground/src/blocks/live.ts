@@ -117,8 +117,6 @@ export class PageBlocksLive extends PageController(
         }),
       )
       .child(
-        // A module's own component kept in step with the page through
-        // usePageLiveRefresh and usePageLive.
         "health",
         CustomComponent("LiveHealthDemo").options({
           healthUrl: `${LIVE_API}/health`,
@@ -128,7 +126,6 @@ export class PageBlocksLive extends PageController(
       ),
   );
 
-  // The default segmented toggle, without the "updated N s ago" text.
   static plainToggle = LiveToggle({ align: "left", showUpdatedAt: false });
 
   static howItWorks = KeyValueList({

@@ -10,7 +10,6 @@ const QUIET_PRESET = "last-hour";
 const SERIES_LENGTH = 12;
 const SERIES_STEP = 7;
 
-// Calls in the periods other than the last hour, which starts empty.
 const CALLS_BY_PRESET: Record<string, number> = {
   "last-24h": 48,
   "last-7-days": 312,
@@ -45,8 +44,6 @@ function callSeries(total: number): number[] {
  * until a test call is sent, and a record that exists (`r1`) or is gone.
  */
 export class BlocksGuardApiController extends Controller("/api/blocks/guard") {
-  // `summary.calls` is what the guard checks. While it is 0 the answer also
-  // carries an `emptyState`, laid over the guard's own fallback.
   @Get("calls")
   getCalls(@Parameter("preset", "query") preset?: string) {
     const calls = callsIn(preset);

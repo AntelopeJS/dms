@@ -14,7 +14,6 @@ RegisterPermission(EXPORT_REPORTS_PERMISSION_ID, {
   icon: "i-ph-export",
 });
 
-// Workspaces switched to the "free plan" by the permissions page.
 const freePlanWorkspaces = new Set<string>();
 
 export function isOnFreePlan(tenantId: string): boolean {
@@ -39,9 +38,6 @@ function withoutCharts(permissions: Set<string>): Set<string> {
   );
 }
 
-// Reshapes what a role grants, per workspace: on the free plan, the charts
-// demos leave the menu of every member whose role granted them. An owner
-// holds `*`, which no prefix matches, so preview a role to see it.
 RegisterPermissionsResolver({
   id: "playground-free-plan",
   order: 0,

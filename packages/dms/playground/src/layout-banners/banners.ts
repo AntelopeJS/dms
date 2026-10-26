@@ -17,7 +17,6 @@ const DAY_MS = 86_400_000;
 export const BANNER_KEYS = ["info", "past-due", "component"] as const;
 export type BannerKey = (typeof BANNER_KEYS)[number];
 
-// Per tenant, the banners switched on. Every resolver below reads it.
 const shownBanners = new Map<BannerKey, Set<string>>(
   BANNER_KEYS.map((key) => [key, new Set<string>()]),
 );
@@ -64,8 +63,6 @@ function pastDueContent({
   };
 }
 
-// A text banner: fixed message and link, shown while switched on. It is about
-// the application, so it stays out of the module area.
 RegisterLayoutBanner({
   key: "playground:info",
   variant: LayoutBannerVariant.INFO,
@@ -77,9 +74,6 @@ RegisterLayoutBanner({
   visible: ({ tenantId }) => isBannerShown("info", tenantId),
 });
 
-// A resolved banner: visibility and message built in one read per request. A
-// past-due workspace is a workspace-wide state: it follows the user into the
-// module area.
 RegisterLayoutBanner({
   key: "playground:past-due",
   variant: LayoutBannerVariant.ERROR,
@@ -88,8 +82,6 @@ RegisterLayoutBanner({
   resolve: pastDueContent,
 });
 
-// A component banner, also shown while the tenant access gate refuses the
-// workspace (switch it on the Tenancy page).
 RegisterLayoutBanner({
   key: "playground:suspended",
   variant: LayoutBannerVariant.WARNING,

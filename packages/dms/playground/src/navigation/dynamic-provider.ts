@@ -11,7 +11,6 @@ import {
 
 /** The projects the validation function of the project page knows. */
 export const DEMO_PROJECT_IDS = ["invoicer", "resto-lucca", "sleepy-api"];
-// The first project shows a count badge instead of its status dot.
 const DEMO_BADGES: Record<string, string> = { invoicer: "3" };
 const STATUS_CYCLE: MenuItemStatus[] = [
   "success",
@@ -21,11 +20,8 @@ const STATUS_CYCLE: MenuItemStatus[] = [
 ];
 const UNKNOWN_PROJECT_ID = "archived-project";
 const EXTRA_ENTRIES_ORDER = 50;
-// Listed only for a user holding the overview page's permission.
 const OVERVIEW_PERMISSION_ID = `${dynamicNavigationCategory.fullId}.overview`;
 
-// A real provider would read the tenant's data here; the playground keeps a
-// fixed list, whose statuses the demo route rotates to show a live menu refresh.
 let statusOffset = 0;
 
 const statusOf = (index: number): MenuItemStatus => {

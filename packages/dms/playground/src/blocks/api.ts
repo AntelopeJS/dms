@@ -7,8 +7,6 @@ import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
 
-// Live payloads for the display-block demos. Each answers `{ items }` in the
-// block's own item shape after a short delay, so the loading state shows.
 const DEMO_LATENCY_MS = 900;
 const MINUTE_MS = 60 * 1000;
 
@@ -41,8 +39,6 @@ async function bumpFactsAndPublish(): Promise<void> {
   await PublishMessage(FACTS_DEMO_TOPIC, FACTS_DEMO_EVENT_TYPE);
 }
 
-// The live StatGroup follows a PeriodSelector: its figures scale with the
-// length of the selected period, so a change of preset shows in the numbers.
 const DEFAULT_PERIOD = "this-month";
 const PERIOD_SCALES: Record<string, number> = {
   "last-7-days": 0.25,
@@ -69,8 +65,6 @@ const OUTAGE_STARTED_MINUTES_AGO = 42;
 
 const PROVIDER_STATUS_URL = "/api/blocks/provider-status";
 
-// The fetched banner of the feedback demo: the page header's "Simulate an
-// outage" sets it, the banner's own "Replay the queue" clears it.
 let isProviderDown = false;
 let outageStartedAt = Date.now();
 
@@ -99,8 +93,6 @@ const PROVIDER_OUTAGE_ACTIONS: BannerAction[] = [
   },
 ];
 
-// Title and description are composed in the reader's language: a relative
-// time, a count picking the plural form, and a nested text as a value.
 function providerOutage(): BannerContent {
   return {
     tone: "error",
@@ -134,7 +126,6 @@ function later<T>(value: T): Promise<T> {
   );
 }
 
-// Eyebrow, value and detail are each composed in the reader's language.
 function mrrStat(): StatGroupItem {
   return {
     icon: "i-ph-currency-eur",
@@ -235,7 +226,6 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     });
   }
 
-  // Figures of the period the card's own selector picks.
   @Get("period-facts")
   getPeriodFacts(@Parameter("preset", "query") preset?: string) {
     const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
@@ -333,7 +323,6 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     });
   }
 
-  // The CodeBlock demo reads one snippet, `{ code, language? }`, not `{ items }`.
   @Get("code")
   getCode() {
     const preset = {

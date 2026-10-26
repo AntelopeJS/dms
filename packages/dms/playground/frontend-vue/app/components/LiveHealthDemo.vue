@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// A module's own block on a live page: it reads its route like a built-in
-// block (gated by maxRate, counted while paused), tallies the 5xx it misses
-// for the toggle, and holds the page while its note field has the focus.
 
 interface Props {
   healthUrl: string;

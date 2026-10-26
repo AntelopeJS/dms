@@ -28,8 +28,6 @@ const RAW_SOURCES = import.meta.glob<string>(
   { query: "?raw", import: "default", eager: true },
 );
 
-// Glob keys are relative to this file: `../../plugins/x.ts` is
-// `plugins/x.ts`, `../custom/X.vue` is `components/custom/X.vue`.
 const SOURCES_BY_PATH: Record<string, string> = Object.fromEntries(
   Object.entries(RAW_SOURCES).map(([file, code]) => [
     file.replace(/^\.\.\/\.\.\//, "").replace(/^\.\.\//, "components/"),

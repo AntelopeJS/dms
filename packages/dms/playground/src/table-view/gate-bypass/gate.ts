@@ -42,9 +42,6 @@ interface ItemsResponse {
   items: KeyValueListItem[];
 }
 
-// The demo's recovery-path switch: it bypasses the gate, so it stays
-// reachable while the tenant is suspended to lift the suspension, and only
-// the workspace owner may press it.
 export class GateDemoController extends Controller(GATE_DEMO_API) {
   @Post("toggle")
   async toggle(

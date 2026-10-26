@@ -44,8 +44,6 @@ export class PageToolbarLive extends PageController(
     ],
   }),
 ) {
-  // Live, period, a comparison menu and a leading child: the widest toolbar
-  // a module draws.
   static toolbar = pageToolbar({
     leading: { scope: scopeChip("All sites") },
     live: { missedLabel: "$demo.blocks.live.new_requests" },
@@ -65,7 +63,6 @@ export class PageToolbarLive extends PageController(
     skeletonCount: 3,
   });
 
-  // Live only: no period, and the xs size.
   static liveOnly = pageToolbar({
     size: "xs",
     leading: { queue: scopeChip("Request queue") },
@@ -96,9 +93,6 @@ export class PageToolbarReport extends PageController(
   },
   DefaultLayout(),
 ) {
-  // Period only: the updated label and the refresh button stand in for the
-  // live toggle. Three comparisons draw the "vs …" menu, and the custom
-  // preset its calendar icon.
   static toolbar = pageToolbar({
     live: false,
     period: {

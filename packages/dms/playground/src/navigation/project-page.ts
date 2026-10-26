@@ -10,8 +10,6 @@ import {
 /** Registered by the playground's page-validation-demo frontend plugin. */
 export const KNOWN_PROJECT_FUNCTION_ID = "playground:known-project";
 
-// One page behind every dynamic entry: it is reached as `?project=<id>` and
-// stays out of the menu itself, the entries being the only way in.
 @RegisterPage()
 export class DynamicNavigationProjectPage extends PageController(
   "project",

@@ -11,7 +11,6 @@ import { blocksCategory } from "./category";
 const CATALOG_API = "/api/blocks/catalog";
 const CATALOG_PAGE = "/blocks/blocks-catalog";
 const SCHEMA_MAX_LINES = 24;
-// Shown until ?type= names a block: the route is not read before that.
 const NO_TYPE_PICKED =
   "No block type picked yet: choose KpiCard, Guard or Card in the banner above, or add ?type=<BlockType> to the URL.";
 

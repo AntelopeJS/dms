@@ -64,7 +64,6 @@ export class PageBlocksKeyValue extends PageController(
               tone: "warning",
             },
             { label: "Language", value: "English (UK)" },
-            // A text value takes a tone too: it colours the text.
             {
               label: "Password",
               value: "Expires in 3 days",
@@ -107,9 +106,7 @@ export class PageBlocksKeyValue extends PageController(
           title: "Live facts",
           fetchUrl: "/api/blocks/facts",
           fetchUrlMethod: HttpMethod.get,
-          // Read again on each bump of the header button, over SSE.
           realtimeTopic: FACTS_DEMO_TOPIC,
-          // The route answers 7 rows: the skeleton draws as many.
           skeletonCount: 7,
         }),
       ),
@@ -144,8 +141,6 @@ export class PageBlocksKeyValue extends PageController(
     ],
   });
 
-  // `currency` on the list is the default of every money row; a row's own
-  // `currency` still wins.
   static threeColumns = KeyValueList({
     title: "Invoice · three columns, list currency EUR",
     columns: 3,
@@ -213,8 +208,6 @@ export class PageBlocksKeyValue extends PageController(
     }),
   );
 
-  // Blocks in the head and the foot of the card, through its two slots: a
-  // period selector driving the list in the body, and a row of notes.
   static elevated = Card({
     title: "Sales",
     count: "this workspace",

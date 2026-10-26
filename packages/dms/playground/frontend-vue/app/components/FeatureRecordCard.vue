@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { TableViewCardReorder } from "#dms-ui/app/composables/table-view/types";
 
-// The card of the roadmap demo's cards display: a module's own card drawn
-// with the DMS record card. The roadmap is ordered by hand, so the card also
-// draws the move handle the display hands it. Its footer buttons are the
-// row's custom actions (`actions.customFor`), run with `actions.custom`.
 
 interface FeatureRow {
   name?: string;

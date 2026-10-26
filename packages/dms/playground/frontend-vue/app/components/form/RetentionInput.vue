@@ -35,7 +35,6 @@ const { confirmFrom } = useConfirmFrom();
 const { formatNumber } = useRegionalFormat();
 
 const adjustment = ref<InputNumberAdjustment | null>(null);
-// The value last saved: lowering it below this asks first.
 let saved: number | null = null;
 let confirmedValue: number | null = null;
 
