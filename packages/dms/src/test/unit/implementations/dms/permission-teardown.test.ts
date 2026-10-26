@@ -50,8 +50,6 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     expect(treeNode(["teardown", "parent"])).to.equal(undefined);
   });
 
-  // Unregistering a parent used to delete the whole subtree: pages still
-  // registered under a category lost their permission with it.
   it("leaves a still-registered descendant alone", () => {
     register(PARENT);
     register(CHILD);
@@ -85,8 +83,6 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     expect(treeNode(["teardown"])).to.equal(undefined);
   });
 
-  // A stale `defaultGranted` permission keeps granting access, and the roles
-  // UI hides those by design — invisible and still in force.
   it("stops a defaultGranted permission from granting once unregistered", async () => {
     register(GRANDCHILD, true);
     expect(

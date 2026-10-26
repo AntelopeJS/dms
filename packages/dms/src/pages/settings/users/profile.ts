@@ -86,9 +86,6 @@ const profileFields = [
 
 const PROFILE_TEXTS = "$page.settings.profile";
 
-// The avatar field travels as a serialized image field: page registration
-// finds it there and stamps the upload token bound to this form, which the
-// save route claims its files for.
 const personalInfoForm = CustomComponent("DmsProfilePersonalInfo")
   .options({
     endpoint: PROFILE_URL,
@@ -111,8 +108,6 @@ export class ProfileSettingsController extends PageController("profile", {
   order: 1,
   description: "$page.settings.description.profile",
 }) {
-  // No card of the section's own: the form draws its card, its save bar
-  // floating under it.
   static profileComponent = Section({
     title: `${PROFILE_TEXTS}.title`,
     description: `${PROFILE_TEXTS}.description`,
@@ -144,7 +139,6 @@ export class ProfileSettingsController extends PageController("profile", {
       icon: "i-ph-shield-check",
     });
 
-  // Each row shows only when the page it leads to opens for the user.
   static preferencesComponent = Section({
     title: `${PROFILE_TEXTS}.preferences.title`,
     description: `${PROFILE_TEXTS}.preferences.description`,
@@ -161,8 +155,6 @@ export class ProfileSettingsController extends PageController("profile", {
       icon: "i-ph-sliders-horizontal",
     });
 
-  // Its own permission: a workspace can keep managed accounts from exporting
-  // or deleting themselves by not granting it.
   static accountDataComponent = Section({
     title: `${PROFILE_TEXTS}.data.title`,
     description: `${PROFILE_TEXTS}.data.description`,
@@ -231,9 +223,7 @@ export class ProfileSettingsController extends PageController("profile", {
     const parsed =
       await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
     if (parsed.success) return parsed.data as UpdateProfileInput;
-    // One issue, not the whole ZodError: stringifying it dumps the raw issue
-    // array, which a toast would render verbatim. The field is kept in front
-    // of the message because zod's messages do not name their field.
+
     const [issue] = parsed.error.issues;
     const field = issue?.path.join(".");
     throw new HTTPResult(
@@ -247,8 +237,7 @@ export class ProfileSettingsController extends PageController("profile", {
     userModel: UserModel,
   ): Promise<void> {
     const { name, email, language, avatar } = await this.parseProfile(body);
-    // Older clients resend the current email with every save; anything else
-    // is an email change, which needs the current password.
+
     assert(
       !email || normalizeEmail(email) === this.user.email,
       HTTP_BAD_REQUEST,

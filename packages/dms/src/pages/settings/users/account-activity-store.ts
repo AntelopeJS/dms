@@ -1,7 +1,3 @@
-// Reads the rows the "Recent account activity" card is built from: the
-// user's sessions, notifications, memberships and the invitations they sent.
-// The merge itself is in account-activity.ts.
-
 import { Logging } from "@antelopejs/interface-core/logging";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";

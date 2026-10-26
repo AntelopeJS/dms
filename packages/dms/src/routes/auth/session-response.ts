@@ -84,10 +84,6 @@ export async function resolveLoginOutcome(
   origin: ClientOrigin,
   preferredTenantId?: string,
 ): Promise<LoginOutcome> {
-  // A login that just consumed an invitation belongs in the tenant that
-  // invited, not in the account's oldest membership — otherwise accepting an
-  // invitation to a second workspace signs the user into the first one, with
-  // the invitation already burned and nothing saying the new one was joined.
   const tenantId = preferredTenantId ?? (await pickInitialTenantId(user._id));
 
   if (tenantId === undefined) {

@@ -22,9 +22,6 @@ interface SignupScenario {
   existingDraft?: User;
 }
 
-// One id per address: a takeover accepts the invitation, which makes its
-// account a workspace member, and a later draft under the same id would then
-// be refused as a real account.
 function buildDraft(email: string): User {
   return {
     _id: `signup-validation-draft:${email}`,
@@ -57,8 +54,7 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
       account = user;
     },
   } as unknown as UserModel;
-  // The fixture skips validation by default; the invitation here must not,
-  // or a signup left to its validation round would read as validated.
+
   const { token } = await seedUserInvite({
     email: scenario.email,
   });
@@ -90,8 +86,6 @@ describe("[unit] auth/signup — email validation of an invited account", () => 
   afterEach(() => setEmailValidation(false));
 
   describe("on an instance that does not validate emails", () => {
-    // Nothing would ever validate such an account: it kept the "Email not
-    // verified" badge for good, and resending the email always failed.
     it("marks the new account verified", async () => {
       expectValidated(
         await signUpThroughInvite({ email: "validation-off@acme.dev" }),
@@ -106,8 +100,6 @@ describe("[unit] auth/signup — email validation of an invited account", () => 
     });
   });
 
-  // The invitation link proves the address (an admin who copies it by hand
-  // vouches for it): no second validation round follows the signup.
   describe("on an instance that validates emails", () => {
     beforeEach(() => setEmailValidation(true));
 

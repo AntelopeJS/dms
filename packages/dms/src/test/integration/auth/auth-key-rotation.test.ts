@@ -13,10 +13,6 @@ import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A password change and "Sign out other sessions" rotate the account's auth
-// key: every token issued so far stops working, the other sessions go, and
-// the caller's own session gets a handoff that buys it a new pair once.
-
 const SECURITY = pageRoutePath("/settings/user/security");
 const NEW_PASSWORD = "Rotated26!";
 const HTTP_OK = 200;
@@ -110,8 +106,7 @@ describe("[integration] auth/auth key rotation", () => {
     const response = await thisDevice.delete(`${SECURITY}/other-sessions`);
     const handoff = response.data.sessionHandoff as SessionHandoff;
     expect((await redeem(handoff)).status).to.equal(HTTP_OK);
-    // A duplicate racing the first trade gets the same pair back for a few
-    // seconds (the refresh rotation's predecessor grace); past it, nothing.
+
     const { sessionId } = decode(handoff.payload.token) as HandoffClaims;
     await GetModel(SessionModel).update(sessionId, {
       refreshTokenRotatedAt: new Date(Date.now() - PAST_GRACE_MS),

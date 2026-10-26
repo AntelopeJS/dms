@@ -31,7 +31,7 @@ const ALLOWED_TENANT = "tv-gate-allowed-tenant";
 const SUSPENDED_CODE = "tv-gate.suspended";
 const LIST_ACTION = "list";
 const READ_ACTIONS = ["view", "list", "select"];
-// `export` sits with the writes: it queues a job and delivers a file.
+
 const WRITE_ACTIONS = ["add", "edit", "delete", "archive", "restore", "export"];
 const PERMISSION_ID = "tv-gate.invoices";
 const HTTP_FORBIDDEN = 403;
@@ -72,7 +72,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    // A narrowed test run can reach this suite before module startup.
+
     await RegisterSchema(TENANT_SCHEMA_NAME);
 
     tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
@@ -119,9 +119,6 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
     expect([...(permissions ?? [])]).to.include(PERMISSION_ID);
   });
 
-  // The opt-out rides along with a stamped action only: the flag latches
-  // controller-wide, so an unstamped action would otherwise be served with no
-  // check at all, from every page mounting the controller.
   it("re-gates an unstamped action of a flagged table view", async () => {
     const error = await rejectionOf(
       authorizeAction(
@@ -146,8 +143,6 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
     ).to.equal(undefined);
   });
 
-  // The opt-out exists to keep a recovery surface readable, never to let the
-  // data of a shut-off tenant be changed from any page sharing the controller.
   for (const writeAction of WRITE_ACTIONS) {
     it(`re-gates the "${writeAction}" action of a flagged table view`, async () => {
       const error = await rejectionOf(
@@ -246,9 +241,6 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
     ).to.equal(undefined);
   });
 
-  // Routes are shared by every registration of a controller: a second page
-  // showing the same data without the flag must not re-gate the recovery
-  // surface behind its back.
   it("keeps the bypass when a later registration omits the flag", async () => {
     const granted = { _id: "tv-gate-latch-member" } as User;
     const [roleId] = await GetModel(RoleModel, DENIED_TENANT).insert({
@@ -281,9 +273,6 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
     expect([...(permissions ?? [])]).to.include(PERMISSION_ID);
   });
 
-  // The behavioural cases above drive authorizeAction with a stubbed builder,
-  // so they would still pass if the list itself grew a write. This pins the
-  // list to what it claims to be.
   it("opens the gate to reads only", () => {
     expect([...GATE_BYPASSABLE_ACTIONS].sort()).to.deep.equal(
       [...READ_ACTIONS].sort(),

@@ -8,9 +8,7 @@ import {
 } from "@antelopejs/interface-dms/base/export-jobs";
 
 const HTTP_UNAUTHORIZED = 401;
-// Outside the test runner an unbound proxy never settles; inside it, it
-// rejects with a missing-provider error. The bound wait covers the first case
-// and the status check the second: only the module answers 401.
+
 const SETTLE_TIMEOUT_MS = 2000;
 const ANONYMOUS_USER = undefined as unknown as User;
 const UNUSED_CONTEXT = {} as RequestContext;

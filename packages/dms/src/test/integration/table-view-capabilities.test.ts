@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
 
-// The table view capabilities the server takes part in, over the test host's
-// invoices (src/test/attachment-host/capabilities.ts): footer summaries,
-// filter tokens resolved per caller, and a bulk route finding its rows.
-
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
 const COLLECTION = "capability-invoices";

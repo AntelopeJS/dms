@@ -51,7 +51,6 @@ class BatchAPI extends DataController(
   Controller("/api/tab-count-warning/batch"),
 ) {}
 
-// The route is recognised by where it is mounted, not by the key it sits under.
 @RegisterDataController()
 class RenamedBatchAPI extends DataController(
   Row,

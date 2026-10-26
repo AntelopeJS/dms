@@ -59,7 +59,7 @@ const createFakeStream = (tenantId: string): FakeStream => {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
   } as unknown as RequestContext;
-  // As the route's auth decorator does: the verified user and tenant.
+
   bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId });
   return { ctx, frames, isEnded: () => isEnded };
 };
@@ -174,7 +174,6 @@ describe("[unit] realtime — tenant-scoped page topics", () => {
   it("ends a session whose page request comes from another workspace", async () => {
     const browser = await openOnPage(TENANT_A);
 
-    // The browser switched to tenant B; the session still belongs to tenant A.
     const isOnPage = await ensureSessionOnPage(browser.sessionId, PAGE_ID, {
       userId: USER._id,
       tenantId: TENANT_B,
@@ -221,7 +220,6 @@ describe("[unit] realtime — platform pages see every tenant", () => {
   const PRESENCE_TOPIC = "tenant-topics:platform-presence";
 
   before(async () => {
-    // Registered pages land in the mocha-loaded implementation's registry.
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
     RegisterModule({
       id: MODULE_ID,

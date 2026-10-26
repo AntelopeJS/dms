@@ -22,8 +22,7 @@ import {
 import { denyAttachment, findAttachment, loadAttachment } from "./registry";
 
 const BAD_REQUEST = 400;
-// Matched by name: the storage module throws its own copy of the class, which
-// `instanceof` against the one imported here does not recognise.
+
 const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
 
 function isFileNotFoundError(error: unknown): boolean {

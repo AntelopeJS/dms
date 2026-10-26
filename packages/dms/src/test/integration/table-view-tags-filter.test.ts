@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// A tags column filters the rows holding a tag (`array_contains_string`), as
-// a multiple select does — over the test host's notes and their labels
-// (src/test/attachment-host/archive.ts).
-
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
 

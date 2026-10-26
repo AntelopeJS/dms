@@ -56,9 +56,6 @@ async function previewHiddenEntries(permissions: string[]): Promise<string[]> {
   return access.hiddenEntries;
 }
 
-// A role granting a menu group but none of its pages: the member used to be
-// served the group as reachable, an entry a click did nothing on, while the
-// role preview drew it locked.
 describe("[unit] implementations/dms/page — a menu group without a reachable page", () => {
   const cleanups: Array<() => void> = [];
 

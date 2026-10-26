@@ -361,16 +361,11 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
     const node = payload.siteLayoutTree.children.pages?.children["dyn-bypass"];
 
-    // The resolver sees the caller's real set under a flagged category, and the
-    // entry survives because its permission belongs to the flagged page.
     expect(resolverPermissions?.has(RESTRICTED_PERMISSION)).to.equal(true);
     expect(node?.childrenOrders).to.deep.equal(["recover"]);
   });
 
   it("hides an entry the caller's permission set cannot explain", async () => {
-    // The category survives the gate on its own (public) and the entry targets a
-    // page flagged bypassTenantAccessGate, but its permission belongs to no
-    // flagged surface: the client never receives it, so the entry stays out.
     const publicCategory = registerTestCategory("dyn-public", {
       displayName: "Recovery links",
       category: pagesCategory,
@@ -473,9 +468,6 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
   });
 
   it("hides an entry granted only by a defaultGranted permission", async () => {
-    // `publicAccess` registers the page permission as defaultGranted, which the
-    // server would honour but the browser never receives: such an entry would
-    // render with its controls disabled.
     const openPage = PageController("dyn-default-granted", {
       displayName: "Open page",
       category: pagesCategory,

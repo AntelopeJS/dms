@@ -1,6 +1,6 @@
 {
   "rules": {
-    "antelopejs/no-comments": 2960,
+    "antelopejs/no-comments": 1252,
     "anti-slop/no-chained-type-assertions": 1,
     "anti-slop/no-conditional-empty-object-spread": 1,
     "anti-slop/no-known-value-widening": 107,
@@ -10,7 +10,7 @@
     "anti-slop/no-unknown-parameters": 269,
     "anti-slop/no-unknown-returns": 73,
     "anti-slop/no-unsafe-dictionary-type": 289,
-    "anti-slop/require-safety-comment-for-type-assertion": 993,
+    "anti-slop/require-safety-comment-for-type-assertion": 992,
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
@@ -40,10 +40,10 @@
     "packages/dms/playground/src/feature-index/table-view.ts": 22573,
     "packages/dms/playground/src/table-view/defaultValues.ts": 41993,
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
-    "packages/dms/src/implementations/dms/page.ts": 97772,
-    "packages/dms/src/test/integration/tenant-lifecycle.test.ts": 22489,
-    "packages/dms/src/test/unit/interfaces/dms/invite-extension.test.ts": 24449,
-    "packages/dms/src/test/unit/interfaces/dms/page-extension.test.ts": 27654,
+    "packages/dms/src/implementations/dms/page.ts": 82163,
+    "packages/dms/src/test/integration/tenant-lifecycle.test.ts": 22337,
+    "packages/dms/src/test/unit/interfaces/dms/invite-extension.test.ts": 23675,
+    "packages/dms/src/test/unit/interfaces/dms/page-extension.test.ts": 25933,
     "packages/interface-dms/src/base/data-types/default-types.ts": 49790,
     "packages/interface-dms/src/base/form-schema.ts": 25278,
     "packages/interface-dms/src/base/table-view/internal/factory-helpers.ts": 23996,

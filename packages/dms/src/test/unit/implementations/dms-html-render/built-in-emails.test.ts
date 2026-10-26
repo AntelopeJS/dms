@@ -1,8 +1,6 @@
 import { expect } from "chai";
 import { GetAllHtmlTemplates } from "@antelopejs/interface-dms/html-render";
 
-// Modules replace a built-in email by shipping a component of the same file
-// name, and the docs list these names: renaming one is a breaking change.
 const BUILT_IN_EMAILS = [
   "EmailAdminInvite",
   "EmailChangeNotice",

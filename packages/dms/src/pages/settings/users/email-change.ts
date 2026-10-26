@@ -1,6 +1,3 @@
-// A sign-in email change in two steps: the request, proven by the current
-// password, sends a code to the new address and a notice to the current one;
-// the account moves only once the code comes back.
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -53,8 +50,6 @@ function codeLifetimeHours(): number {
   return getAuthConfig().emailValidationTokenLifetime / MILLISECONDS_PER_HOUR;
 }
 
-// The latest change is read whether it is still pending or not: cancelling
-// one must not open the window again.
 async function assertMayRequest(
   userId: string,
   email: string,
@@ -74,9 +69,6 @@ async function assertMayRequest(
   );
 }
 
-// The try is counted before the code is compared, so concurrent guesses
-// cannot slip past the limit; the one that uses the last try up burns the
-// code.
 async function assertCodeMatches(
   pending: PendingEmailChange,
   code: string,
@@ -110,8 +102,7 @@ export async function requestEmailChange(
     securitySchema.changeEmail.parse(value),
   );
   const now = Date.now();
-  // Before the password: a wait that only the right password reached would
-  // tell a guess was right.
+
   await assertMayRequest(user._id, normalizeEmail(email), now);
   await assertCurrentPassword(userModel, user, currentPassword);
   const available = await assertEmailAvailable(userModel, email, user._id);
@@ -124,9 +115,7 @@ export async function requestEmailChange(
     codeHash: hashCode(user._id, code),
     requestedAt: new Date(now),
   });
-  // Neither email holds the answer: a provider slow to accept them must not
-  // fail a request whose change is already recorded. A lost code is asked
-  // again a minute later.
+
   fireAndForget(
     sendEmailChangeCode(user, available, code, codeLifetimeHours()),
     "email change code to the new address",

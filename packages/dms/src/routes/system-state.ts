@@ -22,14 +22,9 @@ export class PublicSystemStateController extends Controller(
 
     const meta = getConfig().meta;
     return {
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Return the state's enumerable data fields with response metadata, not its class prototype.
       ...state,
       meta: {
-        // The name the owner gave the platform during onboarding wins over
-        // the deployment default, which only prefills that step.
         title: state.platform_name || meta?.title || "",
         description: meta?.description || "",
       },

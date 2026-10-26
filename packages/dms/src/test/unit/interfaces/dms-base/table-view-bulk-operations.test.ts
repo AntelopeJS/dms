@@ -30,10 +30,6 @@ import {
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
 
-// A bulk action (archive, restore, delete) acts on every selected row: the
-// ids arrive as a repeated query key, each one is checked against the row
-// rule, and only the rows the rule refuses are left out.
-
 const SCHEMA = "bulk-operations-test";
 const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
@@ -41,7 +37,7 @@ const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
 const USER = { _id: "bulk-operations-user" } as User;
 const ALL_IDS = ["a", "b", "c", "d"];
-// "c" is high priority: the rule below refuses it.
+
 const RULE_REFUSED_ID = "c";
 const NOT_HIGH = { field: "priority", notEquals: "high" } as const;
 const gate: tenantAccess.TenantAccessGateInfo = {
@@ -75,9 +71,6 @@ class TaskAPI extends DataController(
 
 type Row = { _id: string; priority: string; isArchived: boolean };
 
-// The selection queries the routes run, over rows kept in memory: awaiting it
-// reads the rows, `update` and `delete` answer the number of rows they reached
-// as the database does.
 function createTable(rows: Map<string, Row>) {
   return {
     getAll(ids: string[]) {
@@ -124,7 +117,7 @@ let rows: Map<string, Row>;
 
 function useRows(next: Map<string, Row>) {
   rows = next;
-  // Only `table` is read by the routes under test.
+
   controller.model = { table: createTable(rows) } as never;
 }
 
@@ -193,7 +186,7 @@ describe("[unit] TableView bulk operations", () => {
       },
     );
     meta.setArchiveField(ARCHIVE_FIELD);
-    // The routes of DefaultRoutes.Delete reach the table through Query.Delete.
+
     Query.Delete = (_table, id) =>
       createTable(rows)
         .getAll(Array.isArray(id) ? id : [id])

@@ -50,8 +50,6 @@ import {
 
 let admin: User;
 
-// Registration and extension syncing are promise-chained but do no I/O: one
-// macrotask hop is enough for every pending microtask to settle.
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
@@ -358,9 +356,6 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       ]);
     });
 
-    // The invitations table edits a row in a modal, whose form travels inside
-    // the table's own options rather than as a page of its own: the slot has
-    // to resolve there too.
     it("reaches the edit form the invitations table opens in a modal", async () => {
       register(recordingExtension("billing", "costCenter").options);
 
@@ -539,9 +534,6 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       expect(billing.recorded.accepted).to.have.length(0);
     });
 
-    // The stored payload is the submission, not the schema's output: a schema
-    // that transforms produces something the same schema would reject on the
-    // way back in, and delivery would silently skip it.
     it("hands a transforming schema's output to the contributor", async () => {
       const seen: Array<{ seats: number }> = [];
       register({
@@ -669,9 +661,6 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       ).to.throw(/__/);
     });
 
-    // A hot reload registers the replacement before the old one unregisters,
-    // so reclaiming a key has to be the replacement taking over — and the
-    // departing registration's unregister must not then take it back down.
     it("lets a re-registration under the same key take over", async () => {
       const first = recordingExtension("billing", "a");
       const disposeFirst = register(first.options);

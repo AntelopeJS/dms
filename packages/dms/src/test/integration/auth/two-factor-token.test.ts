@@ -8,10 +8,6 @@ import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 
-// The token of the two-factor step is refused with one answer whatever is
-// wrong with it, so the answer tells neither which user ids exist nor what
-// the token library found; a request without one names what is missing.
-
 const TWO_FACTOR_ROUTES = [
   "/api/auth/verify-2fa",
   "/api/auth/request-2fa-email",

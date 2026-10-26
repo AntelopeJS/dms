@@ -11,11 +11,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The unread badge: the header bell (`/counts`) and the Notifications entry
-// of the menu (`navBadges`, which each page visit carries, never the cached
-// site layout) count the unread notifications, in the tone of the most
-// important one, and opening the bell changes neither.
-
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const NOTIFICATIONS_PAGE_ID = "settings.user.notifications";
 const HTTP_OK = 200;
@@ -64,7 +59,6 @@ describe("[integration] notifications unread badge", () => {
   };
 
   const menuEntry = async (): Promise<MenuEntry | undefined> => {
-    // Any page visit carries them, with or without the site layout.
     const response = await client.get("/dms/page", {
       params: { path: "/settings", shared: "false" },
     });
@@ -111,7 +105,7 @@ describe("[integration] notifications unread badge", () => {
     userId = owner.userId;
     internal.RegisterNotificationCategory.register(data.subject.category);
     internal.RegisterNotificationSubject.register(data.subject);
-    // What the signup sent is read, so the test's notifications are the only unread ones.
+
     await client.put(`${LOCATION}/mark-all-read`);
     await send("info", "neutral");
     await send("untoned");
@@ -148,7 +142,7 @@ describe("[integration] notifications unread badge", () => {
     expect(await menuEntry()).to.include({ badge: "3", badgeTone: "warning" });
 
     await client.put(`${LOCATION}/mark-read/${await idOf("not you?")}`);
-    // The untoned one stands out in primary while unread, as in the inbox.
+
     expect(await counts()).to.include({ unread: 2, unreadTone: "primary" });
   });
 

@@ -1,7 +1,3 @@
-// Keeps one copy of a notification sent several times in a row: a form
-// submitted twice, a hook firing for each instance, a retried request. Pure:
-// the delivery (index.ts) and the model store the row under the id given here.
-
 import { createHash } from "node:crypto";
 import type { NotificationData } from "@antelopejs/interface-dms/notifications/types";
 

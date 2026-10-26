@@ -19,9 +19,8 @@ export type ActivityPageRoutes = Readonly<Record<string, string>>;
 
 const TEXTS = "$page.settings.overview.activity";
 
-// "Chrome 150.0.7871.250" reads as "Chrome": the version is noise here.
 const BROWSER_VERSION = /\s+[\d.]+$/;
-// What the sign-in records when the user agent names no browser or OS.
+
 const UNKNOWN_PART = "unknown";
 
 const DEVICE_ICONS: Record<string, string> = {

@@ -36,8 +36,6 @@ import {
 } from "@antelopejs/interface-dms/base/export-jobs";
 import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 
-// The contract declares the vocabulary and the defaults; re-exported here so a
-// caller inside the module reaches the whole export surface from one place.
 export type {
   Deliverer,
   ExportJobDeliveryOptions,
@@ -72,7 +70,6 @@ class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
 
   writeHeaders(headers: string[]): void {
-    // Quoted like the rows: a column named for a reader may hold a comma.
     const headerLine = stringify([headers], { header: false });
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
@@ -223,17 +220,12 @@ export async function uploadExportToStorage(
   const response = await fetch(presign.uploadUrl, {
     method: "PUT",
     headers: presign.headers,
-    // Node's web-stream types and the DOM BodyInit / AsyncIterable do not
-    // overlap, so neither can be a single assertion; the runtime accepts
-    // the stream.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Pass the Node web stream to fetch as its request body; this assertion changes no stream behavior.
     body: Readable.toWeb(fileStream) as unknown as BodyInit,
     duplex: "half",
   } as RequestInit & { duplex: "half" });
-  // A rejected upload must fail the job: the artifact does not exist, and a
-  // completed job would hand the requester a download — or an e-mail link —
-  // that resolves to nothing. The body is discarded first, or the connection
-  // stays held until the response is garbage-collected.
+
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);
     assert(false, 500, `Failed to upload export: HTTP ${response.status}`);

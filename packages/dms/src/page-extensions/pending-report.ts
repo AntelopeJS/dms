@@ -3,10 +3,6 @@ import { Events } from "@antelopejs/interface-core/modules";
 import { GetPendingPageExtensions } from "@antelopejs/interface-dms/page/internal/registry";
 import { GetRegisteredPageIds } from "@antelopejs/interface-dms/page";
 
-// A page extension names its target by id, so nothing can be checked when it is
-// declared: the page may simply belong to a module that has yet to start. The
-// report waits for the module starts to stop coming in, which is as close to
-// "the project is up" as a module can get, and runs again after a hot reload.
 const SETTLE_DELAY_MS = 2000;
 
 let reportTimer: NodeJS.Timeout | undefined;
@@ -16,8 +12,6 @@ function reportPendingExtensions(): void {
   const pending = GetPendingPageExtensions();
   if (pending.length === 0) return;
 
-  // The registered ids are counted, not listed: a deployment has hundreds of
-  // them, and the id the author needs is the page's permission id.
   const registered = GetRegisteredPageIds().length;
   for (const { extensionName, targetFullId } of pending) {
     Logging.Warn(

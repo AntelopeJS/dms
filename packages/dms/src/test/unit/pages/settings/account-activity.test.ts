@@ -275,7 +275,7 @@ describe("account activity", () => {
             device: "Chrome on Windows",
             origin: " (203.0.113.7)",
           }),
-          // A sign-in whose session has ended: still listed.
+
           notification("new_login", "2026-09-29T07:00:00Z", {
             device: "Safari on iOS",
           }),

@@ -7,10 +7,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The routes behind the notifications page's inbox table
-// (`notificationInboxTable`): a page of the feed per read-state tab, and the
-// dialog "Delete all" asks in, and the undo of "Mark all as read".
-
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const HTTP_OK = 200;
 const SENT = 3;
@@ -40,7 +36,7 @@ interface InboxPage {
 describe("[integration] notifications inbox table", () => {
   let client: AxiosInstance;
   let userId: string;
-  // What the feed held before the test's notifications (a signup sends some).
+
   let baseline: { all: number; unread: number; read: number };
 
   const inbox = async (query: Record<string, string | number>) => {
@@ -61,7 +57,7 @@ describe("[integration] notifications inbox table", () => {
     };
     internal.RegisterNotificationCategory.register(data.subject.category);
     internal.RegisterNotificationSubject.register(data.subject);
-    // An identical message sent twice in a row is stored once.
+
     for (let sent = 0; sent < SENT; sent++) {
       await new SendableNotification({
         ...data,

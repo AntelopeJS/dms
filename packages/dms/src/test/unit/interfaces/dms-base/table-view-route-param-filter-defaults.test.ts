@@ -1,5 +1,3 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
@@ -49,8 +47,6 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-// `_instance` is filtered on but never a column: nothing the user fills in
-// overrides the default the form submits for it.
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 class Document extends Table {
   @Field("string") declare name: string;
@@ -76,7 +72,6 @@ class DocumentAPI extends DataController(
 const ROUTE_FILTER = { id: { field: "_instance" } };
 const QUERY_FILTER = { status: { field: "status" } };
 
-// One controller per writing TableView, each derived from DocumentAPI.
 const documentAPI = (suffix: string) =>
   derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
 
@@ -132,8 +127,6 @@ class NamedParamPage extends RootPageController("rpf-named", {
   static rows = namedParamTable;
 }
 
-// The page slug already repeats `:id`: the bare name the table view filters on
-// is its last occurrence, the second.
 @RegisterPage()
 class DeepPage extends RootPageController("rpf-deep", {
   displayName: "Page repeating its own placeholder",
@@ -202,8 +195,6 @@ describe("[unit] interfaces/dms-base — route param filter form defaults", () =
     }
   });
 
-  // `/rpf-detail/:id/rows/:id/edit`: the bare name is the row id, which the
-  // submit URL wants; the filtered field wants the page's, the first.
   it("numbers the page parameter on an edit route repeating its name", async () => {
     const edit = await formPageOptions("rpf-detail.rows.edit");
     expect(edit?.submitDefaults).to.deep.equal({
@@ -213,7 +204,6 @@ describe("[unit] interfaces/dms-base — route param filter form defaults", () =
     expect(edit?.submitUrl).to.equal(`${LOCATION}/edit?id={{params.id}}`);
   });
 
-  // `/rpf-detail/:id/rows/new` carries one `:id`, which has no numbered key.
   it("keeps the bare name on a new route carrying the name once", async () => {
     expect(
       (await formPageOptions("rpf-detail.rows.new"))?.submitDefaults,
@@ -254,8 +244,6 @@ describe("[unit] interfaces/dms-base — route param filter form defaults", () =
     expect(unfiltered?.submitDefaults).to.equal(undefined);
   });
 
-  // Embedded in the table view, a form renders on the page carrying it, where
-  // the bare name is the parameter the table filters on.
   it("keeps the bare name on the forms the table view embeds", async () => {
     const embedded = await formComponents(drawerTable);
     expect(embedded?.edit?.options?.submitDefaults).to.deep.equal({

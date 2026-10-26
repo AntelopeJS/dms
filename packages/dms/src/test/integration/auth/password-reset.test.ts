@@ -10,10 +10,6 @@ import {
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 
-// "Forgot password" mails a 6-character code. A code takes a bounded number
-// of tries, whatever the case it is typed in, and setting the new password
-// signs out every session, as a password change does.
-
 const NEW_PASSWORD = "Recovered26!";
 const WRONG_CODE = "000000";
 const MAX_ATTEMPTS = 5;

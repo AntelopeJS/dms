@@ -53,11 +53,6 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { clearPageTopics, getPageTopics } from "../../../../realtime/registry";
 
-// Each topic a page carries is registered on its own, by the module whose page
-// it is, and the core owns it from there: it releases the topic with that
-// module and hands it to every new DMS generation. Nothing on the DMS side has
-// to remember topics across generations.
-
 const TABLE = "page-topics-rows";
 const LOCATION = "/api/page-topics-rows";
 const TOPICS_PAGE = "page-topics";
@@ -121,16 +116,12 @@ function topicsOf(page: ControllerClass): string[] {
   return [...getPageTopics(pageFullId(page))];
 }
 
-// What the core does when it unloads a module: the event runs in the departing
-// generation's context, which names the owner whose registrations go with it.
 function destroyModule(context: ModuleExecutionContext): void {
   RunWithModuleContext(context, () => {
     Events.ModuleDestroyed.emit(context.module);
   });
 }
 
-// A new DMS generation starts from empty registries and attaches its
-// implementation again, which is when the core replays what it holds.
 function attachNewDmsGeneration(): void {
   clearPageTopics(pageFullId(TopicsPage));
   clearPageTopics(pageFullId(SharedPage));
@@ -144,8 +135,6 @@ async function registerAs(context: ModuleExecutionContext): Promise<void> {
   await RunWithModuleContext(context, () => meta.Register());
 }
 
-// A component another module places on the page: its `onCreated` runs in
-// that module's context, as it does when the page registers it.
 function placeChart(context: ModuleExecutionContext, topic: string): void {
   const chart = ChartLine({ realtimeTopic: topic });
   const meta = GetMetadata(SharedPage, PageMetadata);

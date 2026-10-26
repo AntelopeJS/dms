@@ -71,8 +71,6 @@ describe("[unit] utils/user-activity", () => {
       );
     });
 
-    // A partial update of the user row resets the hashed fields' modifier
-    // storage: recording activity must never cost the user their password.
     it("keeps the password verifiable", async () => {
       const model = GetModel(UserModel);
       await recordUserActivity(model, user, NOW);

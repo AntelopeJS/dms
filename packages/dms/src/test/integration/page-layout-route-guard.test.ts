@@ -7,11 +7,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// `/base-notes` carries a page-mode TableView (src/test/attachment-host), so
-// the table view registers a form page for each kind under it, each one's
-// controller extending the page's. Each layout route must ask for its own
-// page's permission, whatever the others ask for.
-
 const PAGE = "base-notes";
 const TABLE = `${PAGE}.content`;
 const PAGE_LAYOUT = pageRoutePath(PAGE, "/pagelayout");

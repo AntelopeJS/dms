@@ -32,7 +32,7 @@ const TENANT = "layout-banner-tenant";
 const DENIED_TENANT = "layout-banner-denied-tenant";
 const MEMBER = { _id: "layout-banner-member" } as User;
 const GRANTED_PERMISSION = "pages.layout-banner-page";
-// A fraction of the production budget: the hanging resolvers below wait it out.
+
 const RESOLVER_TIMEOUT_MS = 300;
 
 const gateInfo = denyingTenantGate("layout-banner-gate", DENIED_TENANT);
@@ -124,8 +124,6 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
     expect(banner?.props).to.deep.equal({ days: 3 });
   });
 
-  // The site layout is shared by every page: the scope travels with the banner
-  // and the dashboard applies it against the route.
   it("ships each banner's scope, the application's pages by default", async () => {
     disposers.push(
       RegisterLayoutBanner({ key: "default", variant: "info", text: "a" }),
@@ -264,7 +262,6 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
     });
   });
 
-  // A denied tenant is exactly who a billing banner has to reach.
   it("keeps the real permissions and flags the gate for a denied tenant", async () => {
     let seen: LayoutBannerContext | undefined;
     disposers.push(
@@ -281,7 +278,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
 
     expect(await bannerKeys(DENIED_TENANT)).to.deep.equal(["suspended"]);
     expect(seen?.isTenantAccessDenied).to.equal(true);
-    // The role's own set, as the role routes store it: the page and its category.
+
     expect([...(seen?.permissions ?? [])].sort()).to.deep.equal(
       withPermissionAncestors([GRANTED_PERMISSION]).sort(),
     );

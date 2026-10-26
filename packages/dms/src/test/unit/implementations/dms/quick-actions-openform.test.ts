@@ -44,8 +44,6 @@ function formCapableComponent(name: string): ComponentBuilder<unknown> {
   return component as ComponentBuilder<unknown>;
 }
 
-// The recovery surface: reachable under a denying gate, and its form has to
-// stay usable — that is the entire point of the opt-out.
 class PageOfRecovery extends PageController("of-recovery", {
   displayName: "Recovery",
   category: pagesCategory,
@@ -185,8 +183,6 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
     }
   });
 
-  // Reading the add permission from the emptied gated set would drop the form
-  // of the very page the gate opt-out exists to keep usable.
   it("keeps a recovery page's form while the gate denies the tenant", async () => {
     const actions = await actionsFor(
       [RECOVERY_PAGE_ID, RECOVERY_ADD_PERMISSION],
@@ -204,7 +200,6 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
     expect(actions).to.not.have.property(`${CATEGORY_ID}:of-recovery`);
   });
 
-  // Unnamed, every table view of the page would open a form at once.
   it("refuses to serve an unnamed target on a page with several forms", async () => {
     const actions = await actionsFor(
       [

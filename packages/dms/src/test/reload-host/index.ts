@@ -4,14 +4,9 @@ import { ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { registerRealtimeMutationListener } from "@antelopejs/interface-dms/base/table-view";
 import { Hook, RegisterHook } from "@antelopejs/interface-dms/hooks";
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
-// A reload only evaluates again the files inside the module's folder, so the
-// harness loads this module from where it compiles to. Importing the manifest
-// is what makes the build copy it there.
+
 import "./package.json";
 
-// The suite reads these through `src/test/helpers/reload-host.ts`. Nothing is
-// imported from there: the runtime binds a module's import of another module's
-// file to the generation that made it first, which the reload under test ends.
 const PROBE_KEY = Symbol.for("@antelopejs/dms-test/reload-host");
 const PROBE_TENANT = "reload-host-tenant";
 const PROBE_LOCATION = "/reload-host/rows";
@@ -40,7 +35,6 @@ interface Probe {
   provisioned: ProvisionedTenant[];
 }
 
-// Evaluated again by each reload, so it tells the generations apart.
 const generation = randomUUID();
 let databaseInitialized = false;
 
@@ -60,8 +54,6 @@ function record(source: ProbeSource): void {
   probe().calls.push({ generation, source });
 }
 
-// One extension per page the suite asks for, each injecting a chart: preparing
-// it registers a permission and a realtime topic, which belong to this module.
 function extendPages(): void {
   for (const targetPageId of probe().extendedPages) {
     class ReloadHostExtension {

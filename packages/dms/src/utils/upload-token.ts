@@ -24,10 +24,7 @@ function getUploadTokenSecret(): string {
     fallbackUploadTokenSecret = crypto
       .randomBytes(FALLBACK_SECRET_BYTES)
       .toString("hex");
-    // Error, not Warn: behind more than one instance this silently rejects
-    // most uploads — the token is signed by one process and verified by
-    // another — and the only symptom is a 403 at presign with nothing tying it
-    // back here. A deployment must see this in its error stream.
+
     Logging.Error(
       "auth.jwtSecret is not configured; upload tokens fall back to a per-process secret. Uploads will break across restarts and, on a multi-instance deployment, for every request that lands on another instance. Configure auth.jwtSecret.",
     );
@@ -89,9 +86,6 @@ export function signUploadToken(claims: Partial<UploadTokenClaims>): string {
 export function verifyUploadToken(token: string): UploadTokenClaims | null {
   try {
     const payload = verify(token, getUploadTokenSecret(), {
-      // The secret is an HMAC key, so nothing else could verify today — the
-      // pin is what keeps an algorithm-confusion bug in the JWT library from
-      // ever mattering here.
       algorithms: ["HS256"],
     }) as UploadTokenPayload;
     if (payload.purpose !== UPLOAD_TOKEN_PURPOSE) {

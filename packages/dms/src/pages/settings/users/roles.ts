@@ -107,13 +107,10 @@ registerTableViewActions(rolesEditor, {
   hasDeleteEndpoint: true,
   archiveMode: false,
   isExportEnabled: true,
-  // A role opens in the editor, over its list.
+
   formsArePages: false,
 });
 
-// The data routes (`/api/tables/roles`, behind the member and invite role
-// pickers) authorize against the component writing through them: the editor,
-// so they are guarded by the same ids.
 const rolesMeta = GetMetadata(roleSettingDataAPI, TableViewMeta);
 rolesMeta.addComponentBuilder(rolesEditor);
 rolesMeta.setControllerGuards({
@@ -134,9 +131,6 @@ const addAction = requireEditorAction("add");
 const editAction = requireEditorAction("edit");
 const deleteAction = requireEditorAction("delete");
 
-// Editing roles lets the holder grant their own role every permission;
-// adding one hands any permission to a new role, and deleting one moves its
-// holders to any other role.
 declarePermissionWarning(editAction, "$page.settings.roles.warning.roles");
 declarePermissionWarning(addAction, "$page.settings.roles.warning.roles_add");
 declarePermissionWarning(
@@ -169,8 +163,6 @@ async function holdsAction(
   return !permissionId || HasPermission(actor.permissions, permissionId);
 }
 
-// The roles list shows the built-in Owner row above the stored roles: the
-// navigation counts it too, so both say the same number.
 const OWNER_ROW = 1;
 const HTTP_FORBIDDEN = 403;
 
@@ -391,7 +383,6 @@ export class RolesSettingsController extends PageController("roles", {
     const actor = await resolveActor(ctx, user);
     const { name, permissionsChanged } = await updateRole(actor, roleId, input);
     if (permissionsChanged) {
-      // What the role's holders may open changed: their menus reload.
       notifyMenuAccessChanged(
         actor.tenantId,
         await listRoleHolderIds(actor.tenantId, roleId),

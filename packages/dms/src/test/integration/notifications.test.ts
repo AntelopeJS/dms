@@ -133,8 +133,6 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   });
 
   it("preserves unkeyed create results and physical deletion", async () => {
-    // Two different messages: an identical one within the duplicate window
-    // is not stored again (see the next case).
     await sendable.toUser(USER);
     await new SendableNotification({
       ...data,

@@ -1,7 +1,3 @@
-// Reads and removes the rows "Your data" exports and deletes: everything the
-// DMS keys on a user id. The shape of the export and the deletion guards are
-// in account-data.ts.
-
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
@@ -202,8 +198,6 @@ export async function loadDeletionImpact(
   };
 }
 
-// Counted again right before the membership goes: another owner of the
-// tenant deleting their account meanwhile must not leave it ownerless.
 async function assertTenantKeepsAnOwner(
   userId: string,
   tenantId: string,

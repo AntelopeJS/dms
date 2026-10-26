@@ -184,7 +184,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
         ]),
         node("examples", [node("examples.overview")]),
       ];
-      // As `GetMenuOrder` numbers the sidebar: depth first, menu order.
+
       const menuOrder = new Map(
         [
           "pages",
@@ -210,7 +210,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
                 "pages.form.advanced",
                 [
                   "pages.form.simple",
-                  // Not menu entries: declaration order.
+
                   ["pages.form.simple.form", "pages.form.simple.extra"],
                 ],
               ],

@@ -8,9 +8,6 @@ import { createClient } from "../helpers/http";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A member holding no role at all still owns their account settings: the user
-// settings category is `memberAccess`, the workspace one is not.
-
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
@@ -48,7 +45,6 @@ describe("[integration] a member without a role and their own settings", () => {
   let member: AxiosInstance;
   let memberId: string;
 
-  // The page's own layout route: the one its page permission guards.
   const layout = (slug: string) =>
     member.get<PageLayoutResponse>(pageRoutePath(slug, "/pagelayout"));
 

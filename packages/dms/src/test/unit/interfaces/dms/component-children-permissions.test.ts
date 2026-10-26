@@ -1,5 +1,3 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
@@ -62,8 +60,6 @@ const panel = new ComponentBuilder<{ tag: string }>("cc-panel")
   })
   .child("leaf", leaf);
 
-// A nested TableView-like component verifies that action permissions still
-// descend from the child's positional permission.
 const table = new ComponentBuilder<{ tag: string }>("cc-table")
   .options({ tag: "table" })
   .meta({ name: "Nested table" })
@@ -136,9 +132,6 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     await settle();
   });
 
-  // The registries are process-wide and shared by every suite of the run, so a
-  // failing assertion must not leave this page's subtree behind. Disposal is
-  // idempotent, which is what lets the release test do it first.
   after(() => {
     const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
     if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
@@ -306,8 +299,6 @@ const SHARED_FIRST_PERMISSION = `${SHARED_PAGE_PERMISSION}.host.first`;
 const SHARED_SECOND_PERMISSION = `${SHARED_PAGE_PERMISSION}.host.second`;
 const sharedHookCalls: string[] = [];
 
-// One instance, two positions: the hook registers side effects, so running it
-// per position would register them twice.
 const shared = new ComponentBuilder<{ tag: string }>("cc-shared-child")
   .options({ tag: "shared" })
   .meta({ name: "Shared" })
@@ -319,8 +310,6 @@ const throwing = new ComponentBuilder<{ tag: string }>("cc-throwing")
     throw new Error("nested onCreated boom");
   });
 
-// Children hanging off a promised ComponentInfo: serialization emits them, the
-// synchronous walk cannot reach them.
 const promisedChildren = new Component(
   Promise.resolve({
     componentName: "cc-promised",
@@ -337,7 +326,6 @@ const promisedChildren = new Component(
   { name: "Promised" },
 );
 
-// `collides.edit` would be both this child's id and the parent action's.
 const collidingChild = new ComponentBuilder<{ tag: string }>("cc-colliding")
   .options({ tag: "colliding" })
   .meta({ name: "Colliding" })
@@ -431,8 +419,6 @@ describe("[unit] interfaces/dms/page — nested components under stress", () => 
     );
   });
 
-  // The action already owns `<parent>.edit`; the child must not claim it, or
-  // granting the action would serve the child too.
   it("leaves a child whose id collides with an action unregistered", async () => {
     const collidingId = `${SHARED_PAGE_PERMISSION}.collides.edit`;
 
@@ -440,13 +426,12 @@ describe("[unit] interfaces/dms/page — nested components under stress", () => 
     expect(
       SharedInstancePage.collides.getAction("edit")?.permissionId,
     ).to.equal(collidingId);
-    // The id stayed the action's: its title, not the child's.
+
     expect(
       (await permissionsInterface.GetPermission(collidingId))?.title,
     ).to.equal("Edit");
   });
 
-  // Holding the action must not serve the child that shares its id.
   it("withholds a colliding child from a role granted the action", async () => {
     const layout = await sharedLayout([
       SHARED_PAGE_PERMISSION,

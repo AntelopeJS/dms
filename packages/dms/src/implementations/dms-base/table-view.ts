@@ -115,10 +115,7 @@ async function buildIdsExportQuery(
 ) {
   const model = Query.GetModel(controller, controllerMetadata);
   const tableViewMetadata = GetMetadata(
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The instance's constructor supplies table metadata; the assertion erases its type for GetMetadata's constructor parameter.
     (controller as unknown as { constructor: never }).constructor,
     TableViewMeta,
   );
@@ -137,12 +134,9 @@ async function buildIdsExportQuery(
     );
     const archiveConstraint = filtersWithArchive?.[archiveField];
     if (archiveConstraint) {
-      // The source and the target do not overlap, so this cannot be one
-      // assertion: the value reaches here through a decorator, a JWT
-      // payload or a filter tuple, none of which the type system sees.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- applyArchiveFilter puts a boolean in the string-typed filter tuple; the query must keep that boolean value.
       const archiveValue = archiveConstraint[0] as unknown as boolean;
-      // "ne" also matches rows whose archive field was never written.
+
       const isNotEqual = archiveConstraint[1] === "ne";
       query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
         isNotEqual
@@ -152,7 +146,6 @@ async function buildIdsExportQuery(
     }
   }
 
-  // Read without `Query.List`: no computed field is merged yet.
   return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
@@ -189,10 +182,7 @@ async function buildExportQuery({
 
 function getControllerKey(controller: DataControllerThis): string {
   const controllerClass =
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Controller metadata belongs to the instance's constructor, which DataControllerThis does not type as ControllerClass.
     (controller as unknown as { constructor: ControllerClass }).constructor;
   return GetMetadata(controllerClass, ControllerMeta).location;
 }
@@ -249,8 +239,6 @@ export async function generateTableViewExport({
   const totalRecordsCount = await queryTotal;
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
-    // A page of the list, its computed fields merged; the export writes the
-    // relations' keys, so no foreign lookup.
     const pendingRecordBatch = Query.ListPage(
       model.database,
       controllerMetadata,
@@ -283,10 +271,7 @@ export async function generateTableViewExport({
   writer.close();
 }
 
-// A published contract: the runtime calls this positionally and every
-// implementing module declares the same shape, so an options object
-// cannot be introduced from this side.
-// oxlint-disable-next-line eslint/max-params
+// oxlint-disable-next-line eslint/max-params -- Existing callers supply controller, request, list options, format, delivery, selected IDs, and user positionally.
 export async function startExport(
   controller: DataControllerThis,
   ctx: RequestContext,
@@ -392,10 +377,6 @@ export async function fetchRowForGuard(
   return row;
 }
 
-// A rule names table fields, computed ones included (an invitation's `status`
-// is a getter over `expiresAt`): read each row the way the list reads it
-// before evaluating the rule, so the server and the screen judge the same
-// values. The raw columns stay underneath for fields the read leaves out.
 async function readRuleRow(
   controller: any,
   controllerMetadata: DataAPIMeta,
@@ -460,8 +441,6 @@ export async function validateRowsAgainstRule(
   return { eligibleIds, rejectedIds };
 }
 
-// The rows the write reached: an id with no row is not counted, so the caller
-// can tell how many of its selection were left untouched.
 const updatedRowCount = (updated: unknown, ids: string[]): number =>
   typeof updated === "number" ? updated : ids.length;
 

@@ -23,8 +23,7 @@ export function createClient(): AxiosInstance {
       "x-antelopejs-namespace": "default",
     },
   });
-  // Resolved per request rather than at creation, so a client built before the
-  // runtime has booted still reaches the api it started.
+
   client.interceptors.request.use((request) => {
     request.baseURL = getBaseUrl();
     return request;

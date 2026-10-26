@@ -6,9 +6,6 @@ import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
 
-// A mutating guard may hand back work to run once the write succeeded: after
-// the write, never when it failed, and without failing the request itself.
-
 const ctx = {} as RequestContext;
 const DELETE_PARAMS = { id: ["row-1"] };
 

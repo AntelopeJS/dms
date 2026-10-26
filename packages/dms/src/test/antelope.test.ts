@@ -4,34 +4,23 @@ import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 
-// Core runs tests outside development mode, where the api refuses to fall back
-// to the next free port. Asking for any free port keeps the harness off
-// whatever already holds a fixed one; the api publishes the port it reserved.
 const ANY_FREE_PORT = 0;
-// Required outside development mode. Nothing in the harness consumes
-// API_PUBLIC_BASE_URL: every in-process URL derives from API_LOCAL_BASE_URL.
+
 const UNUSED_PUBLIC_BASE_URL = "https://api.test.example.com";
 const API_LOCAL_BASE_URL = "${@api.API_LOCAL_BASE_URL}";
 const JWT_SECRET = "test-jwt-secret";
-// The runner starts modules outside development mode, where the DMS refuses
-// to start without a client origin and a render secret.
+
 const CLIENT_BASE_URL = "http://localhost:3001";
 const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
-// The harness sends no real email. nodemailer's `ethereal` option creates a
-// test account over the network when the module is constructed, so an Ethereal
-// outage failed the whole harness. A closed loopback port needs no network: a
-// send that reaches nodemailer is refused at once and reported as failed, and
-// the tests that check an email capture it before it is sent.
+
 const UNREACHABLE_SMTP_HOST = "127.0.0.1";
 const CLOSED_SMTP_PORT = 1;
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
-// The loader runs a local module's install command on every start. CI has
-// built the module already in the same job, so it sets DMS_PREBUILT and the
-// harness loads that build instead of compiling it a second time.
+
 const LOCAL_INSTALL_COMMAND = process.env.DMS_PREBUILT ? [] : ["pnpm build"];
 
 function providerSource(
@@ -86,8 +75,7 @@ export default defineConfig({
         path: "src/test/attachment-host",
       },
     },
-    // Reloaded by the unit suite. A reload evicts only the files inside the
-    // module's folder, so it is loaded from where it compiles to.
+
     "reload-host": {
       source: {
         type: "local",
@@ -153,9 +141,6 @@ export default defineConfig({
     },
   },
   test: {
-    // The runner recursively discovers `*.test.js` under this folder. Subset
-    // scripts (`test:unit` / `test:integration`) narrow it to a subdirectory
-    // via DMS_TEST_DIR; the default runs the whole suite.
     folder: process.env.DMS_TEST_DIR ?? "dist/test",
     async setup() {
       mongod = await MongoMemoryReplSet.create({

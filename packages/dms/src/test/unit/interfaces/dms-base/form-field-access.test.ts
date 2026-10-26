@@ -54,12 +54,10 @@ class OrderAPI extends DataController(
   @Model(OrderModel)
   declare model: OrderModel;
 
-  // Set when the order is created, never changed after.
   @Column({ name: "Reference", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite, { edit: AccessMode.ReadOnly })
   declare reference: string;
 
-  // Set by the server on creation, chosen afterwards.
   @Column({
     name: "Customer",
     type: new DefaultDataTypes.StringType(),
@@ -68,7 +66,6 @@ class OrderAPI extends DataController(
   @Access(AccessMode.ReadWrite, { new: AccessMode.ReadOnly })
   declare customer: string;
 
-  // Read-only but for the new form.
   @Column({ name: "Status", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadOnly, { new: AccessMode.ReadWrite })
   declare status: string;

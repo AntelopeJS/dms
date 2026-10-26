@@ -88,7 +88,7 @@ export async function SaveTableViewAttachments(
         promoted,
         ...args.slice(1),
       );
-      // The data API's `new` answers the created row, with its `_id`.
+
       const id = documentId || (result as { _id?: unknown } | undefined)?._id;
       if (typeof id !== "string" || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);

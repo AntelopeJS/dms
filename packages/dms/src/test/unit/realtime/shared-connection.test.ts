@@ -39,7 +39,6 @@ interface SessionGreeting {
   devReloadTopic?: string;
 }
 
-// Comfortably past the 250 ms dev reload broadcast debounce.
 const BROADCAST_SETTLE_MS = 400;
 
 const createFakeStream = (): FakeStream => {

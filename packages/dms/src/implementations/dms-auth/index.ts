@@ -72,8 +72,7 @@ async function validateUserToken(
   checkEmailValidation: boolean = false,
 ): Promise<User> {
   const userModel = GetModel(UserModel);
-  // The session is read alongside the user, so checking it costs no extra
-  // round trip; which session counts is settled from the verified payload.
+
   const [user, session] = await Promise.all([
     userModel.get(data.id),
     loadTokenSession(data.sessionId),
@@ -293,9 +292,7 @@ export function generateTwoFactorToken(
   user: User,
 ): TokenResult {
   const secret = generateSecret(user.authKey);
-  // The token is the challenge its tries are counted against. Its claims are
-  // signed to the second: without an id of its own, two sign-ins in the same
-  // second would share one token, one budget of tries and one session.
+
   const token = sign(
     { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
     secret,
@@ -341,11 +338,6 @@ function isSignedFor(token: string, user: User): boolean {
   }
 }
 
-// One refusal whatever failed: an unknown user answered apart from a bad
-// signature would tell which user ids exist, and the token library's own
-// messages ("jwt expired", "invalid signature") stay out of the answer. The
-// user is read before the signature is checked because the secret derives
-// from their key.
 async function verifyPurposeToken<T extends PurposeTokenClaims>(
   token: string,
   purpose: string,
@@ -424,11 +416,7 @@ export function sanitizeUser(user: User): Partial<User> {
     ...config.userSensitiveKeys,
   ];
 
-  // Unlike the other spread rows, `User` extends `Table.with(HashModifier)`
-  // and does carry a prototype method, `testHash`. It is not needed here: what
-  // this builds is the redacted copy that goes out as JSON, and the only
-  // `testHash` call is made on the model row, not on this.
-  // oxlint-disable-next-line typescript/no-misused-spread
+  // oxlint-disable-next-line typescript/no-misused-spread -- Sanitize a plain copy of the user's enumerable fields without copying its class prototype.
   const result = { ...user };
 
   for (const key of sensitiveKeys) {

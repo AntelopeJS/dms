@@ -13,7 +13,6 @@ const OWN_EMAIL = "mine@acme.dev";
 
 function modelHolding(accounts: Record<string, string>): UserModel {
   return {
-    // Mirrors `UserModel.getByEmail`, which normalizes before it looks up.
     getByEmail: async (lookup: string) => {
       const id = accounts[lookup.trim().toLowerCase()];
       return id ? ({ _id: id } as unknown as User) : undefined;

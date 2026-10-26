@@ -204,8 +204,6 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     expect(entry?.icon).to.equal(undefined);
   });
 
-  // The browser matches the slug to tell a 403 from a 404 and to send a
-  // signed-out visitor to the auth screens: the entry has to stay addressable.
   it("keeps the structural fields so routing still works", async () => {
     const entry = await pageEntry([]);
 

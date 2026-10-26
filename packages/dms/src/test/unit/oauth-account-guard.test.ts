@@ -9,8 +9,7 @@ import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
 
 const HTTP_FORBIDDEN = 403;
 const ACCOUNT_NOT_VALIDATED = "error.oauth.account_not_validated";
-// Deliberately not a tenant the account was invited to: a seat in any workspace
-// makes an account real, which is what reading membership across instances buys.
+
 const WORKSPACE_ID = "oauth-guard-workspace";
 const PROVIDER = "google";
 const HOLDER_NAME = "Rightful Holder";
@@ -94,9 +93,6 @@ async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
 }
 
 describe("[unit] auth/oauth — claiming an existing account", () => {
-  // The takeover the password signup already refuses, reached through OAuth: a
-  // genuine invitation, sent to the address of an account a module provisioned,
-  // used to rewrite that account and hand back a session.
   it("refuses an unvalidated account that already belongs to a workspace", async () => {
     const provisioned = buildUnvalidatedAccount(
       "oauth-guard-provisioned",

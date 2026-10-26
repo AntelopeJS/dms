@@ -76,8 +76,6 @@ describe("[integration] dms frontend endpoints", () => {
       expect(response.data).to.equal(BOOTSTRAP_REQUIRED);
     });
 
-    // The regression this suite exists for: `warn` is the shipped default, and
-    // it used to serve the manifest to anyone.
     describe("and requireBootstrap left on its warn default", () => {
       before(() => applyConfig({ frontend: { requireBootstrap: "warn" } }));
 

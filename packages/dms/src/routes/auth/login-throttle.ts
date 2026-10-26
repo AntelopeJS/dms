@@ -11,8 +11,6 @@ export const FAILURES_PER_ACCOUNT = 10;
 const FAILURES_PER_CLIENT = 50;
 const MAX_TRACKED_KEYS = 10_000;
 
-// Keyed on the typed address, not on the account: an unknown address is
-// throttled the same, so the refusal tells nothing about which ones exist.
 const accountFailures = new AttemptLimiter(
   FAILURES_PER_ACCOUNT,
   LOGIN_WINDOW_MS,

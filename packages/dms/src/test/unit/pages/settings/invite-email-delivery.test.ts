@@ -153,7 +153,6 @@ describe("[unit] pages/settings — invitation email delivery", () => {
   });
 
   describe("callers that do not opt in", () => {
-    // Awaiting the email here would never settle: it is held until after.
     it("still send in the background and report no delivery", async () => {
       let releaseEmail: () => void = () => undefined;
       const emailRequested = new Promise<void>((requested) => {

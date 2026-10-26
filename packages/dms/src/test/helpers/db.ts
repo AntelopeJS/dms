@@ -1,7 +1,5 @@
 import { MongoClient } from "mongodb";
 
-// `__antelope_instances` is the mongodb adapter's instance bookkeeping
-// collection; wiping it would deregister tenants/instances.
 const PRESERVED_COLLECTION_PREFIXES = ["system.", "__antelope"];
 const DMS_SCHEMA_DB = "dms-core";
 
@@ -13,8 +11,6 @@ function getMongoUrl(): string {
   return url;
 }
 
-// One client for the whole run: `resetDatabase` runs before most integration
-// tests, and a connect/close per call adds a handshake to every one of them.
 let sharedClient: Promise<MongoClient> | undefined;
 
 function getClient(): Promise<MongoClient> {
@@ -25,8 +21,6 @@ function getClient(): Promise<MongoClient> {
   return sharedClient;
 }
 
-// Root-level hook: the harness stops the replica set right after mocha, and an
-// open client would keep monitoring a server that is gone.
 after(async () => {
   const client = sharedClient;
   sharedClient = undefined;

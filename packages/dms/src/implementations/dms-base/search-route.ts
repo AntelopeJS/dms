@@ -73,7 +73,7 @@ function applySearchFilter(
 ): Condition {
   const { searchValue, context, meta, thisObj } = target;
   const filterFunc = resolveSearchFilter(field, target);
-  // A field with neither a filter nor a column cannot be matched.
+
   if (!filterFunc) {
     return false;
   }
@@ -93,8 +93,6 @@ function applySearchFilter(
   );
 }
 
-// A filter may answer with a literal (an unknown compare mode does): it is
-// folded away rather than asked for an operator it does not have.
 function either(a: Condition, b: Condition): Condition {
   if (typeof a === "boolean") return a ? true : b;
   if (typeof b === "boolean") return b ? true : a;
@@ -158,8 +156,7 @@ async function canViewArchived(
   permissions: Set<string> | undefined,
 ): Promise<boolean> {
   const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
-  // Every table view mounting the controller guards its archived rows with
-  // its own permission: holding it on any of them lets the archive show.
+
   const permissionIds = tableViewMeta.actionPermissionIds("viewArchived");
   if (permissionIds.length === 0) {
     return true;
@@ -176,15 +173,12 @@ async function canViewArchived(
  * field was never written (created before archive mode, or by a form that
  * leaves the field out) is active: it is matched as "not archived" rather
  * than "archived is false", which a missing field never equals.
+ * @internal
  */
-// @internal
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // The source and the target do not overlap, so this cannot be one
-  // assertion: the value reaches here through a decorator, a JWT payload or
-  // a filter tuple, none of which the type system sees.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The filter tuple declares a string value, but the archive query compares the runtime boolean true.
   return [true as unknown as string, archived ? "eq" : "ne"];
 }
 

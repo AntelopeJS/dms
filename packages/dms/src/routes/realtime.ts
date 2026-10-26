@@ -109,10 +109,6 @@ const isValidPresenceBody = (
   );
 };
 
-// Menu invalidations: the session's own tenant, its user's access in that
-// tenant, plus the broadcast topic a NotifyMenuChanged() call that names no
-// tenant lands on. The session subscribes to these and the greeting announces
-// them, so both must read the same list.
 export const menuTopicsFor = (
   tenantId: string | undefined,
   userId: string | undefined,
@@ -163,10 +159,6 @@ const applySessionTopics = async (
   for (const topic of desired) {
     const isNew = !subscriptions.has(topic);
     if (isNew) {
-      // Tracked rather than bound to the broker of the moment: a live SSE
-      // session must keep receiving across a realtime reconfiguration. An
-      // event another tenant published is not this session's to receive,
-      // unless it views every tenant on this topic.
       subscriptions.set(
         topic,
         subscribeRealtime(topic, (event) => {
@@ -250,8 +242,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       close: stream.close,
     });
     stream.send(HELLO_EVENT, { connectionId, ts: Date.now() });
-    // Once per connection, outside any session: every tab of the browser
-    // hears it from the one stream.
+
     const stopDevReload = addDevReloadListener((type) =>
       stream.send(DEV_RELOAD_TOPIC, {
         topic: DEV_RELOAD_TOPIC,
@@ -290,8 +281,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       ? getConnectionInfo(connectionId)
       : undefined;
     if (!connectionId || !connection) return { ok: false };
-    // The connection id is the browser's: another user's request holding it
-    // must not read that user's events.
+
     assert(connection.userId === user._id, 403, "error.forbidden");
     const sessionId = randomUUID();
     const tenantId = getRequestTenantId(ctx);
@@ -339,10 +329,8 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/subscribe/:pageId")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, page, session, tenant models, and user through decorators.
   async subscribePage(
     @Context() ctx: RequestContext,
     @Parameter("pageId", "param") pageId: string,
@@ -389,10 +377,8 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/acquire")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async acquire(
     @Context() ctx: RequestContext,
     @JSONBody() body: unknown,
@@ -428,10 +414,8 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/release")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async release(
     @Context() ctx: RequestContext,
     @JSONBody() body: unknown,

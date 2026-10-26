@@ -53,8 +53,6 @@ export class SecuritySettingsController extends PageController("security", {
   order: 3,
   description: "$page.settings.description.security",
 }) {
-  // Counts what needs the user's attention: the user's own state, read by
-  // anyone who can open the page.
   static statusComponent = CustomComponent("DmsSecurityStatus")
     .meta({
       name: "$page.settings.security.status_title",

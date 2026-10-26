@@ -10,8 +10,6 @@ export type BuiltInEmailSubject =
   | "emailChangeNotice"
   | "exportReady";
 
-// The subject is set by the sender rather than the template, which only renders
-// the body; each wording follows the template's `emails.<name>.title` key.
 const SUBJECTS: Record<string, Record<BuiltInEmailSubject, string>> = {
   en: {
     userValidation: "Verify Your Email",

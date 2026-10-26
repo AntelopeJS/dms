@@ -42,11 +42,6 @@ import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
 
-// Several table views may mount one controller, but only one of them writes:
-// its rules, archive-mode defaults included, are the ones the data routes
-// enforce, and its permission is the one that guards them. A read-only table
-// view sharing the controller changes neither.
-
 const SCHEMA = "writer-row-rules-test";
 const TABLE = "tasks";
 const KEY_WRITER = "pages.archive.table";
@@ -71,7 +66,6 @@ class SharedTaskAPI extends DataController(
   @Model(TaskModel)
   declare model: TaskModel;
 
-  // An editable column: the table views get an edit form, hence an edit action.
   @Column({ name: "Priority", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite)
   declare priority: string;
@@ -98,8 +92,6 @@ function createTable(rows: Map<string, Row>) {
   };
 }
 
-// "archived" is the only row archived; "legacy" was created before the
-// archive field existed.
 function createRows(): Map<string, Row> {
   return new Map<string, Row>([
     ["low", { _id: "low", priority: "low", isArchived: false }],
@@ -119,7 +111,7 @@ const writer = TableView(SharedTaskAPI, {
   archiveMode: true,
   rowActions: { archive: true, restore: true, hasSelection: true },
 });
-// Built last: the table view the controller used to take its options from.
+
 const reader = TableView(SharedTaskAPI, {
   realtime: false,
   rowActions: { add: false, duplicate: false, edit: false, delete: false },
@@ -275,8 +267,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
         new Set(["*"]),
         {},
       );
-      // "not archived", which a missing field satisfies — "archived is
-      // false" never matches it.
+
       expect(filters?.isArchived).to.deep.equal([true, "ne"]);
       const archived = await applyArchiveFilter(
         controller,

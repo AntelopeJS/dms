@@ -47,7 +47,6 @@ function removeLastOwner(): Promise<void> {
   return assertNotLastPlatformOwnerOnDelete([target]);
 }
 
-// A registration belongs to the module that made it: here, the test module.
 function unloadRegisteringModule(): void {
   const moduleId = GetResponsibleModule();
   if (!moduleId) throw new Error("No responsible module for the test");

@@ -21,14 +21,8 @@ const REGULAR_PAGE_PERMISSION = "pages.mpr-normal";
 
 describe("[unit] interfaces/dms/page — module permission registration", () => {
   before(async () => {
-    // Route the interface-side RegisterPermission proxy into the mocha-loaded
-    // registry implementation; the proxy replays registrations that happened
-    // at import time (built-in root categories, settings pages, ...).
     ImplementInterface(permissionsInterface, permissionsImpl);
 
-    // The built-in Modules landing page is normally registered by
-    // src/pages/modules/modules-index.ts; register it here so this suite does
-    // not depend on other test files importing the full module.
     await GetMetadata(modulesCategory, PageMetadata).Register();
 
     RegisterModule({

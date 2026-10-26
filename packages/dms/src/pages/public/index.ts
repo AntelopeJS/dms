@@ -1,5 +1,3 @@
-// Public pages that can be accessed without authentication
-
 import "./auth/login";
 import "./auth/signup";
 import "./auth/2fa";

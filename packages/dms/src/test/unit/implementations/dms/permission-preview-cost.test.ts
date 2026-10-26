@@ -22,10 +22,6 @@ import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access"
 import { stubPageAccessModels } from "../../../helpers/page-access";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
-// A preview resolves the layout the viewer is served on every page of the
-// menu: a bounded number at once, and once per viewer whatever set is
-// previewed next — the roles editor sends a new set on every edit.
-
 const PAGE_COUNT = 8;
 const MAX_CONCURRENT_PAGES = 4;
 const FILTER_DELAY_MS = 5;
@@ -35,8 +31,7 @@ const PAGE_IDS = Array.from(
   { length: PAGE_COUNT },
   (_, index) => `pages.pv-cost-${index}`,
 );
-// With its block: a page showing none of its blocks is no menu entry, and the
-// preview reads no layout for it.
+
 const PAGE_GRANTS = PAGE_IDS.map((id) => `${id}.block`);
 
 let running = 0;

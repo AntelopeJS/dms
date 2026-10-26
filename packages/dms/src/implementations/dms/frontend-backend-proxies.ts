@@ -5,9 +5,6 @@ import type {
 
 type BackendProxyAuth = Required<FrontendBackendProxy>["auth"];
 
-// `/x`, `/x/*` or `/x/**`: literal segments or `*`, then an optional `**`.
-// Kept in step with `compilePathPattern` and `proxyRejection` in
-// dms-frontend's `templates/vue/server/`, which match requests to it.
 const SEGMENT = "(?:\\*|[A-Za-z0-9][A-Za-z0-9._~-]*)";
 const PROXY_PATH = new RegExp(
   `^/[A-Za-z0-9][A-Za-z0-9._~-]*(?:/${SEGMENT})*(?:/\\*\\*)?$`,

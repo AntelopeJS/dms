@@ -74,8 +74,6 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(memberSettingDataAPI);
 
-// Redirect targets for the invite form: an existing user is added straight to
-// the members list, a new email lands as a pending invite.
 export const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 export const INVITES_PAGE_PATH = "/settings/workspace/invites";
 /** Data API of the invitations list, whose total the Invitations tab shows. */
@@ -207,8 +205,7 @@ const memberApiTarget = (action: string) =>
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",
   labelKey: "name",
-  // "Change roles" opens over the list: the member's name in the title, the
-  // roles as the invite form's pills (see the `roleIds` column).
+
   formContainer: {
     type: "modal",
     size: "md",
@@ -250,8 +247,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       label: "$page.settings.members.action.change_roles",
       icon: "i-ph-key",
     },
-    // The server words the confirmation: what the member loses, or why the
-    // last owner cannot go.
+
     delete: {
       isEnabled: true,
       label: "$page.settings.members.action.remove",
@@ -345,7 +341,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       icon: "i-ph-user-plus",
       color: "primary",
       permission: "add",
-      // In the page header; the invite quick action presses it too.
+
       placement: "header",
       availability: ResolveInviteAvailability,
       target: {
@@ -359,10 +355,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
   ],
   guards: {
     edit: async (ctx, { current, body }) => {
-      // The source and the target do not overlap, so this cannot be one
-      // assertion: the value reaches here through a decorator, a JWT
-      // payload or a filter tuple, none of which the type system sees.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The guard receives memberSettingDataAPI; owner checks treat that row as the corresponding TenantMember.
       const currentRow = current as unknown as TenantMember;
       const { isTenantOwner } = body as { isTenantOwner?: boolean };
       const tenantId = getRequestTenantId(ctx);
@@ -386,8 +379,6 @@ export const membersTableAddAction = requireMembersTableAction("add");
 const membersTableEditAction = requireMembersTableAction("edit");
 const membersTableDeleteAction = requireMembersTableAction("delete");
 
-// Changing roles and ownership, or inviting with any role, lets the holder
-// make themselves an owner. Intended, so the roles editor says it instead.
 declarePermissionWarning(
   membersTableEditAction,
   "$page.settings.roles.warning.members",
@@ -401,8 +392,7 @@ function inviteRedirectPath(results: InviteEmailResult[]): string {
   const hasPendingInvite = results.some(
     (result) => result.outcome === "invited",
   );
-  // An existing user is added straight away (no pending invite), so send the
-  // admin to the members list rather than the invites list.
+
   return hasPendingInvite ? INVITES_PAGE_PATH : MEMBERS_PAGE_PATH;
 }
 
@@ -465,8 +455,7 @@ export class MembersSettingsController extends PageController("members", {
     @JSONBody() body: unknown,
   ): Promise<MemberInviteResponse> {
     const payload = assertValidation(body, (v) => memberInviteSchema.parse(v));
-    // Validated before any invite exists: a payload a module refuses must not
-    // leave a half-populated invitation behind.
+
     const extensions = CollectInviteExtensionPayloads(body);
     const results = await inviteMembers(
       payload,
@@ -520,7 +509,7 @@ export class MembersSettingsController extends PageController("members", {
       memberId,
       isTenantOwner,
     );
-    // Ownership opens or closes every page of the workspace to the member.
+
     if (change !== null)
       notifyMenuAccessChanged(getRequestTenantId(ctx), [member.userId]);
     if (change !== null && member.userId !== user._id) {

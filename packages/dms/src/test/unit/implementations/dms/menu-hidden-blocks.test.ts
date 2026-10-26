@@ -44,7 +44,6 @@ class BlocksPage extends PageController("mhb-blocks", {
   static quota = block("quota");
 }
 
-// Filed under the page, like Member invitations under Members.
 class NestedPage extends PageController("mhb-nested", {
   displayName: "Invitations",
   category: BlocksPage,
@@ -92,9 +91,6 @@ async function previewHiddenEntries(permissions: string[]): Promise<string[]> {
   return access.hiddenEntries;
 }
 
-// A role holding a page but none of its blocks was served the page as a menu
-// entry, which opened on "nothing to show for you" — an Invitations-only role
-// got a dead Members entry in the settings navigation.
 describe("[unit] implementations/dms/page — a page whose every block is hidden", () => {
   const cleanups: Array<() => void> = [];
 

@@ -34,8 +34,7 @@ async function build(signal?: AbortSignal) {
     localPath,
     signal: signal ?? new AbortController().signal,
   });
-  // Entry names sit uncompressed in the local file headers, so scanning the
-  // raw bytes is enough to assert the archive layout without a zip reader.
+
   const raw = readText(localPath, "latin1");
   fs.rmSync(localPath, { force: true });
   return { summary, raw };

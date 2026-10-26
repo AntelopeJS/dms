@@ -1,5 +1,3 @@
-// Two-factor operations of the Security page.
-
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { generateGoogleQR, generateUrl } from "2fa";
@@ -32,7 +30,7 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
 const QR_MODULE_SIZE = 6;
-// Quiet zone in modules: scanners need it, even on a dark page.
+
 const QR_MARGIN = 3;
 const OTP_AUTH_SECRET_PARAM = "secret";
 
@@ -101,8 +99,6 @@ function renderQrCode(user: User, secret: string): Promise<string> {
   });
 }
 
-// Adding a second factor asks for the account password: a borrowed session
-// must not enrol a factor of its own and lock the owner out.
 async function assertMayAddMethod(
   user: User,
   body: unknown,
@@ -193,7 +189,6 @@ export async function confirmTotpSetup(
   return { success: true, backupCodes };
 }
 
-// Email codes are being set up: a code went out, the method is not on yet.
 const isEmailSetupPending = (user: User): boolean =>
   !methodsOf(user).includes("email") && !!user.twoFactorEmailCode;
 
@@ -213,8 +208,7 @@ export async function startEmailSetup(
   userModel: UserModel,
 ): Promise<SuccessResult> {
   const needsCode = !isEmailSetupPending(user) || isEmailCodeExpired(user);
-  // Before the password: a wait that only the right password reached would
-  // tell a guess was right.
+
   if (needsCode) assertEmailCodeNotRateLimited(user);
   await assertMayAddMethod(user, body, userModel);
   if (needsCode) await sendNewEmailCode(userModel, user);
@@ -295,8 +289,6 @@ export async function disableTwoFactorMethod(
   return { success: true };
 }
 
-// One method after the other: a code that passes is used up, so it must not
-// be tried against a second method once one accepted it.
 async function isValidCodeForAnyMethod(
   userModel: UserModel,
   user: User,

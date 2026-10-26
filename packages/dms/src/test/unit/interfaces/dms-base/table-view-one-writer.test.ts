@@ -1,5 +1,3 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { Controller, type ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
@@ -42,10 +40,6 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import type { Component } from "@antelopejs/interface-dms/component";
 import { derivedController } from "../../../helpers/derived-controller";
-
-// A data controller has one writing TableView: a second one fails its page's
-// registration, read-only ones share the controller, and a derived controller
-// is how the same data gets a second writing screen.
 
 const TABLE = "one-writer-documents";
 const LOCATION = "/api/one-writer-documents";

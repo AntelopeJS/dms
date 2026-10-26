@@ -116,9 +116,6 @@ describe("[unit] oauth linking policy", () => {
       expect(resolution).to.equal("claim-unvalidated");
     });
 
-    // The takeover the password signup already refuses, reached through OAuth: a
-    // module provisions a real account without validating its e-mail, so it
-    // looks unvalidated, yet a workspace seat proves it is inhabited.
     it("never reclaims an unvalidated account that holds a workspace seat, even with an invitation", () => {
       expectRefusal(
         () =>

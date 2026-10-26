@@ -1,6 +1,3 @@
-// When a burst of wrong passwords deserves an alert. Pure: the store
-// (sign-in-monitor.ts) records the attempts and sends the notification.
-
 import type { SignInAttemptKind } from "../db/tables/signInAttempts.table";
 
 export const FAILED_SIGN_IN_THRESHOLD = 5;

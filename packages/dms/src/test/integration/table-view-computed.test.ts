@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// Database-computed fields of a table view (src/test/attachment-host/computed.ts):
-// the list returns them on every row, whether or not the request filters or
-// sorts on them, as the data API's own list does.
-
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
 

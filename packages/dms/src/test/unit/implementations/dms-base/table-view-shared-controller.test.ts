@@ -47,7 +47,6 @@ async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
 }
 
 describe("[unit] implementations/dms-base — data controller shared by several TableViews", () => {
-  // Held here: the meta only keeps weak references to the builders.
   const builders: TableViewBuilder[] = [];
 
   function sharedController(...tableViews: TableViewBuilder[]): unknown {
@@ -93,8 +92,6 @@ describe("[unit] implementations/dms-base — data controller shared by several 
     ]);
   });
 
-  // The last TableView built carries no archive mode: reading only that one
-  // used to leave the archived rows open to anyone.
   it("guards archived rows when only an earlier TableView declares viewArchived", async () => {
     const instance = sharedController(
       stampedBuilder({ [VIEW_ARCHIVED_ACTION]: ARCHIVING_TABLE_PERMISSION }),

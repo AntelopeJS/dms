@@ -42,9 +42,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// Invoices behind the table view capabilities the server takes part in:
-// footer summaries, filter tokens and a bulk route finding its rows.
-
 const TABLE = "capability-invoices";
 
 export const INVOICE_STATUSES = [
@@ -85,8 +82,6 @@ export class CapabilityInvoiceController extends DataController(
   @Access(AccessMode.ReadOnly)
   declare _id: string;
 
-  // Searchable without being filterable, and declared first, so the search
-  // starts from a field that has no data-api filter.
   @Searchable()
   @Listable()
   @Column({ name: "Customer", type: new DefaultDataTypes.StringType() })
@@ -128,7 +123,6 @@ export class CapabilityInvoiceController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare ownerId: string;
 
-  // Optional, so a row saved without labels holds null or no field at all.
   @Listable()
   @Column({
     name: "Labels",
@@ -166,9 +160,6 @@ export class CapabilityInvoiceController extends DataController(
   }
 }
 
-// A route outside the invoices' data controller (a page's would do the same)
-// finding the rows of their table from its own model and the table's
-// metadata.
 export class InvoiceBulkController extends Controller(
   "/api/capabilities/invoice-bulk",
 ) {
@@ -191,8 +182,6 @@ export class InvoiceBulkController extends Controller(
   }
 }
 
-// The same invoices behind a route scope: every list-like route, the tab
-// counters' batch count included, only ever sees the open ones.
 const OPEN_SCOPE = { filters: { status: ["open", "is"] as [string, string] } };
 
 @RegisterDataController()

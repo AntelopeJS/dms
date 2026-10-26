@@ -14,9 +14,6 @@ import { resetDatabase } from "../helpers/db";
 import { findUserByEmail, updateUserByEmail } from "../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// Changing the sign-in email proves the new address with a code sent there,
-// and warns the current one; the account moves only once the code comes back.
-
 const SECURITY = pageRoutePath("/settings/user/security");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -40,9 +37,6 @@ interface RenderedEmail {
 
 const rendered: RenderedEmail[] = [];
 
-// The harness has no render service: the emails are kept as the props they
-// were rendered from (the mail provider still tries to send them, to a closed
-// local port, after the request answered).
 function captureRenderedEmails(): void {
   ImplementInterface(
     { GenerateHtml },
@@ -64,7 +58,6 @@ function renderedWith(template: string, newEmail: string) {
   );
 }
 
-// The emails leave in the background of the request.
 async function renderedEventually(template: string, newEmail: string) {
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
     const email = renderedWith(template, newEmail);

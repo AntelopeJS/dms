@@ -27,8 +27,6 @@ type FieldReader = (field: string) => ValueProxy<unknown>;
 const isLiteral = (condition: Condition): condition is boolean =>
   typeof condition === "boolean";
 
-// Rules combine in the database: a literal is folded away rather than asked
-// for an operator it does not have.
 function both(a: Condition, b: Condition): Condition {
   if (isLiteral(a)) return a ? b : false;
   if (isLiteral(b)) return b ? a : false;
@@ -124,9 +122,8 @@ function fieldReader(
  * The footer summaries over every row the request's filters, search and
  * archive view list, each narrowed by its own `where` rule.
  */
-// A published contract: the runtime receives the interface's arguments
-// positionally.
-// oxlint-disable-next-line eslint/max-params
+
+// oxlint-disable-next-line eslint/max-params -- Existing callers pass controller, request, list options, summaries, user, and permissions positionally.
 export async function summarizeWithSearch(
   thisObj: unknown,
   reqCtx: RequestContext,

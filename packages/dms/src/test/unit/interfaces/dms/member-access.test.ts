@@ -68,8 +68,6 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
       static feed = feed();
     }
 
-    // Declared on the settings root itself, which opens to every member
-    // with `"self"`: the pages under it keep their own grant.
     class SettingsPage extends PageController("ma-billing", {
       displayName: "Billing",
       category: settingsCategory,

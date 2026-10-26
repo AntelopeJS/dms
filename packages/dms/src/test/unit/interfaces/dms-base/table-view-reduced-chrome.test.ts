@@ -417,7 +417,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       lazyLoad: undefined,
       component: component.serializeSync(),
     });
-    // What the types refuse, a schema-built option can still carry.
+
     const both = {
       component,
       fields: ["carrier"],

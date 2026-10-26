@@ -46,9 +46,6 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
     registered.length = 0;
   });
 
-  // The whole point of the hook: an emitter that awaits it can unwind the
-  // workspace it was provisioning, because it learns of the failure before it
-  // commits and no later handler has run in the meantime.
   it("propagates a handler failure to the emitter and stops there", async () => {
     const reached: string[] = [];
     register(async () => {
@@ -67,10 +64,7 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
 
     expect(error).to.be.instanceOf(Error);
     expect((error as Error).message).to.equal(HANDLER_FAILURE);
-    // "first" ran and nothing takes it back: the dispatcher enlists no shared
-    // transaction, so a handler that already returned owns what it wrote. The
-    // guarantee runs one way — no workspace without the enrichment, not the
-    // reverse — and handlers are documented to key their rows on `tenantId`.
+
     expect(reached).to.deep.equal(["first"]);
   });
 
@@ -92,8 +86,6 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
     expect(events).to.deep.equal(["slow:start", "slow:end", "next:start"]);
   });
 
-  // `extras` belongs to the caller and the handler; the DMS is only the
-  // courier. Anything reshaping it in transit would break that contract.
   it("hands extras to the handler untouched", async () => {
     const extras = {
       acquisitionSource: "podcast",

@@ -28,7 +28,7 @@ const TENANT = "menu-hardening-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
 const MEMBER = { _id: "menu-hardening-member" } as User;
 const TARGET_SLUG = "/menu-hardening-target";
-// A fraction of the production budget: the hanging resolver below waits it out.
+
 const RESOLVER_TIMEOUT_MS = 300;
 
 function entry(id: string, displayName: string): DynamicMenuItem {
@@ -73,8 +73,6 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
     }
   });
 
-  // Entries sharing an `order` used to fall back to insertion order, which is
-  // the order the modules happened to start in.
   it("orders entries of equal rank by what the reader sees", async () => {
     const dispose = RegisterDynamicMenuProvider(CATEGORY_FULL_ID, async () => [
       entry("zebra", "Zebra"),
@@ -93,7 +91,6 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
     }
   });
 
-  // A hanging resolver used to hold the menu of every user of the tenant.
   it("drops the entries of a resolver that does not answer in time", async () => {
     const dispose = RegisterDynamicMenuProvider(
       CATEGORY_FULL_ID,
@@ -115,7 +112,6 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
     }
   });
 
-  // Sequential resolvers made the request wait for their sum.
   it("runs the providers together rather than one after the other", async () => {
     const RESOLVER_DELAY_MS = 300;
     const PROVIDER_COUNT = 4;
@@ -132,20 +128,15 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
       await menuChildren();
       const elapsed = Date.now() - started;
 
-      // The slowest, not the sum of all four.
       expect(elapsed).to.be.lessThan(RESOLVER_DELAY_MS * PROVIDER_COUNT);
     } finally {
       for (const dispose of disposers) dispose();
     }
   });
 
-  // The resolvers are launched from the live registry and the results merged
-  // by index: a module unregistering meanwhile would shift the array under the
-  // merge, and entries would land under another provider's category.
   it("survives a provider unregistering while the resolvers run", async () => {
     let disposeSecond: (() => void) | undefined;
     const first = RegisterDynamicMenuProvider(CATEGORY_FULL_ID, async () => {
-      // Mutates the registry from inside the resolution itself.
       disposeSecond?.();
       return [entry("still-here", "Still here")];
     });
@@ -164,7 +155,6 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
     }
   });
 
-  // Which provider wins a colliding id must not depend on which answered first.
   it("merges in registration order however the resolvers finish", async () => {
     const first = RegisterDynamicMenuProvider(CATEGORY_FULL_ID, async () => {
       await new Promise((resolve) => setTimeout(resolve, 120));

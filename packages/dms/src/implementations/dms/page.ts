@@ -121,11 +121,7 @@ type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   layoutUrl?: string;
   hasAccess?: boolean;
 };
-// Pages own their slug, but any number of `urlTransparent` categories share
-// their parent's, so only `fullId` identifies a category: the serialized
-// layout (`SiteLayoutWithAccess`) keys its pages by slug and its categories by
-// full id, as these registries do. The names carry the key to keep the two
-// from being confused.
+
 const pagesBySlug: Record<string, PageInfo> = {};
 const categoriesByFullId: Record<string, CategoryInfo> = {};
 const navigationTree: SiteLayoutTree = {
@@ -138,10 +134,9 @@ const navigationTree: SiteLayoutTree = {
   category: undefined,
 };
 const OMIT_SHARED_PAGE_QUERY_VALUE = "false";
-// The `/dms/pagelayout` parameter naming the page; the rest of its query is the page URL's.
+
 const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
-// The `/dms/page` parameters naming the page and its parts; the rest of its
-// query, when the renderer sends it, is the page URL's.
+
 const PAGE_REQUEST_PARAMETERS = ["path", "shared"];
 
 setSlugProvider(() => Object.keys(pagesBySlug));
@@ -156,11 +151,6 @@ function resolvePagePermissionId(
   return permission?.id || fullId;
 }
 
-// The serialized layout is keyed by slug — the browser resolves a URL against
-// it — so two surfaces reachable at one slug silently replace each other. Say
-// so: it is always a declaration error, and the symptom otherwise is a page
-// that simply is not the one you wrote. `urlTransparent` categories are exempt
-// and never reach this: sharing the parent's slug is what they are for.
 function warnOnSlugCollision<T extends { fullSlug: string; fullId: string }>(
   existing: T | undefined,
   incoming: T,
@@ -214,13 +204,10 @@ export async function userCanAccessPage(
 ): Promise<boolean> {
   const info = findPageByFullId(fullId);
   if (!info) return false;
-  // Same semantics as computeEntryAccess: module pages are owner-only, even
-  // when publicAccess is set or a stored role grants the page permission.
+
   if (!user) return !isInsideModule(info) && info.publicAccess === true;
   const access = await CheckTenantAccess(user._id, tenantId);
-  // Same rule as the menu and `/dms/pagelayout`, from the same function: a
-  // denied tenant keeps the surfaces that opted out, plus the public and
-  // auth-only screens it needs to recover — realtime on them included.
+
   if (!gateAllowsSurface(info, !access.allowed)) return false;
   const roleIds = await getRoleIdsForUser(memberModel, user);
   const permissions = await GetEffectiveUserPermissions(
@@ -238,25 +225,13 @@ export async function userCanAccessPage(
   );
 }
 
-// Keyed on the category id rather than a registration: the category is what
-// is missing, so there is nothing else to key on. Never forgotten, so a
-// category that stays missing across hot reloads is reported once rather than
-// on each reload.
 const warnedMissingCategories = new Set<string>();
-// Categories seen missing since the last check, and the timer that checks
-// them once registrations settle.
+
 const suspectedMissingCategories = new Set<string>();
 let missingCategoryCheck: NodeJS.Timeout | undefined;
-// Same window as the reload broadcast (`dev-reload.ts`): a hot reload's
-// unregister and register bursts land within it.
+
 const MISSING_CATEGORY_SETTLE_MS = 250;
 
-// Entries outliving or preceding their category are shown at its parent's
-// level (see `buildChildrenWithAccess`), so the menu no longer shows that
-// something is missing: the log has to. Not on the spot, though: a hot reload
-// or a stop unregisters a category before the pages under it, and a module may
-// register a page before its category, so the entries are only orphans if the
-// category is still missing once registrations settle.
 function suspectMissingCategory(categoryFullId: string): void {
   if (warnedMissingCategories.has(categoryFullId)) return;
   suspectedMissingCategories.add(categoryFullId);
@@ -353,17 +328,11 @@ function addToTree(newPageInfo: PageInfo | CategoryInfo) {
   updateChildrenOrders(navigationTree);
 }
 
-// Codepoint-wise, never locale-aware: the same set of entries must assemble
-// the same menu on every host.
 function compareText(a: string, b: string): number {
   if (a === b) return 0;
   return a < b ? -1 : 1;
 }
 
-// `order` first, then what the reader actually sees, then the id — unique
-// among siblings, so the order is total. Without the last two, entries sharing
-// an `order` fell back to insertion order, which is the order the modules
-// happened to start in: a menu that rearranges itself between two restarts.
 function compareMenuChildren(a: SiteLayoutTree, b: SiteLayoutTree): number {
   return (
     (a.order ?? 0) - (b.order ?? 0) ||
@@ -444,10 +413,6 @@ export function GetMenuEntryPermissionIds(): Set<string> {
   );
 }
 
-// Deleting the node outright would take its whole subtree with it: a category
-// unregistering dropped every page other modules had registered under it from
-// the sidebar, while those pages stayed in the registry and kept serving. Drop
-// what this entry owns, and let the node go only once nothing lives under it.
 function removeFromTree(fullId: string) {
   const parts = fullId.split(".");
   const levels: Array<Record<string, SiteLayoutTree>> = [
@@ -467,8 +432,6 @@ function removeFromTree(fullId: string) {
   if (!target) return;
   const heldKeys = Object.keys(target.children);
   if (heldKeys.length > 0) {
-    // Still holds registered descendants: blank the entry so nothing shows it,
-    // and keep it as the container they hang from.
     suspectMissingCategory(fullId);
     currentLevel[key] = {
       ...target,
@@ -499,15 +462,11 @@ function removeFromTree(fullId: string) {
 
 const moduleRegistry: Record<string, ModuleInfo> = {};
 const dynamicMenuProviders: DynamicMenuProviderInfo[] = [];
-// Which provider produced a dynamic node. The nodes are per-request copies, so
-// the entries die with the request; it exists only to name, at merge time, the
-// provider whose entry was dropped — the one that has to hear about it.
+
 const nodeProviders = new WeakMap<object, DynamicMenuProviderInfo>();
-// The page a dynamic node leads to, for the same reason: a role preview reads
-// what that page loses to tell whether the entry is partially locked.
+
 const nodeTargets = new WeakMap<object, PageInfo>();
-// Bumped by every structural change, so a role preview never answers for a
-// page registered, changed or gone since from what it read before.
+
 let previewStructureVersion = 0;
 
 const HTTP_FORBIDDEN = 403;
@@ -585,23 +544,7 @@ const MENU_NOTIFICATION_WINDOW_MS = 250;
 const lastMenuPublishAt = new Map<string, number>();
 const pendingMenuNotifications = new Map<string, NodeJS.Timeout>();
 
-// Each event makes every reached client refetch its whole site layout, which
-// re-runs every dynamic menu resolver server-side — so a caller looping over
-// rows (a bulk import notifying per project) multiplies that by the number of
-// connected sessions. Publishing leads the window and the rest of a burst
-// collapses into one trailing publish: an isolated change still reaches
-// clients immediately, which is the point of the signal, while a burst costs
-// two rounds instead of N. Targets (a topic each) are independent — one burst never
-// delays another target's.
 function schedulePublishMenuChanged(target: string): void {
-  // The module can be taken down between scheduling and firing -- the last page
-  // to unregister schedules one on its way out. Both calls below reach an
-  // interface bound to the module context, and they fail differently once that
-  // context is gone: `fireAndForget` is a proxied function, so entering it
-  // throws right here, while the realtime publish inside `publishMenuChanged`
-  // fails within an async function and surfaces as a rejection. Neither is a
-  // failure worth reporting, and an uncaught one from a timer callback would
-  // take the process with it -- so both paths are filtered.
   const publish = (): void => {
     lastMenuPublishAt.set(target, Date.now());
     try {
@@ -614,9 +557,6 @@ function schedulePublishMenuChanged(target: string): void {
     }
   };
 
-  // A pending trailing publish covers this call even once the window has
-  // elapsed: its timer is merely late, held back by synchronous work, and
-  // publishing now as well would send the burst's trailing event twice.
   if (pendingMenuNotifications.has(target)) return;
   const sinceLast = Date.now() - (lastMenuPublishAt.get(target) ?? 0);
   if (sinceLast >= MENU_NOTIFICATION_WINDOW_MS) {
@@ -653,15 +593,6 @@ async function publishMenuChanged(topic: string): Promise<void> {
 }
 
 export namespace internal {
-  // Both `register` and `unregister` schedule the dev resync broadcast. The
-  // 250ms debounce coalesces a hot reload's unregister burst + register burst
-  // into a single broadcast that lands once re-registration has settled.
-  // Broadcasting on unregister too is what lets a pure removal (deleting a
-  // module's only page, or removing a module) reach clients even when no
-  // trailing register() follows. A broadcast that fires mid-burst, while the
-  // user's route is momentarily unregistered, is harmless: the client commits
-  // via probeAndCommitRoute, which only commits once the route is present and
-  // otherwise keeps polling — so it never commits a layout missing the route.
   export const RegisterCategory = {
     register: (categoryInfo: CategoryInfo) => {
       if (!categoryInfo.urlTransparent) {
@@ -686,9 +617,7 @@ export namespace internal {
         removeFromTree(categoryInfo.fullId);
         notifyStructureChanged();
       }
-      // Keep the module-scoped deny set symmetric with the registration
-      // lifecycle so a hot-reload that moves an entry out of a module does
-      // not keep denying its permission until restart.
+
       if (isInsideModule(categoryInfo)) {
         UnmarkModuleScopedPermission(
           resolvePagePermissionId(categoryInfo.permission, categoryInfo.fullId),
@@ -708,9 +637,6 @@ export namespace internal {
       }
     },
     unregister: (pageInfo: PageInfo) => {
-      // Two surfaces can claim one slug: the later registration won the
-      // registry, and letting the earlier one delete on its way out would take
-      // the live entry with it.
       if (pagesBySlug[pageInfo.fullSlug] !== pageInfo) {
         clearPageMetadata(pageInfo.fullId, pageInfo);
         return;
@@ -725,17 +651,11 @@ export namespace internal {
           resolvePagePermissionId(pageInfo.permission, pageInfo.fullId),
         );
       }
-      // Drop the page's metadata too, so an extension registered afterwards is
-      // held for the page's next registration instead of grafting itself onto
-      // a page that no longer serves.
+
       clearPageMetadata(pageInfo.fullId, pageInfo);
-      // …and its layout handler, which `/dms/pagelayout` resolves by slug and
-      // would otherwise keep serving the page after its module is gone.
+
       ClearPageLayoutBySlug(pageInfo.fullSlug);
-      // …and the realtime topics registered against it: they are the allowlist
-      // the SSE routes check subscriptions against. Cleared here rather than
-      // through the realtime proxy, whose entries are keyed per topic and
-      // belong to the modules that registered them.
+
       clearPageTopics(pageInfo.fullId);
     },
   };
@@ -764,9 +684,6 @@ export namespace internal {
     },
   };
 
-  // Routing page extensions through the proxy is what binds them to the
-  // extending module's lifetime: the core unregisters every entry a module
-  // registered when that module stops, so its blocks leave the target page.
   export const RegisterPageExtension = {
     register: (info: PageExtensionInfo) => {
       applyPageExtension(info);
@@ -868,8 +785,7 @@ export class DMSController extends Controller("/dms") {
         ]);
         return {
           ...presentModuleInfo(info),
-          // Same rule as the site layout's module map, so the catalog and
-          // the sidebar never disagree on what a caller can open.
+
           hasAccess: await computeModuleAccess(info.id, accessContext),
           landingSlug: resolveModuleLandingSlug(info),
           status,
@@ -1118,8 +1034,6 @@ export async function buildPagePayload(
     tenantId,
   );
   const [layout, navBadges] = await Promise.all([
-    // Header buttons resolve against the page URL's query, as `/pagelayout`
-    // does: the layout then matches the one the browser would read again.
     handler({
       user,
       memberModel,
@@ -1132,7 +1046,6 @@ export async function buildPagePayload(
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
-    // The same entry the site layout serves, its category named by id.
     const routes = withCategoryRefs(
       await annotateRegistryAccess({ [registeredSlug]: route }, context),
     );
@@ -1200,9 +1113,6 @@ export interface PermissionPreviewAccess {
   page: PermissionPreviewPage | null;
 }
 
-// The previewed set read the way `buildAccessContext` reads a real one. The
-// viewer's tenant gate still applies: a preview never reopens what the gate
-// closed for the viewer.
 function buildPreviewAccessContext(
   previewPermissions: Set<string>,
   real: RequestAccessContext,
@@ -1224,8 +1134,6 @@ function buildPreviewAccessContext(
   return buildDeniedAccessContext(preview);
 }
 
-// Every category counts, labels and URL-transparent ones included: the menu
-// draws them all, and a branch the set cannot reach must read as locked too.
 async function findRegisteredEntriesHiddenByPreview(
   real: RequestAccessContext,
   preview: RequestAccessContext,
@@ -1242,9 +1150,6 @@ async function findRegisteredEntriesHiddenByPreview(
   return hidden;
 }
 
-// Dynamic entries resolve per user: the providers run for the viewer under
-// both sets, and an entry the viewer is served but the previewed set is not —
-// its category, its target page or its own permission refused — is hidden.
 function findDynamicEntriesHiddenByPreview(
   served: DynamicChildren,
   previewed: DynamicChildren,
@@ -1282,9 +1187,6 @@ export interface PermissionPreviewRequest {
   pageLoses?: PreviewPageLossCheck;
 }
 
-// The page layout exactly as a member holding the previewed set is served it:
-// the page's own resolver, fed a member whose only role grants the set. Read
-// for its header actions and custom buttons, never sent to the browser.
 function previewMemberModels(previewPermissions: Set<string>): {
   memberModel: TenantMemberModel;
   roleModel: RoleModel;
@@ -1293,9 +1195,8 @@ function previewMemberModels(previewPermissions: Set<string>): {
   const roles = [
     { _id: PREVIEW_ROLE_ID, permissions: [...previewPermissions] },
   ];
-  // Partial doubles: the layout resolver only reads a member's role ids and
-  // those roles' permissions, so these two methods are all it reaches.
-  // oxlint-disable anti-slop/no-chained-type-assertions
+
+  // oxlint-disable anti-slop/no-chained-type-assertions -- Preview permission checks use only getByUser and getBy; these partial objects do not implement the full model classes.
   return {
     memberModel: {
       getByUser: async () => ({ roleIds }),
@@ -1305,8 +1206,6 @@ function previewMemberModels(previewPermissions: Set<string>): {
   // oxlint-enable anti-slop/no-chained-type-assertions
 }
 
-// The viewer's own models, each answer read once however many page layouts
-// the preview resolves: every resolver asks for the same member and roles.
 function memoizeViewerModels(
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
@@ -1322,9 +1221,8 @@ function memoizeViewerModels(
     answers.set(key, pending);
     return pending;
   };
-  // Partial doubles, like `previewMemberModels`: the layout resolver reaches
-  // these two methods only.
-  // oxlint-disable anti-slop/no-chained-type-assertions
+
+  // oxlint-disable anti-slop/no-chained-type-assertions -- Permission checks use only these memoized lookup methods; the wrappers do not implement the full model classes.
   return {
     memberModel: {
       getByUser: (userId: string) =>
@@ -1340,12 +1238,9 @@ function memoizeViewerModels(
   // oxlint-enable anti-slop/no-chained-type-assertions
 }
 
-// Answers of `pageLoses`, per check: a preview tab asks again on every page
-// it moves to and on every edit, and each ask would otherwise resolve the
-// layout of every page. Short-lived, so data-driven filters catch up.
 const PREVIEW_LOSS_TTL_MS = 30_000;
 const PREVIEW_LOSS_MAX_SCOPES = 16;
-// Page layouts a preview resolves at once: each may query data.
+
 const PREVIEW_PAGE_CONCURRENCY = 4;
 
 const PREVIEW_ROLE_ID = "dms-permission-preview";
@@ -1388,10 +1283,7 @@ async function findPreviewHeaderActions(
   const { memberModel, roleModel } = previewMemberModels(
     request.previewPermissions,
   );
-  // Never an owner: the previewed set is the role's. The layout runs the
-  // resolvers again for the viewer, told it is a preview, so a resolver
-  // shapes the role's set rather than the viewer's standing. The viewer stays
-  // the prototype, so everything else reads through.
+
   const previewUser: User = Object.assign(Object.create(request.user), {
     owner: false,
   });
@@ -1422,9 +1314,6 @@ interface PreviewPageReading {
   layouts: Map<string, Promise<PageLayout>>;
 }
 
-// The viewer's layout does not depend on the previewed set: read once per
-// viewer and access, whatever set the editor previews next. A failed read is
-// not kept.
 function readViewerLayout(
   route: PageInfo,
   handler: PageLayoutHandler,
@@ -1459,8 +1348,6 @@ function viewerLayoutsFor(
   );
 }
 
-// A page the viewer opens, read with the viewer's own access: its layout is
-// the one the viewer is served, and it never leaves the server.
 async function readPreviewPage(
   route: PageInfo,
   handler: PageLayoutHandler,
@@ -1478,7 +1365,7 @@ async function readPreviewPage(
       route.noComponentPermissions !== true,
     hiddenInPreview,
     components: layout.components,
-    // A page the set cannot open takes its whole header with it.
+
     hiddenHeaderActions: hiddenInPreview
       ? readHeaderActions(layout.layout).map((action) => action.id)
       : await findPreviewHeaderActions(handler, layout, request, quickActions),
@@ -1498,8 +1385,7 @@ async function resolvePreviewPage(
     ? GetPageLayoutBySlug(registeredSlug)
     : undefined;
   if (!route || !handler) return null;
-  // A page the viewer cannot open has nothing to preview: its layout is never
-  // read, so the preview cannot serve what the viewer is refused.
+
   if (!(await computeEntryAccess(route, contexts.real))) return null;
   const hiddenInPreview = !(await computeEntryAccess(route, contexts.preview));
   return readPreviewPage(route, handler, {
@@ -1537,9 +1423,6 @@ interface PreviewMenuReading {
   denied: Set<string>;
 }
 
-// The menu as the viewer is served it, reduced to what the aggregation reads.
-// An entry the viewer cannot reach is transparent: what it holds still
-// counts, at its level.
 function collectPreviewMenuNodes(
   node: SiteLayoutTree,
   pageIds: ReadonlySet<string>,
@@ -1564,9 +1447,6 @@ function flattenPreviewMenuNodes(nodes: PreviewMenuNode[]): PreviewMenuNode[] {
   ]);
 }
 
-// Each page the set opens is read as the viewer is served it and handed to
-// the check — once per scope, then answered from the cache. A page whose
-// layout cannot be read counts as kept: the preview never guesses a loss.
 async function findPagesLosingInPreview(
   pages: PageInfo[],
   reading: PreviewMenuReading,
@@ -1612,8 +1492,6 @@ async function findPagesLosingInPreview(
   return losing;
 }
 
-// Pages drawn in the menu, and the pages dynamic entries lead to (often kept
-// out of the menu themselves) — never one the set is refused.
 function listPreviewLossTargets(
   nodes: PreviewMenuNode[],
   reading: PreviewMenuReading,
@@ -1637,8 +1515,6 @@ function listPreviewLossTargets(
   return { pages: [...pages.values()], entryTargets };
 }
 
-// The menu entries the set opens without all the viewer has there, and the
-// groups it can open none of.
 async function aggregatePreviewMenuStates(
   reading: PreviewMenuReading,
 ): Promise<PreviewMenuStates> {
@@ -1678,8 +1554,6 @@ async function aggregatePreviewMenuStates(
   );
 }
 
-// The pages a set holding nothing still opens (`defaultGranted`): no role
-// changes them, so the preview judges them on their own page only.
 async function findUniversalPreviewPages(
   pagesByFullId: Map<string, PageInfo>,
   real: RequestAccessContext,
@@ -1775,10 +1649,6 @@ async function getRoleIdsForUser(
   return member?.roleIds ?? [];
 }
 
-// Whether each registered permission id belongs to a surface that survives a
-// tenant access gate. Two surfaces may declare the same explicit permission id;
-// the namespace then only counts as bypassed when every one of them is flagged,
-// so a shared id never widens the answer on behalf of a gated page.
 function collectSurfaceBypassFlags(): Map<string, boolean> {
   const flags = new Map<string, boolean>();
   const entries = [
@@ -1793,9 +1663,6 @@ function collectSurfaceBypassFlags(): Map<string, boolean> {
   return flags;
 }
 
-// Components and actions descend from their surface's permission id, so the
-// nearest declared ancestor decides: a permission under a gated page stays out
-// even when a flagged page sits higher in the same namespace.
 function isBypassedPermission(
   permissionId: string,
   surfaces: Map<string, boolean>,
@@ -1855,10 +1722,6 @@ export async function resolveUserPermissions(
   return [...context.client.permissions];
 }
 
-// What a surface is called, what it is for and what it looks like are the
-// caller's business only once they may reach it. The structural fields stay:
-// the browser matches an unreachable slug to tell a 403 apart from a 404, and
-// to send a signed-out visitor to the auth screens rather than a dead end.
 function redactPresentation<T extends NavigationEntry>(entry: T): T {
   return {
     ...entry,
@@ -1896,9 +1759,6 @@ async function annotateSiteLayoutAccess(
   };
 }
 
-// Banners are chrome, not product surfaces: they read the permissions the gate
-// would hide, since telling a denied tenant why is what they are for. A copy,
-// because the same set still decides every access check of this request.
 function buildLayoutBannerContext(
   user: User | undefined,
   tenantId: string,
@@ -1980,8 +1840,6 @@ async function buildSiteLayoutFor(
   tenantId: string,
   accessContext: RequestAccessContext,
 ): Promise<SiteLayoutPayload> {
-  // Started before the menu providers so both sets of resolvers run together;
-  // it never rejects, so it cannot surface as an unhandled rejection meanwhile.
   const banners = resolveLayoutBanners(
     buildLayoutBannerContext(user, tenantId, accessContext),
   );
@@ -2061,9 +1919,7 @@ async function buildAccessContext(
     isOwner: permissions.has(WILDCARD_PERMISSION),
     isAuthenticated,
   };
-  // A denied tenant keeps an empty context instead of a 403: the site layout
-  // must still resolve so public/authOnly pages (auth screens, the suspended
-  // workspace screen) stay reachable while product entries lose access.
+
   const access = await CheckTenantAccess(user._id, tenantId);
   if (access.allowed) {
     return {
@@ -2077,9 +1933,6 @@ async function buildAccessContext(
   return buildDeniedAccessContext(ungated);
 }
 
-// A denied tenant keeps an authenticated session: product surfaces read an
-// emptied set, and the client only keeps what the surfaces flagged
-// `bypassTenantAccessGate` need.
 function buildDeniedAccessContext(
   ungated: AccessContext,
 ): RequestAccessContext {
@@ -2126,22 +1979,12 @@ async function computeEntryAccessUncached(
   entry: NavigationEntry,
   context: RequestAccessContext,
 ): Promise<boolean> {
-  // A surface the gate shuts out is out, whatever its permissions say: its
-  // routes assert the gate, so anything else here would only ever offer a
-  // 403. Decided before the permission checks and outright, never by emptying
-  // a permission set — `HasPermission`'s `defaultGranted` fallback would have
-  // let those surfaces back in.
   if (!gateAllowsSurface(entry, context.gateDenied)) return false;
   const effective = selectEntryContext(entry, context);
   if (effective.isOwner) return true;
   if (isInsideModule(entry)) return false;
   if (entry.authOnly === true) return effective.isAuthenticated;
   if (effective.isAuthenticated) {
-    // Under a denying gate, an unflagged surface must not survive through
-    // HasPermission's `defaultGranted` fallback: its layout route still
-    // asserts the gate, so the entry would only ever 403. Mirror the
-    // pagelayout exemptions instead — public surfaces stay, the rest is out
-    // (the gated set is empty, so no literal grant can match either).
     if (context.gateDenied && entry.bypassTenantAccessGate !== true) {
       return entry.publicAccess === true;
     }
@@ -2167,9 +2010,6 @@ async function addAccessToTree(
     dynamic,
   );
 
-  // Redacted like the flat registries: an unreachable branch keeps its shape
-  // so its accessible descendants stay addressable, but stops carrying what
-  // it is called and what it holds.
   const visible = isGranted ? node : redactPresentation(node);
 
   const dynamicChildren = dynamic.get(node.fullId);
@@ -2192,10 +2032,6 @@ async function addAccessToTree(
   };
 }
 
-// A group opens no page of its own: granted, but with none of its entries
-// reachable, the menu would draw an entry that a click does nothing on. The
-// permission preview locks such a group (`aggregatePreviewMenu`); the member
-// it previews is not served it either. Its name stays, since it was granted.
 function leadsSomewhere(
   node: SiteLayoutTree,
   children: Record<string, SiteLayoutTree>,
@@ -2203,19 +2039,12 @@ function leadsSomewhere(
   return !!node.layoutUrl || Object.values(children).some(reachesPage);
 }
 
-// An entry left out of the menu still leads to the pages nested under it that
-// keep their own entries.
 function reachesPage(node: SiteLayoutTree): boolean {
   return (
     node.hasAccess !== false || Object.values(node.children).some(reachesPage)
   );
 }
 
-// A page showing the caller none of the blocks it declares is no menu entry:
-// it would only open on "nothing to show for you" (`allComponentsHidden`).
-// It stays reachable by its URL, and the pages nested under it keep their own
-// entries. A page declaring no block (a module page rendering its own
-// content) is never left out this way.
 async function hidesEveryBlock(
   entry: NavigationEntry,
   context: RequestAccessContext,
@@ -2227,8 +2056,6 @@ async function hidesEveryBlock(
   return (await page?.HidesEveryComponent(effective.permissions)) ?? false;
 }
 
-// Whether the menu draws an entry: one the caller may open, and that shows
-// them something. The permission preview locks what the set would not list.
 async function listsEntry(
   entry: NavigationEntry,
   context: RequestAccessContext,
@@ -2237,9 +2064,6 @@ async function listsEntry(
   return !(await hidesEveryBlock(entry, context));
 }
 
-// The container `addToTree` creates for a missing category, or the one
-// `removeFromTree` blanks: it stands for no registered entry, so it has nothing
-// to show and no permission of its own.
 function isContainerWithoutEntry(node: SiteLayoutTree): boolean {
   return node.fullId === "";
 }
@@ -2248,10 +2072,6 @@ function holdsContainerWithoutEntry(node: SiteLayoutTree): boolean {
   return Object.values(node.children).some(isContainerWithoutEntry);
 }
 
-// A container without an entry is transparent in the client tree: what it
-// holds joins its parent's children, each with its own access, rather than
-// showing up as a "none" item that no permission ever grants. Registered
-// siblings are placed first so that on a clash they keep their place.
 async function buildChildrenWithAccess(
   node: SiteLayoutTree,
   context: RequestAccessContext,
@@ -2399,8 +2219,7 @@ function resolveEntryTarget(
   item: DynamicMenuItem,
 ): ResolvedEntryTarget | undefined {
   const entry = `[dms] dynamic menu entry "${item.id}" of category "${provider.categoryFullId}"`;
-  // Dots separate the levels of a fullId, so one inside an entry id would
-  // alias a nested path.
+
   if (item.id.includes(ID_SEPARATOR)) {
     warnOnceFor(
       provider,
@@ -2483,7 +2302,6 @@ async function buildDynamicLevel(
   return nodes;
 }
 
-/** Matches browser grants without the server's defaultGranted fallback. */
 function clientHoldsPermission(
   context: RequestAccessContext,
   permissionId: string,
@@ -2604,11 +2422,6 @@ const quickActionTargetHandlers: QuickActionTargetHandlers = {
   button: resolveButtonTarget,
 };
 
-// A quick action is an affordance of its page, never a surface of its own:
-// resolving it against that page is what makes its permission, and the tenant
-// access gate, apply to it — for free and without a second rule to keep in
-// step. A target whose page is gone is a declaration error, and warned about
-// once rather than silently dropped.
 async function resolveQuickActionTarget(
   target: QuickActionTarget,
   context: RequestAccessContext,
@@ -2625,17 +2438,13 @@ async function resolveQuickActionTarget(
   }
   if (!(await computeEntryAccess(pageInfo, context))) return undefined;
 
-  // The map is keyed by the target's own discriminant, so the handler picked
-  // always matches it; the compiler cannot correlate the two lookups.
+  // SAFETY: target.type selects the handler for that target variant from the discriminated handler map.
   const handler = quickActionTargetHandlers[
     target.type
   ] as QuickActionTargetHandler<QuickActionTarget["type"]>;
   return handler(target, { pageInfo, meta, context });
 }
 
-// Read under the same context the page itself was judged with, or a recovery
-// page's own form would be dropped by the emptied set the gate hands ordinary
-// surfaces.
 function holdsPagePermission(
   page: QuickActionPage,
   permissionId: string,
@@ -2646,10 +2455,6 @@ function holdsPagePermission(
   );
 }
 
-// Opening a creation form takes more than reaching the page: the component's
-// own `add` permission decides, so the action never offers a form its target
-// would refuse to submit. Derived from the component itself — the caller names
-// no permission and none can go stale.
 async function resolveOpenFormTarget(
   target: QuickActionTargetOf<"openForm">,
   page: QuickActionPage,
@@ -2671,9 +2476,6 @@ async function resolveOpenFormTarget(
   };
 }
 
-// The action presses an existing button, so it is listed for exactly the
-// callers the button is shown to: the button's own permission decides, resolved
-// the way the table view resolves it when it filters its buttons.
 async function resolveButtonTarget(
   target: QuickActionTargetOf<"button">,
   page: QuickActionPage,
@@ -2775,8 +2577,7 @@ async function buildModuleAccessMap(
   const result: Record<string, ModuleInfo & AccessFlag> = {};
   for (const [moduleId, info] of Object.entries(moduleRegistry)) {
     const hasAccess = await computeModuleAccess(moduleId, context);
-    // Modules are owner-only surfaces: without this, every member learned the
-    // name and purpose of everything installed on the deployment.
+
     const presented = presentModuleInfo(info);
     result[moduleId] = hasAccess
       ? { ...presented, hasAccess }
@@ -2814,7 +2615,7 @@ const MODULE_READOUT_TONES = new Set<string>([
   "warning",
   "error",
 ]);
-// A tile has room for a couple of lines; more would push the title off it.
+
 const MODULE_READOUT_MAX_LINES = 3;
 
 /**

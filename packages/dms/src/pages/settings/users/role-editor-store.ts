@@ -113,8 +113,7 @@ export async function loadRolesOverview(
     }),
     owners: summarizeOwners(members, userNames),
     totalPermissions: permissionIds.length,
-    // Whoever may edit roles may grant any permission, as the roles table
-    // always allowed (and `/api/tables/roles` still does).
+
     grantable: null,
     capabilities,
   };
@@ -139,10 +138,6 @@ async function assertNameAvailable(
   );
 }
 
-// A permission is stored with every id it sits under and every permission
-// it depends on, whoever sent the set: the editor grants them together, and
-// a bare API call must not store a table's delete without its page, or its
-// edit without the view that loads the row.
 async function insertRole(
   tenantId: string,
   input: RoleEditorInput,
@@ -353,8 +348,6 @@ export async function prepareRoleDeletion(
     roleDeleteSchema.parse(v),
   );
   if (reassignTo) {
-    // Named after the field, so the delete dialog shows it under the role
-    // picker rather than in its alert.
     if (roleIds.includes(reassignTo)) {
       throw new HTTPResult(HTTP_CONFLICT, {
         field: REASSIGN_FIELD,
@@ -369,7 +362,6 @@ export async function prepareRoleDeletion(
       ...(await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined)),
     );
   }
-  // The holders now hold another role, or none: their menus reload once the
-  // roles are gone.
+
   return () => notifyMenuAccessChanged(tenantId, holders);
 }

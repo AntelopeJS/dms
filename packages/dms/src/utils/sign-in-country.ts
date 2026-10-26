@@ -6,7 +6,7 @@ import { getAuthConfig } from "../config";
 
 const FALLBACK_LANGUAGE = "en";
 const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
-// Two letters that name no country: Cloudflare's "unknown" and "Tor exit".
+
 const NON_COUNTRY_CODES: ReadonlySet<string> = new Set(["XX", "T1"]);
 /**
  * The DB-IP Country Lite database the release ships (see

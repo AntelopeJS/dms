@@ -12,9 +12,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { Column, TableView } from "@antelopejs/interface-dms/base/table-view";
 import { captureWarnings } from "../../../helpers/logging";
 
-// A counted group is read with `filter_<column>`, which the count route
-// ignores on a column without a filter: registration says so.
-
 @RegisterTable("grouped-count-rows", CORE_SCHEMA_NAME)
 class Row extends Table {
   @Field("string") declare status: string;

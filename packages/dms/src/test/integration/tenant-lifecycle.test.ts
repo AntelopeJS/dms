@@ -431,8 +431,6 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
     await assert.rejects(closeTenantLifecycleAdmission(TENANT), /blocked/);
   });
 
-  // A hook refusing an invitation (a seat limit, say) used to leave its
-  // admission behind for good, and the workspace could never be hard-deleted.
   it("releases an invocation a hook refused before any effect", async () => {
     let refusal: unknown;
     const refuse = () => {
