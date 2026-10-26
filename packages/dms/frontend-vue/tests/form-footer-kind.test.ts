@@ -52,17 +52,25 @@ describe("saveBarState of a record form", () => {
     });
   });
 
-  it("offers Cancel alone while clean, when it has somewhere to go back to", () => {
-    expect(saveBarState(context({ cancellable: true }))).toMatchObject({
-      showsStatus: false,
-      secondary: "cancel",
-      showsSubmit: false,
-      isHidden: false,
-    });
+  it("hides while clean, even with somewhere to go back to", () => {
+    // A drawer's or a modal's close button, a page's breadcrumb: Cancel alone
+    // would only repeat them.
+    expect(saveBarState(context({ cancellable: true })).isHidden).toBe(true);
+    expect(
+      saveBarState(context({ cancellable: true, closable: true })).isHidden,
+    ).toBe(true);
+    expect(saveBarState(context({})).isHidden).toBe(true);
   });
 
-  it("hides, keeping its place, with nothing to offer", () => {
-    expect(saveBarState(context({})).isHidden).toBe(true);
+  it("offers Cancel beside Save once changed, in a drawer too", () => {
+    expect(
+      saveBarState(context({ cancellable: true, closable: true, dirty: true })),
+    ).toMatchObject({
+      showsStatus: true,
+      secondary: "cancel",
+      showsSubmit: true,
+      isHidden: false,
+    });
   });
 });
 
@@ -86,6 +94,15 @@ describe("saveBarState of a create form", () => {
       secondary: "cancel",
       showsSubmit: true,
     });
+  });
+
+  it("offers its submit alone in a drawer or a modal until filled", () => {
+    const opened = create({ cancellable: true, closable: true });
+    expect(opened.secondary).toBeUndefined();
+    expect(opened).toMatchObject({ showsSubmit: true, isHidden: false });
+    expect(
+      create({ cancellable: true, closable: true, dirty: true }).secondary,
+    ).toBe("cancel");
   });
 
   it("offers Discard once filled with nowhere to go back to", () => {
@@ -119,7 +136,16 @@ describe("saveBarState of an action form", () => {
     });
   });
 
-  it("offers Cancel beside its ready submit in a drawer or a modal", () => {
+  it("offers no Cancel in a drawer or a modal: their close button does it", () => {
+    expect(action({ cancellable: true, closable: true })).toEqual({
+      showsStatus: false,
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
+  });
+
+  it("offers Cancel beside its ready submit on a page it can leave", () => {
     expect(action({ cancellable: true })).toEqual({
       showsStatus: false,
       secondary: "cancel",

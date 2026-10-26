@@ -146,22 +146,39 @@ it("floats over the form when it shows, making room under the last field", async
   expect(classesOf(bar())).not.toContain("invisible");
 });
 
-it("gives Cancel and Unsaved changes the same fixed height", async () => {
-  await mount({ variant: "floating", dirty: false, cancellable: true });
-  const cancelBar = classesOf(bar());
-  expect(buttons()).toEqual([{ label: "dms.button.cancel", disabled: false }]);
+it("gives the action bar and Unsaved changes the same fixed height", async () => {
+  await mount({
+    variant: "floating",
+    kind: "action",
+    dirty: false,
+    cancellable: true,
+  });
+  const actionBar = classesOf(bar());
+  expect(buttons().map((button) => button.label)).toContain(
+    "dms.button.cancel",
+  );
   app?.unmount();
 
   await mount({ variant: "floating", dirty: true, changes: ["Name"] });
-  expect(cancelBar).toContain("h-(--dms-save-bar-h)");
+  expect(actionBar).toContain("h-(--dms-save-bar-h)");
   expect(classesOf(bar())).toContain("h-(--dms-save-bar-h)");
 });
 
-it("keeps a hidden band's place in its footer", async () => {
-  await mount({ variant: "band", kind: "record", dirty: false });
+it("shows no bar on a clean form, Cancel alone would repeat the way out", async () => {
+  await mount({ variant: "floating", dirty: false, cancellable: true });
 
   expect(anchor().getAttribute("aria-hidden")).toBe("true");
-  expect(classesOf(anchor())).toContain("invisible");
-  expect(classesOf(anchor())).not.toContain("h-0");
-  expect(classesOf(anchor())).not.toContain("absolute");
+});
+
+it("folds a hidden band away, its footer taking no room", async () => {
+  await mount({
+    variant: "band",
+    kind: "record",
+    dirty: false,
+    cancellable: true,
+    closable: true,
+  });
+
+  expect(anchor().getAttribute("aria-hidden")).toBe("true");
+  expect(classesOf(anchor())).toContain("hidden");
 });

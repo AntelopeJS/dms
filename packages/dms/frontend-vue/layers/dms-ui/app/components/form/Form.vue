@@ -1083,10 +1083,9 @@ onUnmounted(async () => {
         </template>
       </div>
 
-      <!-- One bar for every form (see `saveBarState`): the v2 floating bar
-        on a page, the footer band of a card, a drawer or a modal. The
-        floating bar overlays the form and takes no space while hidden; the
-        band holds its place. Neither moves anything when it shows. -->
+      <!-- One bar for every form (see `saveBarState`): floating on a page,
+        a footer band in a card, a drawer or a modal. Hidden, neither takes
+        space; showing up, neither moves the fields. -->
       <DmsSaveBar
         v-if="canSave && !isInstant && !loadFailure"
         :variant="usesSaveBar ? 'floating' : 'band'"
@@ -1099,6 +1098,7 @@ onUnmounted(async () => {
           usesSaveBar && !createsRecord ? props.submitLabel : submitButtonLabel
         "
         :cancellable="canCancel"
+        :closable="inFormContainer || !!container"
         :resettable="hasChangeableFields"
         :class="usesSaveBar ? 'mx-3' : surfaceClasses.foot"
         @discard="discardChanges"

@@ -41,8 +41,9 @@ export interface FormProps extends FormComponentProps {
    */
   saveMode?: FormSaveMode;
   /**
-   * `record` (default): keeps its values once saved, Cancel while clean when
-   * it has somewhere to go back to. `action` (send, invite, run): Reset and
+   * `record` (default): keeps its values once saved, no save controls until
+   * a value changes, then Save and Cancel (or Discard, with nowhere to go
+   * back to). `action` (send, invite, run): Reset and
    * its submit label once a value changes, emptied after a submit.
    */
   kind?: FormKind;

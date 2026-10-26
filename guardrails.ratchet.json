@@ -1,6 +1,6 @@
 {
   "rules": {
-    "antelopejs/no-comments": 3001,
+    "antelopejs/no-comments": 2998,
     "antelopejs/no-constant-value-assertion": 3,
     "antelopejs/no-fs-read-in-tests": 8,
     "antelopejs/no-typeof-function-only-test": 2,

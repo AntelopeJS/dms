@@ -331,9 +331,6 @@ export function TableView<T extends ControllerClass>(
         if (kind !== "new" && options.labelKey) {
           form.mergeOptions({ labelKey: options.labelKey });
         }
-        // A record's form page: Cancel leads back to the list while there
-        // is nothing to save, as in a drawer or a modal. The list's page
-        // names its own placeholders with page tokens, as the redirect does.
         const listUrl = buildFormRedirectUrl(frame);
         form.mergeOptions({ backTo: listUrl });
         if (definition.redirectsOnSubmit) {
