@@ -20,8 +20,8 @@ module.exports = {
     ...areas.flatMap((area) => area.forbidden),
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
-    exclude: { path: "(?:^|/)(?:node_modules|dist|\\.nuxt|\\.output)/" },
+    doNotFollow: { path: "(?:^|/)(?:node_modules|dist)/" },
+    exclude: { path: "(?:^|/)(?:node_modules|\\.nuxt|\\.output)/" },
     includeOnly: "^packages/",
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
