@@ -77,7 +77,7 @@ function personRow(person: Person): MatrixRow {
       WEEK.map((day) => [day.id, person.week[day.id] ?? null]),
     ),
     cells: closedCells(),
-    // Planned past the contract: overtime to pay, or a mistake.
+    /** Planned past the contract: overtime to pay, or a mistake. */
     tone: planned > person.contractHours ? "warning" : undefined,
   };
 }
@@ -166,6 +166,10 @@ export class MatrixRosterController extends Controller(MATRIX_ROSTER_API) {
     };
   }
 
+  /**
+   * The rows saved carry their hours again (description, tone); the footer
+   * sums the stores' hours the save moved.
+   */
   @Post("save")
   save(@JSONBody() body: MatrixSaveRequest): MatrixSaveResponse {
     const request = readSaveRequest(body);
@@ -173,8 +177,6 @@ export class MatrixRosterController extends Controller(MATRIX_ROSTER_API) {
       applyShift(change, request),
     );
     const rowIds = new Set(request.changes.map((change) => change.rowId));
-    // The rows carry their hours again (description, tone); the footer sums
-    // the stores' hours the save moved.
     return {
       rows: PEOPLE.filter((person) => rowIds.has(person.id)).map(personRow),
       errors: outcomes.flatMap(({ error }) => (error ? [error] : [])),

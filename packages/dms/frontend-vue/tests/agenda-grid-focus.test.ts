@@ -20,7 +20,7 @@ import {
 import AgendaMonthView from "../layers/dms-ui/app/build/components/agenda/AgendaMonthView.vue";
 import AgendaTimeGrid from "../layers/dms-ui/app/build/components/agenda/AgendaTimeGrid.vue";
 import AgendaEventChip from "../layers/dms-ui/app/build/components/agenda/AgendaEventChip.vue";
-import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
+import enGB from "../layers/dms-ui/i18n/locales/ui-agenda-en-GB.json";
 
 vi.mock("../layers/dms-ui/app/build/composables/agenda/useAgenda", async () => {
   const fixture = await import("./fixtures/agendaGridMount");

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  useTemplateRef,
+  watch,
+} from "vue";
 import type { MatrixContext } from "../../composables/matrix/useMatrix";
 import {
   editingColumnOf,
@@ -13,13 +20,15 @@ import {
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
 import MatrixFieldInput from "./MatrixFieldInput.vue";
+import { whenFocusable } from "../../utils/whenFocusable";
 
 /**
  * The drawer of one cell (a JSON value, a long text): its editor alone, the
  * column as its title and the row as its description. Staged, Apply puts
  * the value in the grid's edits; immediate, the value is saved as it is
  * typed, once it holds still, and on closing. A nullable column offers "Set
- * to null"; an object found in a text column is edited as JSON.
+ * to null"; an object found in a text column is edited as JSON. It opens
+ * with the keyboard in its input.
  */
 interface MatrixCellDrawerProps {
   context: MatrixContext;
@@ -44,6 +53,10 @@ const { t } = useI18n();
 const invalidText = useMatrixInvalidText();
 const AUTOSAVE_DELAY_MS = 700;
 const FIELD_ID = "dms-matrix-cell-field";
+const FOCUSABLE = "input, textarea, [contenteditable='true'], button";
+/** How long a lazily loaded input (the code editor) is waited for. */
+const FOCUS_WAIT_MS = 3_000;
+const field = useTemplateRef<HTMLElement>("field");
 
 const matrix = props.context;
 const row = computed(() => matrix.rows.rowById.value.get(props.rowId));
@@ -151,7 +164,14 @@ watch(model, scheduleAutosave);
 // A draft carried in (a typed character, the inline editor's) is saved too.
 onMounted(() => {
   if (props.hasDraft) scheduleAutosave();
+  void focusInput();
 });
+
+async function focusInput(): Promise<void> {
+  if (!field.value) return;
+  const element = await whenFocusable(field.value, FOCUSABLE, FOCUS_WAIT_MS);
+  element?.focus();
+}
 // Closing never loses what was typed in the last moments before it.
 onBeforeUnmount(() => {
   clearTimeout(timer);
@@ -178,7 +198,7 @@ const isFill = computed(() =>
 
 <template>
   <div v-if="column && row" class="flex w-full min-w-0 flex-1 flex-col gap-4">
-    <div class="flex flex-1 flex-col gap-2">
+    <div ref="field" class="flex flex-1 flex-col gap-2">
       <blockquote
         v-if="reference"
         class="border-default text-muted border-s-2 ps-3 text-[13px] whitespace-pre-wrap"

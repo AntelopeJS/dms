@@ -30,8 +30,10 @@ const SALES_LEGEND: MatrixLegendItem[] = [
   { label: "4 paires ou plus", tone: "success" },
 ];
 
-// The drawer a cell opens: the form reads the cell's store and size from
-// its URL ({{row.id}}, {{row.column}}), and posts the request to the same.
+/**
+ * The drawer a cell opens: the form reads the cell's store and size from
+ * its URL ({{row.id}}, {{row.column}}), and posts the request to the same.
+ */
 const orderForm = Form({
   kind: "action",
   fetchUrl: ORDER_URL,

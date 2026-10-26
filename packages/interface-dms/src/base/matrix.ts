@@ -114,11 +114,6 @@ export const MatrixSchema = z.object({
     group: "behavior",
     widget: "switch",
   }),
-  editTrigger: ui(z.enum(["click", "doubleClick"]).optional(), {
-    label: "Edit on",
-    group: "behavior",
-    widget: "segmented",
-  }),
   typeToEdit: ui(z.boolean().optional(), {
     label: "Type to edit",
     group: "behavior",

@@ -1,11 +1,15 @@
-import type { MatrixFacetItem } from "@antelopejs/interface-dms/base/matrix-types";
+import type {
+  MatrixCellValue,
+  MatrixFacetItem,
+} from "@antelopejs/interface-dms/base/matrix-types";
+import { z } from "zod";
 
 const FACET_PREFIX = "facet_";
 const FILTER_PREFIX = "filter_";
 const FILTER_MODE_SEPARATOR = ":";
 const LIST_SEPARATOR = ",";
 const DESCENDING = "desc";
-// Park-Miller's minimal standard generator, and the FNV-1a 32-bit hash.
+/** Park-Miller's minimal standard generator, and the FNV-1a 32-bit hash. */
 const PARK_MILLER_MULTIPLIER = 48271;
 const PARK_MILLER_MODULUS = 2147483647;
 const FNV_OFFSET_BASIS = 2166136261;
@@ -28,10 +32,18 @@ export interface MatrixQuery {
   status?: string;
   sort?: string;
   direction: SortDirection;
-  /** The values picked in each facet, by facet id. */
-  facets: Record<string, string[]>;
-  /** The column filters (`filter_<columnId>=<mode>:<value>`), by column id. */
-  filters: Record<string, ColumnFilter>;
+  facets: FacetPicks;
+  filters: ColumnFilters;
+}
+
+/** The values picked in each facet, by facet id. */
+export interface FacetPicks {
+  [facetId: string]: string[];
+}
+
+/** The column filters (`filter_<columnId>=<mode>:<value>`), by column id. */
+export interface ColumnFilters {
+  [columnId: string]: ColumnFilter;
 }
 
 /** A column filter of the grid's header: `contains` or `is`, and its text. */
@@ -43,17 +55,23 @@ export interface ColumnFilter {
 
 type FilterTest = (cell: string, expected: string) => boolean;
 
-// The modes a Matrix's column filters send, as a table view's do.
-const FILTER_TESTS: Record<string, FilterTest> = {
-  contains: (cell, expected) => cell.includes(expected),
-  is: (cell, expected) => cell === expected,
-};
+/** The modes a Matrix's column filters send, as a table view's do. */
+const FILTER_TESTS = new Map<string, FilterTest>([
+  ["contains", (cell, expected) => cell.includes(expected)],
+  ["is", (cell, expected) => cell === expected],
+]);
+
+const TEXT_CELL = z.string();
+const SCALAR_CELL = z.union([z.number(), z.boolean()]);
 
 /** Reads a value of an item by a column id, for sorting. */
-export type CellReader<T> = (item: T, columnId: string) => unknown;
+export type CellReader<T> = (
+  item: T,
+  columnId: string,
+) => MatrixCellValue | undefined;
 
-function readFacets(params: URLSearchParams): Record<string, string[]> {
-  const facets: Record<string, string[]> = {};
+function readFacets(params: URLSearchParams): FacetPicks {
+  const facets: FacetPicks = {};
   params.forEach((value, key) => {
     if (!key.startsWith(FACET_PREFIX)) return;
     const picked = value.split(LIST_SEPARATOR).filter(Boolean);
@@ -62,8 +80,8 @@ function readFacets(params: URLSearchParams): Record<string, string[]> {
   return facets;
 }
 
-function readFilters(params: URLSearchParams): Record<string, ColumnFilter> {
-  const filters: Record<string, ColumnFilter> = {};
+function readFilters(params: URLSearchParams): ColumnFilters {
+  const filters: ColumnFilters = {};
   params.forEach((raw, key) => {
     const separator = raw.indexOf(FILTER_MODE_SEPARATOR);
     if (!key.startsWith(FILTER_PREFIX) || separator < 0) return;
@@ -125,7 +143,7 @@ export function filtersAllow<T>(
   read: CellReader<T>,
 ): boolean {
   return Object.entries(query.filters).every(([columnId, filter]) => {
-    const test = FILTER_TESTS[filter.mode];
+    const test = FILTER_TESTS.get(filter.mode);
     if (!test || !filter.value) return true;
     const cell = read(item, columnId);
     return isEmpty(cell)
@@ -135,7 +153,10 @@ export function filtersAllow<T>(
 }
 
 /** Whether any of the texts holds the search (already lower-cased). */
-export function matchesSearch(search: string, texts: unknown[]): boolean {
+export function matchesSearch(
+  search: string,
+  texts: (MatrixCellValue | undefined)[],
+): boolean {
   if (!search) return true;
   return texts.some(
     (text) =>
@@ -145,12 +166,14 @@ export function matchesSearch(search: string, texts: unknown[]): boolean {
   );
 }
 
-function searchableText(value: unknown): string {
-  if (typeof value === "string") return value;
-  return JSON.stringify(value) ?? "";
+function searchableText(value: MatrixCellValue): string {
+  const text = TEXT_CELL.safeParse(value);
+  return text.success ? text.data : JSON.stringify(value);
 }
 
-function isEmpty(value: unknown): boolean {
+function isEmpty(
+  value: MatrixCellValue | undefined,
+): value is null | undefined | "" {
   return value === null || value === undefined || value === "";
 }
 
@@ -158,11 +181,14 @@ function isEmpty(value: unknown): boolean {
  * Orders two cell values: empty ones last, numbers and booleans by value, the
  * rest (dates as ISO strings, texts, objects) as text.
  */
-export function compareCells(left: unknown, right: unknown): number {
+export function compareCells(
+  left: MatrixCellValue | undefined,
+  right: MatrixCellValue | undefined,
+): number {
   if (isEmpty(left) || isEmpty(right)) {
     return Number(isEmpty(left)) - Number(isEmpty(right));
   }
-  if (typeof left === "number" || typeof left === "boolean") {
+  if (SCALAR_CELL.safeParse(left).success) {
     return Number(left) - Number(right);
   }
   return searchableText(left).localeCompare(searchableText(right));

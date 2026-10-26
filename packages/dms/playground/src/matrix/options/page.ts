@@ -20,14 +20,14 @@ interface OptionEntry {
   page?: string;
 }
 
-const PAGE_NAMES: Record<string, string> = {
-  [MATRIX_OPTIONS_SLUG]: "This page",
-  [MATRIX_RECORDS_SLUG]: "Records",
-  [MATRIX_TRANSLATIONS_SLUG]: "Translations",
-  [MATRIX_STOCK_SLUG]: "Stock",
-  [MATRIX_ALLOCATION_SLUG]: "Allocation",
-  [MATRIX_ROSTER_SLUG]: "Roster",
-};
+const PAGE_NAMES = new Map<string, string>([
+  [MATRIX_OPTIONS_SLUG, "This page"],
+  [MATRIX_RECORDS_SLUG, "Records"],
+  [MATRIX_TRANSLATIONS_SLUG, "Translations"],
+  [MATRIX_STOCK_SLUG, "Stock"],
+  [MATRIX_ALLOCATION_SLUG, "Allocation"],
+  [MATRIX_ROSTER_SLUG, "Roster"],
+]);
 
 function optionList(title: string, entries: OptionEntry[]) {
   return KeyValueList({
@@ -36,7 +36,7 @@ function optionList(title: string, entries: OptionEntry[]) {
     items: entries.map(({ option, text, page }) => ({
       label: option,
       value: text,
-      detail: page ? PAGE_NAMES[page] : "Not shown in a demo",
+      detail: page ? PAGE_NAMES.get(page) : "Not shown in a demo",
       to: page ? matrixPagePath(page) : undefined,
     })),
   });
@@ -100,7 +100,7 @@ const DECLARATION = `static revenue = Matrix({
 // Editable: add a route receiving
 //   { changes: [{ rowId, columnId, value, previous }], conflicts, force?, query }
 // and answering { rows?, errors?, conflicts?, counts?, columns?, groups?, footer? }.
-static stock = Matrix({ fetchUrl, saveUrl, editTrigger: "click", saveMode: "staged" });`;
+static stock = Matrix({ fetchUrl, saveUrl, saveMode: "staged" });`;
 
 @RegisterPage()
 export class PageMatrixOptions extends PageController(
@@ -219,14 +219,9 @@ export class PageMatrixOptions extends PageController(
       page: MATRIX_RECORDS_SLUG,
     },
     {
-      option: "editTrigger: doubleClick",
-      text: "A click selects, a double click or Enter edits.",
+      option: "A click edits",
+      text: "A hovered editable cell is framed as the input it opens; a click opens it with the keyboard in it. Enter or F2 edits the selected cell, Esc goes back to it.",
       page: MATRIX_RECORDS_SLUG,
-    },
-    {
-      option: "editTrigger: click",
-      text: "A click edits.",
-      page: MATRIX_TRANSLATIONS_SLUG,
     },
     {
       option: "typeToEdit",
@@ -235,7 +230,7 @@ export class PageMatrixOptions extends PageController(
     },
     {
       option: "editIn (auto)",
-      text: "json, code, keyValue and long texts are edited in a drawer.",
+      text: "json, code and long texts are edited in a drawer.",
       page: MATRIX_RECORDS_SLUG,
     },
     {

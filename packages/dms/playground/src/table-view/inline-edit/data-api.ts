@@ -146,3 +146,15 @@ export class inlineProductDataAPI extends DataController(
   @Access(AccessMode.ReadWrite)
   declare notes: string | null;
 }
+
+/**
+ * The same products for the second table of the demo, whose cells are their
+ * inputs at rest: a controller has one writing table view, so this one is
+ * derived from it, over the same rows.
+ */
+@RegisterDataController()
+export class inlineProductInputsDataAPI extends DataController(
+  InlineProduct,
+  {},
+  Controller("/api/playground/inline-products-inputs", inlineProductDataAPI),
+) {}

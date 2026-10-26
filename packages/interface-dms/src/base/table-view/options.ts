@@ -23,6 +23,8 @@ import type {
   RowActionRule,
 } from "../types/row-action";
 import type { ModalSize } from "../types/size";
+import type { TableViewInlineEditOptions } from "./inline-edit";
+import type { TableViewRowClick } from "./row-click";
 import type { TableViewSourceSerialized } from "./source";
 
 export const DEFAULT_ROW_ID_FIELD = "_id";
@@ -151,14 +153,7 @@ export interface TableViewColumnsOptions {
 /** Row height of a table: `compact` gives 36px rows under a 32px header. */
 export type TableViewDensity = "default" | "compact";
 
-/**
- * What runs a row's click action (its `isDefault` custom action, else `edit`
- * or `details`): a double-click (`"double"`, the default), or a single click
- * (`"single"`), for a list read row after row in a side panel. A single click
- * on a control of the row (a button, a link, a checkbox) or one ending a text
- * selection runs nothing.
- */
-export type TableViewRowClick = "single" | "double";
+export type { TableViewRowClick } from "./row-click";
 
 /**
  * Everything a view sets on the table when it is opened. What a view leaves
@@ -397,19 +392,6 @@ export interface TableViewReorderOptions {
    * writable: the rows are listed sorted on it.
    */
   field: string;
-}
-
-/**
- * Which cells a table view edits in place (see
- * {@link TableViewOptions.inlineEdit}).
- */
-export interface TableViewInlineEditOptions {
-  /**
-   * The columns edited in place, by field id, among those that can be. Left
-   * out, every column that can be.
-   * @example ["price", "stock", "active"]
-   */
-  columns?: string[];
 }
 
 /** What a footer summary computes over the rows the table lists. */
@@ -949,8 +931,7 @@ export interface TableViewOptions<
    */
   maxHeight?: string;
   /**
-   * What runs the row's click action: a double-click by default, a single
-   * click with `"single"`. See {@link TableViewRowClick}.
+   * What runs the row's click action. See {@link TableViewRowClick}.
    * @example "single"
    */
   rowClick?: TableViewRowClick;
@@ -1145,35 +1126,9 @@ export interface TableViewOptions<
   reorder?: TableViewReorderOptions;
   /**
    * Lets the user edit a row's simple values in the grid, one cell at a
-   * time, each saved at once by a partial edit (`PUT <location>/edit` with
-   * that field alone): a click on a cell turns it into its field's input,
-   * Enter or leaving the cell saves, Esc cancels; a pick in a select or a
-   * date picker saves, and a switch or a checkbox saves as it toggles,
-   * without opening anything. The click edits the cell and does not open
-   * the row; a click anywhere else on the row still does.
-   *
-   * A cell is edited in place when its column is listed, is in the edit
-   * form and writable there, is not localized, and its input is a simple
-   * one: a text, email, phone or URL, a number, price or percentage, a
-   * switch or checkbox, a single select or segmented select, a single date,
-   * a time or a colour. Any other column (a relation, rich text, code,
-   * files, images, a list, an address, key-values, tags) keeps its display
-   * and is edited through the edit form. A row the `edit` action's `rule`
-   * refuses keeps its display, and so does a field its `disabledWhen` makes
-   * read-only or its `visibleWhen` hides, evaluated on the listed row.
-   *
-   * On the grid and the `grouped` display; the board and the cards are
-   * left as they are. Needs the `edit` action: a caller without it gets the
-   * read-only grid. Ignored by `TableView.fromSource`, which has no edit
-   * route.
-   *
-   * An inline edit sends the field alone, without the edit form around it:
-   * what `forms.edit` declares on the form's builder (its watches setting
-   * another field) and the form's own submit defaults do not run. A rule
-   * the data must keep belongs to the column (`disabledWhen`,
-   * `visibleWhen`) or to a guard, which the edit route enforces either way.
+   * time, each saved at once. See {@link TableViewInlineEditOptions}.
    * @example true
-   * @example { columns: ["price", "stock", "active"] }
+   * @example { columns: ["price", "stock"], inputs: "always" }
    */
   inlineEdit?: boolean | TableViewInlineEditOptions;
   /**

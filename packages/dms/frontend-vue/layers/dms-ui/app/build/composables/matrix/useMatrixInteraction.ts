@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, type Ref } from "vue";
+import { nextTick, ref, type Ref } from "vue";
 import type {
   MatrixColumn,
   MatrixEditIn,
@@ -91,17 +91,16 @@ function isOnCell(event: KeyboardEvent): boolean {
 
 /**
  * The grid's keyboard and pointer: one focused cell moved with the arrows,
- * Home / End and PageUp / PageDown; Enter (or the edit trigger) edits it in
- * place or in a drawer; a typed character starts editing with it; Space
- * opens the row; N and Shift+N jump to the next or previous empty editable
- * cell; a click on a cell that does not edit runs `cellAction`.
+ * Home / End and PageUp / PageDown; a click, Enter or F2 edits it in place
+ * or in a drawer; a typed character starts editing with it; Space opens the
+ * row; N and Shift+N jump to the next or previous empty editable cell; a
+ * click on a cell that does not edit runs `cellAction`.
  */
 export function useMatrixInteraction(source: MatrixInteractionOptions) {
   const { options } = source;
   const focus = ref<MatrixCellAddress | null>(null);
   const editing = ref<MatrixEditing | null>(null);
   const hover = ref<MatrixCellAddress | null>(null);
-  const editTrigger = computed(() => options.editTrigger ?? "doubleClick");
   /** The in-place editor's commit, while one is open (Ctrl+S runs it first). */
   let openEditorCommit: (() => void) | null = null;
 
@@ -117,14 +116,19 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     );
   }
 
-  /** Moves the focus to a cell, on screen and to the keyboard. */
+  /**
+   * Moves the focus to a cell, on screen and to the keyboard. A cell whose
+   * editor opened meanwhile (a click that edits) keeps the keyboard in it.
+   */
   function focusCell(address: MatrixCellAddress | null): void {
     focus.value = address;
     if (!address) return;
     void nextTick(() => {
       const element = cellElement(address);
       element?.scrollIntoView({ block: "nearest", inline: "nearest" });
-      if (element && document.activeElement !== element) element.focus();
+      if (!element || element.contains(document.activeElement)) return;
+      if (isEditing(address.rowId, address.columnId)) return;
+      element.focus();
     });
   }
 
@@ -293,22 +297,10 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     if (handled) event.preventDefault();
   }
 
+  /** A click edits the cell, or runs its `cellAction` when it does not edit. */
   function onCellClick(address: MatrixCellAddress): void {
     focusCell(address);
-    const cell = resolve(address);
-    if (!cell) return;
-    if (!source.isEditable(cell.row, cell.column)) {
-      if (source.hasCellAction(cell.row, cell.column))
-        source.runCellAction(cell.row, cell.column);
-      return;
-    }
-    if (editTrigger.value === "click") startEdit(address);
-  }
-
-  function onCellDoubleClick(address: MatrixCellAddress): void {
-    if (editTrigger.value !== "doubleClick") return;
-    const cell = resolve(address);
-    if (cell && source.isEditable(cell.row, cell.column)) startEdit(address);
+    startEdit(address);
   }
 
   const isFocused = (rowId: string, columnId: string) =>
@@ -340,7 +332,6 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     jumpToEmpty,
     onKeydown,
     onCellClick,
-    onCellDoubleClick,
     isFocused,
     isEditing,
   };

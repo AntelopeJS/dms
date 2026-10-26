@@ -217,6 +217,8 @@ export interface TableViewReorderConfig {
 export interface TableViewInlineEditConfig {
   /** The columns edited in place, by field id; every eligible one else. */
   columns?: string[];
+  /** `hover`: the value, framed while hovered; `always`: the input itself. */
+  inputs?: "hover" | "always";
 }
 
 /** What a source route handles itself (backend `capabilities`). */

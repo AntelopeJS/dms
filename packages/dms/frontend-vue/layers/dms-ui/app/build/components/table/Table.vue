@@ -1355,7 +1355,8 @@ const rowClickAction = (row: T): RowClickAction | undefined =>
 
 // The hover tint and the double-click read the same resolution, so a row that
 // lights up always opens something.
-const isRowClickable = (row: T): boolean => rowClickAction(row) !== undefined;
+const isRowClickable = (row: T): boolean =>
+  props.rowClick !== "none" && rowClickAction(row) !== undefined;
 
 const runRowClickAction = (row: T) => {
   const action = rowClickAction(row);

@@ -59,6 +59,10 @@ const isInvalid = computed(() =>
   props.inlineEdit.isInvalid(row.value, columnId.value),
 );
 
+// `inputs: "always"`: the cell is its input, typed into at once. Focusing
+// it opens the edit, leaving it saves, as the editor of a clicked cell.
+const isAlwaysInput = computed(() => props.inlineEdit.inputs === "always");
+
 const columnDef = computed(
   () => props.cell.column.columnDef as InlineEditColumnDef,
 );
@@ -104,7 +108,8 @@ const controlOptions = computed<Record<string, unknown>>(() => {
   }
   // Picking the value a cell holds again keeps it: a cell is emptied by
   // clearing it, not by a click on its own value.
-  if (target.opensPicker === "defaultOpen") {
+  // Drawn as inputs, every select of the grid would open at once.
+  if (target.opensPicker === "defaultOpen" && !isAlwaysInput.value) {
     return { ...options, deselectable: false, defaultOpen: true };
   }
   return options;
@@ -120,6 +125,16 @@ const draft = computed({
 
 const editor = useTemplateRef<HTMLElement>("editor");
 const display = useTemplateRef<HTMLElement>("display");
+const field = useTemplateRef<HTMLElement>("field");
+
+const inputValue = computed(() =>
+  isEditing.value
+    ? draft.value
+    : props.inlineEdit.valueOf(row.value, columnId.value),
+);
+const openOnFocus = () => {
+  if (!isEditing.value) props.inlineEdit.start(row.value, columnId.value);
+};
 // Enter and Esc leave the keyboard on the cell they closed.
 let shouldRefocusDisplay = false;
 
@@ -153,7 +168,8 @@ const open = (event?: Event) => {
 
 const isWithinCell = (element: Element | null): boolean =>
   !!element &&
-  (!!editor.value?.contains(element) || !!element.closest(POPOVER_SELECTOR));
+  (!!(editor.value ?? field.value)?.contains(element) ||
+    !!element.closest(POPOVER_SELECTOR));
 
 // The control settles its value on its own blur (a time is parsed then):
 // the save waits for it.
@@ -196,6 +212,12 @@ const handleUpdate = (value: unknown) => {
   void commit();
 };
 
+// A value typed into an input drawn at rest opens its cell's edit first.
+const handleInput = (value: unknown) => {
+  openOnFocus();
+  handleUpdate(value);
+};
+
 // A picker closed by a click elsewhere leaves no focus in the cell to lose:
 // the click saves it too. Listened to while the cell is open only, rather
 // than by every editable cell of the page.
@@ -234,11 +256,17 @@ const isKeyboardHere = (element: HTMLElement): boolean => {
   return !!element.parentElement?.contains(focused);
 };
 
+// Drawn as an input, the cell takes the keyboard back in that input.
+const refocusTarget = (): HTMLElement | null | undefined =>
+  isAlwaysInput.value
+    ? field.value?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
+    : display.value;
+
 watch(isEditing, (editing, wasEditing) => {
   if (editing || !wasEditing || !shouldRefocusDisplay) return;
   shouldRefocusDisplay = false;
   void nextTick(() => {
-    const element = display.value;
+    const element = refocusTarget();
     if (element && isKeyboardHere(element)) element.focus();
   });
 });
@@ -274,6 +302,41 @@ const toggle = (value: unknown) =>
       v-if="isSaving"
       name="i-ph-spinner"
       class="text-dimmed size-3.5 animate-spin"
+      role="img"
+      :aria-label="t('dms.table.inline_edit.saving')"
+    />
+    <span class="sr-only" role="status">{{ status }}</span>
+  </div>
+
+  <!-- inputs: "always": the input at rest, opened as it takes the focus. -->
+  <div
+    v-else-if="isAlwaysInput"
+    ref="field"
+    class="-mx-1.5 flex min-w-0 items-center gap-1.5"
+    data-inline-edit="input"
+    :aria-busy="isSaving || undefined"
+    @click.stop
+    @dblclick.stop
+    @focusin="openOnFocus"
+    @keydown="handleEditorKeydown"
+    @focusout="handleFocusOut"
+  >
+    <label :for="inputId" class="sr-only">{{ inputLabel }}</label>
+    <component
+      :is="control"
+      :id="inputId"
+      :model-value="inputValue"
+      size="sm"
+      class="min-w-0 flex-1"
+      :disabled="isSaving"
+      :aria-invalid="isInvalid || undefined"
+      v-bind="{ ...controlOptions, ...invalidProps }"
+      @update:model-value="handleInput"
+    />
+    <UIcon
+      v-if="isSaving"
+      name="i-ph-spinner"
+      class="text-dimmed size-3.5 shrink-0 animate-spin"
       role="img"
       :aria-label="t('dms.table.inline_edit.saving')"
     />

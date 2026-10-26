@@ -15,6 +15,7 @@ import type {
   MatrixSelectOption,
 } from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import type { CellStates } from "../save";
 import {
   ARTICLE,
   CURRENT_STORE,
@@ -76,7 +77,9 @@ const sizeColumns = (): MatrixColumn[] =>
   }));
 
 const STOCK_ANNEX: MatrixColumn[] = [
-  // What the grid groups on (grouping.groupByField); the group headers show it.
+  /**
+   * What the grid groups on (grouping.groupByField); the group headers show it.
+   */
   { id: "region", label: "Région", kind: "text", hidden: true, width: 140 },
   {
     id: "minimum",
@@ -140,8 +143,8 @@ function sizeCells(
   store: Store,
   quantities: Record<string, number>,
   toneOf: CellTone,
-): Record<string, MatrixCellState> {
-  const cells: Record<string, MatrixCellState> = {};
+): CellStates {
+  const cells: CellStates = {};
   for (const size of SIZES) {
     if (!isInRange(store, size)) {
       cells[size] = { disabled: true };

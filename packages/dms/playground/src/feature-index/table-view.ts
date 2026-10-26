@@ -39,7 +39,6 @@ const PAGES = {
   kanban: `${ROOT}/table-view-kanban`,
   kanbanCards: `${ROOT}/table-view-kanban-custom-card`,
   reorder: `${ROOT}/table-view-reorder`,
-  inlineEdit: `${ROOT}/table-view-inline-edit`,
   moduleDisplay: `${ROOT}/table-view-cards-display`,
   relationKey: `${ROOT}/table-view-relation-key`,
   relationMember: `${ROOT}/table-view-relation-dms-member`,
@@ -659,11 +658,6 @@ const DISPLAYS_AND_CARDS: PlaygroundFeature[] = [
     "reorder + cards display (card reorder prop)",
     PAGES.reorder,
     CARD_REORDER,
-  ),
-  feature(
-    "Cells edited in the grid, each saved at once",
-    "TableView({ inlineEdit: true | { columns } })",
-    PAGES.inlineEdit,
   ),
 ];
 

@@ -7,7 +7,12 @@ import type {
 } from "@antelopejs/interface-dms/base/matrix-types";
 import { demoGuide } from "../../table-view/guide";
 import { MATRIX_API, matrixCategory } from "../category";
-import { HTTP_METHODS, PURGED_REF, REQUEST_LABELS } from "./data";
+import {
+  HTTP_METHODS,
+  type HttpVerb,
+  PURGED_REF,
+  REQUEST_LABELS,
+} from "./data";
 
 export const MATRIX_RECORDS_SLUG = "matrix-records";
 export const MATRIX_RECORDS_API = `${MATRIX_API}/records`;
@@ -18,7 +23,7 @@ const UNDO_SECONDS = 10;
 const LOWEST_STATUS = 100;
 const HIGHEST_STATUS = 599;
 
-const METHOD_TONES: Record<string, MatrixSelectOption["tone"]> = {
+const METHOD_TONES: Record<HttpVerb, MatrixSelectOption["tone"]> = {
   GET: "info",
   POST: "success",
   PUT: "warning",
@@ -37,8 +42,10 @@ const LABEL_OPTIONS: MatrixSelectOption[] = REQUEST_LABELS.map((label) => ({
   label,
 }));
 
-// Database style: the headers are the field names, the description their
-// stored type, as a collection browser shows them.
+/**
+ * Database style: the headers are the field names, the description their
+ * stored type, as a collection browser shows them.
+ */
 const COLUMNS: MatrixColumn[] = [
   {
     id: "_id",
@@ -110,7 +117,7 @@ const COLUMNS: MatrixColumn[] = [
     id: "headers",
     label: "headers",
     description: "object (string values)",
-    kind: "keyValue",
+    kind: "json",
     width: 220,
   },
   {
@@ -148,7 +155,7 @@ const COLUMNS: MatrixColumn[] = [
   },
 ];
 
-// The grouped grid keeps the scalar fields: the grouping is the point.
+/** The grouped grid keeps the scalar fields: the grouping is the point. */
 const GROUPED_COLUMNS = [
   "_id",
   "method",
@@ -174,12 +181,12 @@ export class PageMatrixRecords extends PageController(
 ) {
   static guide = demoGuide([
     {
-      label: "Double-click a cell",
-      text: 'editTrigger: "doubleClick": a click selects, the arrows move, Enter or a double click edits. Each kind takes its own input; typing "null" empties a nullable field (durationMs, client, body, notes).',
+      label: "Click a cell",
+      text: 'A hovered cell is framed as its input; a click opens it, ready to type. Esc goes back to the cell, the arrows move, Enter edits again. Each kind takes its own input; typing "null" empties a nullable field (durationMs, client, body, notes).',
     },
     {
       label: "Open body, headers or a long note",
-      text: 'editIn "auto": json, keyValue and code cells, and texts holding a line break or over 120 characters, are edited in a drawer. sql is hidden: show it from the columns menu.',
+      text: 'editIn "auto": json and code cells, and texts holding a line break or over 120 characters, are edited in a drawer. sql is hidden: show it from the columns menu.',
     },
     {
       label: "Edit a few cells, then save",
@@ -203,7 +210,7 @@ export class PageMatrixRecords extends PageController(
     },
     {
       label: "Filter a column",
-      text: "columnFilters: [method, path, status, client, cached, receivedAt]: a filter (contains, is) in those headers only, not on json, code or key-value fields; sent as filter_<column>=contains:<text> and shown as removable chips. Try path contains orders, client is pos-lg4, or receivedAt contains 2026-10-24.",
+      text: "columnFilters: [method, path, status, client, cached, receivedAt]: a filter (contains, is) in those headers only, not on json or code fields; sent as filter_<column>=contains:<text> and shown as removable chips. Try path contains orders, client is pos-lg4, or receivedAt contains 2026-10-24.",
     },
     {
       label: "Edit a receivedAt",
@@ -231,7 +238,6 @@ export class PageMatrixRecords extends PageController(
     saveUrl: `${MATRIX_RECORDS_API}/save`,
     columns: COLUMNS,
     rowHeader: { label: "ref", numbers: true, width: 130 },
-    editTrigger: "doubleClick",
     saveMode: "staged",
     review: true,
     undoSeconds: UNDO_SECONDS,
@@ -241,7 +247,7 @@ export class PageMatrixRecords extends PageController(
     pageSizes: PAGE_SIZES,
     sortable: true,
     search: true,
-    // The scalar fields: a json, code or key-value cell has no text to match.
+    /** The scalar fields: a json or code cell has no text to match. */
     columnFilters: [
       "method",
       "path",

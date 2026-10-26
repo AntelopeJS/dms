@@ -408,8 +408,10 @@ export function TableView<T extends ControllerClass>(
         // entry is left out too, like the add/edit/delete buttons.
         enableTableExport: options.enableTableExport && grants.export,
         formComponents: adaptedFormComponents,
-        // Inline edits go through the edit route, like the edit form it reads
-        // its fields from: a caller without the edit action has neither.
+        /**
+         * Inline edits go through the edit route, like the edit form it reads
+         * its fields from: a caller without the edit action has neither.
+         */
         inlineEdit: grants.edit ? options.inlineEdit : undefined,
         rowActions: adaptedRowActions,
         customButtons: adaptedCustomButtons,

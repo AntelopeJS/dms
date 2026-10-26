@@ -34,11 +34,16 @@ export interface RequestDocument {
   cached: boolean;
   receivedAt: string;
   client: string | null;
-  headers: Record<string, string>;
+  headers: RequestHeaders;
   body: JsonValue;
   sql: string;
   labels: string[];
   notes: string | null;
+}
+
+/** A request's headers, by lower-cased name. */
+export interface RequestHeaders {
+  [name: string]: string;
 }
 
 /** The fields a save may write, all of them but the ids. */
@@ -86,14 +91,14 @@ const CLIENTS: (string | null)[] = [
   null,
 ];
 
-const USER_AGENTS: Record<string, string> = {
-  "pos-lg4": "AltabPOS/4.2 (Windows 11; LG4-caisse-1)",
-  "pos-ne1": "AltabPOS/4.2 (Windows 11; NE1-caisse-2)",
-  "pos-lux29": "AltabPOS/4.1 (iPadOS 18; LUX29-tablette)",
-  "eshop-front": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) Safari/605.1",
-  backoffice: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0",
-  "stripe-webhook": "Stripe/1.0 (+https://stripe.com/docs/webhooks)",
-};
+const USER_AGENTS = new Map<string, string>([
+  ["pos-lg4", "AltabPOS/4.2 (Windows 11; LG4-caisse-1)"],
+  ["pos-ne1", "AltabPOS/4.2 (Windows 11; NE1-caisse-2)"],
+  ["pos-lux29", "AltabPOS/4.1 (iPadOS 18; LUX29-tablette)"],
+  ["eshop-front", "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) Safari/605.1"],
+  ["backoffice", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0"],
+  ["stripe-webhook", "Stripe/1.0 (+https://stripe.com/docs/webhooks)"],
+]);
 
 function pick<T>(items: readonly T[], serial: number): T {
   return items[serial % items.length]!;
@@ -278,12 +283,12 @@ function headersFor(
   route: RouteTemplate,
   client: string | null,
   serial: number,
-): Record<string, string> {
-  const headers: Record<string, string> = {
+): RequestHeaders {
+  const headers: RequestHeaders = {
     accept: "application/json",
     "x-request-id": `rq-${(serial * 2654435761).toString(HEX).slice(-8)}`,
   };
-  if (client) headers["user-agent"] = USER_AGENTS[client] ?? "curl/8.9.1";
+  if (client) headers["user-agent"] = USER_AGENTS.get(client) ?? "curl/8.9.1";
   if (route.method !== "GET" && route.method !== "DELETE")
     headers["content-type"] = "application/json";
   if (client?.startsWith("pos-"))

@@ -26,7 +26,8 @@ export interface CustomRowAction {
   isVisible?: boolean;
   /**
    * Preferred row-click target when its rule accepts the row: a double-click,
-   * or a single click on a table with `rowClick: "single"`.
+   * or a single click on a table with `rowClick: "single"` (none with
+   * `rowClick: "none"`).
    */
   isDefault?: boolean;
   /** Color of the inline button or menu entry. */

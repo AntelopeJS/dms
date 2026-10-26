@@ -21,7 +21,7 @@ import {
   type AgendaMountPlace,
 } from "./fixtures/agendaBlockHarness";
 import type { FullAgendaOptions } from "../layers/dms-ui/app/types/full-agenda";
-import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
+import enGB from "../layers/dms-ui/i18n/locales/ui-agenda-en-GB.json";
 
 const fixture = () => import("./fixtures/agendaBlockHarness");
 vi.mock(

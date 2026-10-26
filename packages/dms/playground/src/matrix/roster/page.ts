@@ -25,8 +25,10 @@ const DAY_COLUMNS: MatrixColumn[] = WEEK.map((day) => ({
   width: DAY_WIDTH,
 }));
 
-// The legend reads the shifts' own labels and tones, so it cannot drift
-// from the pills drawn in the cells.
+/**
+ * The legend reads the shifts' own labels and tones, so it cannot drift
+ * from the pills drawn in the cells.
+ */
 const LEGEND: MatrixLegendItem[] = [
   ...SHIFT_OPTIONS.map(({ label, tone }) => ({ label, tone })),
   { label: "Magasins fermés", hatched: true },
@@ -62,7 +64,7 @@ export class PageMatrixRoster extends PageController(
   static guide = demoGuide([
     {
       label: "Click a cell, pick a shift",
-      text: 'A select column whose options carry a tone and an icon: each value is drawn as its pill. editTrigger: "click", saveMode: "immediate": the pick is saved at once.',
+      text: 'A select column whose options carry a tone and an icon: each value is drawn as its pill. A click opens the list, saveMode: "immediate": the pick is saved at once.',
     },
     {
       label: "Give Charlotte Hubert her Wednesday",
@@ -90,7 +92,6 @@ export class PageMatrixRoster extends PageController(
     saveUrl: `${MATRIX_ROSTER_API}/save`,
     columns: DAY_COLUMNS,
     rowHeader: { label: "Équipe", width: 250 },
-    editTrigger: "click",
     saveMode: "immediate",
     grouping: { collapsible: true },
     crossHighlight: true,

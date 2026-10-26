@@ -10,6 +10,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import type {
   MatrixCellError,
   MatrixCellState,
+  MatrixCellValue,
   MatrixChange,
   MatrixConflict,
   MatrixData,
@@ -18,6 +19,7 @@ import type {
   MatrixSaveResponse,
 } from "@antelopejs/interface-dms/base/matrix-types";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import { z } from "zod";
 import {
   facetAllows,
   filtersAllow,
@@ -29,6 +31,7 @@ import {
   sortItems,
 } from "../query";
 import {
+  type CellStates,
   cellError,
   conflictOf,
   readSaveRequest,
@@ -56,12 +59,12 @@ const MAX_PATH_LENGTH = 2048;
 const MAX_NOTE_LENGTH = 4000;
 const GROUP_BY_KEY = "groupBy";
 
-const STATUS_CLASSES: Record<string, string> = {
+const STATUS_CLASSES = {
   "2xx": "2xx Success",
   "3xx": "3xx Redirect",
   "4xx": "4xx Client error",
   "5xx": "5xx Server error",
-};
+} satisfies Record<string, string>;
 
 const DOCUMENT_KEYS: (keyof RequestDocument)[] = [
   "_id",
@@ -80,75 +83,59 @@ const DOCUMENT_KEYS: (keyof RequestDocument)[] = [
   "notes",
 ];
 
-type CellValue = MatrixChange["value"];
+type ChangeValue = MatrixChange["value"];
 
 /** Why a value does not fit its field, or `undefined` when it does. */
-type FieldCheck = (value: CellValue) => string | undefined;
+type FieldCheck = (value: ChangeValue) => string | undefined;
 
-const isNullOr =
-  (check: FieldCheck): FieldCheck =>
+/** A field's value schema, and what a value it refuses is told. */
+const fieldCheck =
+  (schema: z.ZodType, message: string): FieldCheck =>
   (value) =>
-    value === null ? undefined : check(value);
-
-function isHeaderMap(value: CellValue): boolean {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  return Object.values(value).every((header) => typeof header === "string");
-}
+    schema.safeParse(value).success ? undefined : message;
 
 const FIELD_CHECKS: Record<RequestField, FieldCheck> = {
-  method: (value) =>
-    HTTP_METHODS.some((method) => method === value)
-      ? undefined
-      : `Expected one of ${HTTP_METHODS.join(", ")}.`,
-  path: (value) =>
-    typeof value === "string" &&
-    value.startsWith("/") &&
-    value.length <= MAX_PATH_LENGTH
-      ? undefined
-      : "A path starts with /.",
-  status: (value) =>
-    Number.isInteger(value) &&
-    Number(value) >= LOWEST_STATUS &&
-    Number(value) <= HIGHEST_STATUS
-      ? undefined
-      : `An HTTP status is a whole number from ${LOWEST_STATUS} to ${HIGHEST_STATUS}.`,
-  durationMs: isNullOr((value) =>
-    typeof value === "number" && Number.isFinite(value) && value >= 0
-      ? undefined
-      : "A duration is a positive number of milliseconds, or null.",
+  method: fieldCheck(
+    z.enum(HTTP_METHODS),
+    `Expected one of ${HTTP_METHODS.join(", ")}.`,
   ),
-  cached: (value) =>
-    typeof value === "boolean" ? undefined : "Expected true or false.",
-  receivedAt: (value) =>
-    typeof value === "string" && !Number.isNaN(Date.parse(value))
-      ? undefined
-      : "Expected a date.",
-  client: isNullOr((value) =>
-    typeof value === "string" && value.trim()
-      ? undefined
-      : "A client is a name, or null for an anonymous call.",
+  path: fieldCheck(
+    z.string().startsWith("/").max(MAX_PATH_LENGTH),
+    "A path starts with /.",
   ),
-  headers: (value) =>
-    isHeaderMap(value) ? undefined : "Headers are names with text values.",
-  body: (value) =>
-    value === null || typeof value === "object"
-      ? undefined
-      : "A request body is an object, an array or null.",
-  sql: (value) =>
-    typeof value === "string" && value.trim()
-      ? undefined
-      : "The statement cannot be empty.",
-  labels: (value) =>
-    Array.isArray(value) &&
-    value.every((label) => REQUEST_LABELS.some((known) => known === label))
-      ? undefined
-      : `Labels are among ${REQUEST_LABELS.join(", ")}.`,
-  notes: isNullOr((value) =>
-    typeof value === "string" && value.length <= MAX_NOTE_LENGTH
-      ? undefined
-      : `A note holds ${MAX_NOTE_LENGTH} characters at most.`,
+  status: fieldCheck(
+    z.number().int().min(LOWEST_STATUS).max(HIGHEST_STATUS),
+    `An HTTP status is a whole number from ${LOWEST_STATUS} to ${HIGHEST_STATUS}.`,
+  ),
+  durationMs: fieldCheck(
+    z.number().finite().min(0).nullable(),
+    "A duration is a positive number of milliseconds, or null.",
+  ),
+  cached: fieldCheck(z.boolean(), "Expected true or false."),
+  receivedAt: fieldCheck(
+    z.string().refine((value) => !Number.isNaN(Date.parse(value))),
+    "Expected a date.",
+  ),
+  client: fieldCheck(
+    z.string().trim().min(1).nullable(),
+    "A client is a name, or null for an anonymous call.",
+  ),
+  headers: fieldCheck(
+    z.record(z.string()),
+    "Headers are names with text values.",
+  ),
+  body: fieldCheck(
+    z.union([z.null(), z.array(z.unknown()), z.record(z.unknown())]),
+    "A request body is an object, an array or null.",
+  ),
+  sql: fieldCheck(z.string().trim().min(1), "The statement cannot be empty."),
+  labels: fieldCheck(
+    z.array(z.string().refine((label) => REQUEST_LABELS.includes(label))),
+    `Labels are among ${REQUEST_LABELS.join(", ")}.`,
+  ),
+  notes: fieldCheck(
+    z.string().max(MAX_NOTE_LENGTH).nullable(),
+    `A note holds ${MAX_NOTE_LENGTH} characters at most.`,
   ),
 };
 
@@ -170,10 +157,8 @@ function statusTone(status: number): MatrixCellState["tone"] {
   return undefined;
 }
 
-function cellStates(
-  document: RequestDocument,
-): Record<string, MatrixCellState> {
-  const cells: Record<string, MatrixCellState> = {};
+function cellStates(document: RequestDocument): CellStates {
+  const cells: CellStates = {};
   const tone = statusTone(document.status);
   if (tone) cells.status = { tone };
   if (document.durationMs === null) {
@@ -193,7 +178,10 @@ function toRow(document: RequestDocument): MatrixRow {
   };
 }
 
-function readField(document: RequestDocument, columnId: string): CellValue {
+function readField(
+  document: RequestDocument,
+  columnId: string,
+): MatrixCellValue | undefined {
   return isDocumentKey(columnId) ? document[columnId] : undefined;
 }
 

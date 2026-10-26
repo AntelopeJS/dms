@@ -19,7 +19,6 @@ export type MatrixCellKind =
   | "json"
   | "code"
   | "richText"
-  | "keyValue"
   | "address";
 
 /** The kinds edited in a drawer by default (`editIn: "auto"`), never in the cell. */
@@ -27,7 +26,6 @@ export const MATRIX_PANEL_KINDS: readonly MatrixCellKind[] = [
   "json",
   "code",
   "richText",
-  "keyValue",
   "address",
 ];
 
@@ -35,7 +33,6 @@ export const MATRIX_PANEL_KINDS: readonly MatrixCellKind[] = [
 export const MATRIX_LONG_TEXT_LENGTH = 120;
 
 export type MatrixEditIn = "cell" | "panel" | "auto";
-export type MatrixEditTrigger = "click" | "doubleClick";
 export type MatrixSaveMode = "immediate" | "staged";
 export type MatrixEnterMove = "down" | "right" | "stay";
 export type MatrixConflictMode = "overwrite" | "detect";
@@ -294,7 +291,6 @@ export interface MatrixOptions {
   columns?: MatrixColumn[];
   rowHeader?: MatrixRowHeader;
   editable?: boolean;
-  editTrigger?: MatrixEditTrigger;
   typeToEdit?: boolean;
   saveMode?: MatrixSaveMode;
   review?: boolean;
