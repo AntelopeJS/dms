@@ -138,7 +138,7 @@ const outsideSheet = computed(() => layout.value.sidebar === "overlay");
   >
     <AgendaToolbar
       v-if="shell.toolbar.value"
-      :inert="outsideSheet || undefined"
+      :sheet-open="outsideSheet"
       :parts="shell.toolbar.value"
       :switcher="layout.switcher"
       :has-sidebar="

@@ -196,15 +196,23 @@ describe("sidebar", () => {
     expect(agenda.ctx.apply).not.toHaveBeenCalled();
   });
 
-  it("N21 puts the toolbar out of reach while the sheet is open", async () => {
+  it("N21 puts the toolbar out of reach while the sheet is open, but its button", async () => {
     const { el } = await mountBlock({ sidebar: true }, 320);
-    const toolbar = query(el, "[data-agenda-toolbar]")!;
-    expect(toolbar.hasAttribute("inert")).toBe(false);
-    query(el, "[data-agenda-sidebar-toggle]")!.click();
+    const toggle = () => query(el, "[data-agenda-sidebar-toggle]")!;
+    const today = () => query(el, "[data-agenda-today]")!;
+    expect(today().closest("[inert]")).toBeNull();
+    toggle().click();
     await nextTick();
-    expect(query(el, "[data-agenda-toolbar]")!.hasAttribute("inert")).toBe(
-      true,
+    expect(query(el, "[data-agenda-sidebar]")?.dataset.agendaSidebar).toBe(
+      "overlay",
     );
+    expect(today().closest("[inert]")).not.toBeNull();
+    expect(toggle().closest("[inert]")).toBeNull();
+    // The same button closes the sheet.
+    toggle().click();
+    await nextTick();
+    expect(query(el, "[data-agenda-sidebar]")).toBeNull();
+    expect(today().closest("[inert]")).toBeNull();
   });
 
   it("N32 keeps the sidebar button in a strip above the views, not over them", async () => {

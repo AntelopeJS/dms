@@ -25,6 +25,11 @@ interface AgendaToolbarProps {
   hasSidebar: boolean;
   /** The sidebar shows (column or sheet): the button reads pressed. */
   sidebarShown: boolean;
+  /**
+   * The sidebar is open as a modal sheet: the toolbar is out of reach but
+   * for the sidebar button, which closes it.
+   */
+  sheetOpen?: boolean;
 }
 
 const props = defineProps<AgendaToolbarProps>();
@@ -115,6 +120,7 @@ const showsSaveStatus = computed(
   <div class="border-default border-b" data-agenda-toolbar>
     <div
       v-if="hasHeader"
+      :inert="props.sheetOpen || undefined"
       :class="[
         'flex items-start gap-x-3 gap-y-2 px-4 pt-3',
         ctx.compact.value ? 'flex-col' : 'flex-wrap',
@@ -178,138 +184,142 @@ const showsSaveStatus = computed(
           @click="emit('toggle-sidebar')"
         />
       </UTooltip>
-      <UTooltip
-        v-if="props.parts.today"
-        :text="t('dms.agenda.toolbar.today_unavailable')"
-        :disabled="ctx.canGoToday.value"
-      >
-        <!-- A disabled button gets no hover: the span carries the tooltip. -->
-        <span class="inline-flex" data-agenda-today>
+      <div class="contents" :inert="props.sheetOpen || undefined">
+        <UTooltip
+          v-if="props.parts.today"
+          :text="t('dms.agenda.toolbar.today_unavailable')"
+          :disabled="ctx.canGoToday.value"
+        >
+          <!-- A disabled button gets no hover: the span carries the tooltip. -->
+          <span class="inline-flex" data-agenda-today>
+            <UButton
+              size="sm"
+              color="neutral"
+              variant="outline"
+              :label="t('dms.agenda.toolbar.today')"
+              :disabled="!ctx.canGoToday.value"
+              @click="ctx.goToday()"
+            />
+          </span>
+        </UTooltip>
+        <div v-if="props.parts.navigation" class="flex items-center">
+          <UButton
+            icon="i-ph-caret-left"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            :disabled="!ctx.canGoPrevious.value"
+            :aria-label="t('dms.agenda.toolbar.previous')"
+            @click="ctx.go(-1)"
+          />
+          <UButton
+            icon="i-ph-caret-right"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            :disabled="!ctx.canGoNext.value"
+            :aria-label="t('dms.agenda.toolbar.next')"
+            @click="ctx.go(1)"
+          />
+        </div>
+        <UPopover v-if="props.parts.datePicker" v-model:open="pickerOpen">
           <UButton
             size="sm"
             color="neutral"
-            variant="outline"
-            :label="t('dms.agenda.toolbar.today')"
-            :disabled="!ctx.canGoToday.value"
-            @click="ctx.goToday()"
+            variant="ghost"
+            trailing-icon="i-ph-caret-down"
+            class="text-highlighted font-semibold"
+            :label="period"
+            :aria-label="
+              t('dms.agenda.toolbar.pick_date', {
+                period: period,
+              })
+            "
+            data-agenda-period-picker
           />
+          <template #content>
+            <DmsCalendar
+              class="p-2"
+              :model-value="anchorDate"
+              :week-starts-on="ctx.options.value.weekStartsOn"
+              :min-date="raw.minDate"
+              :max-date="raw.maxDate"
+              @update:model-value="pickDay"
+            />
+          </template>
+        </UPopover>
+        <h3
+          v-else
+          class="text-highlighted text-sm font-semibold"
+          aria-live="polite"
+          data-agenda-period
+        >
+          {{ period }}
+        </h3>
+        <span v-if="props.parts.datePicker" class="sr-only" aria-live="polite">
+          {{ period }}
         </span>
-      </UTooltip>
-      <div v-if="props.parts.navigation" class="flex items-center">
-        <UButton
-          icon="i-ph-caret-left"
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          :disabled="!ctx.canGoPrevious.value"
-          :aria-label="t('dms.agenda.toolbar.previous')"
-          @click="ctx.go(-1)"
-        />
-        <UButton
-          icon="i-ph-caret-right"
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          :disabled="!ctx.canGoNext.value"
-          :aria-label="t('dms.agenda.toolbar.next')"
-          @click="ctx.go(1)"
-        />
-      </div>
-      <UPopover v-if="props.parts.datePicker" v-model:open="pickerOpen">
-        <UButton
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          trailing-icon="i-ph-caret-down"
-          class="text-highlighted font-semibold"
-          :label="period"
-          :aria-label="
-            t('dms.agenda.toolbar.pick_date', {
-              period: period,
-            })
-          "
-          data-agenda-period-picker
-        />
-        <template #content>
-          <DmsCalendar
-            class="p-2"
-            :model-value="anchorDate"
-            :week-starts-on="ctx.options.value.weekStartsOn"
-            :min-date="raw.minDate"
-            :max-date="raw.maxDate"
-            @update:model-value="pickDay"
-          />
-        </template>
-      </UPopover>
-      <h3
-        v-else
-        class="text-highlighted text-sm font-semibold"
-        aria-live="polite"
-        data-agenda-period
-      >
-        {{ period }}
-      </h3>
-      <span v-if="props.parts.datePicker" class="sr-only" aria-live="polite">
-        {{ period }}
-      </span>
-      <AgendaSaveStatus v-if="showsSaveStatus" />
+        <AgendaSaveStatus v-if="showsSaveStatus" />
 
-      <div class="ms-auto flex flex-wrap items-center gap-2">
-        <UInput
-          v-if="raw.search"
-          v-model="ctx.search.value"
-          icon="i-ph-magnifying-glass"
-          size="sm"
-          class="w-full @md:w-52"
-          :placeholder="t('dms.agenda.toolbar.search')"
-          :aria-label="t('dms.agenda.toolbar.search')"
-        />
-        <USelectMenu
-          v-for="facet in facets"
-          :key="facet.id"
-          :model-value="facetValue(facet)"
-          :items="facetItems(facet)"
-          value-key="value"
-          :multiple="facet.multiple"
-          :placeholder="processText(facet.label)"
-          :aria-label="processText(facet.label)"
-          size="sm"
-          class="min-w-36"
-          @update:model-value="setFacet(facet, $event)"
-        />
-        <AgendaViewSwitcher
-          v-if="props.switcher !== 'none'"
-          :mode="props.switcher"
-        />
-        <UTooltip
-          v-if="props.parts.refresh"
-          :text="t('dms.agenda.toolbar.refresh')"
-        >
-          <UButton
-            icon="i-ph-arrows-clockwise"
+        <div class="ms-auto flex flex-wrap items-center gap-2">
+          <UInput
+            v-if="raw.search"
+            v-model="ctx.search.value"
+            icon="i-ph-magnifying-glass"
             size="sm"
-            color="neutral"
-            variant="ghost"
-            :loading="ctx.loading.value"
-            :aria-label="t('dms.agenda.toolbar.refresh')"
-            @click="ctx.refresh()"
+            class="w-full @md:w-52"
+            :placeholder="t('dms.agenda.toolbar.search')"
+            :aria-label="t('dms.agenda.toolbar.search')"
           />
-        </UTooltip>
-        <UTooltip
-          v-if="props.parts.exportIcs"
-          :text="t('dms.agenda.toolbar.export_ics')"
-        >
-          <UButton
-            icon="i-ph-download-simple"
+          <USelectMenu
+            v-for="facet in facets"
+            :key="facet.id"
+            :model-value="facetValue(facet)"
+            :items="facetItems(facet)"
+            value-key="value"
+            :multiple="facet.multiple"
+            :placeholder="processText(facet.label)"
+            :aria-label="processText(facet.label)"
             size="sm"
-            color="neutral"
-            variant="ghost"
-            :aria-label="t('dms.agenda.toolbar.export_ics')"
-            @click="emit('export-ics')"
+            class="min-w-36"
+            @update:model-value="setFacet(facet, $event)"
           />
-        </UTooltip>
+          <AgendaViewSwitcher
+            v-if="props.switcher !== 'none'"
+            :mode="props.switcher"
+          />
+          <UTooltip
+            v-if="props.parts.refresh"
+            :text="t('dms.agenda.toolbar.refresh')"
+          >
+            <UButton
+              icon="i-ph-arrows-clockwise"
+              size="sm"
+              color="neutral"
+              variant="ghost"
+              :loading="ctx.loading.value"
+              :aria-label="t('dms.agenda.toolbar.refresh')"
+              @click="ctx.refresh()"
+            />
+          </UTooltip>
+          <UTooltip
+            v-if="props.parts.exportIcs"
+            :text="t('dms.agenda.toolbar.export_ics')"
+          >
+            <UButton
+              icon="i-ph-download-simple"
+              size="sm"
+              color="neutral"
+              variant="ghost"
+              :aria-label="t('dms.agenda.toolbar.export_ics')"
+              @click="emit('export-ics')"
+            />
+          </UTooltip>
+        </div>
       </div>
     </div>
-    <slot />
+    <div class="contents" :inert="props.sheetOpen || undefined">
+      <slot />
+    </div>
   </div>
 </template>
