@@ -3,7 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { demoGuide } from "../guide";
-import { inlineProductDataAPI } from "./data-api";
+import { inlineProductDataAPI, inlineProductInputsDataAPI } from "./data-api";
 
 @RegisterPage()
 export class PageTableViewInlineEdit extends PageController(
@@ -14,14 +14,14 @@ export class PageTableViewInlineEdit extends PageController(
     category: tableViewCategory,
     order: 106,
     description:
-      "A product catalogue edited in the grid: a click turns a cell into its input, and each change is saved at once. Notes stay in the edit form.",
+      "A product catalogue edited in the grid, twice: first its values framed as inputs when hovered, a click opening the input; then every editable cell drawn as its input. Each change is saved at once. Notes stay in the edit form.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static guide = demoGuide([
     {
-      label: "Click a price or a name",
-      text: "inlineEdit: true. The cell turns into its input; Enter or clicking away saves at once (one PUT /edit with that field alone), Esc cancels. An unchanged value sends nothing.",
+      label: "Hover, then click a price or a name",
+      text: 'inlineEdit: true (inputs: "hover", the default). A hovered cell is framed as its input; a click turns it into that input; Enter or clicking away saves at once (one PUT /edit with that field alone), Esc cancels. An unchanged value sends nothing.',
     },
     {
       label: "Toggle Active",
@@ -37,11 +37,15 @@ export class PageTableViewInlineEdit extends PageController(
     },
     {
       label: "SKU and Notes",
-      text: "A read-only column and a long text (a textarea) keep their display: edit Notes from the row's drawer (click the row outside an editable cell).",
+      text: "A read-only column and a long text (a textarea) keep their display: edit Notes from the row's drawer (double-click the row outside an editable cell, the default rowClick: a click is the cell's).",
     },
     {
       label: "Grouped display",
       text: 'grouped: { groupByField: "category" }: the same cells are edited under the group headers. The edit grant decides it all: without it the table is read-only.',
+    },
+    {
+      label: "Second table: type straight into a cell",
+      text: 'inlineEdit: { inputs: "always" }: every editable cell is drawn as its input, nothing to open. Type into a price, Tab to the next one: the cell left is saved (one PUT /edit per changed value). Enter saves and keeps the keyboard there, Esc puts the value back. A select opens on a click, the pick is the save. rowClick: "none": neither click opens the row, its Edit action does.',
     },
   ]);
 
@@ -49,7 +53,6 @@ export class PageTableViewInlineEdit extends PageController(
     caption: "Products",
     labelKey: "name",
     inlineEdit: true,
-    rowClick: "single",
     formContainer: { type: "drawer" },
     defaultSort: { field: "name" },
     grouped: { groupByField: "category" },
@@ -58,6 +61,20 @@ export class PageTableViewInlineEdit extends PageController(
       edit: true,
       delete: true,
       hasSelection: true,
+    },
+  });
+
+  static productInputs = TableView(inlineProductInputsDataAPI, {
+    caption: "Products, inputs at rest",
+    labelKey: "name",
+    inlineEdit: { inputs: "always" },
+    rowClick: "none",
+    formContainer: { type: "drawer" },
+    defaultSort: { field: "name" },
+    rowActions: {
+      add: true,
+      edit: true,
+      delete: true,
     },
   });
 }

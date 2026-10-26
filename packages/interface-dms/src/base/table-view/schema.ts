@@ -280,6 +280,10 @@ export const TableViewSchema = z.object({
             // Only a listed column has a cell to edit.
             fieldAspect: "listable",
           }),
+          inputs: ui(z.enum(["hover", "always"]).optional(), {
+            label: "Inputs",
+            widget: "segmented",
+          }),
         }),
       ])
       .optional()

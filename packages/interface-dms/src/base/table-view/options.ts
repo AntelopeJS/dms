@@ -401,6 +401,13 @@ export interface TableViewReorderOptions {
 }
 
 /**
+ * How an editable cell shows it is one. `hover`: its value, framed as its
+ * input while hovered, a click opening the input. `always`: the input
+ * itself, typed into at once, saved when left or on Enter.
+ */
+export type TableViewInlineEditInputs = "hover" | "always";
+
+/**
  * Which cells a table view edits in place (see
  * {@link TableViewOptions.inlineEdit}).
  */
@@ -411,6 +418,8 @@ export interface TableViewInlineEditOptions {
    * @example ["price", "stock", "active"]
    */
   columns?: string[];
+  /** Defaults to `hover`. See {@link TableViewInlineEditInputs}. */
+  inputs?: TableViewInlineEditInputs;
 }
 
 /** What a footer summary computes over the rows the table lists. */
@@ -1175,6 +1184,7 @@ export interface TableViewOptions<
    * `visibleWhen`) or to a guard, which the edit route enforces either way.
    * @example true
    * @example { columns: ["price", "stock", "active"] }
+   * @example { inputs: "always" }
    */
   inlineEdit?: boolean | TableViewInlineEditOptions;
   /**

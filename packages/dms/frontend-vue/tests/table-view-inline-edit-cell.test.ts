@@ -2,7 +2,8 @@
 /**
  * A cell edited in place, as the grid renders it: a click opens its input
  * with the keyboard in it (the control's code loads lazily), the click does
- * not reach the row, Enter saves, Esc cancels.
+ * not reach the row, Enter saves, Esc cancels. With `inputs: "always"`, the
+ * cells are their inputs at rest, typed into at once.
  */
 import {
   computed,
@@ -15,7 +16,7 @@ import {
   watch,
   type App,
 } from "vue";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import InlineEditCell from "../layers/dms-ui/app/build/components/table/InlineEditCell.vue";
 import { useTableInlineEdit } from "../layers/dms-ui/app/build/composables/table-view/useTableInlineEdit";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
@@ -68,6 +69,7 @@ afterEach(() => {
 function mountCell(
   api: (...args: never[]) => Promise<unknown> = vi.fn(async () => ({})),
   componentName = "dms-input-text",
+  option: boolean | { inputs: "hover" | "always" } = true,
 ) {
   const rows = ref([
     { _id: "p1", name: "Desk" },
@@ -80,7 +82,7 @@ function mountCell(
     limit: 10,
   });
   const inlineEdit = useTableInlineEdit<Row>({
-    inlineEdit: true,
+    inlineEdit: option,
     editFields: [
       {
         id: "name",
@@ -243,4 +245,75 @@ it("leaves the keyboard where the user went after a pick saves the cell", async 
   await nextTick();
   expect(document.activeElement).toBe(elsewhere);
   elsewhere.remove();
+});
+
+describe("inputs drawn at rest", () => {
+  const mountInputs = (api?: (...args: never[]) => Promise<unknown>) =>
+    mountCell(api, "dms-input-text", { inputs: "always" });
+
+  async function inputOf(root: HTMLElement): Promise<HTMLInputElement> {
+    await vi.waitFor(() => expect(root.querySelector("input")).not.toBe(null));
+    return root.querySelector("input")!;
+  }
+
+  function type(input: HTMLInputElement, value: string): void {
+    input.focus();
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  it("draws every editable cell as its input, holding the row's value", async () => {
+    const { host } = mountInputs();
+    expect(await inputOf(rowOf(host, 0))).toHaveProperty("value", "Desk");
+    expect(await inputOf(rowOf(host, 1))).toHaveProperty("value", "Lamp");
+    expect(host.querySelector("[data-inline-edit='display']")).toBe(null);
+  });
+
+  it("saves the cell left when the keyboard moves to another one", async () => {
+    const { host, api, data } = mountInputs();
+    type(await inputOf(rowOf(host, 0)), "Standing desk");
+    (await inputOf(rowOf(host, 1))).focus();
+    await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    expect(api).toHaveBeenCalledWith("/api/products/edit", {
+      method: "PUT",
+      query: { id: "p1" },
+      body: { name: "Standing desk" },
+    });
+    await vi.waitFor(() =>
+      expect(data.value.results[0]?.name).toBe("Standing desk"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(api).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves on Enter and keeps the keyboard in the input", async () => {
+    const { host, api } = mountInputs();
+    const input = await inputOf(rowOf(host, 0));
+    type(input, "Standing desk");
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(
+        rowOf(host, 0).querySelector("input"),
+      ),
+    );
+  });
+
+  it("puts the value back on Esc without a request", async () => {
+    const { host, api } = mountInputs();
+    const input = await inputOf(rowOf(host, 0));
+    type(input, "Typo");
+    await nextTick();
+    expect(input.value).toBe("Typo");
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(rowOf(host, 0).querySelector("input")?.value).toBe("Desk"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(api).not.toHaveBeenCalled();
+  });
 });

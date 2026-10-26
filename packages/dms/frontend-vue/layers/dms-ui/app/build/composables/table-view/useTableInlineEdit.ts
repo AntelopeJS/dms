@@ -365,6 +365,11 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
 
   return {
     columns,
+    /** `always`: every editable cell is drawn as its input. */
+    inputs:
+      typeof options.inlineEdit === "object"
+        ? (options.inlineEdit.inputs ?? "hover")
+        : "hover",
     columnOf,
     rowLabel,
     isCellEditable,

@@ -665,6 +665,16 @@ const DISPLAYS_AND_CARDS: PlaygroundFeature[] = [
     "TableView({ inlineEdit: true | { columns } })",
     PAGES.inlineEdit,
   ),
+  feature(
+    "Editable cells drawn as their inputs",
+    'TableView({ inlineEdit: { inputs: "always" } })',
+    PAGES.inlineEdit,
+  ),
+  feature(
+    "Rows opened from their actions only, not by a click",
+    'TableView({ rowClick: "none" })',
+    PAGES.inlineEdit,
+  ),
 ];
 
 const CELLS: PlaygroundFeature[] = [
