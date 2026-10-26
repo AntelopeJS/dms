@@ -10461,19 +10461,6 @@
             "widget": "switch"
           }
         },
-        "editTrigger": {
-          "type": "string",
-          "enum": [
-            "click",
-            "doubleClick"
-          ],
-          "optional": true,
-          "ui": {
-            "label": "Edit on",
-            "group": "behavior",
-            "widget": "segmented"
-          }
-        },
         "typeToEdit": {
           "type": "boolean",
           "optional": true,
@@ -10802,7 +10789,6 @@
         "version": 1,
         "paths": [
           "editable",
-          "editTrigger",
           "typeToEdit",
           "saveMode",
           "review",
@@ -13555,10 +13541,11 @@
           "type": "string",
           "enum": [
             "single",
-            "double"
+            "double",
+            "none"
           ],
           "optional": true,
-          "description": "Whether a row opens with one click or two.",
+          "description": "Whether a row opens with one click, two, or not at all.",
           "ui": {
             "label": "Row click",
             "group": "features",
@@ -13584,6 +13571,18 @@
                     "label": "Columns",
                     "widget": "field",
                     "fieldAspect": "listable"
+                  }
+                },
+                "inputs": {
+                  "type": "string",
+                  "enum": [
+                    "hover",
+                    "always"
+                  ],
+                  "optional": true,
+                  "ui": {
+                    "label": "Inputs",
+                    "widget": "segmented"
                   }
                 }
               }
