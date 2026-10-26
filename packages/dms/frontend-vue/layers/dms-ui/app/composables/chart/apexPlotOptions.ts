@@ -89,7 +89,7 @@ function buildDonutPlot(props: UseApexChartInput): Record<string, unknown> {
           show: !!(props.centralLabel || props.centralSubLabel),
           name: { ...styles.name, show: !!props.centralSubLabel },
           value: { ...styles.value, show: !!props.centralLabel },
-          // Apex paints the resting label from `total`, not from `name`.
+
           total: {
             ...styles.name,
             show: true,

@@ -31,8 +31,6 @@ const { processI18n } = useTranslation();
  */
 type FormSectionNavLayout = FormSectionNavVariant | "chipGroups";
 
-// A row of chips with no group keeps its one scrolling line; with groups, the
-// runs wrap, each led by its label.
 const GROUPS_CLASSES: Record<FormSectionNavLayout, string> = {
   list: "flex flex-col gap-4",
   chips: "",
@@ -63,8 +61,6 @@ const ITEM_CLASSES: Record<FormSectionNavVariant, string> = {
     "border-default text-muted hover:text-default flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px]",
 };
 
-// The current section carries a mark of its own, so the entry under the
-// pointer never reads as a second current one.
 const ACTIVE_CLASSES: Record<FormSectionNavVariant, string> = {
   list: "bg-elevated text-highlighted font-[550] shadow-[inset_2px_0_0_var(--ui-primary)]",
   chips: "border-accented bg-elevated text-highlighted",

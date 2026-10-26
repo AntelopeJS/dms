@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The PeriodSelector of a `pageToolbar()`, mounted from the options the
  * interface gives it: every segment named in full whatever it shows (a short
@@ -94,8 +94,6 @@ const menuTrigger = () => comparisonMenu()?.querySelector("button");
 const rangeLabel = () =>
   host.querySelector(".dms-period-selector__range")?.textContent?.trim();
 
-// Local noon: the last 24 hours and the windows they are compared with stay
-// clear of midnight, whatever zone the suite runs in.
 const NOW = new Date(2026, 9, 18, 13, 57);
 
 beforeEach(() => {

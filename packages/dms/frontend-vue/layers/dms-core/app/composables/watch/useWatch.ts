@@ -89,10 +89,11 @@ export function useWatch(
         if (!actionFn) {
           continue;
         }
+        // prettier-ignore
         try {
           actionFn(action, event.detail, componentState);
         } catch {
-          /* ignore — a single watch action failure must not break the loop */
+          // eslint-disable-line no-empty -- A synchronous action failure does not stop subsequent actions.
         }
       }
     } finally {

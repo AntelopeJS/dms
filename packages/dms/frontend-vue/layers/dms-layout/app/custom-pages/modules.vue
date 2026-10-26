@@ -55,7 +55,6 @@ const siteLayout = useSiteLayout();
 const modulesListing = useModulesListing();
 const moduleHistory = useModuleHistory();
 
-// Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
   if (isForbidden.value) return null;
   return [
@@ -84,7 +83,7 @@ usePageHeaderActions(() => {
       icon: "i-ph-arrows-clockwise",
       color: "neutral",
       variant: "outline",
-      // Icon-only on phones, where the header row has no room for a label.
+
       ui: { label: "max-sm:sr-only" },
       "aria-label": t("modules.refresh"),
       loading: modulesListing.isLoading.value,
@@ -98,9 +97,6 @@ if (!siteLayout.siteLayout.value) {
   await siteLayout.loadSiteLayout();
 }
 
-// Managing modules is for platform owners only: anyone else gets the standard
-// 403 page, the same answer as any page they may not open (the entry is not in
-// their menu either).
 if (!isOwner.value) {
   throw showDmsError({
     statusCode: HTTP_FORBIDDEN,
@@ -108,14 +104,7 @@ if (!isOwner.value) {
   });
 }
 
-// Declared before the installed modules, which take the version, category and
-// source a registration leaves out from it, and the store actions.
 const moduleStore = useModuleStore();
-
-// Both listings are read with the page (`useApiData`): a server render waits
-// for them and hands them to the browser, which hydrates on them without
-// reading again. Nothing awaits them here: a client navigation shows the
-// tile skeletons, sized like the tiles, until they answer.
 
 const isForbidden = computed(
   () =>
@@ -147,8 +136,6 @@ const storeEntries = computed(
   () => new Map(storeModules.value.map((entry) => [entry.id, entry])),
 );
 
-// The modules that run, and the installed ones that register nothing (paused,
-// not started, or without pages): antelope.config.ts declares them all.
 const modules = computed<ModuleCatalogEntry[]>(() => {
   const registered = withStoreDetails(
     (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
@@ -158,8 +145,6 @@ const modules = computed<ModuleCatalogEntry[]>(() => {
 });
 const summary = computed(() => summarizeModules(modules.value));
 
-// The history only orders the grid by last use: a tile always opens the
-// module on its landing page, never where it was left.
 const visitedAt = computed(
   () =>
     new Map(
@@ -172,11 +157,9 @@ const visitedAt = computed(
 
 const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 
-// ── Search, category, sort ─────────────────────────────────────────
 const query = ref("");
 const category = ref<string>(MODULE_CATEGORY_ALL);
-// Remembered per browser in the preferences cookie, so the server renders the
-// grid in the order the browser hydrates it with.
+
 const SORT_MODE_PREFERENCE_KEY = "modulesPage.sort";
 const { getPreference, setPreference } = usePreferences();
 const sortMode = computed<ModuleSortMode>({
@@ -193,7 +176,6 @@ const categoryOptions = computed(() => [
   ...moduleCategoryOptions(modules.value, processI18n),
 ]);
 
-// A category that disappeared on refresh must not leave the grid empty.
 watch(categoryOptions, (options) => {
   if (!options.some((option) => option.value === category.value)) {
     category.value = MODULE_CATEGORY_ALL;
@@ -239,7 +221,6 @@ function clearFilters(): void {
   category.value = MODULE_CATEGORY_ALL;
 }
 
-// ── Module store ───────────────────────────────────────────────────
 onMounted(() => {
   if (isOwner.value) moduleStore.start();
 });
@@ -258,7 +239,6 @@ function isTileLocked(moduleId: string): boolean {
   return listing.busy && storeEntries.value.get(moduleId)?.state !== "busy";
 }
 
-// ── Actions ────────────────────────────────────────────────────────
 async function retry(): Promise<void> {
   if (isRetrying.value) return;
   isRetrying.value = true;

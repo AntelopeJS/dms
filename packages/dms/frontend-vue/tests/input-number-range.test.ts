@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A number field clamps a value typed outside `min` / `max` into range on
  * blur, as the input does by default. With `clamp: false` it keeps the value

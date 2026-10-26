@@ -1,12 +1,4 @@
 <script setup lang="ts">
-// Two-pane master/detail layout (design .md-split): a selectable list on the
-// left (380px) and a detail panel on the right. The list is driven by `items`
-// + v-model; the detail is rendered by the default slot, which receives the
-// currently selected value.
-//
-// The panes sit side by side from 64rem of the layout's own width (the former
-// `lg` viewport breakpoint), not the viewport's: a docked side panel or a
-// narrow grid cell leaves less room than the screen suggests.
 interface MdItem {
   value: string | number;
   label: string;

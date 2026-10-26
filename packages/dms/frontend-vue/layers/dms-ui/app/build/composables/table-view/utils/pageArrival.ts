@@ -20,7 +20,7 @@ let isTracking = false;
 export function trackPageArrivals(): void {
   if (typeof document === "undefined" || isTracking) return;
   isTracking = true;
-  // A prefetch (a link hovered) announces a visit that may never be made.
+
   document.addEventListener("inertia:before", (event) => {
     const { visit } = (event as CustomEvent<InertiaBeforeDetail>).detail;
     if (!visit.prefetch) arrivalKind = "visit";

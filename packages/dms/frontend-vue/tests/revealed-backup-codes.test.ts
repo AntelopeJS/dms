@@ -22,8 +22,6 @@ describe("useRevealedBackupCodes", () => {
     expect(isRegenerated.value).toBe(true);
   });
 
-  // Switching accounts in the same tab does not reload the page: the next
-  // account could open the dialog and read, or "save", the previous codes.
   it("never shows them to another account of the same tab", async () => {
     const { userId, codes, isOpen } = await revealForAlice();
     userId.value = BOB;

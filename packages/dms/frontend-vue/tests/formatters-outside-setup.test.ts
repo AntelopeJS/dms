@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data-type formatter runs wherever a value is drawn — a footer summary, a
  * group header, a card field, a filter chip, an export — often with no
@@ -22,7 +22,6 @@ import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
 
 type Messages = Record<string, unknown>;
 
-// The layers' locale files share their top-level keys (`dms`, …).
 const mergeMessages = (...sources: Messages[]): Messages =>
   sources.reduce<Messages>((merged, source) => {
     for (const [key, value] of Object.entries(source)) {
@@ -49,9 +48,6 @@ const i18n = createI18n({
 
 const dataTypes = new Map<string, DataType>();
 
-// Auto-imports of the layers, with their real implementations: `useI18n` is
-// vue-i18n's own, so a formatter calling it outside a setup throws as it
-// does in the application.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   for (const [name, value] of Object.entries({
@@ -71,8 +67,6 @@ function stubLayerGlobals() {
   }));
 }
 
-// The shapes a column value comes in, from the empty ones to the rows of a
-// relation and the composed texts a row may carry.
 const SAMPLE_VALUES: unknown[] = [
   undefined,
   null,
@@ -151,11 +145,6 @@ describe("data-type formatters outside a component setup", () => {
   });
 });
 
-// A catalog-like table: cards and groups by a relation, an image held as a
-// URL, tags, a number with a suffix, a select, a localized rich text, and a
-// footer summing a two-line column. Its renderer is created in the table's
-// setup; its values are drawn later, from a footer summary, a group header
-// or a card field, with no setup active.
 describe("a catalog-like table drawn after its setup", () => {
   const columns = {
     image: { accessorKey: "image", type: { id: "image" } },
@@ -224,8 +213,7 @@ describe("a catalog-like table drawn after its setup", () => {
           renderer!.renderColumnValue(column, row, "detail"),
         ).not.toThrow();
       }
-      // The footer summary of the two-line column, as `useTableFooter`
-      // draws it.
+
       expect(() =>
         renderer!.renderValue(columns.price, 9999, undefined),
       ).not.toThrow();

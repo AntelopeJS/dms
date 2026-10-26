@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A long sectioned form groups its navigation under headings: the sections
  * naming the same `navGroup` one after the other share one, in the side list

@@ -32,8 +32,6 @@ const joined = (tokens: CodeToken[]) =>
 const highlight = async (code: string, language: string) =>
   (await loadCodeHighlighter(language))(code);
 
-// The editor's own CodeMirror languages, read the way the snippets read code
-// before they loaded the grammars alone: the colours a snippet must match.
 const EDITOR_PARSERS: Record<string, Parser> = {
   json: jsonLanguage.parser,
   javascript: javascriptLanguage.parser,
@@ -148,21 +146,21 @@ describe("read-only code highlighting", () => {
 
   it("reads the scripts, styles and handlers nested in HTML in their languages", async () => {
     const tokens = await highlight(SAMPLES.html, "html");
-    // A script, a TypeScript one and a JSON one.
+
     expect(colorOf(tokens, "import")).toBe(KEYWORD);
     expect(colorOf(tokens, '"./a.js"')).toBe(STRING);
     expect(colorOf(tokens, '"x"')).toBe(STRING);
-    // JSON in a script is read as a JavaScript value, as the editor reads it.
+
     expect(colorOf(tokens, '"on"')).toBe(STRING);
     expect(colorOf(tokens, "3")).toBe(NUMBER);
-    // A style element and a `style` attribute.
+
     expect(colorOf(tokens, "color")).toBe(PROPERTY);
     expect(colorOf(tokens, "background")).toBe(PROPERTY);
     expect(colorOf(tokens, "4")).toBe(NUMBER);
     expect(colorOf(tokens, "go")).toBe(KEYWORD);
-    // An event handler.
+
     expect(colorOf(tokens, "'x'")).toBe(STRING);
-    // A script of an unknown type stays plain text.
+
     expect(colorOf(tokens, "not code")).toBeUndefined();
     expect(colorOf(tokens, "<!-- the head -->")).toBe(COMMENT);
   });

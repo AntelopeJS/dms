@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A rolling period (`last-hour`, `last-24h`) slides every minute, and every
  * block reading it refetches. On a paused live page the period holds still,
@@ -42,7 +42,7 @@ function mountPageWithChart(): UsePeriodReturn {
     defineComponent({
       setup() {
         const { isPaused } = usePageLive();
-        // As the PeriodSelector wires it.
+
         period = usePeriod({
           defaultPreset: "last-hour",
           holdClock: () => isPaused.value,

@@ -54,7 +54,7 @@ beforeEach(() => {
   createFakeBrowser().openTab().activate();
   server = createRealtimeServer();
   installRealtimeFetch(server);
-  // Fresh per test: the singleton of a previous test keeps watching its own.
+
   loggedIn = ref(true);
   session = ref({ accountId: "account-1", activeTenantId: "tenant-1" });
   user = ref({ _id: "user-1" });
@@ -267,8 +267,6 @@ describe("useUserRealtime reconnection", () => {
   });
 
   it("ends a session answered after it stopped waiting for one", async () => {
-    // Signed out while the session request was in flight: the session the
-    // answer names is a stray, ended at once.
     server.beforeSessionAnswer = () => {
       server.beforeSessionAnswer = undefined;
       loggedIn.value = false;
@@ -276,7 +274,6 @@ describe("useUserRealtime reconnection", () => {
     await loadApi();
     await settle();
 
-    // The backend ends only a session of the connection the request names.
     expect(server.closedSessions).toEqual(["session-1"]);
   });
 

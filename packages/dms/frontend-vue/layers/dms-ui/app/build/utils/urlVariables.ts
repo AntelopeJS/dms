@@ -1,16 +1,9 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 
-// Every token is `{{<scope>.<key>}}`, spaces inside the braces allowed, as the
-// server's filter tokens (`{{ user.id }}`) are.
-//
-// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
-// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
-// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
-// table view (see extractRouteParams).
 const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
-// A query key may carry dots and dashes: a period selector writes `<id>.period`.
+
 const QUERY_KEY = String.raw`query\.([\w.-]+)`;
-// A response key is a path into the answered body: `{{response.data.id}}`.
+
 const RESPONSE_KEY = String.raw`response\.([\w.-]+)`;
 
 const tokenPattern = (key: string, flags = "g"): RegExp =>
@@ -37,8 +30,6 @@ interface TokenEncoding {
 
 const keepValue: EncodeValue = (value) => value;
 
-// A route parameter is a segment of the page path, which the router keeps
-// percent-encoded: it is decoded first so that it is not encoded twice.
 const encodeParam: EncodeValue = (value) => {
   try {
     return encodeURIComponent(decodeURIComponent(value));
@@ -69,8 +60,6 @@ function fillRouteTokens(
     });
 }
 
-// Written as answered: a response may hand back a whole path to open next
-// (`redirectOnSuccess: "{{response.redirectPath}}"`), which encoding would break.
 function fillResponseTokens(
   text: string,
   response: Record<string, unknown> | undefined,
@@ -133,8 +122,6 @@ export function resolveTextVariables(
   return hasUrlVariables(resolved) ? undefined : resolved;
 }
 
-// A route token left without a value: `{{params.id}}`, `{{query.workspace}}`,
-// `{{query.sales.period}}` (a query key may carry dots and dashes, as above).
 const ROUTE_KEY = `(?:${PARAM_KEY}|${QUERY_KEY})`;
 const UNRESOLVED_ROUTE_TOKEN = tokenPattern(ROUTE_KEY);
 const UNRESOLVED_ROUTE_VALUE = new RegExp(
@@ -196,7 +183,6 @@ export function resolveLinkVariables(
   return stripTokens(filled, UNRESOLVED_ROUTE_TOKEN, UNRESOLVED_ROUTE_VALUE);
 }
 
-// A row field, `{{row.<path>}}`, as `interpolateUrl` fills it.
 const ROW_KEY = String.raw`row\.[^{}\s]+`;
 const ROW_TOKEN = tokenPattern(ROW_KEY);
 const ROW_VALUE = new RegExp(`^${tokenPattern(ROW_KEY, "").source}$`);

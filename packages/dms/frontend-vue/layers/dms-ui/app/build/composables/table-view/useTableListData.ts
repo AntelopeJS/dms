@@ -81,7 +81,7 @@ export function useTableListData<T extends Record<string, unknown>>(
   });
   return useDmsAsyncData(
     key,
-    // `null` while a source waits on its period scope: the table's skeleton.
+
     ({ signal }): Promise<TableViewListResponse<T> | null> =>
       isSelfManaged.value
         ? Promise.resolve(EMPTY_LIST_RESULT)
@@ -97,7 +97,7 @@ export function useTableListData<T extends Record<string, unknown>>(
         rows.sourceUrl,
       ],
       lazy: true,
-      // The table reads again on its own triggers, through its live hold.
+
       refreshOnPageRefresh: false,
     },
   );

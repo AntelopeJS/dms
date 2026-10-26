@@ -32,8 +32,6 @@ function requiredQueryValues(
   );
 }
 
-// A page narrowed by its query shows one entity out of many: its generic
-// display name would label every favorite of it the same way.
 function entityTitle(pageTitle: string, queryValues: string[]): string {
   return [pageTitle, ...queryValues].join(FAVORITE_TITLE_SEPARATOR);
 }

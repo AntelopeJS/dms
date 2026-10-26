@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -241,7 +241,7 @@ describe("useTableViews", () => {
     const preferences = new Map<string, unknown>(
       Object.entries(options.preferences ?? {}),
     );
-    // `useTablePreferences`: the browser-only fields come back once mounted.
+
     const restores: Array<() => void> = [];
     const tablePreferences: TablePreferences = {
       get: <V>(field: string, fallback: V) =>
@@ -295,7 +295,7 @@ describe("useTableViews", () => {
       defineComponent({
         setup() {
           onMounted(() => restores.forEach((restore) => restore()));
-          // As the table view does, before its views.
+
           tablePreferences.restore("density", state.density);
           tablePreferences.restore("columnOrder", state.columnOrder);
           api = useTableViews({
@@ -452,7 +452,7 @@ describe("useTableViews", () => {
       isLinked: true,
     });
     expect(api.activeViewId.value).toBe("all");
-    // Kept for the next plain visit.
+
     expect(preferences.get("activeView")).toBe("mine");
   });
 

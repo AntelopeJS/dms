@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Apex merges an update into the options it holds, so a chart switching from
  * calendar buckets (a category axis with its own formatters) to a datetime

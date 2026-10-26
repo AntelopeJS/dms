@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The site layout of a page that brings none with its props (a custom page)
  * as the sidebar reads it, through the runtime's real async data: the server
@@ -35,8 +35,6 @@ const RESPONSE = {
 const authFetch = vi.fn();
 const mounted: App[] = [];
 
-// The menu as the header and the sidebar draw it: rendered by the frame, in
-// the persistent layout, outside the page's <Suspense>.
 const Menu = defineComponent({
   setup() {
     const { siteLayout } = useSiteLayout();
@@ -54,7 +52,7 @@ const Layout = defineComponent({ setup: () => () => h("main", [h(Frame)]) });
 
 beforeEach(() => {
   stubApiData(authFetch);
-  // The application holds the in-flight request its callers join.
+
   vi.stubGlobal(
     "useDmsApp",
     () => getCurrentInstance()!.appContext.config.globalProperties,
@@ -85,7 +83,7 @@ it("renders the menu of a page without a site layout, and the browser does not r
   await new Promise((done) => setTimeout(done, 0));
   expect(authFetch).not.toHaveBeenCalled();
   expect(container.innerHTML).toBe(html);
-  // Taken over before the frame's children render: they hydrate the menu.
+
   expect(warn.mock.calls.flat().join(" ")).not.toMatch(/hydration/i);
 });
 

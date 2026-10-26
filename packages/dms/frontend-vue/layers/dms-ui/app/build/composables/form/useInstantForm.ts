@@ -10,9 +10,6 @@ import {
 
 type FormValues = Record<string, unknown>;
 
-// Fields typed in rather than picked: they save once typing pauses, a pick
-// (a select, a switch, a date) at once. A field without a type is a text;
-// so is a field made of typed parts (an address, the rows of a repeater).
 const TYPED_FIELD_TYPES = new Set([
   "string",
   "address",
@@ -71,10 +68,8 @@ const clone = (value: unknown): unknown =>
  * server last confirmed when refused.
  */
 export function useInstantForm(options: InstantFormOptions): InstantForm {
-  // The value each field shows as far as the save knows: a value put back
-  // after a refusal is not a change of the user's.
   const shown = new Map<string, unknown>();
-  // The latest check of each field: an older one ending late is dropped.
+
   const checks = new Map<string, number>();
 
   const instant = useInstantSave<FormValues>({

@@ -100,8 +100,7 @@ describe("dev reload coordinator", () => {
       const coordinator = createDevReloadCoordinator(harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/a")).resolves.toBe(true);
-      // Nothing to wait for: no fetch, and no reload flag raised for a
-      // no-op — the reload must stay invisible.
+
       expect(harness.probes).toBe(0);
       expect(harness.reloadingLog).toEqual([]);
     });
@@ -114,8 +113,7 @@ describe("dev reload coordinator", () => {
       await expect(coordinator.awaitRoute("/pages/new")).resolves.toBe(true);
       expect(harness.probes).toBe(4);
       expect(harness.committed.has("/pages/new")).toBe(true);
-      // The layout is committed by the probe itself, so the route the caller
-      // asked for is the one that got validated.
+
       expect(harness.commits).toBe(0);
     });
 
@@ -124,8 +122,7 @@ describe("dev reload coordinator", () => {
       const coordinator = createDevReloadCoordinator(harness.deps);
 
       await expect(coordinator.awaitRoute("/pages/gone")).resolves.toBe(false);
-      // Timing out still commits whatever the backend has now, so a genuinely
-      // deleted page reaches the renderer and 404s there.
+
       expect(harness.commits).toBe(1);
       expect(harness.clearedFor).toEqual([]);
     });
@@ -150,7 +147,7 @@ describe("dev reload coordinator", () => {
 
       await expect(waited).resolves.toBe(true);
       await refresh;
-      // One loop, not two: the probe count is the one the SSE refresh needed.
+
       expect(harness.probes).toBe(5);
     });
 
@@ -212,8 +209,7 @@ describe("dev reload coordinator", () => {
       coordinator.requestRefresh("/pages/a");
 
       await coordinator.settled();
-      // Two passes for three events, and the trailing one re-reads the route
-      // the user is on rather than the stale path captured at burst time.
+
       expect(harness.derivedFor).toEqual(["/pages/a", "/current"]);
     });
 
@@ -227,8 +223,6 @@ describe("dev reload coordinator", () => {
       await first;
       await coordinator.settled();
 
-      // Never lowered between the two passes: a flicker there would let the
-      // renderer raise the 404 the reload is about to fix.
       expect(harness.reloadingLog).toEqual([true, true, false]);
     });
 

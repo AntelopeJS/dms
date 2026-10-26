@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The Direct / Pause valve of a page declared with `live`: in Direct a block
  * refetches on its events at most once per `maxRate` (the last event of a
@@ -138,8 +138,7 @@ it("in Pause, requests nothing and counts the events per block", async () => {
   expect(logs).not.toHaveBeenCalled();
   expect(chart).not.toHaveBeenCalled();
   expect(routes).not.toHaveBeenCalled();
-  // Two events and a live refresh, each counted once for the page although
-  // two blocks (three for the refresh) received them.
+
   expect(live.missedCount.value).toBe(3);
   expect(usePageLive().isPaused.value).toBe(true);
 });
@@ -155,7 +154,6 @@ it("refreshes on a user's refreshPageBlocks even while paused", async () => {
   expect(onRefresh).toHaveBeenCalledTimes(1);
   expect(live.isPaused.value).toBe(true);
 
-  // Read by the user, the block has nothing left to read on resume.
   live.resume();
   expect(onRefresh).toHaveBeenCalledTimes(1);
 });

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every block reading its data through useChartFetch hands it the period
  * scope and the realtime topics of its options: a block that dropped them

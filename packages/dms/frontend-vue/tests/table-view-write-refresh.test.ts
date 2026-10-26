@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A write through a table view (a row or bulk action, a form it opened) can
  * move what the rest of the page shows of the same records: a KPI counting

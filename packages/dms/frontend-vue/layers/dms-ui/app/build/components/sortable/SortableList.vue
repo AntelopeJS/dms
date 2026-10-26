@@ -76,7 +76,7 @@ const { option } = useSortable(root, list, {
   disabled: props.disabled,
   handle: props.handle,
   filter: props.filter,
-  // A filtered item still gets its click: a locked card opens like the others.
+
   preventOnFilter: false,
   ghostClass: props.ghostClass,
   dragClass: props.dragClass,
@@ -100,7 +100,7 @@ const { option } = useSortable(root, list, {
     const element = sharedDragged.get(draggedKey()) as Item | undefined;
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;
-    // The element goes back to the list it left, which removes it below.
+
     event.item.remove();
     const next = [...list.value];
     next.splice(newIndex, 0, element);
@@ -129,9 +129,6 @@ watch(
 </script>
 
 <script lang="ts">
-// The item being dragged, by group. A drop on another list only names the
-// element, which belongs to the list it left: the list it lands in reads the
-// item the other one stored when the drag started.
 const sharedDragged = new Map<string, unknown>();
 </script>
 

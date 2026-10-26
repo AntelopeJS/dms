@@ -53,10 +53,6 @@ export function useTableUrlTab(options: TableUrlTabOptions): void {
     activeTabId.value = tabId;
   };
 
-  // The tab is written in place, so the route keeps the value of the last
-  // visit: a link back to that tab leaves it unchanged, and only the visit
-  // tells it was followed. A `router.replace`, which Inertia does not
-  // announce, still moves the route.
   watch(
     () => readTableUrlTab(options.route.query, urlScope),
     () => follow(options.route.query),

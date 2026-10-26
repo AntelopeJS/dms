@@ -119,22 +119,18 @@ const FIELD_ERROR_KEYS = {
 /** Issue types whose size is a count (characters, items), not a value. */
 const COUNTED_TYPES = new Set(["string", "array", "set"]);
 
-// The codes the data API (`@antelopejs/interface-data-api`) refuses a body
-// with, `{ code, fields }`: the message each field shows.
 const DATA_API_CODES: Readonly<Record<string, string>> = {
   missing_mandatory_fields: FIELD_ERROR_KEYS.required,
   invalid_field_types: FIELD_ERROR_KEYS.invalid,
 };
 
-// The same, naming the field: "Loss reason is required".
 const NAMED_FIELD_ERROR_KEYS: Readonly<Record<string, string>> = {
   [FIELD_ERROR_KEYS.required]: "dms.field_errors.named_required",
   [FIELD_ERROR_KEYS.invalid]: "dms.field_errors.named_invalid",
 };
 
-// `name: String must contain…`: one validation issue prefixed with its field.
 const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
-// `error.invalid_2fa_code`, `page.settings.roles.error.name_taken`.
+
 const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
 
 /** The HTTP status of a fetch error; undefined for a network failure. */

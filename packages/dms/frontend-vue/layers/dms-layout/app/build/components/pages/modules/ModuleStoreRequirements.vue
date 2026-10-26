@@ -18,7 +18,7 @@ const missingInterfaces = computed(() =>
     .map((missing) => missing.interfacePackage)
     .join(LIST_SEPARATOR),
 );
-// A working copy offers no action, so who uses it changes nothing there.
+
 const dependents = computed(() =>
   props.entry.isWorkingCopy ? "" : props.entry.dependents.join(LIST_SEPARATOR),
 );

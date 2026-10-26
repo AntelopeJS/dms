@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The permission set the `auth` middleware preloads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
@@ -58,7 +58,7 @@ interface PendingRequest {
 }
 
 const requests: PendingRequest[] = [];
-// Answers each request once the test releases it, in order.
+
 const $authFetch = vi.fn(
   () =>
     new Promise<string[]>((resolve, reject) => {

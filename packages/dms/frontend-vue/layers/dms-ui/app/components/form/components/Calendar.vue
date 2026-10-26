@@ -14,7 +14,6 @@ import {
   type CalendarDate,
 } from "@internationalized/date";
 
-// Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
   start: CalendarDate | undefined;
   end: CalendarDate | undefined;
@@ -108,16 +107,11 @@ function convertModelValue(value: DateValue): DateValue {
   return value;
 }
 
-// An inline calendar has no border: an invalid field rings it.
 const {
   color: fieldColor,
   ariaAttrs,
   emitFormChange,
-} = useFormField(
-  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
-  // `color` and `disabled` from these.
-  props as Parameters<typeof useFormField>[0],
-);
+} = useFormField(props as Parameters<typeof useFormField>[0]);
 const invalid = computed(() => fieldColor.value === "error");
 
 function toBoundDate(value: string | undefined): CalendarDate | undefined {
@@ -136,8 +130,6 @@ const convertedProps = computed(() => {
   };
 });
 
-// Bound on the calendar itself: forwarding only passes props this component
-// was given, and the bounds arrive as `minDate` / `maxDate`.
 const minValue = computed(() => props.minValue ?? toBoundDate(props.minDate));
 const maxValue = computed(() => props.maxValue ?? toBoundDate(props.maxDate));
 
@@ -146,7 +138,7 @@ type EmitValue = unknown;
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   forwardEmit(event, value);
-  // After the update: the field re-validates its new value.
+
   if (event === "update:modelValue") emitFormChange();
 };
 

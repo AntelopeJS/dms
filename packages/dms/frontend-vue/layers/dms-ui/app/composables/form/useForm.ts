@@ -238,8 +238,6 @@ export function localizedSubmitValue(value: unknown, type?: string): unknown {
   );
 }
 
-// A localized field keeps its languages even emptied, never `null`: the
-// database stores it as one value per language and cannot read a `null` back.
 function isClearedField(field: SubmitField, value: unknown): boolean {
   if (field.localized) return value === undefined;
   return isClearedFieldValue(value, field.type);
@@ -344,10 +342,6 @@ export function collectSubmitData(
   };
 }
 
-// `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
-// tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
-// against the current route at submit time; drop entries whose tokens cannot
-// be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
 export function resolveSubmitDefaults(
   submitDefaults: Record<string, unknown> | undefined,
   context: ReplaceUrlVariablesContext,
@@ -395,9 +389,7 @@ export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodDefault) {
     return makeFieldSchemaRequired(schema.removeDefault());
   }
-  // A nullable+optional field round-trips through zod-to-json-schema back to
-  // `z.union([<type>, z.null()])`, so unwrap the null branch to reach the base
-  // type; otherwise the checks below never apply and clearing the field passes.
+
   if (schema instanceof z.ZodUnion) {
     const nonNullOptions = schema.options.filter(
       (option: z.ZodTypeAny) => !(option instanceof z.ZodNull),
@@ -439,12 +431,8 @@ export function buildValidationSchema(
   return z.object(newShape).passthrough();
 }
 
-// A switch always holds a value (off is `false`): it can never be left
-// missing, so marking it required would only suggest an action that does not
-// exist.
 const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
-// ...unless it is a box to tick: required, it is an agreement ("I accept the
-// terms") left missing until ticked.
+
 const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
 
 /** Whether a field is a box to tick, which only `true` fills when required. */
@@ -519,12 +507,9 @@ function watchFieldChanges(
   if (!componentId) return;
   const id = componentId;
   const previousValuesJson: Record<string, string> = {};
-  // `initial` on each change: a watch writing values (SetFieldValue) leaves
-  // the values the form started from to the record it loaded.
+
   const isInitial = createStartingValueTracker(isStartingValue);
 
-  // From mount, once `useWatch` listens: the values the form starts from
-  // (defaults, loaded row) reach the watch rules too, not only later edits.
   onMounted(() => {
     watch(() => state.value, sendChanges, { deep: true, immediate: true });
   });
@@ -606,9 +591,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
   const allFields = computed(() => flattenFields(props.fields));
 
-  // Whether a field holds the value the form started from: its default or
-  // the loaded record's, compared as its data type does (a joined row is
-  // the same as the id the picker holds).
   const isStartingValue = (fieldId: string, value: unknown): boolean => {
     const field = allFields.value.find((entry) => entry.id === fieldId);
     const initial = initialValues.value[fieldId];
@@ -624,12 +606,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     isStartingValue,
   );
 
-  // A successful submit leaves the form at its saved state; a later edit makes
-  // it dirty again, so clear `submitSucceeded` to re-arm the unsaved-changes
-  // guard (and the realtime release-on-unmount) for the new edits. Without this
-  // the guard would stay permanently disabled after the first save.
-  // Set while the record a save stored reaches the state: what the server
-  // stored is no edit made since.
   let isApplyingSavedRecord = false;
   let isDisposed = false;
   onScopeDispose(() => {
@@ -689,13 +665,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     resolveUrlVariables(props.fetchUrl, buildUrlContext()),
   );
 
-  // A form that loaded a record and does not create one (a duplicate posts
-  // the loaded values as a new row) updates it: only its changes are sent.
   const isRecordUpdate = computed(
     () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
   );
-  // A create form (a table view's add form, the duplicate it opens) makes a
-  // new row: what it holds is new as a whole, nothing "changed" in it.
+
   const createsRecord = props.kind === "create";
 
   /** Reads the record at `fetchUrl`: its values, mapped for the fields. */
@@ -720,10 +693,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     try {
       return await loadRecord();
     } catch (error) {
-      // A server render shows the failure in the form (FormLoadError) and
-      // hands it to the browser; a toast it added would show in its HTML
-      // alone, which the browser's toasts never hold.
-      // A 404 is no error either: the form says the record is not found.
       if (!import.meta.env.SSR && apiErrorStatus(error) !== HTTP_NOT_FOUND) {
         showFetchErrorToast(error);
       }
@@ -771,7 +740,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
   const { t } = useI18n();
 
-  // A notice text: an i18n key (`$`) pluralized on a numeric `count` param.
   const noticeText = (value: string, params?: Record<string, unknown>) => {
     if (!value.startsWith("$")) return value;
     const count = params?.count;
@@ -816,8 +784,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     return options.showFieldErrors(
       fieldErrors.map((entry) => ({
         name: entry.field,
-        // An error naming values of the field (addresses of a list) lists
-        // them: the field shows which ones to fix.
+
         message: entry.values?.length
           ? t("dms.field_errors.with_values", {
               message: processApiMessage(entry.message, entry.params),
@@ -854,8 +821,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   /** A submit the server accepted: nothing is left unsaved. */
   const markSubmitSaved = (): void => {
     submitSucceeded.value = true;
-    // A form sending something new each time starts over from the values it
-    // opened with; any other keeps what it saved as its new starting point.
+
     if (props.kind === "action") restoreInitialValues();
     else initialValues.value = snapshotFormState(state.value);
     options.onSaved?.();
@@ -902,7 +868,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   ): Promise<void> => {
     if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
-    // The route answers JSON, as `fetchUrl` does: field values.
+
     const record: FormData = isPlainObject(response)
       ? (Object.fromEntries(
           Object.entries(response).filter(([key]) => fieldIds.has(key)),
@@ -987,9 +953,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
-      // A read-only form renders no submit button, but Enter in one of its
-      // fields still submits it: that does nothing. Falling back on `/` sent
-      // the values to the site root with a PUT and reported nothing.
       if (target.missing === "token") showUnresolvedTargetToast();
       return;
     }
@@ -1005,7 +968,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     try {
       const response = await sendSubmit(target.url, plainData, markSubmitSaved);
       await handleSubmitSuccess(response, plainData);
-      // A redirect leaves the form, an action form starts over.
+
       if (
         isRecordUpdate.value &&
         props.kind !== "action" &&

@@ -67,7 +67,7 @@ function createModeToggleHandler(
 ): (event: KeyboardEvent) => void {
   return (event) => {
     if (!isEnabled() || !isModeToggleKey(event)) return;
-    // The dialog's focus trap listens further up and would move focus.
+
     event.preventDefault();
     event.stopPropagation();
     toggle();

@@ -98,8 +98,6 @@ function actionAttributes(action: NextAction): Record<string, unknown> {
   return { type: "button", disabled: isOpening.value };
 }
 
-// The session is refreshed on the way out, not before: the owner stays on
-// this page, and every exit first loads their permissions and language.
 async function open(destination?: string) {
   if (isOpening.value) return;
   isOpening.value = true;
@@ -110,7 +108,6 @@ async function open(destination?: string) {
       ),
     );
   } catch {
-    // A full reload also clears fatal layout errors from the failed refresh.
     window.location.replace(LOGIN_PATH);
   }
 }

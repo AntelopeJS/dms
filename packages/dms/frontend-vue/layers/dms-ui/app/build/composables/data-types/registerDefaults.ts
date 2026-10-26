@@ -164,7 +164,6 @@ interface UrlOptions {
 const URL_IMAGE_CLASS =
   "border-default h-16 w-auto max-w-full rounded-md border object-cover";
 
-// The fields that name a row, read in order for its image's text.
 const ROW_NAME_FIELDS = ["name", "label", "title"];
 
 /**
@@ -228,7 +227,6 @@ function formatDateBetween(value: unknown, locale: string): string {
   return `${start} - ${end}`;
 }
 
-// v2 .status pill, tinted with the configured online/offline color.
 function renderStatus(value: unknown, options: unknown) {
   const { processI18n } = getAppTranslation();
   const opts = options as StatusOptions | undefined;
@@ -254,7 +252,6 @@ function renderSelectItem(item: SelectItem) {
   const label = processI18n(item.label);
   if (!item.icon && !item.iconColor && !item.textColor) return label;
 
-  // A colored option is a status: v2 renders it as a pill, without the icon.
   const statusColor = item.textColor ?? item.iconColor;
   if (statusColor) return renderStatusPill(label, statusColor);
 
@@ -338,7 +335,6 @@ function renderRelationBadge(label: string, title?: string) {
   });
 }
 
-// An id its `select` route did not answer: "Not found", the id on hover.
 function renderNotFoundRelation(relation: NotFoundRelation) {
   const { t } = getAppTranslation();
   return h(
@@ -490,7 +486,7 @@ function renderIdentity(value: unknown, options: unknown, row: Row) {
   const badges = (opts.badges ?? [])
     .filter((badge) => matchesBadge(badge, readRowField(row, badge.field)))
     .map((badge) => ({ label: processI18n(badge.label), color: badge.tone }));
-  // An address or an id is data: only a composed text is translated.
+
   const subtitle = readSubline(readRowField(row, opts.subtitleField), {
     processText,
     isStringTranslated: false,
@@ -548,8 +544,6 @@ const pillVariantOf = (variant: string | undefined): StatusPillVariant =>
     : DEFAULT_PILL_VARIANT;
 const DEFAULT_PILL_TONE = "neutral";
 
-// An object with a `label` but no `labelKey` field: a related row carries
-// that field, which tells the two apart.
 const isPillItem = (item: unknown, labelKey: string): item is PillItem =>
   isObject(item) && typeof item.label === "string" && !(labelKey in item);
 
@@ -627,8 +621,7 @@ function renderPills(value: unknown, options: unknown, row: Row) {
         )
       : "";
   }
-  // Pills too wide for the column shrink to an ellipsis (no shorter than a
-  // few letters); the list's tooltip names them all.
+
   return h(
     "span",
     {
@@ -663,7 +656,7 @@ interface RelativeDateOptions {
 }
 
 const CELL_TEXT_CLASS = "text-[12.5px]";
-// Tooltip of a relative date: the exact moment, in the reader's preferences.
+
 const RELATIVE_TITLE_FORMAT: Intl.DateTimeFormatOptions = {
   dateStyle: "medium",
   timeStyle: "short",
@@ -685,8 +678,7 @@ function renderRelativeDate(
   const opts = (options ?? {}) as RelativeDateOptions;
   const date = new Date(value as string);
   if (Number.isNaN(date.getTime())) return String(value);
-  // Measured from the server render's instant while hydrating it: "3 min ago"
-  // written at 12:00:59 stays so in a browser hydrating at 12:01:01.
+
   const now = serverRenderNow() ?? Date.now();
   const deltaMs = date.getTime() - now;
   const isPast = deltaMs < 0;
@@ -837,8 +829,7 @@ function renderText(
     (options as TextOptions | undefined)?.toneField,
   );
   if (!tone) return value;
-  // The value stays the child, as the untoned cell returns it: a number or a
-  // list renders as it did, never as "[object Object]".
+
   return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
 }
 
@@ -866,8 +857,7 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "string_time",
-    // Written as the field writes it ("7 h 30 min"), in the reader's locale,
-    // rounded as every duration cell is: the field keeps the exact value.
+
     formatter: {
       default: (value: unknown, locale: string) =>
         isNumber(value)
@@ -877,8 +867,6 @@ const registerPrimitiveTypes = (
   });
 };
 
-// Table cells use a short month ("30 Sep 2026", order per locale) so the
-// date fits a default-width column in the mono face.
 const CELL_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   day: "2-digit",
   month: "short",

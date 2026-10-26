@@ -43,8 +43,6 @@ const rawColumns = computed(
 const columns = computed(() => mapColumns());
 type ListedColumn = (typeof columns.value)[number];
 
-// A drag gives the columns in their new order; `select` stays first and
-// `actions` last.
 function applyColumnOrder(ordered: ListedColumn[]) {
   if (!tableSharedData?.value) return;
   tableSharedData.value.columnOrderState.value = [

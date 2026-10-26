@@ -19,7 +19,7 @@ describe("createTrailingDeduper", () => {
     const deduper = createTrailingDeduper();
 
     const inFlight = deduper.run(task);
-    // The invalidation lands while the first run is still pending.
+
     const queued = deduper.run(task);
     expect(task).toHaveBeenCalledTimes(1);
 

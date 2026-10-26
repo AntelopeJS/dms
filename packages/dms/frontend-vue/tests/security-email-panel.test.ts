@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -224,7 +224,7 @@ it("validates the address inline once the field is left", async () => {
   await openPanel();
 
   await type(emailInput(), "not-an-email");
-  // Not flagged while typing, only once the field is left.
+
   expect(host.querySelector("#security-new-email-error")).toBeNull();
   emailInput()!.dispatchEvent(new Event("blur"));
   await flush();
@@ -248,7 +248,7 @@ it("validates the address inline once the field is left", async () => {
 it("flags every empty field on submit, focuses the first and sends nothing", async () => {
   await mountEmail();
   await openPanel();
-  // Nothing typed, nothing to submit: only Cancel shows.
+
   expect(submitButton()).toBeFalsy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();
 
@@ -264,7 +264,6 @@ it("flags every empty field on submit, focuses the first and sends nothing", asy
   expect(emailInput()?.getAttribute("aria-invalid")).toBe("true");
   expect(document.activeElement).toBe(emailInput());
 
-  // Each message goes away once its field is filled.
   await type(emailInput(), "new@example.com");
   expect(submitButton()).toBeTruthy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();

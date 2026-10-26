@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 import { findNavigableCategory } from "../layers/dms-layout/app/composables/page/useSiteLayout";
 import type { SiteLayout } from "../layers/dms-layout/app/types/page";
 
-// The site layout lists every category once, by full id, and its pages name
-// theirs by id. A URL resolves against the categories that own a slug: a
-// `urlTransparent` one answers at its parent's, and is never a URL's target.
-
 const layout = {
   pages: {},
   categories: {

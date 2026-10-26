@@ -52,7 +52,6 @@ type ParamFormatters = {
   >;
 };
 
-// What a currency without a known minor unit is assumed to have, as most do.
 const DEFAULT_MINOR_DIGITS = 2;
 const DECIMAL_BASE = 10;
 const DEFAULT_DATE_FORMAT: ComposedTextDateFormat = "medium";
@@ -65,8 +64,6 @@ const DATE_FORMATS: Record<ComposedTextDateFormat, Intl.DateTimeFormatOptions> =
     long: { dateStyle: "long" },
   };
 
-// Intl refuses `dateStyle` next to `hour`, so each format names its time the
-// way its date is written.
 const DATETIME_FORMATS: Record<
   ComposedTextDateFormat,
   Intl.DateTimeFormatOptions
@@ -116,7 +113,6 @@ function formatMoney(
       format.resolvedOptions().maximumFractionDigits ?? DEFAULT_MINOR_DIGITS;
     return format.format(param.value / DECIMAL_BASE ** digits);
   } catch {
-    // A malformed currency code: the amount is still worth showing.
     return String(
       formatNumber(param.value / DECIMAL_BASE ** DEFAULT_MINOR_DIGITS, locale),
     );
@@ -146,7 +142,6 @@ function formatRelativeParam(
   param: ComposedTextRelativeDateParam,
   { locale, now }: ComposedTextContext,
 ): string {
-  // Intl throws on an invalid date: the raw value beats a broken page.
   if (Number.isNaN(new Date(param.value).getTime())) return String(param.value);
   return formatRelativeDistance(param.value, locale, { now });
 }
@@ -172,7 +167,7 @@ function formatParam(
   const formatter = PARAM_FORMATTERS[param.type] as
     | ParamFormatter<ComposedTextTypedParam>
     | undefined;
-  // A type from a newer backend: its raw value beats a hole in the sentence.
+
   return formatter ? formatter(param, context) : String(param.value ?? "");
 }
 

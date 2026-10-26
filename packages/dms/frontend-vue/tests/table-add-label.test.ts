@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -22,7 +22,6 @@ const PassThrough = defineComponent({
       h("div", slots.default?.()),
 });
 
-// The label as the button's text, its other attributes (aria-label) kept.
 const ButtonStub = defineComponent({
   props: { label: String },
   setup: (props) => () => h("button", props.label),
@@ -96,7 +95,6 @@ const mountActions = (addLabel?: string, addIcon?: string) =>
     addIcon,
   );
 
-// The icon a button is given (a fallthrough attribute of the stub).
 const buttonIcons = (container: HTMLElement) =>
   [...container.querySelectorAll("button")].map((button) =>
     button.getAttribute("icon"),

@@ -28,7 +28,6 @@ async function renderCards(count: number): Promise<number> {
 }
 
 beforeEach(() => {
-  // Auto-imported in the application.
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({ t: String }));
 });

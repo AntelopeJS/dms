@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The favicon plugin: the `<link rel="icon">` tags it declares from
  * `branding.logo.favicon`, their type and color-scheme media, and the icon
@@ -21,8 +21,7 @@ interface FaviconAppConfig {
 
 const ANTELOPE_ICON = "/images/antelope-logo/icon.svg";
 const ICON_TAG_START = '<link rel="icon"';
-// The loader keeps the merged app config in a ref and swaps it on a
-// development update; `useDmsAppConfig()` returns its current value.
+
 const appConfig = ref<FaviconAppConfig>({ branding: {} });
 
 vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
@@ -37,7 +36,6 @@ function useFavicon(favicon?: Partial<DmsLogoSources>): void {
   appConfig.value = { branding: { logo: { favicon } } };
 }
 
-// unhead adds its own charset and viewport tags around them.
 async function renderIconTags(): Promise<string[]> {
   const app = createSSRApp({ render: () => null });
   const head = createHead();

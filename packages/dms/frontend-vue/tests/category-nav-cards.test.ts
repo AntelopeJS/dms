@@ -91,8 +91,7 @@ it("draws the served badge in the tone the server gave it", () => {
   const { cards } = useCategoryNavCards(() => "settings.user");
   expect(cards.value[2]).toMatchObject({ badge: "4", badgeTone: "warning" });
   expect(cards.value[1]).toMatchObject({ badge: "1", badgeTone: undefined });
-  // The badge is the card's corner pill, not the live state line under the
-  // description that a fetched card closes on.
+
   expect(cards.value[2]).not.toHaveProperty("state");
 });
 

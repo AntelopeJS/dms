@@ -14,7 +14,6 @@ import {
   setRegionalPreferencesSource,
 } from "../layers/dms-core/app/utils/regional";
 
-// 23:30 UTC on 30 Sep: already 1 Oct in Brussels.
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));
 const DAY_MONTH_YEAR: Intl.DateTimeFormatOptions = {
   day: "numeric",

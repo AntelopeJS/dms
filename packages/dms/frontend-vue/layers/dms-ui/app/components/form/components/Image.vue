@@ -55,8 +55,7 @@ const emit = defineEmits<{
 }>();
 
 const { $authFetch } = useAuthFetch();
-// The field state UFormField hands its control: the drop zone shows the
-// field's error border and carries its aria attributes.
+
 const { emitFormChange, color: fieldColor, ariaAttrs } = useFormField();
 const hasFieldError = computed(() => fieldColor.value === "error");
 const { t } = useI18n();
@@ -65,7 +64,7 @@ const { formatShortcut } = useKeyboardPlatform();
 const pasteShortcut = computed(() => formatShortcut(["meta", "v"]));
 const { uploadWithProgress } = useUploadWithProgress();
 const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
-// Read with the page for the stored value, in the browser for a new one.
+
 const files = useFileMetadata(props.storage);
 
 const DEFAULT_ACCEPT = "image/*";
@@ -86,8 +85,6 @@ const items = ref<GalleryItem[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDraggingOver = ref(false);
 
-// One border state at a time: a plain element merges no classes, so two
-// border colours would be settled by stylesheet order, not by intent.
 const dropZoneClass = computed(() => {
   if (isDraggingOver.value) {
     return "border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]";
@@ -309,18 +306,13 @@ const createItemFromFile = (file: File): GalleryItem => ({
   progress: 0,
 });
 
-// Pictures refused by the field's constraints (size, type, count), named
-// under the field: an error of this field, not a toast.
 const rejections = ref<string[]>([]);
 const rejectionId = fieldErrorId(`${fieldId}-rejection`);
 
-// The field red: its own error, or a picture it just refused.
 const invalid = computed(
   () => hasFieldError.value || rejections.value.length > 0,
 );
 
-// Once the field gets an error of its own (a refused submit), it says what
-// is wrong: the refusal of an earlier pick no longer stacks under it.
 watch(hasFieldError, (isInvalid) => {
   if (isInvalid) rejections.value = [];
 });

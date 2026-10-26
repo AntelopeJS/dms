@@ -49,10 +49,6 @@ const columns = computed(() => [
   },
 ]);
 
-// The rows are the editor's own: an object cannot hold a row still without
-// a name, nor two rows of one name while the user fixes it. The object the
-// field holds follows them, and they follow the object when it changes from
-// elsewhere (loaded, reset).
 const rows = ref<KeyValueRow[]>(keyValueRows(model.value, props.toggleable));
 let emitted = JSON.stringify(model.value ?? {});
 

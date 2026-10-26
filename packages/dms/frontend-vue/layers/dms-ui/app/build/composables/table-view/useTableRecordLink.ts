@@ -48,8 +48,7 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
-  // The row opened or being opened: arrival and the visit that mounted the
-  // table name it twice, a visit while it is open names it again.
+
   let linkedId: string | undefined;
 
   const settle = async (id: string) => {
@@ -78,8 +77,6 @@ export function useTableRecordLink<T>(
   });
   onBeforeUnmount(() => stopFollowingVisits?.());
 
-  // A visit Inertia does not announce (a `router.replace`) still moves the
-  // route: a new value there is followed as well.
   watch(
     () => readRecordId(options.route.query, urlScope),
     () => follow(options.route.query),

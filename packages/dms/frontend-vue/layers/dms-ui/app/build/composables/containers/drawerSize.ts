@@ -6,7 +6,7 @@ import type { ResizeBounds, ResizeStorage } from "./useResizableSize";
 /** @internal */
 export const DRAWER_SIZE_COOKIE = "dms-drawer-sizes";
 const DRAWER_SIZE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-// A cookie travels with every request: the oldest sizes give way past this.
+
 const MAX_STORED_SIZES = 40;
 
 /** Width of a `left` / `right` drawer without `size`, from `lg`. @internal */
@@ -15,8 +15,7 @@ export const DEFAULT_SIDE_DRAWER_WIDTH = 600;
 export const MIN_SIDE_DRAWER_WIDTH = 360;
 /** @internal */
 export const MIN_EDGE_DRAWER_HEIGHT = 240;
-// Share of the window a resized drawer may take, and the room it leaves (the
-// drawer's own `max-w-[calc(100%-2rem)]`).
+
 const MAX_DRAWER_SHARE = 0.9;
 const DRAWER_WINDOW_MARGIN = 32;
 
@@ -104,8 +103,6 @@ export function useDrawerSizePreferences(): Ref<DrawerSizePreferences> {
   });
 }
 
-// The key written last moves to the end, so the oldest ones are dropped
-// first.
 function withSize(
   sizes: Record<string, number>,
   key: string,
@@ -152,7 +149,7 @@ export function drawerSizeStorage(
 }
 
 const COMPONENT_SIZE_KEY_PREFIX = "component:";
-// The name `defineAsyncComponent` gives every wrapper: it names no drawer.
+
 const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
 
 interface NamedComponent {
@@ -205,7 +202,6 @@ function sideDrawerWidthBounds(
   };
 }
 
-// A top or bottom drawer keeps its natural height until the user resizes it.
 function edgeDrawerHeightBounds(viewport: Viewport): ResizeBounds {
   const maxSize = Math.round(viewport.height * MAX_DRAWER_SHARE);
   return { minSize: Math.min(MIN_EDGE_DRAWER_HEIGHT, maxSize), maxSize };

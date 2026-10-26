@@ -1,9 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// The service token that guards the HTML render route, minted by the DMS
-// backend (`service-jwt.ts`) for its own render requests: its signature, its
-// claims and its single use.
-
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
 const RENDER_REPLAY_LIMIT = 10_000;
 

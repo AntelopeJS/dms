@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A period-scoped card must issue exactly one request on mount, before any
  * interaction — see AntelopeJS/dms#365. The failure mode is silent (the card
@@ -54,11 +54,9 @@ const KpiCard = (
 ).default;
 
 const SCOPE = "demo";
-// usePeriodScope warns about a missing scope after this long; a card must not
-// give up on its scope that early (a selector chunk can land later).
+
 const MISSING_SCOPE_WARN_MS = 250;
-// useChartFetch debounces every refresh past the first by 180ms; settle past
-// that, or a duplicate first fetch lands after the assertions and goes unseen.
+
 const SETTLE_MS = 300;
 
 /** Same registration shape as PeriodSelector.vue: usePeriod() in setup. */
@@ -144,8 +142,7 @@ async function ssrThenHydrate(
   const container = document.createElement("div");
   container.innerHTML = html;
   document.body.appendChild(container);
-  // The browser starts from what the page carried, as it does after a server
-  // render: its first mount takes the data over instead of reading it again.
+
   const payload = structuredClone(engine.serializeDmsPayload(renderRuntime));
   const browser = engine.createDmsFrontendRuntime(undefined, {});
   engine.restoreDmsPayload(browser, payload);
@@ -181,8 +178,6 @@ beforeEach(() => {
   requests.length = 0;
 });
 afterEach(() => {
-  // Unmount, don't just drop the DOM: a live card keeps its watcher and its
-  // debounce timer, and would fetch into the next test's request log.
   for (const app of mounted.splice(0)) app.unmount();
   document.body.innerHTML = "";
 });
@@ -252,8 +247,6 @@ describe("period-scoped cards on first paint", () => {
     }
   });
 
-  // Its period unknown to the server (no selector registered it before the
-  // card set up), a card renders its placeholder, never an empty value.
   it("shows a loading placeholder server-side rather than an empty value", async () => {
     const app = createSSRApp({
       render: () =>
@@ -353,7 +346,6 @@ describe("chart fetch loading state", () => {
     await nextTick();
     expect(pending).toHaveLength(1);
 
-    // A second request supersedes the first, whose abort settles meanwhile.
     void refresh?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(pending).toHaveLength(2);
@@ -363,7 +355,6 @@ describe("chart fetch loading state", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(loading?.value).toBe(false);
 
-    // New inputs: loading from the change on, through the debounce.
     watched.value = 1;
     await nextTick();
     expect(loading?.value).toBe(true);

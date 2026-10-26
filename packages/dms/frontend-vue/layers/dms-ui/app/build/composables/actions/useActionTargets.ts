@@ -110,7 +110,6 @@ function downloadTargetFilename(
   return resolveTextVariables(withRow, currentPageUrlValues());
 }
 
-// The id an export job's start answered, in its `statusUrl` / `downloadUrl`.
 const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
 
 /** Where the buttons run: the requests they send, what they refresh. */
@@ -233,7 +232,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     values: ConfirmValues = {},
     selection?: BulkSelection,
   ) => {
-    // The confirmation's values join the declared body, the input winning.
     const body = { ...target.body, ...values };
     const response = await config.api<Record<string, unknown> | undefined>(
       url,
@@ -253,7 +251,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         response,
         {
           color: Color.success,
-          // Pluralized on a bulk action's `{ count }`, like its dialog.
+
           title: resolveConfirmText(
             target.successMessage,
             toastParams,
@@ -263,12 +261,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
         { processI18n, processApiMessage },
       ),
     );
-    // A read-only call (a link to copy) changes no row.
+
     if (target.method !== "GET") config.refreshCallback?.();
   };
 
-  // A direct call toasts a refusal; a confirmed one runs inside its dialog
-  // (see `confirmedRuns`).
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
@@ -333,8 +329,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     });
   };
 
-  // Fetched with the user's session, as a confirmation's download is; a
-  // refusal is toasted like a failed API call.
   const handleDownloadTarget = async (
     target: DownloadTarget,
     label: string,
@@ -353,8 +347,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
   };
 
-  // A drawer remembers the size the user gives it per action: per table and
-  // component, whatever row it opens on.
   const openContainer = (
     run: ComponentTargetRun,
     component: Component,
@@ -388,8 +380,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const resolveTargetComponent = (componentName: string): Component =>
     (resolveDmsComponent(componentName) || componentName) as Component;
 
-  // A container block (a Card, a VStack, a Tab) mounts its children as a
-  // page does; a single block is mounted as it is.
   const targetComponentOf = (
     componentName: string,
     info: ComponentInfo,
@@ -406,10 +396,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     return id === undefined || id === null ? undefined : String(id);
   };
 
-  // A deep-linked action keeps the row it has open in the URL, by id;
-  // `undefined` removes it, but only the row this run wrote, on the page it
-  // wrote it: closing as the user navigates leaves the next page's
-  // `?record=` alone.
   const recordRecorder = (deepLink?: boolean) => {
     let written: WrittenRecord | undefined;
     return (id?: string): void => {
@@ -423,10 +409,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       config.onRecordShown?.(id);
     };
   };
-  // `showRow` given an id: the listed row, else the one the table's route
-  // reads. A row its route answered 404 for goes to `showMissing` when the
-  // container has a state for it; any other row not found rejects. Only the
-  // latest call applies: a read that resolves after a later call is dropped.
+
   const rowShower = (
     show: (row: Data) => void,
     showMissing?: (id: string) => void,
@@ -448,9 +431,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
   };
 
-  // The target's component options for the row shown, its `{{row.X}}`
-  // tokens filled (`{{row.id}}` being the row's id); without a row (a bulk
-  // selection, a toolbar button) they are handed as declared.
   const targetOptionsFor = (target: ActionTarget, row?: Data): Data => {
     const { component } = target as { component?: ComponentInfo<Data> };
     const id = rowIdOf(row);
@@ -459,7 +439,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const options = tokens ? fillRowOptions(declared, tokens) : declared;
     const children = component?.children;
     if (!component?.componentName || !children?.length) return options;
-    // The container's children read the row through the same tokens.
+
     const targetTree: ResolvedComponentInfo = {
       id: component.componentName,
       component: resolveTargetComponent(component.componentName),
@@ -476,7 +456,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     return (row?: Data): void => recordId(rowIdOf(row));
   };
 
-  // The header names the open row when the target words it from its fields.
   const rowTitleOf = (target: RowTarget, row?: Data) =>
     row && target.rowTitle
       ? resolveConfirmText(target.rowTitle, row, t as ConfirmTranslate)
@@ -491,12 +470,8 @@ export function useActionTargets(config: ActionTargetsConfig) {
 
   const ownerKey = rowSidePanelOwnerKey(config.pageId, config.componentId);
 
-  // The panel belongs to the table that opened it: it closes with it.
   if (getCurrentScope()) onScopeDispose(() => closeRowSidePanelOf(ownerKey));
 
-  // A side panel opened on a listed row steps through the rows shown in place
-  // (the panel computes its position); a deep-linked one keeps the row in the
-  // URL while it is open. A bulk action's panel receives the selection.
   const handleSidePanelTarget = (run: SidePanelTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
@@ -537,8 +512,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         row,
         rowKey: rowIdOf(row),
         source: row ? config.rowNavigation : undefined,
-        // A step that loads a page first lands after it: not on a panel
-        // closed or replaced meanwhile.
+
         showRow: whileShown(session, showRow),
       });
       recordId(rowIdOf(row));
@@ -559,9 +533,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     showRow(run.rowData);
   };
 
-  // A container opened on a listed row steps through the rows shown (its
-  // `navigation` prop, J and K), mounting its component anew on each; a
-  // deep-linked one keeps the row in the URL while it is open.
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
@@ -573,24 +544,21 @@ export function useActionTargets(config: ActionTargetsConfig) {
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
     let stopNavigation: (() => void) | undefined;
-    // Set once the container closes: a row read that resolves later neither
-    // writes `?record=` back nor patches the closed container.
+
     let closed = false;
     const showRowOpen = (row: Data) => {
       if (!closed) showRow(row);
     };
     const showRowById = rowShower(showRowOpen);
-    // The position and the steps follow the table (a reload, live rows, the
-    // row located past the page loaded): the open container is patched with
-    // them.
+
     const trackNavigation = (row?: Data) => {
       stopNavigation?.();
       stopNavigation = undefined;
       navigation = undefined;
       if (!row || !source) return;
-      // The first navigation goes out with the row's own options.
+
       let isShowing = true;
-      // A step that loads a page first lands after it, maybe closed by then.
+
       stopNavigation = trackRowNavigation(source, row, showRowOpen, (next) => {
         navigation = next;
         if (isShowing || !instance || closed) return;
@@ -621,9 +589,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         },
       };
     };
-    // A drawer words its title from the row (`rowTitle`); with the row
-    // header, the DMS draws it with the position and previous / next. Read
-    // after `optionsFor`, which sets the row's navigation.
+
     const titleFor = (row?: Data) =>
       (drawerTarget && rowTitleOf(drawerTarget, row)) || run.title;
     const headerFor = (row?: Data) =>
@@ -651,7 +617,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       headerComponentOptions: headerFor(run.rowData),
     });
     recordRow(run.rowData);
-    // `showRow` may move an unlisted row's container onto a listed one.
+
     const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
     const settle = () => {
       closed = true;
@@ -662,9 +628,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     instance.result.then(settle, settle);
   };
 
-  // A drawer opened on a row its link names but its route answered 404 for:
-  // under its title, the state in place of the component, a close button.
-  // Closing it removes the link, as closing it on a row does.
   function showMissingInDrawer(run: ComponentTargetRun, id: string): void {
     if (run.target.type !== "drawer") return;
     const recordId = recordRecorder(run.deepLink);
@@ -686,7 +649,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     extras?: TargetRunExtras,
   ) => Promise<void> | void;
 
-  // A drawer or modal: a bulk action hands it the selection, not a row.
   const componentHandler: TargetHandler = (target, label, rowData, extras) =>
     handleComponentTarget({
       target: target as ActionTarget & { type: "modal" | "drawer" },
@@ -736,8 +698,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     download: (target, label, rowData) =>
       handleDownloadTarget(target as DownloadTarget, label, rowData),
     modal: componentHandler,
-    // Runs the quick action as the command palette does; one the user is not
-    // served runs nothing.
+
     quickAction: (target) => {
       const { id } = target as ActionTarget & { type: "quickAction" };
       const quickAction = findServedQuickAction(
@@ -750,9 +711,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     sidePanel: sidePanelHandler,
   };
 
-  // A target making a request runs it from inside its confirmation, which
-  // shows a refusal (under its field when it names one) and stays open; any
-  // other runs once confirmed.
   const confirmedRuns: Partial<
     Record<
       ActionTarget["type"],
@@ -775,7 +733,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     },
   };
 
-  // `{{row.id}}` of a confirmation's `from` URL, when the row carries an id.
   const rowUrlParams = (rowData?: Data) => {
     const id = rowData
       ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
@@ -812,8 +769,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     }
   };
 
-  // Reached for a disabled button only through a quick action, which presses
-  // it by id: the reason is told instead of the target being opened.
   const handleCustomButton = (button: CustomButton) => {
     if (button.disabled) {
       toast.add({
@@ -833,9 +788,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     );
   };
 
-  // A bulk action offered on a row runs on that row as the selection bar runs
-  // on several: a URL target, and a `from` confirmation, carry `?ids=<id>` —
-  // unless the URL names the row itself (`{{row._id}}`), which fills it.
   const rowRun = (action: CustomRowAction, rowData?: Data) => {
     const id = rowIdOf(rowData);
     if (!isBulkAction(action) || id === undefined) {
@@ -844,10 +796,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const selection: BulkSelection = { ids: [id], count: 1 };
     const query = bulkSelectionQuery(selection);
     const { confirm } = action;
-    // Its texts count one row, as the bar's count the selection ("Resolve
-    // this ticket?"): its dialog, and the toast of a URL target. A drawer,
-    // modal or side panel receives the row as it is, and the selection of
-    // that row as from the bar.
+
     const textParams = { count: selection.count };
     return {
       target: targetForRow(action.target, query),

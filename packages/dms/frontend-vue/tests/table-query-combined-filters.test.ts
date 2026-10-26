@@ -2,9 +2,6 @@ import { describe, expect, it } from "vitest";
 import { buildTableQuery } from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
 
-// A tab (hidden filter) and a view (column filter) on one column are both
-// sent: the list route keeps the rows passing every filter of a column.
-
 const filter = (accessorKey: string, mode: string, value: string) =>
   ({ accessorKey, mode, value }) as TableFilter;
 

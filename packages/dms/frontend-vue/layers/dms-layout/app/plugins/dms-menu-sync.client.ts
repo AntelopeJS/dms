@@ -22,26 +22,17 @@ export function watchRealtimeReconnects(
   });
 }
 
-// A module signalled that the data behind the menu changed (a project created,
-// an access scope edited, a role or a membership changed): on the workspace's
-// topic, or on this member's own when only their access changed. The event
-// carries no data: the site layout, the page on screen and the permission set
-// are re-fetched, each resolved server-side against this user. The layout
-// comes back through Inertia, so the copy each visit carries over is the new
-// one. A stream that reconnects resyncs too: it missed what was sent meanwhile.
 export default defineDmsPlugin(() => {
   const realtime = useUserRealtime();
   const siteLayout = useSiteLayout();
   const permissions = usePermissions();
-  // A burst of changes (a batch of projects) collapses into one trailing pass.
+
   const resync = useTrailingDeduper("menu-sync");
 
   const refresh = (): Promise<void> =>
     resync
       .run(async () => {
         await Promise.all([
-          // Background resync: a transient failure is logged below, never
-          // escalated to the fatal error page over a working session.
           siteLayout.resync(),
           permissions.fetchPermissions(),
         ]);
@@ -50,7 +41,6 @@ export default defineDmsPlugin(() => {
         console.error("[dms-menu-sync] Menu resync failed:", error);
       });
 
-  // The topic also carries presence snapshots, which have no `type`.
   const onMenuEvent: RealtimeTopicHandler = (event) => {
     if (!("type" in event) || event.type !== MENU_CHANGED_EVENT_TYPE) return;
     void refresh();

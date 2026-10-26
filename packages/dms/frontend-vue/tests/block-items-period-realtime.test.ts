@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A list block reading its items from a route follows a PeriodSelector like
  * a KPI card (the period goes with every request, and a new period reads the
@@ -32,7 +32,7 @@ const { useBlockItems } = await import(
 const SCOPE = "block-items-period";
 const STATS_URL = "/api/stats";
 const FACTS_TOPICS = ["facts:first", "facts:second"];
-// useChartFetch debounces every refresh past the first by 180ms.
+
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 

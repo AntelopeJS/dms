@@ -114,10 +114,6 @@ interface PolledReadOptions {
   immediate?: boolean;
 }
 
-// A component's polling is one more read nobody asked for: on a live page it
-// stops while the page is paused, as the blocks' refetches do. A plugin's
-// polling (the shell's, outside any page) keeps running. The pause is read
-// through the app's `LIVE_PAUSE_SOURCE`, which the UI layer provides.
 function isGatedPolling(
   options: PolledReadOptions | undefined,
 ): options is PolledReadOptions {
@@ -154,7 +150,7 @@ function followLivePause<
     }
     const period = toValue(options.refreshInterval);
     if (!period || period <= 0 || Date.now() - pausedAt < period) return;
-    // Data a caller waits to `execute()` is not read before it is.
+
     if (result.status.value === "idle" && options.immediate === false) return;
     void result.refresh({ dedupe: "defer" });
   });

@@ -50,8 +50,6 @@ export const useAuthFetch = () => {
   const baseFetch = $fetch.create({
     baseURL: config.public.dms.baseURL,
     onRequest({ options }) {
-      // Read as each request leaves: a `$authFetch` kept across a language
-      // change asks in the new language. A header the caller sets wins.
       if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
         options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
       }

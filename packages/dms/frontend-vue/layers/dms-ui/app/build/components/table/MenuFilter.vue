@@ -132,8 +132,6 @@ const filters = computed(
   () => tableSharedData.value?.columnFiltersState.value || [],
 );
 
-// The "clear all" action: offered while something narrows the rows, named
-// after what it clears (filters, search or both).
 const clearable = computed(() => tableSharedData.value?.clearableFilters.value);
 const canClear = computed(
   () => !!clearable.value?.filters || !!clearable.value?.search,

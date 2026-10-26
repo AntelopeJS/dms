@@ -53,7 +53,7 @@ describe("ChartCard invert", () => {
     const html = await render({ invert: true });
     expect(html).toContain(BAD_TONE);
     expect(html).not.toContain(GOOD_TONE);
-    // The arrow still follows the raw direction.
+
     expect(html).toContain("i-ph-trend-up");
   });
 

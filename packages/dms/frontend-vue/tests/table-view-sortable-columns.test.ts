@@ -17,8 +17,6 @@ import {
   sortValueKind,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/sortableColumns";
 
-// The Drawer demo's task columns: only `due_date` and
-// `completion_percentage` are `@Sortable()` on `/api/task`.
 const columns = [
   { id: "name", accessorKey: "name", enableSorting: false },
   { id: "email", accessorKey: "email", enableSorting: false },
@@ -101,8 +99,6 @@ describe("sortingOrDefault", () => {
     expect(sortingOrDefault(sorting, sortable, byDueDate)).toEqual(sorting);
   });
 
-  // Clearing the sort (a third click on a header) used to be remembered as
-  // `[]`: the table then listed in the database's natural order for good.
   it("goes back to the default sort once the user clears theirs", () => {
     expect(sortingOrDefault([], sortable, byDueDate)).toEqual(byDueDate);
     expect(sortingOrDefault(null, sortable, byDueDate)).toEqual(byDueDate);
@@ -208,7 +204,6 @@ describe("stable default sort", () => {
   });
 
   it("invents nothing without a sortable creation date", () => {
-    // The task demos list `created_at`, but not as @Sortable.
     expect(resolveDefaultSortConfig(undefined, sortable)).toBeUndefined();
   });
 
@@ -226,7 +221,7 @@ describe("header sort cue", () => {
     expect(
       headerSortCue({ canSort: false, sorted: false, isDefaultSorting: false }),
     ).toBe("none");
-    // Even a stale sort state on it never shows.
+
     expect(
       headerSortCue({ canSort: false, sorted: "asc", isDefaultSorting: true }),
     ).toBe("none");

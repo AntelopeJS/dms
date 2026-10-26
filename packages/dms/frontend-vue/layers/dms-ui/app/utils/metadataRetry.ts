@@ -1,7 +1,3 @@
-// Retry policy for reading a stored file's metadata. A refused or missing file
-// will not come back by asking again, so only failures that can heal on their
-// own (network, 5xx, rate limiting) are retried, and with a capped backoff.
-
 interface FetchFailure {
   statusCode?: number;
   status?: number;

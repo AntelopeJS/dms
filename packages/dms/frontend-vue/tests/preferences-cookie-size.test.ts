@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createSSRApp,
@@ -27,8 +27,6 @@ import {
 } from "../layers/dms-core/app/build/composables/user/tablePreferences";
 import { useTablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 
-// The ids of a table measured in the playground: a long component id, and a
-// page id holding dots.
 const COMPONENT_ID = "content-child-main-child-main-child-languages";
 const PAGE_ID = "modules.lang.manage.workspace";
 const SORTED_ONLY_MAX_BYTES = 50;
@@ -42,7 +40,6 @@ const DEFAULT_VISIBILITY = { name: true, email: true, phone: true };
 let stored: Ref<string>;
 let writes: number[];
 
-// `useDmsCookie`: one shared ref per name, every assignment written out.
 const installCookie = (initial: string) => {
   stored = ref(initial);
   writes = [];
@@ -66,7 +63,6 @@ const sortByName = (componentId: string, pageId: string) =>
     DEFAULT_SORT,
   );
 
-// Sorted, filtered, 50 rows a page and two columns hidden.
 const visitTypicalTable = (componentId: string, pageId: string) => {
   const table = useTablePreferences(componentId, pageId);
   table.set("sorting", [{ id: "name", desc: true }], DEFAULT_SORT);

@@ -112,8 +112,6 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     labelKey: props.tableProps.labelKey,
   });
 
-  // A saved order (the user's, a view's) is kept, completed with the
-  // columns it leaves out.
   const declaredColumnOrder = columns.value
     .map((x) => x.id ?? "")
     .filter(Boolean);
@@ -135,10 +133,7 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
 
   const tableConfig = shallowRef({
     data: tableData,
-    // Read on each update rather than once: labelled row actions are sized on
-    // the rows listed, which a table opened by client-side navigation only
-    // receives after it is set up. A copy taken then keeps the width of an
-    // empty list, and the rows' buttons are cut.
+
     get columns() {
       return columns.value;
     },
@@ -162,7 +157,7 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     getPaginationRowModel: getPaginationRowModel(),
 
     columnResizeMode: "onChange" as const,
-    // A reduced chrome keeps its columns as laid out.
+
     enableColumnResizing: props.columnMenus !== false,
     ...(props.tableProps.sizingOptions || {}),
 
@@ -185,8 +180,6 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     },
   );
 
-  // A display that cannot sort (a hand-ordered table) leaves every header
-  // without its sort button, arrow and menu items.
   watch(
     () => props.tableProps.sortingOptions?.enableSorting,
     (enableSorting) => {

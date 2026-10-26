@@ -67,8 +67,7 @@ const props = defineProps<Props>();
 const model = defineModel<string[] | null | undefined>();
 
 const { t } = useI18n();
-// The wrapping UFormField's error ("pick at least one role") marks the group
-// invalid, describes it and rings the pills in the error ink.
+
 const { ariaAttrs } = useFormField();
 const formField = inject(formFieldInjectionKey, undefined);
 const formState = inject(formStateInjectionKey, undefined);
@@ -78,14 +77,11 @@ const isOwner = computed(
   () => !!props.ownerField && formState?.value?.[props.ownerField] === true,
 );
 const isInert = computed(() => props.disabled || isOwner.value);
-// Without an owner field, the form disables the roles for an owner only.
+
 const showsOwnerHint = computed(() =>
   props.ownerField ? isOwner.value : props.disabled,
 );
 
-// Read with the form: a page-mode form renders the pills on the server; a
-// drawer opened again shows the roles at once and reads them again in the
-// background (one may have been added since).
 const roleOptions = useApiData<RoleOptionsResponse>(() => props.rolesUrl);
 const options = computed<RoleOptionsResponse>(
   () => roleOptions.data.value ?? { roles: [], totalPermissions: 0 },
@@ -104,7 +100,7 @@ const roleItems = computed<ChipGroupItem[]>(() =>
 const selectedRoles = computed(() =>
   options.value.roles.filter((role) => selectedIds.value.has(role._id)),
 );
-// An owner holds every permission anyway: no warning then.
+
 const ownerLevelWarning = computed(() => {
   if (isOwner.value) return undefined;
   const names = selectedRoles.value
@@ -154,7 +150,7 @@ function inLoadedOrder(ids: string[]): string[] {
     const index = loaded.indexOf(id);
     return index === -1 ? loaded.length : index;
   };
-  // A stable sort: ids picked in this form keep the order they were picked in.
+
   return [...ids].sort((left, right) => rank(left) - rank(right));
 }
 

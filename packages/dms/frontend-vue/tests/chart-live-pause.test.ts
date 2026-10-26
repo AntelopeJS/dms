@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A chart on a paused live page sends no request on its events or on a page
  * refresh, and reads once when the page resumes.
@@ -28,7 +28,6 @@ const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -68,7 +67,6 @@ it("requests nothing while paused and reads once on resume", async () => {
   await settle();
   expect(requests).toHaveLength(2);
 
-  // An action of the user refreshes even while paused.
   live.pause();
   refreshPageBlocks();
   await settle();

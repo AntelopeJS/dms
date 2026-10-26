@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `fit` draws a horizontal pill list as wide as its tabs: the list stops
  * taking the column's width and the triggers stop growing to share it. A

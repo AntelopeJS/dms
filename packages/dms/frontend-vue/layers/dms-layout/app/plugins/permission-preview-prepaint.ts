@@ -7,8 +7,7 @@ import {
 
 const PRE_PAINT_SCRIPT_ID = "dms-role-preview";
 const PENDING_VALUE = "pending";
-// Never leave a page hidden: past this delay (the preview plugin failed to
-// load, the preview request hangs) the page shows as it is.
+
 const PENDING_TIMEOUT_MS = 6000;
 
 /**

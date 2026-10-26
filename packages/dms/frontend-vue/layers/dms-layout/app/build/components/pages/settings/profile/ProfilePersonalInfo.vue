@@ -50,15 +50,12 @@ const { user, refresh: refreshSession } = useCurrentUser();
 const avatarOptions = () => props.avatarField?.component?.options ?? {};
 const { upload } = useProfileAvatar(avatarOptions);
 const avatarUrls = useFileReadUrls(avatarOptions().storage);
-// A refused name or picture shows under its field; a failed request is a
-// toast.
+
 const fieldErrors = useFieldErrors({
   fields: { name: NAME_INPUT_ID, avatar: AVATAR_BUTTON_ID },
   codes: { [INVALID_AVATAR]: "avatar" },
 });
 
-// Read with the page: the server renders the name, the address with its
-// verification, and the picture. The form edits a copy of it.
 const profile = await useApiData<ProfileResponse>(() => props.endpoint);
 const isProfileLoaded = computed(
   () => profile.status.value === "success" || profile.status.value === "error",
@@ -69,7 +66,7 @@ const saved = ref<ProfileResponse>(
 );
 const name = ref(saved.value.name ?? "");
 const avatar = ref<AvatarValue | null>(saved.value.avatar ?? null);
-// A picture picked here shows from the file until the profile is saved.
+
 const pickedAvatarUrl = ref<string | null>(null);
 const avatarUrl = computed(() => {
   if (!avatar.value) return null;
@@ -90,7 +87,7 @@ const isAvatarChanged = computed(
   () => (avatar.value?.key ?? null) !== (saved.value.avatar?.key ?? null),
 );
 const isDirty = computed(() => isNameChanged.value || isAvatarChanged.value);
-// Leaving with a new name or picture not saved asks first.
+
 useUnsavedChanges({ dirty: isDirty });
 const changes = computed(() =>
   [

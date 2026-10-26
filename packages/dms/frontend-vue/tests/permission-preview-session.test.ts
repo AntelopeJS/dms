@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, ref } from "vue";
 import { usePermissionPreview } from "../layers/dms-core/app/build/composables/auth/usePermissionPreview";
@@ -6,11 +6,6 @@ import {
   PERMISSION_PREVIEW_STORAGE_PREFIX,
   PERMISSION_PREVIEW_TAB_KEY,
 } from "../layers/dms-core/app/build/utils/permission-preview";
-
-// A "Preview as role" tab only annotates what the viewer is served: its
-// requests leave as they are, run with the viewer's own rights. Signing out
-// forgets every preview this browser holds, so the next account does not find
-// the previous one's role name and draft permissions.
 
 const states = new Map<string, unknown>();
 

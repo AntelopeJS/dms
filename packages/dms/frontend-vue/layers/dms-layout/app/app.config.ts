@@ -14,20 +14,13 @@ import { surfacesTheme } from "./theme/surfaces";
 
 const ANTELOPE_ICON = "/images/antelope-logo/icon.svg";
 
-// The palettes and logos are built afresh for each place that holds them: a
-// merged app config keeps the very objects no layer overrides, so a live edit
-// of `ui.colors` or `branding.logo` would otherwise rewrite
-// `branding.defaults` too.
-
 function dmsColors(): DmsUiColors {
   return {
     primary: "dms",
-    // The AI accent of the v2 design.
+
     secondary: "violet",
     neutral: "neutral",
-    // Design semantic hexes map exactly onto these Tailwind palettes:
-    // success #10b981 (emerald), warning #f59e0b (amber),
-    // error #ef4444 (red), info #06b6d4 (cyan).
+
     success: "emerald",
     warning: "amber",
     error: "red",
@@ -35,7 +28,6 @@ function dmsColors(): DmsUiColors {
   };
 }
 
-// No email logo: the AntelopeJS logos are SVG, which mail clients refuse.
 function dmsLogo(): DmsBrandingLogo {
   return {
     default: {
@@ -75,13 +67,7 @@ export default {
     dashboardPanel: {
       slots: {
         root: "dms-canvas",
-        // v2 page top padding (28px; 20px on small screens); the container
-        // inside sets the horizontal gutter and the bottom padding, which kept
-        // here would also lift every sticky footer (save bars) off the bottom.
-        // The scrollbar gutter is reserved so centred content doesn't shift
-        // between short and long pages. `sm:p-0` drops Nuxt UI's `sm:p-6`; the
-        // `sm:pt-5` repeats the small-screen top padding so it is not cancelled
-        // between 640 and 1023px.
+
         body: "flex flex-col gap-4 sm:gap-6 flex-1 overflow-y-auto [scrollbar-gutter:stable] p-0 sm:p-0 pt-5 sm:pt-5 lg:pt-7",
       },
     },
@@ -92,8 +78,7 @@ export default {
         right: "gap-0.5",
       },
     },
-    // v2 command palette: a 680px frame one border step up, the deepest
-    // shadow with an accent halo, and a 64px search field.
+
     dashboardSearch: {
       slots: {
         modal:
@@ -120,8 +105,7 @@ export default {
           md: {
             label: `${EYEBROW_CLASS} px-2.5 pt-2.5 pb-1.5 text-dimmed`,
             item: "h-11 items-center gap-3 rounded-[10px] px-2.5 before:rounded-[10px]",
-            // A bordered well around each result's icon; SVG padding shrinks
-            // the glyph inside the 28px box.
+
             itemLeadingIcon:
               "size-7 rounded-lg border border-default bg-(--ui-bg) p-[5px] text-muted",
           },
@@ -139,14 +123,10 @@ export default {
     },
     navigationMenu: {
       slots: {
-        // Section labels as v2 eyebrows (mono 10.5px/600, uppercase, 0.12em
-        // tracking, dimmed), without the category icon.
         label: `${EYEBROW_CLASS} text-dimmed pt-1 pb-1.5 [&>svg]:hidden`,
-        // v2 sections are set apart by spacing alone, with no rule between.
+
         separator: "h-0 my-0.5 bg-transparent",
-        // Sidebar density from the design (.nav-head 13.5px/500, .nav-sub
-        // 13px/450, 10px gap) and smaller icons (design 17px head / 15px sub
-        // vs Nuxt UI's 20px size-5).
+
         link: "text-[13.5px] gap-2.5",
         linkLeadingIcon: "size-[17px]",
         linkTrailingIcon: "size-4",
@@ -154,8 +134,6 @@ export default {
         childLinkIcon: "size-[15px]",
       },
       compoundVariants: [
-        // Active item box in primary tint (design: accent-bg) instead of
-        // the default elevated gray.
         {
           variant: "pill",
           active: true,
@@ -173,9 +151,7 @@ export default {
             link: "before:bg-primary/10 hover:before:bg-primary/15 font-semibold",
           },
         },
-        // Nested active item (design nav-sub.is-active): the box extends
-        // left to the child guide line with a flat edge, and the primary
-        // bar covers the full row height on that line.
+
         {
           orientation: "vertical",
           highlight: true,
@@ -185,24 +161,22 @@ export default {
             link: "before:-start-1.5 before:rounded-s-none after:inset-y-0 after:w-[2px] after:rounded-none",
           },
         },
-        // Top bars and record sub-navigation (theme/navigation.ts).
+
         ...NAVIGATION_MENU_HORIZONTAL_COMPOUNDS,
       ],
     },
-    // Buttons, badges, kbd, tabs.
+
     ...actionsTheme,
-    // Inputs, selects, checkbox, radio, switch, form field, calendar…
+
     ...formControlsTheme,
-    // Cards, menus, popovers, tooltips, overlays, toasts, alerts…
+
     ...surfacesTheme,
-    // Stepper, pagination, links, dashboard sidebar.
+
     ...navigationTheme,
-    // Plain UTable, tree, chip, separator, empty state.
+
     ...dataTheme,
     breadcrumb: {
       slots: {
-        // v2 .breadcrumb: 13.5px medium muted links on a hover tint, the
-        // current segment in ink, and small icons (Nuxt UI defaults to 20px).
         list: "gap-1",
         link: "text-[13.5px] font-medium rounded-[6px] px-1.5 py-[3px] hover:bg-elevated aria-[current=page]:text-highlighted aria-[current=page]:font-semibold aria-[current=page]:hover:bg-transparent",
         linkLeadingIcon: "size-[15px]",

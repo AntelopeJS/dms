@@ -9,7 +9,7 @@ import {
 } from "./types/display";
 
 const DEFAULT_ORDER = 100;
-// `<module>:<id>`: the module's name, then the display's own id.
+
 const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
 
 function displayOrder(display: TableViewDisplay): number {

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A card dropped on a column the server refuses for a mandatory field it
  * lacks (a deal moved to "Lost" without its reason): the toast names the
@@ -47,7 +47,6 @@ const LOST_REASON_COLUMN = {
   type: { id: "select" },
 };
 
-// What an ofetch FetchError carries for the edit route's refusal.
 const refusal = Object.assign(
   new Error('[PUT] "/deals/edit?id=d1": 400 Bad Request'),
   {

@@ -17,7 +17,6 @@ import {
   type RoleSummary,
 } from "./role-types";
 
-// The Owner row the list shows above the stored roles.
 const OWNER_ROW = 1;
 const ROLES_PAGE_ID = "settings.workspace.roles";
 
@@ -111,9 +110,6 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
 
   const roles = computed(() => data.value?.overview.roles ?? []);
 
-  // The settings nav shows the role count — the stored roles and the Owner
-  // row, as the list and the server count them; keep it current as roles
-  // are created, duplicated or deleted here.
   const { setNavBadge } = useNavBadges();
   watch(
     () => data.value?.overview.roles.length,
@@ -124,7 +120,7 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
     },
     { immediate: true },
   );
-  // Served in menu order, which the settings nav follows too.
+
   const tree = computed(() => data.value?.tree ?? []);
   const index = computed(() => buildPermissionIndex(tree.value));
   const areas = computed(() => buildPermissionAreas(tree.value, processI18n));

@@ -254,8 +254,6 @@ class PageLive implements PageLiveController {
     this.poller.stop();
   }
 
-  // A hidden tab outranks everything: nobody sees the page. The user's pause
-  // comes next, and says nothing more; a hold names its reason.
   private reason(): PageLiveNote | null {
     if (this.isHidden.value) return HIDDEN_TAB_NOTE;
     if (this.isUserPaused.value) return null;
@@ -274,7 +272,7 @@ class PageLive implements PageLiveController {
 
   private enterPause(): void {
     this.paused.value = true;
-    // A trailing read still waiting stands for events not shown yet.
+
     for (const state of this.subscribers) this.flushPending(state, true);
   }
 
@@ -316,9 +314,6 @@ class PageLive implements PageLiveController {
     else this.triggerDirect(state, event);
   }
 
-  // Leading and trailing: the first event of a quiet block reads at once, the
-  // ones within the interval of a read collapse into one read when it ends,
-  // so the last event of a burst is never lost.
   private triggerDirect(state: SubscriberState, event: object | undefined) {
     if (state.timer) {
       state.pendingEvents.push(event);

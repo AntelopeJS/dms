@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 import {
@@ -263,12 +263,12 @@ describe("isLinkedVisit", () => {
         previousQuery: { customer: "c1" },
         isLinkClick: true,
       });
-    // What the table already lists: the row opens on it.
+
     expect(rowLink({ customer: "c1" })).toBe(false);
     expect(rowLink({ customer: "c1", view: "unassigned", tab: "closed" })).toBe(
       false,
     );
-    // Another URL filter, view or tab: followed as an arrival.
+
     expect(rowLink({ customer: "c2" })).toBe(true);
     expect(rowLink({ view: "outstanding" })).toBe(true);
     expect(rowLink({ tab: "open" })).toBe(true);
@@ -373,7 +373,6 @@ describe("linkFollowingPreferences", () => {
 });
 
 describe("a link to the kept tab, reloads and the user's pick", () => {
-  // The cookie the preferences live in, across visits and reloads.
   const keptStore = (): TablePreferences & {
     kept: Record<string, unknown>;
   } => {
@@ -390,7 +389,6 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     };
   };
 
-  // The table arriving on the URL shown, as TableView reads it.
   const arriveOn = (
     store: TablePreferences,
     url: string,
@@ -426,8 +424,6 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     };
   };
 
-  // The user picked the view "due-week" and the tab "overdue" on a plain
-  // visit: the table kept both and wrote `?tab=overdue`.
   const userState = () => {
     const store = keptStore();
     store.set("activeView", "due-week", undefined);

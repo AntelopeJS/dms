@@ -69,8 +69,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// The session group lists the account entries: navigation offering the same
-// destinations showed Settings (and Profile) twice.
 it("leaves the account destinations to the session group", async () => {
   const { default: setup } = await import(
     "../layers/dms-layout/app/plugins/command-palette-navigation.client"

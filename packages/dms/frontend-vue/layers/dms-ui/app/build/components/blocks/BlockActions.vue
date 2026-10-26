@@ -27,11 +27,6 @@ export interface BlockButtonAction
 /** A link or a button a block offers. */
 export type BlockActionItem = BlockAction | BlockButtonAction;
 
-// The buttons of a display block (empty state, banner, card head): links, and
-// in a banner, buttons running a target, which the block runs on `press`. One
-// action leads (`leadVariant` / `leadColor`): the first, or the last in a
-// banner where the main action sits right-most. The others are quiet buttons,
-// unless an action sets its own look. Labels follow the `$` i18n convention.
 interface BlockActionsProps {
   actions: BlockActionItem[];
   size?: ButtonProps["size"];

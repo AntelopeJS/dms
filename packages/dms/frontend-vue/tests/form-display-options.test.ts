@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { computed, createApp, h, useAttrs } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Display from "../layers/dms-ui/app/components/form/components/Display.vue";
@@ -8,8 +8,6 @@ interface StatusOptions {
   offlineLabel?: string;
 }
 
-// A status type worded from its options, as the registered one is: the
-// fallback labels show when the options do not reach the formatter.
 const statusType = {
   id: "status",
   formatter: {

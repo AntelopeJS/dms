@@ -64,9 +64,6 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
     },
   });
 
-  // The actual open is deferred past any closing menu; expose the eventual
-  // open() result through a stable promise and let close() abort a still-pending
-  // open (or resolve its result if it never opened).
   let opened = false;
   let resolveResult!: (value: Result) => void;
   let rejectResult!: (reason?: unknown) => void;
@@ -76,9 +73,7 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
   });
   const cancelPendingOpen = openWhenMenusClosed(() => {
     opened = true;
-    // Forward both settle paths: a render error inside the mounted component
-    // must reject `result` rather than leave it pending (and unhandled), as the
-    // original `return instance.open()` did.
+
     (instance.open() as Promise<Result>).then(resolveResult, rejectResult);
   });
 
@@ -89,8 +84,6 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
       if (opened) {
         instance.close(value);
       } else {
-        // Closed before the deferred open fired: abort the pending open and tear
-        // down the eagerly-created overlay so it isn't orphaned in the manager.
         cancelPendingOpen();
         instance.close(value);
         resolveResult(value as Result);

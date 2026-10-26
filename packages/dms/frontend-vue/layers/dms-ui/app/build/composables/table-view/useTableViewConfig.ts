@@ -18,7 +18,7 @@ const BUILTIN_DISPLAYS: Record<
 > = {
   [TABLE_DISPLAY_ID]: { capabilities: { columnManagement: true } },
   [KANBAN_DISPLAY_ID]: { selfManagedData: true, capabilities: { tabs: false } },
-  // The grid's columns, listed sorted on the grouped column.
+
   [GROUPED_DISPLAY_ID]: {
     capabilities: { columnManagement: true, sorting: false },
   },
@@ -29,8 +29,7 @@ const withBuiltinDefaults = (
 ): TableViewDisplayConfig => {
   const builtin = BUILTIN_DISPLAYS[entry.id];
   if (!builtin) return entry;
-  // Per-key merge so a partial override (e.g. kanban { filters: false }) keeps
-  // the other built-in defaults (e.g. tabs: false) instead of dropping them.
+
   const capabilities =
     entry.capabilities || builtin.capabilities
       ? { ...builtin.capabilities, ...entry.capabilities }
@@ -42,8 +41,6 @@ const withBuiltinDefaults = (
   };
 };
 
-// The per-page slugs the table view declares are resolved server-side and
-// arrive as `formPages`; the frontend reads only the texts of `pages`.
 export interface FormContainer {
   type: FormContainerType;
   size?: ModalSize;
@@ -102,9 +99,6 @@ export const useTableViewConfig = <T extends Data>(
       .map((col) => ({ ...col, header: processI18n(col.header) })),
   );
 
-  // Config-derived (SSR-safe; the registry is client-only): the listed
-  // `displays`, else the built-in `table` alone. Built-in defaults
-  // (selfManagedData/capabilities) are merged per id.
   const resolvedDisplays: TableViewDisplayConfig[] = (
     config.displays ?? [{ id: TABLE_DISPLAY_ID }]
   ).map(withBuiltinDefaults);

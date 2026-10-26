@@ -70,7 +70,7 @@ const name = computed(() =>
 const tileIcon = computed(() =>
   isEmpty.value ? (props.emptyIcon ?? props.icon) : props.icon,
 );
-// Without a title the subtitle stands as the name, unless an empty label does.
+
 const hasSubtitleLine = computed(
   () =>
     !!props.subtitle &&

@@ -9,11 +9,6 @@ import {
   trackFormRecordLoad,
 } from "../layers/dms-ui/app/build/composables/form/formRecordLoad";
 
-// A role that may edit a table's rows but not view them opened the edit form
-// empty: the row's read was refused, the form showed its blank fields, and a
-// value picked there replaced the row's own. A form whose record does not
-// load shows why, with a retry, and cannot be saved.
-
 const ROW = { values: { email: "zz-invitee@example.com" }, initial: {} };
 const FORBIDDEN = Object.assign(new Error("Forbidden"), { statusCode: 403 });
 
@@ -136,7 +131,6 @@ describe("a form about a record its address names none of", () => {
   });
 
   it("leaves a form that may open without a record to its defaults", () => {
-    // A create form seeded by `?duplicate=` when there is one.
     expect(missingRecordFailure({ fetchUrl: FETCH_URL })).toBe(null);
     expect(missingRecordFailure({ requiresRecord: true })).toBe(null);
   });

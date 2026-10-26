@@ -69,8 +69,6 @@ const isUsingDefaultSort = computed(
   () => !!tableSharedData?.value?.isUsingDefaultSort.value,
 );
 
-// "Sorted by: Due date, oldest → newest · default". The default sort's field
-// may not be a displayed column: the table view names it.
 const sortStatus = computed(() => {
   const active = currentSort.value;
   if (!active) return undefined;
@@ -92,7 +90,6 @@ const sortStatus = computed(() => {
   };
 });
 
-// Offered while the user's sort replaces the table's default one.
 const canResetToDefault = computed(
   () =>
     !!tableSharedData?.value?.defaultSort &&
@@ -109,7 +106,6 @@ function getSortIcon(columnId: string): string | undefined {
   return currentSort.value.desc ? SORT_ICONS.desc : SORT_ICONS.asc;
 }
 
-// Same cycle as the column headers: ascending, descending, then off.
 function toggleSort(columnId: string) {
   if (!tableSharedData?.value) return;
 

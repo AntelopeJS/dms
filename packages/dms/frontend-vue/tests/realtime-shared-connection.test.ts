@@ -16,7 +16,6 @@ import {
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
 
-// Past the six connections an HTTP/1.1 browser opens per host.
 const TAB_COUNT = 8;
 const USER_ID = "user-1";
 const OTHER_USER_ID = "user-2";
@@ -208,7 +207,7 @@ describe("useUserRealtime across tabs", () => {
       expect(sessionId).toBeDefined();
       expect(sessionId).not.toBe(before[index]);
     }
-    // Each tab put its page back on its new session.
+
     expect(server.pageCalls.slice(-2)).toEqual(
       expect.arrayContaining([
         { sessionId: after[0], pageId: "orders" },
@@ -242,7 +241,6 @@ describe("useUserRealtime across tabs", () => {
     const tab = await openTab();
     expect(tab.api.sessionId.value).toBeUndefined();
 
-    // The tab's retry delay, then the leader's reconnect delay.
     await vi.advanceTimersByTimeAsync(500);
     await settle();
     await vi.advanceTimersByTimeAsync(500);

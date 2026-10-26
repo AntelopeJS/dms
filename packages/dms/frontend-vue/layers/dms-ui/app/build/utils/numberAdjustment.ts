@@ -10,7 +10,6 @@ export interface NumberFieldBounds {
   max?: number;
 }
 
-// 11111.1 writes both the group and the decimal separator in every locale.
 const SEPARATOR_SAMPLE = 11111.1;
 const WHITESPACE = /\s/g;
 const NOT_NUMERIC = /[^\d.+-]/g;

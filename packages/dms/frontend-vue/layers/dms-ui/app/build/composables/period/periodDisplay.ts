@@ -103,8 +103,6 @@ export function isBeyondMaxDays(
   return Math.abs(date.compare(pickedDay)) >= maxDays;
 }
 
-// A period's days are the reader's calendar days (`readerClock`), on the
-// server as in the browser.
 function isStartOfDay(date: Date): boolean {
   const { hours, minutes, seconds, milliseconds } = readerClock().wall(date);
   return hours === 0 && minutes === 0 && seconds === 0 && milliseconds === 0;
@@ -115,7 +113,6 @@ function isEndOfDay(date: Date): boolean {
   return hours === END_OF_DAY_HOURS && minutes === END_OF_DAY_MINUTES;
 }
 
-// Up to a day and an hour: `last-24h` plus slack for a DST shift.
 const TIMED_RANGE_MAX_MS = MS_PER_DAY + MS_PER_HOUR;
 
 /**
@@ -132,10 +129,6 @@ function hasTimeBounds(range: PeriodRange): boolean {
 
 type FormatOptions = Intl.DateTimeFormatOptions;
 
-// Node's ICU and Chrome's disagree on the spaces of a range: Node joins with
-// thin spaces (U+2009 around the dash, U+202F before AM/PM) where Chrome
-// prints plain ones. One spelling on both sides keeps the server-rendered
-// label from mismatching at hydration.
 const ICU_SPACES = /[\u2009\u202f]/g;
 const PLAIN_SPACE = " ";
 
@@ -151,8 +144,6 @@ function formatRangeWith(
   locale: string,
   options: FormatOptions,
 ): string {
-  // A period's bounds are computed in the browser's zone: only the clock
-  // follows the user's preference.
   const formatter = regionalDateTimeFormat(locale, options, {
     keepLocalZone: true,
   });
@@ -172,7 +163,6 @@ export function formatPeriodRange(
   locale: string,
   withYear = true,
 ): string {
-  // A timed range reads "30 Sep, 04:46 – 1 Oct, 04:46": the year is noise.
   if (hasTimeBounds(range)) {
     return formatRangeWith(range, locale, { ...DAY_FORMAT, ...TIME_FORMAT });
   }

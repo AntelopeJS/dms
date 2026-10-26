@@ -122,8 +122,7 @@ describe("card → nested chart → Apex format propagation", () => {
         currency,
       }).format(AMOUNT);
       const html = await renderCards(currency, "fr-FR", "native");
-      // The card headline and its comparison, the KPI's comparison, the axis,
-      // the tooltip and the list row (the KPI's value is split in parts).
+
       expect(html.split(expected)).toHaveLength(7);
       expect(html).toContain(`class="axis">${expected}`);
       expect(html).toContain(`class="tooltip">${expected}`);

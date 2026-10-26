@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,13 +117,12 @@ describe("heatmap colours", () => {
     surface.value = DARK_SURFACE;
     const dark = await heatmapOptions({ color: colors, shadeIntensity: 0.6 });
 
-    // The lowest range: 40 % of the colour over the surface.
     expect(rangeColors(light)[0]).toBe("rgb(255, 153, 153)");
     expect(rangeColors(dark)[0]).toBe("rgb(108, 6, 6)");
-    // The highest range: the colour itself.
+
     expect(rangeColors(light).at(-1)).toBe("rgb(0, 0, 255)");
     expect(rangeColors(dark).at(-1)).toBe("rgb(0, 0, 255)");
-    // Apex would lighten each range towards white again.
+
     expect(dark.plotOptions.heatmap.enableShades).toBe(false);
   });
 

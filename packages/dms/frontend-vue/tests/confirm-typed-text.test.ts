@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -37,8 +37,6 @@ const Button = defineComponent({
       ),
 });
 
-// The UFormField contract the typed check relies on: its error marks the
-// input and shows under it.
 const FormField = defineComponent({
   props: { error: String },
   setup:
@@ -147,7 +145,6 @@ it("flags an empty or different typed text instead of disabling confirm", async 
   expect(document.activeElement).toBe(typedInput());
   expect(onConfirm).not.toHaveBeenCalled();
 
-  // Typing clears it; a wrong text is a mismatch.
   await type("admin@");
   expect(typedError()).toBeUndefined();
   confirmButton().click();
@@ -215,7 +212,7 @@ it("runs the body check with the typed one and stays open when it fails", async 
   confirmButton().click();
   await flush();
   expect(validate).toHaveBeenCalledOnce();
-  // Both fields are flagged at once; the body one keeps the focus.
+
   expect(typedError()).toBe("dms.field_errors.required");
   expect(document.activeElement).not.toBe(typedInput());
   expect(onConfirm).not.toHaveBeenCalled();

@@ -72,7 +72,7 @@ function loadedLocation(
   const local = loadedIndexOf(source, id);
   if (local < 0) return undefined;
   const index = (source.offset?.() ?? 0) + local;
-  // The count can lag behind the rows (a row created since): never less.
+
   const total = Math.max(source.total?.() ?? rows.length, index + 1);
   return { index, total, prev: rows[local - 1], next: rows[local + 1] };
 }
@@ -84,9 +84,6 @@ function navigationAt(
   isLoaded: boolean,
   step: (direction: RowStep) => () => void,
 ): RowNavigation {
-  // A loaded row's neighbour past the rows loaded is reached by turning the
-  // page or locating the row; without either, the rows loaded are as far as
-  // the steps go. A located row has its neighbours with it.
   const reachesPast = isLoaded && !!(source.loadAdjacent || source.locate);
   const { index, total } = location;
   return {
@@ -119,14 +116,13 @@ export function trackRowNavigation(
   const located = shallowRef<RowLocation>();
   let lastIndex: number | undefined;
   let isStopped = false;
-  // Not found in the table's result (filtered out, too far): the rows moving
-  // do not read it again, a step still does.
+
   let isUnlisted = false;
   let locating: Promise<RowLocation | undefined> | undefined;
 
   const locate = (): Promise<RowLocation | undefined> => {
     if (!source.locate) return Promise.resolve(undefined);
-    // One read at a time: a second J, or a reload, waits for it.
+
     locating ??= source
       .locate(id, lastIndex)
       .catch(() => undefined)
@@ -142,7 +138,6 @@ export function trackRowNavigation(
     return locating;
   };
 
-  // The table's own copy of the row once it lists it.
   const landOn = (target: Data) => {
     if (isStopped) return;
     const local = loadedIndexOf(source, rowIdOf(target, source.rowIdKey));
@@ -161,8 +156,7 @@ export function trackRowNavigation(
       neighbourOf(direction, loadedLocation(source, id)) ??
       neighbourOf(direction, await locate());
     if (target) return landOn(target);
-    // Without a locator: the row at the next position among all, wherever
-    // the page turn put it.
+
     if (!isTurned || !loaded) return;
     const offset = source.offset?.() ?? 0;
     const landed = source.rows()[loaded.index + direction - offset];
@@ -172,7 +166,7 @@ export function trackRowNavigation(
   const step = (direction: RowStep) => () => {
     const loaded = loadedLocation(source, id);
     const neighbour = neighbourOf(direction, loaded);
-    // Among the rows loaded: at once.
+
     if (neighbour) return go(neighbour);
     void stepPast(direction, loaded);
   };
@@ -191,8 +185,7 @@ export function trackRowNavigation(
       },
       { immediate: true, flush: "sync" },
     );
-    // Off the rows loaded (opened from a link, pushed out by live rows): its
-    // position comes from the table's whole result, read again as it moves.
+
     watch(
       () => [source.rows(), source.total?.()],
       () => {
@@ -216,7 +209,6 @@ const ROW_STEP_KEYS: Record<
   keyof Pick<RowNavigation, "prev" | "next">
 > = { j: "next", k: "prev" };
 
-// A key typed into a field is text, not a step.
 const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 const isTypingTarget = (target: EventTarget | null): boolean => {

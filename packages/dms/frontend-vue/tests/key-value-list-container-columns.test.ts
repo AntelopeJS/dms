@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A KeyValueList's columns follow its own width, not the window's: in a
  * 600px drawer on a wide screen a two-column list stays one column until

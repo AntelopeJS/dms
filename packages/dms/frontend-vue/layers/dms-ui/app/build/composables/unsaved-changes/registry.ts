@@ -139,7 +139,7 @@ let currentPath: () => string = () => window.location.pathname;
 let revisit: (href: string) => unknown = (href) => {
   window.location.href = href;
 };
-// The user chose to leave: the history step run again goes through.
+
 let isTraversing = false;
 
 /**
@@ -187,7 +187,7 @@ export function installBrowserLeaveGuards(
   window.addEventListener("beforeunload", (event) => {
     if (!hasUnsavedChanges()) return;
     event.preventDefault();
-    // Older browsers only prompt when a value is set.
+
     event.returnValue = "";
   });
 
@@ -201,8 +201,7 @@ export function installBrowserLeaveGuards(
       isTraversing = false;
       return;
     }
-    // Another document unloads this one: `beforeunload` asks. A hash or
-    // query change keeps the page and its forms.
+
     if (!destination.sameDocument || !traverse.cancelable) return;
     if (new URL(destination.url).pathname === currentPath()) return;
     if (!hasUnsavedChanges()) return;

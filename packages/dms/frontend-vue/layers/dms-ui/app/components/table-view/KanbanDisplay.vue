@@ -21,9 +21,6 @@ const options = computed(
   () => (props.context.options ?? {}) as KanbanDisplayOptions,
 );
 
-// Group-by + the rest of the kanban-specific inputs come from the bridge that
-// TableView provides (the generic context deliberately omits them). Falls back
-// to a local ref when used outside a TableView (defensive).
 const bridge = inject(KANBAN_DISPLAY_BRIDGE_KEY, undefined);
 const fallbackGroupBy = ref(options.value.groupByField ?? "");
 const groupByField = bridge?.groupByField ?? fallbackGroupBy;
@@ -35,7 +32,7 @@ const onCardClick = (item: T) => props.context.actions.open(item);
 
 const onCardDelete = (item: T) => {
   const id = rowId(item);
-  // The card is not among the grid's rows: hand it, its dialog names it.
+
   if (id) props.context.actions.delete([id], [item]);
 };
 

@@ -1,11 +1,7 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
-
-// A nav card of the settings overview carries its page's navigation badge in
-// its top corner, on the title's row, drawn as the settings nav draws it: the
-// badge's soft tint, neutral grey without a tone, nothing without a count.
 
 let app: App | undefined;
 
@@ -55,7 +51,7 @@ it("puts the badge last on the title's row, in its tone", () => {
   expect(badge.className).toContain("bg-warning/12 text-warning");
   expect(badge.className).toContain("rounded-full");
   expect(badge.className).toContain("shrink-0");
-  // Not repeated as a state line under the description.
+
   expect(container.querySelector("a")?.lastElementChild?.tagName).toBe("P");
 });
 

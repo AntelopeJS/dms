@@ -36,22 +36,25 @@ function readStorage(storage: Storage, key: string): string | null {
 }
 
 function writeStorage(storage: Storage, key: string, value: string): void {
+  // prettier-ignore
   try {
     storage.setItem(key, value);
   } catch {
-    /* storage unavailable (private mode, quota): the preview tab finds nothing */
+    // eslint-disable-line no-empty -- Failed storage writes lose preview session sharing or reload persistence, not the editor's state.
   }
 }
 
 function removeStorage(storage: Storage, key: string): void {
+  // prettier-ignore
   try {
     storage.removeItem(key);
   } catch {
-    /* noop */
+    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
   }
 }
 
 function removeSessions(isRemoved: (key: string) => boolean): void {
+  // prettier-ignore
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
@@ -59,11 +62,10 @@ function removeSessions(isRemoved: (key: string) => boolean): void {
       if (isRemoved(key)) removeStorage(localStorage, key);
     }
   } catch {
-    /* noop */
+    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
   }
 }
 
-// Sessions left behind by tabs closed without "Exit preview".
 function pruneStaleSessions(now: number): void {
   removeSessions((key) => {
     const session = parsePreviewSession(readStorage(localStorage, key));
@@ -77,7 +79,6 @@ function newPreviewId(): string {
     : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 }
 
-// Only the latest preview request may land: the route and the edits both move.
 let refreshGeneration = 0;
 
 function usePreviewState() {
@@ -258,8 +259,7 @@ export function usePermissionPreview() {
     if (!session) return;
     removeStorage(localStorage, storageKey(session.id));
     window.close();
-    // Still open: the tab was not opened by the editor (a reload in a new
-    // window, a copied URL), so it cannot close itself.
+
     setTimeout(() => {
       void navigateDms(session.returnTo);
     }, CLOSE_FALLBACK_DELAY_MS);

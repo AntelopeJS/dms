@@ -43,7 +43,6 @@ const props = withDefaults(defineProps<IconWellProps>(), {
 });
 defineSlots<IconWellSlots>();
 
-// v2 .icon-well: a tinted rounded tile with an inset 1px line of its tone.
 const theme = tv({
   slots: {
     root: "grid shrink-0 place-items-center ring-1 ring-inset",

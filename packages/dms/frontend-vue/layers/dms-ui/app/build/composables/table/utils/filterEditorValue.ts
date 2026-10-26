@@ -3,12 +3,6 @@ import type {
   DataTypeFilterEditorValue,
 } from "#dms-core/app/composables/data-types/useDataType";
 
-// A view or tab declares its filter value as text (`TableViewTabFilter.value`),
-// the shape the query sends. The chip's value editor wants the value its
-// column's data type holds there ({@link DataType.filterEditorValue}). The
-// editor reads the converted value; the filter keeps its text until the user
-// edits it, so the query is unchanged.
-
 const LIST_SEPARATOR = ",";
 const BETWEEN_MODE = "is_between";
 

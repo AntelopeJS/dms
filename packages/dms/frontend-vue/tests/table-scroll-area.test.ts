@@ -18,7 +18,7 @@ describe("Table horizontal scroll fades", () => {
       start: true,
       end: false,
     });
-    // A right-to-left page scrolls to negative positions.
+
     expect(horizontalScrollEdges(area(-400))).toEqual({
       start: true,
       end: true,

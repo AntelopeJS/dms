@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `usePageLiveRefresh`, the public face of the Direct / Pause gate: a module's
  * own component refreshes on its topic at the page's `maxRate`, counts what

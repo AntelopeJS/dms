@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,10 +8,6 @@ import type {
   TableViewCardConfig,
   TableViewDisplayContext,
 } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-// The built-in cards draw their fields through each column's display, like
-// grid cells. (Their header, read from the label column's identity display,
-// is #344's.)
 
 type Row = Record<string, unknown>;
 
@@ -29,8 +25,6 @@ const column = (
     display,
   }) as unknown as TableViewColumn;
 
-// Each data type draws `<type>(<value>|<options>|<row id>)`: the test reads
-// which formatter drew a value, with which options and row.
 const formatter = (typeId: string) => ({
   default: (value: unknown, _locale: string, options: unknown, row?: Row) =>
     `${typeId}(${String(value)}|${JSON.stringify(options ?? {})}|${String(row?._id)})`,

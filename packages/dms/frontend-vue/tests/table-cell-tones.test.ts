@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `duration` and a plain text (`string`) cell take the colour of the tone a
  * row field holds (`toneField`), as text and never as a pill; a row without
@@ -31,7 +31,6 @@ const formatters = new Map<string, Formatter>();
 const register = (dataType: DataType) =>
   formatters.set(dataType.id, dataType.formatter?.default as Formatter);
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -182,7 +181,6 @@ describe("empty plain text cell", () => {
   });
 
   it("hydrates the server's HTML without a mismatch", async () => {
-    // As Table.vue draws it: the formatter's output is the cell's root.
     const Cell = defineComponent({
       setup: () => () => cell("string", "", undefined) as VNodeChild,
     });

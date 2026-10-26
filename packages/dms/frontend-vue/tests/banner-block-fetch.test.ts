@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A Banner with a `fetchUrl` draws what its route answers, over its static
  * options field by field; draws nothing while the first answer is on its way
@@ -21,7 +21,6 @@ const { default: BannerBlock } = await import(
   "../layers/dms-ui/app/components/blocks/BannerBlock.vue"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 const FETCH_URL = "/api/ws/{{params.id}}/health";

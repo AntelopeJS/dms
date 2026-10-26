@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every key of the async data lives in the scope of the session's account and
  * workspace: the browser finds what the server transferred under the same
@@ -125,7 +125,6 @@ describe("the async data scope", () => {
     let status: Ref<unknown> | undefined;
     await engine.setupFrontendModules([
       {
-        // dms-ai's assistant: of higher priority, it reads as it starts.
         options: { public: {} },
         module: {
           setup(sdk) {

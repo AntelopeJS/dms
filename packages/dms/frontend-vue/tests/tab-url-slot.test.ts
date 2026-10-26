@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A tab set keeping its open tab in the URL writes the tab's slot
  * (`?tab=tester`), which stays right when tabs are added or reordered, and

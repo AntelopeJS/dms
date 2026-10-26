@@ -10,7 +10,6 @@ import { tablePreferenceId } from "../layers/dms-core/app/build/composables/user
 const PAGE_SIZE = 10;
 const THIRD_PAGE = 2;
 
-// What a table view derives from `queryParamFilters: { status: { field: "status" } }`.
 const hiddenFiltersOf = (query: () => LocationQuery) =>
   computed(() =>
     query().status === undefined
@@ -21,11 +20,8 @@ const hiddenFiltersOf = (query: () => LocationQuery) =>
 const COMPONENT_ID = "tasks";
 const PAGE_ID = "query-filters";
 
-// The `dms-preferences` cookie, surviving the remounts of a page.
 let cookie: Ref<string>;
 
-// What a table view does on mount: its page, read back from the cookie,
-// under the hidden filters the URL sets.
 const mountTable = (query: Ref<LocationQuery>) => {
   const hiddenFilters = hiddenFiltersOf(() => query.value);
   const pagination = usePersistedPagination({

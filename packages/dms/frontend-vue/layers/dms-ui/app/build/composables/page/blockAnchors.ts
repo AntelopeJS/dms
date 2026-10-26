@@ -1,9 +1,5 @@
 import type { ComponentPublicInstance, VNode } from "vue";
 
-// The blocks a page draws, by their anchor: the key path `RecursiveComponent`
-// renders them under (`summary`, `tabs.statistics`). Registered from a
-// template ref, which only runs in the browser, so a server render never
-// fills it.
 const blocks = new Map<string, ComponentPublicInstance>();
 
 /**

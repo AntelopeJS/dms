@@ -21,7 +21,6 @@ const NBSP = " ";
 const formatters = new Map<string, DataType["formatter"]>();
 
 beforeAll(async () => {
-  // As outside a setup: a composable throws, the app's composer answers.
   const outsideSetup = () => {
     throw new Error("Must be called at the top of a `setup` function");
   };

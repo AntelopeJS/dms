@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -141,7 +141,7 @@ it("offers the server's roles and picks and unpicks them", async () => {
   await toggle("Admin");
   expect(model.value).toEqual(["finance", "admin"]);
   expect(pressed()).toEqual(["Admin", "Finance"]);
-  // Permissions granted by both roles count once.
+
   expect(hint()).toContain(
     "page.settings.members.invite.roles_hint Admin + Finance/4/10",
   );
@@ -178,12 +178,11 @@ it("rings the unpicked pills and marks the group invalid on a field error", asyn
   expect(group.getAttribute("aria-describedby")).toBe("field-roles-error");
   expect(pill("Finance").className).toContain("border-error");
   expect(pill("Support").className).toContain("border-error");
-  // A picked role keeps its picked look.
+
   expect(pill("Admin").className).not.toContain("border-error");
 });
 
 it("puts a role picked again back in its loaded place, leaving the form clean", async () => {
-  // As the members data API loads them: `{ _id, name }` each.
   const loaded = [
     { _id: "support", name: "Support" },
     { _id: "admin", name: "Admin" },
@@ -201,7 +200,6 @@ it("puts a role picked again back in its loaded place, leaving the form clean", 
   expect(model.value).toEqual(["support", "admin"]);
   expect(sameFormValue(model.value, ["support", "admin"])).toBe(true);
 
-  // A role new to the form follows the loaded ones.
   await toggle("Finance");
   expect(model.value).toEqual(["support", "admin", "finance"]);
 });

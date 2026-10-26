@@ -7,8 +7,6 @@ import {
   timeZoneOffset,
 } from "./timeZones";
 
-// The Language & region form's value for a zone left unset (see
-// `AUTOMATIC_PREFERENCE` on the server).
 const AUTO = "auto";
 const ITEM_HEIGHT = 32;
 
@@ -23,7 +21,6 @@ const model = defineModel<string | null>();
 const { t } = useI18n();
 const { detectedTimeZone } = useUserRegionalPreferences();
 
-// Frozen at mount: the offsets shown are today's.
 const now = new Date();
 
 const options = computed(() => [

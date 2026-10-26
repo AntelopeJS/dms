@@ -1,8 +1,3 @@
-// A CodeMirror stream parser (a language written as a line tokenizer, like
-// the shell's) run for read-only highlighting. `StreamLanguage` would do it
-// inside an editor state, and so pull CodeMirror's view and state into every
-// page showing a snippet: this drives the parser the same way, line by line
-// over `StringStream`, and names its tokens' tags the same way.
 import { type StreamParser, StringStream } from "@codemirror/streamparser";
 import { type Highlighter, type Tag, tags } from "@lezer/highlight";
 
@@ -13,19 +8,15 @@ export type HighlightedRange = (
   classes: string,
 ) => void;
 
-// CodeMirror's defaults, which `StreamLanguage` hands every stream.
 const TAB_SIZE = 4;
 const INDENT_UNIT = 2;
-// Zero-length tokens a parser may return in a row (each one changing its
-// state) before the stream moves on by itself, as `StreamLanguage` allows.
+
 const MAX_EMPTY_TOKENS = 10;
 
 type TagValue = Tag | readonly Tag[] | ((tag: Tag) => Tag);
 const TAG_TABLE = tags as unknown as Record<string, TagValue | undefined>;
 const tagsByName = new Map<string, Tag[]>();
 
-// A token type names tags the way `StreamLanguage` reads them: space
-// separated, each a tag followed by its modifiers (`variableName.special`).
 function tagsOf(type: string): Tag[] {
   const cached = tagsByName.get(type);
   if (cached) return cached;
@@ -47,6 +38,9 @@ function tagsOf(type: string): Tag[] {
  * Tokenizes `code` with `parser` and calls `put` for each range its
  * highlighter styles, adjacent ranges of one style merged, as
  * `highlightTree` reports a parsed tree.
+ * Follows CodeMirror's `StreamLanguage` token tags, default tab size of 4,
+ * indent unit of 2 and ten-token limit on zero-length tokens without
+ * loading its editor state or view for read-only snippets.
  */
 export function highlightStream<State>(
   parser: StreamParser<State>,

@@ -57,17 +57,11 @@ const SORT_DIRECTION_ICON: Record<SortDirection, string> = {
   desc: "i-ph-arrow-down",
 };
 
-// v2 sortable header: the label is the sort button. Its sort icon is always
-// drawn (touch has no hover), in the same 12px box whatever its state, so the
-// header never shifts: a neutral ↕ until sorted, the default sort's arrow in
-// neutral grey, the user's sort arrow in accent with an emphasised title.
-// A column that cannot be sorted shows its title alone.
 const SORTABLE_LABEL_CLASS =
   "group/sort -mx-1.5 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
-// A label wider than its column ends in an ellipsis and reads in full in its
-// tooltip.
+
 const HEADER_LABEL_CLASS = "truncate";
-// The header font is monospaced: the bolder title keeps its width.
+
 const SORTABLE_LABEL_ACTIVE_CLASS = "font-bold text-highlighted";
 const SORT_IDLE_ICON = "i-ph-caret-up-down";
 const SORT_ICON_BOX_CLASS = "inline-flex size-3 shrink-0";
@@ -78,19 +72,16 @@ const SORT_DEFAULT_ICON_CLASS =
 
 const ACTIONS_COLUMN_BASE_SIZE = 55;
 const ACTIONS_COLUMN_BUTTON_SIZE = 36;
-// Measured footprints of an actions cell holding labelled buttons: the cell
-// gutters, a square icon button, the gap between buttons, and a labelled
-// button (padding, plus its icon) with ~6.5px a character.
+
 const ACTIONS_CELL_GUTTERS = 28;
 const ACTIONS_ICON_BUTTON_SIZE = 24;
 const ACTIONS_BUTTON_GAP = 4;
 const ACTIONS_LABEL_PADDING = 20;
 const ACTIONS_LABEL_ICON_SIZE = 16;
 const ACTIONS_LABEL_CHAR_SIZE = 6.5;
-// Room for the labelled "Restore" button archived rows show inline.
+
 const ACTIONS_COLUMN_RESTORE_SIZE = 64;
 
-// Same footprint as the selection column: 24px button plus the row gutters.
 const EXPAND_COLUMN_SIZE = 52;
 const EXPAND_ICON_CLASS = "size-4 transition-transform duration-200";
 const EXPAND_ICON_OPEN_CLASS = "rotate-90";
@@ -110,7 +101,6 @@ const BUILTIN_ROW_ACTION_KEYS = [
   "restore",
 ] as const;
 
-// Destructive actions close the row menu, after a separator (v2 row menu).
 const DESTRUCTIVE_ROW_ACTION_KEYS = new Set(["delete", "archive", "restore"]);
 
 interface RowActionDescriptor {
@@ -190,8 +180,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
   const { renderColumnValue, isNumericColumn } = useColumnValueRenderer();
 
-  // A typed column draws its cells through its data type's formatter (or the
-  // one its `display` names), which also receives the row.
   const buildTypedCell =
     (col: TableColumn<T>) =>
     ({ row }: { row: { original: T } }) =>
@@ -249,8 +237,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     return processedColumns;
   });
 
-  // Caret column in front of the content: rotates a quarter turn while the
-  // row's detail band is open.
   const addExpandColumn = (columns: TableColumn<T>[]) => {
     if (!config.expandable) return;
 
@@ -259,7 +245,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       size: EXPAND_COLUMN_SIZE,
       enableColumnFilter: false,
       enableSorting: false,
-      // Named for assistive technologies only: the column holds the carets.
+
       header: () => h("span", { class: "sr-only" }, t("dms.table.expand_row")),
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
@@ -310,8 +296,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       return;
     }
 
-    // 16px checkbox + rowCell p-4 (16px each side) + 4px slack: anything
-    // narrower lets the row's clipping wrapper cut the checkbox.
     columns.unshift({
       id: SELECT_COLUMN_ID,
       size: 52,
@@ -363,7 +347,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       (action) => isCustomActionInline(action) && action.showLabel,
     );
 
-  // The buttons a row shows, side by side, with its menu trigger.
   const actionsCellWidth = (descriptors: RowActionDescriptor[]): number => {
     const inline = descriptors.filter((d) => d.visible);
     const buttons =
@@ -375,12 +358,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     return ACTIONS_CELL_GUTTERS + width;
   };
 
-  // Labelled buttons are sized on the rows listed when the table opens: rules
-  // often make inline actions exclusive (revoke a pending invitation, remove
-  // an expired one), so the widest row decides rather than their sum.
-  // An empty list is read as a row with no values, through the same rules:
-  // counting every labelled action there reserved room for buttons no row
-  // shows at once, and pushed the last columns under the pinned actions.
   const shownActionsWidth = (row: T): number =>
     actionsCellWidth(
       buildRowActionDescriptors(row).filter(
@@ -451,7 +428,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     return builtInEnabled || hasCustomActions;
   };
 
-  // Archived rows put "Restore" up front as a labelled button.
   const renderRestoreButton = (
     descriptor: RowActionDescriptor,
     rowId: string,
@@ -483,8 +459,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     return typeof actionConfig === "object" ? actionConfig : undefined;
   };
 
-  // Archive acts on active rows, restore on archived ones (archive mode only;
-  // without the toggle both stay as configured).
   const isOffMode = (descriptor: RowActionDescriptor): boolean => {
     if (!config.showArchived) return false;
     return isShowingArchived()
@@ -505,7 +479,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     const menuDescriptors = descriptors.filter(
       (d) => !d.visible && d !== restoreDescriptor,
     );
-    // Destructive entries close the menu, after a separator.
+
     const dropdownItems = [
       menuDescriptors
         .filter((d) => !isDestructive(d))
@@ -536,7 +510,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     return h(
       "div",
       {
-        // Labelled buttons are the row's actions on show: never faded.
         class: config.ui.value.rowAction({
           prominent: visibleDescriptors.some((d) => d.showLabel),
         }),
@@ -589,9 +562,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
   const { processI18n } = useTranslation();
 
-  // A row's own text, resolved as a confirmation's texts are: a `$` key
-  // translated with the row's fields as parameters, or a literal whose
-  // `{field}` braces they fill.
   const rowText = (text: string, rowData: T): string =>
     resolveConfirmText(text, rowData, t as ConfirmTranslate);
 
@@ -647,7 +617,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     });
   };
 
-  // Copying a link asks first when the action declares a confirmation.
   const copyLinkAfterConfirm = async (rowData: T) => {
     const declared = normalizedConfigOf("copyLink")?.confirm;
     if (declared) {
@@ -663,7 +632,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   const buildCustomActionDescriptors = (rowData: T): RowActionDescriptor[] =>
     (config.rowActions?.custom || []).map((action) => ({
       label: rowText(action.label, rowData),
-      // A labelled button may go without an icon.
+
       icon: action.icon || (action.showLabel ? "" : "i-ph-lightning"),
       onSelect: () => config.onCustomRowAction?.(action, rowData),
       disabled: isCustomActionDisabled(action, rowData),
@@ -673,7 +642,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       showLabel: action.showLabel,
     }));
 
-  // A built-in action may carry its own label and icon ("Change roles").
   const builtInLabel = (key: string, fallback: string): string => {
     const label = normalizedConfigOf(key)?.label;
     return label ? processI18n(label) : fallback;
@@ -741,8 +709,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     },
   ];
 
-  // v2 row menu order: the row's own actions (open, edit, duplicate), the
-  // custom ones, then the destructive ones after a separator.
   const buildRowActionDescriptors = (rowData: T): RowActionDescriptor[] => {
     const builtIns = buildBuiltInActionDescriptors(rowData);
     return [
@@ -805,8 +771,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     (column.columnDef.meta as ExtendedColumnMeta<T> | undefined)?.align ===
     "right";
 
-  // Same cycle as the toolbar sort menu: ascending, descending, then off. The
-  // list route sorts on one column, so a new column replaces the current sort.
   const cycleSorting = (column: Column<T>, isSorted: false | SortDirection) => {
     if (isSorted === "desc") {
       column.clearSorting();
@@ -883,7 +847,6 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   ) => {
     const Icon = resolveComponent("Icon");
 
-    // Without column menus the header is its sortable label alone.
     if (config.columnMenus === false) {
       return h(
         "div",

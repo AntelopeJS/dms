@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `download` action target fetches its file with the user's session and
  * saves it: its URL and file name take the page's `{{params.X}}` /

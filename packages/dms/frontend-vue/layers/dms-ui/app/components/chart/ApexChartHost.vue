@@ -50,8 +50,6 @@ const WIDTH_TOLERANCE_PX = 1;
 
 const { locale } = useI18n();
 
-// ApexCharts stays a lazy chunk: the caller (Chart) keeps the chart's frame
-// and a skeleton until this host reports the chart drawn.
 const ApexChart = defineAsyncComponent(async () => {
   const [mod] = await Promise.all([
     import("vue3-apexcharts"),
@@ -98,7 +96,6 @@ const apexSeries = computed(() =>
   rawApexInput((props.series ?? []) as unknown[]),
 );
 
-// The wrapper's reactive options update JSON-clones away formatter callbacks.
 const pinnedOptions = shallowRef<Record<string, unknown>>(
   rawApexInput(props.options),
 );

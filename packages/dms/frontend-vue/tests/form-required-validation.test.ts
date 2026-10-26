@@ -14,9 +14,6 @@ import {
   validateFormState,
 } from "../layers/dms-ui/app/build/composables/form/formValidation";
 
-// The client rebuilds the schema the backend serializes (see useForm's
-// createBaseValidationSchema): the same round trip here, so each case reads
-// what the form really validates with.
 function roundTrip(
   shape: Record<string, z.ZodTypeAny>,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
@@ -28,13 +25,10 @@ function roundTrip(
   return new Function("z", `"use strict"; return (${code})`)(z);
 }
 
-// The backend's adaptFieldValidationSchema: optional is nullable+optional,
-// required makes a text or a list non-empty.
 function optional(schema: z.ZodTypeAny): z.ZodTypeAny {
   return schema.nullable().optional();
 }
 
-// DefaultDataTypes.DateType: an ISO date string or a Date.
 function date(): z.ZodTypeAny {
   return z
     .union([
@@ -50,7 +44,6 @@ function dateRange(): z.ZodTypeAny {
   return z.union([z.array(date()), z.object({ start: date(), end: date() })]);
 }
 
-// DefaultDataTypes.AddressType.
 function address(): z.ZodTypeAny {
   return z.object({
     streetName: z.string().min(1),
@@ -62,7 +55,7 @@ function address(): z.ZodTypeAny {
 }
 
 const REQUIRED = "This field is required.";
-// What the form's error map does with a blank part: the required wording.
+
 const errorMap: z.ZodErrorMap = (issue, context) => ({
   message:
     formIssueMessage(issue, context.data) === REQUIRED_MESSAGE

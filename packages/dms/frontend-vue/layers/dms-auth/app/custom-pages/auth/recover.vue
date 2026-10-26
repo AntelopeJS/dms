@@ -58,7 +58,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
     await dmsApp.runWithContext(() => navigateDms("/auth/recover-success"));
   } catch (error: unknown) {
-    // A refused password shows under its field; an expired link above the form.
     await showError(error, "page.forgot.error_title", {
       fields: ["password"],
       form,

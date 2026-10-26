@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The `relative_date` cell (`RelativeDateDisplay`): a browser hydrating a
  * server render measures "3 min ago" from the instant the server rendered
@@ -27,7 +27,6 @@ const formatters = new Map<string, Formatter>();
 const register = (dataType: DataType) =>
   formatters.set(dataType.id, dataType.formatter?.default as Formatter);
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -43,7 +42,7 @@ function stubLayerGlobals() {
   }
   vi.stubGlobal("useDataTypes", () => ({ registerDataType: register }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  // What getAppTranslation reads, outside a setup.
+
   vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: String } }));
   vi.stubGlobal("useDmsState", engine.useDmsState);
   vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
@@ -63,11 +62,10 @@ afterEach(() => {
 
 const DATE = new Date("2026-10-17T12:00:00Z");
 const SECOND = 1000;
-// 3 min 29 s reads "3 min. ago"; 3 min 31 s rounds to "4 min. ago".
+
 const SERVER_AT = DATE.getTime() + 209 * SECOND;
 const BROWSER_AT = DATE.getTime() + 211 * SECOND;
 
-// As Table.vue draws it: the formatter's output is the cell's root.
 const Cell = defineComponent({
   setup: () => () =>
     formatters.get("relative_date")!(
@@ -79,7 +77,6 @@ const Cell = defineComponent({
 });
 const Row = { render: () => h("div", [h(Cell)]) };
 
-// A server has no `window`: what the layer reads to know where it renders.
 async function renderOnServer() {
   const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);

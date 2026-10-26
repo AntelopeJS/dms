@@ -2,17 +2,6 @@
 import { tv } from "tailwind-variants";
 import { computed } from "vue";
 
-// Block permission veil (v2 card "Locked"): shows what a role would lose on a
-// block without taking the block away.
-// - hidden: the content stays in place but inert under a hatched veil, with a
-//   centred error lock badge.
-// - readonly / limited: the content is untouched; a warning badge sits on the
-//   top-right edge, its tooltip naming what is withheld.
-// - partial (an entry to a page the role opens without all of it, e.g. a
-//   settings card): the content stays usable under a light warning hatch,
-//   with a warning lock badge on the top-right edge.
-// Without a state the slot renders alone, with no wrapper element, unless the
-// veil is `persistent`.
 interface Props {
   state?: "hidden" | "readonly" | "limited" | "partial" | null;
   /** Badge text, e.g. "Hidden for Support". */
@@ -59,14 +48,11 @@ const veil = tv({
           "text-error top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-(--dms-error-line) bg-(--dms-error-tint)",
       },
       false: {
-        // On the block's top edge rather than inside it, so it never covers
-        // the block's own toolbar; opaque, so the edge does not show through.
         badge:
           "text-warning -top-3 right-4 border-(--dms-warning-line) [background:linear-gradient(var(--dms-warning-tint),var(--dms-warning-tint)),var(--ui-bg)]",
       },
     },
-    // The content stays reachable: the hatch lets every pointer through and
-    // leaves the text readable (no blur).
+
     partial: {
       true: {
         root: "rounded-(--dms-radius-card)",

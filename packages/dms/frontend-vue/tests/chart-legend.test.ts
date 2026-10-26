@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A chart names its series in a legend drawn in the dashboard's colours, at
  * the top of an axis chart or under a circular one unless `legendPosition`

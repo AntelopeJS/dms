@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type App,
@@ -78,7 +78,7 @@ describe("confirmation dialog texts", () => {
     expect(options.title).toBe("Delete Editors?");
     expect(options.description).toBe("2 members hold it");
     expect(options.fields?.[0]?.label).toBe("Move them to");
-    // The input's placeholder and item labels read as in a form.
+
     expect(options.fields?.[0]?.component.options).toMatchObject({
       placeholder: "Move them to",
       items: [{ value: "r2", label: "Readers" }],
@@ -136,7 +136,7 @@ describe("ConfirmModal fields", () => {
       () =>
         h("button", { onClick: () => emit("click") }, props.label),
   });
-  // A form field: its label, its input, its error under it.
+
   const FormField = defineComponent({
     props: { label: String, error: String },
     setup:

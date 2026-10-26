@@ -2,10 +2,6 @@
 import { MONO_CHIP_CLASS } from "../../build/utils/monoChip";
 import { computed, ref } from "vue";
 
-// Segmented toggle (design .segmented): a recessed track holding segments,
-// the active one raised onto the card surface with a hairline ring.
-// Single-select, v-model'd. Implements the radiogroup keyboard pattern
-// (roving tabindex + arrow/Home/End, skipping disabled segments).
 interface SegItem {
   /** The visible text; empty for an icon-only segment. */
   label: string;
@@ -41,7 +37,6 @@ interface Props {
   overflow?: "scroll" | "wrap";
 }
 
-// v2 heights (24/28/32/36/40) live on the track; segments fill it.
 const TRACK_SIZE_CLASSES: Record<SegmentedSize, string> = {
   xs: "h-6",
   sm: "h-7",
@@ -50,8 +45,6 @@ const TRACK_SIZE_CLASSES: Record<SegmentedSize, string> = {
   xl: "h-10",
 };
 
-// A wrapping track grows with its lines, so segments carry the height
-// (the track's minus its 2px padding on each side).
 const WRAP_ITEM_HEIGHT_CLASSES: Record<SegmentedSize, string> = {
   xs: "h-5",
   sm: "h-6",
@@ -101,7 +94,6 @@ function isDisabled(index: number): boolean {
   return props.disabled || !!props.items[index]?.disabled;
 }
 
-// Roving tabindex anchor: the checked segment, or the first enabled one.
 const focusIndex = computed(() => {
   const checked = props.items.findIndex((item) => item.value === model.value);
   if (checked !== -1) return checked;
@@ -154,16 +146,10 @@ function onKeydown(event: KeyboardEvent, index: number) {
   select(firstEnabledFrom(target, move.direction));
 }
 
-// A track wider than its container (a phone, a narrow column) scrolls
-// Every segment is named: its `ariaLabel`, else its label, else its value
-// (an icon-only segment given neither still reads as something).
 function itemAriaLabel(item: SegItem): string {
   return item.ariaLabel || item.label || String(item.value);
 }
 
-// sideways inside its pill, or wraps with `overflow="wrap"`; the focus ring
-// sits inside the segment so the scroll box never clips it. (No root-level
-// template comment: it would break the class fallthrough.)
 function itemClass(item: SegItem, index: number): (string | false)[] {
   const isActive = model.value === item.value;
   return [

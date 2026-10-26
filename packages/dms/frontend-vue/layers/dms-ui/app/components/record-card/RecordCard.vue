@@ -63,8 +63,6 @@ const props = withDefaults(defineProps<RecordCardProps>(), {
 const emit = defineEmits<{ open: [] }>();
 const slots = defineSlots<RecordCardSlots>();
 
-// v2 record card (ai skills, saas plans): icon well and mono identity on top,
-// a short description, then tags, a mono note and actions on a ruled footer.
 const theme = tv({
   slots: {
     root: "dms-card flex min-w-0 flex-col gap-3 p-[18px] text-start transition-colors",

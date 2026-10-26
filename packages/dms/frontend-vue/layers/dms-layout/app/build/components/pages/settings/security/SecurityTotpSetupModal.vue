@@ -21,7 +21,7 @@ const emit = defineEmits<{
 }>();
 
 const CODE_LENGTH = 6;
-// v2 .cs-step: the two steps of the setup, numbered in an accent disc.
+
 const STEP_NUMBER_CLASS =
   "grid size-6 place-items-center rounded-full border border-(--dms-accent-line) bg-(--dms-accent-tint) font-mono text-[11px] font-semibold text-(--dms-accent)";
 const STEP_TITLE_CLASS = "text-highlighted mt-[3px] text-sm font-semibold";
@@ -43,9 +43,6 @@ const groupedKey = computed(
   () => props.setup?.manualKey.match(KEY_GROUP)?.join(" ") ?? "",
 );
 
-// The code submits once per entry: "complete" and the button can both fire
-// before "loading" reaches this component, and a second call would replace
-// what the first one produced (a new set of backup codes, for instance).
 const submittedCode = ref<string | null>(null);
 
 watch(isOpen, (open) => {
@@ -63,7 +60,7 @@ async function copyKey(): Promise<void> {
 
 function confirm(): void {
   if (props.loading) return;
-  // An empty or partial code is flagged under the cells, not sent.
+
   const missing = codeEntryError(digits.value, CODE_LENGTH);
   if (missing) {
     flag(processApiMessage(missing));

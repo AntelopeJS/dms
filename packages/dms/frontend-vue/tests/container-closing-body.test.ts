@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A drawer or a modal gives the page its clicks back as soon as it starts
  * closing, not once its panel has finished animating out. Reka sets
@@ -39,16 +39,12 @@ import {
 
 import { DialogRoot as LayerDialogRoot } from "reka-ui";
 
-// Nuxt UI exports no `package.json`: its installed directory, resolved.
 const nuxtUiDir = realpathSync(join(process.cwd(), "node_modules/@nuxt/ui"));
 const nuxtUiRequire = createRequire(join(nuxtUiDir, "package.json"));
 const { DialogContent, DialogRoot } = (await import(
   pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
 )) as typeof import("reka-ui");
 
-// The backdrop's scroll lock, as reka 2.11 holds it (an owner of the body's
-// pointer events, which a layer letting go no longer clears): the page is
-// blocked from the backdrop's mount until it unmounts, after its fade.
 const BackdropStub = defineComponent({
   setup() {
     document.body.style.pointerEvents = "none";
@@ -63,8 +59,6 @@ let outside: HTMLButtonElement;
 let closeRequests: number;
 let stopReleasing: () => void;
 
-// UDrawer / UModal as Nuxt UI draws them when not dismissible: reka's dialog,
-// its `content` props bound on the content, a press outside asking to close.
 const ContainerStub = defineComponent({
   props: { open: Boolean, content: Object },
   emits: ["update:open", "close:prevent"],
@@ -133,7 +127,7 @@ async function mountContainer(
   app.component("USkeleton", () => h("span"));
   app.mount(host);
   await nextTick();
-  // Reka listens for a press outside from the next task on.
+
   await vi.advanceTimersByTimeAsync(0);
 }
 
@@ -152,8 +146,6 @@ function pointer(type: string, target: Element): void {
 }
 
 beforeEach(() => {
-  // Timeouts only: Vue drops a listener's events stamped before it was
-  // attached, which a faked `performance` clock would make every event.
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   host = document.createElement("div");
   outside = document.createElement("button");
@@ -216,7 +208,7 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
       .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
       .click();
     await vi.advanceTimersByTimeAsync(0);
-    // Still on the page, as during their exit animations.
+
     expect(host.querySelector("[data-slot='content']")).not.toBeNull();
     expect(host.querySelector("[data-slot='overlay']")).not.toBeNull();
     expect(bodyPointerEvents()).toBe("");
@@ -281,9 +273,6 @@ describe("a drawer resized by its handle", () => {
   });
 });
 
-// UModal or USlideover used directly, a confirm dialog: reka's dialog with
-// its defaults, the content holding the page until it has scaled out (kept
-// mounted here, as through its exit animation).
 describe("closing any other dialog", () => {
   function mountDialog(isOpen: Ref<boolean>, target: HTMLElement): App {
     const dialog = createApp(() =>
@@ -335,9 +324,6 @@ describe("closing any other dialog", () => {
   });
 });
 
-// A confirm closing over a drawer that stays open: reka disables the drawer's
-// layer until the confirm has unmounted, so the drawer is marked for its
-// theme to give it its clicks back, the page staying blocked.
 describe("a dialog closing over one that stays open", () => {
   const mounted: Array<[App, HTMLElement]> = [];
 
@@ -411,8 +397,6 @@ describe("a dialog closing over one that stays open", () => {
   });
 });
 
-// A click on the page while a dialog closes may open another one: the one
-// closing gives the focus back to its trigger only when nothing opened since.
 describe("a dialog unmounting after its close", () => {
   let trigger: HTMLButtonElement;
   const mounted: Array<[App, HTMLElement]> = [];
@@ -430,7 +414,6 @@ describe("a dialog unmounting after its close", () => {
     return dialog;
   }
 
-  // Closes the first dialog, runs `meanwhile`, then lets it finish unmounting.
   async function closeThenUnmount(meanwhile: () => void): Promise<void> {
     const isOpen = ref(true);
     const dialog = mountDialog(isOpen);
@@ -464,8 +447,6 @@ describe("a dialog unmounting after its close", () => {
   });
 
   it("leaves it alone once a click on the page opened another one", async () => {
-    // Focus landing on the trigger is outside the new drawer or modal, which
-    // Nuxt UI then asks to close when it is not dismissible.
     const triggerFocus = vi.fn();
     trigger.addEventListener("focus", triggerFocus);
     await closeThenUnmount(() => mountDialog(ref(true)));
@@ -473,7 +454,6 @@ describe("a dialog unmounting after its close", () => {
   });
 
   it("gives it back when closing over one that stays open", async () => {
-    // A confirm opened from a button in a drawer that stays open.
     mountDialog(ref(true));
     await vi.advanceTimersByTimeAsync(0);
     const inDrawer = mounted[0]![1].querySelector("button")!;

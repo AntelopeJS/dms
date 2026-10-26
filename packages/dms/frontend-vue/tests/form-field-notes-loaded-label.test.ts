@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * "Changed · was X" words what a field loaded with. A relation holds the id
  * of its row in the form, the server sent the joined row: the note names the
@@ -24,8 +24,6 @@ import type { FormField } from "../layers/dms-ui/app/composables/form/types/fiel
 
 const LABEL_KEY = "name";
 
-// The relation type as registered, with a formatter naming joined rows by
-// their label and leaving an id as it is (renderRelation).
 const wordRow = (value: unknown): string =>
   typeof value === "object" && value !== null
     ? String((value as Record<string, unknown>)[LABEL_KEY])
@@ -125,7 +123,6 @@ it("names the rows of a multiple relation", async () => {
 });
 
 it("words the baseline itself once it is no longer the loaded row", async () => {
-  // Saved since it loaded: the baseline is the id saved, not the row.
   const note = await changeNote({
     loaded: { _id: "cust-006", name: "Ferme du Try" },
     baseline: "cust-010",

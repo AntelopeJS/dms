@@ -37,7 +37,7 @@ interface SessionsRevokedResponse {
 const SESSIONS_URL = `${SECURITY_ENDPOINT}/sessions`;
 const OTHER_SESSIONS_URL = `${SECURITY_ENDPOINT}/other-sessions`;
 const SKELETON_COUNT = 3;
-// "Chrome 150.0.7871.250" reads as "Chrome": the version is noise here.
+
 const BROWSER_VERSION = /\s+[\d.]+$/;
 const DEFAULT_DEVICE_ICON = "i-ph-desktop";
 const DEVICE_ICONS: Record<string, string> = {
@@ -53,8 +53,6 @@ const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
 const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
 
-// Read with the page: the server renders the list and hands it over, and
-// the browser says "active 5 minutes ago" as of the same read.
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
     sessions: sessions as SessionInfo[],
@@ -63,8 +61,7 @@ const list = useApiData<SessionsRead>(SESSIONS_URL, {
 });
 const sessions = computed(() => list.data.value?.sessions ?? []);
 const readAt = computed(() => list.data.value?.readAt);
-// The list could not be loaded: shown as such, never as "no sessions". A
-// failed reload keeps the list on screen.
+
 const hasLoadError = computed(
   () =>
     !list.data.value && !!list.error.value && list.status.value !== "pending",
@@ -143,8 +140,6 @@ async function signOutOthers(): Promise<void> {
   }
 }
 
-// Another block (a password change signing out the other devices) can end
-// sessions: the shared count moving is the cue to reload the list.
 watch(
   () => overview.value?.activeSessions,
   (count, previous) => {

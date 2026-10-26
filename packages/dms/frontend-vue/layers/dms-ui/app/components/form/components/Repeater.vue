@@ -36,8 +36,6 @@ const props = defineProps<RepeaterProps>();
 const model = defineModel<RepeaterRow[] | null | undefined>();
 const { t } = useI18n();
 
-// Taken here so the inputs of the rows do not each pick up the whole
-// field's error: each cell shows its own (`<field>.<row>.<column>`).
 const { name: fieldName, emitFormChange } = useFormField();
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
@@ -46,8 +44,6 @@ const rows = computed<RepeaterRow[]>(() =>
   Array.isArray(model.value) ? model.value : [],
 );
 
-// Stable keys for the rows, kept in step with the list: a row keeps its
-// inputs (and their focus) while another is added, removed or moved.
 let nextKey = 0;
 const rowKeys = ref<number[]>([]);
 watch(
@@ -67,8 +63,7 @@ const canAdd = computed(
 const canRemove = computed(
   () => !props.disabled && rows.value.length > (props.min ?? 0),
 );
-// A box to tick takes its own width; any other field shares the row. The
-// drag handle and the remove button have their own narrow columns.
+
 const FLUID_COLUMN = "minmax(0,1fr)";
 const COLUMN_WIDTHS: Record<string, string> = { boolean: "20px" };
 const HANDLE_COLUMN = "20px";
@@ -81,14 +76,10 @@ function rowTemplate(cellColumns: string[]): string {
     .join(" ");
 }
 
-// Below 480px of the field's own width (a drawer, a phone), columns side by
-// side would each be a few characters wide: each row stacks its cells in one
-// column instead, a labelled field under another, as a card, and the column
-// heads hide.
 const STACKED_HIDDEN_CLASS = "@max-[30rem]:hidden";
 const STACKED_ROW_CLASSES = {
   row: "@max-[30rem]:grid-cols-(--dms-repeater-stacked-columns) @max-[30rem]:items-start @max-[30rem]:rounded-md @max-[30rem]:border @max-[30rem]:border-default @max-[30rem]:p-2.5",
-  // Side by side, each cell is a column of the row itself.
+
   cells: "contents @max-[30rem]:grid @max-[30rem]:min-w-0 @max-[30rem]:gap-2.5",
   cell: "grid min-w-0 gap-1",
   label: `${EYEBROW_CLASS} text-dimmed hidden truncate @max-[30rem]:block`,
@@ -166,8 +157,6 @@ function isCellInvalid(index: number, column: string): boolean {
   return !!formErrors?.value.some((error) => error.name === name);
 }
 
-// Each cell is an input of the form, so an error a server raises on one
-// (`headers.1.value`) lands on it rather than being dropped.
 function cellNames(length: number): string[] {
   return Array.from({ length }, (_, index) =>
     props.columns.map((column) => cellName(index, column.id)),

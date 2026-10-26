@@ -22,10 +22,6 @@ import {
   storeBlockMessage,
 } from "../../../utils/module-store-catalog";
 
-// An installed module: its state, a live readout, and the one place it is
-// managed. Its button opens it on its landing page, or resumes it while it
-// is paused; the store actions it offers are in its Manage menu.
-
 interface ModuleCatalogTileProps {
   entry: ModuleCatalogEntry;
   /** Where Open leads: the module's landing page, when it has pages. */
@@ -50,15 +46,9 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
-// Takes what the actions leave rather than wrapping them under it: the band
-// stays one line, and only the category is cut when even that is too short.
-// The facts never shrink below the version and the source (the category's
-// zero width keeps its text out of that floor): a tile too narrow for those
-// and the actions drops the actions to a second line rather than run the
-// source under them.
+
 const FOOTER_FACTS_CLASS = "flex grow basis-0 items-center gap-2";
 
-// v2 .module-tile__viz: each readout line opens with a tone glyph.
 const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
   success: "ok",
   info: "info",

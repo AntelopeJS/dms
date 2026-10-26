@@ -56,6 +56,7 @@ export function useServedHeaderActions({
   async function askFor(url: string, query: Record<string, string>) {
     const request = ++latestRequest;
     const { $authFetch } = useAuthFetch();
+    // prettier-ignore
     try {
       const layout = await $authFetch<PageLayout>(
         layoutUrlWithQuery(url, query),
@@ -66,8 +67,7 @@ export function useServedHeaderActions({
         | undefined;
       refreshed.value = options?.headerActions ?? [];
     } catch {
-      // The buttons resolved for the previous query stay: the operation
-      // behind each one still refuses on its own.
+      // eslint-disable-line no-empty -- A failed refresh retains prior buttons; availability is not authorization, so target operations must enforce their own access checks.
     }
   }
 

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -55,7 +55,6 @@ function mount(
   const emitted: unknown[][] = [];
   const Host = defineComponent({
     setup() {
-      // The table shares its state with its parts by injection.
       provide(
         "tableSharedData",
         shallowRef({
@@ -341,7 +340,7 @@ describe("footer figures", () => {
         },
       },
     );
-    // The footer's text, with the pager standing for its keypath.
+
     const pager = container.querySelector(
       '[data-keypath="dms.pagination.current_page"]',
     )!;
@@ -357,7 +356,7 @@ describe("footer figures", () => {
     ].map((part) => text.indexOf(part));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    // Count, rule and page size wrap as one group.
+
     const lead = container.querySelector("label")!.parentElement!;
     expect(lead.textContent).toContain("invoices.count");
     expect(lead.querySelector('[aria-hidden="true"]')).not.toBeNull();

@@ -41,14 +41,11 @@ const emit = defineEmits<{
 const { $authFetch } = useAuthFetch();
 const { t } = useI18n();
 
-// The field state UFormField hands its control, passed on to the drop zone
-// (this component takes it, so UFileUpload would not see it).
 const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
-// Files refused by the field's constraints, named under the drop zone: an
-// error of this field, not a toast.
+
 const rejections = ref<string[]>([]);
 const rejectionId = fieldErrorId(`file-${useId()}`);
-// A refused file speaks for itself; otherwise the field's own error does.
+
 const dropZoneAria = computed(() =>
   rejections.value.length
     ? { "aria-invalid": true, "aria-describedby": rejectionId }
@@ -60,7 +57,7 @@ const { uploadWithProgress } = useUploadWithProgress();
 const selectedFiles = ref<File | File[] | null>(null);
 const uploadingFiles = ref<UploadingFile[]>([]);
 const uploadedKeys = ref<string[]>([]);
-// Read with the page for the stored value, in the browser for a new one.
+
 const files = useFileMetadata(props.storage);
 
 const initializeFromModelValue = (
@@ -93,7 +90,6 @@ watch(
   },
 );
 
-// A copy: an upload into a multiple field pushes its key.
 watch(
   () => [...uploadedKeys.value],
   (keys) => keys.forEach((key) => void files.resolve(key)),

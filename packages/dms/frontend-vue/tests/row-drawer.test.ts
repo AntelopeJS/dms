@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `drawer` row action takes the row options of a side panel: the DMS's row
  * header (`rowTitle`, the position, previous / next), J and K, `?record=`
@@ -249,7 +249,6 @@ describe("a row drawer's steps across the table's pages", () => {
     name: `Row ${index}`,
   }));
 
-  // A table listing 5 rows 2 per page: turning the page loads its rows.
   function pagedTable() {
     const pageIndex = ref(0);
     const shown = ref<Row[]>(allRows.slice(0, PAGE_SIZE));
@@ -378,7 +377,6 @@ describe("a row drawer off the rows loaded", () => {
     name: `Row ${index}`,
   }));
 
-  // Finds a row in `all`, as a table reads its whole result.
   const locateIn = (all: () => Row[]) =>
     vi.fn(async (id: string): Promise<RowLocation | undefined> => {
       const rowsNow = all() as unknown as Data[];
@@ -434,7 +432,7 @@ describe("a row drawer off the rows loaded", () => {
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
     const drawer = opened[0]!;
-    // A new row arrives on top: the open row moves down one.
+
     live.value = [{ _id: "new", name: "New" }, ...live.value];
     expect(navigationOf(drawer)).toMatchObject({ index: 2, total: 4 });
     press("j");
@@ -471,13 +469,13 @@ describe("a row drawer off the rows loaded", () => {
 
 describe("a row drawer on a table with pinned rows", () => {
   const PAGE_SIZE = 3;
-  // The order the route answers; v1 and v4 are pinned.
+
   const answered = Array.from({ length: 7 }, (_, index) => ({
     _id: `v${index}`,
     name: `Row ${index}`,
     isVip: index === 1 || index === 4,
   }));
-  // Pages of 3, each leading with its own pinned rows.
+
   const shownOrder = ["v1", "v0", "v2", "v4", "v3", "v5", "v6"];
   const byId = (id: string) => answered.find((row) => row._id === id)!;
   const pageRows = (pageIndex: number) =>
@@ -485,7 +483,6 @@ describe("a row drawer on a table with pinned rows", () => {
       .slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE)
       .map(byId);
 
-  // The table shown on its second page: v4, v3, v5.
   function secondPage() {
     const rowsRead = useTableRows({
       api: (async (
@@ -534,7 +531,7 @@ describe("a row drawer on a table with pinned rows", () => {
     press("j");
     expect(latest(drawer).componentKey).toBe("v5");
     expect(navigationOf(drawer)).toMatchObject({ index: 5 });
-    // Stepping within the page shown never turns it.
+
     expect(loadAdjacent).not.toHaveBeenCalled();
   });
 
@@ -546,7 +543,7 @@ describe("a row drawer on a table with pinned rows", () => {
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
     const drawer = opened[0]!;
-    // v2 closes page 1 (v1, v0, v2): the 3rd row, before v4 opening page 2.
+
     await vi.waitFor(() =>
       expect(navigationOf(drawer)).toMatchObject({
         index: 2,

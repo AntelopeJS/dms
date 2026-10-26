@@ -4,9 +4,6 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
 
-// A detail or a title cut on its first line loses what it says: a stat
-// group's details and a nav card's title take two lines before the ellipsis.
-
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -67,7 +64,7 @@ describe("StatGroup columnsFrom", () => {
     eyebrow,
     value: "—",
   }));
-  // The column classes of the group's grid, whatever their order.
+
   const columnClasses = (html: string) =>
     (/<div class="([^"]*\bgrid\b[^"]*)"/.exec(html)?.[1] ?? "")
       .split(" ")

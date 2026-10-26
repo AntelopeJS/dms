@@ -4,10 +4,6 @@ import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
 import { type SessionTokens, sessionFrom } from "./session";
 
-// The provider sign-in, on the frontend's origin: the backend builds the
-// provider's URL and its callback (`relay.ts`, `config.ts`) and checks the
-// relay header this server sends, from the DMS module's private options.
-
 const FLOW = "dms_oauth_flow";
 const HANDOFF = "dms_oauth_handoff";
 const FLOW_PATH = "/auth/oauth";
@@ -44,8 +40,6 @@ interface OAuthResult extends SessionTokens {
   methods?: unknown;
 }
 
-// Process-local, like the session refresh: one frontend process per sticky
-// client. A development reload of this file starts it over.
 const attempts = new Map<string, RateWindow>();
 
 function sweepAttempts(now: number) {
@@ -99,8 +93,6 @@ function errorRedirect(key: string): Response {
   return redirect(`${SIGN_IN}?oauth_error=${encodeURIComponent(key)}`);
 }
 
-// The backend's own OAuth key says why a provider sign-in failed; any other
-// failure keeps the generic one.
 function failureRedirect(error: unknown): Response {
   const message = error instanceof Error ? error.message : "";
   const status = (error as { status?: unknown }).status;

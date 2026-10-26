@@ -10,13 +10,10 @@ import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
 import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
 import { toneTextClass } from "../../utils/tone";
 
-// v2 footer band, left to right: count | page size, the summaries, the
-// legend, then the hint and the pager on the right.
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-x-4 gap-y-2.5 border-t border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5 text-[12.5px] text-muted",
-    // Count and page size wrap as one, so a narrow band keeps them together
-    // on its first line.
+
     lead: "flex shrink-0 items-center gap-x-4",
     info: "shrink-0",
     count: "font-mono font-semibold tabular-nums text-default",
@@ -26,17 +23,17 @@ const theme = tv({
     actions: "ms-auto flex items-center gap-0.5",
     pageInfo: "me-1.5 tabular-nums",
     pageNumber: "font-mono font-semibold text-default",
-    // Phones get 32px touch targets (28px from sm up).
+
     navButton: "text-muted hover:text-highlighted max-sm:size-8",
     hint: "ms-auto inline-flex min-w-0 items-center gap-1.5 text-xs text-muted",
     hintIcon: "size-3.5 shrink-0 text-dimmed",
-    // Phones wrap the hint onto a second line rather than cut it.
+
     hintText: "truncate max-sm:whitespace-normal",
-    // First page on its way: the band keeps its height with placeholders.
+
     placeholderCount: "h-3 w-20 rounded-[4px]",
     placeholderPager: "ms-auto h-3 w-24 rounded-[4px]",
     placeholderRoot: "min-h-[49px]",
-    // Figures computed over the listed rows, after the page size.
+
     summary: "inline-flex items-center gap-1.5 whitespace-nowrap",
     summarySeparator: "text-dimmed",
     summaryValue: "font-mono font-semibold tabular-nums text-default",
@@ -83,14 +80,11 @@ const pageCount = computed(() =>
 
 const { processI18n } = useTranslation();
 
-// A reduced chrome drops the page size picker, and the pager while a single
-// page holds every row.
 const showPageSize = computed(
   () => tableSharedData.value?.chrome.value.pageSize ?? true,
 );
 const showPager = computed(() => showPageSize.value || pageCount.value > 1);
 
-// "7 members": the configured count text, pluralized on the count.
 const countLabelKey = computed(() => {
   const key = tableSharedData.value?.footer?.countLabel;
   return key?.startsWith("$") ? key.slice(1) : key;
@@ -102,8 +96,6 @@ const legend = computed(() => tableSharedData.value?.footer?.legend ?? []);
 const legendDotClass = (color?: string) =>
   toneTextClass(color) || "text-dimmed";
 
-// A list growing by pages (loadMore, infinite) shows how far it got and
-// how to go on, instead of the pager.
 const accumulation = computed(() => tableSharedData.value?.accumulation);
 const sentinel = useTemplateRef<HTMLElement>("sentinel");
 useIntersectionObserver(sentinel, ([entry]) => {

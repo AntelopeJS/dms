@@ -21,12 +21,11 @@ const FILE_TYPE = "text/plain";
 
 const isOpen = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
-// Copied, the codes stay marked so: the footer says they are kept.
+
 const clipboard = useCopyFeedback(Number.POSITIVE_INFINITY);
 const isCopied = computed(() => clipboard.isCopied(true));
 const isDownloaded = ref(false);
 
-// Shown exactly as they are typed at sign-in: no grouping separator.
 const displayCodes = computed(() => props.codes);
 
 watch(isOpen, (open) => {

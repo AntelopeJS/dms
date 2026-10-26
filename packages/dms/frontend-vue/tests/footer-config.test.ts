@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -161,8 +161,6 @@ describe("footer", () => {
     expect(setLocale).not.toHaveBeenCalled();
   });
 
-  // The footer used to show a GitHub "Star" button with the DMS repository's
-  // live star count, read from api.github.com in every visitor's browser.
   it("shows no GitHub star and asks nothing of GitHub", async () => {
     await mountFooter();
     await nextTick();

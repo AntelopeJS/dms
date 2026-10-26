@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A read-only list (an array or key-value field shown, not edited) reads as
  * a table of values: each cell drawn as the grid draws it (amounts
@@ -19,7 +19,6 @@ import {
   relationSelectSource,
 } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
 
-// The relation data type, as it registers its `select` route.
 const RELATION_TYPE = { selectSource: relationSelectSource };
 
 const PRODUCT = {
@@ -48,7 +47,7 @@ describe("a relation column of a read-only list", () => {
       keyMapping: { label: "name", value: "_id" },
       multiple: false,
     });
-    // A type that names no `select` route has no rows to read.
+
     expect(relationLabelSource(UNIT_PRICE, {})).toBeUndefined();
     expect(relationLabelSource(UNIT_PRICE, undefined)).toBeUndefined();
   });
@@ -64,7 +63,7 @@ describe("a relation column of a read-only list", () => {
       rowsByValue.get("p1"),
       new NotFoundRelation("gone"),
     ]);
-    // An id not read yet stays as it is: it is not known to be missing.
+
     expect(
       joinRelationValue("p2", { rowsByValue, readIds: new Set() }, false),
     ).toBe("p2");
@@ -159,7 +158,7 @@ describe("a read-only list's rows", () => {
       "Panel",
       "€319",
     ]);
-    // One request per relation column, shared by its cells.
+
     expect(requested).toHaveLength(1);
   });
 

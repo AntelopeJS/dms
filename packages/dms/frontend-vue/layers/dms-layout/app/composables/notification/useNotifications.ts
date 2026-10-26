@@ -75,8 +75,7 @@ export const useNotifications = () => {
     "notifications-unread-tone",
     () => undefined,
   );
-  // Whether the counts have been asked once, answered or not: until then,
-  // a 0 unread is not known to be true.
+
   const areCountsLoaded = useDmsState<boolean>(
     "notifications-counts-loaded",
     () => false,
@@ -233,8 +232,6 @@ export const useNotifications = () => {
     );
   };
 
-  // The realtime events of the user's feed, this tab's own writes included:
-  // each carries the feed's counts after it.
   const handleRemoteRead = async (ids: string[], counts?: FeedCounts) => {
     if (ids.length === 0) return;
     setReadState(ids, true);
@@ -324,8 +321,7 @@ export function useRenderedBellCounts(): void {
       return counts;
     },
   );
-  // A client navigation into the dashboard mounts the bell before this read
-  // answers: the bell waits for it instead of reading the counts again.
+
   if (!import.meta.env.SSR)
     renderedBellCountsRead = Promise.resolve(read).then(
       () => undefined,

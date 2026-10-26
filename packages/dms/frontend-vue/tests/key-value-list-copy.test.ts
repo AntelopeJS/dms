@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A KeyValueList row with `copy` draws a copy button next to its value, from
  * static items as from the items a `fetchUrl` answers; `copyValue` copies

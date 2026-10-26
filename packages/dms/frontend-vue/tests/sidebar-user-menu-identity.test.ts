@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -143,8 +143,6 @@ it("falls back to initials without a picture", async () => {
   expect(avatarSources()).toEqual(["", ""]);
 });
 
-// The settings have no sidebar entry: the menu that opens them shows the user
-// where they are.
 it.each([
   ["/settings", true],
   ["/settings/workspace/roles", true],
@@ -160,8 +158,6 @@ it.each([
   expect(trigger.classList.contains("bg-elevated")).toBe(isActive);
 });
 
-// The menu content renders in a portal, outside the sidebar whose link clicks
-// close the phone drawer.
 it.each(ACCOUNT_MENU_ENTRIES.map((entry) => [entry.to]))(
   "closes the phone drawer when %s is chosen",
   async (to) => {

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Rows added above the ones the reader scrolled to (a live list's new rows)
  * do not push them down: the table scrolls as far as they moved, in the same
@@ -21,8 +21,6 @@ let scrollTop = 0;
 const ids = ref<string[]>([]);
 const boundingRect = Element.prototype.getBoundingClientRect;
 
-// jsdom lays nothing out: each row stands ROW_HEIGHT under the one before
-// it, the whole list moved up by the scroller's scroll.
 function layOut(): void {
   Object.defineProperty(scroller, "scrollTop", {
     configurable: true,

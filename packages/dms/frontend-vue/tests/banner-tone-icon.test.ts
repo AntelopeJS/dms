@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A DmsBanner given no icon shows its tone's, as the Banner block does: a
  * check on success, an "i" on info. An icon given wins.

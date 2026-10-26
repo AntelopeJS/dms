@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The profile's personal information through the runtime's real async data:
  * a server render reads the profile and the picture's URL and renders the
@@ -103,7 +103,7 @@ it("renders the saved profile and its picture on the server, and the browser doe
   const { default: ProfilePersonalInfo } = await import(
     "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePersonalInfo.vue"
   );
-  // As the page renders it: inside the page's <Suspense>.
+
   const Page = defineComponent({
     setup: () => () =>
       h(Suspense, null, {

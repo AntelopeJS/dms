@@ -1,3 +1,4 @@
+// oxlint-disable-next-line antelopejs/no-comments -- @ts-check enables TypeScript checking of this JavaScript config.
 // @ts-check
 import { TEST_FILE_GLOBS } from "@antelopejs/tooling-configs/oxc/guardrails";
 import eslint from "@eslint/js";

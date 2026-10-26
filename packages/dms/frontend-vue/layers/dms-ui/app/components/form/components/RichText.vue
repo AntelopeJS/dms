@@ -15,9 +15,6 @@ const props = defineProps<RichTextProps>();
 
 const { t } = useI18n();
 
-// The field state UFormField hands its control: the error border goes on the
-// editor frame, the aria attributes on the editable area, and typing or
-// leaving it re-validates the field like a text input.
 const { color, ariaAttrs, emitFormBlur, emitFormInput } = useFormField(props);
 const invalid = computed(() => color.value === "error");
 
@@ -89,8 +86,6 @@ interface CharacterCountStorage {
   characterCount?: { characters: () => number };
 }
 
-// Read in the script: a type cast written in the template is read as a tag
-// by the template formatter.
 const characterCount = computed(
   () =>
     (

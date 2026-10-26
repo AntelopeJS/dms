@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The reads of the settings pages through the runtime's real async data: a
  * server render reads what the page shows and hands it to the browser, which
@@ -37,7 +37,7 @@ const ANSWERS: Record<string, unknown> = {
       _id: "other",
       browser: "Firefox",
       os: "Linux",
-      // Half a minute short of 5: rounded to 4 minutes, to 5 a second later.
+
       lastActiveAt: new Date(NOW - 4.5 * MINUTE + 1000).toISOString(),
       isCurrent: false,
     },
@@ -165,7 +165,7 @@ describe("Security", () => {
     const { html, payload } = await serverRender(SecuritySessions, register);
     vi.stubEnv("SSR", false);
     expect(html).toContain("active_ago(4 minutes ago)");
-    // The browser hydrates two seconds later: "5 minutes ago" from now.
+
     vi.setSystemTime(NOW + 2000);
     authFetch.mockClear();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

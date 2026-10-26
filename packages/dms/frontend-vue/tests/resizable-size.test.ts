@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The resize logic shared by the side panels and the drawers: a handle on
  * the inner edge of a sheet, dragged or driven by the keyboard, and the

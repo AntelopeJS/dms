@@ -18,9 +18,6 @@ interface MatchRouteOptions {
   includeCategories: boolean;
 }
 
-// The categories a URL resolves against, by slug, per served layout: the
-// layout lists them by full id, and a `urlTransparent` one answers at its
-// parent's slug, so it is never a URL's target.
 const navigableCategoriesByLayout = new WeakMap<
   SiteLayout,
   Map<string, CategoryInfo>
@@ -49,14 +46,6 @@ interface MatchRouteResult {
   params: Record<string, string>;
 }
 
-// A route pattern can carry the same placeholder name twice: a page-mode form
-// sub-page under a page whose own slug is `:id` resolves to
-// `/workspaces/:id/invoiceTable/:id/edit`. The bare name holds the LAST
-// occurrence, so `params.id` keeps meaning the row id the way it does on every
-// single-placeholder form route, and each occurrence of a repeated name is
-// exposed as well under `<name>:<n>`, numbered from 1 in pattern order, so the
-// id of the carrying page stays reachable as `id:1`. A name that occurs only
-// once gets no indexed key: those bags are exactly what they were.
 const OCCURRENCE_KEY_SEPARATOR = ":";
 
 const occurrenceKey = (name: string, occurrence: number): string =>
@@ -197,13 +186,6 @@ export const useSiteLayout = () => {
     () => ({}),
   );
 
-  // Held on the DMS app rather than in a per-call ref: every caller of
-  // useSiteLayout writes the same shared layout state, so they have to see the
-  // same in-flight fetch. Two instances each running their own would let the
-  // older answer land last and overwrite the fresher menu. Not useDmsState —
-  // a promise does not survive the SSR payload — and not module scope, which
-  // the server would share across requests. Same holder as the session
-  // refresh dedup (see runDeduped).
   const dmsApp = useDmsApp() as unknown as Record<PropertyKey, unknown>;
   const pageLayoutPromises =
     (dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] as Map<string, PageLayoutRequest>) ??
@@ -236,7 +218,7 @@ export const useSiteLayout = () => {
   const requestSiteLayout = async (): Promise<boolean> => {
     const initialLayout = siteLayout.value;
     const initialCache = pageLayouts.value;
-    // A layout another request committed meanwhile is newer than this one.
+
     const isCurrent = () =>
       siteLayout.value === initialLayout && pageLayouts.value === initialCache;
     const { $authFetch } = useAuthFetch();
@@ -253,7 +235,7 @@ export const useSiteLayout = () => {
   const startSiteLayoutFetch = (): Promise<boolean> => {
     const started = requestSiteLayout().finally(() => {
       isLoading.value = false;
-      // A waiting refresh may already have started its replacement request.
+
       if (loadingPromise.value === started) loadingPromise.value = null;
     });
     return started;
@@ -277,20 +259,13 @@ export const useSiteLayout = () => {
     pageLayouts.value = {};
   }
 
-  // A background resync (a realtime menu invalidation) goes through `resync`.
   const refresh = async () => {
     clearPageLayoutCaches();
 
-    // A fetch already in flight was started before whatever prompted this
-    // call, so its answer cannot contain the change: joining it would report
-    // success on stale data and leave the menu wrong until the next event or
-    // the staleness refresh, minutes later. Let it settle, then run exactly
-    // one more — however many refreshes piled up while it was running.
     const inFlight = loadingPromise.value;
     if (inFlight) {
       await inFlight.catch(() => undefined);
-      // The settled promise is still parked here — its cleanup runs a
-      // microtask later — so drop it explicitly rather than joining it again.
+
       if (loadingPromise.value === inFlight) {
         loadingPromise.value = null;
       }
@@ -434,32 +409,12 @@ export const useSiteLayout = () => {
     return matchRoute(path, layout, { includeCategories: true });
   };
 
-  // Dev-only atomic readiness commit: fetch a FRESH site layout and, ONLY if
-  // `path` resolves in it, commit that exact layout to reactive state and report
-  // success. If the route is absent (mid hot reload, when only some modules have
-  // re-registered) nothing is committed and it returns false so the caller keeps
-  // polling.
-  //
-  // The check and the commit share a single fetch deliberately. A previous
-  // version probed with one fetch and then let `refresh()` re-fetch and commit
-  // with a second — a TOCTOU gap. A hot reload can re-register a module more
-  // than once in quick succession, so a second unregister burst could land
-  // between the probe and the commit, making `refresh()` commit a layout that no
-  // longer contains the route and 404 the page the user is on. Committing the
-  // very layout we validated closes that window.
   const probeAndCommitRoute = async (path: string): Promise<boolean> => {
-    // Dev-only: this fires an extra /dms/sitelayout fetch and exists solely for
-    // the dev-reload plugin. It stays in the composable's return (guarding the
-    // export would make it optional and break the plugin's call site), so no-op
-    // outside dev to keep accidental production use from issuing the request.
     if (!import.meta.env.DEV) return false;
     const { $authFetch } = useAuthFetch();
     try {
       const result = await $authFetch<SiteLayoutResponse>(SITE_LAYOUT_ENDPOINT);
-      // Mirror the page renderer's resolution (findMatchingRoute, pages-only):
-      // the page at `pages/[...slug].vue` and the auth/module-routing middleware
-      // all match with includeCategories:false, so a category-only match here
-      // would commit a layout the renderer still 404s. Gate on a real page.
+
       if (
         matchRoute(path, result.siteLayout, { includeCategories: false }) ===
         null
@@ -507,15 +462,14 @@ export function useRenderedSiteLayout(): void {
   const state = useSiteLayoutState();
   if (state.siteLayout.value) return;
   const layout = useSiteLayout();
-  // Through `loadSiteLayout`, which sets the state: a middleware loading it
-  // at the same time (the auth guard of a custom page) joins this request.
+
   const { data } = useApiData<SiteLayoutResponse | null>(
     RENDERED_SITE_LAYOUT_KEY,
     async () => {
       await layout.loadSiteLayout();
       const { siteLayout, siteLayoutTree, quickActions, modules, isOwner } =
         state;
-      // What the page payload carries: the plain values, not the state.
+
       return siteLayout.value
         ? {
             siteLayout: toRaw(siteLayout.value),

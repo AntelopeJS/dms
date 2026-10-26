@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A read-only relation (a ResourceForm in view mode, a disabled field) shows
  * the related row's label and avatar, as the edit form's picker and the table

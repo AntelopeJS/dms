@@ -29,7 +29,7 @@ const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
 const DEFAULT_ROW_ID_KEY = "_id";
 const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
-// Placeholder cards per column while the board's first pages load.
+
 const SKELETON_CARD_COUNT = 3;
 
 interface BoardCellState {
@@ -126,18 +126,12 @@ const fetchColumnPage = (columnValue: string, offset: number) =>
     },
   });
 
-// Per-instance suffix: two boards with the same componentId/pageId on one
-// page must not share the same useDmsAsyncData entry.
 const instanceId = useId();
 
-// Stable key so re-fetches only fire when the column set actually changes,
-// not on every referential re-evaluation of the computed.
 const boardColumnsKey = computed(() =>
   boardColumns.value.map((col) => col.value).join(","),
 );
 
-// Declared before the first await: Vue forbids defineExpose afterwards.
-// `refresh` is assigned below and only called once setup has completed.
 defineExpose({ refresh: () => refresh() });
 
 const { data, status, refresh } = await useDmsAsyncData(
@@ -153,13 +147,11 @@ const { data, status, refresh } = await useDmsAsyncData(
   {
     watch: [boardColumnsKey, () => props.baseQuery, pageSize],
     lazy: true,
-    // Its table view refreshes it, on the table's own triggers.
+
     refreshOnPageRefresh: false,
   },
 );
 
-// Nothing fetched yet (a client navigation paints first): the columns hold
-// placeholder cards and counts rather than an empty board.
 const isBoardLoading = computed(
   () => data.value === null && status.value !== "error",
 );
@@ -182,9 +174,6 @@ watch(
   { immediate: true },
 );
 
-// The cards in the order the board reads, column by column and top to
-// bottom in each: a card's drawer steps through them (J / K), and through the
-// cards a "load more" or a drag adds or moves.
 const shownRows = computed(() =>
   boardColumns.value.flatMap((col) => cells.value[col.value]?.items ?? []),
 );
@@ -205,7 +194,6 @@ const loadMore = async (col: KanbanColumnDef) => {
   }
 };
 
-// A drag hands each list it changed its new cards.
 const setColumnItems = (col: KanbanColumnDef, items: T[]) => {
   const cell = cells.value[col.value];
   if (cell) cell.items = items;
@@ -244,17 +232,9 @@ const canDragItem = (item: T): boolean =>
 const canDeleteItem = (item: T): boolean =>
   isActionAllowedForItem(props.deleteAction, item);
 
-// A card its row rule keeps in place says so with a lock, on a board where
-// the others move.
 const isItemLocked = (item: T): boolean =>
   isDragEnabled.value && !canDragItem(item);
 
-// The edit route requires the full editable field set in the body (absent
-// fields would fail the mandatory check or be blanked), so fetch the item and
-// resubmit it like the edit form does: localized fields as records
-// (x-content-language: "*"), values mapped through their type's
-// beforeStateMapper (e.g. relation objects back to ids), readonly fields
-// excluded.
 const persistGroupChange = async (
   itemId: string,
   fieldKey: string,
@@ -289,8 +269,6 @@ const persistGroupChange = async (
   });
 };
 
-// Serializes persist calls per item: a fast A → B → C drag must not let the
-// second PUT read a stale snapshot while the first is still in flight.
 const pendingMoves = new Map<string, Promise<void>>();
 
 const applyOptimisticMove = (
@@ -310,9 +288,6 @@ const applyOptimisticMove = (
   if (sourceCell) sourceCell.total -= 1;
 };
 
-// Waits out moves of the same item queued after `current`, so the rollback
-// refresh reads the final server state instead of racing the next persist
-// call and rebuilding the board from a pre-move snapshot.
 const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   let newer = pendingMoves.get(itemId);
   while (newer && newer !== current) {
@@ -341,15 +316,10 @@ const onColumnChange = async (
   const itemId = getRowId(item);
 
   if (!itemId) {
-    // No stable ID — the move cannot be persisted; refresh to undo the
-    // local move the list already applied.
     await refresh();
     return;
   }
 
-  // Captured synchronously: the queued persist call below may run after the
-  // user has switched the group-by selector, and must not write to the new
-  // field.
   const fieldKey = groupByField.value;
   applyOptimisticMove(item, fieldKey, target);
 
@@ -374,8 +344,6 @@ const onColumnChange = async (
   }
 };
 
-// A custom card gets the props a card of the cards display gets, plus the
-// value of the column it sits in.
 const customCardProps = (item: T, groupValue: string) => ({
   ...props.cardComponent?.options,
   ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
@@ -388,7 +356,6 @@ const customCardComponent = computed(() => {
   return resolveDmsComponent(componentName) || componentName;
 });
 
-// The cards grid's fields; the column a card sits in already says its group.
 const cardColumns = computed(() =>
   cardFieldColumns(props.columns, props.cardFields, {
     labelKey: props.labelKey,
@@ -397,9 +364,6 @@ const cardColumns = computed(() =>
   }),
 );
 
-// The line above the title: the title column's identity subtitle, or the
-// row's own id key (`rowIdKey: "code"`) under a label — never the database
-// `_id`, which tells the reader nothing.
 const identity = computed(() => cardIdentity(props.columns, props.labelKey));
 const getCardLine = (item: T): string | undefined =>
   readSubline(
@@ -420,8 +384,6 @@ const getCardTitle = (item: T): string => {
   return getRowId(item) ?? "";
 };
 
-// Renders a card field value the same way table cells do: through the
-// column's display, else its data type.
 const { renderField } = useCardFields();
 const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
   renderField(fieldProps.column, fieldProps.item);

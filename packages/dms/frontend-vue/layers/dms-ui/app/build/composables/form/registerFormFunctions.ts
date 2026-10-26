@@ -40,8 +40,7 @@ function setFieldValue(
     eventData.data as FieldChangePayload | undefined,
   );
   if (!write) return;
-  // A copy: a map entry holding a list or an object is shared by every write
-  // (and may reach here as a reactive proxy, which structuredClone refuses).
+
   componentState.value[params.targetField] =
     write.value === undefined
       ? undefined

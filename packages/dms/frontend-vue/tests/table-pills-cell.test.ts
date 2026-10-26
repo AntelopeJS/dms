@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The `pills` cell draws a list of strings and related rows as outline role
  * pills, and the pill items a server styles per row in their own tone and
@@ -18,7 +18,6 @@ type Formatter = (
 
 const registered = new Map<string, DataType["formatter"]>();
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -31,7 +30,7 @@ function stubLayerGlobals() {
   ]) {
     vi.stubGlobal(name, () => "");
   }
-  // The formatters read the application's composer, not `useI18n()`.
+
   vi.stubGlobal("useDmsApp", () => ({
     $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en" } },
   }));

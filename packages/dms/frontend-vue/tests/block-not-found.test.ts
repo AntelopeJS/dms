@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data block whose source answers 404 shows what it reads does not exist:
  * a translated not-found state (the server's message or `emptyState` over
@@ -51,14 +51,12 @@ const { default: BlockStatus } = await import(
   "../layers/dms-ui/app/build/components/blocks/BlockStatus.vue"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 const URL = "/api/kpis?workspace={{query.workspace}}";
 
 const mounted: Array<{ unmount: () => void }> = [];
 
-// Runs a composable inside a component's setup.
 const Probe = defineComponent({
   props: { run: { type: Function, required: true } },
   setup(props) {
@@ -160,7 +158,6 @@ describe("useChartFetch on a 404", () => {
   });
 
   it("never shows a record's values for another request that failed", async () => {
-    // They belong to another workspace: the card shows its failure instead.
     const state = mountFetch();
     await settle();
     await switchWorkspace("down");
@@ -183,7 +180,7 @@ describe("useBlockItems on a 404", () => {
     expect(state.items?.value).toEqual([]);
     expect(state.hasError?.value).toBe(false);
     expect(state.notFound?.value?.message).toBe("No such workspace");
-    // Nothing left on screen to keep: the next failure is a load error.
+
     await switchWorkspace("down");
     expect(state.notFound?.value).toBeNull();
     expect(state.hasError?.value).toBe(true);

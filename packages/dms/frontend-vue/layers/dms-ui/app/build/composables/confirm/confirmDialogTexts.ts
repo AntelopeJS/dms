@@ -50,8 +50,6 @@ export type SecondaryTargetRun = (
   target: ConfirmDialogSecondaryTarget,
 ) => Promise<void> | void;
 
-// The page's `{{params.X}}` / `{{query.X}}` come first, as on an action's own
-// target; the route is only read for a text holding such a token.
 function withPageLink(url: string): string {
   return namesPageValue(url)
     ? resolveLinkVariables(url, currentPageUrlValues())
@@ -125,7 +123,7 @@ export function resolveConfirmDialog(
     description: text(dialog.description),
     confirmLabel: text(dialog.confirmLabel),
     cancelLabel: text(dialog.cancelLabel),
-    // The text to type, the row's name more often than not ("{name}").
+
     confirmText: text(dialog.confirmText),
     impact: dialog.impact?.map((entry) => ({
       ...entry,

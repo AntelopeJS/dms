@@ -3,12 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 
-// A form whose record read failed in a server render added a toast there: the
-// page's HTML showed it, the browser's toasts did not hold it, so hydration
-// mismatched, and Nuxt UI's state, one record for the server process up to
-// renderer 0.6.0, showed it to every later visitor. The form shows the failure
-// itself (FormLoadError); only a read in the browser adds a toast.
-
 const authFetch = vi.fn();
 const toastAdd = vi.fn();
 let scope: EffectScope;

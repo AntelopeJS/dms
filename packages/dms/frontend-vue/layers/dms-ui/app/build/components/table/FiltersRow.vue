@@ -20,14 +20,11 @@ import {
   useRelationFilterLabels,
 } from "../../composables/table/useRelationFilterLabels";
 
-// v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
-// a chip opens its value editor in a popover.
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-2 border-b border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5",
     list: "flex min-w-0 flex-wrap items-center gap-2",
-    // A chip never outgrows the row: on a phone its compare mode and value
-    // shrink to an ellipsis (the chip's tooltip spells them out).
+
     item: "flex h-7 max-w-full min-w-0 items-stretch divide-x divide-default overflow-hidden rounded-md border border-accented bg-(--ui-bg) text-[12.5px] shadow-xs has-[[data-state=open]]:border-primary has-[[data-state=open]]:ring-[3px] has-[[data-state=open]]:ring-primary/16",
     chip: "flex min-w-0 items-stretch divide-x divide-default hover:bg-elevated/60",
     label:
@@ -143,8 +140,6 @@ const removeUrlFilter = (filter: TableUrlFilter) => {
   tableSharedData?.value?.emits("removeUrlFilter", filter.param);
 };
 
-// The "clear all" action: offered while something narrows the rows, named
-// after what it clears (filters, search or both).
 const clearable = computed(
   () => tableSharedData?.value?.clearableFilters.value,
 );
@@ -160,7 +155,6 @@ const addFilterOpen = ref(false);
 const { locale } = useI18n();
 const { getDataType } = useDataTypes();
 
-// What a chip's editor holds: a view's text value read as its column's type.
 const editorValue = (filter: TableFilter): unknown => {
   const typeId = getColumn(filter.accessorKey)?.type?.id;
   return filterEditorValue(
@@ -170,8 +164,6 @@ const editorValue = (filter: TableFilter): unknown => {
   );
 };
 
-// Select-like filters show the option labels, not the raw stored values
-// (their formatter renders a pill, which a chip can't hold).
 const itemLabels = (filter: TableFilter): string | undefined => {
   const items = resolveFilterComponent(filter)?.options?.items;
   if (!Array.isArray(items) || filter.value === undefined) return undefined;
@@ -185,8 +177,6 @@ const itemLabels = (filter: TableFilter): string | undefined => {
   return labels.length ? labels.join(", ") : undefined;
 };
 
-// A relation filter holds the related rows' ids: its chip names the rows,
-// read from where the column's data type says they live (its `select` route).
 const relationSource = (
   filter: TableFilter,
 ): RelationFilterSource | undefined => {
@@ -219,7 +209,6 @@ const displayValue = (filter: TableFilter): string => {
   return formatted || EMPTY_FILTER_VALUE;
 };
 
-// The ids of a relation filter its route did not answer, named on hover.
 const notFoundIds = (filter: TableFilter): string => {
   const source = relationSource(filter);
   if (!source) return "";
@@ -228,7 +217,6 @@ const notFoundIds = (filter: TableFilter): string => {
     .join(", ");
 };
 
-// The whole filter in words, for a chip shrunk to an ellipsis.
 const chipTitle = (filter: TableFilter, label?: string): string =>
   [
     label ?? getColumn(filter.accessorKey)?.label,

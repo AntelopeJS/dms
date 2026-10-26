@@ -80,10 +80,6 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
 });
 const emit = defineEmits<DynamicDrawerEmits>();
 
-// Mounted by the overlay provider, the drawer would only see the app's
-// provides: its own start from the caller's instead, before it provides
-// anything (Vue's `provide` then writes into them). What the drawer provides
-// itself (its container, the form surface) still wins over the caller's.
 const NUXT_UI_FORM_KEYS = [
   formOptionsInjectionKey,
   formBusInjectionKey,
@@ -97,18 +93,10 @@ const NUXT_UI_FORM_KEYS = [
 const drawerInstance = getCurrentInstance() as { provides: object } | null;
 if (drawerInstance && props.callerProvides) {
   drawerInstance.provides = Object.create(props.callerProvides);
-  // A drawer is a surface of its own: a field in its body does not join a
-  // Nuxt UI form or form field around the component that opened it.
+
   for (const key of NUXT_UI_FORM_KEYS) provide(key as symbol, undefined);
 }
 
-// Below `lg` a side drawer is a sheet as wide as a side panel (see
-// `useAppSidePanels`), or a modal's width at its size, never wider than the
-// window less the drawer's gutter (Nuxt UI's `max-w-[calc(100%-2rem)]`): on
-// a phone every side drawer leaves the same strip of backdrop, sized or not,
-// and only `full` fills the screen. From
-// `lg` it takes the width the user resizes it to (600px at first), kept per
-// drawer. Its own padding is the gutter: the containers drop theirs.
 const SIDE_DRAWER_CONTENT = "w-[440px]";
 const SIDE_DRAWER_SIZE_CONTENT: Record<ModalSize, string> = {
   sm: "w-sm",
@@ -127,7 +115,6 @@ const EDGE_DRAWER_DESKTOP_CONTENT = "lg:h-(--dms-drawer-size)";
 const SIDE_CONTAINER_CLASS = "px-0 sm:px-0 lg:px-0";
 const EDGE_CONTAINER_CLASS = "max-sm:px-0";
 
-// The handle sits on the drawer's inner edge, over its border.
 const HANDLE_CLASSES: Record<ResizeSide, string> = {
   right: "inset-y-0 left-0 w-2 -translate-x-1/2 cursor-ew-resize",
   left: "inset-y-0 right-0 w-2 translate-x-1/2 cursor-ew-resize",
@@ -173,16 +160,14 @@ const sideContentClass = computed(() => {
     : SIDE_DRAWER_CONTENT;
   return `${narrow} ${SIDE_DRAWER_DESKTOP_CONTENT}`;
 });
-// A top or bottom drawer keeps its natural height until resized.
+
 const contentClass = computed(() => {
   if (isSide.value) return sideContentClass.value;
   return resizedSize.value === undefined
     ? undefined
     : EDGE_DRAWER_DESKTOP_CONTENT;
 });
-// Reka keeps the page's `pointer-events: none` on the body until the
-// panel has slid out (half a second): released as soon as the close starts,
-// a click on the page lands while the drawer animates away.
+
 const contentProps = computed(() => ({
   disableOutsidePointerEvents: isOpen.value,
   ...(resizedSize.value !== undefined && {
@@ -204,11 +189,6 @@ function renderedSize(handle: Element): number | undefined {
   return isSide.value ? rect.width : rect.height;
 }
 
-// The pointerdown is left to bubble: reka's outside-click detection listens
-// on the document and, if it never saw this press inside the drawer, would
-// take the next click on the backdrop for one inside and ignore it. The
-// drawer's own drag cannot start from it: vaul drags only a dismissible
-// drawer, and this one is not.
 function startHandleDrag(event: PointerEvent): void {
   const handle = event.currentTarget as HTMLElement;
   handle.setPointerCapture?.(event.pointerId);
@@ -220,21 +200,8 @@ function resizeHandleFromKey(event: KeyboardEvent): void {
   resizeFromKey(event, renderedSize(event.currentTarget as HTMLElement));
 }
 
-// From lg the resize handle takes the inner edge: the drawer's own grip,
-// drawn in its middle, would sit next to it. Below lg a top or bottom
-// drawer keeps it. A side drawer never draws one: it is not dragged away
-// (`dismissible` is off), and the grip took 22px of a phone's gutter.
-// Important: vaul's unlayered `[data-vaul-handle]` rule outranks a utility.
 const DESKTOP_HIDDEN_GRIP = "lg:hidden!";
 
-// The body scrolls, not the whole drawer: the header (title, row steps,
-// close) stays in view. The body reaches over the container's side padding
-// so its scrollbar sits on the drawer's edge, and carries the bottom padding
-// a form's sticky footer reaches over to sit flush with it (see Form.vue).
-// The body is a flex column: a body component whose root grows (`flex-1`)
-// fills the drawer's height while its content is short, so a
-// `<DmsContainerFooter>` at its end sits at the bottom, and it scrolls past
-// it while long.
 const DRAWER_CONTAINER_CLASS =
   "[--dms-form-foot-pb:1rem] min-h-0 overflow-y-hidden pb-0";
 const DRAWER_BODY_CLASS =
@@ -249,7 +216,6 @@ const drawerUi = computed(() => ({
   body: DRAWER_BODY_CLASS,
 }));
 
-// Let a DmsForm rendered in the body drop its DmsCard (the drawer is the surface).
 provide("dmsFormContainer", true);
 
 const { executeGuards, clearGuards } = useLeaveGuard();
@@ -276,12 +242,8 @@ async function tryClose() {
   closePromise = null;
 }
 
-// A form in the body closes through the guards (its Cancel button) and
-// registers its own under this id, whatever component wraps it.
 provide(DMS_CONTAINER_KEY, { id: props.containerId, close: tryClose });
 
-// Another page (Back, a link): the drawer belongs to the one left. Its
-// unsaved changes were already confirmed by the navigation guard.
 const route = useDmsRoute();
 watch(
   () => route.path,

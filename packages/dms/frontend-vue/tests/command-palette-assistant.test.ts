@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import type { CommandPaletteGroup } from "@nuxt/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

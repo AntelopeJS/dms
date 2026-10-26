@@ -281,7 +281,6 @@ interface OptionRule {
  * read with `POST`). A user action (a form's submit) stays the user's.
  */
 const OPTION_RULES: OptionRule[] = [
-  // `location` is the route a table view reads, beside its `source.fetchUrl`.
   { issue: "unsafe_url", key: /(url|^location)$/i, isAllowed: isRelativePath },
   { issue: "unsafe_method", key: /urlmethod$/i, isAllowed: isReadMethod },
 ];

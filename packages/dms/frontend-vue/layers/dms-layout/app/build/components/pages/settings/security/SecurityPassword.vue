@@ -49,10 +49,9 @@ const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const isCurrentInvalid = ref(false);
-// Errors show once the field was left or the form submitted, and go away
-// as soon as the value is fixed.
+
 const isSubmitted = ref(false);
-// Something typed and not submitted yet.
+
 const { dirty: isDirty } = useFormDirty(
   () => ({
     currentPassword: currentPassword.value,
@@ -99,7 +98,6 @@ const confirmError = computed(() => {
     : t("page.settings.security.password.mismatch");
 });
 
-// The "incorrect" mark goes away as soon as the password is edited.
 watch(currentPassword, () => {
   isCurrentInvalid.value = false;
 });
@@ -161,8 +159,6 @@ async function submit(): Promise<void> {
     isEditing.value = false;
     await refresh();
   } catch (error) {
-    // A wrong current password is shown under its field; anything else
-    // (rate limit, server error) goes to a toast.
     const isCurrentRefused =
       resolveFieldErrors(error, {
         fields: ["currentPassword"],

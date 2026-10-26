@@ -18,9 +18,6 @@ type HandoffActions = {
   ) => unknown;
 };
 
-// `replace` is a navigation option, not part of the location: passed inside the
-// route object it was silently dropped, and the handoff left the OAuth callback
-// in the history for the back button to land on.
 const REPLACE = { replace: true } as const;
 
 const HANDOFF_ACTIONS: HandoffActions = {
@@ -68,13 +65,6 @@ async function completeOAuth(): Promise<void> {
   }
 }
 
-// One completion per visit, held on the DMS app rather than by this instance.
-// The post-login redirect refreshes the site layout for the new identity,
-// which empties the page layout cache: the page unmounts this component and
-// mounts a new one while its layout is fetched again. Starting over from that
-// mount consumed the handoff once more and refreshed again, so the page
-// remounted in a loop instead of leaving. The new instance joins the running
-// completion; a later visit, once it has settled, starts its own.
 function joinCompletion(): Promise<void> {
   const holder = dmsApp as unknown as Record<PropertyKey, unknown>;
   const running = holder[IN_FLIGHT_COMPLETION_KEY] as Promise<void> | undefined;

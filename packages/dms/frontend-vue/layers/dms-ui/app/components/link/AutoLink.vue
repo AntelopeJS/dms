@@ -2,10 +2,6 @@
 import { computed } from "vue";
 import { EXTERNAL_LINK_ATTRIBUTES, linkKind } from "../../build/utils/link";
 
-// A link whose target comes from data (a block option, a fetched row): a DMS
-// route goes through <DmsLink> (Inertia visit), an in-page anchor stays a bare
-// <a href="#…">, and an absolute URL opens in a new tab. Unstyled, so the
-// caller's classes (.dms-card, a row) style it.
 interface AutoLinkProps {
   /** Route path, `#anchor` or absolute URL. */
   to: string;

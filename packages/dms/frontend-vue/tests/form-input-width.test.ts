@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A short single-line input sizes itself for its value instead of filling
  * the row: asked for with `width: "compact"`, or by itself when its bounds
@@ -25,7 +25,6 @@ const COMPACT_CLASS = "sm:max-w-44";
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The Nuxt UI control: its root takes the class, the input the rest.
 const Control = (tag: string) =>
   defineComponent({
     inheritAttrs: false,

@@ -12,7 +12,6 @@ import { useAccessibilityPreferences } from "../composables/general/useAccessibi
 export default defineDmsPlugin(() => {
   const { preferences } = useAccessibilityPreferences();
 
-  // No `class` key at all for the defaults, rather than an empty `class=""`.
   useHead(
     computed(() => {
       const classes = accessibilityHtmlClasses(preferences.value);

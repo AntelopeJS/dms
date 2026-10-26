@@ -8,10 +8,6 @@ import {
   makeFieldSchemaRequired,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
-// Rebuild the exact client-side schema the form uses: the backend serializes an
-// optional field as `nullable().optional()`, `zodToJsonSchema` emits
-// `{"type":["string","null"]}`, and `json-schema-to-zod` reconstructs it as
-// `z.union([z.string(), z.null()]).optional()`.
 function roundTrippedOptionalString(): z.ZodTypeAny {
   const source = z.object({ value: z.string().nullable().optional() });
   const json = zodToJsonSchema(source) as unknown as JsonSchema;

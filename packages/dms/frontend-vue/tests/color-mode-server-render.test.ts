@@ -75,8 +75,6 @@ it("reads the dms-color-mode cookie, kept a year and defaulting to system", asyn
 });
 
 it("ships the pre-paint script as a classic inline script in <head>", async () => {
-  // No src, type, defer or async: the browser runs it while it parses <head>,
-  // before the deferred entry module that installs Nuxt UI.
   const { headTags, bodyTags, bodyTagsOpen } = await renderHead("dark");
 
   expect(headTags).toMatch(/<script id="dms-color-mode">\(\(\) => \{/);

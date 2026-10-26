@@ -50,8 +50,6 @@ const reads = computed(() =>
 );
 const ids = computed(() => reads.value.idsToRead);
 
-// The ids a list did not join (and the parents of those it did), with their
-// ancestors, read by `?ids=` level by level.
 const { data } = await useDmsAsyncData(
   () => `cascader-path-${props.searchUrl}-${ids.value.join(",")}`,
   () =>
@@ -69,7 +67,7 @@ const { data } = await useDmsAsyncData(
           ids.value,
         )
       : Promise.resolve(undefined),
-  // The labels of a path, not the page's data.
+
   { lazy: true, refreshOnPageRefresh: false },
 );
 

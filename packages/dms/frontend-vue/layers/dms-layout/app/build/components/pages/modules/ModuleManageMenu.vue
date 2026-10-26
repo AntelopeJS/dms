@@ -6,10 +6,6 @@ import {
 } from "../../../utils/module-store-catalog";
 import type { StoreOperationKind } from "../../../../types/module-store";
 
-// The Manage menu of an installed module: the store actions its tile does
-// not show as its button. One that cannot run stays listed, disabled, with
-// why under it.
-
 interface ModuleManageMenuProps {
   entry: ModuleStoreEntry;
   actions: StoreAction[];

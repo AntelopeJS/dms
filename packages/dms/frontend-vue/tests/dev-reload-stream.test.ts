@@ -9,7 +9,7 @@ import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const ENDPOINT = "http://backend.test/dms/dev/reload";
 const DEV_RELOAD_TOPIC = "dms:dev-reload";
-// Comfortably past the delay before a source the browser gave up on is reopened.
+
 const REOPEN_WAIT_MS = 5000;
 
 type Listener = () => void;
@@ -98,7 +98,7 @@ describe("dev reload stream", () => {
     source.drop();
 
     expect(warn).toHaveBeenCalledOnce();
-    // The browser owns these retries: no second source competes with it.
+
     vi.advanceTimersByTime(REOPEN_WAIT_MS);
     expect(FakeEventSource.instances).toHaveLength(1);
   });
@@ -151,7 +151,6 @@ describe("dev reload stream", () => {
  * and three tabs then filled the six a browser allows per HTTP/1.1 host.
  */
 describe("dev reload over the user's realtime stream", () => {
-  // A browser without Web Locks: the fallback stream is the tab's own.
   const NO_SHARING = {};
   const carrier = () => {
     const handlers = new Map<string, () => void>();
@@ -197,7 +196,7 @@ describe("dev reload over the user's realtime stream", () => {
       realtime,
       NO_SHARING,
     );
-    // Signed out: the sign-in page still follows the reloads.
+
     expect(FakeEventSource.instances).toHaveLength(1);
     latestSource().emit("reload");
     expect(onReload).toHaveBeenCalledOnce();
@@ -207,8 +206,6 @@ describe("dev reload over the user's realtime stream", () => {
     expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
     expect([...realtime.handlers.keys()]).toEqual([DEV_RELOAD_TOPIC]);
 
-    // The user stream dropped (a backend restart): the tab falls back until
-    // it is back.
     realtime.devReloadTopic.value = undefined;
     await nextTick();
     expect(FakeEventSource.instances).toHaveLength(2);

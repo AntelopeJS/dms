@@ -8,14 +8,6 @@ import DmsAutoLink from "../../../components/link/AutoLink.vue";
 import { DMS_TONE_TEXT } from "../../utils/tone";
 import type { Tone } from "../../../types/tone";
 
-// One headline figure: icon well, mono label, value, detail line. The one
-// markup behind the compact KPI card (`KpiCard variant="stat"`) and every cell
-// of a StatGroup, so the two never drift apart.
-//
-// - size `md`: the compact stat card (v2 .mc-summary), framed, 40px well,
-//   22px value; `#aside` holds what sits on its right (a KPI's trend).
-// - size `sm`: a bare cell of a joined group (v2 .cs-status), 32px well,
-//   14px value; the group draws the frame and the hairlines.
 export type StatCellSize = "md" | "sm";
 
 interface StatCellProps {
@@ -74,7 +66,6 @@ const props = withDefaults(defineProps<StatCellProps>(), {
 
 defineSlots<StatCellSlots>();
 
-// Literal class strings (Tailwind extracts them).
 const MD_CELL = "dms-card flex items-center gap-3.5 px-4 py-3.5";
 const MD_STACK = "@max-md:flex-col @max-md:items-start @max-md:gap-2.5";
 const SM_CELL = "flex min-w-0 items-start gap-3 px-4 py-3.5";

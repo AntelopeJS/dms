@@ -39,7 +39,6 @@ const schema = useLocalizedSchema(
 const form = useTemplateRef<LiveFormHandle>("form");
 useLiveFormErrors(form, platform.value);
 
-// Read in the browser: the server render does not know the public address.
 const host = ref("");
 const isSecure = ref(false);
 

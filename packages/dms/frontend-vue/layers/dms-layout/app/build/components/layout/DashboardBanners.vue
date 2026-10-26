@@ -13,8 +13,6 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
 const { banners, dismiss } = useLayoutBanners();
 const { processText } = useComposedText();
 
-// Rows read as tinted bands (design .banner strip): no ring, the colour kept
-// for the icon and the hairline between stacked rows.
 const ROW_SEPARATOR: Record<LayoutBannerVariant, string> = {
   info: "border-info/40",
   warning: "border-warning/40",

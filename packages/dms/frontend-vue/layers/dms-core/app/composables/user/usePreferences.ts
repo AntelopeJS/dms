@@ -30,8 +30,6 @@ const LEGACY_COOKIE_NAME = "user-preferences";
  */
 export const MAX_PREFERENCES_COOKIE_BYTES = 3 * 1024;
 
-// A plain copy, as the cookie will read it back: the refs hand out reactive
-// proxies, which a caller may keep mutating after the write.
 const toPlain = <T>(value: T): T =>
   value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T);
 
@@ -59,7 +57,6 @@ export const usePreferences = () => {
   });
   expireLegacyCookie();
 
-  // The cookie ref is shared by name, so every caller decodes the same value.
   const tree = computed<UserPreferences>(() =>
     typeof preferenceCookie.value === "string"
       ? decodePreferencesTree(preferenceCookie.value)

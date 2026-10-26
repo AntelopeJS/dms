@@ -40,8 +40,7 @@ interface EmbedOptions {
 
 function postToParent(message: PreviewOutboundMessage): void {
   if (window.parent === window) return;
-  // The preview is meant to be embedded by any docs site, and what it posts
-  // (a height, a ready flag, an error text) is not worth keeping from one.
+
   window.parent.postMessage(message, "*");
 }
 

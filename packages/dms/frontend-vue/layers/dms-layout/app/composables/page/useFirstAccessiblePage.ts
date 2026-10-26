@@ -1,7 +1,3 @@
-// Pass 1 hides the sidebar's own exclusions (settings + module trees). Pass 2
-// re-includes `settings` as a last resort but still hides modules: module pages
-// have their own routing/context and are never a redirect target (module roots
-// are skipped below, matching the sidebar).
 const SIDEBAR_EXCLUDED_TOP_LEVEL_IDS = new Set(["settings", "modules"]);
 const LAST_RESORT_EXCLUDED_TOP_LEVEL_IDS = new Set(["modules"]);
 
@@ -9,10 +5,6 @@ interface FirstAccessiblePageOptions {
   excludedTopLevelIds: Set<string>;
 }
 
-// A landing target must be a real, directly reachable page: it needs a layout,
-// a concrete slug (no `:id` placeholder), and must not be `hidden` — hidden
-// pages include the table-view `new`/`edit` sub-pages, which are not valid
-// destinations to drop a user on.
 function isNavigablePage(node: SiteLayoutTree): boolean {
   return (
     !!node.layoutUrl &&
@@ -22,9 +14,6 @@ function isNavigablePage(node: SiteLayoutTree): boolean {
   );
 }
 
-// A category whose own `hasAccess` is false can still hold accessible pages,
-// so only leaf pages are filtered on `hasAccess`; containers are always
-// traversed. Module roots are skipped entirely (never descended into).
 function findFirstAccessiblePage(
   node: SiteLayoutTree,
   options: FirstAccessiblePageOptions,

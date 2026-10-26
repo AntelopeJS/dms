@@ -47,8 +47,6 @@ export function useTab(
 
   const activeTab = ref<string>(getInitialTab());
 
-  // The open tab is written by its slot, which stays right when tabs are
-  // added or reordered; a tab without one keeps its index.
   const updateUrl = async (newTab: string) => {
     if (!props.persistState) return;
 

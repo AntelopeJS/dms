@@ -14,8 +14,6 @@ interface RowClickTrigger {
 
 const DEFAULT_ROW_CLICK: TableViewRowClick = "double";
 
-// The controls a row may hold: a click on one is that control's, not the
-// row's.
 const ROW_CONTROL_SELECTOR = [
   "a",
   "button",
@@ -31,7 +29,6 @@ const ROW_CONTROL_SELECTOR = [
   "[contenteditable='true']",
 ].join(", ");
 
-// The second click of a double-click: the first one already ran the action.
 const isRepeatClick: RowClickGuard = (event) => event.detail > 1;
 
 const isOnRowControl: RowClickGuard = (event) => {
@@ -42,8 +39,6 @@ const isOnRowControl: RowClickGuard = (event) => {
   return !row || row.contains(control);
 };
 
-// A click ending a drag over the cells selects their text: the user copies a
-// value, not opens the row.
 const endsTextSelection: RowClickGuard = () => {
   if (typeof window === "undefined") return false;
   const selection = window.getSelection();
@@ -51,7 +46,6 @@ const endsTextSelection: RowClickGuard = () => {
 };
 
 const ROW_CLICK_TRIGGERS: Record<TableViewRowClick, RowClickTrigger> = {
-  // Unchanged from before `rowClick` existed: any double-click on the row.
   double: { eventType: "dblclick", guards: [] },
   single: {
     eventType: "click",

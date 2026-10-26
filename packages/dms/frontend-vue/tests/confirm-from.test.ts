@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `useConfirmFrom().confirmFrom(url)` opens the dialog a route words, as a
  * declarative action's `confirm: { from }` does, for code of a module's own

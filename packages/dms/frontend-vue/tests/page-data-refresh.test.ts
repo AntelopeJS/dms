@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A page's `useApiData` reads follow the page: `refreshPageBlocks()` (an
  * action of the user) and an event on one of the page's realtime topics read
@@ -22,7 +22,7 @@ import {
 import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
 const requests: string[] = [];
-// Holds the answers back while set.
+
 let held: Promise<void> | undefined;
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: async (url: string) => {
@@ -39,7 +39,6 @@ const { usePageDataRefresh } = await import(
   "../layers/dms-ui/app/build/composables/live/usePageDataRefresh"
 );
 
-// Past the one-frame window a burst of refreshes collapses into.
 const settle = () => new Promise((resolve) => setTimeout(resolve, 40));
 
 const pageTopics = ref<string[]>([]);
@@ -141,7 +140,6 @@ describe("the page's data refresh", () => {
     await settle();
     expect(requests).toEqual(["/api/orders"]);
 
-    // A presence snapshot rides the topic too, and changes no data.
     requests.length = 0;
     publish("table:orders", { topic: "table:orders", entries: [] });
     await settle();
@@ -197,7 +195,6 @@ describe("the page's data refresh on a page declared with live", () => {
     await refreshPageBlocks();
     expect(requests).toEqual(["/api/orders"]);
 
-    // The user's refresh read what the event announced: nothing left to read.
     requests.length = 0;
     live.resume();
     await settle();

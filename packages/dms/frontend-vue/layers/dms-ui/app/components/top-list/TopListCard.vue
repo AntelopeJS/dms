@@ -5,9 +5,7 @@ import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
-// Imported rather than resolved from the registry: a registered component is
-// a lazy chunk of its own, and a list whose rows only arrive with its data
-// would draw an empty card for the moment that chunk takes.
+
 import DmsTopListRow from "./internal/TopListRow.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
@@ -66,9 +64,7 @@ interface Props extends DefaultComponentProps {
 
 const DEFAULT_MAX_HEIGHT = "24rem";
 const DEFAULT_HIGHLIGHT_TOP_N = 3;
-// A top list is a "top N" (10 most of the time): enough placeholder rows to
-// fill the card to its max height, which clips them exactly where it clips
-// the loaded list, so the card does not grow when the rows land.
+
 const SKELETON_ROW_COUNT = 10;
 const PERCENT = 100;
 const PRESET_LABEL_KEY_PREFIX = "dms.period.presets";
@@ -79,7 +75,6 @@ const PLAIN_RANK_CLASS =
   "text-dimmed font-semibold ring-1 ring-default ring-inset";
 const QUIET_BAR_OPACITY_CLASS = "opacity-45";
 
-// Solid rank fills keep dark ink in both themes (v2 top list).
 const RANK_FILL_CLASSES: Record<string, string> = {
   primary: "bg-(--dms-accent-fill)",
   secondary: "bg-(--ui-color-secondary-400)",
@@ -132,9 +127,6 @@ const { data, isLoading, error, refresh } = useChartFetch<TopListCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-// A row's link may name the page it is shown on (`{{query.website}}`), so a
-// list served once leads on with the page's own context, as the URL changes.
-// The route is only read for a list holding such a link.
 function withPageValues(item: TopListItem): TopListItem {
   if (!item.to || !hasUrlVariables(item.to)) return item;
   return {
@@ -156,8 +148,6 @@ const largestValue = computed(() =>
   Math.max(0, ...items.value.map((item) => item.value)),
 );
 
-// The fade mask only applies when the list actually scrolls, so a short list
-// keeps its last row fully visible.
 const scrollRef = ref<HTMLElement | null>(null);
 const isOverflowing = ref(false);
 function measureOverflow() {
@@ -219,9 +209,6 @@ function sparklineAccentFor(item: TopListItem): string {
   });
 }
 
-// The preset is a name, the same on both sides: the server prints the badge
-// of a selector set up before the card, and the browser hydrates it. A
-// selector set up after it draws a skeleton in its place until it registers.
 const scopePreset = usePeriodScopePreset(props.periodScope);
 const badgeLabel = computed<string | null>(() => {
   const preset = scopePreset.value;
@@ -229,22 +216,17 @@ const badgeLabel = computed<string | null>(() => {
   return t(`${PRESET_LABEL_KEY_PREFIX}.${preset}`, preset);
 });
 
-// With no comparison selected on the scope, the rows show no change: their
-// trend column goes rather than staying blank.
 const comparison = usePeriodComparisonDisplay(props.periodScope);
 const showRowDelta = computed(() => props.showDelta && !comparison.isOff.value);
 
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
-// New inputs (a period applied) are on their way: the rows on screen still
-// belong to the previous ones, so they dim like the KPI values do.
+
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 
-// A failed first load shows a message and a retry, never the empty state (a
-// list that loaded with no rows); a failed refetch keeps the last rows.
 const hasError = computed(
   () => !isLoading.value && !data.value && Boolean(error.value),
 );
-// A 404 is a status too, but nothing to retry: the list does not exist.
+
 const notFound = computed(() =>
   hasError.value ? readFetchNotFound(error.value) : null,
 );
@@ -257,22 +239,15 @@ const emptyLabelDisplay = computed(() =>
 
 const maxHeightStyle = computed(() => ({ maxHeight: props.maxHeight }));
 
-// Edge tracks inset the rows by 18px (6px + the 12px column gap) while the
-// hover band still runs edge to edge; padding on a subgrid row would spill
-// out of the fixed-width tracks instead.
 const EDGE_COLUMN_WIDTH = "6px";
 const RANK_COLUMN_WIDTH = "26px";
 const ICON_COLUMN_WIDTH = "26px";
 const TITLE_COLUMN_WIDTH = "minmax(0,1fr)";
 const VALUE_COLUMN_WIDTH = "auto";
 const SPARKLINE_COLUMN_WIDTH = "4rem";
-// Fixed so the deltas line up down the list whatever their length.
+
 const TREND_COLUMN_WIDTH = "62px";
 
-// The columns follow the card's own width (a container query), not the
-// viewport: a narrow card (a phone, a third of a dashboard row) drops the
-// sparkline column under 28rem, then the icon column under 22rem, so the
-// title keeps room instead of being squeezed to nothing.
 function columnsTemplate(sparkline: boolean, icon: boolean): string {
   const columns: string[] = [EDGE_COLUMN_WIDTH];
   if (props.showRank) columns.push(RANK_COLUMN_WIDTH);

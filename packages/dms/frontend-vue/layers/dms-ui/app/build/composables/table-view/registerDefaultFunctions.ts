@@ -28,8 +28,6 @@ export function resolveFormSuccessTarget(
     routeQuery: route.query,
   });
 
-  // Restore the filtered table view: carry back the query params the form
-  // was opened with (those declared in `queryParamFilters`).
   const query: RouteQuery = {};
   for (const key of preserveQuery ?? []) {
     if (route.query[key] !== undefined) {

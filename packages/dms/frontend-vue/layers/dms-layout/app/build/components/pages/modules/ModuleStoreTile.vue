@@ -12,11 +12,6 @@ import {
 } from "../../../utils/module-store-catalog";
 import type { StoreOperationKind } from "../../../../types/module-store";
 
-// A module of the catalog, as the store presents it: what it is, whether it
-// is installed here, and Install when it is not. Everything else about an
-// installed module is managed from its tile among the installed modules,
-// which this one links to.
-
 interface ModuleStoreTileProps {
   /** The store module the tile presents. */
   entry: ModuleStoreEntry;

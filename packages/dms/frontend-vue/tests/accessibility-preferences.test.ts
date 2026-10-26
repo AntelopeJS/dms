@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Accessibility preferences (Settings › Appearance): how the cookie is read,
  * how `auto` motion resolves against the system, which classes land on
@@ -35,7 +35,7 @@ const DEFAULTS: AccessibilityPreferences = {
 };
 const requestCookies = new Map<string, unknown>();
 const cookieOptions = new Map<string, CookieOptions>();
-// One ref per cookie name, shared by every caller like the real useDmsCookie.
+
 const cookieRefs = new Map<string, Ref<unknown>>();
 
 vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
@@ -205,8 +205,6 @@ describe("useAccessibilityPreferences", () => {
 });
 
 describe("server render", () => {
-  // `colorMode` stands for the color-mode plugin, whose server branch puts an
-  // explicit mode's class on <html> through its own useHead entry.
   async function renderHead(
     cookies: Record<string, unknown>,
     colorMode?: string,

@@ -26,8 +26,7 @@ const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
-// Nuxt UI types an item's `ui` as every breadcrumb slot at once; only the
-// label is restyled here.
+
 const RECORD_CRUMB_UI = {
   linkLabel: RECORD_CRUMB_LABEL_CLASS,
 } as NonNullable<BreadcrumbItem["ui"]>;
@@ -38,12 +37,8 @@ const { t } = useI18n();
 const appConfig = useDmsAppConfig();
 const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
 
-// Modules register their own header buttons through this generic registry, so
-// core has no knowledge of any specific module.
 const { actions: visibleActions } = useHeaderActions();
-// A `.client` plugin's action is missing from the server markup: drawn while
-// hydrating, its button would be patched onto the next one's node. It joins
-// once the header has mounted.
+
 const isMounted = ref(false);
 onMounted(() => {
   isMounted.value = true;
@@ -54,8 +49,6 @@ const registeredActions = computed(() =>
     : visibleActions.value.filter(isPlainDataHeaderAction),
 );
 
-// The builder button keeps its fixed slot first in the toolbar, and only
-// exists when a module (the Builder) registers the action that drives it.
 const builderAction = computed(() =>
   registeredActions.value.find((action) => action.id === BUILDER_ACTION_ID),
 );
@@ -79,7 +72,7 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
-// The row an edit or details page is about names its last crumb.
+
 const { label: recordLabel } = usePageRecordLabel();
 
 const currentPageInfo = computed((): FavoritePage | null => {
@@ -159,8 +152,6 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
     { icon: HOME_ICON, to: homepage || "/", "aria-label": t("header.home") },
   ];
 
-  // The path only: with the query, the last segment ("data?table=x") matched
-  // no route and the current page dropped out of the breadcrumb.
   if (route.path === (homepage || "/")) {
     return base;
   }
@@ -196,7 +187,6 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
   );
   const crumbs = withParentCrumb(pathCrumbs, parentCrumb.value);
 
-  // Written as the row has it: an email address keeps its lowercase.
   const last = crumbs.at(-1);
   if (recordLabel.value && last && crumbs.length > 1) {
     crumbs[crumbs.length - 1] = {
@@ -208,8 +198,6 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
   return crumbs;
 });
 
-// The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
-// deep page still fits a phone without losing the way back up.
 const mobileBreadcrumb = computed(
   (): (BreadcrumbItem & { children?: DropdownMenuItem[] })[] =>
     foldBreadcrumb(breadcrumb.value, MOBILE_ELLIPSIS_SLOT).map((crumb) => {

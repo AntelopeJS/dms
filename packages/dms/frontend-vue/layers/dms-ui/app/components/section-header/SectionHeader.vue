@@ -64,8 +64,7 @@ const theme = tv({
         root: "flex-nowrap items-start gap-2.5",
         heading: "flex-1",
         title: "flex-nowrap",
-        // One line each on wide screens; on a phone, beside the trailing
-        // badge or actions, the title and description wrap instead.
+
         description:
           "text-dimmed mt-1 truncate text-xs max-sm:whitespace-normal",
         trailing: "shrink-0",

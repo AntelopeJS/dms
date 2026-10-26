@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -21,10 +21,6 @@ import {
 } from "#dms-core/app/build/utils/permission-preview";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
-
-// "Preview as role": an entry the previewed role opens without all of it (a
-// block, an action or one of its entries lost) is drawn with the orange hatch
-// and lock; one it cannot open keeps the red ones. Never outside a preview.
 
 const HIDDEN = new Set(["pages.sales.invoices"]);
 const PARTIAL = new Set(["pages.sales", "pages.sales.orders", "settings"]);
@@ -131,8 +127,6 @@ describe("NavigationMenu in a role preview", () => {
   let host: HTMLDivElement;
   let state: Map<string, Ref<unknown>>;
 
-  // Renders each item the way UNavigationMenu hands them over: its classes,
-  // its title and the trailing icon's classes, nested items included.
   const MenuStub = defineComponent({
     props: {
       items: {
@@ -177,7 +171,7 @@ describe("NavigationMenu in a role preview", () => {
           : null,
       ),
     );
-    // A stale result alone never draws anything: only a running preview does.
+
     state.set("dms-permission-preview-result", ref(RESULT));
     app = createApp(NavigationMenu, { items: ITEMS });
     app.component("UNavigationMenu", MenuStub);

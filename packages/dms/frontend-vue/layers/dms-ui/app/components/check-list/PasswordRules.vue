@@ -64,7 +64,7 @@ const total = computed(() => strength.value.length);
 const items = computed<CheckListItem[]>(() =>
   strength.value.map((rule, index) => ({
     label: rule.text,
-    // The summary lists unmet rules as "not yet", never as failures.
+
     state: rule.met ? "ok" : isSummary.value ? "pending" : "error",
     wide: isSummary.value && index === strength.value.length - 1,
   })),

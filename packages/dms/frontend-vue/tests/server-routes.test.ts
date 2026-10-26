@@ -1,9 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-// The DMS serves its session, sign-in, provider sign-in and e-mail render
-// routes from its own `dms.server.ts`: the renderer has none of its own
-// since 0.6.0, so each request below reaches the DMS's routes alone.
+
 import { readSealedCookie } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../dms.server";
@@ -522,7 +520,7 @@ describe("the DMS's server routes", () => {
     });
     expect(refused.status).toBe(401);
     expect(refused.body).toEqual({ message: "Invalid service token" });
-    // No e-mail bundle is built here: the render fails once the token passes.
+
     const missing = await askDms("/api/html/render", () =>
       Promise.resolve({
         origin: false,
@@ -546,7 +544,7 @@ describe("the DMS's server routes", () => {
         headers: { "x-dms-service-token": renderToken() },
         body: { templateName: "EmailLayout", props: {} },
       });
-      // Accepted: the render itself fails, no e-mail bundle is built here.
+
       expect(accepted.status).toBe(404);
       const start = await askDms("/auth/oauth/github/start", {
         method: "GET",
@@ -570,7 +568,7 @@ describe("the DMS's server routes", () => {
         },
         body: JSON.stringify({ templateName: "EmailLayout", props: {} }),
       });
-      // Accepted: the render itself fails, no e-mail bundle is built here.
+
       expect(response.status).toBe(404);
       calls.length = 0;
       await fetch(`${withheld.url}/auth/oauth/github/start`, {

@@ -1,5 +1,3 @@
-// The page search keys are public (`composables/global/searchShortcuts`):
-// re-exported for the layer's own callers.
 export {
   buildPageSearchShortcuts,
   PAGE_SEARCH_SHORTCUTS,

@@ -99,7 +99,6 @@ describe("ActivityFeed head", () => {
   });
 
   it("draws a translated badge in the head", async () => {
-    // `t` is stubbed as String: a translated key reads as the bare key.
     const html = await render({ badge: "$api.overview.last_24h" });
     expect(html).toMatch(
       /<span data-badge[^>]*>api\.overview\.last_24h<\/span>/,

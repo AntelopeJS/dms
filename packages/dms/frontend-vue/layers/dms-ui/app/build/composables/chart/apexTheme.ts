@@ -163,8 +163,7 @@ export function buildMarkers(
   const showsHead = HEAD_MARKER_TYPES.includes(input.type) && !input.stacked;
   return {
     size: 0,
-    // A discrete marker makes Apex draw every point: any stroke would show
-    // as a bump on the line, so markers carry none.
+
     strokeWidth: 0,
     hover: { size: HOVER_MARKER_SIZE },
     discrete: showsHead ? headMarker(series, colors[0], theme) : [],

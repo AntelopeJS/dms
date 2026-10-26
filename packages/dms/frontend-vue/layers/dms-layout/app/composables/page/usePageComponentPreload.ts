@@ -49,9 +49,6 @@ function loadPageLayoutComponents(
   );
 }
 
-// How long a navigation waits for the chunks of the page's blocks: on any
-// usable network they land well within it, and one that hangs does not hold
-// the page for long (its block then loads as it renders).
 export const PAGE_COMPONENTS_WAIT_MS = 3_000;
 
 /**

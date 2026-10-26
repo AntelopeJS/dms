@@ -46,9 +46,7 @@ function logoSource(path: string | undefined): string {
 }
 
 const logoUrl = logoSource(logo?.email?.light || logo?.default?.light);
-// Offered to the mail clients that follow the reader's dark mode; the others
-// skip the picture's source and draw the light image. Taken from the email
-// slot only, so an instance that sets none keeps its single image.
+
 const darkCandidate = logoSource(logo?.email?.dark);
 const darkLogoUrl = darkCandidate === logoUrl ? "" : darkCandidate;
 </script>

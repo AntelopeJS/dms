@@ -19,10 +19,6 @@ export interface RenderableColumn {
   display?: ColumnDisplay;
 }
 
-// v2 cell anatomy: amounts are right-aligned mono figures in the ink color,
-// dates 12px muted mono. Where a record is read (the detail surface), amounts
-// keep the form's own font with tabular figures, as its read-only values do. A data type can give cells a shorter rendering
-// through a `cell` formatter (the date type does); others use `default`.
 export const NUMERIC_TYPE_IDS = new Set(["number", "price", "percentage"]);
 const DATE_TYPE_IDS = new Set(["date"]);
 const NUMERIC_CELL_CLASS =
@@ -46,11 +42,6 @@ export function useColumnValueRenderer() {
   const { getDataType } = useDataTypes();
   const { locale } = useI18n();
 
-  // A display also reads the column's own type options (`typeOptions`): a
-  // select's items name the values it draws; and the column's own type id
-  // (`columnType`), so it can write the value as the column would (an amount
-  // under `two_line`). A display declared without options reads the type
-  // options at the top level, as it always did.
   const resolveRenderer = (column: RenderableColumn) => {
     const typeOptions = column.type?.inputComponent?.options as
       | Record<string, unknown>
@@ -81,7 +72,6 @@ export function useColumnValueRenderer() {
     const formatter = typeId ? getDataType(typeId)?.formatter : undefined;
 
     if (value === null || value === undefined) {
-      // A data type may draw the absence itself ("Never signed in").
       if (formatter?.empty) {
         return formatter.empty(value, locale.value, options, row) as VNodeChild;
       }

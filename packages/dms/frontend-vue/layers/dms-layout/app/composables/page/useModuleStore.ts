@@ -22,16 +22,13 @@ const FOLLOW_INTERVAL_MS = 1000;
  * never move once mounted.
  */
 export const useModuleStore = () => {
-  // Taken once, in setup: the follow-up reads the listing from a timer,
-  // outside any component context.
   const { $authFetch } = useAuthFetch();
   const isOwner = useIsOwner();
-  // Platform owners only: a member's read would be refused.
+
   const initial = useApiData<StoreListing>(() =>
     isOwner.value ? ENDPOINT_STORE_LISTING : null,
   );
-  // The follow-up reads write into the same data, so a later visit shows
-  // the latest listing at once.
+
   const listing = computed<StoreListing | undefined>({
     get: () => initial.data.value ?? undefined,
     set: (value) => {

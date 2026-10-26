@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A board reads its rows column by column, apart from the table's list: it
  * hands the cards it shows to the table view (`rows-shown`, then the display
@@ -56,7 +56,6 @@ const STAGE_COLUMN = {
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The list route, filtered on one column as the board asks for it.
 const authFetch = vi.fn(
   async (_url: string, { query }: { query: Record<string, string> }) => {
     const stage = query.filter_stage!.replace("is:", "");

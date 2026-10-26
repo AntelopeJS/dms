@@ -52,7 +52,6 @@ interface Props {
 const props = defineProps<Props>();
 const activeId = defineModel<string>({ required: true });
 
-// v2 link tabs: a 2px accent underline sits on the row's bottom rule.
 const theme = tv({
   slots: {
     root: "no-scrollbar flex gap-5 overflow-x-auto border-b border-default px-[18px]",
@@ -79,13 +78,13 @@ const theme = tv({
         tab: "h-11",
       },
     },
-    // Same hatch as the sidebar's locked entries.
+
     previewLocked: {
       true: {
         tab: "px-1.5 text-muted dms-hatch-locked",
       },
     },
-    // Same hatch as the sidebar's partially locked entries.
+
     previewPartial: {
       true: {
         tab: "px-1.5 dms-hatch-partial",
@@ -110,7 +109,6 @@ const DmsLink = resolveComponent("DmsLink");
 const isActive = (tab: TableTabItem): boolean =>
   !tab.to && tab.id === activeId.value;
 
-// Beside link tabs, the active tab stands for the page itself.
 const currentValue = computed(() =>
   props.tabs.some((tab) => tab.to) ? "page" : "true",
 );
@@ -120,8 +118,6 @@ const onTabClick = (tab: TableTabItem) => {
   activeId.value = tab.id;
 };
 
-// A strip wider than the card scrolls sideways: its clipped edges fade out so
-// the hidden tabs read as reachable.
 const FADE_EDGE = "24px";
 const navRef = useTemplateRef<HTMLElement>("nav");
 const fadeStart = ref(false);

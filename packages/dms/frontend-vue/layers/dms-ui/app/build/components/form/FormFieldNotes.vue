@@ -20,13 +20,10 @@ const value = computed(() => context.state.value[props.field.id]);
 const baseline = computed(() => context.baselineValue(props.field.id));
 const defaultValue = computed(() => props.field.defaultValue);
 
-// "Changed · was X" while a change waits for its save.
 const showsChange = computed(
   () => context.showsChanges && context.isFieldChanged(props.field.id),
 );
-// "Module default · Use default" on a value that is not the default, for a
-// field that offers it (a setting, not a record's initial value), unless the
-// change line already says what it was.
+
 const showsDefault = computed(
   () =>
     !!props.field.offersDefault &&
@@ -36,7 +33,6 @@ const showsDefault = computed(
     !sameFormValue(baseline.value, defaultValue.value),
 );
 
-// Values that do not fit a line, or must not show: "Changed" alone.
 const UNWORDED_TYPES = new Set(["password", "code", "rich_text"]);
 
 /** A value as the field's type words it, or nothing when it cannot. */

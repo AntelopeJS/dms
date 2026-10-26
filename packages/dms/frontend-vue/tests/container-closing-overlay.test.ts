@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A drawer's or a modal's backdrop lets clicks through to the page as soon
  * as the container starts closing, and fades out quickly (at once with
@@ -41,8 +41,6 @@ let overlayCss = "";
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// Renders the container's backdrop as reka does: `data-state` follows the
-// open state and an inline style keeps the backdrop clickable.
 const ContainerStub = defineComponent({
   props: { open: Boolean, ui: Object },
   emits: ["update:open"],
@@ -207,8 +205,6 @@ describe.each(CONTAINERS)("a %s's backdrop", (_name, load, props) => {
   });
 });
 
-// The app config's themes, which reach every UModal, USlideover and UDrawer:
-// the confirm dialogs, the "Save as a new view" dialog, a module's own ones.
 describe.each(["modal", "slideover", "drawer"] as const)(
   "every %s's theme",
   (component) => {

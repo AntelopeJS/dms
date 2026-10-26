@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The `sidePanel` action target: a non-modal panel docked on the right that
  * opens a module's component on a row, the DMS drawing its header (title,
@@ -377,9 +377,6 @@ describe("row side panel navigation", () => {
 });
 
 describe("row tokens in a row panel's component options", () => {
-  // A block declared on the backend (a ResourceForm in view mode) reads its
-  // row from its options, not from `rowData`; it loads the row its options
-  // name when it sets up.
   let loadedRowIds: Array<string | undefined> = [];
   const BlockPanel = defineComponent({
     props: {
@@ -422,8 +419,7 @@ describe("row tokens in a row panel's component options", () => {
   it("fills them on a click on a row, before any ?record= is written", async () => {
     const { host, targets } = mountPanel();
     const action = blockAction();
-    // As Table.vue runs a row click (`rowClick: "single"`): the row's default
-    // action, handed the clicked row.
+
     const row = document.createElement("tr");
     row.addEventListener("click", (event) => {
       if (!isRowClickTrigger("single", event)) return;
@@ -477,8 +473,6 @@ describe("row tokens in a row panel's component options", () => {
 });
 
 describe("a container block as a row panel's component", () => {
-  // A Card holding blocks: its body and its footer are slots the children
-  // are mounted in.
   const CardStub = defineComponent({
     props: {
       title: { type: String, default: undefined },
@@ -939,9 +933,6 @@ describe("closing the row side panel", () => {
 describe("row click mode", () => {
   type Mode = "single" | "double" | undefined;
 
-  // Whether `type` dispatched on the row's cell (or on `inner`, its content)
-  // runs the row action; read while the event is on the row, whose
-  // `currentTarget` the guards read.
   const triggers = (
     mode: Mode,
     type: string,

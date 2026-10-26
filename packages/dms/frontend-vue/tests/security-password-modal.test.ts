@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   type App,
   computed,
@@ -10,9 +10,6 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-
-// The password dialog asked before a two-factor method is added: it sends the
-// password once typed, flags an empty one, and shows the API's refusal.
 
 const FIELD_ID = "security-confirm-current-password";
 

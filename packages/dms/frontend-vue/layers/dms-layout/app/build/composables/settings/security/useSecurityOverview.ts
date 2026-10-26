@@ -78,7 +78,7 @@ const ATTENTION_TONE_ORDER: Tone[] = [
 export function useSecurityOverview() {
   const summary = useApiData<SecurityOverview>(SECURITY_ENDPOINT);
   const overview = computed(() => summary.data.value ?? null);
-  // A retry in progress is not a failure to show.
+
   const isUnavailable = computed(
     () => !!summary.error.value && summary.status.value !== "pending",
   );

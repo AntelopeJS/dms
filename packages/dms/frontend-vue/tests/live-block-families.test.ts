@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Pause freezes every block of a live page, family by family: the cards that
  * read a `fetchUrl` (KPI, chart, top list, meter, banner, code, prose), the
@@ -48,7 +48,7 @@ const { useBlockItems } = await import(
 const { useApiData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"
 );
-// The app's pause source, as the DMS registers it.
+
 const { default: livePauseSourcePlugin } = (await import(
   "../layers/dms-ui/app/plugins/live-pause-source"
 )) as unknown as {
@@ -60,9 +60,9 @@ const CARD_URL = "/api/orders/kpi";
 const LIST_URL = "/api/orders/stats";
 const POLLED_URL = "/api/orders/health";
 const POLL_MS = 30;
-// Long enough for a short pause to end before a poll falls due.
+
 const SLOW_POLL_MS = 400;
-// useChartFetch debounces every refresh past the first by 180ms.
+
 const SETTLE_MS = 250;
 const settle = (ms = SETTLE_MS) =>
   new Promise((resolve) => setTimeout(resolve, ms));

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -48,7 +48,7 @@ describe("grouped rows", () => {
   it("files a date under its calendar day and week, in the reader's time zone", () => {
     expect(rowGroupKey(local(29, 23), "day", "en-GB")).toBe("2026-09-29");
     expect(rowGroupKey(local(29, 1), "day", "en-GB")).toBe("2026-09-29");
-    // Tuesday Sep 29: the week starts on Monday Sep 28 in en-GB.
+
     expect(rowGroupKey(local(29, 9), "week", "en-GB")).toBe("2026-09-28");
     expect(rowGroupKey(local(27, 9), "week", "en-GB")).toBe("2026-09-21");
     expect(rowGroupKey(undefined, "day", "en-GB")).toBe(NO_GROUP_KEY);
@@ -102,7 +102,6 @@ describe("grouped rows", () => {
 
 describe("groupRows", () => {
   it("files every row of a group under one header, whatever the order", () => {
-    // Rows still sorted by name while the grouped sort loads.
     const rows = [
       { name: "Ann", role: "technician" },
       { name: "Bob", role: "office" },
@@ -133,7 +132,7 @@ describe("grouped display sorting", () => {
     expect(pickedTableSorting(input)).toEqual([
       { id: "position", desc: false },
     ]);
-    // Off the grouped display the order field sorts the list.
+
     expect(listTableSorting({ ...input, grouped: undefined })).toEqual([
       { id: "position", desc: false },
     ]);
@@ -143,7 +142,7 @@ describe("grouped display sorting", () => {
     const input = { ...base, canSort: false, grouped };
     expect(pickedTableSorting(input)).toEqual([{ id: "title", desc: true }]);
     expect(listTableSorting(input)).toEqual([{ id: "status", desc: false }]);
-    // A display without the picker, and not grouped, keeps the default.
+
     expect(listTableSorting({ ...input, grouped: undefined })).toEqual(
       base.defaultSorting,
     );
@@ -173,7 +172,7 @@ describe("grouped display sorting", () => {
       "c",
       "e",
     ]);
-    // A sort on the grouped column itself leaves the listed order.
+
     expect(ids([{ id: "status", desc: false }])).toEqual([
       "a",
       "b",

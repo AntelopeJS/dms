@@ -23,7 +23,6 @@ import {
 } from "../layers/dms-ui/app/build/composables/period/periodQuery";
 import { formatPeriodRange } from "../layers/dms-ui/app/build/composables/period/periodDisplay";
 
-// A zone far from any CI's, and one with a daylight saving change.
 const READER_ZONE =
   browserTimeZone() === "Pacific/Kiritimati"
     ? "Etc/GMT+12"
@@ -46,7 +45,7 @@ afterEach(() => readFor(null));
 describe("the clock a period is resolved in", () => {
   it("reads and builds wall times in a zone, across a daylight saving change", () => {
     const clock = zonedClock(NEW_YORK);
-    // 8 March 2026: New York moves from UTC-5 to UTC-4 at 2:00.
+
     const midnight = clock.instant({
       year: 2026,
       month: 2,
@@ -59,7 +58,7 @@ describe("the clock a period is resolved in", () => {
     expect(midnight.toISOString()).toBe("2026-03-08T05:00:00.000Z");
     const evening = clock.instant({ ...clock.wall(midnight), hours: 23 });
     expect(evening.toISOString()).toBe("2026-03-09T03:00:00.000Z");
-    // Day 0 rolls back to the last day of the month before, as Date's does.
+
     const rolled = clock.wall(
       clock.instant({ ...clock.wall(midnight), month: 3, day: 0 }),
     );

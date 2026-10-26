@@ -12,7 +12,7 @@ import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 const MAX_DISPLAYED_COUNT = 99;
-// Placeholder rows while the list loads: enough to fill the list's height.
+
 const POPOVER_SKELETON_LINES = [
   "mt-[3px] mb-[5px] h-2.5 w-2/5",
   "my-1 h-2 w-11/12",
@@ -38,8 +38,7 @@ const {
 const { setNavBadge } = useNavBadges();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
-// Each opening reloads the list from its first page: until it answers, the
-// popover shows placeholder rows, never "No notifications".
+
 const isListLoading = ref(false);
 
 const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
@@ -48,24 +47,17 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   hasMore,
 );
 
-// The sender's tone (a warning, a success) colours the icon well, as in the
-// inbox; untoned notifications keep the accent until read.
 const iconWellTone = (notification: UserNotification) =>
   iconWellToneOf(resolveNotificationTone(notification));
 
 const formatCount = (count: number) =>
   count > MAX_DISPLAYED_COUNT ? `${MAX_DISPLAYED_COUNT}+` : String(count);
 
-// The bell's badge counts what is unread, in the tone of the most important
-// unread notification; opening the bell changes neither.
 const displayedCount = computed(() => formatCount(unreadCount.value));
 const badgeToneClass = computed(
   () => DMS_TONE_SOLID[unreadTone.value ?? "neutral"],
 );
 
-// The bell is on every page, so it keeps the badge of the Notifications
-// entry in the navigation current between two menu loads: the same count,
-// in the same tone.
 watch([unreadCount, unreadTone], ([count, tone]) => {
   setNavBadge(
     NOTIFICATIONS_SETTINGS_PAGE,
@@ -93,7 +85,7 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  // Read with the page (`useRenderedBellCounts`) unless that read failed.
+
   if (!areCountsLoaded.value) await settledRenderedBellCounts();
   if (!areCountsLoaded.value) await refreshCounts();
 

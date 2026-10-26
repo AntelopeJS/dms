@@ -75,10 +75,6 @@ const route = useDmsRoute();
 const router = useDmsRouter();
 const { $authFetch } = useAuthFetch();
 
-// The page header runs a declared button's target as a table runs its
-// toolbar buttons: confirmation, drawer, modal, API call, export, link. A
-// button that changed something (an API call, a form it opened) changes the
-// record the page shows: its blocks read their data again.
 const { handleCustomButton } = useActionTargets({
   api: $authFetch,
   componentId: "page-header",
@@ -87,10 +83,6 @@ const { handleCustomButton } = useActionTargets({
   handleApiError: (error, title) => useApiError(error, { title }),
 });
 
-// Pressed in place by the component of this page, so what it opens shows on
-// the click. Only a component not mounted (yet) gets it the way a quick
-// action does: through query keys its watcher reads, at the cost of two
-// server visits.
 function pressComponentButton(componentId: string, buttonId?: string) {
   const intent: QuickActionIntent = buttonId
     ? { kind: "button", button: buttonId }
@@ -108,7 +100,6 @@ function pressComponentButton(componentId: string, buttonId?: string) {
   });
 }
 
-// A neutral action reads as the v2 outline button, any colored one is solid.
 const defaultVariant = (
   color: ButtonProps["color"] | undefined,
 ): ButtonProps["variant"] =>
@@ -117,8 +108,6 @@ const defaultVariant = (
 const orderOf = (action: LayoutHeaderAction): number =>
   action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
-// A served label's translation reads the page query as its parameters:
-// `"Download {locale}.json"` names the language of `?locale=`.
 function labelParams(): Record<string, unknown> {
   const { routeParams, routeQuery } = pageUrlValues.value;
   return { ...routeParams, ...routeQuery };
@@ -141,9 +130,6 @@ type UrlTarget = Extract<ActionTarget, { url: string }>;
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
   typeof (target as Partial<UrlTarget>).url === "string";
 
-// The values of the page a target's URL may name: a button declared once on
-// the page leads to the record the page shows (`{{params.id}}`) or keeps its
-// scope (`?workspace={{query.workspace}}`), following the URL as it changes.
 const pageUrlValues = computed(() => ({
   routeParams: siteLayout.findMatchingRoute(route.path)?.params,
   routeQuery: route.query as Record<string, unknown>,
@@ -163,8 +149,6 @@ function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
   };
 }
 
-// A link target (without a confirmation) renders as a link: middle click and
-// "open in a new tab" keep working.
 const LINK_TARGETS: Partial<
   Record<ActionTarget["type"], (target: LinkTarget) => ButtonProps>
 > = {
@@ -190,7 +174,6 @@ function resolveQuickActionButton(
   base: ButtonProps,
   key: string,
 ): ResolvedHeaderAction | null {
-  // Quick actions are served per user: one missing here is not for them.
   const quickAction = findServedQuickAction(quickActions.value?.actions, key);
   if (!quickAction) return null;
   return {
@@ -246,9 +229,6 @@ function resolveAction(
   };
 }
 
-// "Preview as role": a button the role would not be shown stays, hatched and
-// locked (the same look as the sidebar's locked entries). Outside a preview
-// nothing is locked: the server and the rules above already left it out.
 const preview = usePermissionPreview();
 const { t } = useI18n();
 const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
@@ -279,9 +259,6 @@ const resolved = computed(() =>
     .sort((first, second) => first.order - second.order),
 );
 
-// The slot (the page's own actions) goes after every served button of an
-// order up to its own: at an equal order the served ones lead, as they did
-// before `order` existed.
 const SLOT_KEY = "dms-page-header-slot";
 
 interface HeaderBarEntry {

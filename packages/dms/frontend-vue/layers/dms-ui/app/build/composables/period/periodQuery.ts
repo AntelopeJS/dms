@@ -84,8 +84,6 @@ const DAY_BOUNDARY_TIMES: Record<
   },
 };
 
-// Days are the reader's calendar days (`readerClock`): the browser's zone,
-// on the server as in the browser.
 function dayBoundary(
   wall: Pick<WallTime, "year" | "month" | "day">,
   boundary: DayBoundary,
@@ -321,7 +319,6 @@ export interface RememberedPeriodTarget {
   rememberKey?: string;
 }
 
-// A page key always holds `#`, so a shared key cannot collide with one.
 const SHARED_KEY_PREFIX = "@";
 
 /**

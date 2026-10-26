@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A relative preset (`last-24h`) in a server render and in the browser that
  * hydrates it, through the runtime's real async data: both resolve the period
@@ -55,8 +55,7 @@ const { TIME_ZONE_COOKIE, useTimeZoneCookie } = await import(
 );
 setReaderTimeZoneSource(() => useTimeZoneCookie().value);
 const ZONE_COOKIE = `${TIME_ZONE_COOKIE}=${encodeURIComponent(JSON.stringify(browserTimeZone()))}`;
-// jsdom's `document` stays while the server renders: its cookies are the ones
-// read then, as the request's would be.
+
 document.cookie = ZONE_COOKIE;
 const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
@@ -64,7 +63,7 @@ const { useChartFetch } = await import(
 
 const SCOPE = "ops";
 const SERVER_NOW = new Date("2026-10-15T10:00:30.000Z");
-// The browser hydrates a minute and a half later, past a minute boundary.
+
 const HYDRATION_DELAY_MS = 90_000;
 
 const Selector = defineComponent({
@@ -113,7 +112,7 @@ async function serverRender() {
   const app = createSSRApp(Page);
   engine.provideDmsFrontendRuntime(app, runtime);
   engine.setDmsServerRuntimeResolver(() => runtime);
-  // What the server sees: no `window`.
+
   const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);
   try {

@@ -8,10 +8,6 @@ import DmsBlockActions, {
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// `Card` block (interface-dms `base/card`): a titled v2 card holding other
-// blocks. Children without a slot stack in the body; a child in the
-// `actions` slot joins the head's link actions, one in the `footer` slot
-// fills the muted foot band. Texts follow the `$` i18n-key convention.
 interface CardBlockProps extends Partial<DefaultComponentProps> {
   /** Eyebrow title of the card head. */
   title?: string;

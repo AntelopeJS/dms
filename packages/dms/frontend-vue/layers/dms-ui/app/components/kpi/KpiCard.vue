@@ -2,9 +2,7 @@
 import { computed } from "vue";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
-// Imported rather than resolved from the registry: a registered component is
-// a lazy chunk of its own, fetched only when the data first shows it, so the
-// trend would pop in a beat after the value.
+
 import DmsTrendBadge from "../chart/internal/TrendBadge.vue";
 import DmsSparkline from "../chart/internal/Sparkline.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
@@ -55,7 +53,7 @@ interface Props extends DefaultComponentProps {
 }
 
 const DEFAULT_FALLBACK_ICON = "i-ph-chart-bar";
-// v2 KPI sparklines are cyan when the trend is good, not green.
+
 const POSITIVE_SPARKLINE_ACCENT = "primary";
 
 const props = withDefaults(defineProps<Props>(), {
@@ -97,8 +95,6 @@ const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-// With no comparison selected on the scope, a change the data still carries
-// (a static one, a route ignoring `comparison`) is not shown either.
 const comparison = usePeriodComparisonDisplay(props.periodScope);
 const value = computed(() => data.value?.value);
 const delta = computed(() =>
@@ -121,7 +117,6 @@ const formattedParts = computed(() =>
       ),
 );
 
-// Formatted as the value is, unit and currency included: "vs €42,900".
 const previousText = computed(() => {
   if (!props.showPreviousValue || previousValue.value === undefined) return "";
   const formatted = formatValue(
@@ -135,40 +130,32 @@ const previousText = computed(() => {
 });
 
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
-// v2 error state: a failed first load shows a message and a retry button in
-// place of the value; a failed refetch keeps the last value.
+
 const hasError = computed(
   () => !isLoading.value && data.value === null && Boolean(error.value),
 );
-// A 404 is a status too, but nothing to retry: the value does not exist.
+
 const notFound = computed(() =>
   hasError.value ? readFetchNotFound(error.value) : null,
 );
-// A refetch keeps the stale value on screen, faded, instead of a skeleton.
+
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 const showTrend = computed(() => props.showDelta && delta.value !== null);
-// The trend's line is held while the change is still to come, so toggling a
-// comparison never moves the footnote, and dropped with no comparison at all.
+
 const showTrendLine = computed(
   () => props.showDelta && !comparison.isOff.value,
 );
 const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
-// The comparison label names the period the change is measured against, so
-// it shows with the change only: an explicit `compareLabel` wins, then the
-// description, then the label of the comparison the scope selects. With no
-// change (no comparison selected, or none in the data) only the description.
+
 const footnote = computed(() => {
   const isComparing = delta.value !== null;
   const text = (isComparing && props.compareLabel) || props.description;
   if (text) return processI18n(text);
   return isComparing ? (comparison.label.value ?? "") : "";
 });
-// Known before any data: the skeleton draws it, and the loaded card holds it
-// empty while the change is still to come, so toggling a comparison moves
-// nothing. With no comparison selected, the trend's line goes and only a
-// description keeps this one.
+
 const hasFootnoteLine = computed(
   () =>
     !!props.description ||

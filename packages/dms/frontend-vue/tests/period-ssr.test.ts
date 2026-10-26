@@ -47,7 +47,7 @@ const { TIME_ZONE_COOKIE, useTimeZoneCookie } = await import(
 const { zonedClock } = await import(
   "../layers/dms-core/app/composables/period/periodClock"
 );
-// What the regional-preferences plugin sets up.
+
 setReaderTimeZoneSource(() => useTimeZoneCookie().value);
 const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"

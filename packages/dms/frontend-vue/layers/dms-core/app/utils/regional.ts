@@ -302,13 +302,14 @@ type LocaleWithWeekInfo = Intl.Locale & {
  * fr-FR, which both start on Monday.
  */
 export function localeWeekStart(locale: string): number {
+  // prettier-ignore
   try {
     const info = new Intl.Locale(locale) as LocaleWithWeekInfo;
     if (!info.region) return MONDAY;
     const weekInfo = info.getWeekInfo?.() ?? info.weekInfo;
     if (weekInfo) return weekInfo.firstDay % DAYS_PER_WEEK;
   } catch {
-    // An unknown tag falls back to Monday.
+    // eslint-disable-line no-empty -- Invalid locale tags fall through to the Monday default.
   }
   return MONDAY;
 }

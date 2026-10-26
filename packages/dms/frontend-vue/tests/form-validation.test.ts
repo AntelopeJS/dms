@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, reactive, ref } from "vue";
 import * as z from "zod";
@@ -68,7 +68,7 @@ describe("localizeSchema", () => {
       { message: "t(dms.field_errors.required)", path: ["password"] },
       { message: "t(dms.field_errors.required)", path: ["name"] },
     ]);
-    // Typed then cleared: still "required", not "invalid e-mail".
+
     expect(
       await issuesOf(login, { email: " ", password: "", name: "" }),
     ).toEqual([
@@ -140,7 +140,7 @@ describe("focusFirstFormError", () => {
     document.body.innerHTML =
       '<input id="first" disabled><input id="second"><input id="third">';
     focusFirstFormError([{ id: "third" }, { id: "first" }, { id: "missing" }]);
-    // UForm re-enables its fields after emitting the error.
+
     document.getElementById("first")!.removeAttribute("disabled");
     vi.runAllTimers();
     expect(document.activeElement?.id).toBe("first");
@@ -196,7 +196,6 @@ describe("useCodeFieldError", () => {
     expect(digits.value).toEqual(["1", "2"]);
     expect(document.activeElement).toBe(container.querySelectorAll("input")[1]);
 
-    // Typing clears it.
     digits.value = ["1", "2", "3"];
     await nextTick();
     expect(error.value).toBeUndefined();

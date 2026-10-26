@@ -16,9 +16,6 @@ interface CodeBlockResponse {
   language?: string;
 }
 
-// `CodeBlock` block (interface-dms `base/code-block`): read-only code with
-// highlighting and a copy button, written in the options or read from a
-// route answering `{ code, language? }`. DmsCodeSnippet draws it.
 interface CodeBlockProps extends DefaultComponentProps {
   code?: string;
   language?: string;
@@ -42,7 +39,6 @@ const props = withDefaults(defineProps<CodeBlockProps>(), {
   fetchUrlMethod: undefined,
 });
 
-// The placeholder lines while the route answers, at the code's line height.
 const SKELETON_LINE_WIDTHS = ["w-2/3", "w-1/2", "w-3/4"];
 
 const { processText } = useComposedText();
@@ -59,7 +55,7 @@ const { data, isLoading, error, refresh } = useChartFetch<CodeBlockResponse>({
 });
 
 const code = computed(() => data.value?.code ?? props.code);
-// The block always heads its code with its language, plain text included.
+
 const language = computed(
   () => data.value?.language ?? props.language ?? PLAIN_CODE_LANGUAGE,
 );
@@ -70,8 +66,7 @@ const showSkeleton = computed(() => isLoading.value && !data.value);
 const notFound = computed(() =>
   isLoading.value ? null : readFetchNotFound(error.value),
 );
-// A failed first load shows a retry in place of the code; a failed refetch
-// keeps the code on screen.
+
 const hasError = computed(
   () =>
     !isLoading.value && !data.value && Boolean(error.value) && !notFound.value,

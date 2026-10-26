@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A card bound to a period selector shows the comparison the selector
  * applies: its label follows the selected mode, its comparison value is

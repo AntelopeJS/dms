@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The live mode beyond Live / Pause: what a pause counts (published rows, not
  * messages), the holds a component takes with a reason, the hidden tab, the
@@ -95,9 +95,6 @@ afterEach(async () => {
 });
 
 describe("the pause counter", () => {
-  // The dms-api regression: the capture publishes one message per 1.5 s with
-  // the number of requests it stands for; 40 requests over two messages read
-  // "2 new" before.
   it("counts the requests a batch announces, not the messages", async () => {
     const live = install({ maxRate: 5 });
     const table = mountBlock();
@@ -296,8 +293,7 @@ describe("the cadence", () => {
     const poll = vi.fn();
     const live = install({ maxRate: 5 }, { poll });
     live.setStreamConnected(false);
-    // Not polling before the first tick: a stream still connecting is not
-    // reported down.
+
     expect(live.isPolling.value).toBe(false);
 
     vi.advanceTimersByTime(5000);

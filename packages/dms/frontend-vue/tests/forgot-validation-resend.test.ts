@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -84,7 +84,7 @@ function installRuntime() {
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("navigateDms", vi.fn());
-  // The resend link shows at once: the wait is not under test.
+
   vi.stubGlobal("useCooldown", () => ({
     cooldown: ref(0),
     startCooldown: vi.fn(),

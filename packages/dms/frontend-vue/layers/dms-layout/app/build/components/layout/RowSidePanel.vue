@@ -44,7 +44,7 @@ watch(
       },
     );
   },
-  // At once: a second J right after the first steps from the row it opened.
+
   { immediate: true, flush: "sync" },
 );
 
@@ -67,8 +67,6 @@ onMounted(() => {
   ];
 });
 
-// Another side panel took its place, or the user signed out: the row is no
-// longer open.
 onBeforeUnmount(() => {
   stopKeys.forEach((stop) => stop());
   stopNavigation?.();

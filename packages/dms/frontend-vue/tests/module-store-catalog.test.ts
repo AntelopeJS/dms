@@ -49,8 +49,6 @@ function lookup(messages: Messages, key: string): unknown {
     );
 }
 
-// Resolves `$i18n.key` display strings against the English catalog, like
-// processI18n does in the app.
 const resolve = (value: string): string => {
   if (!value.startsWith("$")) return value;
   const text = lookup(en, value.slice(1));
@@ -394,7 +392,7 @@ describe("module store catalog", () => {
     expect(media.catalogCategory).toBe("$modules.store.category.content");
     expect(api.version).toBe("0.4.1");
     expect(api.catalogCategory).toBe("$api.category");
-    // A declared range is not a version a tile can print.
+
     expect(
       withStoreDetails(installed, [
         listingEntry("media", { installedVersion: "^0.5.0" }),
@@ -441,7 +439,7 @@ describe("module store catalog", () => {
       "$dms_mailing.catalog_category",
       "$modules.store.category.content",
     ]);
-    // A module the deployment does not run keeps the catalog's category.
+
     expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
   });
 });

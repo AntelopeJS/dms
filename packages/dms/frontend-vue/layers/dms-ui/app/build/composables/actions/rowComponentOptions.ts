@@ -6,13 +6,8 @@ import {
 
 type Options = Record<string, unknown>;
 
-// An option holding a URL is named so (`fetchUrl`, `submitUrl`, `searchUrl`,
-// `to`): it is filled encoded, as an action's URL is. Any other text
-// (`rowId`, a title) takes the row's values as they are.
 const URL_OPTION = /(?:url|^to|^href)$/i;
 
-// Options naming rows of their own — a nested table's row actions, a source
-// table's `fetchRowUrl` — keep their `{{row.X}}` for those rows.
 const OWN_ROW_OPTIONS: ReadonlySet<string> = new Set([
   "rowActions",
   "fetchRowUrl",

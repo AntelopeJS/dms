@@ -35,7 +35,7 @@ export function formatDayMonth(
   now: number = Date.now(),
 ): string {
   const day = new Date(date);
-  // Years read in the reader's time zone, as the date is written.
+
   const year = regionalDateTimeFormat(locale, YEAR_FORMAT);
   const isOtherYear = year.format(day) !== year.format(now);
   return regionalDateTimeFormat(
