@@ -62,7 +62,7 @@ export class PageMatrixRoster extends PageController(
   static guide = demoGuide([
     {
       label: "Click a cell, pick a shift",
-      text: 'A select column whose options carry a tone and an icon: each value is drawn as its pill. editTrigger: "click", saveMode: "immediate": the pick is saved at once.',
+      text: 'A select column whose options carry a tone and an icon: each value is drawn as its pill. A click opens the list, saveMode: "immediate": the pick is saved at once.',
     },
     {
       label: "Give Charlotte Hubert her Wednesday",
@@ -90,7 +90,6 @@ export class PageMatrixRoster extends PageController(
     saveUrl: `${MATRIX_ROSTER_API}/save`,
     columns: DAY_COLUMNS,
     rowHeader: { label: "Équipe", width: 250 },
-    editTrigger: "click",
     saveMode: "immediate",
     grouping: { collapsible: true },
     crossHighlight: true,

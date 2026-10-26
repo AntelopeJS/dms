@@ -260,7 +260,6 @@ const EDITOR_MODELS: Partial<
   select: (value) => (isEmptyValue(value) ? undefined : String(value)),
   date: (value) => (isEmptyValue(value) ? undefined : String(value)),
   richText: (value) => (typeof value === "string" ? value : ""),
-  keyValue: (value) => (isStructuredValue(value) ? value : {}),
   address: (value) => (isStructuredValue(value) ? value : null),
 };
 

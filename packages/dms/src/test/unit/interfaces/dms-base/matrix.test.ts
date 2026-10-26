@@ -32,7 +32,6 @@ const FULL_OPTIONS: MatrixProps = {
   ],
   rowHeader: { label: "Store", width: 200, numbers: true },
   editable: true,
-  editTrigger: "click",
   typeToEdit: true,
   saveMode: "staged",
   review: true,
@@ -182,10 +181,6 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     const block = GetBlockType("Matrix");
     expect(block?.componentName).to.equal(COMPONENT_NAME);
     expect(block?.meta.group).to.equal("data");
-    expect(block?.config.editTrigger?.enum).to.deep.equal([
-      "click",
-      "doubleClick",
-    ]);
     expect(block?.config.saveMode?.enum).to.deep.equal(["immediate", "staged"]);
     expect(block?.config.pagination?.enum).to.deep.equal([
       "none",
@@ -215,7 +210,6 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
     const valid = (options: Record<string, unknown>) =>
       ValidateBlockOptions("Matrix", options).valid;
     expect(valid({ saveMode: "later" })).to.equal(false);
-    expect(valid({ editTrigger: "hover" })).to.equal(false);
     expect(valid({ pageSize: 0 })).to.equal(false);
   });
 });

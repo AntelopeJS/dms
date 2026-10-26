@@ -11,6 +11,7 @@ import {
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
+import { whenFocusable } from "../../utils/whenFocusable";
 import MatrixFieldInput from "./MatrixFieldInput.vue";
 
 /**
@@ -50,7 +51,9 @@ const emit = defineEmits<{
 }>();
 
 const FOCUSABLE = "input, textarea, [contenteditable='true'], button";
-const FOCUS_ATTEMPTS = 20;
+// Past this delay, a lazily loaded input still missing does not take the
+// keyboard when it arrives.
+const FOCUS_WAIT_MS = 3_000;
 // Overlays an input opens (a select's list, a calendar) are not "elsewhere".
 const OVERLAYS = [
   "[data-reka-popper-content-wrapper]",
@@ -153,13 +156,10 @@ onClickOutside(
 
 // The input is a lazily loaded component: it is focused once it is there,
 // the caret after a typed character, the whole value selected otherwise.
-function focusInput(attempt = 0): void {
-  const element = wrapper.value?.querySelector<HTMLElement>(FOCUSABLE);
-  if (!element) {
-    if (attempt < FOCUS_ATTEMPTS)
-      requestAnimationFrame(() => focusInput(attempt + 1));
-    return;
-  }
+async function focusInput(): Promise<void> {
+  if (!wrapper.value) return;
+  const element = await whenFocusable(wrapper.value, FOCUSABLE, FOCUS_WAIT_MS);
+  if (!element || isDone.value) return;
   element.focus();
   if (
     element instanceof HTMLInputElement ||
@@ -178,7 +178,7 @@ function placeCaret(element: HTMLInputElement | HTMLTextAreaElement): void {
   element.select?.();
 }
 
-onMounted(() => focusInput());
+onMounted(() => void focusInput());
 
 // Ctrl+S saves the grid with the cell being typed in.
 const unregister = useMatrixContext().interaction.registerEditor(() => {

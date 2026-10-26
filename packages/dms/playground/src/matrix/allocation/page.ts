@@ -65,7 +65,7 @@ export class PageMatrixAllocation extends PageController(
   static guide = demoGuide([
     {
       label: "Click a cell and type a number",
-      text: 'editTrigger: "click" and typeToEdit: typing on a selected cell starts editing with that digit; integers from 0 (integer, min). The small figure is the stock already there (hint).',
+      text: "A click edits; with typeToEdit, typing on a selected cell starts editing with that digit; integers from 0 (integer, min). The small figure is the stock already there (hint).",
     },
     {
       label: "Watch the totals",
@@ -100,7 +100,6 @@ export class PageMatrixAllocation extends PageController(
     saveUrl: `${MATRIX_ALLOCATION_API}/save`,
     columns: sizeColumns((size) => `${RECEIVED[size] ?? 0} reçue(s)`),
     rowHeader: { label: "Magasin", width: 220 },
-    editTrigger: "click",
     typeToEdit: true,
     selectable: true,
     saveMode: "staged",
@@ -150,7 +149,6 @@ export class PageMatrixAllocation extends PageController(
     saveUrl: `${MATRIX_ALLOCATION_API}/correction/save`,
     columns: sizeColumns(() => "compté"),
     rowHeader: { label: "Magasin", width: 220 },
-    editTrigger: "click",
     typeToEdit: true,
     saveMode: "immediate",
     totals: { rows: true, columns: true, label: "Total" },

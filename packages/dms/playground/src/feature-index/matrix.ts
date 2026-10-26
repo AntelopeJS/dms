@@ -28,12 +28,12 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
   ),
   feature(
     "Records of mixed types edited in place",
-    'Matrix({ fetchUrl, saveUrl, columns: [{ kind: "json" | "keyValue" | "code" | … }] })',
+    'Matrix({ fetchUrl, saveUrl, columns: [{ kind: "json" | "code" | … }] })',
     PAGES.records,
   ),
   feature(
-    "Double click to edit, a click selects",
-    'editTrigger: "doubleClick"',
+    "A click edits, the hovered cell framed as its input",
+    "Matrix({ saveUrl })",
     PAGES.records,
   ),
   feature(
@@ -93,7 +93,7 @@ export const MATRIX_FEATURES: PlaygroundFeature[] = [
   ),
   feature(
     "Click to edit, saved cell by cell, Enter moves down",
-    'editTrigger: "click", saveMode: "immediate", enterMove: "down"',
+    'saveMode: "immediate", enterMove: "down"',
     PAGES.translations,
   ),
   feature(

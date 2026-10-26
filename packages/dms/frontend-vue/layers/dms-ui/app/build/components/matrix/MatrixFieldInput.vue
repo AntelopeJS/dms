@@ -44,10 +44,6 @@ const DRAWER_TEXT_ROWS = 4;
 const MAX_TEXT_ROWS = 12;
 const CODE_MIN_LINES = 8;
 const PLAIN_TEXT_LANGUAGE = "text";
-const KEY_VALUE_COLUMN = {
-  type: "string",
-  component: { componentName: "dms-input-text" },
-};
 
 const selectItems = (column: MatrixColumn) =>
   (column.options ?? []).map((option) => ({
@@ -105,10 +101,6 @@ const EDITORS: Record<MatrixCellKind, FieldEditor> = {
     }),
   },
   richText: { component: "dms-rich-text", options: () => ({}) },
-  keyValue: {
-    component: "dms-key-value",
-    options: () => ({ value: KEY_VALUE_COLUMN }),
-  },
   address: { component: "dms-input-address", options: () => ({}) },
 };
 

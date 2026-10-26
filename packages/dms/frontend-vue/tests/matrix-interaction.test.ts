@@ -1,9 +1,9 @@
 /**
  * The Matrix grid's keyboard and pointer: the focus moved by the keys, edits
- * started by Enter, a typed character, a click or a double click, cells sent
- * to their drawer, switches toggled at once, Tab moving the editor, N jumping
- * to the next empty cell (unfolding its group), Space opening the row, and a
- * click on a read-only cell running the cell action.
+ * started by a click, Enter or a typed character, cells sent to their drawer,
+ * switches toggled at once, Tab moving the editor, N jumping to the next
+ * empty cell (unfolding its group), Space opening the row, and a click on a
+ * read-only cell running the cell action.
  */
 import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
@@ -180,19 +180,18 @@ describe("focus and editing", () => {
     expect(interaction.editing.value).toMatchObject(at("r1", "qty"));
   });
 
-  it("selects on a click and edits on a double click by default", () => {
+  it("edits on a click", () => {
     const { interaction } = setup();
     interaction.onCellClick(at("r1", "name"));
     expect(interaction.focus.value).toEqual(at("r1", "name"));
-    expect(interaction.editing.value).toBeNull();
-    interaction.onCellDoubleClick(at("r1", "name"));
     expect(interaction.editing.value).toMatchObject(at("r1", "name"));
   });
 
-  it("edits on a click with editTrigger click", () => {
-    const { interaction } = setup({ editTrigger: "click" });
-    interaction.onCellClick(at("r1", "name"));
-    expect(interaction.editing.value).toMatchObject(at("r1", "name"));
+  it("toggles a switch on a click, without an editor", () => {
+    const { interaction, calls } = setup();
+    interaction.onCellClick(at("r1", "on"));
+    expect(interaction.editing.value).toBeNull();
+    expect(calls.commit).toHaveBeenCalledWith(ROWS[0], COLUMNS[2], false);
   });
 });
 

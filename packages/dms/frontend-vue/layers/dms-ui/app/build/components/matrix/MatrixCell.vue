@@ -35,6 +35,9 @@ const props = withDefaults(defineProps<MatrixCellProps>(), {
   stickyStart: undefined,
 });
 
+/** Kinds picked from a list or toggled rather than typed. */
+const POINTER_KINDS = new Set(["boolean", "select", "date"]);
+
 const matrix = useMatrixContext();
 const { t } = useI18n();
 const { interaction, engine } = matrix;
@@ -64,7 +67,8 @@ const isEntry = computed(() => {
 const hasAction = computed(
   () => !isEditable.value && matrix.hasCellAction(props.row, props.column),
 );
-const isNumber = computed(() => kindOf(props.column) === "number");
+const kind = computed(() => kindOf(props.column));
+const isNumber = computed(() => kind.value === "number");
 const align = computed(
   () => props.column.align ?? (isNumber.value ? "end" : "start"),
 );
@@ -126,6 +130,15 @@ const title = computed(() => {
   return undefined;
 });
 
+// A click edits: hovered, the cell draws the frame of the input it opens.
+// A switch is toggled, not typed into: it keeps its own look.
+const isFramed = computed(
+  () => isEditable.value && !state.value.disabled && kind.value !== "boolean",
+);
+const editCursor = computed(() =>
+  POINTER_KINDS.has(kind.value) ? "cursor-pointer" : "cursor-text",
+);
+
 const cellClass = computed(() => [
   "group/cell relative h-[var(--dms-matrix-row-h)] border-e border-b border-(--ui-border-muted) px-3 py-0 align-middle outline-none",
   isCrossLit.value ? "bg-elevated" : "bg-(--dms-surface-card)",
@@ -135,7 +148,7 @@ const cellClass = computed(() => [
     "ring-1 ring-(--ui-border-accented) ring-inset",
   state.value.disabled && "text-dimmed cursor-not-allowed",
   hasAction.value && "cursor-pointer",
-  isEditable.value && !isEditing.value && "cursor-cell",
+  isEditable.value && !isEditing.value && editCursor.value,
   props.stickyStart !== undefined && "sticky z-10",
   state.value.tone && MATRIX_TONE_TEXT[state.value.tone],
 ]);
@@ -175,7 +188,6 @@ function onEditorPanel(model: unknown): void {
     :class="cellClass"
     :style="cellStyle"
     @click="interaction.onCellClick(address)"
-    @dblclick="interaction.onCellDoubleClick(address)"
     @mouseenter="interaction.hover.value = address"
     @focus="interaction.focus.value = address"
   >
@@ -210,7 +222,11 @@ function onEditorPanel(model: unknown): void {
       </UTooltip>
       <div
         class="flex min-w-0 items-center gap-1.5 overflow-hidden"
-        :class="MATRIX_ALIGN_CLASSES[align]"
+        :class="[
+          MATRIX_ALIGN_CLASSES[align],
+          isFramed &&
+            'min-h-7 rounded-lg px-2 ring-(--ui-border-accented) ring-inset group-hover/cell:ring-1',
+        ]"
       >
         <s
           v-if="hasStruck"

@@ -27,7 +27,6 @@ export const MATRIX_CELL_KINDS = [
   "json",
   "code",
   "richText",
-  "keyValue",
   "address",
 ] as const;
 
@@ -43,7 +42,6 @@ export const MATRIX_PANEL_KINDS: readonly MatrixCellKind[] = [
   "json",
   "code",
   "richText",
-  "keyValue",
   "address",
 ];
 
@@ -52,9 +50,6 @@ export const MATRIX_LONG_TEXT_LENGTH = 120;
 
 /** Where a cell is edited: in place, in a drawer holding that cell alone, or picked by its kind and value. */
 export type MatrixEditIn = "cell" | "panel" | "auto";
-
-/** How a cell enters editing. */
-export type MatrixEditTrigger = "click" | "doubleClick";
 
 /**
  * When an edit reaches the server. `immediate` writes each cell as it is left
@@ -459,10 +454,8 @@ export interface MatrixProps extends BaseComponentProps {
   columns?: MatrixColumn[];
   rowHeader?: MatrixRowHeader;
 
-  /** Defaults to `true` when `saveUrl` is set. */
+  /** Defaults to `true` when `saveUrl` is set. A click on a cell edits it. */
   editable?: boolean;
-  /** Defaults to `doubleClick`: a click selects the cell. */
-  editTrigger?: MatrixEditTrigger;
   /** Typing on a selected cell starts editing it with that character, as a spreadsheet does. */
   typeToEdit?: boolean;
   /** Defaults to `immediate`. */
