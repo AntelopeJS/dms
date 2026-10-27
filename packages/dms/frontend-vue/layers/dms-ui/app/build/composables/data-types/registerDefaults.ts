@@ -5,8 +5,16 @@ import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
-import { buildRelationBadges } from "./relationBadges";
-import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
+import {
+  buildRelationBadges,
+  MAX_RELATION_BADGES,
+  readRelationLabel,
+} from "./relationBadges";
+import {
+  DEFAULT_RELATION_VALUE_KEY,
+  mapRelationBeforeState,
+  sameRelationValue,
+} from "./relationValue";
 import { NotFoundRelation, relationSelectSource } from "./relationRows";
 import {
   isSet,
@@ -348,7 +356,11 @@ function renderNotFoundRelation(relation: NotFoundRelation) {
   );
 }
 
-function renderRelationBadges(values: unknown[], labelKey: string) {
+function renderRelationBadges(
+  values: unknown[],
+  labelKey: string,
+  valueKey: string,
+) {
   const { processI18n, t } = getAppTranslation();
   const notFound = values.filter(
     (item): item is NotFoundRelation => item instanceof NotFoundRelation,
@@ -356,6 +368,8 @@ function renderRelationBadges(values: unknown[], labelKey: string) {
   const { visible, hidden } = buildRelationBadges(
     values.filter((item) => !(item instanceof NotFoundRelation)),
     labelKey,
+    MAX_RELATION_BADGES,
+    valueKey,
   );
   const badges = [
     ...visible.map((label) => renderRelationBadge(processI18n(label))),
@@ -370,27 +384,14 @@ function renderRelationBadges(values: unknown[], labelKey: string) {
   return h("span", { class: RELATION_BADGES_CLASS }, badges);
 }
 
-function relationKey(row: unknown, options: unknown): string {
-  const key = mapRelationBeforeState(row, options);
-  return key === undefined || key === null ? "" : String(key);
-}
-
-function labelledRelationRow(row: unknown, labelKey: string, options: unknown) {
-  if (row instanceof NotFoundRelation || !isObject(row)) return row;
-  const label = (row as Record<string, unknown>)[labelKey];
-  const hasLabel = label !== undefined && label !== null && label !== "";
-  return hasLabel ? row : relationKey(row, options);
-}
-
 function renderRelation(value: unknown, options: unknown) {
   const opts = options as RelationOptions | undefined;
   const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
 
+  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
+
   if (opts?.multiple && Array.isArray(value)) {
-    return renderRelationBadges(
-      value.map((row) => labelledRelationRow(row, labelKey, options)),
-      labelKey,
-    );
+    return renderRelationBadges(value, labelKey, valueKey);
   }
 
   if (value instanceof NotFoundRelation) return renderNotFoundRelation(value);
@@ -398,7 +399,7 @@ function renderRelation(value: unknown, options: unknown) {
 
   const valueObject = value as Record<string, string>;
   const avatarKey = opts?.keyMapping?.avatar;
-  const label = valueObject[labelKey] || relationKey(value, options);
+  const label = readRelationLabel(value, labelKey, valueKey);
 
   if (!avatarKey || !valueObject[avatarKey]) return label;
 

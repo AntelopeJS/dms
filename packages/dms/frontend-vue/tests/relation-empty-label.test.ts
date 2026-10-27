@@ -59,7 +59,11 @@ describe("relation cell without a label", () => {
   });
 
   it("keeps the label when there is one", () => {
-    expect(renderRelation({ _id: "ord-7", id: 1042 }, options)).toBe(1042);
+    expect(renderRelation({ _id: "ord-7", id: 1042 }, options)).toBe("1042");
+  });
+
+  it("keeps a label of 0", () => {
+    expect(renderRelation({ _id: "ord-7", id: 0 }, options)).toBe("0");
   });
 });
 
@@ -79,5 +83,9 @@ describe("multiple relation cell without a label", () => {
         { _id: "role-3", name: null },
       ]),
     ).toEqual(["role-1", "Admin", "role-3"]);
+  });
+
+  it("keeps a badge labelled 0", () => {
+    expect(badgeLabels([{ _id: "role-1", name: 0 }])).toEqual(["0"]);
   });
 });

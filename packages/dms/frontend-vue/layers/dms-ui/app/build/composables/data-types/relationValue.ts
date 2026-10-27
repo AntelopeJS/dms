@@ -1,6 +1,7 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
 
-const DEFAULT_RELATION_VALUE_KEY = "_id";
+/** The key a related row is referenced by when `keyMapping.value` maps none. */
+export const DEFAULT_RELATION_VALUE_KEY = "_id";
 
 interface RelationKeyMapping {
   value?: string;
