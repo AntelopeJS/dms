@@ -10,13 +10,14 @@ import {
   DEFAULT_API_BASE_URL,
   DEFAULT_CLIENT_BASE_URL,
 } from "./config";
+import { SESSION_HANDOFF_ENDPOINT as sessionHandoffEndpoint } from "./config/session-handoff";
 import { describeEnabledOAuthProviders } from "./routes/oauth";
 
 /**
  * Where the frontend server opens the session a credential change handed back
  * (`/auth/establish`). Declared as an establish endpoint of the DMS frontend.
  */
-export const SESSION_HANDOFF_ENDPOINT = "/api/auth/session-handoff";
+export const SESSION_HANDOFF_ENDPOINT = sessionHandoffEndpoint;
 
 const DEFAULT_HOMEPAGE = "/";
 

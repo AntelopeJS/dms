@@ -6,7 +6,7 @@ import {
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../db";
-import { notifyOutdatedModules } from "../../dev/module-update-notifications";
+import { notifyOutdatedModules } from "../../dev";
 import { internal } from "../../implementations/dms-notifications";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";

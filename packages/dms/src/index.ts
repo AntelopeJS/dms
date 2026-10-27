@@ -38,10 +38,7 @@ import {
   runSweepStaleExports,
   SWEEP_STALE_EXPORTS_CRON_NAME,
 } from "./crons";
-import {
-  startModuleUpdateWatcher,
-  stopModuleUpdateWatcher,
-} from "./dev/module-update-notifications";
+import { startModuleUpdateWatcher, stopModuleUpdateWatcher } from "./dev";
 import {
   registerInviteExtensionCleanup,
   registerTenantDeletedCleanup,
@@ -66,15 +63,15 @@ import {
   cancelPendingExtensionReport,
   startPendingExtensionReport,
   stopPendingExtensionReport,
-} from "./page-extensions/pending-report";
+} from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
 import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
-} from "./startup-config";
-import { allowClientOrigin } from "./client-origin-cors";
+} from "./config/startup-config";
+import { allowClientOrigin } from "./config/client-origin-cors";
 import {
   ensureDefaultTenantExists,
   provisionDefaultTenant,

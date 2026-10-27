@@ -2,7 +2,7 @@ import {
   DEFAULT_CLIENT_BASE_URL,
   getAuthConfig,
   getHtmlRenderConfig,
-} from "./config";
+} from "./internal/state";
 
 /** The value the playground and the DMS templates sign with in development. */
 const PUBLIC_DEVELOPMENT_SECRET = "dev";

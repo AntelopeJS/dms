@@ -3,7 +3,7 @@ import {
   GetCorsConfig,
   SetCorsConfig,
 } from "@antelopejs/interface-api";
-import { getConfig } from "./config";
+import { getConfig } from "./internal/state";
 
 function listOrigins(
   allowedOrigins: AllowedOrigin | undefined,

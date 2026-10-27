@@ -1,6 +1,6 @@
 import { GetCorsConfig, SetCorsConfig } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import { allowClientOrigin } from "../../client-origin-cors";
+import { allowClientOrigin } from "../../config/client-origin-cors";
 import { getConfig } from "../../config";
 import { createClient } from "../helpers/http";
 

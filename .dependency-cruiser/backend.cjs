@@ -1,6 +1,6 @@
 const root = "^packages/dms/src/";
 const tiers = [
-  ["routes"],
+  ["routes", "dev", "page-extensions"],
   ["pages"],
   ["implementations"],
   ["store", "attachments", "realtime", "automation", "crons", "hooks"],
@@ -41,10 +41,17 @@ const faces = {
   ],
   store: ["frontend"],
   utils: ["notification-tones"],
+  config: ["startup-config", "client-origin-cors", "session-handoff"],
 };
 
 module.exports = {
   forbidden: [
+    {
+      name: "backend-no-composition-root",
+      severity: "error",
+      from: { path: `${root}(?:${tiers.flat().join("|")})/` },
+      to: { path: `${root}[^/]+\\.[cm]?[jt]sx?$` },
+    },
     {
       name: "backend-no-frontend",
       severity: "error",

@@ -135,10 +135,16 @@ const constructorExemptions = {
     "      ).constructor,",
 };
 const builtinExemptions = {
-  "store/compatibility.ts:2": 'import { findPackageJSON } from "node:module";',
   "test/unit/interfaces/dms-base/table-view-evaluation-order.fixture.ts:1":
     'import Module, { findPackageJSON } from "node:module";',
 };
+const requireResolveExemptions = {
+  "src/store/compatibility.ts:32":
+    "  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));",
+  "dist/store/compatibility.js:26":
+    "    let folder = node_path_1.default.dirname(require.resolve(INTERFACE_ENTRY));",
+};
+const usedRequireResolveExemptions = new Set();
 const sourceExemptions = { ...constructorExemptions, ...builtinExemptions };
 const usedExemptions = new Set();
 const processMembers = new Set([
@@ -298,6 +304,30 @@ function checkSourceRoots(source, path) {
   visit(source);
 }
 
+function pinnedRequireResolve(node, source, path) {
+  const member = node.parent;
+  if (
+    !ts.isPropertyAccessExpression(member) ||
+    member.expression !== node ||
+    member.name.text !== "resolve"
+  )
+    return false;
+  const line =
+    source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+  const location = `${relative(root, path).split(sep).join("/")}:${line}`;
+  assert.ok(
+    Object.hasOwn(requireResolveExemptions, location),
+    `${location} require.resolve is forbidden outside pinned exemptions`,
+  );
+  assert.equal(
+    source.text.split(/\r?\n/)[line - 1],
+    requireResolveExemptions[location],
+    `${location} require.resolve exemption moved or changed`,
+  );
+  usedRequireResolveExemptions.add(location);
+  return true;
+}
+
 function checkSource(source, path, boundary, compiled) {
   function checkSpecifier(
     expression,
@@ -353,7 +383,7 @@ function checkSource(source, path, boundary, compiled) {
     );
   }
   function checkIdentifier(node) {
-    if (node.text === "require") {
+    if (node.text === "require" && !pinnedRequireResolve(node, source, path)) {
       assert.ok(
         ts.isCallExpression(node.parent) &&
           node.parent.expression === node &&
@@ -461,5 +491,10 @@ assert.equal(
   usedExemptions.size,
   Object.keys(sourceExemptions).length,
   "Every pinned loader exemption must still be used",
+);
+assert.equal(
+  usedRequireResolveExemptions.size,
+  Object.keys(requireResolveExemptions).length,
+  "Every pinned require.resolve exemption must still be used",
 );
 process.stdout.write("Backend invariant checks passed.\n");

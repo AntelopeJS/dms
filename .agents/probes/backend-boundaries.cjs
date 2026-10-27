@@ -8,6 +8,8 @@ const {
   mkdirSync,
   symlinkSync,
   rmSync,
+  cpSync,
+  existsSync,
 } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join, relative, dirname } = require("node:path");
@@ -51,6 +53,10 @@ function runGuard(env = process.env) {
   );
 }
 const source = join(root, "packages/dms/src");
+if (process.argv.includes("--round11-targets")) {
+  round11Targets();
+  process.exit(0);
+}
 if (process.argv.includes("--round10-pins")) {
   round10Pins();
   process.exit(0);
@@ -73,10 +79,11 @@ packageTargets();
 round9Targets();
 round10Targets();
 round10Pins();
+round11Targets();
 if (process.argv.includes("--runtime-targets")) process.exit(0);
 sourceDistTargets();
 const tiers = [
-  ["routes"],
+  ["routes", "dev", "page-extensions"],
   ["pages"],
   ["implementations"],
   ["store", "attachments", "realtime", "automation", "crons", "hooks"],
@@ -97,6 +104,8 @@ const entries = new Map(
 );
 const privateFiles = {
   routes: "auth/signup.ts",
+  dev: "module-update-notifications.ts",
+  "page-extensions": "pending-report.ts",
   pages: "settings/users/account-credentials.ts",
   implementations: "dms/permission-preview.ts",
   store: "activity.ts",
@@ -1316,4 +1325,273 @@ function round10Pins() {
   process.stdout.write(
     `Round 10 process pins complete: ${cases} mutations ${baseline ? "accepted by original guard/helper" : "rejected"}; exact source/dist bytes restored and healthy scan passed after every mutation.\n`,
   );
+}
+
+function round11Targets() {
+  // Never introduce fixtures into the live tree: another probe may be scanning it.
+  const scratch = mkdtempSync(join(tmpdir(), "backend-round11-"));
+  const rules = process.argv
+    .find((argument) => argument.startsWith("--baseline-rules="))
+    ?.slice("--baseline-rules=".length);
+  const ts = require(require.resolve("typescript", { paths: [root] }));
+  const backend = join(scratch, "packages/dms");
+  const sourceRoot = join(backend, "src");
+  const distRoot = join(backend, "dist");
+  const hook = join(backend, "scripts/backend-runtime-boundaries.cjs");
+  const synthetic = [];
+  let edges = 0;
+  let loads = 0;
+  let hookChecks = 0;
+  function emit(name) {
+    const from = join(sourceRoot, name);
+    const to = join(distRoot, name.replace(/\.ts$/, ".js"));
+    mkdirSync(dirname(to), { recursive: true });
+    writeFileSync(
+      to,
+      ts.transpileModule(readFileSync(from, "utf8"), {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.CommonJS,
+          esModuleInterop: true,
+        },
+        fileName: from,
+      }).outputText,
+    );
+    return to;
+  }
+  try {
+    mkdirSync(backend, { recursive: true });
+    for (const name of ["src", "dist", "scripts", "package.json"])
+      cpSync(join(root, "packages/dms", name), join(backend, name), {
+        recursive: true,
+      });
+    symlinkSync(join(root, "node_modules"), join(scratch, "node_modules"));
+    symlinkSync(
+      join(root, "packages/dms/node_modules"),
+      join(backend, "node_modules"),
+    );
+    mkdirSync(join(scratch, ".dependency-cruiser"));
+    cpSync(
+      rules ?? join(root, ".dependency-cruiser/backend.cjs"),
+      join(scratch, ".dependency-cruiser/backend.cjs"),
+    );
+    // Retired paths still need policy coverage if a future file reintroduces them.
+    for (const name of [
+      "startup-config.ts",
+      "client-origin-cors.ts",
+      "dev/index.ts",
+      "page-extensions/index.ts",
+    ]) {
+      if (!existsSync(join(sourceRoot, name))) {
+        assert.ok(
+          rules || !name.endsWith("/index.ts"),
+          `${name} public barrel must exist`,
+        );
+        writeFileSync(
+          join(sourceRoot, name),
+          "export const boundaryProbe = true;\n",
+        );
+        synthetic.push(name);
+      }
+      emit(name);
+    }
+    for (const name of [
+      "config/index.ts",
+      "config/startup-config.ts",
+      "config/client-origin-cors.ts",
+      "config/session-handoff.ts",
+    ])
+      if (existsSync(join(sourceRoot, name))) emit(name);
+    if (!rules)
+      assert.ok(existsSync(hook), "runtime boundary preload must exist");
+    const checkTarget = require(
+      join(backend, "scripts/backend-import-target.cjs"),
+    );
+    const cases = [
+      {
+        name: "db-root-getConfig",
+        from: "db",
+        target: "index.ts",
+        request: "..",
+        binding: "getConfig",
+        escape: true,
+        runtime: true,
+      },
+      ...[
+        "index",
+        "startup-config",
+        "client-origin-cors",
+        "frontend-module",
+      ].map((name) => ({
+        name: `utils-root-${name}`,
+        from: "utils",
+        target: `${name}.ts`,
+        escape: true,
+      })),
+      ...["db", "utils"].flatMap((from) => [
+        ...[
+          "dev/module-update-notifications",
+          "page-extensions/pending-report",
+        ].map((name) => ({
+          name: `${from}-private-${name}`,
+          from,
+          target: `${name}.ts`,
+          escape: true,
+          runtime: true,
+        })),
+        ...["dev", "page-extensions"].map((name) => ({
+          name: `${from}-rank-${name}`,
+          from,
+          target: `${name}/index.ts`,
+          escape: true,
+        })),
+        {
+          name: `${from}-config-public`,
+          from,
+          target: "config/index.ts",
+          allowed: true,
+          binding: "getConfig",
+          runtime: true,
+        },
+      ]),
+      ...["dev", "page-extensions", "routes"].map((name) => ({
+        name: `root-composition-${name}`,
+        from: "",
+        target: `${name}/index.ts`,
+        allowed: true,
+      })),
+      {
+        name: "valid-pair-upward-rejected",
+        from: "types",
+        target: "utils/index.ts",
+        rule: "backend-types-no-upward",
+      },
+      ...["startup-config", "client-origin-cors", "session-handoff"]
+        .filter(
+          (name) => !rules || existsSync(join(sourceRoot, `config/${name}.ts`)),
+        )
+        .map((name) => ({
+          name: `utils-config-face-${name}`,
+          from: "utils",
+          target: `config/${name}.ts`,
+          allowed: !rules,
+          runtime: true,
+          rule: rules ? "backend-config-entry-only" : undefined,
+        })),
+    ];
+    for (const [index, item] of cases.entries()) {
+      const callerName = join(item.from, `__round11_${index}.ts`);
+      const caller = join(sourceRoot, callerName);
+      const target = join(sourceRoot, item.target);
+      const path = relative(dirname(caller), target)
+        .replace(/\\/g, "/")
+        .replace(/\.ts$/, "");
+      const request =
+        item.request ?? (path.startsWith(".") ? path : `./${path}`);
+      const body = item.binding
+        ? `import { ${item.binding} } from ${JSON.stringify(request)}; void ${item.binding};\n`
+        : `import * as value from ${JSON.stringify(request)}; void value;\n`;
+      writeFileSync(caller, body, { flag: "wx" });
+      const compiled = emit(callerName);
+      const accepted =
+        item.allowed || (rules && item.escape && !expectRejections);
+      for (const [file, boundary, isCompiled] of [
+        [caller, sourceRoot, false],
+        [compiled, distRoot, true],
+      ]) {
+        // Exercise the same resolver/edge checker as the scanner, without scanning
+        // unrelated production code or fixtures owned by another agent.
+        let failure;
+        try {
+          checkTarget(request, file, boundary, isCompiled, {
+            runtime: isCompiled,
+            esm: false,
+          });
+        } catch (error) {
+          failure = error;
+        }
+        if (accepted) assert.ifError(failure);
+        else {
+          assert.ok(failure, `${item.name}: ${file} must reject`);
+          assert.match(failure.message, /violates backend-/);
+          if (item.rule)
+            assert.ok(failure.message.includes(item.rule), failure.message);
+        }
+        edges++;
+        process.stdout.write(
+          JSON.stringify({
+            name: item.name,
+            format: isCompiled ? "emitted-cjs" : "typed-source",
+            accepted: !failure,
+            diagnostic: failure?.message,
+          }) + "\n",
+        );
+      }
+      const runtimeTarget = join(distRoot, item.target.replace(/\.ts$/, ".js"));
+      const runtimeCode = `
+        const assert = require('node:assert/strict');
+        const target = require('node:fs').realpathSync(${JSON.stringify(runtimeTarget)});
+        require(${JSON.stringify(compiled)});
+        assert.ok(require.cache[target], 'actual target cached after Node load');
+        if (${JSON.stringify(item.name === "db-root-getConfig")}) {
+          assert.ok(require.cache[require.resolve(${JSON.stringify(join(distRoot, "routes/index.js"))})], 'root import really loaded ranked routes');
+        }
+        console.log(JSON.stringify({ target, cached: true }));
+      `;
+      if (item.runtime) {
+        const loaded = spawnSync(process.execPath, ["-e", runtimeCode], {
+          cwd: scratch,
+          encoding: "utf8",
+          timeout: 15000,
+        });
+        assert.equal(loaded.status, 0, `${item.name}\n${loaded.stderr}`);
+        loads++;
+        process.stdout.write(
+          JSON.stringify({ name: item.name, node: JSON.parse(loaded.stdout) }) +
+            "\n",
+        );
+      }
+      if (!rules && existsSync(hook)) {
+        const loaded = spawnSync(
+          process.execPath,
+          ["--require", hook, "-e", runtimeCode],
+          {
+            cwd: scratch,
+            encoding: "utf8",
+            timeout: 15000,
+          },
+        );
+        assert.equal(
+          loaded.status,
+          accepted ? 0 : 1,
+          `${item.name} runtime hook\n${loaded.stderr}`,
+        );
+        if (!accepted) {
+          assert.match(loaded.stderr, /violates backend-/);
+          assert.ok(
+            loaded.stderr.includes(`${compiled} -> ${runtimeTarget}`),
+            `${item.name} must reject the tested edge, not a transitive dependency\n${loaded.stderr}`,
+          );
+          if (item.rule)
+            assert.ok(loaded.stderr.includes(item.rule), loaded.stderr);
+        }
+        hookChecks++;
+        process.stdout.write(
+          JSON.stringify({ name: item.name, hook: loaded.status }) + "\n",
+        );
+      }
+    }
+    process.stdout.write(
+      JSON.stringify({
+        round: 11,
+        rules: rules ?? "current",
+        edges,
+        loads,
+        hookChecks,
+        synthetic,
+      }) + "\n",
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }

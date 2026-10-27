@@ -385,6 +385,8 @@ function baselineContract() {
   assert.equal(modules.length, 273);
   const moves = {
     "config.js": "config/internal/state.js",
+    "startup-config.js": "config/startup-config.js",
+    "client-origin-cors.js": "config/client-origin-cors.js",
     "implementations/dms-notifications/registry.js": "utils/notification-registry.js",
     "routes/auth/client-ip.js": "utils/client-ip.js",
     "routes/auth/constants.js": "utils/auth-constants.js",

@@ -331,3 +331,4 @@ module.exports = function checkTarget(
 };
 
 module.exports.checkCapabilities = checkCapabilities;
+module.exports.checkEdge = checkEdge;
