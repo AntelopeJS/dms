@@ -1,13 +1,11 @@
 {
   "rules": {
     "antelopejs/no-comments": 74,
-    "anti-slop/no-unsafe-dictionary-type": 5,
     "anti-slop/require-safety-comment-for-type-assertion": 2
   },
   "oversizeFiles": {
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
     "packages/interface-dms/src/base/data-types/default-types.ts": 46322,
-    "packages/interface-dms/src/base/table-view/options.ts": 47006,
     "packages/interface-dms/src/page/metadata.ts": 26854
   }
 }
