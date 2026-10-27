@@ -1,8 +1,3 @@
-import assert from "node:assert";
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
@@ -13,7 +8,6 @@ import {
   Filter,
   GetEffectiveMode,
   Listable,
-  Validator,
 } from "@antelopejs/interface-data-api/metadata";
 import {
   getModifiedFields,
@@ -22,7 +16,7 @@ import {
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
 import type { ColumnDisplay } from "./column-display";
-import { serializeColumnDisplay } from "./internal/column-display";
+import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
 // oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
 import { type DataType, serializeType } from "../data-types";
 import {
@@ -32,7 +26,6 @@ import {
   type FormField,
   type FormFieldOrGroup,
 } from "../form-types";
-import { adaptFieldValidationSchema } from "../form-schema";
 import {
   type DefaultValue,
   FormMode,
@@ -165,7 +158,7 @@ const WRITE_ACTION_IDS = new Set([
 export class TableViewMeta {
   public static key = Symbol();
 
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Constructor contract.
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This published constructor contract accepts arbitrary controller constructors; their instance result cannot be narrowed compatibly here.
   constructor(public readonly target: new (...args: unknown[]) => unknown) {}
 
   public options: TableViewOptions<any> = {};
@@ -438,35 +431,7 @@ export class TableViewMeta {
   }
 
   private buildConfig() {
-    const apimeta = GetMetadata(this.target as ControllerClass, ControllerMeta);
-    const datameta = GetMetadata(this.target, DataAPIMeta);
-
-    return {
-      location: apimeta.location,
-      columns: Object.entries(this.columns)
-        .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
-        .map(([key, options]) => {
-          const meta = datameta.fields[key];
-
-          return {
-            id: key,
-            header: options.name ?? key,
-            isVisible: options.isVisible,
-            type: serializeType(options.type),
-            accessorKey: key,
-            listable: !!meta.listable?.list,
-            enableSorting: meta.sortable !== undefined,
-            enableColumnFilter: !!options.filterable,
-            cellWrap: options.cellWrap,
-            size: options.size,
-            display: serializeColumnDisplay(options.display),
-            defaultValue: options.defaultValue,
-            accessMode: meta.mode,
-            readonlyBehavior:
-              options.readonlyBehavior ?? ReadonlyBehaviorType.default,
-          };
-        }),
-    };
+    return buildTableConfig(this, serializeType);
   }
 
   public get config() {
@@ -512,67 +477,26 @@ export class TableViewMeta {
 export const Column = MakeMethodAndPropertyDecorator(
   (target, key, descriptor, options: ColumnOptions) => {
     const meta = GetMetadata(target.constructor, TableViewMeta);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
-    meta.setColumn(key as string, options);
-
-    if (options.validate !== false) {
-      // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
-      assert(options.type.getValidation, "Type has no getValidation method");
-
-      const dataMeta = GetMetadata(target.constructor, DataAPIMeta);
-      const localizedFields = getModifiedFields(
-        dataMeta.tableClass.prototype,
-        LocalizationModifier,
-      );
-      const isLocalized = localizedFields.includes(key);
-
-      const baseSchema = options.type.getValidation();
-      const zodSchema = adaptFieldValidationSchema(baseSchema, {
-        localized: isLocalized,
-        required: false,
-        fallbackLocale: isLocalized
-          ? LocalizationModifier.fallbackLocaleOf(
-              dataMeta.tableClass,
-              // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
-              key as string,
-            )
-          : undefined,
-      });
-
-      Validator((value) => zodSchema.safeParseAsync(value))(
-        target,
-        key,
-        descriptor ?? {},
-      );
-    }
-
-    if (options.filterable) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
-      Filter(options.type.filter.bind(options.type))(target, key as string);
-    }
-
-    if (options.type.decorateField) {
-      options.type.decorateField(target, key, descriptor);
-    }
+    decorateColumn(target, key, descriptor, options, meta);
   },
 );
 
 export function ColumnGroup(id: string, config: ColumnGroupConfig) {
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Decorator contract.
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published decorator accepts constructors with arbitrary instance results; constraining the constructor would change its declaration.
   return (target: new (...args: unknown[]) => unknown) => {
     GetMetadata(target, TableViewMeta).setGroup(id, config);
   };
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields are declared as strings; this adapter does not reject non-string keys.
   GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey but Filter expects a string; key-kind validation would change existing behavior.
   Filter()(target, key as string);
   Listable()(target, key);
   const field = GetMetadata(target.constructor, DataAPIMeta)
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published field map uses string keys, while the decorator supplies PropertyKey without verifying its kind.
     .fields[key as string];
   if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
 });
