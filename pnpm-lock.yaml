@@ -12,8 +12,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: 0.2.0
-        version: 0.2.0(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: ^0.2.4
+        version: 0.2.4(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       knip:
         specifier: ^6.34.0
         version: 6.34.0
@@ -587,6 +587,28 @@ packages:
 
   '@antelopejs/tooling-configs@0.2.0':
     resolution: {integrity: sha512-D3yCA9ZuvuDfzz8lS5VKyP8sgDkSdM0k1Awp3Q8qwq3u1/dc8UF4ep3SHW5fZpTQpLwNRcEDv1DSrRx+b7w9aA==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
+    peerDependencies:
+      '@nuxt/eslint-config': '>=1.2.0'
+      eslint-plugin-perfectionist: '>=5.0.0'
+      knip: '>=6.0.0'
+      oxfmt: ^0.66.0
+      oxlint: 1.81.0
+    peerDependenciesMeta:
+      '@nuxt/eslint-config':
+        optional: true
+      eslint-plugin-perfectionist:
+        optional: true
+      knip:
+        optional: true
+      oxfmt:
+        optional: true
+      oxlint:
+        optional: true
+
+  '@antelopejs/tooling-configs@0.2.4':
+    resolution: {integrity: sha512-bYJESFXLSsJjv3MkoPwKDu4SrqTP5UGzFxKcV+HeWMOEeE0W/rmsfL673biFeTMqbO5JxBzZ/1yx9XmnYG9QXg==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -3671,6 +3693,11 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
+  dts-bundle-generator@9.5.1:
+    resolution: {integrity: sha512-DxpJOb2FNnEyOzMkG11sxO2dmxPjthoVWxfKqWYJ/bI/rT1rvTMktF5EKjAYrRZu6Z6t3NhOUZ0sZ5ZXevOfbA==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -6578,6 +6605,16 @@ snapshots:
       oxfmt: 0.66.0
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
 
+  '@antelopejs/tooling-configs@0.2.4(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+    dependencies:
+      '@oxlint/plugins': 1.81.0
+      dts-bundle-generator: 9.5.1
+      yaml: 2.9.1
+    optionalDependencies:
+      knip: 6.34.0
+      oxfmt: 0.66.0
+      oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
+
   '@antfu/install-pkg@1.1.0':
     dependencies:
       package-manager-detector: 1.5.0
@@ -9397,6 +9434,11 @@ snapshots:
   dotenv@17.3.1: {}
 
   dotenv@17.4.2: {}
+
+  dts-bundle-generator@9.5.1:
+    dependencies:
+      typescript: 7.0.2
+      yargs: 17.7.2
 
   dunder-proto@1.0.1:
     dependencies:
