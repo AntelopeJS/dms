@@ -197,7 +197,7 @@ const expandableFieldSchema = z.union([
   }),
 ]);
 
-const expandableBehaviorShape = {
+const expandableBehaviorOptions = {
   defaultExpanded: ui(z.enum(["none", "first", "all"]).default("none"), {
     label: "Open on arrival",
     widget: "segmented",
@@ -216,14 +216,14 @@ const expandableSchema = z.union([
   z.object({
     fields: ui(z.array(expandableFieldSchema), { label: "Detail fields" }),
     fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
-    ...expandableBehaviorShape,
+    ...expandableBehaviorOptions,
   }),
   z.object({
     component: ui(opaqueOption<TableViewExpandableComponent["component"]>(), {
       label: "Detail component",
       hidden: true,
     }),
-    ...expandableBehaviorShape,
+    ...expandableBehaviorOptions,
   }),
 ]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 

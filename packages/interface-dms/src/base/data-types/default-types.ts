@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only. */
 import type {
   ControllerClass,
   RequestContext,
@@ -19,7 +18,7 @@ import { parseValue } from "../../utils/internal/value-parser";
 import { isString } from "../../utils/internal/type-check";
 import { GetAttachmentValidationMetadata } from "../../attachments";
 import { Form, FormComponents } from "../form-schema";
-// oxlint-disable-next-line import/no-cycle -- TableViewMeta is read in relation methods; its data-types barrel import evaluates the built-in registration decorators.
+// oxlint-disable-next-line import/no-cycle -- Relation methods read TableViewMeta after evaluation.
 import { TableViewMeta } from "../table-view/meta";
 import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
@@ -336,10 +335,7 @@ export namespace DefaultDataTypes {
   }
 
   /** Before or after an instant: `less_than` / `greater_than` on a date. */
-  const INSTANT_COMPARISONS: Record<
-    string,
-    (stored: ValueProxy<Date>, instant: Date) => ValueProxyOrValue<boolean>
-  > = {
+  const INSTANT_COMPARISONS: typeof DAY_COMPARISONS = {
     greater_than: (stored, instant) => stored.gt(instant),
     less_than: (stored, instant) => stored.lt(instant),
   };
@@ -350,7 +346,8 @@ export namespace DefaultDataTypes {
    */
   const DAY_COMPARISONS: Record<
     string,
-    (stored: ValueProxy<Date>, dayStart: Date) => ValueProxyOrValue<boolean>
+    (stored: ValueProxy<unknown>, dayStart: Date) => ValueProxyOrValue<boolean>
+    // oxlint-disable-next-line anti-slop/no-known-value-widening -- Dynamic modes.
   > = {
     greater_than: (stored, dayStart) => {
       const nextDay = new Date(dayStart);
@@ -389,13 +386,14 @@ export namespace DefaultDataTypes {
       });
     }
 
-    // oxlint-disable-next-line eslint/max-params -- This override preserves the positional DataType.filter contract used by callers.
+    // oxlint-disable-next-line eslint/max-params -- Preserves the positional DataType.filter API.
     override filter(
       context: RequestContext,
       proxy: ValueProxy<unknown>,
       key: string,
       value: string,
       mode: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Open rows.
       row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       if (mode === "is" || mode === "is_not") {
@@ -405,10 +403,7 @@ export namespace DefaultDataTypes {
         return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
       }
       if (Object.hasOwn(INSTANT_COMPARISONS, mode)) {
-        return whenValueSet(
-          proxy,
-          this.orderFilter(proxy as ValueProxy<Date>, value, mode),
-        );
+        return whenValueSet(proxy, this.orderFilter(proxy, value, mode));
       }
       return super.filter(context, proxy, key, value, mode, row);
     }
@@ -422,7 +417,7 @@ export namespace DefaultDataTypes {
     }
 
     private orderFilter(
-      stored: ValueProxy<Date>,
+      stored: ValueProxy<unknown>,
       value: string,
       mode: string,
     ): ValueProxyOrValue<boolean> {
@@ -453,14 +448,14 @@ export namespace DefaultDataTypes {
       const parsed = parseValue(value);
       if (!(parsed instanceof Date)) {
         throw new Error(
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Diagnostic.
           `Date filter expects a date value. Got: ${typeof parsed}`,
         );
       }
       const dayStart = this.startOfUtcDay(parsed);
       const dayEnd = this.nextUtcDay(parsed);
 
-      const dbVal = proxy as unknown as ValueProxy<Date>;
-      const matchesDay = dbVal.ge(dayStart).and(dbVal.lt(dayEnd));
+      const matchesDay = proxy.ge(dayStart).and(proxy.lt(dayEnd));
 
       return negate ? matchesDay.not() : matchesDay;
     }
@@ -482,8 +477,7 @@ export namespace DefaultDataTypes {
       const rangeStart = this.startOfUtcDay(rawStart);
       const rangeEnd = this.nextUtcDay(rawEnd);
 
-      const dbVal = proxy as unknown as ValueProxy<Date>;
-      return dbVal.ge(rangeStart).and(dbVal.lt(rangeEnd));
+      return proxy.ge(rangeStart).and(proxy.lt(rangeEnd));
     }
 
     override filterComponents() {
@@ -990,7 +984,7 @@ export namespace DefaultDataTypes {
     }
 
     public decorateField(
-      target: unknown,
+      target: unknown, // oxlint-disable-line anti-slop/no-unknown-parameters -- Public API.
       key: PropertyKey,
       descriptor?: PropertyDescriptor,
     ): void {
@@ -1094,7 +1088,7 @@ export namespace DefaultDataTypes {
     }
 
     public decorateField(
-      target: unknown,
+      target: unknown, // oxlint-disable-line anti-slop/no-unknown-parameters -- Public API.
       key: PropertyKey,
       descriptor?: PropertyDescriptor,
     ): void {
@@ -1329,6 +1323,7 @@ export namespace DefaultDataTypes {
    * auth) keeps propagating so it surfaces as a server error, not as a bogus
    * "invalid input" on the field.
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Thrown.
   function isMissingFileError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
     return MISSING_FILE_ERROR_PATTERN.test(message);

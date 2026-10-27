@@ -81,11 +81,13 @@ export function RegisterInviteExtension<T>(
   const info: InviteExtensionInfo = {
     key: options.key,
     component: options.component,
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only.
-    schema: options.schema as unknown as InviteExtensionInfo["schema"],
+    schema: options.schema,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Heterogeneous registrations erase T; delivery reparses with this same schema before calling the handler, but the registry type cannot express that correlation.
     onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Cleanup receives this registration's parsed payload or undefined; the erased registry type cannot retain its correlation with T.
     onCleanup: options.onCleanup as InviteExtensionInfo["onCleanup"],
     editable: options.editable,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Updates reparse both stored inputs with this registration's schema; the erased registry type does not encode the handler's T.
     onUpdate: options.onUpdate as InviteExtensionInfo["onUpdate"],
     label: options.label,
     description: options.description,

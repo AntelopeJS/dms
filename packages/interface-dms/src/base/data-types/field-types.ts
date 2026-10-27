@@ -159,7 +159,7 @@ export class ArrayType extends DataType {
   }
 
   getValidation() {
-    const shape = Object.fromEntries(
+    const properties = Object.fromEntries(
       this.fields().map(([id, field]) => [
         id,
         adaptFieldValidationSchema(field.type.getValidation(), {
@@ -167,7 +167,7 @@ export class ArrayType extends DataType {
         }),
       ]),
     );
-    let schema = z.array(z.object(shape));
+    let schema = z.array(z.object(properties));
     if (this.options.min !== undefined) schema = schema.min(this.options.min);
     if (this.options.max !== undefined) schema = schema.max(this.options.max);
     return schema;

@@ -121,6 +121,7 @@ export interface BlockOptionUi {
    * list wants those points as entries. Without it an editor would let someone
    * wire a series into a slot that renders a single value.
    */
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the published source compatibility property and its public type name.
   responseShape?: BlockResponseShape;
   /**
    * The option this block reads its period from, for a `dataSource` option.
@@ -138,6 +139,7 @@ export interface BlockOptionUi {
  * `value` is one number, `series` one point per group, `items` those points as a
  * ranked list, and `card` a number and its series together.
  */
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- This type name is part of the published wildcard-subpath contract.
 export type BlockResponseShape = "value" | "series" | "items" | "card";
 
 /**
@@ -266,6 +268,7 @@ export interface BlockTypeDefinition {
    * `type`, which is what tells `dms-chart` which chart to draw. A consumer
    * rendering from the descriptor alone has to merge these in.
    */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published factory defaults contain application-owned option values; each registered block owns their schema.
   fixedOptions?: Record<string, unknown>;
   /** Whether the factory takes a leading controller class before its options. */
   controllerArg?: boolean;
@@ -285,6 +288,7 @@ export interface BlockInitialChild {
   /** The child's block type, a key of the catalog (`LiveToggle`). */
   type: string;
   /** The child's options, JSON-serializable. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published seeded children can target any registered block, whose schema owns these option values.
   options: Record<string, unknown>;
 }
 
@@ -296,5 +300,6 @@ export interface BlockTypeDescriptor extends Omit<
   config: Record<string, BlockOptionSchema>;
   childMeta?: Record<string, BlockOptionSchema>;
   /** Option values the factory applies when the caller omits them. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published descriptors retain arbitrary default values from each block's registered schema.
   defaults: Record<string, unknown>;
 }

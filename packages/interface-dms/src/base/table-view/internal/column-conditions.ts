@@ -1,15 +1,8 @@
-import {
-  type ControllerClass,
-  HTTPResult,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import {
-  type Parameters,
-  Validation,
-} from "@antelopejs/interface-data-api/components";
+import { Validation } from "@antelopejs/interface-data-api/components";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { FieldCondition } from "../../form-types";
 import { fetchRowForGuard } from "../data-functions";
@@ -18,18 +11,19 @@ import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { getTableViewMetaFor } from "./meta";
 
 type WriteMode = "new" | "edit";
+type TableRow = NonNullable<Awaited<ReturnType<typeof fetchRowForGuard>>>;
 
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
   condition: FieldCondition,
-  row: Readonly<Record<string, unknown>>,
+  row: Readonly<TableRow>,
 ): boolean => condition.in.includes(row[condition.field] ?? null);
 
 /** The columns whose form field `row` hides or disables. */
 function inactiveColumns(
   columns: Readonly<Record<string, ColumnOptions>>,
-  row: Readonly<Record<string, unknown>>,
-): { hidden: string[]; disabled: string[] } {
+  row: Readonly<TableRow>,
+) {
   const entries = Object.entries(columns);
   return {
     hidden: entries
@@ -45,7 +39,7 @@ function inactiveColumns(
   };
 }
 
-const isEmptyValue = (value: unknown): boolean =>
+const isEmptyValue = (value: TableRow[string]): boolean =>
   value === undefined ||
   value === null ||
   value === "" ||
@@ -67,10 +61,12 @@ export const withColumnConditions = (
   mode: WriteMode,
 ): DataControllerCallback => ({
   func: async function (
-    this: unknown,
+    this: Parameters<typeof fetchRowForGuard>[0] & {
+      constructor: ConstructorParameters<typeof DataAPIMeta>[0];
+    },
     ctx: RequestContext,
-    params: Parameters.NewParameters | Parameters.EditParameters,
-    ...args: unknown[]
+    params: Parameters<DataControllerCallback["func"]>[1],
+    ...args: Parameters<DataControllerCallback["func"]>[2][]
   ) {
     const tableMeta = getTableViewMetaFor(this);
     const { columns } = tableMeta;
@@ -79,13 +75,13 @@ export const withColumnConditions = (
     );
     if (!hasConditions) return baseRoute.func.call(this, ctx, params, ...args);
 
-    const body = Validation.ParseBody(args[0] as Validation.WrittenBody);
-    let row: Record<string, unknown> = body;
-    let current: Record<string, unknown> | undefined;
+    const body = Validation.ParseBody(args[0]);
+    let row: TableRow = body;
+    let current: TableRow | undefined;
     if (mode === "edit") {
       current = await fetchRowForGuard(
-        this as DataControllerCallback,
-        String((params as Parameters.EditParameters).id),
+        this,
+        String(params.id),
         tableMeta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
       );
       throwHttpAssert(current, 404, "Not Found");
@@ -102,16 +98,13 @@ export const withColumnConditions = (
     if (params.noMandatory) {
       return baseRoute.func.call(this, ctx, params, written, ...args.slice(1));
     }
-    const dataMeta = GetMetadata(
-      (this as { constructor: ControllerClass }).constructor,
-      DataAPIMeta,
-    );
+    const dataMeta = GetMetadata(this.constructor, DataAPIMeta);
     const conditional = Object.keys(columns).filter(
       (key) => columns[key].visibleWhen,
     );
     const exempt = new Set([...conditional, ...disabled]);
     Validation.MandatoryFields(
-      Object.assign(Object.create(dataMeta) as DataAPIMeta, {
+      Object.assign(Object.create(dataMeta), {
         fields: Object.fromEntries(
           Object.entries(dataMeta.fields).filter(([key]) => !exempt.has(key)),
         ),

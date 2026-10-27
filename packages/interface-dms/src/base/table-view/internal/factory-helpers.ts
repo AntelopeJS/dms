@@ -31,7 +31,6 @@ import {
   type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
-  type KanbanOptionsSerialized,
   type QueryParamFilters,
   type RouteParamFilters,
   type TableViewCardOptions,
@@ -49,13 +48,18 @@ import { TableViewFunctions } from "../factory-helpers";
 /** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
 
+interface FormRedirectParams {
+  url: string;
+  preserveQuery?: string[];
+}
+
 /** @internal */
 export function applyFormRedirect<T>(
   formBuilder: ComponentBuilder<T>,
   redirectUrl: string,
   preserveQuery?: string[],
 ): void {
-  const params: { url: string; preserveQuery?: string[] } = {
+  const params: FormRedirectParams = {
     url: redirectUrl,
   };
   if (preserveQuery && preserveQuery.length > 0) {
@@ -99,6 +103,7 @@ export function serializeCustomButtons(
 function serializeRowActionConfig<T extends Record<string, unknown>>(
   config: boolean | BulkRowActionConfig<T> | AddRowActionConfig<T> | undefined,
 ): boolean | RowActionConfigSerialized | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Boolean shorthand.
   if (config === undefined || typeof config === "boolean") return config;
   const { confirm, rule, ...rest } = config;
   const served: RowActionConfigSerialized = rest;
@@ -187,9 +192,7 @@ export interface TableViewCapabilities {
  * `restore` is pressed from the archived rows, so it depends on
  * `viewArchived`, and through it on `list`.
  */
-function tableViewActionDependencies(
-  capabilities: TableViewCapabilities,
-): Record<string, string[] | undefined> {
+function tableViewActionDependencies(capabilities: TableViewCapabilities) {
   const listed = [LIST_ACTION];
   const formListed = capabilities.formsArePages ? [] : listed;
   const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : [];
@@ -318,6 +321,7 @@ export function serializeExpandable(
     );
   }
   const fields = expandable.fields.map((field) =>
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String shorthand.
     typeof field === "string" ? { key: field } : field,
   );
   assertKnownColumns(
@@ -365,15 +369,14 @@ function serializeCard({
 type BuiltinDisplayOptions = (
   sources: TableViewDisplaySources,
   card: TableViewCardOptionsSerialized | undefined,
-) => Record<string, unknown> | undefined;
+) => TableViewDisplayOptionSerialized["options"];
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Dynamic display ids.
 const BUILTIN_DISPLAY_OPTIONS: Record<string, BuiltinDisplayOptions> = {
   [CARDS_DISPLAY_ID]: (_sources, card) => (card ? { card } : undefined),
   [KANBAN_DISPLAY_ID]: ({ kanban }, card) => {
     if (!kanban) return undefined;
-    const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Serialized Kanban options have no dictionary index signature; the display registry reads them by key.
-    return kanbanOptions as unknown as Record<string, unknown>;
+    return { ...kanban, card };
   },
   [GROUPED_DISPLAY_ID]: ({ grouped }) => (grouped ? { ...grouped } : undefined),
 };
@@ -489,6 +492,7 @@ export function resolveFormPageTexts(
 }
 
 /** @internal */
+// SAFETY: Only FormPageKind keys.
 export const FORM_PAGE_KINDS = Object.keys(
   FORM_PAGE_DEFINITIONS,
 ) as FormPageKind[];

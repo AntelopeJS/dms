@@ -5,7 +5,6 @@ import {
 import { MakeParameterAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { resolveRequestTenantId } from "../../request-tenant";
-// oxlint-disable-next-line import/no-cycle -- The page types module is in the page registration graph; MODULE_URL_PREFIX is read only inside isPageInsideModule.
 import { MODULE_URL_PREFIX, type PageInfo } from "../types";
 /** @internal */
 export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(

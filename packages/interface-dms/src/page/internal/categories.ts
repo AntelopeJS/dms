@@ -45,6 +45,7 @@ export function resolveCategoryInfo(
     return undefined;
   }
 
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published category union distinguishes controller constructors from CategoryInfo objects by callability.
   if (typeof category === "function") {
     const meta = GetMetadata(category, PageMetadata);
     if (!meta.pageInfo) {
@@ -79,6 +80,7 @@ export function resolveInheritedLayout(
 function findCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The category union represents a controller constructor or resolved metadata, not unparsed input.
   if (typeof category !== "function") return category;
   return GetMetadata(category, PageMetadata).pageInfo;
 }
@@ -197,20 +199,16 @@ export function createCategoryFunction(
   id: string,
   options: MenuOptions | RootCategoryOptions,
 ): CategoryInfo {
-  const hasModuleField =
-    "module" in options && (options as MenuOptions).module !== undefined;
+  const hasModuleField = "module" in options && options.module !== undefined;
   const effectiveOptions = hasModuleField
-    ? applyModuleResolution(id, options as MenuOptions)
+    ? applyModuleResolution(id, options)
     : options;
 
   const category = effectiveOptions.category;
   const resolvedCategory = resolveCategoryInfo(category);
 
   if (hasModuleField) {
-    validateNotInsideSettings(
-      (effectiveOptions as MenuOptions).module,
-      resolvedCategory,
-    );
+    validateNotInsideSettings(effectiveOptions.module, resolvedCategory);
   }
 
   const parentFullId = resolvedCategory?.fullId || "";

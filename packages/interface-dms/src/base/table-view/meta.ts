@@ -9,6 +9,7 @@ import {
   Access,
   AccessMode,
   DataAPIMeta,
+  type FieldData,
   Filter,
   GetEffectiveMode,
   Listable,
@@ -34,7 +35,6 @@ import {
 import { adaptFieldValidationSchema } from "../form-schema";
 import {
   type DefaultValue,
-  type FieldMetadata,
   FormMode,
   type ReadonlyBehavior,
   ReadonlyBehaviorType,
@@ -146,7 +146,7 @@ export type TableViewAccess = "read" | "write";
 
 /** A data type of the same class whose options can change on their own. */
 function copyDataType(type: DataType): DataType {
-  const copy = Object.create(Object.getPrototypeOf(type) as object) as DataType;
+  const copy: DataType = Object.create(Object.getPrototypeOf(type));
   return Object.assign(copy, type, {
     options: type.options && { ...type.options },
   });
@@ -165,6 +165,7 @@ const WRITE_ACTION_IDS = new Set([
 export class TableViewMeta {
   public static key = Symbol();
 
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Constructor contract.
   constructor(public readonly target: new (...args: unknown[]) => unknown) {}
 
   public options: TableViewOptions<any> = {};
@@ -316,12 +317,12 @@ export class TableViewMeta {
   }
 
   /** Whether a field is read-only in the data API action a form runs. */
-  private isReadOnlyIn(meta: FieldMetadata, mode: FormMode): boolean {
+  private isReadOnlyIn(meta: FieldData, mode: FormMode): boolean {
     const action = ACCESS_ACTION_BY_FORM_MODE[mode];
     return GetEffectiveMode(meta, action) === AccessMode.ReadOnly;
   }
 
-  private getRequiredForMode(data: FieldMetadata, mode: FormMode): boolean {
+  private getRequiredForMode(data: FieldData, mode: FormMode): boolean {
     if (mode === FormMode.view) return false;
     return data.mandatory?.has(mode) || false;
   }
@@ -329,9 +330,9 @@ export class TableViewMeta {
   private buildFormField(
     key: string,
     options: ColumnOptions,
-    meta: FieldMetadata,
+    meta: FieldData,
     formMode: FormMode,
-    localizedFields: string[],
+    localizedFields: PropertyKey[],
   ): FormField {
     const behavior = this.resolveReadonlyBehavior(
       options.readonlyBehavior,
@@ -343,10 +344,7 @@ export class TableViewMeta {
       behavior === ReadonlyBehaviorType.disabled;
     const isRequired = this.getRequiredForMode(meta, formMode);
     const isLocalized = localizedFields.includes(key);
-    const { tableClass } = GetMetadata(
-      this.target as ControllerClass,
-      DataAPIMeta,
-    );
+    const { tableClass } = GetMetadata(this.target, DataAPIMeta);
 
     return {
       id: key,
@@ -370,17 +368,17 @@ export class TableViewMeta {
   }
 
   public getFormFields(mode: "view" | "edit" | "new"): FormFieldOrGroup[] {
-    const metadata = GetMetadata(this.target as ControllerClass, DataAPIMeta);
+    const metadata = GetMetadata(this.target, DataAPIMeta);
     const formMode = FORM_MODE_BY_VIEW_MODE[mode];
     const localizedFields = getModifiedFields(
       metadata.tableClass.prototype,
       LocalizationModifier,
-    ) as string[];
+    );
 
     const sortedEntries = Object.entries(this.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .filter(([key, options]) => {
-        const meta = metadata.fields[key] as FieldMetadata;
+        const meta = metadata.fields[key];
 
         if (this.isReadOnlyIn(meta, formMode)) {
           const behavior = this.resolveReadonlyBehavior(
@@ -399,7 +397,7 @@ export class TableViewMeta {
     const processedGroups = new Set<string>();
 
     for (const [key, options] of sortedEntries) {
-      const meta = metadata.fields[key] as FieldMetadata;
+      const meta = metadata.fields[key];
 
       if (options.group) {
         if (processedGroups.has(options.group)) {
@@ -414,7 +412,7 @@ export class TableViewMeta {
             this.buildFormField(
               k,
               opts,
-              metadata.fields[k] as FieldMetadata,
+              metadata.fields[k],
               formMode,
               localizedFields,
             ),
@@ -441,7 +439,7 @@ export class TableViewMeta {
 
   private buildConfig() {
     const apimeta = GetMetadata(this.target as ControllerClass, ControllerMeta);
-    const datameta = GetMetadata(this.target as ControllerClass, DataAPIMeta);
+    const datameta = GetMetadata(this.target, DataAPIMeta);
 
     return {
       location: apimeta.location,
@@ -490,7 +488,7 @@ export class TableViewMeta {
     summaries: TableViewFooterSummary<T>[],
   ): string[] {
     return summaries.map((summary) => {
-      this.footerSummaries.push(summary as TableViewFooterSummary<any>);
+      this.footerSummaries.push(summary);
       return String(this.footerSummaries.length - 1);
     });
   }
@@ -514,21 +512,19 @@ export class TableViewMeta {
 export const Column = MakeMethodAndPropertyDecorator(
   (target, key, descriptor, options: ColumnOptions) => {
     const meta = GetMetadata(target.constructor, TableViewMeta);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
     meta.setColumn(key as string, options);
 
     if (options.validate !== false) {
       // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
       assert(options.type.getValidation, "Type has no getValidation method");
 
-      const dataMeta = GetMetadata(
-        target.constructor as ControllerClass,
-        DataAPIMeta,
-      );
+      const dataMeta = GetMetadata(target.constructor, DataAPIMeta);
       const localizedFields = getModifiedFields(
         dataMeta.tableClass.prototype,
         LocalizationModifier,
-      ) as string[];
-      const isLocalized = localizedFields.includes(key as string);
+      );
+      const isLocalized = localizedFields.includes(key);
 
       const baseSchema = options.type.getValidation();
       const zodSchema = adaptFieldValidationSchema(baseSchema, {
@@ -537,6 +533,7 @@ export const Column = MakeMethodAndPropertyDecorator(
         fallbackLocale: isLocalized
           ? LocalizationModifier.fallbackLocaleOf(
               dataMeta.tableClass,
+              // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
               key as string,
             )
           : undefined,
@@ -550,6 +547,7 @@ export const Column = MakeMethodAndPropertyDecorator(
     }
 
     if (options.filterable) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
       Filter(options.type.filter.bind(options.type))(target, key as string);
     }
 
@@ -560,19 +558,23 @@ export const Column = MakeMethodAndPropertyDecorator(
 );
 
 export function ColumnGroup(id: string, config: ColumnGroupConfig) {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Decorator contract.
   return (target: new (...args: unknown[]) => unknown) => {
     GetMetadata(target, TableViewMeta).setGroup(id, config);
   };
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
   GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
 
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
   Filter()(target, key as string);
-  Listable()(target, key as string);
-  const field = GetMetadata(target.constructor as ControllerClass, DataAPIMeta)
+  Listable()(target, key);
+  const field = GetMetadata(target.constructor, DataAPIMeta)
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked keys.
     .fields[key as string];
-  if (!field?.mode) Access(AccessMode.ReadOnly)(target, key as string);
+  if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
 });
 
 export const Select = MakeMethodAndPropertyDecorator(

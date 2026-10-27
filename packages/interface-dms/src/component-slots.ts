@@ -2,6 +2,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type { MaybePromise } from "./types";
 import { slotResolvers } from "./internal/component-slots";
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published slot resolvers accept arbitrary consumer option keys; narrowing them changes the extension contract.
 export type SlotOptions = Record<string, unknown>;
 
 /**
@@ -9,7 +10,9 @@ export type SlotOptions = Record<string, unknown>;
  * input unchanged is how a resolver says it has nothing to contribute.
  */
 export type ComponentSlotResolver = (
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- SlotOptions is the published open options dictionary shared with consumer resolvers.
   options: SlotOptions,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Resolvers return the same published open options dictionary they receive.
 ) => MaybePromise<SlotOptions>;
 
 /**

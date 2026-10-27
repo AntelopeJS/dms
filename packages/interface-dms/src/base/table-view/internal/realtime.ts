@@ -1,6 +1,5 @@
 import {
   Context,
-  type ControllerClass,
   Parameter,
   type RequestContext,
 } from "@antelopejs/interface-api";
@@ -80,56 +79,69 @@ async function dispatchRealtimeMutation(
 
 type IdExtractor = (
   args: unknown[],
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published extractor accepts results from arbitrary wrapped callbacks; only the extractor can interpret the result's id convention.
   result: unknown,
   idKey: string,
 ) => string[];
 
 /** @internal */
 export const extractFromResult: IdExtractor = (_args, result, idKey) => {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published extractor accepts arbitrary callback results and only inspects non-null objects for an id.
   if (!result || typeof result !== "object") return [];
+  // SAFETY: The preceding check establishes a non-null object; indexing reads an unknown value and the next check accepts only strings.
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published extractor reads a configurable key from module-owned result objects; no shared row schema exists here.
   const value = (result as Record<string, unknown>)[idKey];
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Callback results are deliberately untyped in the published extractor; an id is emitted only for the string variant.
   return typeof value === "string" ? [value] : [];
 };
 
 /** @internal */
 export const extractSingleParamId: IdExtractor = (args) => {
-  const params = args[PARAMS_INDEX] as { id?: string } | undefined;
+  const params: Parameters<
+    DataControllerCallback["func"]
+  >[typeof PARAMS_INDEX] = args[PARAMS_INDEX];
   return params?.id ? [params.id] : [];
 };
 
 /** @internal */
 export const extractMultiParamId: IdExtractor = (args) => {
-  const params = args[PARAMS_INDEX] as { id?: string | string[] } | undefined;
+  const params: Parameters<
+    DataControllerCallback["func"]
+  >[typeof PARAMS_INDEX] = args[PARAMS_INDEX];
   if (!params?.id) return [];
   return Array.isArray(params.id) ? params.id : [params.id];
 };
 
 /** @internal */
 export const extractBulkArgIds: IdExtractor = (args) => {
-  const ids = args[BULK_IDS_ARG_INDEX] as string | string[] | undefined;
+  const ids: Parameters<
+    DataControllerCallback["func"]
+  >[typeof BULK_IDS_ARG_INDEX] = args[BULK_IDS_ARG_INDEX];
   if (!ids) return [];
   return Array.isArray(ids) ? ids : [ids];
 };
 
-const isRealtimeEnabled = (target: unknown): boolean =>
-  getTableViewMetaFor(target).options.realtime !== false;
+const isRealtimeEnabled = (target: {
+  constructor: ConstructorParameters<typeof DataAPIMeta>[0];
+}): boolean => getTableViewMetaFor(target).options.realtime !== false;
 
 /**
  * The tenant a table's realtime events are published for: the request's,
  * unless the table's rows live in the schema every tenant shares.
  */
 const realtimeTenantOf = (
-  target: unknown,
+  target: { constructor: ConstructorParameters<typeof DataAPIMeta>[0] },
   ctx: RequestContext,
 ): string | undefined =>
-  GetMetadata(
-    (target as { constructor: ControllerClass }).constructor,
-    DataAPIMeta,
-  ).schemaName === CORE_SCHEMA_NAME
+  GetMetadata(target.constructor, DataAPIMeta).schemaName === CORE_SCHEMA_NAME
     ? undefined
     : getRequestTenantId(ctx);
 
-const CHANGED_COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"];
+const CHANGED_COUNT_KEYS: ["deleted", "archivedCount", "restoredCount"] = [
+  "deleted",
+  "archivedCount",
+  "restoredCount",
+];
 
 /**
  * Whether a write reports changing no row: its row rules refused every id,
@@ -137,11 +149,18 @@ const CHANGED_COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"];
  * the table (the caller included) drop rows that are still there.
  */
 /** @internal */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published predicate accepts heterogeneous callback results; restricting it to a row or count schema would change its accepted inputs.
 export const reportsNoChange = (result: unknown): boolean => {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published predicate recognizes the numeric count convention alongside object count results.
   if (typeof result === "number") return result === 0;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only non-null object results can carry named mutation counts; other published input variants report no count.
   if (!result || typeof result !== "object") return false;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Mutation callbacks own these count values; the numeric filter below interprets them without changing the published result contract.
+  const input: Partial<Record<(typeof CHANGED_COUNT_KEYS)[number], unknown>> =
+    result;
   const counts = CHANGED_COUNT_KEYS.map(
-    (key) => (result as Record<string, unknown>)[key],
+    (key) => input[key],
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Count fields are unchecked callback output; this filter establishes the numeric contract before comparisons.
   ).filter((value): value is number => typeof value === "number");
   return counts.length > 0 && counts.every((count) => count === 0);
 };
@@ -164,13 +183,14 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
       Parameter(REALTIME_SESSION_HEADER, "header"),
       AuthUser(),
     ],
-    func: async function (this: unknown, ...allArgs: unknown[]) {
-      const user = allArgs.pop() as User;
-      const sessionId = allArgs.pop() as string | undefined;
-      const ctx = allArgs.pop() as RequestContext;
-      const result = await (
-        baseRoute.func as (...a: unknown[]) => unknown
-      ).apply(this, allArgs);
+    func: async function (
+      this: { constructor: ConstructorParameters<typeof DataAPIMeta>[0] },
+      ...allArgs: Parameters<DataControllerCallback["func"]>
+    ) {
+      const user: User = allArgs.pop();
+      const sessionId: string | undefined = allArgs.pop();
+      const ctx: RequestContext = allArgs.pop();
+      const result = await baseRoute.func.apply(this, allArgs);
       if (!isRealtimeEnabled(this)) return result;
       const meta = getTableViewMetaFor(this);
       const idKey = meta.options.rowIdKey || "_id";
@@ -206,14 +226,15 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
       Parameter(REALTIME_PRESENCE_QUERY, "query"),
       AuthUser(),
     ],
-    func: async function (this: unknown, ...allArgs: unknown[]) {
-      const user = allArgs.pop() as User;
-      const presenceFlag = allArgs.pop() as string | undefined;
-      const sessionId = allArgs.pop() as string | undefined;
-      const ctx = allArgs.pop() as RequestContext;
-      const result = await (
-        baseRoute.func as (...a: unknown[]) => unknown
-      ).apply(this, allArgs);
+    func: async function (
+      this: { constructor: ConstructorParameters<typeof DataAPIMeta>[0] },
+      ...allArgs: Parameters<DataControllerCallback["func"]>
+    ) {
+      const user: User = allArgs.pop();
+      const presenceFlag: string | undefined = allArgs.pop();
+      const sessionId: string | undefined = allArgs.pop();
+      const ctx: RequestContext = allArgs.pop();
+      const result = await baseRoute.func.apply(this, allArgs);
       if (
         presenceFlag !== REALTIME_PRESENCE_ACQUIRE_VALUE ||
         !sessionId ||
@@ -221,7 +242,7 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
       ) {
         return result;
       }
-      const params = allArgs[PARAMS_INDEX] as { id?: string } | undefined;
+      const params: { id?: string } | undefined = allArgs[PARAMS_INDEX];
       if (!params?.id) return result;
       const meta = getTableViewMetaFor(this);
       await internal.AcquirePresence({

@@ -46,6 +46,7 @@ export async function resolveTableViewGrants(
   permissions: Set<string>,
   permissionId: string,
 ): Promise<TableViewGrants> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This accumulator is incomplete when created; the following loop populates every published grant key before return.
   const grants = {} as TableViewGrants;
   for (const action of GRANTED_ACTIONS) {
     grants[action] = await HasPermission(
@@ -165,6 +166,7 @@ export function adaptRowActions({
 
   const editHasNoRules =
     adapted.edit === true ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action configuration permits boolean shorthand or a rule object; this branch selects the rule object.
     (typeof adapted.edit === "object" && !adapted.edit.rule);
   if (editHasNoRules) {
     adapted.details = false;

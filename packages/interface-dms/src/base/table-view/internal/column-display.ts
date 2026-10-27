@@ -34,6 +34,10 @@ export function serializeColumnDisplay(
   }
   const { options } = display;
   return options
-    ? { type, options: options as Record<string, unknown> }
+    ? {
+        type,
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published display envelope requires a dictionary, but ColumnDisplay<object> does not prove an index signature; module-owned options pass through unchanged.
+        options: options as NonNullable<ColumnDisplaySerialized["options"]>,
+      }
     : { type };
 }

@@ -5,6 +5,7 @@ import {
 } from "@antelopejs/interface-core";
 
 export interface PublishMessageOptions {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published realtime payloads carry consumer-defined message keys without interpretation by the interface.
   payload?: Record<string, unknown>;
   actorId?: string;
   /**
@@ -24,6 +25,7 @@ export interface PublishMessageOptions {
 export interface RealtimeMessage {
   topic: string;
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Subscribers receive the open consumer payload from PublishMessageOptions unchanged.
   payload?: Record<string, unknown>;
   actorId?: string;
   /**

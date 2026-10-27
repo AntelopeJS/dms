@@ -90,11 +90,12 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders accept omitted options while pages are authored, even though ChartCardBuilderOptions requires a title.
   const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,
   )
-    .options(rest as ChartCardProps)
+    .options(rest)
     .meta({
       name: rest.title || "Chart card",
       icon: rest.icon || "i-ph-chart-line",
@@ -135,6 +136,7 @@ export const ChartCardSchema = z.object({
     label: "Data source",
     group: "data",
     widget: "dataSource",
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published BlockOptionUi property controls source compatibility and cannot be renamed.
     responseShape: "card",
     periodOption: "periodScope",
   }),

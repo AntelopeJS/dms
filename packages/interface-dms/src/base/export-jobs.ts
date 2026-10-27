@@ -30,6 +30,7 @@ export interface StreamedExport {
 
 export interface ExportWriter {
   writeHeaders(headers: string[]): void;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published export writers receive arbitrary application columns; each writer owns value serialization.
   appendRow(headers: string[], row: Record<string, unknown>): void;
   close(): void;
 }

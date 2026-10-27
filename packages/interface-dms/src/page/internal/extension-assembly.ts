@@ -135,6 +135,7 @@ export function assembleLayoutComponents(
   entries: PageExtensionEntry[],
 ): Record<string, ComponentInfoSerialized> {
   if (entries.length === 0) {
+    // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary return type even when no extension changes the shallow copy.
     return { ...own };
   }
 
@@ -156,5 +157,6 @@ export function assembleLayoutComponents(
   }
   appendGroup(groups.end);
 
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary contract populated from own components and serialized extensions.
   return assembled;
 }

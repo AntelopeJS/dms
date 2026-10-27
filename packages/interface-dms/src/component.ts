@@ -134,6 +134,7 @@ export function resolveButtonPermissionId(
   permission: ButtonPermission,
   componentPermissionId: string | undefined,
 ): string | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String or Action.
   if (typeof permission !== "string") return permission.permissionId;
   if (!componentPermissionId) return undefined;
   return `${componentPermissionId}.${permission}`;
@@ -237,7 +238,8 @@ function buildWatchAction<F extends string>(
     functionId,
   };
   if (opts?.params !== undefined) {
-    watch.params = opts.params as Record<string, unknown>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked.
+    watch.params = opts.params as WatchAction["params"];
   }
   if (opts?.onParam !== undefined) watch.onParam = opts.onParam;
   if (opts?.requirePermission !== undefined) {
@@ -285,6 +287,7 @@ export type ComponentAnchor = string | readonly string[];
 const ANCHOR_SEPARATOR = ".";
 
 function normalizeComponentAnchor(anchor: ComponentAnchor): readonly string[] {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String or path array.
   return typeof anchor === "string"
     ? anchor.split(ANCHOR_SEPARATOR)
     : [...anchor];
@@ -550,10 +553,11 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   }
 
   private stripWatchActions<O>(opts: O): O {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Generic options.
     if (!opts || typeof opts !== "object" || !("watchActions" in opts)) {
       return opts;
     }
-    const { watchActions: _ignored, ...rest } = opts as Record<string, unknown>;
+    const { watchActions: _ignored, ...rest } = opts;
     return rest as O;
   }
 
@@ -653,7 +657,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
 
   private installFilterChain(): void {
     this._onFilter = async (permissions, options, permissionId, context) => {
-      let next = options as T;
+      let next: T = options;
       if (this._userOnFilter) {
         next = await this._userOnFilter(
           permissions,
@@ -662,25 +666,21 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
           context,
         );
       }
-      next = (await this.applyWatchFilters(
-        permissions,
-        // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The generic component payload has no dictionary index signature; watch filters read its option keys.
-        next as unknown as Record<string, unknown>,
-        permissionId,
-      )) as T;
+      next = await this.applyWatchFilters(permissions, next, permissionId);
       return next;
     };
   }
 
-  private async applyWatchFilters(
+  private async applyWatchFilters<O>(
     permissions: Set<string>,
-    options: Record<string, unknown> | undefined,
+    options: O,
     permissionId: string,
-  ): Promise<Record<string, unknown> | undefined> {
+  ): Promise<O> {
     if (!options || !this._watchFilter) {
       return options;
     }
-    const watches = (options.watchActions as WatchAction[] | undefined) ?? [];
+    const watchOptions: { watchActions?: WatchAction[] } = options;
+    const watches = watchOptions.watchActions ?? [];
     if (watches.length === 0) {
       return options;
     }
@@ -736,9 +736,9 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     if (watches.length === 0) {
       return options;
     }
-    const optionsObj = (options ?? {}) as Record<string, unknown> & {
+    const optionsObj: {
       watchActions?: WatchAction[];
-    };
+    } = options ?? {};
     const existing = optionsObj.watchActions ?? [];
     const merged = [...existing, ...watches];
     return { ...optionsObj, watchActions: merged } as T;
@@ -757,10 +757,9 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
         if (!watches || watches.length === 0) {
           return child;
         }
-        const childOptions = (child.component.options ?? {}) as Record<
-          string,
-          unknown
-        > & { watchActions?: WatchAction[] };
+        const childOptions: {
+          watchActions?: WatchAction[];
+        } = child.component.options ?? {};
         const existing = childOptions.watchActions ?? [];
         return {
           ...child,

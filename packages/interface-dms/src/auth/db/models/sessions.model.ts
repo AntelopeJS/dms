@@ -17,9 +17,14 @@ interface UpdateResult {
   modifiedCount?: number;
 }
 
-function updatedRows(result: unknown): number {
+function updatedRows(
+  result: Awaited<
+    ReturnType<ReturnType<SessionModel["table"]["update"]>["run"]>
+  >,
+): number {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters return either a numeric count or a write result; preserve both accepted result representations.
   if (typeof result === "number") return result;
-  const counts = result as UpdateResult | undefined;
+  const counts: UpdateResult | undefined = result;
   return Number(counts?.replaced ?? counts?.modifiedCount ?? 0);
 }
 

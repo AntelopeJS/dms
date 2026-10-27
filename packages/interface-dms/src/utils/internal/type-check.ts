@@ -11,6 +11,7 @@ type Primitive = (typeof primitiveTypes)[number];
 const createTypeGuard =
   <T>(type: string) =>
   (v: unknown): v is T =>
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- These published primitive predicates implement JavaScript tag checks, including the legacy object/null behavior, rather than schema validation.
     typeof v === type;
 
 /** @internal */
@@ -25,6 +26,7 @@ export const isUndefined = createTypeGuard<undefined>("undefined");
 export const isObject = createTypeGuard<object>("object");
 /** @internal */
 export const isFunction =
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
   createTypeGuard<(...args: unknown[]) => unknown>("function");
 /** @internal */
 export const isBigint = createTypeGuard<bigint>("bigint");
@@ -32,8 +34,11 @@ export const isBigint = createTypeGuard<bigint>("bigint");
 export const isSymbol = createTypeGuard<symbol>("symbol");
 
 /** @internal */
-export const isPrimitive = (value: unknown): value is Primitive =>
-  (primitiveTypes as readonly string[]).includes(typeof value);
+export const isPrimitive = (value: unknown): value is Primitive => {
+  const types: readonly string[] = primitiveTypes;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published predicate classifies JavaScript tags and retains its existing Primitive contract.
+  return types.includes(typeof value);
+};
 
 /** @internal */
 export const isNull = (value: unknown): value is null => value === null;
@@ -43,6 +48,7 @@ export const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
 
 /** @internal */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published JSON predicate accepts arbitrary values and rejects nonstrings before parsing.
 export const isJSON = (value: unknown): boolean => {
   if (!isString(value)) {
     return false;
