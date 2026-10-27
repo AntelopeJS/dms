@@ -370,6 +370,11 @@ function renderRelationBadges(values: unknown[], labelKey: string) {
   return h("span", { class: RELATION_BADGES_CLASS }, badges);
 }
 
+function relationKey(row: unknown, options: unknown): string {
+  const key = mapRelationBeforeState(row, options);
+  return key === undefined || key === null ? "" : String(key);
+}
+
 function renderRelation(value: unknown, options: unknown) {
   const opts = options as RelationOptions | undefined;
   const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
@@ -383,7 +388,7 @@ function renderRelation(value: unknown, options: unknown) {
 
   const valueObject = value as Record<string, string>;
   const avatarKey = opts?.keyMapping?.avatar;
-  const label = valueObject[labelKey] || String(value);
+  const label = valueObject[labelKey] || relationKey(value, options);
 
   if (!avatarKey || !valueObject[avatarKey]) return label;
 

@@ -3,9 +3,10 @@
 // each of the thirteen narrowings needs the chain; the alternative is a generic
 // on DataCompareMode.filter, which would ripple through every implementation.
 /* oxlint-disable anti-slop/no-chained-type-assertions */
-import type {
-  ControllerClass,
-  RequestContext,
+import {
+  type ControllerClass,
+  ControllerMeta,
+  type RequestContext,
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
@@ -41,6 +42,7 @@ import {
   absolutizeJoinedSchemas,
   whenValueSet,
 } from "./internal/compare-types";
+import { buildOutsideCycle } from "./internal/relation-add-form";
 import { DefaultDataCompareTypes } from "./compare-types";
 /** How a `SelectType` shows its options. */
 export const SELECT_DISPLAYS = [
@@ -878,6 +880,29 @@ export namespace DefaultDataTypes {
       : DefaultDataCompareTypes.Is;
   }
 
+  function selectUrl(controller: ControllerClass) {
+    const { location } = GetMetadata(controller, ControllerMeta);
+    const { select } = GetMetadata(controller, DataAPIMeta).endpoints;
+    return `${location}/${select.endpoint || "select"}`;
+  }
+
+  function relationAddOptions(controller: ControllerClass) {
+    if (!GetMetadata(controller, DataAPIMeta).endpoints.new) return undefined;
+    const tableViewMeta = GetMetadata(controller, TableViewMeta);
+    const fields = tableViewMeta.getFormFields("new");
+    if (fields.length === 0) return undefined;
+    const { location } = GetMetadata(controller, ControllerMeta);
+    return {
+      addForm: Form({
+        fields,
+        submitUrl: `${location}/new`,
+        submitUrlMethod: HttpMethod.post,
+        kind: "create",
+      }).serializeSync(),
+      addPermissionIds: tableViewMeta.actionPermissionIds("add"),
+    };
+  }
+
   @RegisterDataType("relation")
   export class RelationType<T extends ControllerClass> extends DataType {
     constructor(
@@ -959,55 +984,22 @@ export namespace DefaultDataTypes {
     // added through it: that form, nested relations included, is the bulk of
     // the component, and only an editable field opens it.
     private relationInput(canAdd: boolean, multiple: boolean | undefined) {
-      const tableViewMeta = GetMetadata(
-        this.options.dataApiController,
-        TableViewMeta,
-      );
-      const { config } = tableViewMeta;
-      const { endpoints } = GetMetadata(
-        this.options.dataApiController,
-        DataAPIMeta,
-      );
-
-      const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
+      const controller = this.options.dataApiController;
       const addOptions = canAdd
-        ? this.buildAddOptions(tableViewMeta, endpoints)
+        ? buildOutsideCycle(controller, () => relationAddOptions(controller))
         : undefined;
 
       return FormComponents.InputRelation({
         placeholder: this.options.placeholder,
         multiple,
         deselectable: this.options.deselectable,
-        searchUrl: location,
+        searchUrl: selectUrl(controller),
         keyMapping: this.options.keyMapping,
         filterBy: this.options.filterBy,
         addForm: addOptions?.addForm,
         addPermissionIds: addOptions?.addPermissionIds,
         addFormTexts: this.options.addForm,
       });
-    }
-
-    private buildAddOptions(
-      tableViewMeta: TableViewMeta,
-      endpoints: { new?: unknown },
-    ) {
-      if (!endpoints.new) return undefined;
-
-      const newFields = tableViewMeta.getFormFields("new");
-      if (newFields.length === 0) return undefined;
-
-      const submitUrl = `${tableViewMeta.config.location}/new`;
-      const addForm = Form({
-        fields: newFields,
-        submitUrl,
-        submitUrlMethod: HttpMethod.post,
-        kind: "create",
-      }).serializeSync();
-
-      return {
-        addForm,
-        addPermissionIds: tableViewMeta.actionPermissionIds("add"),
-      };
     }
 
     getValidation(): z.ZodType {
@@ -1113,20 +1105,11 @@ export namespace DefaultDataTypes {
     }
 
     private cascaderInput(multiple: boolean | undefined) {
-      const { config } = GetMetadata(
-        this.options.dataApiController,
-        TableViewMeta,
-      );
-      const { endpoints } = GetMetadata(
-        this.options.dataApiController,
-        DataAPIMeta,
-      );
-
       return FormComponents.InputCascader({
         placeholder: this.options.placeholder,
         multiple,
         deselectable: this.options.deselectable,
-        searchUrl: `${config.location}/${endpoints.select.endpoint || "select"}`,
+        searchUrl: selectUrl(this.options.dataApiController),
         keyMapping: this.options.keyMapping,
         maxDepth: this.options.maxDepth,
         leafOnly: this.options.leafOnly,
