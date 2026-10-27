@@ -1,6 +1,7 @@
 {
   "name": "playground",
   "version": "0.0.1",
+  "private": true,
   "main": "dist/index.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
