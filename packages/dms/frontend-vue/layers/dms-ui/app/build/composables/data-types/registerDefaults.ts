@@ -375,12 +375,22 @@ function relationKey(row: unknown, options: unknown): string {
   return key === undefined || key === null ? "" : String(key);
 }
 
+function labelledRelationRow(row: unknown, labelKey: string, options: unknown) {
+  if (row instanceof NotFoundRelation || !isObject(row)) return row;
+  const label = (row as Record<string, unknown>)[labelKey];
+  const hasLabel = label !== undefined && label !== null && label !== "";
+  return hasLabel ? row : relationKey(row, options);
+}
+
 function renderRelation(value: unknown, options: unknown) {
   const opts = options as RelationOptions | undefined;
   const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
 
   if (opts?.multiple && Array.isArray(value)) {
-    return renderRelationBadges(value, labelKey);
+    return renderRelationBadges(
+      value.map((row) => labelledRelationRow(row, labelKey, options)),
+      labelKey,
+    );
   }
 
   if (value instanceof NotFoundRelation) return renderNotFoundRelation(value);

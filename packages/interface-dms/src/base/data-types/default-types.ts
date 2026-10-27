@@ -1240,20 +1240,9 @@ export namespace DefaultDataTypes {
         return FormComponents.InputAddress(baseConfig);
       }
 
-      const { config } = GetMetadata(
-        this.options.dataApiController,
-        TableViewMeta,
-      );
-      const { endpoints } = GetMetadata(
-        this.options.dataApiController,
-        DataAPIMeta,
-      );
-
-      const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
-
       return FormComponents.InputAddress({
         ...baseConfig,
-        searchUrl: location,
+        searchUrl: selectUrl(this.options.dataApiController),
         keyMapping: this.options.keyMapping,
       });
     }

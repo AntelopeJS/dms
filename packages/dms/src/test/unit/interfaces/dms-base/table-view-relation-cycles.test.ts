@@ -28,6 +28,7 @@ const SCHEMA = "relation-cycles-test";
 class Employee extends Table {
   @Field("string") declare name: string;
   @Field("string") declare manager: string;
+  @Field("string") declare home: string;
 }
 class EmployeeModel extends BasicDataModel(Employee, "employees") {}
 
@@ -46,6 +47,7 @@ class EmployeeAPI extends DataController(
   declare name: string;
 
   declare manager: string;
+  declare home: string;
 }
 
 @RegisterTable("teams", SCHEMA)
@@ -112,6 +114,11 @@ function relateTo(
 }
 
 relateTo(EmployeeAPI, "manager", EmployeeAPI);
+Column({
+  name: "home",
+  type: new DefaultDataTypes.AddressType({ dataApiController: EmployeeAPI }),
+})(EmployeeAPI.prototype, "home");
+Access(AccessMode.ReadWrite)(EmployeeAPI.prototype, "home");
 relateTo(TeamAPI, "lead", MemberAPI);
 relateTo(MemberAPI, "team", TeamAPI);
 
@@ -183,6 +190,14 @@ describe("[unit] interfaces/dms-base/table-view-relation-cycles — cyclic relat
         "/relation-cycles-test/employees/select",
       );
       expect(nested?.addForm).to.equal(undefined);
+    });
+  });
+
+  describe("an address searching its own table", () => {
+    it("builds its search on the controller's own select route", () => {
+      expect(columnSearchUrl(tableOptions(EmployeeAPI), "home")).to.equal(
+        "/relation-cycles-test/employees/select",
+      );
     });
   });
 

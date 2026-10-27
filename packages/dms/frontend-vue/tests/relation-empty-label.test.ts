@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 /**
  * A relation cell whose joined row has no label shows the row's key, never
- * the row itself stringified (`[object Object]`).
+ * the row itself stringified (`[object Object]`), and a multiple relation
+ * keeps a badge for it.
  */
-import { h } from "vue";
+import { h, type VNode } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { Size } from "../layers/dms-core/app/types/size";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
 const stub = { default: { render: () => null } };
@@ -26,9 +28,11 @@ const register = (dataType: DataType) =>
 beforeAll(async () => {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
+  vi.stubGlobal("Size", Size);
   for (const name of ["formatNumber", "formatPrice", "formatPercentage"]) {
     vi.stubGlobal(name, () => "");
   }
+  vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: (key: string) => key } }));
   vi.stubGlobal("useDataTypes", () => ({ registerDataType: register }));
   const { registerDefaultDataTypes } = await import(
     "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
@@ -56,5 +60,24 @@ describe("relation cell without a label", () => {
 
   it("keeps the label when there is one", () => {
     expect(renderRelation({ _id: "ord-7", id: 1042 }, options)).toBe(1042);
+  });
+});
+
+describe("multiple relation cell without a label", () => {
+  const options = { multiple: true, keyMapping: { label: "name" } };
+
+  const badgeLabels = (value: unknown[]) => {
+    const cell = renderRelation(value, options) as VNode;
+    return (cell.children as VNode[]).map((badge) => badge.props?.label);
+  };
+
+  it("keeps a badge with the row's key for an empty or null label", () => {
+    expect(
+      badgeLabels([
+        { _id: "role-1", name: "" },
+        { _id: "role-2", name: "Admin" },
+        { _id: "role-3", name: null },
+      ]),
+    ).toEqual(["role-1", "Admin", "role-3"]);
   });
 });
