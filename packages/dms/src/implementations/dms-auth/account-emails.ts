@@ -7,7 +7,10 @@ import {
 import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 import { Send } from "@antelopejs/interface-email";
 import { getAuthConfig } from "../../config";
-import { type BuiltInEmailSubject, builtInEmailSubject } from "../../utils";
+import {
+  type BuiltInEmailSubject,
+  builtInEmailSubject,
+} from "../../utils/email-subjects";
 
 interface ResetPasswordData {
   userName: string;

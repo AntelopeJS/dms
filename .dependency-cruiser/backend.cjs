@@ -36,11 +36,20 @@ const faces = {
     "dms/services",
     "dms-base/services",
     "dms-auth/services",
+    "dms-auth/email-templates",
     "dms-html-render/services",
     "dms-notifications/services",
   ],
   store: ["frontend"],
-  utils: ["notification-tones"],
+  utils: [
+    "notification-tones",
+    "email-subjects",
+    "client-ip/index",
+    "notification-registry/index",
+    "request-email-verification/index",
+    "run-in-batches/index",
+  ],
+  realtime: ["table-view/index"],
   config: ["startup-config", "client-origin-cors", "session-handoff"],
 };
 

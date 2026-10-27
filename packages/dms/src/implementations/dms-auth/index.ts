@@ -6,10 +6,9 @@ import { Send } from "@antelopejs/interface-email";
 import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
-import {
-  GenerateHtml,
-  RegisterHtmlTemplate,
-} from "@antelopejs/interface-dms/html-render";
+import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
+export * from "./account-emails";
+import { AdminInviteTemplate } from "./email-templates";
 import { decode, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
@@ -23,8 +22,6 @@ import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
-
-export * from "./account-emails";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
@@ -50,15 +47,6 @@ interface TokenResult {
   token: string;
   expiresIn: number;
 }
-
-interface AdminInviteData extends AdminInviteEmailNames {
-  email: string;
-  signupLink: string;
-  expiresInDays: number;
-}
-
-const AdminInviteTemplate =
-  RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
 
 /**
  * Common validation logic for user tokens

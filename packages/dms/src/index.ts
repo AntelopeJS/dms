@@ -10,6 +10,7 @@ import "./db";
 
 // oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
+import "./implementations/dms-auth/email-templates";
 import "./pages";
 import "./routes";
 import {
