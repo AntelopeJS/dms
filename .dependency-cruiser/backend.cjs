@@ -30,7 +30,7 @@ const loaderEntries = [
   "dms/client-ip",
 ];
 const faces = {
-  routes: ["oauth", "authentication"],
+  routes: ["oauth", "oauth-config", "authentication"],
   pages: ["account", "members", "permissions", "preview"],
   implementations: [
     "dms/services",
@@ -46,6 +46,14 @@ const faces = {
 
 module.exports = {
   forbidden: [
+    {
+      name: "backend-unranked-folder",
+      severity: "error",
+      from: { path: root },
+      to: {
+        path: `${root}(?!(?:${[...tiers.flat(), "test"].join("|")})/)[^/]+/`,
+      },
+    },
     {
       name: "backend-no-composition-root",
       severity: "error",

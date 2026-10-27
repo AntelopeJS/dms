@@ -11,7 +11,7 @@ import {
   DEFAULT_CLIENT_BASE_URL,
 } from "./config";
 import { SESSION_HANDOFF_ENDPOINT as sessionHandoffEndpoint } from "./config/session-handoff";
-import { describeEnabledOAuthProviders } from "./routes/oauth";
+import { describeEnabledOAuthProviders } from "./routes/oauth-config";
 
 /**
  * Where the frontend server opens the session a credential change handed back

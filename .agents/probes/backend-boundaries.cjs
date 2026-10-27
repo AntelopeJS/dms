@@ -53,6 +53,10 @@ function runGuard(env = process.env) {
   );
 }
 const source = join(root, "packages/dms/src");
+if (process.argv.includes("--round12-targets")) {
+  round12Targets();
+  process.exit(0);
+}
 if (process.argv.includes("--round11-targets")) {
   round11Targets();
   process.exit(0);
@@ -80,6 +84,7 @@ round9Targets();
 round10Targets();
 round10Pins();
 round11Targets();
+round12Targets();
 if (process.argv.includes("--runtime-targets")) process.exit(0);
 sourceDistTargets();
 const tiers = [
@@ -1593,5 +1598,210 @@ function round11Targets() {
     );
   } finally {
     rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+function round12Targets() {
+  const scratch = mkdtempSync(join(tmpdir(), "backend-round12-"));
+  const rules = process.argv
+    .find((argument) => argument.startsWith("--baseline-rules="))
+    ?.slice("--baseline-rules=".length);
+  const ts = require(require.resolve("typescript", { paths: [root] }));
+  const backend = join(scratch, "packages/dms");
+  const sourceRoot = join(backend, "src");
+  const distRoot = join(backend, "dist");
+  const hook = join(backend, "scripts/backend-runtime-boundaries.cjs");
+  const rule = "backend-unranked-folder";
+  let checks = 0;
+  function writeSource(name, body) {
+    const path = join(sourceRoot, name);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, body);
+    const compiled = join(distRoot, name.replace(/\.ts$/, ".js"));
+    mkdirSync(dirname(compiled), { recursive: true });
+    writeFileSync(
+      compiled,
+      ts.transpileModule(body, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.CommonJS,
+          rewriteRelativeImportExtensions: true,
+        },
+        fileName: path,
+      }).outputText,
+    );
+  }
+  function run(args) {
+    return spawnSync(process.execPath, args, {
+      cwd: scratch,
+      encoding: "utf8",
+      timeout: 30000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+  }
+  try {
+    mkdirSync(backend, { recursive: true });
+    for (const name of ["src", "dist", "scripts", "package.json"])
+      cpSync(join(root, "packages/dms", name), join(backend, name), {
+        recursive: true,
+      });
+    for (const name of ["frontend-vue", "playground", "node_modules"])
+      symlinkSync(join(root, "packages/dms", name), join(backend, name));
+    symlinkSync(join(root, "node_modules"), join(scratch, "node_modules"));
+    symlinkSync(
+      join(root, "packages/interface-dms"),
+      join(scratch, "packages/interface-dms"),
+    );
+    cpSync(join(root, "pnpm-lock.yaml"), join(scratch, "pnpm-lock.yaml"));
+    mkdirSync(join(scratch, ".dependency-cruiser"));
+    cpSync(
+      rules ?? join(root, ".dependency-cruiser/backend.cjs"),
+      join(scratch, ".dependency-cruiser/backend.cjs"),
+    );
+    if (rules) {
+      for (const [folder, extension] of [
+        ["src", "ts"],
+        ["dist", "js"],
+      ]) {
+        const path = join(backend, folder, `frontend-module.${extension}`);
+        writeFileSync(
+          path,
+          readFileSync(path, "utf8").replaceAll(
+            '"./routes/oauth-config"',
+            '"./routes/oauth"',
+          ),
+        );
+      }
+      process.stdout.write(
+        "Baseline snapshot only: frontend composition uses the historical public routes/oauth face; old rules are unchanged.\n",
+      );
+    }
+    const scanner = join(backend, "scripts/backend-checks.cjs");
+    const healthy = run([scanner]);
+    assert.equal(healthy.status, 0, healthy.stderr);
+    writeSource("routes/index.ts", 'export const marker = "routes";\n');
+    writeSource("newmod/index.ts", 'export * from "../routes/index.ts";\n');
+    writeSource(
+      "config/__round12/index.ts",
+      'export const marker = "ranked";\n',
+    );
+    writeSource("test/__round12/index.ts", 'export const marker = "test";\n');
+    const callers = [
+      join(sourceRoot, "db/index.ts"),
+      join(distRoot, "db/index.js"),
+    ];
+    const originals = callers.map((path) => readFileSync(path));
+    const config = join(scratch, "focused.cjs");
+    writeFileSync(
+      config,
+      `module.exports = { ...require('./.dependency-cruiser/backend.cjs'), options: { tsPreCompilationDeps: true } };\n`,
+    );
+    for (const [name, targetName, marker] of [
+      ["unranked-routes-laundering", "newmod/index.ts", "routes"],
+      ["ranked-domain-control", "config/__round12/index.ts", "ranked"],
+      ["test-folder-exemption", "test/__round12/index.ts", "test"],
+    ]) {
+      const accepted =
+        name !== "unranked-routes-laundering" || (!!rules && !expectRejections);
+      writeSource("db/index.ts", `export * from "../${targetName}";\n`);
+      const fixtureCallers = callers.map((path) => readFileSync(path));
+      const cruise = run([
+        join(
+          root,
+          "node_modules/dependency-cruiser/bin/dependency-cruiser.mjs",
+        ),
+        "packages/dms/src/db/index.ts",
+        "--config",
+        config,
+        "--output-type",
+        "json",
+      ]);
+      assert.equal(cruise.status, 0, cruise.stderr);
+      const graph = JSON.parse(cruise.stdout);
+      const from = "packages/dms/src/db/index.ts";
+      const to = `packages/dms/src/${targetName}`;
+      assert.ok(
+        graph.modules
+          .find((item) => item.source === from)
+          ?.dependencies.some((item) => item.resolved === to),
+        `${name}: depcruise must resolve the tested importer-target edge`,
+      );
+      assert.deepEqual(
+        graph.summary.violations.map((item) => [
+          item.rule.name,
+          item.from,
+          item.to,
+        ]),
+        accepted ? [] : [[rule, from, to]],
+        `${name}: no unrelated or transitive violation may satisfy this probe`,
+      );
+      process.stdout.write(
+        JSON.stringify({
+          name,
+          depcruise: { from, to, violations: graph.summary.violations },
+        }) + "\n",
+      );
+      for (const [index, folder] of ["src", "dist"].entries()) {
+        callers.forEach((path, i) =>
+          writeFileSync(path, i === index ? fixtureCallers[i] : originals[i]),
+        );
+        const caller = callers[index];
+        const target = join(
+          backend,
+          folder,
+          targetName.replace(/\.ts$/, folder === "src" ? ".ts" : ".js"),
+        );
+        const edge = `${caller} -> ${target} violates ${rule}`;
+        const scanned = run([scanner]);
+        assert.equal(
+          scanned.status,
+          accepted ? 0 : 1,
+          `${name}/${folder}\n${scanned.stderr}`,
+        );
+        if (!accepted) assert.ok(scanned.stderr.includes(edge), scanned.stderr);
+        const runtimeCode = `
+          const assert = require('node:assert/strict');
+          assert.equal(require(${JSON.stringify(caller)}).marker, ${JSON.stringify(marker)});
+          assert.equal(require('node:module').createRequire(${JSON.stringify(caller)}).resolve(${JSON.stringify(`../${targetName.replace(/\.ts$/, folder === "src" ? ".ts" : ".js")}`)}), ${JSON.stringify(target)});
+          if (${JSON.stringify(folder === "dist")}) assert.ok(require.cache[${JSON.stringify(target)}], 'tested CJS target actually cached');
+          console.log(JSON.stringify({ marker: ${JSON.stringify(marker)}, resolved: true, cached: ${JSON.stringify(folder === "dist")} }));
+        `;
+        const loaded = run(["-e", runtimeCode]);
+        assert.equal(
+          loaded.status,
+          0,
+          `${name}/${folder} unguarded load\n${loaded.stderr}`,
+        );
+        const guarded = run(["--require", hook, "-e", runtimeCode]);
+        assert.equal(
+          guarded.status,
+          accepted ? 0 : 1,
+          `${name}/${folder} hook\n${guarded.stderr}`,
+        );
+        if (!accepted) assert.ok(guarded.stderr.includes(edge), guarded.stderr);
+        checks++;
+        process.stdout.write(
+          JSON.stringify({
+            name,
+            format: folder === "src" ? "typed-source" : "emitted-cjs",
+            from: caller,
+            to: target,
+            scanner: scanned.status,
+            unguarded: JSON.parse(loaded.stdout),
+            hook: guarded.status,
+            diagnostic: accepted ? undefined : edge,
+          }) + "\n",
+        );
+      }
+      callers.forEach((path, i) => writeFileSync(path, originals[i]));
+    }
+    const restored = run([scanner]);
+    assert.equal(restored.status, 0, restored.stderr);
+    process.stdout.write(
+      JSON.stringify({ round: 12, rules: rules ?? "current", checks }) + "\n",
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+    assert.equal(existsSync(scratch), false, "isolated snapshot removed");
   }
 }
