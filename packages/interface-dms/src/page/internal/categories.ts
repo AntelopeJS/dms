@@ -1,6 +1,6 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { ComponentInfo } from "../../component";
+import { Action, type ComponentInfo } from "../../component";
 import {
   MarkModuleScopedPermission,
   type Permission,
@@ -230,22 +230,31 @@ export function createCategoryFunction(
   };
 
   internal.RegisterCategory.register(categoryInfo);
-  const categoryPermission: Permission = {
+  const fromAction =
+    categoryInfo.permission instanceof Action
+      ? categoryInfo.permission.toPermission()
+      : undefined;
+  const categoryPermission: Permission = fromAction ?? {
     id: categoryInfo.fullId,
     title: categoryInfo.displayName,
     icon: categoryInfo.icon,
     defaultGranted:
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread -- Preserves the legacy permission spread, including Action instances; Action normalization is unresolved.
-    ...categoryInfo.permission,
+    ...ownPermission(categoryInfo.permission),
   };
   if (isInsideModule(categoryInfo)) {
     MarkModuleScopedPermission(categoryPermission.id);
-  } else {
+  } else if (!fromAction) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
   return categoryInfo;
+}
+
+function ownPermission(
+  permission: CategoryInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */
