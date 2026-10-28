@@ -25,11 +25,23 @@ export class SearchableMeta {
 
 const DEFAULT_COMPARE_MODE = "contains";
 
+/**
+ * Marks a data controller property as part of the list route's free-text search.
+ * Search fields name database columns, so the property key must be a string:
+ * a symbol (or other non-string) key throws a `TypeError` at decoration time.
+ */
 export const Searchable = MakePropertyDecorator(
   (target, key, compareMode?: string) => {
+    const field = String(key);
+    if (field !== key) {
+      throw new TypeError(
+        `@Searchable cannot be applied to the non-string property key ${field} of ${target.constructor.name}: search fields name database columns, which are strings`,
+      );
+    }
     const searchableMeta = GetMetadata(target.constructor, SearchableMeta);
-    const effectiveCompareMode = compareMode ?? DEFAULT_COMPARE_MODE;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Decorators also receive symbols; preserve the existing unchecked symbol behavior rather than change this public decorator.
-    searchableMeta.setSearchableField(key as string, effectiveCompareMode);
+    searchableMeta.setSearchableField(
+      field,
+      compareMode ?? DEFAULT_COMPARE_MODE,
+    );
   },
 );
