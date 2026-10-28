@@ -1,8 +1,0 @@
-{
-  "rules": {
-    "antelopejs/no-comments": 74
-  },
-  "oversizeFiles": {
-    "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056
-  }
-}
