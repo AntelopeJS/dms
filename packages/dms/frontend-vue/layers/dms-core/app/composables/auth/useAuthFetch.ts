@@ -108,14 +108,36 @@ export const useAuthFetch = () => {
     };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the existing advertised $fetch contract. Inference loses generic response correlation; an owner annotation also requires native/create members that this wrapper never attached.
-  const $authFetch = withSessionRetry((request, options) =>
+  const retryingFetch = withSessionRetry((request, options) =>
     baseFetch(request, options),
-  ) as AuthFetch;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
-  $authFetch.raw = withSessionRetry((request, options) =>
+  );
+  const retryingRaw = withSessionRetry((request, options) =>
     baseFetch.raw(request, options),
-  ) as AuthFetch["raw"];
+  );
 
-  return { $authFetch };
+  /**
+   * The session-retrying fetch with `defaults` under each call's options, as
+   * `$fetch.create` merges them, so a retry resends the options of its first
+   * attempt: the call and `raw` retry, `native` is the platform fetch, and
+   * `create` adds defaults to a fetch that retries too.
+   */
+  function withSession(defaults: AuthFetchArgs[1]): AuthFetch {
+    const optionsOf = (options?: AuthFetchArgs[1]) => ({
+      ...defaults,
+      ...options,
+    });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The wrapper forwards each call to baseFetch, whose generic response correlation inference loses; raw, native and create are attached below before it is returned.
+    const authFetch = ((
+      request: AuthFetchArgs[0],
+      options?: AuthFetchArgs[1],
+    ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
+    authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
+      retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
+    authFetch.native = baseFetch.native;
+    authFetch.create = (more) => withSession(optionsOf(more));
+    return authFetch;
+  }
+
+  return { $authFetch: withSession(undefined) };
 };
