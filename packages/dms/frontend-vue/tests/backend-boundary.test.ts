@@ -1,9 +1,15 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, type Plugin } from "vite";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { backendBoundary } from "../build/backend-boundary";
+import { backendBoundary } from "../build/backend-boundary.ts";
 
 let root: string;
 beforeEach(() => {
@@ -58,5 +64,47 @@ it("ignores a virtual module", async () => {
     bundle('import one from "virtual:fixture";\nexport default one;\n', [
       virtual,
     ]),
+  ).resolves.toBeDefined();
+});
+
+function resolvingTo(target: () => string): Plugin {
+  return {
+    name: "fixture-resolver",
+    resolveId: (source) => (source === "fixture:target" ? target() : null),
+  };
+}
+
+const IMPORT_TARGET =
+  'import { api } from "fixture:target";\nexport default api;\n';
+
+it("follows a symlink the resolver returns to the backend source", async () => {
+  symlinkSync(
+    join(root, "backend/src/api.ts"),
+    join(root, "frontend/linked.ts"),
+  );
+  await expect(
+    bundle(IMPORT_TARGET, [
+      resolvingTo(() => join(root, "frontend/linked.ts")),
+    ]),
+  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+});
+
+it("sees through a query on the resolved id", async () => {
+  await expect(
+    bundle(IMPORT_TARGET, [
+      resolvingTo(() => `${join(root, "backend/src/api.ts")}?raw`),
+    ]),
+  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+});
+
+it("lets the owning package decide, not the directory name", async () => {
+  mkdirSync(join(root, "other/src"), { recursive: true });
+  writeFileSync(
+    join(root, "other/package.json"),
+    JSON.stringify({ name: "@acme/other" }),
+  );
+  writeFileSync(join(root, "other/src/api.ts"), "export const api = 3;\n");
+  await expect(
+    bundle('import { api } from "../other/src/api";\nexport default api;\n'),
   ).resolves.toBeDefined();
 });

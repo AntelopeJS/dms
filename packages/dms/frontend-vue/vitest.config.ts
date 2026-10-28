@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
 import ui from "@nuxt/ui/vite";
-import { backendBoundary } from "./build/backend-boundary";
+import { backendBoundary } from "./build/backend-boundary.ts";
 
 export default defineConfig({
   plugins: [

@@ -62,8 +62,10 @@ function backendSourceFile(id: string): string | undefined {
  * Fails the build, the dev server and the tests when a module of the frontend
  * resolves to a file under `packages/dms/src`: the browser reaches the
  * backend only through its HTTP interface. It checks what the whole resolution
- * chain returns, so aliases and symlinks cannot hide the file, and it runs
- * before the other plugins (`enforce: "pre"`).
+ * chain returns, so an alias is seen through and a symlink the resolver
+ * returns is followed to its real path, and it runs before the other plugins
+ * (`enforce: "pre"`). The build copies the frontend module with its symlinks
+ * resolved, so only `pnpm run deps` sees a symlink inside the module.
  */
 export function backendBoundary(): VitePlugin {
   return {
