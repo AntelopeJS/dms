@@ -20,7 +20,7 @@
     "import/no-duplicates": 1,
     "no-empty": 16,
     "promise/no-callback-in-promise": 1,
-    "typescript/no-misused-spread": 6,
+    "typescript/no-misused-spread": 5,
     "typescript/no-redundant-type-constituents": 1,
     "typescript/unbound-method": 1,
     "unicorn/no-useless-spread": 4,

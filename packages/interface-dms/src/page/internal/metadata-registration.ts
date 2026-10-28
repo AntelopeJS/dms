@@ -8,6 +8,7 @@ import { AuthUserWithPermission } from "../../guards";
 import {
   MarkModuleScopedPermission,
   RegisterPermission,
+  type Permission,
 } from "../../permissions";
 import { TenantScopedModel } from "../../tenant-scoped-model";
 import type { PageMetadata } from "../metadata";
@@ -35,8 +36,7 @@ export function registerPagePermission(
     icon: pageInfo.icon,
     defaultGranted:
       pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread -- An Action without a permission reaches this fallback; preserve the existing own-property spread rather than fix its registration behavior.
-    ...pageInfo.permission,
+    ...ownPermission(pageInfo.permission),
   };
   setRegistered(false);
   if (moduleScoped()) {
@@ -46,6 +46,12 @@ export function registerPagePermission(
     setRegistered(true);
   }
   return pagePermission.id;
+}
+
+function ownPermission(
+  permission: PageInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */
