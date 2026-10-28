@@ -136,15 +136,16 @@ async function settle() {
   }
 }
 
+async function respond(url: string) {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return url === SITE_LAYOUT_URL ? siteResponse : completionLayout;
+}
+
 beforeEach(() => {
   state.clear();
   mounts = 0;
 
-  authFetch.mockImplementation(async (url: string) => {
-    const site = url === SITE_LAYOUT_URL;
-    await new Promise((resolve) => setTimeout(resolve, site ? 5 : 0));
-    return site ? siteResponse : completionLayout;
-  });
+  authFetch.mockImplementation(respond);
   fetchHandoff.mockResolvedValue({ kind: "none" });
   route = reactive({ path: PATH, query: {} });
 
@@ -165,7 +166,14 @@ afterEach(() => {
 });
 
 it("consumes the handoff once when the identity refresh remounts the page", async () => {
+  const identityRefresh = Promise.withResolvers<void>();
+  authFetch.mockImplementation(async (url: string) => {
+    if (url === SITE_LAYOUT_URL) await identityRefresh.promise;
+    return respond(url);
+  });
   mountCompletionPage();
+  await vi.waitFor(() => expect(mounts).toBeGreaterThanOrEqual(2));
+  identityRefresh.resolve();
   await vi.waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(HOMEPAGE, { replace: true }),
   );
