@@ -355,6 +355,92 @@ function observeFactoryHelpers() {
   return { actions, routes, urls, displays, rowActions };
 }
 
+function observePageInfoPrecedence() {
+  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
+  const { GetMetadata } = requireInterface("@antelopejs/interface-core");
+  const results = [];
+  for (const mode of ["explicit", "menu", "ancestor", "default", "controller"]) {
+    const trace = [];
+    const explicit = { componentName: "explicit-layout" };
+    const menuLayout = { componentName: "menu-layout" };
+    const ancestorLayout = { componentName: "ancestor-layout" };
+    const ancestor = { fullId: "root", fullSlug: "/root", layout: ancestorLayout };
+    const category = new Proxy(
+      {
+        fullId: "root.category",
+        fullSlug: "/category",
+        category: ancestor,
+        hidden: true,
+        publicAccess: true,
+        authOnly: true,
+        memberAccess: mode === "menu" ? "self" : true,
+        bypassTenantAccessGate: true,
+      },
+      {
+        get(target, key, receiver) {
+          trace.push(`category.${String(key)}`);
+          return Reflect.get(target, key, receiver);
+        },
+      },
+    );
+    class CategoryController {}
+    GetMetadata(CategoryController, PageMetadata).pageInfo = category;
+    const options = {
+      displayName: "Asymmetric page",
+      hidden: false,
+      publicAccess: false,
+      authOnly: false,
+      memberAccess: mode === "explicit" ? "self" : false,
+      bypassTenantAccessGate: false,
+      parent: { fullId: "other", fullSlug: "/parent-only" },
+    };
+    if (mode !== "default") {
+      options.category = mode === "controller" ? CategoryController : category;
+    }
+    if (mode === "explicit" || mode === "menu") options.layout = menuLayout;
+    const menu = new Proxy(options, {
+      get(target, key, receiver) {
+        trace.push(`menu.${String(key)}`);
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    class Controller {}
+    const page = new PageMetadata(Controller);
+    const receiver = new Proxy(page, {
+      set(target, key, value, owner) {
+        trace.push(`write.${String(key)}`);
+        return Reflect.set(target, key, value, owner);
+      },
+    });
+    const returned = receiver.SetInfo(
+      "leaf",
+      "/root//asymmetric/",
+      menu,
+      mode === "explicit" ? explicit : undefined,
+    );
+    const info = page.pageInfo;
+    const snapshot = {
+      ...info,
+      category: info.category?.fullId,
+    };
+    results.push({
+      mode,
+      info: snapshot,
+      keys: Object.keys(info),
+      layout: page.layout,
+      identity: [
+        page.layout === explicit,
+        page.layout === menuLayout,
+        page.layout === ancestorLayout,
+        info.category === category,
+      ],
+      returnsUndefined: returned === undefined,
+      trace,
+    });
+  }
+  return results;
+}
+
 function observePageAndTableMetadata() {
   const { PageMetadata } = requireInterface("./dist/page/metadata.js");
   const { TableViewMeta } = requireInterface("./dist/base/table-view/meta.js");
@@ -1080,6 +1166,7 @@ async function observe() {
     routes: await observeRoutes(),
     factoryHelpers: observeFactoryHelpers(),
     metadata: observePageAndTableMetadata(),
+    pageInfoPrecedence: observePageInfoPrecedence(),
     lifecycle: await observeTableViewLifecycle(),
     extractedPageCalls: await observeExtractedPageCalls(),
     evaluationOrder: await observeEvaluationOrder(),

@@ -1,50 +1,15 @@
 import { type ControllerClass } from "@antelopejs/interface-api";
-import { Logging } from "@antelopejs/interface-core/logging";
-import { DefaultLayout } from "../base/layouts";
 import {
   type Component,
-  type ComponentFilterContext,
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
 import type { SlotOptions } from "../component-slots";
 import { type TenantGuardOptions } from "../guards";
-import { GetEffectiveUserPermissions, HasPermission } from "../permissions";
-import { ResolveComponentSlots } from "../internal/component-slots";
-import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
-import { AssertTenantAccess } from "../tenant-access";
-import { SignUploadToken, internal as uploadInternal } from "../uploads";
-// oxlint-disable import/no-cycle -- Category cycles resolve in function bodies.
-import {
-  resolveCategoryInfo,
-  resolveInheritedLayout,
-} from "./internal/categories";
-import { mergeMetadata as merge, publish } from "./internal/metadata-publish";
-// oxlint-enable import/no-cycle
 import type { ComponentTreeNode } from "./component-tree";
-import {
-  assembleLayoutComponents,
-  type PageExtensionEntry,
-} from "./internal/extension-assembly";
-import { collectExtensionErrors } from "./internal/extension-validation";
-import { PageDeclarationConflictError } from "./declaration-conflict";
-import { pageRoutePath } from "./page-routes";
-import { type ComponentNodeMap, filterComponents } from "./layout-filter";
-import {
-  filterLayoutHeaderActions,
-  withComponentHeaderButtons,
-} from "./internal/layout-filter";
-import { readPageRecord } from "./internal/page-record";
-import { withTableViewPlacements } from "./internal/table-view-ids";
-import { inheritedMemberAccess } from "./internal/member-access";
-import {
-  pageExtensions,
-  pageMetadataByFullId,
-  isPageExtensionRegistered,
-  runAsPageExtensionOwner,
-  syncTargetExtensions,
-} from "./internal/registry";
+import type { PageExtensionEntry } from "./internal/extension-assembly";
+import type { ComponentNodeMap } from "./layout-filter";
 import {
   type MenuOptions,
   type PageExtensionComponent,
@@ -53,37 +18,105 @@ import {
   type PageLayout,
   type PageLayoutRequest,
 } from "./types";
-import { PageRegistration } from "./internal/page-registration";
-import {
-  hiddenComponentsFlag,
-  registerLayoutRoute,
-} from "./internal/metadata-layout";
-import {
-  isNativeUploadField,
-  readUploadConstraints,
-  resolveWritePermission,
-  type UploadFieldNode,
-} from "./internal/metadata-uploads";
-import {
-  applyAuthDecorators,
-  ownRouteProperties,
-  registerPagePermission,
-} from "./internal/metadata-registration";
-import {
-  extensionComponentPath,
-  takenComponentKeys,
-} from "./internal/metadata-extensions";
-import {
-  actionPermissions,
-  notifyPageCreated,
-  prepareComponent,
-  registerComponentNode,
-  unregisterComponent,
-  unregisterComponentNode,
-} from "./internal/metadata-components";
+import type { UploadFieldNode } from "./internal/metadata-uploads";
+import { SignUploadToken } from "../uploads";
+// oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
+import * as metadata from "./internal/metadata-lifecycle";
 
 export class PageMetadata {
   public static key = Symbol();
+
+  static {
+    metadata.installMetadataOwner((page) => ({
+      get registration() {
+        return page.registration;
+      },
+      get componentMap() {
+        return page.componentMap;
+      },
+      get componentTrees() {
+        return page.componentTrees;
+      },
+      get nativeUploadFields() {
+        return page.nativeUploadFields;
+      },
+      get notifiedComponents() {
+        return page.notifiedComponents;
+      },
+      get extensionEntries() {
+        return page.extensionEntries;
+      },
+      get layoutRef() {
+        return page.layoutRef;
+      },
+      get ownComponents() {
+        return page.ownComponents;
+      },
+      set ownComponents(value) {
+        page.ownComponents = value;
+      },
+      get detached() {
+        return page.detached;
+      },
+      set detached(value) {
+        page.detached = value;
+      },
+      get moduleScoped() {
+        return page.moduleScoped;
+      },
+      set moduleScoped(value) {
+        page.moduleScoped = value;
+      },
+      get skipComponentPermissions() {
+        return page.skipComponentPermissions;
+      },
+      set skipComponentPermissions(value) {
+        page.skipComponentPermissions = value;
+      },
+      get pagePermissionId() {
+        return page.pagePermissionId;
+      },
+      set pagePermissionId(value) {
+        page.pagePermissionId = value;
+      },
+      get registeredPagePermission() {
+        return page.registeredPagePermission;
+      },
+      set registeredPagePermission(value) {
+        page.registeredPagePermission = value;
+      },
+      registerPermission: (info) => page.registerPagePermission(info),
+      ownsPermissions: () => page.ownsPagePermissions(),
+      ownProperties: () => page.ownRouteProperties(),
+      auth: (info) => page.applyAuthDecorators(info),
+      route: (info) => page.registerLayoutRoute(info),
+      permissionId: (key) => page.componentPermissionId(key),
+      unregister: (component, key) => page.unregisterComponent(component, key),
+      register: (node) => page.registerComponentNode(node),
+      unregisterNode: (node) => page.unregisterComponentNode(node),
+      registersPermissions: () => page.registersComponentPermissions(),
+      actions: (component) => page.actionPermissions(component),
+      actionsForNode: (node) => page.actionPermissions(node.component),
+      notify: (node) => page.notifyPageCreated(node),
+      bind: (serialized, key) =>
+        page.bindNativeUploadFields(
+          serialized,
+          page.componentPermissionId(key),
+        ),
+      takenKeys: () => page.takenComponentKeys(),
+      path: (contribution) => page.extensionComponentPath(contribution),
+      prepareExtension: (contribution, path) =>
+        page.prepareComponent(contribution.component, path),
+      unregisterExtension: (contribution) =>
+        page.unregisterComponent(
+          contribution.component,
+          page.extensionComponentPath(contribution),
+        ),
+      drop: (info) => page.dropExtension(info),
+      rebuild: () => page.rebuildLayoutComponents(),
+      releaseGate: () => page.releaseOwnComponentsGate(),
+    }));
+  }
 
   public pageInfo?: PageInfo;
   public layout?: ComponentInfo;
@@ -105,9 +138,7 @@ export class PageMetadata {
 
   /** Exact live positions of a component, including mounts on multiple pages. */
   public ComponentPermissionIds(component: Component): string[] {
-    return [...this.componentMap.values()]
-      .filter((node) => node.component === component && node.access === "own")
-      .map((node) => node.permissionId);
+    return metadata.componentPermissionIds(this, component);
   }
   private componentTrees = new Map<string, ComponentTreeNode[]>();
   private notifiedComponents = new Set<Component>();
@@ -125,7 +156,7 @@ export class PageMetadata {
   private ownComponentsGate: Promise<void> = Promise.resolve();
   private releaseOwnComponentsGate: () => void = () => undefined;
   private detached = false;
-  private registration = new PageRegistration();
+  private registration = new metadata.PageRegistration();
   private pagePermissionId = "";
   private registeredPagePermission = false;
   private skipComponentPermissions = false;
@@ -134,9 +165,7 @@ export class PageMetadata {
   constructor(public readonly target: ControllerClass) {}
 
   inherit(parent: PageMetadata) {
-    this.pageInfo = merge(parent.pageInfo, this.pageInfo);
-    this.layout = merge(parent.layout, this.layout);
-    this.components = merge(parent.components, this.components) ?? {};
+    metadata.inherit(this, parent);
   }
 
   public SetComponent(id: string, component: Component) {
@@ -149,37 +178,7 @@ export class PageMetadata {
     menuOptions: MenuOptions,
     pageLayout?: ComponentInfo,
   ) {
-    const { parent, ...menu } = menuOptions;
-    const resolvedCategory = resolveCategoryInfo(menu.category);
-    const parentFullId = resolvedCategory?.fullId ?? "";
-    const fullId = parentFullId ? `${parentFullId}.${id}` : id;
-
-    const location = pageRoutePath(fullSlug, "/pagelayout");
-
-    const pageInfo: PageInfo = {
-      ...menu,
-      category: resolvedCategory,
-      id,
-      fullId,
-      fullSlug,
-      layoutUrl: location,
-      parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
-      hidden: menu.hidden || resolvedCategory?.hidden,
-      publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
-      authOnly: menu.authOnly || resolvedCategory?.authOnly,
-      memberAccess:
-        menu.memberAccess ||
-        inheritedMemberAccess(resolvedCategory?.memberAccess),
-      bypassTenantAccessGate:
-        menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
-    };
-
-    this.layout =
-      pageLayout ??
-      menu.layout ??
-      resolveInheritedLayout(resolvedCategory) ??
-      DefaultLayout();
-    this.pageInfo = pageInfo;
+    metadata.setPageInfo(this, id, fullSlug, menuOptions, pageLayout);
   }
 
   public async Register() {
@@ -188,7 +187,7 @@ export class PageMetadata {
       throw new Error("PageMetadata not properly initialized");
     }
 
-    this.registration = new PageRegistration();
+    this.registration = new metadata.PageRegistration();
     this.layoutRef = { layout: this.layout, components: {} };
     this.ownComponents = {};
     this.componentMap = new Map();
@@ -218,8 +217,8 @@ export class PageMetadata {
       this.releaseOwnComponentsGate();
     }
 
-    if (pageExtensions.has(pageInfo.fullId)) {
-      await syncTargetExtensions(pageInfo.fullId);
+    if (metadata.pageExtensions.has(pageInfo.fullId)) {
+      await metadata.syncTargetExtensions(pageInfo.fullId);
     }
   }
 
@@ -234,26 +233,8 @@ export class PageMetadata {
    * flight then wrote the metadata of a page that no longer serves — which
    * later extensions would graft themselves onto.
    */
-  private publish(pageInfo: PageInfo): void {
-    publish(this, pageInfo, {
-      registration: () => this.registration,
-      configure: (moduleScoped, skip) => {
-        this.moduleScoped = moduleScoped;
-        this.skipComponentPermissions = skip();
-      },
-      registerPermission: (info) => {
-        this.pagePermissionId = this.registerPagePermission(info);
-      },
-      permissionId: () => this.pagePermissionId,
-      registeredPermission: () => this.registeredPagePermission,
-      clearRegisteredPermission: () => {
-        this.registeredPagePermission = false;
-      },
-      ownsPermissions: () => this.ownsPagePermissions(),
-      ownProperties: () => this.ownRouteProperties(),
-      auth: (info) => this.applyAuthDecorators(info),
-      route: (info) => this.registerLayoutRoute(info),
-    });
+  private publish(pageInfo: PageInfo) {
+    metadata.publish(this, pageInfo);
   }
 
   /**
@@ -264,15 +245,7 @@ export class PageMetadata {
    * @internal
    */
   public Dispose(): void {
-    this.detached = true;
-    this.releaseOwnComponentsGate();
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
-    for (const info of [...this.extensionEntries.keys()]) {
-      this.dropExtension(info);
-    }
-    this.rebuildLayoutComponents();
-    this.ownComponents = {};
-    this.registration.dispose();
+    metadata.dispose(this);
   }
 
   /**
@@ -313,14 +286,11 @@ export class PageMetadata {
    * @internal Read by the menu, which leaves such a page out.
    */
   public async HidesEveryComponent(permissions: Set<string>): Promise<boolean> {
-    if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return false;
-    }
-    const keys = Object.keys(this.layoutRef?.components ?? {});
-    if (keys.length === 0) return false;
+    const keys = metadata.permissionKeys(this);
+    if (!keys) return false;
     for (const key of keys) {
       const permissionId = this.componentPermissionId(key);
-      if (await HasPermission(permissions, permissionId)) return false;
+      if (await metadata.HasPermission(permissions, permissionId)) return false;
     }
     return true;
   }
@@ -332,7 +302,7 @@ export class PageMetadata {
    * old one would resolve its anchors against components the new one has yet
    * to write.
    */
-  private async awaitOwnComponents(): Promise<void> {
+  private async awaitOwnComponents() {
     let gate = this.ownComponentsGate;
     await gate;
     while (gate !== this.ownComponentsGate) {
@@ -341,7 +311,7 @@ export class PageMetadata {
     }
   }
 
-  private closeOwnComponentsGate(): void {
+  private closeOwnComponentsGate() {
     this.ownComponentsReady = false;
     this.releaseOwnComponentsGate();
     this.ownComponentsGate = new Promise<void>((resolve) => {
@@ -349,17 +319,11 @@ export class PageMetadata {
     });
   }
 
-  private async applyRegisteredExtensions(): Promise<void> {
+  private async applyRegisteredExtensions() {
     const infos = this.detached
       ? []
-      : (pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
-    const desired = new Set(infos);
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
-    for (const info of [...this.extensionEntries.keys()]) {
-      if (!desired.has(info)) {
-        this.dropExtension(info);
-      }
-    }
+      : (metadata.pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
+    metadata.removeStaleExtensions(this, infos);
     for (const info of infos) {
       if (!this.extensionEntries.has(info)) {
         await this.addExtension(info);
@@ -369,17 +333,11 @@ export class PageMetadata {
   }
 
   private registerPagePermission(pageInfo: PageInfo) {
-    return registerPagePermission(
-      pageInfo,
-      () => this.moduleScoped,
-      (registered) => {
-        this.registeredPagePermission = registered;
-      },
-    );
+    return metadata.registerPermission(this, pageInfo);
   }
 
   private registerLayoutRoute(pageInfo: PageInfo) {
-    registerLayoutRoute(
+    metadata.registerLayoutRoute(
       () => this.target,
       pageInfo,
       () => this.registration,
@@ -399,85 +357,68 @@ export class PageMetadata {
       resolverContext,
     }: PageLayoutRequest,
     { enforceTenantAccessGate = false } = {},
-  ): Promise<PageLayout> {
-    const layout = this.layoutRef;
-    if (!layout) {
-      throw new Error("PageMetadata not properly initialized");
+  ) {
+    const layout = metadata.registeredLayout(this);
+    if (metadata.tenantGateRequired(this, enforceTenantAccessGate, user)) {
+      await metadata.AssertTenantAccess(user._id, tenantId);
     }
-    if (
-      enforceTenantAccessGate &&
-      user &&
-      this.pageInfo &&
-      !gateAllowsSurface(this.pageInfo, true)
-    ) {
-      await AssertTenantAccess(user._id, tenantId);
-    }
-    const components = await ResolveComponentSlots(layout.components);
-    const loadPermissions = async (): Promise<Set<string>> => {
-      if (!user) return new Set<string>();
-      const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(
-        user,
-        tenantId,
-        roleIds,
-        roleModel,
-        resolverContext,
-      );
-    };
-    const context: ComponentFilterContext = { tenantId, user, query, params };
-    const read = await readPageRecord(layout.layout, context);
+    const components = await metadata.ResolveComponentSlots(layout.components);
+    const { loadPermissions, context } = metadata.prepareLayoutContext({
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      query,
+      params,
+      resolverContext,
+    });
+    const read = await metadata.readPageRecord(layout.layout, context);
     context.record = read?.record;
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return {
-        ...layout,
-        layout: withComponentHeaderButtons(
-          await filterLayoutHeaderActions(
-            layout.layout,
-            loadPermissions,
-            context,
-            this.pagePermissionId,
-            read?.status,
-          ),
-          components,
+      const respond = metadata.prepareLayoutResponse(layout, components);
+      return respond(
+        await metadata.filterPageHeader(
+          this,
+          layout,
+          loadPermissions,
+          context,
+          read,
         ),
-        components: withTableViewPlacements(components),
-      };
+      );
     }
     const permissions = await loadPermissions();
-    const servedComponents = await filterComponents(
+    const served = await metadata.filterPageComponents(
+      this,
       components,
-      this.pagePermissionId,
       permissions,
-      this.componentMap,
       context,
     );
-    return {
-      ...layout,
-      layout: withComponentHeaderButtons(
-        await filterLayoutHeaderActions(
-          layout.layout,
-          async () => permissions,
-          context,
-          this.pagePermissionId,
-          read?.status,
-        ),
-        servedComponents,
+    const respond = metadata.prepareFilteredLayoutResponse(
+      layout,
+      components,
+      served,
+    );
+    return respond(
+      await metadata.filterPageHeader(
+        this,
+        layout,
+        async () => permissions,
+        context,
+        read,
       ),
-      components: withTableViewPlacements(servedComponents),
-      ...hiddenComponentsFlag(components, servedComponents),
-    };
+    );
   }
 
-  private registersComponentPermissions(): boolean {
+  private registersComponentPermissions() {
     return !this.skipComponentPermissions && !this.moduleScoped;
   }
 
-  private componentPermissionId(componentKey: string): string {
-    return `${this.pagePermissionId}.${componentKey}`;
+  private componentPermissionId(key: string) {
+    return `${this.pagePermissionId}.${key}`;
   }
 
   private actionPermissions(component: Component) {
-    return actionPermissions(component, this.pageInfo);
+    return metadata.actionPermissions(component, this.pageInfo);
   }
 
   /**
@@ -494,123 +435,62 @@ export class PageMetadata {
    * of its position: they take part in per-request filtering under that id, so
    * a child that never claimed it would have its `onFilter` skipped.
    */
-  private prepareComponent(component: Component, componentKey: string) {
-    return prepareComponent(component, componentKey, {
-      permissionId: (key) => this.componentPermissionId(key),
-      trees: () => this.componentTrees,
-      registration: () => this.registration,
-      unregister: (component, key) => this.unregisterComponent(component, key),
-      register: (node) => this.registerComponentNode(node),
-      detached: () => this.detached,
-      bind: (serialized, key) =>
-        this.bindNativeUploadFields(
-          serialized,
-          this.componentPermissionId(key),
-        ),
-    });
+  private prepareComponent(component: Component, key: string) {
+    return metadata.prepareComponent(this, component, key);
   }
 
   private async bindNativeUploadFields(
     serialized: ComponentInfoSerialized,
-    componentId: string,
-  ): Promise<void> {
-    if (this.detached || this.componentMap.get(componentId)?.access !== "own")
-      return;
-    if (serialized.options)
-      serialized.options = JSON.parse(JSON.stringify(serialized.options));
+    id: string,
+  ) {
+    if (!metadata.prepareUploadOptions(this, serialized, id)) return;
     await this.bindUploadOptions(
       serialized.options,
       serialized.componentName,
-      componentId,
+      id,
       [],
     );
     for (const child of serialized.children ?? []) {
-      await this.bindNativeUploadFields(
-        child.component,
-        `${componentId}.${child.id}`,
-      );
+      await this.bindNativeUploadFields(child.component, `${id}.${child.id}`);
     }
   }
 
   private async bindUploadOptions(
     value: SlotOptions[string],
-    componentName: string,
-    componentId: string,
+    name: string,
+    id: string,
     path: string[],
-  ): Promise<void> {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursive discovery walks arbitrary serialized options and descends only into object containers, preserving each component's own option schema.
+  ) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
     if (!value || typeof value !== "object") return;
-    if (isNativeUploadField(value)) {
-      await this.registerNativeUploadField(
-        value,
-        componentName,
-        componentId,
-        path,
-      );
+    if (metadata.isNativeUploadField(value)) {
+      await this.registerNativeUploadField(value, name, id, path);
     }
     for (const [key, child] of Object.entries(value)) {
-      await this.bindUploadOptions(child, componentName, componentId, [
-        ...path,
-        key,
-      ]);
+      await this.bindUploadOptions(child, name, id, [...path, key]);
     }
   }
 
   private async registerNativeUploadField(
     node: UploadFieldNode,
-    componentName: string,
-    componentId: string,
+    name: string,
+    id: string,
     path: string[],
-  ): Promise<void> {
-    const mount = this.componentMap.get(componentId);
-    if (this.detached || mount?.access !== "own") return;
-    const options = node.component.options ?? {};
-    node.component.options = options;
-    const registration: NativeUploadFieldRegistration = {
-      pageId: this.pageInfo?.fullId ?? "",
-      componentId,
-      storage:
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string storage names from erased contributor options.
-        typeof options.storage === "string" ? options.storage : undefined,
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string paths from erased contributor options.
-      path: typeof options.path === "string" ? options.path : undefined,
-      field:
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The serialized attachment field overrides the discovered path only when it is a string.
-        typeof options.attachmentField === "string"
-          ? options.attachmentField
-          : path.join("/"),
-      visibility: options.visibility === "public" ? "public" : "private",
-      writePermission: node.disabled
-        ? "__native_upload_disabled__"
-        : resolveWritePermission(componentName, mount.component, path),
-      readPermissions:
-        this.registersComponentPermissions() && !this.pageInfo?.publicAccess
-          ? componentId
-              .slice(this.pagePermissionId.length + 1)
-              .split(".")
-              .map(
-                (_, index, parts) =>
-                  `${this.pagePermissionId}.${parts.slice(0, index + 1).join(".")}`,
-              )
-          : [],
-      constraints: readUploadConstraints(options),
-    };
-    options.uploadToken = await SignUploadToken(registration);
-    if (this.detached || this.componentMap.get(componentId) !== mount) return;
-    uploadInternal.RegisterNativeUploadField.register(registration);
-    const fields = this.nativeUploadFields.get(componentId) ?? [];
-    fields.push(registration);
-    this.nativeUploadFields.set(componentId, fields);
+  ) {
+    const phase = metadata.prepareUploadRegistration(
+      this,
+      node,
+      name,
+      id,
+      path,
+    );
+    if (!phase) return;
+    phase.options.uploadToken = await SignUploadToken(phase.registration);
+    metadata.finishUploadRegistration(this, phase);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {
-    registerComponentNode(node, {
-      componentMap: () => this.componentMap,
-      pageInfo: () => this.pageInfo,
-      registersComponentPermissions: () => this.registersComponentPermissions(),
-      actionPermissions: (component) => this.actionPermissions(component),
-      notify: (node) => this.notifyPageCreated(node),
-    });
+    metadata.registerComponentNode(this, node);
   }
 
   /**
@@ -626,7 +506,7 @@ export class PageMetadata {
    * a half-registered page is worse than none.
    */
   private notifyPageCreated(node: ComponentTreeNode) {
-    notifyPageCreated(this, node, () => this.notifiedComponents);
+    metadata.notifyPageCreated(this, node);
   }
 
   /**
@@ -635,66 +515,46 @@ export class PageMetadata {
    * page under a new class) shares them with the live one. Only the current
    * owner — or nobody, when the page is gone for good — may take them down.
    */
-  private ownsPagePermissions(): boolean {
-    const owner = pageMetadataByFullId.get(this.pageInfo?.fullId ?? "");
-    return owner === undefined || owner === this;
+  private ownsPagePermissions() {
+    return metadata.ownsPagePermissions(this);
   }
 
-  private unregisterComponent(_component: Component, componentKey: string) {
-    unregisterComponent(componentKey, {
-      trees: () => this.componentTrees,
-      uploads: () => this.nativeUploadFields,
-      nodes: () => this.componentMap,
-      notified: () => this.notifiedComponents,
-      ownsPermissions: () => this.ownsPagePermissions(),
-      unregister: (node) => this.unregisterComponentNode(node),
-    });
+  private unregisterComponent(_component: Component, key: string) {
+    metadata.unregisterComponent(this, key);
   }
 
   private unregisterComponentNode(node: ComponentTreeNode) {
-    unregisterComponentNode(
-      node,
-      () => this.registersComponentPermissions(),
-      (node) => this.actionPermissions(node.component),
-    );
+    metadata.unregisterComponentNode(this, node);
   }
 
-  private async addExtension(info: PageExtensionInfo): Promise<void> {
-    const errors = collectExtensionErrors(info, {
-      own: this.ownComponents,
-      taken: this.takenComponentKeys(),
-    });
-    const entries: PageExtensionEntry[] = [];
-    this.extensionEntries.set(info, entries);
-    if (errors.length > 0) {
-      for (const error of errors) {
-        Logging.Error(`[dms] ${error}`);
-      }
-      return;
-    }
+  private async addExtension(info: PageExtensionInfo) {
+    const entries = metadata.prepareExtensionEntries(this, info);
+    if (!entries) return;
     for (const [declarationIndex, contribution] of info.components.entries()) {
-      if (!isPageExtensionRegistered(info)) break;
+      if (!metadata.isPageExtensionRegistered(info)) break;
       entries.push({
         ...contribution,
         extensionName: info.extensionName,
         declarationIndex,
       });
       try {
-        const componentPath = this.extensionComponentPath(contribution);
-        const prepare = runAsPageExtensionOwner(info, () =>
-          this.prepareComponent(contribution.component, componentPath),
+        const prepare = metadata.prepareExtensionComponent(
+          this,
+          info,
+          contribution,
         );
-        const { serialized } = await runAsPageExtensionOwner(info, prepare);
+        const { serialized } = await metadata.runAsPageExtensionOwner(
+          info,
+          prepare,
+        );
         entries[entries.length - 1].serialized = serialized;
       } catch (error) {
-        entries.pop();
-        this.unregisterComponent(
-          contribution.component,
-          this.extensionComponentPath(contribution),
-        );
-        if (error instanceof PageDeclarationConflictError) throw error;
-        Logging.Error(
-          `[dms] page extension "${info.extensionName}" could not register component "${contribution.key}" on page "${info.targetFullId}": ${String(error)}`,
+        metadata.reportExtensionFailure(
+          this,
+          entries,
+          info,
+          contribution,
+          error,
         );
       }
     }
@@ -709,33 +569,19 @@ export class PageMetadata {
    * because a page's components share one permission subtree.
    */
   private takenComponentKeys() {
-    return takenComponentKeys(
-      this.pageInfo?.fullId ?? "",
-      this.ownComponents,
-      () => this.extensionEntries,
-    );
+    return metadata.takenKeys(this);
   }
 
-  private dropExtension(info: PageExtensionInfo): void {
-    for (const entry of this.extensionEntries.get(info) ?? []) {
-      this.unregisterComponent(
-        entry.component,
-        this.extensionComponentPath(entry),
-      );
-    }
-    this.extensionEntries.delete(info);
+  private dropExtension(info: PageExtensionInfo) {
+    metadata.dropExtension(this, info);
   }
 
   private extensionComponentPath(component: PageExtensionComponent) {
-    return extensionComponentPath(component);
+    return metadata.extensionComponentPath(component);
   }
 
-  private rebuildLayoutComponents(): void {
-    if (!this.layoutRef) return;
-    this.layoutRef.components = assembleLayoutComponents(
-      this.ownComponents,
-      [...this.extensionEntries.values()].flat(),
-    );
+  private rebuildLayoutComponents() {
+    metadata.rebuildLayoutComponents(this);
   }
 
   /**
@@ -750,10 +596,10 @@ export class PageMetadata {
    * of its last form (`<table>.view`), and a form page for the one after it.
    */
   private ownRouteProperties() {
-    ownRouteProperties(this.target);
+    metadata.ownRouteProperties(this.target);
   }
 
   private applyAuthDecorators(pageInfo: PageInfo) {
-    applyAuthDecorators(this, pageInfo);
+    metadata.applyAuthDecorators(this, pageInfo);
   }
 }

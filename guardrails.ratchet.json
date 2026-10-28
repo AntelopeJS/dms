@@ -5,7 +5,6 @@
   },
   "oversizeFiles": {
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
-    "packages/interface-dms/src/base/data-types/default-types.ts": 46322,
-    "packages/interface-dms/src/page/metadata.ts": 26854
+    "packages/interface-dms/src/base/data-types/default-types.ts": 46322
   }
 }
