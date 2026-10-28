@@ -46,7 +46,6 @@ export class PageBlocksActivity extends PageController(
           fetchUrl: "/api/blocks-feed/activity",
           fetchUrlMethod: HttpMethod.get,
           realtimeTopic: ACTIVITY_DEMO_TOPIC,
-          // The route answers 11 entries: the skeleton draws as many rows.
           skeletonCount: 11,
           actions: [{ label: "View all", to: "/settings/user/notifications" }],
         }),
@@ -72,8 +71,6 @@ export class PageBlocksActivity extends PageController(
     defaultPreset: "last-24h",
   });
 
-  // `fillHeight` stretches the feed to the taller log beside it; the route's
-  // `count` (it follows the period) replaces the declared one.
   static heads = Grid({ gap: "1rem", minColumnWidth: "320px" }).child(
     "row",
     GridRow()
@@ -182,7 +179,6 @@ export class PageBlocksActivity extends PageController(
         }),
       )
       .child(
-        // The route answers 503: the load error, with Retry.
         "error",
         ActivityFeed({
           title: "Activity · error",
@@ -190,7 +186,6 @@ export class PageBlocksActivity extends PageController(
         }),
       )
       .child(
-        // The route answers 404 with an emptyState: "Not found", reworded.
         "notFound",
         ActivityFeed({
           title: "Activity · not found",

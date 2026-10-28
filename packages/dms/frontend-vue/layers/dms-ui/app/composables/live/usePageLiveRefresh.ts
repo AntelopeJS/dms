@@ -3,8 +3,7 @@ import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTri
 import { usePageLive } from "./usePageLive";
 
 const MS_PER_SECOND = 1000;
-// How often an idle refresh looks at the clock: a read lands at most this
-// late after its idle period.
+
 const IDLE_CHECK_MS = 5 * MS_PER_SECOND;
 
 /** What makes a module's component read its data again (see {@link usePageLiveRefresh}). */
@@ -88,7 +87,6 @@ export function usePageLiveRefresh(
   };
 }
 
-// Browser only, from mount: a server render reads once and has no clock.
 function useIdleRefresh(
   idleMs: number,
   lastReadAt: () => number,

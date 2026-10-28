@@ -4,7 +4,7 @@ import {
   processSourceRows,
   sourceRouteQuery,
   useTableRows,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 interface LogRow extends Record<string, unknown> {
@@ -19,6 +19,7 @@ const ROWS: LogRow[] = [
   { _id: "c", path: "/api/orders/42", duration: 120 },
 ];
 
+// SAFETY: Source row processing only reads the column id and accessor key in these tests, not the form and display metadata.
 const COLUMNS = [
   { id: "path", accessorKey: "path" },
   { id: "duration", accessorKey: "duration" },
@@ -28,10 +29,17 @@ type Api = Parameters<typeof useTableRows>[0]["api"];
 
 interface PageRoute {
   params: Record<string, string>;
-  query: Record<string, unknown>;
+  query: ReturnType<
+    NonNullable<Parameters<typeof useTableRows>[0]["route"]>
+  >["routeQuery"];
 }
 
 describe("source tables", () => {
+  registerTableSourceQueryTests();
+  registerTableSourceUrlTests();
+});
+
+function registerTableSourceQueryTests() {
   it("sends the route only the part of the query it handles", () => {
     const query = {
       search: "orders",
@@ -78,7 +86,8 @@ describe("source tables", () => {
   it("takes a paging route's page and total as they are", async () => {
     const api = vi.fn(async () => ({ results: ROWS.slice(0, 1), total: 120 }));
     const rows = useTableRows<LogRow>({
-      api: api as unknown as Api,
+      // SAFETY: This mock only serves the list call below; the fetch client's raw/create methods are not used.
+      api: api as Api,
       location: "/api/log",
       source: { fetchUrl: "/api/log", capabilities: { paginate: true } },
       columns: COLUMNS,
@@ -95,7 +104,8 @@ describe("source tables", () => {
   it("counts a source's tabs one list at a time, and a controller's in one batch", async () => {
     const sourceApi = vi.fn(async () => ({ results: ROWS, total: 3 }));
     const source = useTableRows<LogRow>({
-      api: sourceApi as unknown as Api,
+      // SAFETY: The source only lists these LogRow fixtures; no other fetch client methods are used.
+      api: sourceApi as Api,
       location: "/api/log",
       source: { fetchUrl: "/api/log", capabilities: {} },
       columns: COLUMNS,
@@ -109,7 +119,8 @@ describe("source tables", () => {
 
     const controllerApi = vi.fn(async () => ({ all: 7 }));
     const controller = useTableRows<LogRow>({
-      api: controllerApi as unknown as Api,
+      // SAFETY: This controller mock only answers the count/batch call below.
+      api: controllerApi as Api,
       location: "/api/runs",
       columns: COLUMNS,
     });
@@ -119,14 +130,17 @@ describe("source tables", () => {
       body: { queries: [{ id: "all", query: {} }] },
     });
   });
+}
 
+function registerTableSourceUrlTests() {
   describe("with a templated fetchUrl", () => {
     const FETCH_URL = "/api/ws/{{params.id}}/requests?route={{query.route}}";
 
     function sourceRows(route: PageRoute) {
       const api = vi.fn(async (_url: string) => ({ results: ROWS, total: 3 }));
       const rows = useTableRows<LogRow>({
-        api: api as unknown as Api,
+        // SAFETY: This source only lists the LogRow fixtures through the callable fetch interface.
+        api: api as Api,
         location: FETCH_URL,
         source: { fetchUrl: FETCH_URL, capabilities: {} },
         columns: COLUMNS,
@@ -186,11 +200,12 @@ describe("source tables", () => {
     const ROW_URL = "/api/ws/{{params.ws}}/requests/{{row.id}}";
 
     function rowsWith(
-      api: (url: string) => Promise<unknown>,
+      api: (url: string) => Promise<LogRow | undefined>,
       fetchRowUrl?: string,
     ) {
       return useTableRows<LogRow>({
-        api: api as unknown as Api,
+        // SAFETY: These tests only request one LogRow by URL, not the fetch client's other methods.
+        api: api as Api,
         location: FETCH_URL,
         source: { fetchUrl: FETCH_URL, fetchRowUrl, capabilities: {} },
         columns: COLUMNS,
@@ -220,4 +235,4 @@ describe("source tables", () => {
       expect(api).not.toHaveBeenCalled();
     });
   });
-});
+}

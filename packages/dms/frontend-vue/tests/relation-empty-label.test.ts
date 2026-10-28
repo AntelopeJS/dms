@@ -10,15 +10,6 @@ import type { DataType } from "../layers/dms-core/app/composables/data-types/use
 import { Size } from "../layers/dms-core/app/types/size";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
 type Formatter = (value: unknown, locale: string, options: unknown) => unknown;
 
 const formatters = new Map<string, Formatter>();
@@ -35,7 +26,7 @@ beforeAll(async () => {
   vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: (key: string) => key } }));
   vi.stubGlobal("useDataTypes", () => ({ registerDataType: register }));
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });

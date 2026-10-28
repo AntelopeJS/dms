@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -11,17 +11,9 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableActions from "../layers/dms-ui/app/build/components/table/Actions.vue";
-import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
-import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Menu.vue", () => ({
-  default: { render: () => null },
-}));
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: { render: () => null },
-}));
+import TableActions from "../layers/dms-ui/app/entries/components/table/Actions";
+import TableEmpty from "../layers/dms-ui/app/entries/components/table/Empty";
+import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 
 const PassThrough = defineComponent({
   setup:
@@ -30,7 +22,6 @@ const PassThrough = defineComponent({
       h("div", slots.default?.()),
 });
 
-// The label as the button's text, its other attributes (aria-label) kept.
 const ButtonStub = defineComponent({
   props: { label: String },
   setup: (props) => () => h("button", props.label),
@@ -104,7 +95,6 @@ const mountActions = (addLabel?: string, addIcon?: string) =>
     addIcon,
   );
 
-// The icon a button is given (a fallthrough attribute of the stub).
 const buttonIcons = (container: HTMLElement) =>
   [...container.querySelectorAll("button")].map((button) =>
     button.getAttribute("icon"),

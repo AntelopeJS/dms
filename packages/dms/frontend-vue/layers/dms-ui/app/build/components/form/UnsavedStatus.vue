@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// "Unsaved changes" with its amber dot: the save bar's status, and the
-// footer of a form that keeps its own buttons (a security panel).
-
 interface UnsavedStatusProps {
   /** What is unsaved; empty, the line keeps its place (a hidden save bar). */
   text: string;

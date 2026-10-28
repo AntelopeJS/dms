@@ -11,8 +11,6 @@ import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/pag
 import { refreshPageBlocks } from "../../utils/blockRefresh";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// Its ids are optional: a component may draw it by hand around controls of
-// its own, outside the page's block tree.
 interface PageToolbarBlockProps extends Partial<DefaultComponentProps> {
   /** The size of its controls, unless a child sets its own. */
   size?: PageToolbarSize;
@@ -28,8 +26,6 @@ const props = withDefaults(defineProps<PageToolbarBlockProps>(), {
   refresh: true,
 });
 
-// The updated label at the live toggle's steps, so it reads alike with or
-// without `live`; the refresh button stands as tall as the toggle's pill.
 const STATUS_TEXT_CLASSES: Record<PageToolbarSize, string> = {
   xs: "text-[11.5px]",
   sm: "text-[12.5px]",
@@ -48,18 +44,14 @@ const heightClass = computed(
   () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[props.size],
 );
 
-// The browser's clock: the server and the hydrating render draw no status.
 const isMounted = ref(false);
 onMounted(() => (isMounted.value = true));
 
-// A live page's own clock, else the page's last read.
 const updatedLabel = useUpdatedLabel(
   () => live.lastUpdatedAt.value ?? pageReadAt.value,
   props.showUpdatedAt,
 );
 
-// The live toggle says when the page was updated, and more: the toolbar
-// only does where there is none to see.
 const showsStatus = computed(
   () =>
     isMounted.value &&

@@ -1,3 +1,5 @@
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isObject } from "#dms-core/app/utils/type-check";
 import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
 
 /** How many labels a multi-value relation cell shows before collapsing. */
@@ -17,13 +19,12 @@ const textOf = (value: unknown): string =>
  * empty. A raw id (join skipped) is shown as is.
  */
 export function readRelationLabel(
-  item: unknown,
+  item: Parameters<DataTypeFormatter>[0],
   labelKey: string,
   valueKey = DEFAULT_RELATION_VALUE_KEY,
 ): string {
-  if (typeof item === "object" && item !== null) {
-    const row = item as Record<string, unknown>;
-    return textOf(row[labelKey]) || textOf(row[valueKey]);
+  if (isObject(item) && item !== null) {
+    return textOf(item[labelKey]) || textOf(item[valueKey]);
   }
   return textOf(item);
 }

@@ -50,7 +50,6 @@ export class PageGridDense extends PageController("grid-dense", {
       .child("unsubscribes", kpi("Unsubscribes", "i-ph-user-minus", 318, -3.3)),
   );
 
-  // Below 220 px a column wraps to the next line instead of shrinking.
   static kpisMinWidth = Grid({
     gap: GRID_GAP,
     minColumnWidth: MIN_COLUMN_WIDTH,

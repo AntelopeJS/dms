@@ -32,6 +32,7 @@ import {
 } from "../../../helpers/page-access";
 
 const TENANT = "layout-query-tenant";
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
 const MEMBER = { _id: "layout-query-member" } as User;
 const models = stubPageAccessModels(["*"]);
 
@@ -99,6 +100,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
       tenantId: TENANT,
       query,
     });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout registry erases component option types; this page installs DefaultLayout and the test inspects its header options.
     return layout.layout?.options as ServedOptions;
   }
 
@@ -135,12 +137,14 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
 
   it("resolves the page request's buttons with the page query it carries", async () => {
     const pageRequest = (query: string) =>
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; this fixture intentionally is not a full HTTP context.
       ({
         url: new URL(
           `http://dms.test/dms/page?path=${encodeURIComponent(slug)}&shared=false${query}`,
         ),
       }) as RequestContext;
     const served = async (query: string) =>
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The page payload erases its layout's option type; this fixture installs DefaultLayout and reads its header options.
       (
         await buildPagePayload(
           slug,
@@ -221,10 +225,12 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
       models.roleModel,
       TENANT,
       false,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
       {
         url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
       } as RequestContext,
     );
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Page payloads erase layout option types; this page's DefaultLayout provides the header options asserted below.
     return payload.layout.layout?.options as ServedOptions;
   }
 
@@ -255,7 +261,13 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
  */
 describe("[unit] interfaces/dms/page — the page's record, read with its layout", () => {
   const cleanups: Array<() => void> = [];
-  const SITES: Record<string, Record<string, unknown>> = {
+  type SiteRecord = {
+    address: string;
+    owner?: { id: string };
+    locked?: boolean;
+  };
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The concrete SiteRecord fixture is indexed by arbitrary route ids, including missing ids; its lookup must retain the existing undefined result without adding runtime key validation.
+  const SITES: Record<string, SiteRecord> = {
     s1: { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } },
     locked: { address: "Gare", locked: true },
   };
@@ -337,12 +349,13 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       models.roleModel,
       TENANT,
       false,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
       {
         url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
       } as RequestContext,
     );
-    return payload.layout.layout?.options as ServedOptions &
-      Record<string, unknown>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The registry erases layout option types; this suite's DefaultLayout emits the ServedOptions tested below.
+    return payload.layout.layout?.options as ServedOptions;
   }
 
   const byId = (options: ServedOptions, id: string) =>
@@ -356,8 +369,9 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       "delete",
       "help",
     ]);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The action target owner is a union including drawers; this fixture's directions action is the external URL declared above.
     const directions = byId(options, "directions")?.target as
-      | { url: string }
+      | Extract<PageHeaderButtonSerialized["target"], { url: string }>
       | undefined;
     expect(directions?.url).to.equal(
       `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
@@ -387,8 +401,6 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     }
   });
 
-  // The page leaves a record that went missing under it: a loader that
-  // failed must not read as one that found none.
   it("says whether it found the record, found none, or failed to read it", async () => {
     expect((await served("s1")).recordStatus).to.equal("found");
     expect((await served("missing")).recordStatus).to.equal("missing");

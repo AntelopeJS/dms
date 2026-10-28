@@ -11,12 +11,12 @@ import { usePageLive } from "../../../composables/live/usePageLive";
 import type {
   PageLiveNote,
   TableViewLiveHoldOptions,
-} from "../../../types/live";
+} from "#dms-core/app/types/live";
 import type { LiveGate } from "../live/currentPageLive";
 import { useScrolledPastTop, useTableReached } from "./useScrolledPastTop";
-import { LIVE_HELD_AT_QUERY_KEY } from "./useTableRows";
+import { LIVE_HELD_AT_QUERY_KEY, type TableCountQuery } from "./useTableRows";
 
-type Query = Record<string, unknown>;
+type Query = TableCountQuery["query"];
 
 /** What the table tells its hold about the user's reading. */
 export interface TableLiveHoldSignals {
@@ -30,6 +30,7 @@ export interface TableLiveHoldSignals {
    * The table's element: whether it is on screen, and where its first row
    * stands for `whileScrolled`.
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The resolver may return unparsed or missing element refs. useLocalHold accepts only HTMLElement instances and treats other values as absent; an HTMLElement-only contract would exclude those existing fallback cases.
   tableElement?: () => unknown;
 }
 
@@ -114,10 +115,6 @@ function holdOptionsOf(
   return liveHold === true ? {} : liveHold;
 }
 
-// The table alone holds while the page is live: the user reads a row in the
-// side panel, narrows or reorders the rows, reads further down than the rows
-// that would move, or has them on screen at all — a new row at the top would
-// push them down. The first reason in this order is the one shown.
 function useLocalHold(
   holdOptions: TableViewLiveHoldOptions | null,
   signals: TableLiveHoldSignals,
@@ -167,7 +164,7 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
       isEnabled.value &&
       (isPaused.value || isLocallyHeld.value),
   );
-  // Again on a new controller: the gate binds to the page on screen.
+
   watch(
     [isLocallyHeld, isEnabled],
     ([held, enabled]) => {
@@ -200,13 +197,6 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
 /** Lets a burst of events through before counting the new rows once. */
 const NEW_ROWS_COUNT_DELAY_MS = 500;
 
-// The new rows the table would show, counted on its source while it holds
-// some events: a topic publishes on every row, so a "4xx" tab, a search or a
-// filter would otherwise announce rows it never lists. Counted again on each
-// new event or held list, a burst at a time. Rows removed meanwhile lower
-// the count: the table answers what it lists, not what came in. A count that
-// fails falls back to the events. Only in the browser, once mounted: the
-// table sets up its gate and its list after its hold.
 function useCountedNewRows(
   missed: () => number,
   counter: TableNewRowsCounter,
@@ -264,9 +254,6 @@ function useCountedNewRows(
   });
 }
 
-// The bound a source route receives while the rows are held: they are as
-// fresh as the hold, or as the last read the user asked for since (Show, an
-// action of theirs).
 function useHeldQuery(
   isHolding: ComputedRef<boolean>,
   options: TableLiveHoldOptions,

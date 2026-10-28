@@ -1,20 +1,15 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
 
-// Any reka layer still open: a dialog, a drawer, a modal menu.
 const OPEN_LAYER_SELECTOR = '[data-dismissable-layer][data-state="open"]';
 
-// What blocks the page while it is mounted: a layer and a backdrop.
 const LAYER_SELECTOR = "[data-dismissable-layer]";
 const BLOCKING_SELECTOR = `${LAYER_SELECTOR}, [data-slot="overlay"]`;
 
-// A drawer, a modal or a slideover still open: what a closing one covered.
 const OPEN_DIALOG_SELECTOR = [
   '[role="dialog"][data-dismissable-layer][data-state="open"]',
   '[role="alertdialog"][data-dismissable-layer][data-state="open"]',
 ].join(", ");
 
-// A popover's content is a dialog layer too, but anchored to its trigger: it
-// covers nothing.
 const POPOVER_SELECTOR = "[data-reka-popper-content-wrapper]";
 
 /**
@@ -41,7 +36,6 @@ export function useOpenDialog(): Readonly<Ref<boolean>> {
     isOpen.value = hasOpenDialog(document);
   };
   onMounted(() => {
-    // A dialog mounts open: its insertion counts, not only its state.
     observer = new MutationObserver(update);
     observer.observe(document.body, {
       subtree: true,
@@ -57,7 +51,6 @@ export function useOpenDialog(): Readonly<Ref<boolean>> {
   return isOpen;
 }
 
-// Reka's FocusScope, as it unmounts: cancelling it keeps the focus in place.
 const UNMOUNT_AUTOFOCUS_EVENT = "focusScope.autoFocusOnUnmount";
 
 /**
@@ -67,7 +60,10 @@ const UNMOUNT_AUTOFOCUS_EVENT = "focusScope.autoFocusOnUnmount";
  */
 export const UNCOVERED_ATTRIBUTE = "data-dms-uncovered";
 
-function isClosing(mutation: MutationRecord): boolean {
+function isClosing(
+  mutation: MutationRecord,
+): mutation is MutationRecord & { target: Element } {
+  // SAFETY: The only caller observes attributes with attributeFilter; DOM attribute mutations always target Elements.
   const target = mutation.target as Element;
   return (
     target.getAttribute("data-state") === "closed" &&
@@ -103,15 +99,12 @@ function isClosing(mutation: MutationRecord): boolean {
  * @internal
  */
 export function watchClosingLayers(root: Document): () => void {
-  // Each closing layer and the layers that were open when it started.
-  const openBeforeClosing = new WeakMap<Element, Set<Element>>();
+  const openBeforeClosing = new WeakMap<EventTarget, Set<Element>>();
   const openLayers = () => [...root.querySelectorAll(OPEN_LAYER_SELECTOR)];
   const uncovering = watchUncovered(root);
 
   const observer = new MutationObserver((mutations) => {
-    const closing = mutations
-      .filter(isClosing)
-      .map(({ target }) => target as Element);
+    const closing = mutations.filter(isClosing).map(({ target }) => target);
     if (closing.length === 0) return;
     const open = openLayers();
     for (const target of closing) {
@@ -131,7 +124,7 @@ export function watchClosingLayers(root: Document): () => void {
   });
 
   const onUnmountAutoFocus = (event: Event): void => {
-    const before = openBeforeClosing.get(event.target as Element);
+    const before = event.target && openBeforeClosing.get(event.target);
     if (!before) return;
     if (openLayers().some((layer) => !before.has(layer))) {
       event.preventDefault();
@@ -165,8 +158,6 @@ function watchUncovered(root: Document): Uncovering {
     closingLayers = [];
   }
 
-  // Only while a dialog closes over another: a short-lived watch of the DOM,
-  // until the closing one is gone or another one opened above.
   const watcher = new MutationObserver(() => {
     const isStillCovering = closingLayers.some((layer) => layer.isConnected);
     if (!isStillCovering || topmostOpen() !== uncovered) stop();

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `liveHold` table on a paused live page, or with its rows on screen, keeps
  * its rows: its events are counted into a "N new · Show" banner, a source route is told when the rows
@@ -9,36 +9,32 @@
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import {
+  startTableRealtime,
+  stopTableRealtime,
+  publishTableEvent,
+} from "./helpers/table-runtime";
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import {
   LIVE_HELD_AT_QUERY_KEY,
   sourceRouteQuery,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type {
   TableLiveHold,
   TableLiveHoldSignals,
   TableNewRowsCounter,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
-import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
-
-const topicHandlers = new Map<string, RealtimeTopicHandler>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, handler);
-  },
-}));
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableLiveHold";
+import type { TableViewLiveHoldOptions } from "../layers/dms-core/app/types/live";
 
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 const { useTableLiveHold } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableLiveHold"
 );
 
 const TOPIC = "api:requests";
@@ -46,8 +42,7 @@ const TOPIC = "api:requests";
 let apps: App[] = [];
 let live: PageLiveController;
 
-const publish = () =>
-  topicHandlers.get(TOPIC)?.({ topic: TOPIC, type: "request", ts: 1 });
+const publish = () => publishTableEvent(TOPIC);
 
 interface MountedTableOptions {
   liveHold: boolean | TableViewLiveHoldOptions;
@@ -79,20 +74,21 @@ function mountTable(options: MountedTableOptions) {
   return { refresh, hold: hold! };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
-  topicHandlers.clear();
+  await startTableRealtime();
   window.localStorage.clear();
   live = createPageLiveController("api.logs", {});
   setCurrentPageLive(live);
 });
 
-afterEach(() => {
+afterEach(async () => {
   apps.forEach((app) => app.unmount());
   apps = [];
   live.dispose();
   setCurrentPageLive(null);
+  await stopTableRealtime();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -104,8 +100,8 @@ it("holds the rows while paused and counts what came in", async () => {
 
   live.pause();
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
 
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.isHolding.value).toBe(true);
@@ -119,7 +115,7 @@ it("bounds a source table's lists at the moment it was frozen", async () => {
   await nextTick();
 
   vi.setSystemTime(new Date("2026-10-11T08:05:00.000Z"));
-  // The user's search while paused still lists the rows as they stood.
+
   expect(hold.heldQuery()).toEqual({
     [LIVE_HELD_AT_QUERY_KEY]: "2026-10-11T08:00:00.000Z",
   });
@@ -141,7 +137,7 @@ it("shows what is new once, staying paused, and holds from then", async () => {
   const { refresh, hold } = mountTable({ liveHold: true });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
 
   vi.setSystemTime(new Date("2026-10-11T08:02:00.000Z"));
   hold.showNew();
@@ -153,7 +149,6 @@ it("shows what is new once, staying paused, and holds from then", async () => {
     [LIVE_HELD_AT_QUERY_KEY]: "2026-10-11T08:02:00.000Z",
   });
 
-  // Nothing missed since Show: resuming has nothing to read again.
   live.resume();
   expect(refresh).toHaveBeenCalledTimes(1);
 });
@@ -162,7 +157,7 @@ it("shows no banner count without liveHold, though it still pauses", async () =>
   const { refresh, hold } = mountTable({ liveHold: false });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.newCount.value).toBe(0);
   expect(hold.heldQuery()).toEqual({});
@@ -185,7 +180,7 @@ it("reads on a user's refresh while held, and holds from then", async () => {
   const { refresh, hold } = mountTable({ liveHold: true });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
 
   vi.setSystemTime(new Date("2026-10-11T08:03:00.000Z"));
   refreshPageBlocks();
@@ -207,20 +202,19 @@ it("holds the table alone while a row is open, the page staying live", async () 
 
   isRowOpen.value = true;
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(live.isPaused.value).toBe(false);
   expect(live.missedCount.value).toBe(0);
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.isHolding.value).toBe(true);
   expect(hold.newCount.value).toBe(2);
 
-  // Closing the panel reads what the table missed, once.
   isRowOpen.value = false;
   await nextTick();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.isHolding.value).toBe(false);
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(2);
 });
 
@@ -229,22 +223,19 @@ it("keeps today's hold when liveHold is true: an open row changes nothing", asyn
     liveHold: true,
     signals: { isRowOpen: () => true },
   });
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.isHolding.value).toBe(false);
 });
 
-// A table whose top stands at `tableTop` and its first row's bottom at
-// `rowBottom`, in a 768px tall window; `scroll` moves them.
 function placedTable(tableTop: number, rowBottom: number) {
   const element = document.createElement("div");
   element.innerHTML = "<table><tbody><tr><td>1</td></tr></tbody></table>";
   document.body.append(element);
   const row = element.querySelector("tr")!;
   const place = (top: number, bottom: number) => {
-    element.getBoundingClientRect = () =>
-      ({ top, bottom: top + 400 }) as DOMRect;
-    row.getBoundingClientRect = () => ({ bottom, top: bottom - 40 }) as DOMRect;
+    element.getBoundingClientRect = () => new DOMRect(0, top, 0, 400);
+    row.getBoundingClientRect = () => new DOMRect(0, bottom - 40, 0, 40);
   };
   place(tableTop, rowBottom);
   vi.stubGlobal("requestAnimationFrame", (run: () => void) =>
@@ -266,19 +257,17 @@ it("holds the rows on screen still, the page staying live, without a reason", as
     signals: { tableElement: () => element },
   });
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(live.isPaused.value).toBe(false);
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.isHolding.value).toBe(true);
   expect(hold.newCount.value).toBe(2);
   expect(hold.reason.value).toBe(null);
 
-  // Out of reach below the screen, new rows move nothing in view: the table
-  // reads what it missed and follows the feed again.
   await scroll(1200, 1280);
   expect(refresh).toHaveBeenCalledTimes(1);
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(2);
   element.remove();
 });
@@ -290,12 +279,12 @@ it("names the scroll as its reason while its first row is out of view", async ()
     signals: { tableElement: () => element },
   });
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.reason.value).toBe(null);
 
   await scroll(-400, -200);
-  publish();
+  await publish();
   expect(hold.reason.value).toBe("scrolled");
   expect(hold.newCount.value).toBe(2);
   expect(refresh).not.toHaveBeenCalled();
@@ -318,7 +307,7 @@ it("holds the table alone while searching or sorted, saying why", async () => {
 
   isSorted.value = true;
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.reason.value).toBe("sorted");
 
@@ -330,7 +319,6 @@ it("holds the table alone while searching or sorted, saying why", async () => {
   await nextTick();
   expect(hold.reason.value).toBe("rowOpen");
 
-  // Paused, the page's toggle says why: the table names no reason.
   live.pause();
   await nextTick();
   expect(hold.isHolding.value).toBe(true);
@@ -342,7 +330,7 @@ it("holds for no search nor sort the options leave off", async () => {
     liveHold: { whileRowOpen: true },
     signals: { isSearching: () => true, isSorted: () => true },
   });
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.reason.value).toBe(null);
 });
@@ -356,16 +344,15 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   expect(hold.missedLabel).toBe("$api.live.new_requests");
   const detail = { text: "$api.live.in_5xx", params: { count: 1 } };
 
-  // Held by an open row, the page live: the page has no breakdown to give.
   isRowOpen.value = true;
   await nextTick();
-  publish();
+  await publish();
   live.setMissedDetail(detail);
   expect(hold.missedDetail.value).toBe(null);
 
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   live.setMissedDetail(detail);
   expect(hold.missedDetail.value).toEqual(detail);
 
@@ -374,7 +361,6 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   expect(hold.missedDetail.value).toBe(null);
 });
 
-// A table whose list holds `held` rows, its route matching `now()` rows now.
 function countedRows(held: number, now: () => number | Promise<number>) {
   const heldList = ref<{ total: number } | null>({ total: held });
   const countNow = vi.fn(async () => now());
@@ -382,18 +368,16 @@ function countedRows(held: number, now: () => number | Promise<number>) {
 }
 
 it("counts the new rows the table would list, not every event", async () => {
-  // A "4xx" tab: of three requests, one is a 4xx.
   const { newRows } = countedRows(10, () => 11);
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
-  publish();
-  publish();
+  await publish();
+  await publish();
+  await publish();
   await nextTick();
   expect(hold.newCount.value).toBe(0);
 
-  // One count for the burst, once it has settled.
   await vi.advanceTimersByTimeAsync(500);
   expect(newRows.countNow).toHaveBeenCalledTimes(1);
   expect(hold.newCount.value).toBe(1);
@@ -404,7 +388,7 @@ it("shows no pill when no new event matches the table's query", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(0);
 });
@@ -415,11 +399,10 @@ it("counts again when the held list changes, and forgets on Show", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(2);
 
-  // The user's search lists other rows, bounded: fewer of them are new.
   heldList.value = { total: 3 };
   now = 4;
   await nextTick();
@@ -436,8 +419,8 @@ it("falls back to the events when the count fails", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(2);
 });

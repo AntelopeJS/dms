@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import type { CSSProperties } from "vue";
+import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
 const CSS_LOAD_DELAY_MS = 100;
 const UI_VARIABLE_PREFIX = "--ui-";
@@ -29,7 +30,6 @@ interface CSSVariable {
   category: VariableCategory;
 }
 
-// First match wins: `--ui-border-…` is a border colour, `--ui-radius` a radius.
 const CATEGORY_PATTERNS: Array<[string, VariableCategory]> = [
   ["-color-", "colors"],
   ["-text", "text"],
@@ -47,7 +47,7 @@ const CATEGORY_ORDER: VariableCategory[] = [
   "shadow",
   OTHER_CATEGORY,
 ];
-// Colour-valued categories draw their swatch as a filled square.
+
 const COLOR_CATEGORIES = new Set<VariableCategory>([
   "colors",
   "text",
@@ -74,7 +74,8 @@ function categoryOf(name: string): VariableCategory {
 
 function collectNames(rules: CSSRuleList, names: Set<string>): void {
   for (const rule of Array.from(rules)) {
-    if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
+    if ("cssRules" in rule && rule.cssRules) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CSSOM rules with cssRules include keyframes, not only CSSGroupingRule; retain the rule-list projection.
       collectNames((rule as CSSGroupingRule).cssRules, names);
     }
     if (rule instanceof CSSStyleRule) {
@@ -85,31 +86,26 @@ function collectNames(rules: CSSRuleList, names: Set<string>): void {
   }
 }
 
-// Reads every `--ui-*` property the stylesheets declare, valued for the
-// current theme (the computed value on <html>).
 function readVariables(): CSSVariable[] {
   const names = new Set<string>();
   for (const sheet of Array.from(document.styleSheets)) {
+    // prettier-ignore
     try {
       collectNames(sheet.cssRules, names);
     } catch {
-      /* cross-origin stylesheets throw on cssRules access */
+      // eslint-disable-line no-empty -- Cross-origin stylesheet rules may be inaccessible.
     }
   }
   const rootStyles = getComputedStyle(document.documentElement);
-  return (
-    Array.from(names)
-      .map((name) => ({
-        name,
-        value: rootStyles.getPropertyValue(name).trim(),
-        category: categoryOf(name),
-      }))
-      .filter((variable) => variable.value !== "")
-      // Natural order, so `-50` comes before `-100` and `-400`.
-      .sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { numeric: true }),
-      )
-  );
+  return Array.from(names)
+    .map((name) => ({
+      name,
+      value: rootStyles.getPropertyValue(name).trim(),
+      category: categoryOf(name),
+    }))
+    .filter((variable) => variable.value !== "")
+
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
 
 function refresh(): void {
@@ -147,7 +143,7 @@ const shown = computed(() => {
   );
 });
 
-function swatchStyle(variable: CSSVariable): Record<string, string> {
+function swatchStyle(variable: CSSVariable): CSSProperties {
   if (COLOR_CATEGORIES.has(variable.category)) {
     return { background: `var(${variable.name})` };
   }
@@ -175,7 +171,6 @@ function exportAsCss(): void {
   URL.revokeObjectURL(url);
 }
 
-// Values follow the theme: re-read them when the light/dark class changes.
 let themeObserver: MutationObserver | undefined;
 
 onMounted(() => {

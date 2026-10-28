@@ -1,6 +1,3 @@
-// What "Your data" on the profile page exports and what it checks before an
-// account is deleted. Pure: the store (account-data-store.ts) reads the rows.
-
 import {
   normalizeEmail,
   type Session,
@@ -73,10 +70,15 @@ export interface AccountExport {
   exportedAt: Date;
   profile: AccountExportProfile;
   preferences: AccountExportPreferences;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve the exported open record contract; buildAccountExport reconstructs the permitted fields explicitly below.
   memberships: Record<string, unknown>[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve the exported open record contract; notification fields are explicitly selected below.
   notifications: Record<string, unknown>[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve the exported open record contract; session secrets are excluded by the serializer below.
   sessions: Record<string, unknown>[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve the exported open record contract; identity credentials are excluded by the serializer below.
   externalIdentities: Record<string, unknown>[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve the exported open record contract; invite tokens are excluded by the serializer below.
   invitesSent: Record<string, unknown>[];
 }
 

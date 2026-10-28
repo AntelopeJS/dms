@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  metadataQuerySchema,
-  presignBodySchema,
-} from "../../../validation/file.schema";
+import { metadataQuerySchema, presignBodySchema } from "../../../validation";
 
 const validPayload = {
   filename: "photo.jpg",

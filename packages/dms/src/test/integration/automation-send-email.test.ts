@@ -2,8 +2,11 @@ import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { RegisterHtmlTemplate } from "@antelopejs/interface-dms/html-render";
-import type { ExecutionCtx } from "@antelopejs/interface-dms-automation";
-import { ACTIONS, SEND_EMAIL_ACTION_ID } from "../../automation/actions";
+import type {
+  ActionType,
+  ExecutionCtx,
+} from "@antelopejs/interface-dms-automation";
+import { ACTIONS, SEND_EMAIL_ACTION_ID } from "../../automation";
 import { resetDatabase } from "../helpers/db";
 import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";
 
@@ -19,7 +22,7 @@ const ctx: ExecutionCtx = {
 
 const action = ACTIONS.find(({ id }) => id === SEND_EMAIL_ACTION_ID);
 
-function send(input: Record<string, unknown>) {
+function send(input: Parameters<ActionType["execute"]>[0]) {
   if (!action) throw new Error(`${SEND_EMAIL_ACTION_ID} not registered`);
   return action.execute(input, ctx);
 }

@@ -131,9 +131,7 @@ describe("[unit] interfaces/dms-base/table-view — quick filters need values to
     quickFilterWarnings(() => {
       table = registerOn(["city"])();
     });
-    const options = table!.serializeSync().options as {
-      quickFilters?: TableViewQuickFilter[];
-    };
+    const options = table!.serializeSync().options!;
     expect(options.quickFilters).to.deep.equal([{ field: "city" }]);
   });
 

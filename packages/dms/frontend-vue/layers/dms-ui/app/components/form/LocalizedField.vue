@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type { FormField } from "../../composables/form/types";
 import { resolveDmsComponent } from "../../composables/resolveDmsComponent";
 import { escapeRegExp } from "../../build/composables/form/formEntryContext";
+import type { validateFormState } from "../../build/composables/form/formValidation";
 import DmsFormErrorText from "../../build/components/form/FormErrorText.vue";
 
 interface LocalizedFieldProps {
   field: FormField;
-  initialValues?: Record<string, unknown>;
+  initialValues?: Record<
+    string,
+    Parameters<typeof validateFormState>[1][string]
+  >;
   loading: boolean;
   componentId: string;
   pageId: string;
@@ -22,9 +27,7 @@ const { processI18n } = useTranslation();
 
 const isExpanded = ref(false);
 
-function withAllLocales(
-  current: Record<string, string>,
-): Record<string, string> {
+function withAllLocales(current: Record<string, string>) {
   const updated = { ...current };
   locales.value.forEach((lang) => {
     if (!(lang.code in updated)) {
@@ -37,7 +40,7 @@ function withAllLocales(
 watch(
   fieldValue,
   (value) => {
-    if (!value || typeof value !== "object") {
+    if (!value || !isObject(value)) {
       fieldValue.value = withAllLocales({});
       return;
     }
@@ -48,20 +51,14 @@ watch(
   { immediate: true },
 );
 
-// The values the inputs show. Until the form hands a per-locale object back
-// (the watcher above fills it in, but the server render and the hydration
-// pass run before that answer), every locale reads empty, so the inputs are
-// in the markup from the first paint instead of popping in at hydration.
 const EMPTY_TEXT = "";
 const localeValues = computed<Record<string, string>>(() =>
-  fieldValue.value && typeof fieldValue.value === "object"
-    ? fieldValue.value
-    : {},
+  fieldValue.value && isObject(fieldValue.value) ? fieldValue.value : {},
 );
 
 function setLocaleValue(code: string, value: string): void {
   const current = fieldValue.value;
-  if (current && typeof current === "object") {
+  if (current && isObject(current)) {
     current[code] = value;
     return;
   }
@@ -76,9 +73,6 @@ const showDisplay = computed(
   () => !!props.field.disabled && !!props.field.type,
 );
 
-// The control shown in the reader's language is the field: its errors (and
-// those of the field as a whole, a server's) show under it. The panel lists
-// the other languages, each with its own.
 const otherLocales = computed(() =>
   locales.value.filter((lang) => lang.code !== locale.value),
 );
@@ -89,11 +83,8 @@ const mainErrorPattern = computed(
     ),
 );
 
-// A translation refused while the panel is closed opens it: its error shows
-// on its own line.
 const formErrors = inject(formErrorsInjectionKey, null);
-// The error slot replaces the hint under the field: given only while the
-// field holds an error.
+
 const hasMainError = computed(
   () =>
     !!formErrors?.value.some((error) =>

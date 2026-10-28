@@ -1,4 +1,5 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
+import type { ValidationRouteContext } from "../utils/query-validation";
 
 /** Semantic look of a menu entry, mirroring `MenuItemVariant` in the backend. */
 export type MenuItemVariant = "default" | "accent";
@@ -60,5 +61,5 @@ export interface DmsMenuItem extends NavigationMenuItem {
 /** The route a menu is highlighted against. */
 export interface MenuRouteState {
   path: string;
-  query: Record<string, unknown>;
+  query: ValidationRouteContext["query"];
 }

@@ -34,15 +34,11 @@ export class DocsPreviewPage extends PageController(
     publicAccess: true,
     hidden: true,
     category: pagesCategory,
-    // Declared live so a LiveToggle has a page to switch; without `maxRate`
-    // nothing polls, and blocks refetch on their events as on any page.
+
     live: {},
   },
   PREVIEW_LAYOUT,
 ) {
-  // Read when the page registers, which is once every module has loaded and
-  // declared its block types: a public page's layout skips per-request
-  // filters, so `onFilter` would never run.
   static content = CustomComponent("DmsBlockPreview").transformOptions(
     (): DocsPreviewOptions => ({
       embed: true,

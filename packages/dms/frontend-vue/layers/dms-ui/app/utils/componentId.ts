@@ -1,6 +1,3 @@
-// A page's top-level block is identified by its key; a block nested in a
-// layout block (a Grid, a GridRow) by its parent's id, this separator, then
-// its own key.
 const CHILD_SEPARATOR = "-child-";
 
 /** The component id of the child `key` of the block `parentId`. */

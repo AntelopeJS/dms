@@ -6,12 +6,9 @@ const DEV_RELOAD_HOLDER_KEY = "__dmsDevReload";
 const ROUTE_READY_POLL_INTERVAL_MS = 150;
 const ROUTE_READY_TIMEOUT_MS = 15000;
 const ROUTE_READY_INITIAL_DELAY_MS = 150;
-// Outside dev nothing in this file re-fetches the site layout, so a long wait
-// could only ever stall the caller. Cap it: either a refresh started elsewhere
-// lands within the moment, or the answer is "not served".
+
 const PRODUCTION_ROUTE_WAIT_MS = 2000;
-// Comfortably past the route-ready deadline: this only catches a refresh that
-// never settles at all, not a slow one.
+
 const RELOAD_FLAG_MAX_MS = ROUTE_READY_TIMEOUT_MS + 5000;
 
 /**
@@ -75,15 +72,6 @@ async function pollUntil(
   }
 }
 
-// Hold the refresh until the route actually resolves in a freshly fetched
-// layout, then commit THAT layout atomically. A hot reload re-registers modules
-// one at a time (and can do so more than once in quick succession), so the
-// backend can be reachable while the page is momentarily unregistered.
-// Committing then would drop the page and 404 it. probeAndCommitRoute fetches
-// once and only commits if the route is present, so the check and the commit
-// cannot be split by a second unregister burst. If the route never comes back
-// (page genuinely deleted), we time out and commit whatever the backend now
-// has, letting the page component handle the 404.
 async function commitWhenRouteReady(
   path: string,
   deadline: number,
@@ -147,7 +135,7 @@ interface CoordinatorState {
 function handOverToRerun(state: CoordinatorState): boolean {
   if (!state.rerunPending) return false;
   state.rerunPending = false;
-  // The re-run owns the reloading flag from here.
+
   void runRefresh(
     state,
     state.deps.currentPath(),
@@ -163,14 +151,12 @@ function runRefresh(
 ): Promise<boolean> {
   const { deps } = state;
   deps.setReloading(true);
-  // A refresh that never settles would leave the flag set, and the flag
-  // suppresses 404s -- every later missing page would come up blank for the
-  // rest of the session. Release it on a deadline regardless.
+
   const release = setTimeout(() => {
     deps.setReloading(false);
   }, RELOAD_FLAG_MAX_MS);
   const started: Promise<boolean> = softRefresh(path, deadline, deps, deps)
-    .catch((err: unknown) => {
+    .catch((err) => {
       console.error("[dms-dev-reload] Soft refresh failed:", err);
       return false;
     })
@@ -239,29 +225,21 @@ async function awaitRoute(
   if (deps.isRouteKnown(path)) return true;
   const deadline = awaitRouteDeadline(deps, options);
 
-  // A refresh already in flight is re-committing the whole layout, which may be
-  // all this caller needs; join it instead of racing it with a second fetch
-  // loop.
   await joinInFlight(
     state,
     () => deps.isRouteKnown(path) || deps.now() >= deadline,
   );
   if (deps.isRouteKnown(path)) return true;
 
-  // Outside dev there is no reload stream and probeAndCommitRoute is a no-op,
-  // so the only thing that can bring the route in is a refresh driven
-  // elsewhere. Watch the committed layout for a moment, then answer.
   if (!deps.isDev) {
     return pollUntil(() => deps.isRouteKnown(path), deadline, deps);
   }
 
-  // Deadline spent waiting on someone else's pass.
   if (state.refreshing || deps.now() >= deadline)
     return deps.isRouteKnown(path);
 
   const committed = await runRefresh(state, path, deadline);
-  // A trailing re-run booked over ours may be the one that brought the route
-  // in, so re-read the committed layout rather than trusting our own answer.
+
   return committed || deps.isRouteKnown(path);
 }
 
@@ -290,23 +268,21 @@ export function createDevReloadCoordinator(
   };
 }
 
-// Refresh everything that hangs off the site layout, AFTER the layout itself
-// has been (re)committed for the current route. Kept separate from the layout
-// commit so the commit can stay atomic with its route check (see
-// probeAndCommitRoute) — the 404-prone part was committing the layout, not this.
-// The page layouts reload with the layout commit, which empties their cache:
-// no async data key holds them.
 async function postLayoutRefresh(): Promise<void> {
   const permissions = usePermissions();
-  // fetchPermissions() refetches and swaps the set atomically, so there is no
-  // need to clear() first — clearing would briefly empty permissions and flash
-  // permission-gated UI.
+
   await permissions.fetchPermissions();
 }
 
 interface DevReloadHolder {
   coordinator: DevReloadCoordinator;
   reloading: Ref<boolean>;
+}
+
+declare module "#dms/frontend-module" {
+  interface DmsAppContext {
+    [DEV_RELOAD_HOLDER_KEY]?: DevReloadHolder;
+  }
 }
 
 /**
@@ -318,12 +294,10 @@ interface DevReloadHolder {
  * Core-internal — module frontends use {@link useDevReload}.
  */
 export function useDevReloadHolder(): DevReloadHolder {
-  const dmsApp = useDmsApp() as unknown as Record<PropertyKey, unknown>;
-  const existing = dmsApp[DEV_RELOAD_HOLDER_KEY] as DevReloadHolder | undefined;
+  const dmsApp = useDmsApp();
+  const existing = dmsApp[DEV_RELOAD_HOLDER_KEY];
   if (existing) return existing;
 
-  // Outside dev the flag is a plain ref rather than shared state, so the key
-  // never reaches a production SSR payload.
   const reloading = import.meta.env.DEV ? useDevReloading() : ref(false);
   const siteLayout = useSiteLayout();
   const router = useDmsRouter();
@@ -336,10 +310,7 @@ export function useDevReloadHolder(): DevReloadHolder {
     probeAndCommitRoute: (path) => siteLayout.probeAndCommitRoute(path),
     commitLayout: () => siteLayout.refresh(),
     refreshDerived: postLayoutRefresh,
-    // Clear the transient 404 [...slug].vue raised while the route was briefly
-    // unregistered, so the page re-renders once the route is committed again.
-    // Only when the user is still on the path we recovered — otherwise they
-    // navigated to a genuinely missing route meanwhile and that 404 must stand.
+
     clearTransient404: (recoveredPath) => {
       if (router.currentRoute.value.path !== recoveredPath) return;
       const err = currentError.value;

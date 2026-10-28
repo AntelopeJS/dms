@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type App,
@@ -11,31 +11,18 @@ import {
 } from "vue";
 import { createI18n } from "vue-i18n";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
-import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
-import { secondaryTargetRunner } from "../layers/dms-ui/app/build/composables/confirm/secondaryTarget";
-import { downloadFilename } from "../layers/dms-ui/app/build/utils/fileDownload";
+import { resolveConfirmDialog } from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
+import { secondaryTargetRunner } from "../layers/dms-ui/app/entries/composables/confirm/secondaryTarget";
+import { downloadFilename } from "../layers/dms-ui/app/entries/utils/fileDownload";
 
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 const i18n = createI18n({
   legacy: false,
   locale: "en",
   messages: { en: { lang: { download: "Download {file}" } } },
 });
-const t = i18n.global.t as (
-  key: string,
-  params: Record<string, unknown>,
-  plural?: number,
-) => string;
+const t = i18n.global.t;
 
 describe("a confirmation's secondary action, resolved", () => {
   it("fills its label, URL and file name with the row and the params", async () => {
@@ -184,8 +171,15 @@ describe("ConfirmModal secondary action", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
-    app = createApp(ConfirmModal, { onClose: closed, ...props });
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
+    app = createApp({
+      render: () =>
+        h(DialogRoot, null, () =>
+          h(ConfirmModal, { onClose: closed, ...props }),
+        ),
+    });
     app.config.globalProperties.$t = (key: string) => key;
     app.component("UModal", Slots);
     app.component("UButton", Button);

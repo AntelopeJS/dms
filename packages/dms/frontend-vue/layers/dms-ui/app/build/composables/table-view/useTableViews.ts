@@ -4,6 +4,7 @@ import type {
   VisibilityState,
 } from "@tanstack/vue-table";
 import type { Ref } from "vue";
+import type { LocationQuery } from "#dms/frontend-module";
 import type {
   TableViewViewConfig,
   TableViewViewsConfig,
@@ -62,23 +63,17 @@ const NO_VIEW = "";
 export const keptViewId = (id: string | undefined): string => id ?? NO_VIEW;
 const VIEW_NAME_FIELD = "label";
 
-/**
- * The views of a table view: the module's and the user's own, the one open,
- * whether the table moved away from it, and the ways back (Reset) or forward
- * (Save, Save as new view). Opening a view always applies its whole state:
- * a change made to a view is not kept when another is opened.
- */
-export function useTableViews(options: TableViewsOptions) {
+function createTableViewState(options: TableViewsOptions) {
   const { views, defaults, state, preferences, urlScope } = options;
-  const { user } = useDmsUserSession();
+  const { user } = useDmsUserSession<User>();
   const { t } = useI18n();
   const { processI18n } = useTranslation();
   const toast = useToast();
   const { confirm } = useConfirm();
   const route = useDmsRoute();
 
-  const userId = computed(() => user.value?._id as string | undefined);
-  // Kept in the browser: none on the server, restored once mounted.
+  const userId = computed(() => user.value?._id);
+
   const storedUserViews = ref<UserTableView[]>([]);
   preferences.restore("userViews", storedUserViews, Array.isArray);
   const ownUserViews = computed(() =>
@@ -157,7 +152,7 @@ export function useTableViews(options: TableViewsOptions) {
    * reads it: the view it names, else the default view, else the table's
    * default listing state under the reader's own presentation.
    */
-  const openLinkedView = (query: Record<string, unknown>) => {
+  const openLinkedView = (query: LocationQuery) => {
     const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
     const view = named.isCleared
       ? undefined
@@ -181,11 +176,50 @@ export function useTableViews(options: TableViewsOptions) {
     state.pagination.value = { ...state.pagination.value, pageIndex: 0 };
   };
 
-  // Read once, on arrival: a view named by the URL wins over the state kept
-  // from the last visit; a view the caller may not open falls back to the
-  // default one, with a word (on the client, once mounted). The user's views
-  // are kept in the browser, so a view that is not the module's is resolved
-  // once mounted. An empty one (`?view=`) names no view.
+  return {
+    views,
+    defaults,
+    state,
+    preferences,
+    urlScope,
+    t,
+    toast,
+    confirm,
+    route,
+    userId,
+    storedUserViews,
+    items,
+    findView,
+    currentSnapshot,
+    activeViewId,
+    activeView,
+    openView,
+    selectView,
+    openLinkedView,
+    openDefaultListing,
+    restoreKeptView,
+  };
+}
+
+function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
+  const {
+    views,
+    defaults,
+    state,
+    preferences,
+    urlScope,
+    t,
+    toast,
+    route,
+    findView,
+    currentSnapshot,
+    activeViewId,
+    activeView,
+    openView,
+    openDefaultListing,
+    restoreKeptView,
+  } = context;
+
   const urlView = readTableUrlKey(route.query, urlScope, VIEW_URL_KEY);
   const persistedViewId = preferences.get<string | undefined>(
     "activeView",
@@ -208,8 +242,6 @@ export function useTableViews(options: TableViewsOptions) {
     restoreKeptView(persistedViewId);
   }
 
-  // The browser-only state (order, density) is restored over the view opened
-  // in setup: the view's own wins, as it did when everything was read there.
   const reapplyBrowserState = () => {
     const snapshot = viewSnapshot(activeView.value, defaults);
     state.columnOrder.value = snapshot.order;
@@ -260,6 +292,34 @@ export function useTableViews(options: TableViewsOptions) {
       defaults.columnOrder,
     );
   });
+
+  return { ...context, isModified };
+}
+
+/**
+ * The views of a table view: the module's and the user's own, the one open,
+ * whether the table moved away from it, and the ways back (Reset) or forward
+ * (Save, Save as new view). Opening a view always applies its whole state:
+ * a change made to a view is not kept when another is opened.
+ */
+export function useTableViews(options: TableViewsOptions) {
+  const {
+    views,
+    preferences,
+    t,
+    confirm,
+    userId,
+    storedUserViews,
+    items,
+    findView,
+    currentSnapshot,
+    activeViewId,
+    activeView,
+    openView,
+    selectView,
+    openLinkedView,
+    isModified,
+  } = arriveTableViews(createTableViewState(options));
 
   const writeUserViews = (next: UserTableView[]) => {
     storedUserViews.value = next;

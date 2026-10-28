@@ -6,9 +6,9 @@ import type {
 } from "../../../composables/form/types/value";
 import { cloneFormValue } from "../../../composables/form/useForm";
 import type { UseFormDirtyReturn } from "../../../composables/unsaved-changes/useFormDirty";
-import type { InstantForm } from "./useInstantForm";
+import type { InstantForm, InstantFormOptions } from "./useInstantForm";
 
-type FormValues = Record<string, unknown>;
+type FormValues = InstantFormOptions["state"]["value"];
 
 /** What a field the server saved on its own updates in its form. */
 export interface FieldSavedTargets {
@@ -32,6 +32,7 @@ export function fieldSavedMarker(targets: FieldSavedTargets): MarkFieldSaved {
     if (!targets.hasField(id)) return;
     targets.initialValues.value = {
       ...targets.initialValues.value,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Field-saved values are arbitrary form payloads; JSON cloning does not establish FormFieldValue.
       [id]: cloneFormValue(value as FormFieldValue) as FormFieldValue,
     };
     targets.dirty.markClean({ ...targets.dirty.baseline.value, [id]: value });

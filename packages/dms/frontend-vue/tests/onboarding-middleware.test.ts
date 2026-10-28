@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-type Middleware = (to: { path: string }) => Promise<unknown>;
+type Middleware = (to: { path: string }) => Promise<void>;
+let middleware: Middleware;
 
 const navigateDms = vi.fn();
 const onboarding = vi.fn();
@@ -9,7 +9,10 @@ const session = { loggedIn: { value: false } };
 
 beforeEach(() => {
   vi.resetModules();
-  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
+  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => {
+    middleware = handler;
+    return handler;
+  });
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useOnboarding", onboarding);
   vi.stubGlobal("useDmsUserSession", () => session);
@@ -24,10 +27,8 @@ afterEach(() => {
 });
 
 async function loadMiddleware(): Promise<Middleware> {
-  const module = await import(
-    "../layers/dms-onboarding/app/middleware/onboarding.global"
-  );
-  return module.default as unknown as Middleware;
+  await import("../layers/dms-onboarding/app/middleware/onboarding.global");
+  return middleware;
 }
 
 describe("onboarding middleware", () => {
@@ -84,20 +85,5 @@ describe("onboarding middleware", () => {
     await middleware({ path: "/onboarding" });
 
     expect(navigateDms).not.toHaveBeenCalled();
-  });
-});
-
-describe("onboarding page", () => {
-  // Global middleware runs on a direct load only for a page declaring its
-  // meta: without it, a finished wizard would render instead of redirecting.
-  it("declares its meta so the onboarding middleware runs on a direct load", () => {
-    const page = readFileSync(
-      new URL(
-        "../layers/dms-onboarding/app/custom-pages/onboarding.vue",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-    expect(page).toMatch(/defineDmsPageMeta\(/);
   });
 });

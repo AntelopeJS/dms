@@ -18,6 +18,7 @@ export interface AttachmentField {
 
 /** The actual saved values used to clean removed native files. */
 export interface AttachmentSaveResult<T> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Saved document fields are consumer-defined in this published attachment callback contract.
   document: Record<string, unknown>;
   result: T;
 }
@@ -27,20 +28,23 @@ export interface AttachmentSaveRequest {
   context: RequestContext;
   componentIds: string[];
   fields: AttachmentField[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Submitted component fields remain an open dictionary in the published save request.
   submitted: Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The previous document has consumer-defined keys in the published request.
   before: Record<string, unknown>;
 }
 
 /** @internal */
 export namespace internal {
-  export const SaveTableViewAttachments =
-    InterfaceFunction<
-      (request: TableViewAttachmentSaveRequest) => Promise<unknown>
-    >();
+  export const SaveTableViewAttachments = InterfaceFunction<
+    // oxlint-disable-next-line anti-slop/no-unknown-returns -- The runtime attachment implementation returns a consumer-specific save result through this published proxy.
+    (request: TableViewAttachmentSaveRequest) => Promise<unknown>
+  >();
 }
 
 type AttachmentSaver = <T>(
   request: AttachmentSaveRequest,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Promoted consumer fields use the same open dictionary as the published save request.
   save: (promoted: Record<string, unknown>) => Promise<AttachmentSaveResult<T>>,
 ) => Promise<T>;
 
@@ -54,6 +58,7 @@ type AttachmentSaver = <T>(
  * This is not reference-counted cleanup: callers own the risk of shared keys.
  */
 export const SaveComponentFiles =
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction erases the callback/result generic correlation; the published proxy must retain AttachmentSaver's generic call signature.
   InterfaceFunction<AttachmentSaver>() as AttachmentSaver;
 
 /**

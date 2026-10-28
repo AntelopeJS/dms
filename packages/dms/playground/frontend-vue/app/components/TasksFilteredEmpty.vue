@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// The filtered empty state of the "URL query filters" demo, drawn by a
-// component (`emptyStates.filtered.component`): it reads the table's search
-// and filters with `useTableViewEmptyState()` and offers its own ways out.
-// A filter the page URL applies is not the table's to clear: the link back
-// to the unfiltered page clears it.
 
 const PAGE_PATH = "/table-view/table-view-query-filters";
 

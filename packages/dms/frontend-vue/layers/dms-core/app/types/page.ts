@@ -1,0 +1,222 @@
+import type { BlockText } from "#dms-core/app/types/composed-text";
+import type { BlockAction } from "#dms-core/app/entries/types/block-action";
+import type { PageLiveOptions } from "#dms-core/app/types/live";
+import type { ModuleSourceKind } from "./module-store";
+
+export type MenuItemType = "label" | "link";
+
+export interface PageValidation {
+  requiredQueryParams?: string[];
+  customFunctionId?: string;
+  /** Where a page failing its validation sends the user, not-found aside. */
+  redirectTo?: string;
+}
+
+export interface MenuOptions {
+  displayName: string;
+  category: CategoryInfo;
+  urlSlug?: string;
+  description?: string;
+  order?: number;
+  icon?: string;
+  hidden?: boolean;
+  publicAccess?: boolean;
+  permission?: string;
+  type?: MenuItemType;
+  validation?: PageValidation;
+  setupId?: string;
+  query?: MenuItemQuery;
+  variant?: MenuItemVariant;
+  status?: MenuItemStatus;
+  badge?: string;
+  bypassTenantAccessGate?: boolean;
+  /** The page's Direct / Pause valve (see `PageLiveOptions`). */
+  live?: PageLiveOptions;
+}
+
+export interface CategoryInfo extends Omit<MenuOptions, "category"> {
+  id: string;
+  fullId: string;
+  fullSlug: string;
+  hasAccess?: boolean;
+  isModuleRoot?: boolean;
+  /**
+   * The full id of the category this entry sits in, listed once in
+   * `SiteLayout.categories`; none at the root.
+   */
+  categoryId?: string;
+  /** Answers at its parent's slug: never the target of a URL of its own. */
+  urlTransparent?: boolean;
+}
+
+/**
+ * Serialized projection of `ModuleInfo` from `@antelopejs/interface-dms/page`.
+ * Keep its data fields in sync with that contract. The backend's callable
+ * `status` and `readout` hooks are omitted here; `ModuleCatalogEntry` carries
+ * their resolved values instead.
+ */
+export interface ModuleInfo {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  landingPage?: string;
+  version?: string;
+  catalogCategory?: string;
+  defaultCategory?: {
+    displayName?: string;
+    icon?: string;
+    order?: number;
+    urlSlug?: string;
+  };
+}
+
+export type ModuleWithAccess = ModuleInfo & { hasAccess: boolean };
+
+/** Keep in sync with `ModuleStatus` from `@antelopejs/interface-dms/page`. */
+export type ModuleStatus = "live" | "beta" | "update" | "attention";
+/** Keep in sync with `ModuleReadoutTone` from `@antelopejs/interface-dms/page`. */
+export type ModuleReadoutTone = "success" | "info" | "warning" | "error";
+/** Keep in sync with `ModuleReadoutLine` from `@antelopejs/interface-dms/page`. */
+export interface ModuleReadoutLine {
+  text: string;
+  tone?: ModuleReadoutTone;
+}
+
+/**
+ * One entry of `/dms/modules-listing`: the module's info plus what its
+ * catalog hooks reported. `status` and `readout` are optional so a backend
+ * predating the hooks still reads as live with no readout.
+ */
+export type ModuleCatalogEntry = ModuleWithAccess & {
+  landingSlug: string;
+  status?: ModuleStatus;
+  readout?: ModuleReadoutLine[];
+  /**
+   * Where its code comes from, read from the module store; absent for a
+   * module the store does not list.
+   */
+  source?: ModuleSourceKind;
+};
+
+/** Keep in sync with `MODULE_URL_PREFIX` from `@antelopejs/interface-dms/page`. */
+export const MODULE_URL_PREFIX = "/modules";
+
+export interface PageInfo extends Omit<CategoryInfo, "category"> {
+  layoutUrl: string;
+  /** Full slug of the page this one is a detail of (`MenuOptions.parent`). */
+  parentSlug?: string;
+}
+
+export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
+  children: Record<string, SiteLayoutTree>;
+  childrenOrders: string[];
+  layoutUrl?: string;
+  hasAccess?: boolean;
+  /** The tone of a `badge` the server counted (`navBadge`); neutral when absent. */
+  badgeTone?: MenuItemBadgeTone;
+};
+
+/** Keep in sync with `LayoutBannerVariant` from `@antelopejs/interface-dms/layout-banners`. */
+export type LayoutBannerVariant = "info" | "warning" | "error";
+
+/** Keep in sync with `LayoutBannerScope` from `@antelopejs/interface-dms/layout-banners`. */
+export type LayoutBannerScope = "app" | "modules" | "everywhere";
+
+/**
+ * Mirror of the backend's serialized layout banner. The payload only carries
+ * the banners whose visibility resolver passed for this request, so there is
+ * nothing left to decide here but the current route against `scope` and the
+ * user's own dismissals.
+ */
+export interface LayoutBanner {
+  key: string;
+  variant: LayoutBannerVariant;
+  order: number;
+  /** The pages it shows on, the backend's `app` unless it says otherwise. */
+  scope: LayoutBannerScope;
+  dismissible: boolean;
+  icon?: string;
+  /** A string (`$` for an i18n key) or a composed text. */
+  text?: BlockText;
+  /** Link buttons after the text; the last one leads. */
+  actions?: BlockAction[];
+  component?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Banner components accept module-defined serialized props; inference cannot describe them and the frontend has no interface-dms dependency from which to derive the backend contract.
+  props?: Record<string, unknown>;
+}
+
+export type SiteLayout = {
+  /** By slug, the key a URL is resolved against. */
+  pages: Record<string, PageInfo>;
+  /**
+   * Every category, once, by full id: pages and categories name theirs by
+   * `categoryId`. A URL resolves against the ones that are not
+   * `urlTransparent`, by `fullSlug`.
+   */
+  categories: Record<string, CategoryInfo>;
+  /** Absent when the backend predates layout banners. */
+  banners?: LayoutBanner[];
+};
+
+export interface QuickActionCategoryInfo {
+  id: string;
+  displayName: string;
+  icon?: string;
+  order?: number;
+}
+
+export type QuickActionTarget =
+  | { type: "navigate"; to: string; query?: Record<string, string> }
+  | { type: "openForm"; to: string; component: string }
+  | { type: "button"; to: string; component: string; button: string }
+  | { type: "event"; name: string; payload?: unknown };
+
+/**
+ * The payload only ever carries actions the caller can run: the server leaves
+ * the others out entirely, so there is no access flag to read here.
+ */
+export interface QuickActionInfo {
+  id: string;
+  category: QuickActionCategoryInfo;
+  displayName: string;
+  icon: string;
+  order?: number;
+  target: QuickActionTarget;
+}
+
+export interface QuickActionsPayload {
+  categories: Record<string, QuickActionCategoryInfo>;
+  actions: Record<string, QuickActionInfo>;
+}
+
+export interface ComponentChild<T = object> {
+  id: string;
+  component: ComponentInfo<T>;
+  slot?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Component children carry module-defined sibling metadata independently of generic options T; inferring from built-in children would narrow this public extension contract.
+  [key: string]: unknown;
+}
+
+export interface ComponentInfo<T = object> {
+  componentName?: string;
+  options?: T;
+  children?: ComponentChild<T>[];
+}
+
+export interface ResolvedComponentInfo<T = object> {
+  id: string;
+  options?: T;
+  component: unknown;
+  componentName?: string;
+  children: ResolvedComponentInfo[];
+  slot?: string;
+  [key: string]: ComponentChild<T>[string];
+}
+
+export interface PageLayout {
+  components: Record<string, ComponentInfo>;
+  layout: ComponentInfo;
+  /** The page declares components and the viewer may see none of them. */
+  allComponentsHidden?: boolean;
+}

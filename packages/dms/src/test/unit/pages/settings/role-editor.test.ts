@@ -16,15 +16,15 @@ import {
   ROLE_MEMBER_PREVIEW_LIMIT,
   summarizeOwners,
   summarizeRoles,
-} from "../../../../pages/settings/users/role-editor";
-import { mapPermissionTree } from "../../../../pages/settings/users/permission-tree-nodes";
+  mapPermissionTree,
+} from "../../../../pages/permissions";
 
 const NOW = new Date("2026-06-01T00:00:00Z");
 const TOMORROW = new Date("2026-06-02T00:00:00Z");
 const YESTERDAY = new Date("2026-05-31T00:00:00Z");
 
 function role(id: string, name: string, permissions: string[]): Role {
-  return { _id: id, name, permissions } as Role;
+  return { _id: id, name, permissions, createdAt: NOW, updatedAt: NOW };
 }
 
 function member(
@@ -32,7 +32,14 @@ function member(
   roleIds: string[],
   isTenantOwner = false,
 ): TenantMember {
-  return { _id: `t:${userId}`, userId, roleIds, isTenantOwner } as TenantMember;
+  return {
+    _id: `t:${userId}`,
+    userId,
+    roleIds,
+    isTenantOwner,
+    joinedAt: NOW,
+    invitedBy: null,
+  };
 }
 
 function invite(rolesIds: string[], expiresAt: Date): UserInvite {
@@ -40,13 +47,21 @@ function invite(rolesIds: string[], expiresAt: Date): UserInvite {
     _id: `i:${rolesIds.join()}`,
     roles_ids: rolesIds,
     expiresAt,
-  } as UserInvite;
+    createdAt: NOW,
+    email: "invite@role-editor.test",
+    firstname: null,
+    lastname: null,
+    language: "en",
+    token: "role-editor-invite",
+    asTenantOwner: false,
+    extensions: null,
+  };
 }
 
 describe("[unit] pages/settings/users/role-editor", () => {
   describe("mapRoleEditorTree", () => {
     it("keeps descriptions and dependencies and lifts unregistered ids", () => {
-      const tree: Record<string, PermissionTree> = {
+      const tree = {
         sales: {
           children: {
             orders: {
@@ -68,7 +83,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
             },
           },
         },
-      };
+      } satisfies Record<string, PermissionTree>;
 
       const [orders] = mapRoleEditorTree(tree);
 
@@ -86,7 +101,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
         data: { id, title: id, ...extra },
         children: {},
       });
-      const tree: Record<string, PermissionTree> = {
+      const tree = {
         pages: {
           ...permission("pages"),
           children: {
@@ -127,17 +142,17 @@ describe("[unit] pages/settings/users/role-editor", () => {
           },
         },
         media: { children: { upload: permission("media.upload") } },
-      };
-      type Shape = { id: string; children?: Shape[] };
-      const shape = (nodes: Shape[]): Shape[] =>
+      } satisfies Record<string, PermissionTree>;
+      type PermissionNode = { id: string; children?: PermissionNode[] };
+      const hierarchy = (nodes: PermissionNode[]): PermissionNode[] =>
         nodes.map((node) => ({
           id: node.id,
-          children: node.children && shape(node.children),
+          children: node.children && hierarchy(node.children),
         }));
 
-      expect(shape(mapRoleEditorTree(tree))).to.deep.equal(
-        shape(
-          mapPermissionTree<Shape>(tree, (permission, children) => ({
+      expect(hierarchy(mapRoleEditorTree(tree))).to.deep.equal(
+        hierarchy(
+          mapPermissionTree<PermissionNode>(tree, (permission, children) => ({
             id: permission.id,
             children,
           })),
@@ -184,7 +199,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
         ]),
         node("examples", [node("examples.overview")]),
       ];
-      // As `GetMenuOrder` numbers the sidebar: depth first, menu order.
+
       const menuOrder = new Map(
         [
           "pages",
@@ -210,7 +225,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
                 "pages.form.advanced",
                 [
                   "pages.form.simple",
-                  // Not menu entries: declaration order.
+
                   ["pages.form.simple.form", "pages.form.simple.extra"],
                 ],
               ],

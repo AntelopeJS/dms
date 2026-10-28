@@ -16,8 +16,6 @@ const props = defineProps<FormErrorSummaryProps>();
 const emit = defineEmits<{ select: [fieldId: string] }>();
 const { t } = useI18n();
 
-// Every field fixed: the summary says so in place, on as many lines, rather
-// than leaving and moving the form up under the pointer.
 const isResolved = computed(() => props.items.length === 0);
 </script>
 

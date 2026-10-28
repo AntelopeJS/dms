@@ -1,10 +1,6 @@
 import { Category } from "@antelopejs/interface-dms/page";
 import { libraryCategory } from "../sections";
 
-// What a frontend module adds to the dashboard from its own Vue code: the
-// chrome registries (side panel, widgets, command palette, header actions,
-// links, page setup) and the contract a custom component receives. Like the
-// library sections, it uses `urlSlug: "/"` and adds no URL segment.
 export const frontendModulesSection = Category("frontend-modules", {
   displayName: "Frontend modules",
   icon: "i-ph-puzzle-piece",

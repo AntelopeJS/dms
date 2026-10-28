@@ -3,7 +3,7 @@ import type { TabItem } from "../types";
 export function buildTabShortcuts(
   items: TabItem[],
   goToTab: (index: number) => void,
-): Record<string, () => void> {
+) {
   const shortcuts: Record<string, () => void> = {};
 
   items.forEach((item, index) => {

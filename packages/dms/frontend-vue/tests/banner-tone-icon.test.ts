@@ -1,17 +1,10 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A DmsBanner given no icon shows its tone's, as the Banner block does: a
  * check on success, an "i" on info. An icon given wins.
  */
 import { createApp, defineComponent, h, type App } from "vue";
-import { afterEach, expect, it, vi } from "vitest";
-
-vi.mock("../layers/dms-ui/app/components/icon-well/IconWell.vue", () => ({
-  default: defineComponent({
-    props: { icon: { type: String, default: undefined } },
-    setup: (props) => () => h("i", { "data-icon": props.icon }),
-  }),
-}));
+import { afterEach, expect, it } from "vitest";
 
 const { default: DmsBanner } = await import(
   "../layers/dms-ui/app/components/banner/Banner.vue"
@@ -28,15 +21,28 @@ let app: App | undefined;
 
 afterEach(() => app?.unmount());
 
-function iconOf(props: Record<string, unknown>): string | null {
+function iconOf(
+  props: Partial<InstanceType<typeof DmsBanner>["$props"]>,
+): string | null {
   const host = document.createElement("div");
-  app = createApp({ render: () => h(DmsBanner, { title: "Notice", ...props }) });
+  app = createApp({
+    render: () => h(DmsBanner, { title: "Notice", ...props }),
+  });
   app.component("UAlert", UAlert);
+  app.component(
+    "UIcon",
+    defineComponent({
+      props: { name: String },
+      setup: (props) => () => h("i", { "data-icon": props.name }),
+    }),
+  );
   app.mount(host);
   return host.querySelector("[data-icon]")?.getAttribute("data-icon") ?? null;
 }
 
-it.each([
+it.each<
+  [NonNullable<InstanceType<typeof DmsBanner>["$props"]["tone"]>, string]
+>([
   ["warning", "i-ph-warning"],
   ["success", "i-ph-check-circle"],
   ["info", "i-ph-info"],

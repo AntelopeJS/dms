@@ -3,7 +3,10 @@ import {
   readableNumberFormat,
 } from "#dms-core/app/utils/formatter";
 import { defineAsyncComponent, h } from "vue";
-import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
@@ -43,7 +46,6 @@ interface StatusPillOptions {
   typeOptions?: { items?: SelectItemOption[] };
 }
 
-// A row field that holds no known tone gives way to the column's map.
 function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
   return readRowTone(row, opts.toneField) ?? opts.tones?.[key] ?? "neutral";
 }
@@ -54,10 +56,14 @@ function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
  * failure's cause, a composed "retry Oct 10") in the row's tone, else
  * `subTone`, else the pill's.
  */
-function renderStatusPill(value: unknown, options: unknown, row: Row) {
+function renderStatusPill(
+  value: Parameters<DataTypeFormatter>[0],
+  options: Parameters<DataTypeFormatter>[2],
+  row: Row,
+) {
   const { processI18n } = getAppTranslation();
   const { processText } = getAppComposedText();
-  const opts = (options ?? {}) as StatusPillOptions;
+  const opts: StatusPillOptions = options ?? {};
   const key = String(value);
   const item = opts.typeOptions?.items?.find(
     (candidate) => String(candidate.value) === key,
@@ -98,17 +104,13 @@ interface ProgressOptions {
 
 const PERCENT = 100;
 
-const numberOf = (value: unknown): number => {
+const numberOf = (value: Parameters<DataTypeFormatter>[0]): number => {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
 };
 
 /** The shares of the bar the done and the failed items fill, in percent. */
-export function progressShares(
-  done: number,
-  failed: number,
-  total: number,
-): { done: number; failed: number } {
+export function progressShares(done: number, failed: number, total: number) {
   if (total <= 0) return { done: 0, failed: 0 };
   const clamp = (share: number) => Math.min(Math.max(share, 0), PERCENT);
   const failedShare = clamp((failed / total) * PERCENT);
@@ -122,7 +124,8 @@ export function progressShares(
  * `progress`: a bar filled with the items done, the failed ones in red at its
  * end, and "done / total"; green once every item is done.
  */
-function renderProgress(options: unknown, row: Row) {
+function renderProgress(options: Parameters<DataTypeFormatter>[2], row: Row) {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases options; field names are consumed without validation in the existing progress formatter.
   const opts = (options ?? {}) as ProgressOptions;
   const done = numberOf(readRowField(row, opts.doneField));
   const total = numberOf(readRowField(row, opts.totalField));
@@ -162,7 +165,8 @@ interface SparklineOptions {
 }
 
 /** `sparkline`: a small line chart of a list of numbers. */
-function renderSparkline(options: unknown, row: Row) {
+function renderSparkline(options: Parameters<DataTypeFormatter>[2], row: Row) {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin options contract has no sparkline schema; preserve its unchecked field and tone reads.
   const opts = (options ?? {}) as SparklineOptions;
   const series = readRowField(row, opts.field);
   const values = Array.isArray(series)
@@ -180,9 +184,11 @@ function renderSparkline(options: unknown, row: Row) {
 }
 
 const MS_PER_SECOND = 1000;
-const DURATION_UNIT_MS: Record<string, number> = { ms: 1, s: MS_PER_SECOND };
+const DURATION_UNIT_MS: Record<NonNullable<DurationOptions["unit"]>, number> = {
+  ms: 1,
+  s: MS_PER_SECOND,
+};
 
-// SI symbols read the same in every language; the figure follows the locale.
 const withSymbol = (
   locale: string,
   value: number,
@@ -233,8 +239,10 @@ interface DurationOptions {
 
 type DurationWriter = (ms: number, locale: string) => string;
 
-// A cell is read at a glance: the readable duration is rounded there.
-const DURATION_FORMATS: Record<string, DurationWriter> = {
+const DURATION_FORMATS: Record<
+  NonNullable<DurationOptions["format"]>,
+  DurationWriter
+> = {
   readable: (ms, locale) =>
     formatDuration(ms, locale, { precision: "rounded" }),
   ms: formatMilliseconds,
@@ -245,12 +253,12 @@ const DURATION_FORMATS: Record<string, DurationWriter> = {
  * (`format: "ms"`), in the tone the row gives (`toneField`).
  */
 function renderDuration(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   locale: string,
-  options: unknown,
+  options: Parameters<DataTypeFormatter>[2],
   row: Row,
 ) {
-  const opts = (options ?? {}) as DurationOptions;
+  const opts: DurationOptions = options ?? {};
   const ms = numberOf(value) * (DURATION_UNIT_MS[opts.unit ?? "ms"] ?? 1);
   const format =
     DURATION_FORMATS[opts.format ?? "readable"] ?? DURATION_FORMATS.readable!;
@@ -307,6 +315,7 @@ export const registerMetricCellTypes = (
       default: (value, _locale, options) =>
         h(MonoCell, {
           value: String(value),
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open plugin options contract does not validate copy; preserve the existing truthiness conversion.
           copy: !!(options as { copy?: boolean } | undefined)?.copy,
           class: CELL_TEXT_CLASS,
         }),

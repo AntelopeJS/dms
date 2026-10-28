@@ -51,8 +51,6 @@ export function useRolesApi() {
       { method: "POST", body: { name } },
     );
 
-  // The table's own delete: the answer of the delete dialog goes as its
-  // body, which the roles' delete guard reads to move the holders.
   const deleteRole = (roleId: string, request: RoleDeleteRequest) =>
     $authFetch<number>(`${ROLES_TABLE_API_PATH}/delete`, {
       method: "DELETE",

@@ -4,7 +4,7 @@ import { AuthTenantMember } from "@antelopejs/interface-dms/guards";
 import {
   listPreviewBlockTypes,
   type PreviewBlockTypes,
-} from "../pages/public/preview/block-types";
+} from "../pages/preview";
 
 /**
  * The block types `DmsBlockPreview` may draw, for a dashboard component that

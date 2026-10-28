@@ -14,15 +14,18 @@ import {
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
+  type resolveBulkRowIds as ResolveBulkDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
 
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
+type BulkReceiver = globalThis.Parameters<typeof ResolveBulkDeclaration>[0];
 
-function isBulkRowSource(table: unknown): table is BulkRowSource {
+function isBulkRowSource(table: BulkReceiver): table is BulkRowSource {
   return (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public input accepts both opaque route receivers and BulkRowSource; the existing object check must precede property membership on arbitrary values.
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&
@@ -31,7 +34,11 @@ function isBulkRowSource(table: unknown): table is BulkRowSource {
 }
 
 /** A data controller as the list query reads it: its properties by key. */
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference from Object.create yields any and BulkRowSource.tableView.target constructs unknown; neither describes the proxy's arbitrary controller fields, which must stay unknown until their data-api owner reads them.
 type ControllerReader = Record<PropertyKey, unknown>;
+type ControllerInstance = {
+  constructor: ConstructorParameters<typeof TableViewMeta>[0];
+};
 
 /**
  * What the list query reads a source's rows through, in place of a data
@@ -40,17 +47,18 @@ type ControllerReader = Record<PropertyKey, unknown>;
  * property, which the controller's own routes would have injected, throws
  * rather than reading as missing.
  */
-function sourceReader({ model, tableView }: BulkRowSource): ControllerReader {
+function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
   const { modelKey } = GetDataControllerMeta(
-    Object.create(controller.prototype as object),
+    Object.create(controller.prototype),
   );
   assert(modelKey, 500, `${controller.name} declares no model.`);
-  const reader = Object.create(controller.prototype as object, {
+  const reader: ControllerReader = Object.create(controller.prototype, {
     [modelKey]: { value: model, enumerable: true },
-  }) as ControllerReader;
+  });
   return new Proxy(reader, {
     get(target, key) {
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy get keys are string or symbol; the existing symbol branch lets introspection pass without throwing the missing route-property error.
       if (typeof key === "symbol" || key in target) return target[key];
       throw new Error(
         `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
@@ -66,7 +74,7 @@ function sourceReader({ model, tableView }: BulkRowSource): ControllerReader {
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  table: unknown,
+  table: BulkReceiver,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
@@ -92,12 +100,13 @@ export async function resolveBulkRowIds(
   );
   const idField =
     GetMetadata(
-      (thisObj as { constructor: new () => unknown }).constructor,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference retains the interface's unknown controller input; TableViewMeta's constructor owner states the required target but cannot prove the existing unchecked route-receiver assumption.
+      (thisObj as ControllerInstance).constructor,
       TableViewMeta,
     ).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
-  const matching = (await rows
+  const matching = await rows
     .slice(0, MAX_BULK_MATCHING_ROWS + 1)
-    .pluck(idField)) as Record<string, unknown>[];
+    .pluck(idField);
   assert(
     matching.length <= MAX_BULK_MATCHING_ROWS,
     HTTP_PAYLOAD_TOO_LARGE,

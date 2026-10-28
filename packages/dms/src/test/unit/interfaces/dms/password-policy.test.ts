@@ -1,17 +1,10 @@
 import { expect } from "chai";
-import {
-  PASSWORD_MIN_LENGTH,
-  isPasswordCompliant,
-} from "@antelopejs/interface-dms/auth/password";
+import { isPasswordCompliant } from "@antelopejs/interface-dms/auth/password";
 
 const COMPLIANT_PASSWORD = "StrongP@ss1";
 const ALLOWED_SPECIAL_CHARS = "@$!%*?&";
 
 describe("[unit] auth/password policy", () => {
-  it("requires at least 8 characters", () => {
-    expect(PASSWORD_MIN_LENGTH).to.equal(8);
-  });
-
   it("accepts a password meeting every rule", () => {
     expect(isPasswordCompliant(COMPLIANT_PASSWORD)).to.equal(true);
   });

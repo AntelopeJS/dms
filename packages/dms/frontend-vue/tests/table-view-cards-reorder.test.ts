@@ -1,4 +1,5 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
+import "./helpers/table-runtime";
 import {
   computed,
   createApp,
@@ -8,23 +9,12 @@ import {
   reactive,
   ref,
   type App,
-  type PropType,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
-import { useTableReorder } from "../layers/dms-ui/app/build/composables/table-view/useTableReorder";
-import { moveRow } from "../layers/dms-ui/app/build/composables/table-view/utils/reorder";
-import type {
-  TableViewCardReorder,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
+import { useTableReorder } from "../layers/dms-ui/app/entries/composables/table-view/useTableReorder";
+import { moveRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
+import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 type Row = { _id: string; name: string };
 type Api = Parameters<typeof useTableReorder>[0]["api"];
@@ -33,7 +23,7 @@ const TaskCard = defineComponent({
   props: {
     rowId: String,
     selected: Boolean,
-    reorder: Object as PropType<TableViewCardReorder>,
+    reorder: Object,
   },
   setup: (props) => () =>
     h("article", { "data-selected": String(props.selected) }, [
@@ -47,7 +37,7 @@ function createContext(enabled = true, componentName?: string) {
     ["t0", "t1", "t2"].map((id) => ({ _id: id, name: `Task ${id}` })),
   );
   const moves: [number, number][] = [];
-  const opened: unknown[] = [];
+  const opened: Row[] = [];
   const selected = ref<string[]>(["t1"]);
   const reorder = {
     enabled,
@@ -56,6 +46,7 @@ function createContext(enabled = true, componentName?: string) {
       items.value = moveRow(items.value, from, to);
     },
   };
+  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
   const context = reactive({
     items,
     columns: [],
@@ -73,9 +64,9 @@ function createContext(enabled = true, componentName?: string) {
           : selected.value.filter((entry) => entry !== id);
       },
     },
-    actions: { canAdd: false, open: (item: unknown) => opened.push(item) },
+    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
     reorder,
-  }) as unknown as TableViewDisplayContext<Row>;
+  }) as TableViewDisplayContext<Row>;
   return { context, items, moves, opened, selected };
 }
 
@@ -119,8 +110,6 @@ describe("the cards display of a hand-ordered table", () => {
       locale: ref("en"),
       t: (text: string) => text,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TaskCard" ? TaskCard : undefined,
     );
@@ -188,7 +177,7 @@ describe("the cards display of a hand-ordered table", () => {
 
   it("draws no handle on a table not ordered by hand", () => {
     const { context } = createContext();
-    (context as { reorder?: unknown }).reorder = undefined;
+    context.reorder = undefined;
     mount(context);
     expect(container.querySelector("header button")).toBe(null);
   });
@@ -213,7 +202,6 @@ describe("the cards display of a hand-ordered table", () => {
 });
 
 describe("which displays move rows", () => {
-
   it("draws no handle on a display that does not draw the rows in their order", () => {
     vi.stubGlobal("computed", computed);
     const { reorderState } = useTableReorder({
@@ -221,7 +209,7 @@ describe("which displays move rows", () => {
       data: ref(null),
       rowIdKey: "_id",
       location: "/api/features",
-      api: vi.fn() as unknown as Api,
+      api: vi.fn<Api>(),
       canEdit: computed(() => true),
       isNarrowed: computed(() => false),
       isOrderedDisplay: computed(() => false),

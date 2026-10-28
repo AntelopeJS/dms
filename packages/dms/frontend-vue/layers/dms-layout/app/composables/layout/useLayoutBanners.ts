@@ -8,7 +8,6 @@ interface LayoutBannerPresentation {
   icon: string;
 }
 
-// An error interrupts the screen reader; info and warning wait their turn.
 const PRESENTATIONS: Record<LayoutBannerVariant, LayoutBannerPresentation> = {
   info: { role: "status", color: "info", icon: "i-ph-info-light" },
   warning: { role: "status", color: "warning", icon: "i-ph-warning-light" },

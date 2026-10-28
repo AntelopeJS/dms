@@ -16,16 +16,17 @@ import { internal as pageImplInternal } from "../../../../implementations/dms/pa
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import { resolveInviteLanguage } from "../../../../pages/settings/users/member-invite-form";
 import {
+  resolveInviteLanguage,
   MEMBER_INVITE_BUTTON_ID,
   MembersSettingsController,
-} from "../../../../pages/settings/users/members";
+} from "../../../../pages/members";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const FULL_TENANT = "invite-availability-full-tenant";
 const OPEN_TENANT = "invite-availability-open-tenant";
 const SEAT_LIMIT_REASON = "$test.seat_limit_reached";
+// SAFETY: The members layout uses only the inviter's _id; the separate language tests below call resolveInviteLanguage directly.
 const INVITER = { _id: "invite-availability-inviter" } as User;
 
 interface MembersTableOptions {
@@ -53,6 +54,7 @@ async function inviteButtonFor(
     roleModel,
     tenantId,
   });
+  // SAFETY: The registered members layout declares its table component with customButtons; the generic layout component map erases that options type.
   const table = layout.components
     .table as ComponentInfoSerialized<MembersTableOptions>;
   return table.options?.customButtons?.find(

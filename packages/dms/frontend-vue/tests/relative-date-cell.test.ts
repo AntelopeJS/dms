@@ -1,11 +1,11 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The `relative_date` cell (`RelativeDateDisplay`): a browser hydrating a
  * server render measures "3 min ago" from the instant the server rendered
  * at, so a date on a minute's edge hydrates as the server wrote it, and a
  * later render follows the clock.
  */
-import { defineComponent, h, type VNodeChild } from "vue";
+import { defineComponent, h } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
@@ -16,27 +16,12 @@ import {
   serverRender,
 } from "./helpers/api-data-runtime";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => unknown;
-
-const formatters = new Map<string, Formatter>();
+const formatters = new Map<string, Formatter | undefined>();
 const register = (dataType: DataType) =>
-  formatters.set(dataType.id, dataType.formatter?.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter?.default);
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -52,7 +37,7 @@ function stubLayerGlobals() {
   }
   vi.stubGlobal("useDataTypes", () => ({ registerDataType: register }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  // What getAppTranslation reads, outside a setup.
+
   vi.stubGlobal("useDmsApp", () => ({ $i18n: { t: String } }));
   vi.stubGlobal("useDmsState", engine.useDmsState);
   vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
@@ -61,7 +46,7 @@ function stubLayerGlobals() {
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });
@@ -72,23 +57,16 @@ afterEach(() => {
 
 const DATE = new Date("2026-10-17T12:00:00Z");
 const SECOND = 1000;
-// 3 min 29 s reads "3 min. ago"; 3 min 31 s rounds to "4 min. ago".
+
 const SERVER_AT = DATE.getTime() + 209 * SECOND;
 const BROWSER_AT = DATE.getTime() + 211 * SECOND;
 
-// As Table.vue draws it: the formatter's output is the cell's root.
 const Cell = defineComponent({
   setup: () => () =>
-    formatters.get("relative_date")!(
-      DATE.toISOString(),
-      "en-GB",
-      {},
-      {},
-    ) as VNodeChild,
+    formatters.get("relative_date")!(DATE.toISOString(), "en-GB", {}, {}),
 });
 const Row = { render: () => h("div", [h(Cell)]) };
 
-// A server has no `window`: what the layer reads to know where it renders.
 async function renderOnServer() {
   const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);
@@ -132,12 +110,7 @@ describe("relative date cell, day style", () => {
   const DayCell = (value: string) =>
     defineComponent({
       setup: () => () =>
-        formatters.get("relative_date")!(
-          value,
-          "en-GB",
-          { style: "day" },
-          {},
-        ) as VNodeChild,
+        formatters.get("relative_date")!(value, "en-GB", { style: "day" }, {}),
     });
   const shown = (value: string) => {
     const { app, container } = mountInBrowser(DayCell(value));

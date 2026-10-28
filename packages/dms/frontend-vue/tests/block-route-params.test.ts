@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data block on a detail page reads the record of that page: the
  * `{{params.X}}` / `{{query.X}}` tokens of its `fetchUrl` are filled from the
@@ -11,44 +11,32 @@ import {
   defineComponent,
   h,
   nextTick,
-  reactive,
   ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 import {
   replaceUrlVariables,
   resolveTextVariables,
   resolveUrlVariables,
-} from "../layers/dms-ui/app/build/utils/urlVariables";
+} from "../layers/dms-ui/app/entries/utils/urlVariables";
 
 const requests: string[] = [];
-const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
+let route: ReturnType<typeof useRealDataEngine>["route"];
 
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
-    requests.push(url);
-    return { items: [{ label: url }] };
-  },
-}));
-vi.stubGlobal("useDmsRoute", () => route);
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
+async function authFetch(url: string) {
+  requests.push(url);
+  return { items: [{ label: url }] };
+}
 
 const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -60,15 +48,19 @@ function mount(component: Component) {
   mounted.push(app);
 }
 
-beforeEach(() => useRealDataEngine());
-
 beforeEach(() => {
+  route = useRealDataEngine().route;
+});
+
+beforeEach(async () => {
+  await stubBlockRuntime(authFetch);
   requests.length = 0;
   route.query = {};
 });
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
+  vi.unstubAllGlobals();
 });
 
 describe("resolveUrlVariables", () => {
@@ -109,8 +101,6 @@ describe("resolveUrlVariables", () => {
     ).toBe("/api/log/a%20b?route=GET%20%2Fapi%2Fa%3Fb%3Dc%26d");
   });
 
-  // The router keeps the page path percent-encoded, and route parameters are
-  // read from it.
   it("does not encode a route parameter twice", () => {
     expect(
       replaceUrlVariables("/api/ws/{{params.id}}", {
@@ -159,7 +149,8 @@ describe("useChartFetch with a templated fetchUrl", () => {
     fetchUrl: string,
     routeParams: () => Record<string, string> | undefined,
   ) {
-    const state: { isLoading?: { value: boolean } } = {};
+    const state: Partial<Pick<ReturnType<typeof useChartFetch>, "isLoading">> =
+      {};
     const Probe = defineComponent({
       setup() {
         const { isLoading } = useChartFetch<unknown>({ fetchUrl, routeParams });
@@ -207,7 +198,9 @@ describe("useChartFetch with a templated fetchUrl", () => {
 
 describe("useBlockItems with a templated fetchUrl", () => {
   function mountItems(routeParams: Record<string, string>) {
-    const state: { items?: { value: unknown[] } } = {};
+    const state: Partial<
+      Pick<ReturnType<typeof useBlockItems<{ label: string }>>, "items">
+    > = {};
     const Probe = defineComponent({
       setup() {
         const { items } = useBlockItems<{ label: string }>({

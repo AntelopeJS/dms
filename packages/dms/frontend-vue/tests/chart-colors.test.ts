@@ -41,6 +41,11 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("chart color tokens", () => {
+  registerChartTokenTests();
+  registerChartRenderingTests();
+});
+
+function registerChartTokenTests() {
   it("falls back without accessing the DOM during SSR", () => {
     expect(resolveChartColors(TOKENS)).toEqual(TOKENS.map(() => FALLBACK));
     expect(resolveChartColor(undefined)).toBe(FALLBACK);
@@ -75,9 +80,12 @@ describe("chart color tokens", () => {
     ["rgb(14 165 233)", "rgb(14, 165, 233)"],
     ["rgb(14 165 233 / 0.5)", "rgba(14, 165, 233, 0.5)"],
     ["rgba(14 165 233 / 40%)", "rgba(14, 165, 233, 0.4)"],
-  ])("rewrites space-separated %s in the comma form Apex reads", (color, expected) => {
-    expect(resolveChartColor(color)).toBe(expected);
-  });
+  ])(
+    "rewrites space-separated %s in the comma form Apex reads",
+    (color, expected) => {
+      expect(resolveChartColor(color)).toBe(expected);
+    },
+  );
 
   it.each(["", "transparent", "rgba(0, 0, 0, 0)"])(
     "falls back for unusable computed color %s",
@@ -142,7 +150,9 @@ describe("chart color tokens", () => {
       yaxis: [expect.objectContaining({ borderColor: LIGHT })],
     });
   });
+}
 
+function registerChartRenderingTests() {
   it("refreshes mixed series colors without mutating the input", () => {
     mockBrowser();
     const input = reactive<UseApexChartInput>({
@@ -174,12 +184,15 @@ describe("chart color tokens", () => {
       getImageData: () => ({ data: [92, 76, 200, 255] }),
     };
     vi.mocked(document.createElement).mockReturnValueOnce(
-      probe as unknown as HTMLDivElement,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The DOM probe intentionally implements only the style member used by the color resolver. Inference cannot satisfy createElement's HTMLElement owner without unrelated DOM behavior.
+      probe as HTMLDivElement,
     );
+    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- The canvas double intentionally implements only getContext and its consumed members. Inference and the full HTMLCanvasElement owner cannot describe its partial rendering context and plain pixel array without the existing unchecked boundary.
     vi.mocked(document.createElement).mockReturnValueOnce({
       getContext: () => context,
     } as unknown as HTMLCanvasElement);
+    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions
     expect(resolveChartColor("primary-500")).toBe("rgb(92, 76, 200)");
     expect(context.fillStyle).toBe(computedColor);
   });
-});
+}

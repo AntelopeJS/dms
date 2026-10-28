@@ -1,87 +1,115 @@
-// @vitest-environment jsdom
-import { ref, type Ref } from "vue";
+/** @vitest-environment jsdom */
+import { http, router, usePage } from "@inertiajs/vue3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installShellRuntime } from "./helpers/live-shell-runtime";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 
-// What a realtime menu invalidation does: a partial reload of the page on
-// screen through Inertia, which replaces the site layout every visit carries
-// over (a once prop) along with the state.
-const reload = vi.hoisted(() => vi.fn());
-const flushAll = vi.hoisted(() => vi.fn());
-vi.mock("@inertiajs/vue3", () => ({ router: { reload, flushAll } }));
+type Request = Parameters<ReturnType<typeof http.getClient>["request"]>[0];
+type Response = Awaited<
+  ReturnType<ReturnType<typeof http.getClient>["request"]>
+>;
+let requests: Request[];
+let respond: (request: Request) => Promise<Response>;
+const originalClient = http.getClient();
+let disposeRuntime: () => void;
 
-const { useSiteLayout } = await import(
-  "../layers/dms-layout/app/composables/page/useSiteLayout"
-);
+function answer(request: Request, label = "Fresh", status = 200): Response {
+  return {
+    status,
+    headers: { "x-inertia": "true" },
+    data: JSON.stringify({
+      component: "Fixture",
+      url: new URL(request.url).pathname,
+      version: "1",
+      props: { shared: { menu: label }, page: { title: label } },
+      clearHistory: false,
+      encryptHistory: false,
+    }),
+  };
+}
 
-type ReloadOptions = {
-  only: string[];
-  onHttpException: (response: { status: number }) => boolean | void;
-  onNetworkError: (error: Error) => boolean | void;
-  onFinish: () => void;
-};
-
-const state = new Map<string, Ref>();
-
-beforeEach(() => {
-  state.clear();
-  const app = {};
-  vi.stubGlobal("useDmsApp", () => app);
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
+beforeEach(async () => {
   window.history.replaceState(null, "", "/projects");
+  disposeRuntime = await installShellRuntime("/projects");
+  await vi.waitFor(() => expect(usePage().url).toBe("/projects"));
+  requests = [];
+  respond = async (request) => answer(request);
+  http.setClient({
+    request: async (request) => {
+      requests.push(request);
+      return respond(request);
+    },
+  });
 });
 
 afterEach(() => {
+  router.flushAll();
+  http.setClient(originalClient);
+  disposeRuntime();
   vi.unstubAllGlobals();
-  reload.mockReset();
-  flushAll.mockReset();
 });
 
 describe("useSiteLayout resync", () => {
   it("reloads the site layout and the page through Inertia", async () => {
-    reload.mockImplementation((options: ReloadOptions) => options.onFinish());
     await useSiteLayout().resync();
-    expect(reload).toHaveBeenCalledTimes(1);
-    expect(reload.mock.calls[0]![0].only).toEqual(["shared", "page"]);
+    expect(requests).toHaveLength(1);
+    expect(new URL(requests[0]!.url).pathname).toBe("/projects");
+    expect(requests[0]!.headers?.["X-Inertia-Partial-Data"]).toBe(
+      "shared,page",
+    );
+    expect(usePage().props).toMatchObject({
+      shared: { menu: "Fresh" },
+      page: { title: "Fresh" },
+    });
   });
 
   it("drops the pages prefetched with the previous menu before reloading", async () => {
-    reload.mockImplementation((options: ReloadOptions) => options.onFinish());
+    router.prefetch("/tasks", {}, { cacheFor: "1m" });
+    await vi.waitFor(() => expect(router.getCached("/tasks")).not.toBeNull());
+    respond = async (request) => {
+      expect(router.getCached("/tasks")).toBeNull();
+      return answer(request);
+    };
     await useSiteLayout().resync();
-    expect(flushAll).toHaveBeenCalledOnce();
-    expect(flushAll.mock.invocationCallOrder[0]).toBeLessThan(
-      reload.mock.invocationCallOrder[0]!,
-    );
+    expect(router.getCached("/tasks")).toBeNull();
   });
 
   it("rejects a failed reload and keeps the page on screen", async () => {
-    let swapsPage: boolean | void = true;
-    reload.mockImplementation((options: ReloadOptions) => {
-      swapsPage = options.onHttpException({ status: 502 });
-      options.onFinish();
-    });
+    const before = usePage().props;
+    respond = async (request) => answer(request, "Unavailable", 502);
     await expect(useSiteLayout().resync()).rejects.toThrow("502");
-    expect(swapsPage).toBe(false);
+    expect(usePage().props).toEqual(before);
+    expect(document.querySelector("iframe")).toBeNull();
 
-    reload.mockImplementation((options: ReloadOptions) => {
-      swapsPage = options.onNetworkError(new Error("offline"));
-      options.onFinish();
-    });
+    respond = async () => {
+      throw new Error("offline");
+    };
     await expect(useSiteLayout().resync()).rejects.toThrow("offline");
-    expect(swapsPage).toBe(false);
+    expect(usePage().props).toEqual(before);
+    expect(window.location.pathname).toBe("/projects");
   });
 
   it("reloads the page a navigation opened while the reload was in flight", async () => {
-    reload.mockImplementationOnce((options: ReloadOptions) => {
-      // Inertia drops an async answer for a page the user has left.
-      window.history.replaceState(null, "", "/tasks");
-      options.onFinish();
+    let finishReload: ((response: Response) => void) | undefined;
+    respond = (request) =>
+      requests.length === 1
+        ? new Promise((resolve) => {
+            finishReload = resolve;
+          })
+        : Promise.resolve(answer(request, "Tasks"));
+    const resync = useSiteLayout().resync();
+    await vi.waitFor(() => expect(finishReload).toBeTypeOf("function"));
+    router.push({ url: "/tasks", preserveScroll: true });
+    await vi.waitFor(() => expect(usePage().url).toBe("/tasks"));
+    finishReload!(answer(requests[0]!));
+    await resync;
+    expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
+      "/projects",
+      "/tasks",
+    ]);
+    expect(usePage().props).toMatchObject({
+      shared: { menu: "Tasks" },
+      page: { title: "Tasks" },
     });
-    reload.mockImplementation((options: ReloadOptions) => options.onFinish());
-    await useSiteLayout().resync();
-    expect(reload).toHaveBeenCalledTimes(2);
   });
 });

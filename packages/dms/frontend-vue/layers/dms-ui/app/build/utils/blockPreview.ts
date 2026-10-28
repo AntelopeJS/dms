@@ -1,3 +1,4 @@
+/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- Preview messages and arbitrary block options are the boundary being checked here. JSON-only owner types or strict schemas would reject currently accepted objects, inherited fields, and extra options. */
 /**
  * The block preview's contract: the tree a docs site or a chat hands
  * `DmsBlockPreview`, the `?state=` parameter carrying it, the `postMessage`
@@ -6,6 +7,11 @@
  */
 
 /** A block of a preview tree, named by its registry type or component name. */
+import {
+  isObject,
+  isString,
+  isBoolean,
+} from "../../../../dms-core/app/utils/type-check";
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
   type?: string;
@@ -129,12 +135,14 @@ const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const ROUTE_SOURCE_OPTION = "source";
 const BASE64_PADDING_LENGTH = 4;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function isRecord(
+  value: Parameters<typeof isObject>[0],
+): value is Record<string, unknown> {
+  return isObject(value) && value !== null && !Array.isArray(value);
 }
 
-function isOptionalString(value: unknown): boolean {
-  return value === undefined || typeof value === "string";
+function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
+  return value === undefined || isString(value);
 }
 
 function isPreviewNode(value: unknown): value is PreviewNode {
@@ -157,8 +165,8 @@ export function isPreviewTheme(value: unknown): value is PreviewTheme {
   return PREVIEW_THEMES.some((theme) => theme === value);
 }
 
-function isOptionalBoolean(value: unknown): boolean {
-  return value === undefined || typeof value === "boolean";
+function isOptionalBoolean(value: Parameters<typeof isBoolean>[0]): boolean {
+  return value === undefined || isBoolean(value);
 }
 
 function hasValidStateExtras(value: Record<string, unknown>): boolean {
@@ -209,7 +217,7 @@ export function decodePreviewState(param: string): PreviewState | undefined {
 }
 
 const INBOUND_VALIDATORS: Record<
-  string,
+  Extract<Parameters<typeof Object.hasOwn>[1], string>,
   (data: Record<string, unknown>) => boolean
 > = {
   render: (data) =>
@@ -225,17 +233,18 @@ const INBOUND_VALIDATORS: Record<
  * window (another channel, a malformed tree): the page ignores those.
  */
 export function parsePreviewMessage(
-  data: unknown,
+  data: Parameters<typeof isRecord>[0],
 ): PreviewInboundMessage | undefined {
   if (!isRecord(data) || data.channel !== PREVIEW_CHANNEL) return undefined;
   const isKnownType =
-    typeof data.type === "string" &&
-    Object.hasOwn(INBOUND_VALIDATORS, data.type);
+    isString(data.type) && Object.hasOwn(INBOUND_VALIDATORS, data.type);
   const validate = isKnownType
-    ? INBOUND_VALIDATORS[data.type as string]
+    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy lookup rereads an unchecked getter after the string and own-key checks; its value can change, so neither check proves this index is a known protocol name.
+      INBOUND_VALIDATORS[data.type as string]
     : undefined;
   if (!validate?.(data)) return undefined;
-  return data as unknown as PreviewInboundMessage;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy parser returns the original object unchecked. Repeated type reads can select an inherited validator such as toString, so successful dispatch does not prove the message union.
+  return data as PreviewInboundMessage & typeof data;
 }
 
 export function previewReadyMessage(): PreviewReadyMessage {
@@ -281,7 +290,6 @@ interface OptionRule {
  * read with `POST`). A user action (a form's submit) stays the user's.
  */
 const OPTION_RULES: OptionRule[] = [
-  // `location` is the route a table view reads, beside its `source.fetchUrl`.
   { issue: "unsafe_url", key: /(url|^location)$/i, isAllowed: isRelativePath },
   { issue: "unsafe_method", key: /urlmethod$/i, isAllowed: isReadMethod },
 ];
@@ -292,8 +300,11 @@ export interface RefusedOption {
   value: string;
 }
 
-function refuseEntry(key: string, entry: unknown): RefusedOption | undefined {
-  if (typeof entry !== "string" || entry === "") return undefined;
+function refuseEntry(
+  key: string,
+  entry: Parameters<typeof isString>[0],
+): RefusedOption | undefined {
+  if (!isString(entry) || entry === "") return undefined;
   const rule = OPTION_RULES.find(
     (candidate) => candidate.key.test(key) && !candidate.isAllowed(entry),
   );
@@ -301,7 +312,9 @@ function refuseEntry(key: string, entry: unknown): RefusedOption | undefined {
 }
 
 /** The first option, at any depth, an {@link OPTION_RULES} rule refuses. */
-export function findRefusedOption(value: unknown): RefusedOption | undefined {
+export function findRefusedOption(
+  value: Parameters<typeof isRecord>[0],
+): RefusedOption | undefined {
   const entries: Array<[string, unknown]> = Array.isArray(value)
     ? value.map((entry) => ["", entry])
     : isRecord(value)
@@ -353,7 +366,7 @@ function matchBlockType(
  */
 function readsRouteSource(options: Record<string, unknown>): boolean {
   const source = options[ROUTE_SOURCE_OPTION];
-  return isRecord(source) && typeof source.fetchUrl === "string";
+  return isRecord(source) && isString(source.fetchUrl);
 }
 
 /** Serialized resource fields may read the preview's immutable demo record. */
@@ -392,6 +405,7 @@ function issueFor(
     ? { key: refused.issue, name: match.name, value: refused.value }
     : undefined;
 }
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 function resolveNode(
   node: PreviewChildNode,

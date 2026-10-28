@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -15,47 +15,12 @@ import {
   type Component,
 } from "vue";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
-
-// The pages that end a sign-in by spending a one-time token in their URL: the
-// OAuth completion and the second factor (code or backup code). Each leaves
-// for the destination in its own place in the history, so Back never lands on
-// a spent token, or on a completion page that sends the user forward again.
-
-vi.mock("#dms-ui/app/build/components/form/OtpInput.vue", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  return {
-    default: define({
-      props: { modelValue: Array },
-      emits: ["update:modelValue"],
-      setup: (_, { emit, expose }) => {
-        expose({ focus: () => undefined });
-        return () =>
-          render("input", {
-            "data-testid": "code",
-            onInput: (event: Event) =>
-              emit(
-                "update:modelValue",
-                (event.target as HTMLInputElement).value.split(""),
-              ),
-          });
-      },
-    }),
-  };
-});
-const stub = vi.hoisted(() => async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  return {
-    default: define({
-      setup:
-        (_: unknown, { slots }: { slots: Record<string, () => unknown> }) =>
-        () =>
-          render("section", slots.default?.() as never),
-    }),
-  };
-});
-vi.mock("../layers/dms-layout/app/build/components/layout/StageCard.vue", stub);
-vi.mock("../layers/dms-auth/app/build/components/AuthBackLink.vue", stub);
-vi.mock("../layers/dms-auth/app/build/components/AuthFormAlert.vue", stub);
+import type { DmsFrontendRuntime } from "#dms/frontend-module";
+import type { withAccountsFlag } from "../layers/dms-auth/app/utils/accountsFlow";
+import {
+  installAuthSettingsRuntime,
+  PinInput,
+} from "./helpers/auth-settings-runtime";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -70,7 +35,7 @@ const { default: BackupCodePage } = await import(
 const HOMEPAGE = "/home";
 const navigate = vi.fn();
 const fetchApi = vi.fn();
-let route: { path: string; query: Record<string, string> };
+let route: Pick<DmsFrontendRuntime["route"], "path" | "query">;
 let app: App;
 let host: HTMLDivElement;
 
@@ -100,6 +65,7 @@ const Passthrough = defineComponent({
 });
 
 function installRuntime() {
+  installAuthSettingsRuntime();
   Object.entries({
     computed,
     ref,
@@ -116,7 +82,7 @@ function installRuntime() {
   vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("useHomepage", () => HOMEPAGE);
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <Result>(fn: () => Result) => fn(),
     $i18n: { setLocale: vi.fn() },
   }));
   vi.stubGlobal("useDmsUserSession", () => ({
@@ -125,7 +91,10 @@ function installRuntime() {
   }));
   vi.stubGlobal("useMultiAccount", () => ({ addCurrentAccount: vi.fn() }));
   vi.stubGlobal("useSiteLayout", () => ({ refresh: async () => undefined }));
-  vi.stubGlobal("withAccountsFlag", (_query: unknown, extra = {}) => extra);
+  vi.stubGlobal(
+    "withAccountsFlag",
+    (_query: Parameters<typeof withAccountsFlag>[0], extra = {}) => extra,
+  );
   vi.stubGlobal("usePostLoginRedirect", usePostLoginRedirect);
   vi.stubGlobal("navigateDms", navigate);
   vi.stubGlobal("$fetch", fetchApi);
@@ -137,6 +106,7 @@ function mountPage(page: Component) {
   for (const name of ["UButton", "UFormField", "UInput", "UIcon", "DmsLink"])
     app.component(name, Passthrough);
   app.component("UForm", Form);
+  app.component("UPinInput", PinInput);
   app.mount(host);
 }
 
@@ -206,9 +176,7 @@ it("replaces the backup code page with the destination", async () => {
   fetchApi.mockResolvedValueOnce(undefined);
   mountPage(BackupCodePage);
   await settle();
-  (host.querySelector("form") as HTMLFormElement).dispatchEvent(
-    new Event("submit"),
-  );
+  host.querySelector("form")!.dispatchEvent(new Event("submit"));
   await settle();
 
   expect(fetchApi).toHaveBeenCalledWith(

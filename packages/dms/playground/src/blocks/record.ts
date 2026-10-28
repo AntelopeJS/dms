@@ -85,7 +85,6 @@ export class PageBlocksCustomer extends PageController("blocks-customer", {
   description:
     "A detail page whose blocks read {{params.id}}: facts, figures, a status banner and tab counts of one customer.",
 }) {
-  // Answers `{}` for a customer in good standing: no banner at all.
   static status = Banner({ fetchUrl: `${CUSTOMERS_API}/{{params.id}}/status` });
 
   static stats = StatGroup({

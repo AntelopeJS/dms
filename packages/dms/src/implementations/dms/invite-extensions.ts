@@ -3,11 +3,8 @@ import {
   applyInviteExtension,
   revokeInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions/internal/registry";
-import { scheduleBroadcast } from "./dev-reload";
+import { scheduleBroadcast } from "../../store/frontend";
 
-// Routing invite extensions through the proxy is what binds them to the
-// extending module's lifetime: the core unregisters every entry a module
-// registered when that module stops, so its fields leave the invite modal.
 export namespace internal {
   export const RegisterInviteExtension = {
     register: (info: InviteExtensionInfo) => {

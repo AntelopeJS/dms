@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import DmsEyebrow from "./Eyebrow.vue";
 
@@ -24,12 +24,12 @@ interface SectionHeaderProps {
 }
 
 interface SectionHeaderSlots {
-  title?: () => unknown;
+  title?: () => ReturnType<Slot>;
   /** Inline after the title and the count (badge, tag, tooltip…). */
-  badge?: () => unknown;
-  description?: () => unknown;
+  badge?: () => ReturnType<Slot>;
+  description?: () => ReturnType<Slot>;
   /** Right-aligned actions; they wrap under the heading on narrow screens. */
-  trailing?: () => unknown;
+  trailing?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<SectionHeaderProps>(), {
@@ -64,8 +64,7 @@ const theme = tv({
         root: "flex-nowrap items-start gap-2.5",
         heading: "flex-1",
         title: "flex-nowrap",
-        // One line each on wide screens; on a phone, beside the trailing
-        // badge or actions, the title and description wrap instead.
+
         description:
           "text-dimmed mt-1 truncate text-xs max-sm:whitespace-normal",
         trailing: "shrink-0",

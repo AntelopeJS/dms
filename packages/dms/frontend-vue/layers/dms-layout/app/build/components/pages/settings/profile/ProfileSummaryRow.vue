@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-// Imported, not resolved by name: a registered component loads on first
-// use, and the well would be missing for a frame when a row's data comes.
+
 import DmsIconWell, {
   type IconWellTone,
 } from "#dms-ui/app/components/icon-well/IconWell.vue";
@@ -39,17 +38,15 @@ const props = withDefaults(defineProps<ProfileSummaryRowProps>(), {
   actionLabel: undefined,
 });
 
-// Letters and digits blanked to one glyph: the skeleton keeps the words'
-// lengths and breaks, and the page never holds a sample "3 unread", even
-// unseen.
 const PLACEHOLDER_CHARACTERS = /[\p{L}\p{N}]/gu;
 const PLACEHOLDER_GLYPH = "x";
-const shape = computed(() =>
+const placeholderText = computed(() =>
   props.placeholder.replace(PLACEHOLDER_CHARACTERS, PLACEHOLDER_GLYPH),
 );
 
 defineSlots<{
   /** The summary, after the lead. */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
   default?: () => unknown;
 }>();
 
@@ -87,7 +84,7 @@ const { t } = useI18n();
         aria-hidden="true"
         class="bg-transparent bg-[linear-gradient(var(--dms-skeleton),var(--dms-skeleton))] box-decoration-clone bg-size-[100%_12px] bg-center bg-no-repeat text-transparent select-none"
       >
-        {{ shape }}
+        {{ placeholderText }}
       </USkeleton>
       <slot v-else />
     </div>

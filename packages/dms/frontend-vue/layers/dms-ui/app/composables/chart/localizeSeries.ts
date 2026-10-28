@@ -1,3 +1,4 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import type { ChartSeries, DonutRecord } from "./types";
 
 /** Writes one display string in the reader's language (`processI18n`). */
@@ -5,13 +6,11 @@ export type ChartTextTranslate = (text: string) => string;
 
 type ChartSeriesEntry = ChartSeries["data"][number];
 
-interface TextPoint {
-  x?: unknown;
-  label?: unknown;
-}
-
-function translateText(value: unknown, translate: ChartTextTranslate): unknown {
-  return typeof value === "string" ? translate(value) : value;
+function translateText<T extends string | number | Date | undefined>(
+  value: T,
+  translate: ChartTextTranslate,
+) {
+  return isString(value) ? translate(value) : value;
 }
 
 /**
@@ -23,12 +22,12 @@ function localizePoint(
   point: ChartSeriesEntry,
   translate: ChartTextTranslate,
 ): ChartSeriesEntry {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens the point owner's fields to unknown; typeof preserves ChartSeriesEntry without another assertion or narrower runtime validation.
   if (typeof point !== "object" || point === null) return point;
-  const text = point as TextPoint;
-  const localized: Record<string, unknown> = { ...point };
-  if ("x" in text) localized.x = translateText(text.x, translate);
-  if ("label" in text) localized.label = translateText(text.label, translate);
-  return localized as unknown as ChartSeriesEntry;
+  const localized: typeof point & { label?: string } = { ...point };
+  if ("x" in point) localized.x = translateText(point.x, translate);
+  if ("label" in point) localized.label = translateText(point.label, translate);
+  return localized;
 }
 
 /**
@@ -43,7 +42,7 @@ export function localizeSeries(
 ): ChartSeries {
   return {
     ...series,
-    name: translateText(series.name, translate) as string,
+    name: translateText(series.name, translate),
     data: Array.isArray(series.data)
       ? series.data.map((point) => localizePoint(point, translate))
       : series.data,
@@ -57,6 +56,6 @@ export function localizeDonutRecords(
 ): DonutRecord[] {
   return records.map((record) => ({
     ...record,
-    label: translateText(record.label, translate) as string,
+    label: translateText(record.label, translate),
   }));
 }

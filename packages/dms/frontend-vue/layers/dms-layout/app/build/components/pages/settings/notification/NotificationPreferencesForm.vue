@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import type { NotificationCategory } from "../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../composables/notification/useNotificationPreferences";
 import { useNotificationGroupsOpen } from "../../../../composables/notification/useNotificationGroupsOpen";
-import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
+import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
 import {
@@ -11,7 +11,7 @@ import {
   MATRIX_CONTAINER_CLASS,
   MATRIX_GRID_CLASS,
 } from "./notificationDisplay";
-import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
+import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
 const PREFERENCES_SKELETON_ROWS = 4;
 
@@ -40,9 +40,6 @@ const visibleCategories = computed(() =>
 const enabledCountOf = (category: NotificationCategory) =>
   subjectsOf(category.id).filter(isEnabled).length;
 
-// The master switch reads only the subjects it can change: a locked subject
-// stays on whatever the user picks, so counting it would flip the switch
-// straight back on after turning the category off.
 const isCategoryOn = (category: NotificationCategory) => {
   const toggleable = toggleableSubjectsOf(category);
   return toggleable.length > 0
@@ -50,8 +47,6 @@ const isCategoryOn = (category: NotificationCategory) => {
     : enabledCountOf(category) > 0;
 };
 
-// Each switch saves on its own: the page header carries the shared
-// "Saved instantly" pill, which flashes while a row saves.
 useInstantSaveHeader(() => saveState.value);
 
 /** Names the direction the failed switch went back to, as v2 words it. */
@@ -64,7 +59,6 @@ const failureMessage = computed(() => {
     ? t("page.settings.notifications.save_failed_off")
     : t("page.settings.notifications.save_failed_on");
 });
-
 </script>
 
 <template>

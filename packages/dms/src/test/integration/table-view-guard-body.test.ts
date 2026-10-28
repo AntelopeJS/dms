@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// The `new` and `edit` guards of a table view amend the body their route
-// writes (src/test/attachment-host/computed.ts): `new` fills a field the
-// request left out, `edit` trims the title it sends.
-
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
 
@@ -26,9 +22,11 @@ describe("[integration] table view guards amending the body", () => {
   });
 
   const listed = async (): Promise<Task[]> => {
-    const response = await client.get(`${LOCATION}/list?limit=50`);
+    const response = await client.get<{ results: Task[] }>(
+      `${LOCATION}/list?limit=50`,
+    );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.results as Task[];
+    return response.data.results;
   };
 
   it("writes the field a new guard filled in", async () => {

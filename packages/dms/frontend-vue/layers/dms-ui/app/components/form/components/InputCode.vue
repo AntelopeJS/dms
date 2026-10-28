@@ -47,13 +47,12 @@ const model = defineModel<string | null | undefined>();
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 const { report } = useControlError();
-// The field state UFormField hands its control: the error border and aria
-// attributes go on the editor, an edit re-validates the field.
+
 const { color, ariaAttrs, emitFormInput, emitFormBlur } = useFormField();
 const isInvalid = computed(() => color.value === "error");
 
 const LINE_HEIGHT_PX = 19;
-// The editor's top and bottom padding, around its lines.
+
 const EDITOR_PADDING_PX = 16;
 const INVALID_JSON = "$dms.field_errors.invalid_json";
 
@@ -101,7 +100,6 @@ async function loadCompletions(): Promise<CodeEditorCompletion[]> {
   return [...fixed, ...fetched];
 }
 
-// The icons drawn into the autocomplete popup, unmounted with the editor.
 const iconElements = new Set<HTMLElement>();
 
 function renderIcon(icon: string): HTMLElement {

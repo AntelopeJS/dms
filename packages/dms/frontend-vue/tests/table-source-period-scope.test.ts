@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `TableView.fromSource` table with a `periodScope` follows its
  * PeriodSelector like a chart: its route is sent the period, it lists again
@@ -21,10 +21,10 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 
 const { useTableRows } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRows"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
 );
 const { useTableCountsData, useTableListData } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableListData"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableListData"
 );
 const { usePeriod } = await import(
   "../layers/dms-core/app/composables/period/usePeriod"
@@ -35,15 +35,17 @@ const { registerPeriodScope } = await import(
 
 const SCOPE = "report";
 const FETCH_URL = "/api/report";
+// SAFETY: This source-list fixture only needs the column id and accessor key; it does not render columns or construct a form.
 const COLUMNS = [{ id: "name", accessorKey: "name" }] as TableViewColumn[];
 
 type Api = Parameters<typeof useTableRows>[0]["api"];
 
 const requests: string[] = [];
+// SAFETY: This source only reads the list response below via the callable fetch interface.
 const api = (async (url: string) => {
   requests.push(url);
   return { results: [{ _id: "a", name: "row" }], total: 1 };
-}) as unknown as Api;
+}) as Api;
 
 const mounted: App[] = [];
 const cleanups: Array<() => void> = [];
@@ -124,9 +126,6 @@ describe("a source table bound to a period scope", () => {
     expect(listed!.value).toBeNull();
   });
 
-  // The server never registers a scope: an empty object there drew the tabs
-  // with no skeleton, where the browser (its key carrying the period) drew
-  // one, and hydration mismatched.
   it("keeps its tab counters' skeleton too until the scope registers", async () => {
     mountTable();
     await settle();
@@ -145,7 +144,7 @@ describe("a source table bound to a period scope", () => {
     const period = registerSelector();
     mountTable();
     await settle();
-    // The list and the counter of its tab without filter: one request.
+
     expect(requests).toHaveLength(1);
     expect(listed!.value).toMatchObject({ total: 1 });
     const range = period.state.value.range!;

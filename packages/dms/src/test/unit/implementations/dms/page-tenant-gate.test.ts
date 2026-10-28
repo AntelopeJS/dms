@@ -44,6 +44,7 @@ async function pageAccess(
   tenantId: string,
 ): Promise<boolean | undefined> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
+  // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
   const member = { _id: "gate-member" } as User;
   const payload = await buildSiteLayoutPayload(
     member,
@@ -154,12 +155,13 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
       ]);
       const result = await buildPagePayload(
         "/gate-product",
+        // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
         { _id: "gate-member" } as User,
         memberModel,
         roleModel,
         DENIED_TENANT,
         includeShared,
-      ).catch((error: unknown) => error);
+      ).catch((error) => error);
 
       expect(result).to.deep.equal(new HTTPResult(403, SUSPENDED_CODE));
     });
@@ -169,6 +171,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
         const { memberModel, roleModel } = stubPageAccessModels(permissions);
         const payload = await buildPagePayload(
           BILLING_PAGE_SLUG,
+          // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
           { _id: "gate-member" } as User,
           memberModel,
           roleModel,
@@ -217,6 +220,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("keeps the owner flag gated so owner-only surfaces stay closed", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
+    // SAFETY: Gate/page access reads this id and owner flag, not persisted-user methods.
     const owner = { _id: "gate-owner", owner: true } as User;
     const payload = await buildSiteLayoutPayload(
       owner,
@@ -230,9 +234,6 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
     );
   });
 
-  // The layout route is the third surface the flag has to reach, and the only
-  // one no other test exercises: `Register()` derives the guard options from the
-  // page, and a refactor that rebuilds that call site silently drops them.
   it("hands the page's gate bypass to its layout route guard", async () => {
     const flagged = PageController("gate-guarded", {
       displayName: "Guarded recovery",
@@ -266,6 +267,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("mirrors the flag in userCanAccessPage", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([BILLING_FULL_ID]);
+    // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "gate-member" } as User;
     expect(
       await userCanAccessPage(

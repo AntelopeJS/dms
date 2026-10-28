@@ -1,39 +1,23 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A list block reading its items from a route follows a PeriodSelector like
  * a KPI card (the period goes with every request, and a new period reads the
  * route again) and reads the route again on each event of its realtime
  * topics, keeping its items on screen until the answer lands.
  */
-import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { createApp, defineComponent, h, nextTick } from "vue";
+import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
+import {
+  installBlockNetwork,
+  browserRuntime,
+  startBlockRealtime,
+  stopBlockRealtime,
+  publishBlockEvent,
+  disposeBlockRealtime,
+} from "./helpers/block-network-runtime";
 
 const requests: string[] = [];
 let revision = 1;
-const topicHandlers = new Map<string, RealtimeTopicHandler>();
-
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
-    requests.push(url);
-    return { items: [{ revision }] };
-  },
-}));
-vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, handler);
-  },
-}));
 
 const { usePeriod } = await import(
   "../layers/dms-core/app/composables/period/usePeriod"
@@ -42,13 +26,13 @@ const { registerPeriodScope } = await import(
   "../layers/dms-core/app/composables/period/usePeriodScope"
 );
 const { useBlockItems } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
+  "../layers/dms-ui/app/entries/composables/blocks/useBlockItems"
 );
 
 const SCOPE = "block-items-period";
 const STATS_URL = "/api/stats";
 const FACTS_TOPICS = ["facts:first", "facts:second"];
-// useChartFetch debounces every refresh past the first by 180ms.
+
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -84,6 +68,7 @@ function mountPeriodPage() {
     },
   });
   const app = createApp({ render: () => h("main", [h(Selector), h(Block)]) });
+  browserRuntime(app);
   app.mount(document.createElement("div"));
   mounted.push(app);
   return selected;
@@ -103,20 +88,26 @@ function mountRealtimeBlock(probe: ItemsProbe) {
     },
   });
   const app = createApp(Block);
+  browserRuntime(app);
   app.mount(document.createElement("div"));
   mounted.push(app);
 }
 
-beforeEach(() => useRealDataEngine());
-
-beforeEach(() => {
+beforeEach(async () => {
   requests.length = 0;
   revision = 1;
-  topicHandlers.clear();
+  await installBlockNetwork(async (url: string) => {
+    requests.push(url);
+    return { items: [{ revision }] };
+  });
+  browserRuntime();
+  await startBlockRealtime();
 });
 
-afterEach(() => {
+afterAll(disposeBlockRealtime);
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
+  await stopBlockRealtime();
 });
 
 it("requests the items with the period of its scope, again when it changes", async () => {
@@ -136,15 +127,19 @@ it("reads the route again on each event of any of its topics", async () => {
   const probe: ItemsProbe = {};
   mountRealtimeBlock(probe);
   await settle();
-  expect([...topicHandlers.keys()]).toEqual(FACTS_TOPICS);
   expect(probe.items?.value).toEqual([{ revision: 1 }]);
 
   revision = 2;
-  topicHandlers.get("facts:second")?.({ type: "facts.update" } as never);
+  await publishBlockEvent("facts:second");
   expect(probe.isPending?.value).toBe(false);
   expect(probe.items?.value).toEqual([{ revision: 1 }]);
   await settle();
 
   expect(requests).toEqual([STATS_URL, STATS_URL]);
   expect(probe.items?.value).toEqual([{ revision: 2 }]);
+  revision = 3;
+  await publishBlockEvent("facts:first");
+  await settle();
+  expect(requests).toHaveLength(3);
+  expect(probe.items?.value).toEqual([{ revision: 3 }]);
 });

@@ -14,7 +14,6 @@ export const USER_INVITES_TABLE_NAME = "user_invites";
 
 @RegisterTable(USER_INVITES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class UserInvite extends Table {
-  /* 📅 Meta */
   @Field("string")
   declare _id: string;
 

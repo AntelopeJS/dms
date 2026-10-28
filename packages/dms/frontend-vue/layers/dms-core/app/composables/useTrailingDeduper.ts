@@ -1,7 +1,7 @@
 const DEDUPER_KEY_PREFIX = "$dmsTrailingDeduper:";
 
 interface DeduperHost {
-  [key: string]: unknown;
+  [key: `$dmsTrailingDeduper:${string}`]: TrailingDeduper | undefined;
 }
 
 /**
@@ -14,9 +14,10 @@ interface DeduperHost {
  * serializable payload.
  */
 export function useTrailingDeduper(name: string): TrailingDeduper {
-  const host = useDmsApp() as unknown as DeduperHost;
-  const key = `${DEDUPER_KEY_PREFIX}${name}`;
-  const existing = host[key] as TrailingDeduper | undefined;
+  // SAFETY: This module alone writes the private prefix, always with createTrailingDeduper(); absent slots are undefined.
+  const host = useDmsApp() as ReturnType<typeof useDmsApp> & DeduperHost;
+  const key = `${DEDUPER_KEY_PREFIX}${name}` as const;
+  const existing = host[key];
   if (existing) return existing;
   const deduper = createTrailingDeduper();
   host[key] = deduper;

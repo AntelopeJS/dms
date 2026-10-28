@@ -1,44 +1,37 @@
 <script setup lang="ts">
 import { EYEBROW_CLASS } from "../../build/utils/eyebrow";
-import { computed, onBeforeUnmount, ref } from "vue";
-import type { CalendarDate, DateValue } from "@internationalized/date";
+import { onBeforeUnmount } from "vue";
 import { useMediaQuery } from "@vueuse/core";
 import { registerPeriodScope } from "#dms-core/app/composables/period/usePeriodScope";
 import { usePeriod } from "#dms-core/app/composables/period/usePeriod";
 import type {
   PeriodComparison,
   PeriodPreset,
-  PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import {
-  startingRange,
-  usePeriodDraft,
-} from "../../build/composables/period/usePeriodDraft";
+import { usePeriodDraft } from "../../build/composables/period/usePeriodDraft";
 import {
   type ComparisonControl,
   resolveComparisonControl,
 } from "../../build/composables/period/periodComparisonControl";
-import { readerClock } from "#dms-core/app/composables/period/periodClock";
 import { usePeriodLocation } from "../../build/composables/period/usePeriodLocation";
-import {
-  type CalendarRange,
-  type CalendarRangeAnchor,
-  calendarToRange,
-  formatPeriodDays,
-  formatPeriodRange,
-  formatRelativeInstant,
-  limitCalendarRange,
-  periodDuration,
-  rangeToCalendar,
-} from "../../build/composables/period/periodDisplay";
 import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalendar.vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { usePageLive } from "../../composables/live/usePageLive";
 import { useLivePeriodSpan } from "../../build/composables/live/useLivePeriodSpan";
 import { usePageToolbar } from "../../build/composables/page-toolbar/pageToolbarContext";
-import { toolbarControlHeightClass } from "../../build/composables/page-toolbar/toolbarControlHeight";
-import { PRESET_SHORT_LABELS } from "../../build/composables/period/periodShortLabels";
+import {
+  CALENDAR_ICON,
+  CUSTOM_PRESET,
+  NO_COMPARISON,
+  comparisonKeyClass,
+  usePeriodSelectorLayout,
+  usePeriodSelectorPresets,
+  usePeriodSelectorSegments,
+  usePeriodSelectorRangeLabels,
+  usePeriodSelectorComparison,
+} from "./periodSelectorPresentation";
+import { usePeriodSelectorInteraction } from "./usePeriodSelectorInteraction";
 
 interface Props extends DefaultComponentProps {
   id: string;
@@ -58,18 +51,10 @@ interface Props extends DefaultComponentProps {
   maxDays?: number;
 }
 
-const CALENDAR_ICON = "i-ph-calendar-blank-light";
 const CARET_DOWN_ICON = "i-ph-caret-down-light";
 const CARET_UP_ICON = "i-ph-caret-up-light";
-const CUSTOM_PRESET: PeriodPreset = "custom";
-const NO_COMPARISON: PeriodComparison = "none";
-const SEGMENTED_VARIANT: NonNullable<Props["variant"]> = "segmented";
-const RELATIVE_RANGE_LABEL: NonNullable<Props["rangeLabel"]> = "relative";
-// Two months side by side from this width; one below (design @container 760px).
-const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
-type PeriodSelectorSize = NonNullable<Props["size"]>;
-const DEFAULT_SIZE: PeriodSelectorSize = "sm";
+const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
 const props = withDefaults(defineProps<Props>(), {
   align: "right",
@@ -79,38 +64,6 @@ const props = withDefaults(defineProps<Props>(), {
   variant: "default",
 });
 
-const ALIGN_CLASSES: Record<NonNullable<Props["align"]>, string> = {
-  left: "justify-start",
-  center: "justify-center",
-  right: "justify-end",
-};
-
-// The window beside the controls, at each size of a toolbar holding the
-// selector; outside one it keeps its size whatever the controls'.
-const RANGE_LABEL_SIZE_CLASSES: Record<PeriodSelectorSize, string> = {
-  xs: "text-[11px]",
-  sm: "text-[11.5px]",
-  md: "text-[12.5px]",
-  lg: "text-[13px]",
-  xl: "text-sm",
-};
-
-/** Rolling windows first, then calendar periods (design preset groups). */
-const ROLLING_PRESETS = new Set<PeriodPreset>([
-  "last-hour",
-  "last-24h",
-  "today",
-  "yesterday",
-  "last-7-days",
-  "last-30-days",
-  "last-90-days",
-]);
-
-const PRESET_ITEM_CLASS =
-  "focus-visible:outline-primary flex h-7 shrink-0 items-center gap-2 rounded-[6px] px-2 text-start text-[13px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2";
-const PRESET_ACTIVE_CLASS = "text-primary bg-(--dms-accent-tint) font-semibold";
-const PRESET_IDLE_CLASS =
-  "text-toned hover:text-highlighted hover:bg-(--ui-bg-elevated)";
 const FIELD_LABEL_CLASS = `${EYEBROW_CLASS} text-dimmed`;
 
 useComponentEvent(props.componentId);
@@ -118,21 +71,17 @@ useWatch(props.watchActions || [], props.componentId);
 
 const { t, locale } = useI18n();
 
-// In a toolbar, the selector takes its size, and its window scales with it.
 const toolbar = usePageToolbar();
-const size = computed<PeriodSelectorSize>(
-  () => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE,
-);
-const rangeLabelSizeClass = computed(
-  () => RANGE_LABEL_SIZE_CLASSES[toolbar ? size.value : DEFAULT_SIZE],
-);
-// In a toolbar, its buttons stand as tall as the segments and the live pill.
-const controlHeightClass = computed(() =>
-  toolbar ? toolbarControlHeightClass(size.value) : "",
-);
+const {
+  size,
+  rangeLabelSizeClass,
+  controlHeightClass,
+  alignClass,
+  triggerOrder,
+  rangeLabelOrder,
+  isSegmented,
+} = usePeriodSelectorLayout(props, toolbar);
 
-// A paused live page keeps its period where it was: a relative preset
-// sliding every minute would refetch every block reading it.
 const { isPaused: isPagePaused } = usePageLive();
 const comparisonSetup = resolveComparisonControl(props);
 const period = usePeriod({
@@ -142,11 +91,9 @@ const period = usePeriod({
   comparisons: comparisonSetup.comparisons,
   holdClock: () => isPagePaused.value,
 });
-// A page declaring `live.slowRateAfter` slows down over a long period.
+
 useLivePeriodSpan(() => period.state.value.range);
 
-// Before the scope registers, so the cards' first request already carries
-// the period of the URL (or of the user's last choice), never the default.
 usePeriodLocation(period, {
   id: props.id,
   pageId: props.pageId,
@@ -162,397 +109,66 @@ usePeriodLocation(period, {
 const cleanup = registerPeriodScope(props.id, period.state);
 onBeforeUnmount(cleanup);
 
-// Every change in the popover is staged here; charts follow `period.state`,
-// which only moves on Apply.
 const draft = usePeriodDraft(period);
 
-const alignClass = computed(() => ALIGN_CLASSES[props.align]);
-// Right-aligned (page header) selectors end on the trigger, the popover
-// anchored under it; elsewhere the trigger leads.
-const isTrailing = computed(() => props.align === "right");
-const triggerOrder = computed(() => (isTrailing.value ? "order-3" : "order-1"));
-const rangeLabelOrder = computed(() =>
-  isTrailing.value ? "order-1" : "order-3",
-);
 const POPOVER_ALIGN: Record<
   NonNullable<Props["align"]>,
   "start" | "center" | "end"
 > = { left: "start", center: "center", right: "end" };
-// Never wider than the screen, and never taller than the room left beside
-// the trigger (a short phone, a landscape tablet): the popover scrolls.
+
 const POPOVER_CONTENT_CLASS =
   "w-auto max-w-[calc(100vw-2rem)] max-h-(--reka-popover-content-available-height) overflow-x-hidden overflow-y-auto overscroll-contain p-0";
 
-function presetLabel(preset: PeriodPreset): string {
-  return (
-    props.presetLabels?.[preset] ?? t(`dms.period.presets.${preset}`, preset)
-  );
-}
-
-/** The preset's short code in the user's language; custom has none. */
-function presetShortLabel(preset: PeriodPreset): string | undefined {
-  const fallback = PRESET_SHORT_LABELS[preset];
-  return fallback && t(`dms.period.short_presets.${preset}`, fallback);
-}
-
-function comparisonLabel(comparison: PeriodComparison): string {
-  return (
-    props.comparisonLabels?.[comparison] ??
-    t(`dms.period.comparisons.${comparison}`, comparison)
-  );
-}
-
-function compareOptionLabel(comparison: PeriodComparison): string {
-  return (
-    props.comparisonLabels?.[comparison] ??
-    t(`dms.period.compare_options.${comparison}`, comparison)
-  );
-}
-
-const isCustomEnabled = computed(() =>
-  period.presets.value.includes(CUSTOM_PRESET),
-);
-
-const listedPresets = computed(() =>
-  period.presets.value.filter((preset) => preset !== CUSTOM_PRESET),
-);
-
-interface PresetEntry {
-  preset: PeriodPreset;
-  label: string;
-  short?: string;
-}
-
-function presetEntry(preset: PeriodPreset): PresetEntry {
-  const label = presetLabel(preset);
-  const short = presetShortLabel(preset);
-  return { preset, label, short: short === label ? undefined : short };
-}
-
-const presetGroups = computed<PresetEntry[][]>(() =>
-  [
-    listedPresets.value.filter((preset) => ROLLING_PRESETS.has(preset)),
-    listedPresets.value.filter((preset) => !ROLLING_PRESETS.has(preset)),
-  ]
-    .filter((group) => group.length > 0)
-    .map((group) => group.map(presetEntry)),
-);
-
-function presetItemClass(preset: PeriodPreset): string[] {
-  return [
-    PRESET_ITEM_CLASS,
-    draft.preset.value === preset ? PRESET_ACTIVE_CLASS : PRESET_IDLE_CLASS,
-  ];
-}
-
-const isSegmented = computed(() => props.variant === SEGMENTED_VARIANT);
-const isCustomActive = computed(() => period.preset.value === CUSTOM_PRESET);
-
-// ── Popover ────────────────────────────────────────────────────────────
-const isOpen = ref(false);
+const presentation = { props, period, draft, t, locale };
+const presetPresentation = usePeriodSelectorPresets(presentation);
+const { isCustomEnabled, presetGroups, presetItemClass, isCustomActive } =
+  presetPresentation;
 const isWide = useMediaQuery(TWO_MONTHS_QUERY);
-const pendingStart = ref<CalendarDate | null>(null);
-
-function setOpen(open: boolean) {
-  if (open) draft.reset();
-  pendingStart.value = null;
-  isOpen.value = open;
-}
-
-// A custom range starts from the days on screen, which a long preset can
-// stretch past `maxDays`: it keeps its most recent days.
-function selectDraftPreset(preset: PeriodPreset) {
-  draft.selectPreset(preset);
-  const custom = draft.customRange.value;
-  if (preset !== CUSTOM_PRESET || !custom) return;
-  selectCalendarRange(rangeToCalendar(custom), "end");
-}
-
-function openCustom() {
-  draft.reset();
-  selectDraftPreset(CUSTOM_PRESET);
-  pendingStart.value = null;
-  isOpen.value = true;
-}
-
-function applyDraft() {
-  draft.apply();
-  isOpen.value = false;
-}
-
-const draftCalendar = computed<CalendarRange>(() =>
-  rangeToCalendar(draft.range.value ?? startingRange(new Date())),
-);
-
-const draftCompareCalendar = computed<CalendarRange | null>(() => {
-  const compare = draft.compareRange.value;
-  return compare ? rangeToCalendar(compare) : null;
-});
-
-function selectCalendarRange(
-  range: CalendarRange,
-  anchor: CalendarRangeAnchor = "start",
-) {
-  if (!isCustomEnabled.value) return;
-  draft.selectRange(
-    calendarToRange(limitCalendarRange(range, props.maxDays, anchor)),
-  );
-}
-
-function updateStart(value: DateValue | null | undefined) {
-  if (!value) return;
-  const start = value as CalendarDate;
-  const end = draftCalendar.value.end;
-  selectCalendarRange(
-    start.compare(end) > 0 ? { start, end: start } : { start, end },
-  );
-}
-
-function updateEnd(value: DateValue | null | undefined) {
-  if (!value) return;
-  const end = value as CalendarDate;
-  const start = draftCalendar.value.start;
-  selectCalendarRange(
-    end.compare(start) < 0 ? { start: end, end } : { start, end },
-    "end",
-  );
-}
-
+const {
+  isOpen,
+  pendingStart,
+  setOpen,
+  selectDraftPreset,
+  applyDraft,
+  draftCalendar,
+  draftCompareCalendar,
+  selectCalendarRange,
+  updateStart,
+  updateEnd,
+  segmentedPreset,
+  onSegmentedClick,
+} = usePeriodSelectorInteraction(props, period, draft, isCustomEnabled);
 const { weekStartsOn } = useUserRegionalPreferences();
-
-const compareSelectItems = computed(() =>
-  period.comparisons.value.map((comparison) => ({
-    label: compareOptionLabel(comparison),
-    value: comparison,
-  })),
-);
-
-const draftComparison = computed<PeriodComparison>({
-  get: () => draft.comparison.value,
-  set: (value) => draft.selectComparison(value),
-});
-
-const draftDurationLabel = computed(() => {
-  const range = draft.range.value;
-  if (!range) return presetLabel(draft.preset.value);
-  const { unit, count } = periodDuration(range);
-  return t(`dms.period.popover.${unit}`, { count }, count);
-});
-
-const maxDaysHint = computed(() =>
-  props.maxDays && isCustomEnabled.value
-    ? t("dms.period.popover.max_days", { count: props.maxDays }, props.maxDays)
-    : null,
-);
-
-const draftCompareLabel = computed(() => {
-  const compare = draft.compareRange.value;
-  return compare ? formatPeriodRange(compare, locale.value) : null;
-});
-
-// ── Trigger, comparison chip, range label ──────────────────────────────
-const committedRangeLabel = computed(() => {
-  const { range } = period.state.value;
-  return range ? formatPeriodRange(range, locale.value) : null;
-});
-
-// Only a window reaching now reads "since …"; one that has ended keeps its
-// bounds. "Now" is the instant the period was resolved from: it holds still
-// with the period while the page is paused, and is the server's while the
-// browser hydrates its render.
-const relativeRangeLabel = computed<string | null>(() => {
-  const { range } = period.state.value;
-  if (props.rangeLabel !== RELATIVE_RANGE_LABEL || !range) return null;
-  const now = period.resolvedAt.value;
-  if (range.to.getTime() < now.getTime()) return null;
-  const from = formatRelativeInstant(range.from, now, locale.value);
-  return t("dms.period.since", { from }, `since ${from}`);
-});
-
-const rangeLabelText = computed(
-  () => relativeRangeLabel.value ?? committedRangeLabel.value,
-);
-
-const triggerLabel = computed(() =>
-  isCustomActive.value && committedRangeLabel.value
-    ? committedRangeLabel.value
-    : presetLabel(period.preset.value),
-);
-
-interface ButtonAppearance {
-  variant: "subtle" | "outline";
-  color: "primary" | "neutral";
-}
-
-const CUSTOM_TRIGGER: ButtonAppearance = {
-  variant: "subtle",
-  color: "primary",
-};
-const PRESET_TRIGGER: ButtonAppearance = {
-  variant: "outline",
-  color: "neutral",
-};
-
-const triggerAppearance = computed<ButtonAppearance>(() =>
-  isCustomActive.value ? CUSTOM_TRIGGER : PRESET_TRIGGER,
-);
-
-// Open trigger: accent border and a 3px accent halo (design .ps__trigger.is-open).
+const {
+  draftDurationLabel,
+  maxDaysHint,
+  draftCompareLabel,
+  rangeLabelText,
+  triggerLabel,
+  triggerAppearance,
+} = usePeriodSelectorRangeLabels(presentation, presetPresentation);
 const OPEN_TRIGGER_CLASS =
   "ring-primary shadow-[0_0_0_3px_var(--dms-accent-tint-strong)]";
-
-const canCompare = computed(() =>
-  period.comparisons.value.some((comparison) => comparison !== NO_COMPARISON),
+const {
+  comparisonLabel,
+  compareSelectItems,
+  draftComparison,
+  isComparisonMenu,
+  toggledComparison,
+  canChooseComparison,
+  isComparisonDisabled,
+  toggleComparison,
+  comparisonItems,
+  hasComparison,
+  rangeLabelCompare,
+  comparisonMenuLabel,
+  comparisonMenuAria,
+} = usePeriodSelectorComparison(presentation, comparisonSetup);
+const segmentedItems = usePeriodSelectorSegments(
+  presentation,
+  presetPresentation,
+  !!toolbar,
 );
-
-const isComparisonMenu = computed(
-  () => canCompare.value && comparisonSetup.control === "menu",
-);
-const toggledComparison = comparisonSetup.toggled;
-const canChooseComparison = computed(
-  () => canCompare.value && comparisonSetup.control !== "hidden",
-);
-// Every period has no bounds, so nothing to compare it with.
-const isComparisonDisabled = computed(() => !period.state.value.range);
-
-function toggleComparison() {
-  if (!toggledComparison) return;
-  period.setComparison(hasComparison.value ? NO_COMPARISON : toggledComparison);
-}
-
-const comparisonItems = computed(() => [
-  period.comparisons.value.map((comparison) => ({
-    label: comparisonLabel(comparison),
-    onSelect: () => period.setComparison(comparison),
-  })),
-]);
-
-const hasComparison = computed(() => period.comparison.value !== NO_COMPARISON);
-
-// The comparison key mirrors the dashed violet comparison series of charts.
-const COMPARISON_KEY_ACTIVE =
-  "bg-[repeating-linear-gradient(90deg,var(--dms-chart-2)_0_4px,transparent_4px_7px)]";
-const COMPARISON_KEY_NONE = "bg-(--ui-border-accented)";
-
-function comparisonKeyClass(active: boolean): string {
-  return active ? COMPARISON_KEY_ACTIVE : COMPARISON_KEY_NONE;
-}
-
-// The year of a comparison range is noise when it is the main one's, in the
-// reader's calendar, on the server as in the browser.
-function isSameYear(compare: PeriodRange, main: PeriodRange): boolean {
-  const clock = readerClock();
-  return clock.wall(compare.to).year === clock.wall(main.to).year;
-}
-
-function compareRangeText(compare: PeriodRange, main: PeriodRange): string {
-  return formatPeriodRange(compare, locale.value, !isSameYear(compare, main));
-}
-
-const compareRangeLabel = computed(() => {
-  const { compareRange, range } = period.state.value;
-  return compareRange && range ? compareRangeText(compareRange, range) : null;
-});
-
-// A menu names the compared window itself ("vs 16 – 17 Oct"), so the range
-// label beside it keeps the current window only: said twice, the comparison
-// wrapped the toolbar. The option's name moves to its tooltip and its menu.
-const rangeLabelCompare = computed(() =>
-  isComparisonMenu.value ? null : compareRangeLabel.value,
-);
-
-const menuCompareDays = computed(() => {
-  const { compareRange, range } = period.state.value;
-  if (!compareRange || !range) return null;
-  return formatPeriodDays(
-    compareRange,
-    locale.value,
-    !isSameYear(compareRange, range),
-  );
-});
-
-const comparisonMenuLabel = computed(() => {
-  const days = menuCompareDays.value;
-  if (!hasComparison.value || !days) {
-    return comparisonLabel(period.comparison.value);
-  }
-  return `${t("dms.period.popover.vs", "vs")} ${days}`;
-});
-
-const comparisonMenuAria = computed(() => {
-  const name = `${t("dms.period.comparison_aria", "Comparison")}: ${comparisonLabel(period.comparison.value)}`;
-  const days = hasComparison.value ? menuCompareDays.value : null;
-  return days ? `${name}, ${days}` : name;
-});
-
-// ── Segmented variant ──────────────────────────────────────────────────
-function segmentLabel(preset: PeriodPreset): string {
-  return (
-    props.presetLabels?.[preset] ??
-    presetShortLabel(preset) ??
-    presetLabel(preset)
-  );
-}
-
-interface SegmentItem {
-  label: string;
-  ariaLabel: string;
-  value: string;
-  icon?: string;
-}
-
-function customRangeText(): string | null {
-  const { range } = period.state.value;
-  return isCustomActive.value && range
-    ? formatPeriodRange(range, locale.value, false)
-    : null;
-}
-
-// In a toolbar the custom segment is its calendar icon alone, like the short
-// codes beside it: the window beside them writes the range once chosen.
-// Named in full either way.
-function customSegment(): SegmentItem {
-  const range = customRangeText();
-  const name = presetLabel(CUSTOM_PRESET);
-  const visible = toolbar ? "" : (range ?? name);
-  return {
-    label: visible,
-    ariaLabel: range ? `${name}: ${range}` : name,
-    value: CUSTOM_PRESET,
-    icon: CALENDAR_ICON,
-  };
-}
-
-const segmentedItems = computed<SegmentItem[]>(() => {
-  const items: SegmentItem[] = listedPresets.value.map((preset) => ({
-    label: segmentLabel(preset),
-    ariaLabel: presetLabel(preset),
-    value: preset,
-  }));
-  if (isCustomEnabled.value) items.push(customSegment());
-  return items;
-});
-
-const segmentedPreset = computed<string | number | undefined>({
-  get: () => period.preset.value,
-  set: (value) => {
-    const preset = period.presets.value.find((entry) => entry === value);
-    if (!preset) return;
-    // Custom opens the popover; the range applies from there.
-    if (preset === CUSTOM_PRESET) openCustom();
-    else period.setPreset(preset);
-  },
-});
-
-// A click on the custom segment while it is already active changes no value,
-// so it reopens the popover from here.
-function onSegmentedClick(event: MouseEvent) {
-  if (!isCustomActive.value) return;
-  const segment = (event.target as HTMLElement | null)?.closest(
-    "[role='radio']",
-  );
-  if (segment?.getAttribute("aria-checked") === "true") openCustom();
-}
 </script>
 
 <template>

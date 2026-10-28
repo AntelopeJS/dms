@@ -1,4 +1,6 @@
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import { formSubmitEvent } from "./helpers/form-submit-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import {
@@ -38,14 +40,14 @@ function setupForm() {
         pageId: "page-1",
         fields: FIELDS,
         submitUrl: "/api/things/new",
-      } as never,
+      },
       { showFieldErrors },
     ),
   )!;
 }
 
 const submit = (form: ReturnType<typeof setupForm>) =>
-  form.onSubmit({ data: { name: "", email: "taken@test.local" } } as never);
+  form.onSubmit(formSubmitEvent({ name: "", email: "taken@test.local" }));
 
 beforeEach(() => {
   scope = effectScope();
@@ -54,7 +56,7 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("Color", {
     error: "error",
@@ -67,21 +69,34 @@ beforeEach(() => {
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (key: string) => key,
-    processApiMessage: (message: string, params?: Record<string, unknown>) =>
+    processApiMessage: (
+      message: string,
+      params?: Parameters<
+        typeof import("../layers/dms-core/app/composables/translation/useTranslation").resolveApiMessage
+      >[2],
+    ) =>
       params ? `t(${message}, ${JSON.stringify(params)})` : `t(${message})`,
   }));
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, named?: Record<string, unknown>) =>
-      named ? `${key} ${JSON.stringify(named)}` : key,
+    t: (
+      key: string,
+      named?: Parameters<
+        typeof import("../layers/dms-core/app/composables/translation/useTranslation").resolveApiMessage
+      >[2],
+    ) => (named ? `${key} ${JSON.stringify(named)}` : key),
   }));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
   vi.stubGlobal("useEventedAction", () => ({
-    execute: (action: () => Promise<unknown>) => action(),
+    execute: <Result>(action: () => Promise<Result>) => action(),
   }));
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial, hiddenFields }),
     }),

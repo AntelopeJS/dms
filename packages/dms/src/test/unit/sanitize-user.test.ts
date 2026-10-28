@@ -4,13 +4,14 @@ import { sanitizeUser } from "../../implementations/dms-auth";
 
 describe("[unit] dms-auth — sanitizeUser", () => {
   it("drops the authenticator secrets and its last accepted step", () => {
+    // SAFETY: sanitizeUser copies enumerable fields and removes secrets; it does not read the omitted persisted-user fields.
     const user = {
       _id: "sanitize-user",
       email: "sanitize@example.com",
       twoFactorSecret: "confirmed-secret",
       twoFactorPendingSecret: "pending-secret",
       twoFactorTotpLastStep: 59_000_000,
-    } as unknown as User;
+    } as User;
 
     const sanitized = sanitizeUser(user);
 

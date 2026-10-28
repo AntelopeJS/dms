@@ -1,9 +1,3 @@
-// `ImplementInterface` binds a proxy by walking the exports of the subpath the
-// runtime hands it, so a proxy that is not reachable that way is never bound:
-// in production every call to an `InterfaceFunction` waits forever, and a
-// `RegisteringProxy` registration reaches no handler, both silently. This asserts every
-// proxy the sources create is an exported declaration, at the top level of its
-// file or inside exported namespaces only.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,8 +9,6 @@ const packageRoot = path.resolve(
 );
 const sourceRoot = path.join(packageRoot, "src");
 const PROXY_FACTORIES = new Set(["InterfaceFunction"]);
-// An `EventProxy` is left out: `ImplementInterface` never binds one, and the
-// interface's own registries hold them privately on purpose.
 const PROXY_CLASSES = new Set(["RegisteringProxy", "AsyncProxy"]);
 
 function listSources(directory) {

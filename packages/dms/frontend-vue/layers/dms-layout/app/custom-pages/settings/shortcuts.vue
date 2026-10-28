@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import { useShortcutRegistry } from "#dms-ui/app/build/composables/shortcuts/useShortcutRegistry";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
+import { useShortcutRegistry } from "#dms-ui/app/entries/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
   keyboardKeyLabel,
   type KeyboardPlatform,
@@ -26,8 +26,6 @@ const { t, te } = useI18n();
 const { getRegistry } = useShortcutRegistry();
 const shortcuts: Ref<ComponentShortcuts[]> = getRegistry();
 
-// The layout the dashboard detected (the one every other hint uses); the
-// header switch previews the other one on this page only.
 const { platform: detectedPlatform, isMac } = useKeyboardPlatform();
 const platform = ref<KeyboardPlatform>(detectedPlatform.value);
 watch(detectedPlatform, (next) => {
@@ -55,6 +53,7 @@ usePageHeaderActions(() =>
     size: "xs",
     ariaLabel: t("page.settings.shortcuts.layout_label"),
     "onUpdate:modelValue": (value: string | number | undefined) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Segmented's event type is wider than KeyboardPlatform. This existing unchecked assignment also accepts malformed emitted values; validating them would change behavior.
       if (value !== undefined) platform.value = value as KeyboardPlatform;
     },
   }),

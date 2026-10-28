@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
-  type App,
   type Component,
   computed,
   createApp,
@@ -22,6 +21,7 @@ import {
   isDefinitiveMetadataFailure,
   resolveMetadataRetryDelay,
 } from "../layers/dms-ui/app/utils/metadataRetry";
+import type { FileMetadata } from "../layers/dms-ui/app/entries/composables/files/useFileMetadata";
 
 const authFetch = vi.fn();
 const LONG_WAIT_MS = 120000;
@@ -31,7 +31,7 @@ interface FieldCase {
   component: Component;
   modelValue: unknown;
   unavailableLabel: string;
-  metadata: Record<string, unknown>;
+  metadata: FileMetadata;
 }
 
 const FIELD_CASES: FieldCase[] = [
@@ -78,7 +78,7 @@ function httpError(status: number): Error {
   });
 }
 
-function mountField(field: FieldCase): { app: App; container: HTMLElement } {
+function mountField(field: FieldCase) {
   const app = createApp({
     render: () => h(field.component, { modelValue: field.modelValue }),
   });
@@ -112,7 +112,7 @@ beforeEach(() => {
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
-  // Outside a UFormField: no error, no aria attributes.
+
   vi.stubGlobal("useFormField", () => ({
     emitFormChange: vi.fn(),
     color: ref(undefined),
@@ -122,7 +122,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
+    <Value>(_key: string, options: { default: () => Value }) =>
       ref(options.default()),
   );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));

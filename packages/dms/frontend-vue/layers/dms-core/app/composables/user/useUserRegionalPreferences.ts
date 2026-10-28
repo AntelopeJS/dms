@@ -34,8 +34,7 @@ export function useUserRegionalPreferences() {
   const preferences = computed<RegionalPreferences>(() =>
     readRegionalPreferences(user.value),
   );
-  // On a server, the zone of the browser the page is for (its cookie), so the
-  // server renders the zone the browser hydrates with.
+
   const detectedTimeZone = readerTimeZone() ?? browserTimeZone();
   const timeZone = computed(
     () => preferences.value.timeZone ?? detectedTimeZone,

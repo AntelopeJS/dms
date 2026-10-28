@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useFileReadUrls } from "../../../composables/useFileReadUrls";
 
 /**
@@ -22,12 +23,12 @@ const INITIALS_LENGTH = 2;
 const { getUrl, resolve } = useFileReadUrls(props.storage);
 
 const avatarKey = computed(() =>
-  props.avatar && typeof props.avatar === "object" ? props.avatar.key : null,
+  props.avatar && isObject(props.avatar) ? props.avatar.key : null,
 );
 watch(avatarKey, (key) => key && resolve(key), { immediate: true });
 
 const src = computed(() => {
-  if (typeof props.avatar === "string") return props.avatar;
+  if (isString(props.avatar)) return props.avatar;
   return avatarKey.value ? getUrl(avatarKey.value) : undefined;
 });
 

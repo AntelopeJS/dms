@@ -2,11 +2,6 @@
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
 
-// The one row of pill chips of the DMS (v2 .mc-cat): one pick among them
-// (a radio group: the modules' categories) or several (toggles with a check:
-// the roles of an invitation). Attributes (`id`, `aria-describedby`…) go to
-// the group.
-
 /** One chip: its value, its label and, optionally, a mono count after it. */
 export interface ChipGroupItem {
   value: string;
@@ -74,7 +69,6 @@ const ui = (item: ChipGroupItem) =>
     disabled: props.disabled,
   });
 
-// A single pick reads as radios, several as toggle buttons.
 const groupRole = computed(() => (props.multiple ? "group" : "radiogroup"));
 const chipAria = (item: ChipGroupItem) =>
   props.multiple

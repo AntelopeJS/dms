@@ -1,4 +1,7 @@
-import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeValueComparer,
+} from "#dms-core/app/composables/data-types/useDataType";
 
 /**
  * What a read-only field shows: for a type whose form state is mapped from
@@ -8,11 +11,11 @@ import type { DataType } from "#dms-core/app/composables/data-types/useDataType"
  * value, or one the form changed, is shown as the state holds it.
  */
 export function readonlyFieldValue(
-  value: unknown,
-  loaded: unknown,
+  value: Parameters<DataTypeValueComparer>[0],
+  loaded: Parameters<DataTypeValueComparer>[1],
   dataType: DataType | undefined,
-  options?: unknown,
-): unknown {
+  options?: Parameters<DataTypeValueComparer>[2],
+): Parameters<DataTypeValueComparer>[0] {
   if (!dataType?.beforeStateMapper || !dataType.isSameValue) return value;
   if (loaded === undefined || loaded === null) return value;
   return dataType.isSameValue(value, loaded, options) ? loaded : value;

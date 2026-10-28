@@ -1,10 +1,6 @@
 import { expect } from "chai";
 import { reportsNoChange } from "@antelopejs/interface-dms/base/table-view/internal/realtime";
 
-// A bulk write the row rules refused entirely changed nothing: its ids must
-// not be broadcast as deleted or updated, or every session watching the table
-// (the caller included) would drop rows that are still there.
-
 describe("Table view realtime: writes that changed nothing", () => {
   it("reads a zero count from each bulk route", () => {
     expect(reportsNoChange(0)).to.equal(true);

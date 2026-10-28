@@ -7,6 +7,7 @@ import {
   useSidebarWidgets,
 } from "../layers/dms-layout/app/composables/useSidebarWidgets";
 
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately supplies an invalid serialized position to exercise the fallback.
 const UNKNOWN_POSITION = "top" as SidebarWidgetPosition;
 
 const widget = (extra: Partial<SidebarWidget> = {}): SidebarWidget => ({
@@ -74,15 +75,14 @@ describe("isSidebarWidgetVisible", () => {
 
 describe("useSidebarWidgets registration order", () => {
   beforeEach(() => {
-    // The composable reads its store through the DMS app's injected `useDmsState`;
-    // a fresh array per call keeps each spec isolated.
-    vi.stubGlobal("useDmsState", (_key: string, init: () => SidebarWidget[]) => ({
-      value: init(),
-    }));
+    vi.stubGlobal(
+      "useDmsState",
+      (_key: string, init: () => SidebarWidget[]) => ({
+        value: init(),
+      }),
+    );
   });
 
-  // The config sets no `unstubGlobals`, and file isolation is the pool's
-  // default rather than something this suite should rely on.
   afterEach(() => {
     vi.unstubAllGlobals();
   });

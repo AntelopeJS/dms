@@ -21,7 +21,6 @@ const member: DemoRecord = {
   lockOwner: false,
   memberId: "mbr_4f1c",
   joinedOn: "2025-03-14",
-  // Not the seats the plan suggests: opening the form keeps them.
   plan: "team",
   seats: 12,
 };

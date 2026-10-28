@@ -16,11 +16,10 @@ import {
   buildTimeZoneOptions,
   timeZoneLabel,
   timeZoneOffset,
-} from "../layers/dms-layout/app/build/components/pages/settings/region/timeZones";
-import { groupNotificationsByDay } from "../layers/dms-layout/app/build/components/pages/settings/notification/notificationDisplay";
+} from "../layers/dms-layout/app/entries/components/pages/settings/region/timeZones";
+import { groupNotificationsByDay } from "../layers/dms-layout/app/entries/components/pages/settings/notification/notificationDisplay";
 import type { UserNotification } from "../layers/dms-layout/app/composables/notification/useNotifications";
 
-// 23:30 UTC on 30 Sep: already 1 Oct in Brussels, still 30 Sep in New York.
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));
 
 afterEach(() => {
@@ -120,7 +119,7 @@ describe("withRegionalOptions", () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-    // "Sep 27" has no year: not a full date.
+
     expect(
       withRegionalOptions({ day: "numeric", month: "short" }, {}, numeric),
     ).toEqual({ day: "numeric", month: "short" });
@@ -163,8 +162,10 @@ describe("shared formatters follow the user's preferences", () => {
 
   it("names yesterday in the chosen zone", () => {
     setRegionalPreferencesSource(() => ({ timeFormat: "h23" }));
-    const t = (key: string, params?: Record<string, unknown>) =>
-      `${key}:${JSON.stringify(params ?? {})}`;
+    const t = (
+      key: string,
+      params?: Parameters<Parameters<typeof formatRelativeTime>[1]>[1],
+    ) => `${key}:${JSON.stringify(params ?? {})}`;
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     expect(formatRelativeTime(twoDaysAgo, t, "fr-FR")).toContain(
       "common.time.on_date",
@@ -174,10 +175,20 @@ describe("shared formatters follow the user's preferences", () => {
   it("files notifications under the reader's day", () => {
     setRegionalPreferencesSource(() => ({ timeZone: "Europe/Brussels" }));
     const now = new Date(Date.UTC(2026, 9, 1, 8));
-    const groups = groupNotificationsByDay(
-      [{ createdAt: LATE_EVENING_UTC.toISOString() } as UserNotification],
-      now,
-    );
+    const notification = {
+      _id: "notice-1",
+      userId: "reader-1",
+      icon: "i-ph-bell",
+      title: "Notice",
+      description: "An evening notice",
+      params: null,
+      linkTo: null,
+      isRead: false,
+      categoryId: "activity",
+      createdAt: LATE_EVENING_UTC.toISOString(),
+      updatedAt: LATE_EVENING_UTC.toISOString(),
+    } satisfies UserNotification;
+    const groups = groupNotificationsByDay([notification], now);
     expect(groups.map((group) => group.key)).toEqual(["today"]);
   });
 

@@ -18,10 +18,6 @@ import { Column, Exported, Select, TableViewRoutes } from "../base/table-view";
 import { ReadonlyBehaviorType } from "../base/types";
 import { withRequiredPermissions } from "../internal/permission-requirements";
 
-// Stored like the roles editor saves them: a permission written here comes
-// with every id it sits under and every permission it depends on, so no
-// route can store a grant without its page, or a table's edit without its
-// view.
 const permissionsSchema = new TagsType()
   .getValidation()
   .transform(withRequiredPermissions);
@@ -60,7 +56,6 @@ export class roleSettingDataAPI extends DataController(
   @Listable()
   @Column({
     name: "$page.settings.roles.column.permissions",
-    // Edited in the roles editor only, which sends the granted ids.
     type: new TagsType(),
     description: "$page.settings.roles.description.permissions",
     defaultValue: [],

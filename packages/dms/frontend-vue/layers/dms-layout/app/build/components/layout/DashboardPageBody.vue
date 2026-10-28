@@ -4,7 +4,7 @@ import PageHeader from "./PageHeader.vue";
 import PageHeaderActionsOutlet from "./PageHeaderActionsOutlet.vue";
 import PageSkeleton from "./PageSkeleton.vue";
 import type { LayoutHeaderAction } from "./PageHeaderActionBar.vue";
-import { providePageHeaderActions } from "../../../composables/layout/usePageHeaderActions";
+import { providePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 
 interface Props {
   hideHeader?: boolean;
@@ -35,9 +35,6 @@ const props = withDefaults(defineProps<Props>(), {
   headerClass: "pb-6",
 });
 
-// The header renders before the page in the slot: its actions come through
-// an outlet that waits for the page's setup (see usePageHeaderActions), and
-// a marker after the slot says the page has rendered.
 const pageHeaderActions = providePageHeaderActions();
 const PageRendered = defineComponent({
   name: "DmsPageRendered",
@@ -47,11 +44,8 @@ const PageRendered = defineComponent({
   },
 });
 
-// After a client navigation the skeleton stands in for the page until its
-// chunk (and its setup) resolves, so the old page is never kept on screen.
 const isPageLoading = useDmsPageLoading();
-// A reloaded "preview as role" tab holds its page back (pre-paint script, see
-// the permission-preview-prepaint plugin) until the preview veils it.
+
 const PAGE_SKELETON_CLASS =
   "hidden [html[data-dms-role-preview=pending]_&]:block";
 const PAGE_SLOT_CLASS =

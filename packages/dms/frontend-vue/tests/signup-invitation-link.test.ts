@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -20,7 +20,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 
-const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
+const route = reactive<{ query: Record<string, string> }>({ query: {} });
 let app: App;
 let host: HTMLDivElement;
 const locale = ref("en");
@@ -57,7 +57,7 @@ function installRuntime() {
   }));
   vi.stubGlobal("useHomepage", () => "/");
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <T>(fn: () => T) => fn(),
   }));
   vi.stubGlobal("useDmsRoute", () => route);
   stubApiData(authFetch);
@@ -69,7 +69,7 @@ function installRuntime() {
   }));
 }
 
-function mountSignup(query: Record<string, unknown>) {
+function mountSignup(query: typeof route.query) {
   route.query = query;
   app = createApp(SignupPage);
   browserRuntime(app);
@@ -179,8 +179,6 @@ it.each([
   },
 );
 
-// A check that could not run proves nothing: the signup itself still refuses
-// a stale invitation, so the form stays usable.
 it("keeps the form when the invitation check fails for another reason", async () => {
   authFetch.mockRejectedValue({ statusCode: 500 });
   mountSignup({ token: "invite-token", email: "new@local.test" });
@@ -208,8 +206,6 @@ it.each([{}, { lang: "en" }, { lang: "de" }, { lang: ["fr", "en"] }])(
   },
 );
 
-// Checked with the page: the server renders the notice, and the browser
-// hydrates it without asking again (no form flashing first).
 it("renders a refused invitation's notice on the server, and the browser does not check it again", async () => {
   authFetch.mockRejectedValue(refusal("error.invite_revoked"));
   route.query = { token: "stale-token", email: "new@local.test" };

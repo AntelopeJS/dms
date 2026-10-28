@@ -4,7 +4,7 @@ import {
   collectOpenItemIds,
   isMenuItemActive,
 } from "../layers/dms-core/app/utils/menu";
-import { buildMenuItemTarget } from "../layers/dms-ui/app/build/types/tree";
+import { buildMenuItemTarget } from "../layers/dms-ui/app/entries/types/tree";
 
 type TreeNode = Parameters<typeof buildMenuItemTarget>[0];
 
@@ -18,10 +18,13 @@ function node(overrides: Partial<TreeNode>): TreeNode {
     children: {},
     childrenOrders: [],
     ...overrides,
-  } as TreeNode;
+  };
 }
 
-function route(path: string, query: Record<string, unknown> = {}) {
+function route(
+  path: string,
+  query: NonNullable<Parameters<typeof isMenuItemActive>[2]>["query"] = {},
+) {
   return { path, query };
 }
 

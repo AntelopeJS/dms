@@ -12,10 +12,10 @@ import { describe, expect, it } from "vitest";
 import {
   type CodeToken,
   loadCodeHighlighter,
-} from "../layers/dms-ui/app/build/utils/codeHighlight";
-import { resolveCodeLanguage } from "../layers/dms-ui/app/build/utils/codeLanguages";
-import { CODE_PALETTE } from "../layers/dms-ui/app/build/utils/codePalette";
-import { shellParser } from "../layers/dms-ui/app/build/utils/shellParser";
+} from "../layers/dms-ui/app/entries/utils/codeHighlight";
+import { resolveCodeLanguage } from "../layers/dms-ui/app/entries/utils/codeLanguages";
+import { CODE_PALETTE } from "../layers/dms-ui/app/entries/utils/codePalette";
+import { shellParser } from "../layers/dms-ui/app/entries/utils/shellParser";
 
 const KEYWORD = "var(--ui-primary)";
 const STRING = "var(--ui-success)";
@@ -32,16 +32,16 @@ const joined = (tokens: CodeToken[]) =>
 const highlight = async (code: string, language: string) =>
   (await loadCodeHighlighter(language))(code);
 
-// The editor's own CodeMirror languages, read the way the snippets read code
-// before they loaded the grammars alone: the colours a snippet must match.
-const EDITOR_PARSERS: Record<string, Parser> = {
+const EDITOR_PARSERS = {
   json: jsonLanguage.parser,
   javascript: javascriptLanguage.parser,
   typescript: typescriptLanguage.parser,
   html: htmlLanguage.parser,
   sql: StandardSQL.language.parser,
   shell: StreamLanguage.define(shellParser).parser,
-};
+} satisfies Record<string, Parser>;
+
+const editorParsers = new Map(Object.entries(EDITOR_PARSERS));
 
 const PALETTE_HIGHLIGHTER = tagHighlighter(
   CODE_PALETTE.map((entry, index) => ({ tag: entry.tag, class: `${index}` })),
@@ -51,7 +51,7 @@ function editorTokens(code: string, language: string): CodeToken[] {
   const tokens: CodeToken[] = [];
   let cursor = 0;
   highlightTree(
-    EDITOR_PARSERS[language].parse(code),
+    editorParsers.get(language)!.parse(code),
     PALETTE_HIGHLIGHTER,
     (from, to, classes) => {
       if (from > cursor) tokens.push({ text: code.slice(cursor, from) });
@@ -64,7 +64,7 @@ function editorTokens(code: string, language: string): CodeToken[] {
   return tokens;
 }
 
-const SAMPLES: Record<string, string> = {
+const SAMPLES = {
   json: '{\n  "name": "media",\n  "size": 42,\n  "tags": ["a", null, true],\n  "nested": { "ratio": -1.5e3 }\n}',
   javascript: [
     "// load the rows",
@@ -117,10 +117,9 @@ describe("read-only code highlighting", () => {
     expect(joined(await highlight(code, "json"))).toBe(code);
   });
 
-  it.each(Object.keys(SAMPLES))(
+  it.each(Object.entries(SAMPLES))(
     "colours %s exactly like the editor's language",
-    async (language) => {
-      const code = SAMPLES[language];
+    async (language, code) => {
       const tokens = await highlight(code, language);
       expect(joined(tokens)).toBe(code);
       expect(tokens).toEqual(editorTokens(code, language));
@@ -148,21 +147,21 @@ describe("read-only code highlighting", () => {
 
   it("reads the scripts, styles and handlers nested in HTML in their languages", async () => {
     const tokens = await highlight(SAMPLES.html, "html");
-    // A script, a TypeScript one and a JSON one.
+
     expect(colorOf(tokens, "import")).toBe(KEYWORD);
     expect(colorOf(tokens, '"./a.js"')).toBe(STRING);
     expect(colorOf(tokens, '"x"')).toBe(STRING);
-    // JSON in a script is read as a JavaScript value, as the editor reads it.
+
     expect(colorOf(tokens, '"on"')).toBe(STRING);
     expect(colorOf(tokens, "3")).toBe(NUMBER);
-    // A style element and a `style` attribute.
+
     expect(colorOf(tokens, "color")).toBe(PROPERTY);
     expect(colorOf(tokens, "background")).toBe(PROPERTY);
     expect(colorOf(tokens, "4")).toBe(NUMBER);
     expect(colorOf(tokens, "go")).toBe(KEYWORD);
-    // An event handler.
+
     expect(colorOf(tokens, "'x'")).toBe(STRING);
-    // A script of an unknown type stays plain text.
+
     expect(colorOf(tokens, "not code")).toBeUndefined();
     expect(colorOf(tokens, "<!-- the head -->")).toBe(COMMENT);
   });

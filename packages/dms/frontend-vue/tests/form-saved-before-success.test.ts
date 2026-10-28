@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import { FormEvents } from "../layers/dms-ui/app/composables/form/types/events";
@@ -22,7 +24,7 @@ function setupForm(onSaved: () => void) {
         fields: FIELDS,
         fetchUrl: "/api/invites/get?id=invite-1",
         submitUrl: "/api/invites/edit?id=invite-1",
-      } as never,
+      },
       { onSaved },
     ),
   )!;
@@ -35,7 +37,7 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("HttpMethod", HttpMethod);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -48,11 +50,15 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent }));
-  // The real one: it sends the submit events the watch rules react to.
+
   vi.stubGlobal("useEventedAction", useEventedAction);
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial }),
     }),
@@ -67,13 +73,10 @@ afterEach(() => {
 });
 
 describe("DMS form announcing a successful submit", () => {
-  // A form page goes back to its list on the success event: announced while
-  // the form still held its changes, the leave guard asked to discard them
-  // although they were saved, and the page stayed open behind its dialog.
   it("holds nothing unsaved once the success event goes out", async () => {
     const steps: string[] = [];
     const form = setupForm(() => steps.push("saved"));
-    let savedValues: unknown;
+    let savedValues: typeof form.initialValues.value | undefined;
     sendComponentEvent.mockImplementation((event: string) => {
       if (event !== FormEvents.SUBMIT_SUCCESS) return;
       steps.push("success");
@@ -83,9 +86,8 @@ describe("DMS form announcing a successful submit", () => {
     const edited = { roles: ["auditor", "finance"] };
     Object.assign(form.state.value, edited);
 
-    await form.onSubmit({ data: edited } as never);
+    await form.onSubmit(formSubmitEvent(edited));
 
-    // The record read back afterwards saves it again, after the event.
     expect(steps.slice(0, 2)).toEqual(["saved", "success"]);
     expect(savedValues).toEqual(edited);
     expect(form.submitSucceeded.value).toBe(true);
@@ -98,7 +100,7 @@ describe("DMS form announcing a successful submit", () => {
     form.initialValues.value = { roles: ["auditor"] };
     Object.assign(form.state.value, { roles: [] });
 
-    await form.onSubmit({ data: { roles: [] } } as never);
+    await form.onSubmit(formSubmitEvent({ roles: [] }));
 
     expect(onSaved).not.toHaveBeenCalled();
     expect(sendComponentEvent).not.toHaveBeenCalledWith(

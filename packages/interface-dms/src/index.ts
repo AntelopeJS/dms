@@ -1,12 +1,3 @@
-// The DMS interface root. It re-exports the public surface of the `dms`
-// interface modules; the domain folders (`auth`, `base`, `notifications`,
-// `html-render`) and the database layer (`db`, `data-controllers`) keep their
-// own subpaths, since they register schemas and controllers as they evaluate.
-//
-// Modules that carry an `internal` implementation namespace are re-exported by
-// name: `internal` is the hook `ImplementInterface` binds, every module declares
-// its own, and merging them here would be both ambiguous and wrong. Reach it
-// through the module's own subpath.
 export {
   AttachmentField,
   AttachmentSaveRequest,

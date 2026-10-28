@@ -1,21 +1,22 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import { getRegisteredSubjects } from "../../implementations/dms-notifications/registry";
+import { getRegisteredSubjects } from "../../utils/notification-registry/index";
 import {
   UserNotificationPreferences,
   userNotificationPreferencesTableName,
 } from "../tables";
 
-const buildDefaultPreferences = (): Record<string, boolean> => {
-  const subjects = getRegisteredSubjects();
-  const preferences: Record<string, boolean> = {};
+const buildDefaultPreferences =
+  (): UserNotificationPreferences["preferences"] => {
+    const subjects = getRegisteredSubjects();
+    const preferences: Record<string, boolean> = {};
 
-  for (const subject of subjects) {
-    const key = `${subject.category.id}:${subject.id}`;
-    preferences[key] = true;
-  }
+    for (const subject of subjects) {
+      const key = `${subject.category.id}:${subject.id}`;
+      preferences[key] = true;
+    }
 
-  return preferences;
-};
+    return preferences;
+  };
 
 export class UserNotificationPreferencesModel extends BasicDataModel(
   UserNotificationPreferences,
@@ -117,6 +118,7 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
 
     const hasValidPreferences =
       existing &&
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Legacy stored preferences can be missing or malformed; preserve the existing object check and default repair path.
       typeof existing.preferences === "object" &&
       existing.preferences !== null;
 
@@ -127,10 +129,8 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     if (existing) {
       const defaultPreferences = buildDefaultPreferences();
       await this.updatePreferences(userId, defaultPreferences);
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+
+      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the existing repaired row's own persisted fields and replacement preferences without introducing prototype methods into its return value.
       return { ...existing, preferences: defaultPreferences };
     }
 

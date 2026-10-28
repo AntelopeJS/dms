@@ -4,15 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 import { ABSENT_VALUE_TEXT } from "../layers/dms-ui/app/composables/chart/formatValue";
-
-// A period the query measured nothing in: the response carries its series and no
-// figure at all, which is what the contract answers rather than a zero.
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ series: [{ name: "Revenue", data: [] }] }),
-    isLoading: ref(false),
-  }),
-}));
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const Slot = defineComponent({
   setup:
@@ -36,11 +28,6 @@ function stubNuxt() {
     locale: ref("en-US"),
     t: (key: string) => key,
   }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 }
 
 type CardProps = InstanceType<typeof ChartCard>["$props"];
@@ -52,11 +39,13 @@ async function renderCards() {
     componentId: "card",
     pageId: "absent",
     valueFormat: "currency",
+    fetchUrl: "/revenue",
   };
   const app = createSSRApp({
     render: () => h("main", [h(ChartCard, props), h(KpiCard, props)]),
   });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
+  await chartRuntime(app, { series: [{ name: "Revenue", data: [] }] });
   return renderToString(app);
 }
 

@@ -1,8 +1,12 @@
+import {
+  isObject as isObjectType,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import { HTTP_NOT_FOUND } from "../../../../dms-core/app/utils/http-status";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import type { BlockAction } from "../components/blocks/BlockActions.vue";
 import { userFacingText } from "../composables/confirm/actionError";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** Translation key of the not-found title, shared by blocks and guards. */
 export const NOT_FOUND_TITLE_KEY = "dms.blocks.not_found";
@@ -36,8 +40,11 @@ interface FetchFailure {
   data?: unknown;
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- This representation guard accepts arbitrary thrown and response values; FetchFailure cannot replace the open property lookup result. */
+const isObject = (
+  value: Parameters<typeof isObjectType>[0],
+): value is Record<string, unknown> => isObjectType(value) && value !== null;
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 const statusOf = (error: FetchFailure): number | undefined =>
   error.statusCode ?? error.status ?? error.response?.status;
@@ -47,17 +54,17 @@ const statusOf = (error: FetchFailure): number | undefined =>
  * other way (network, refusal, crash): a 404 is the server's final word that
  * what is read does not exist, not a load error to retry.
  */
-export function readFetchNotFound(error: unknown): FetchNotFound | null {
+export function readFetchNotFound(
+  error: Parameters<typeof isObject>[0],
+): FetchNotFound | null {
   if (!isObject(error)) return null;
-  const failure = error as FetchFailure;
+  const failure: Parameters<typeof statusOf>[0] = error;
   if (statusOf(failure) !== HTTP_NOT_FOUND) return null;
   const data = failure.data ?? failure.response?._data;
   const body = isObject(data) ? data : {};
   return {
-    message: typeof body.message === "string" ? body.message : undefined,
-    emptyState: isObject(body.emptyState)
-      ? (body.emptyState as NotFoundEmptyState)
-      : undefined,
+    message: isString(body.message) ? body.message : undefined,
+    emptyState: isObject(body.emptyState) ? body.emptyState : undefined,
   };
 }
 
@@ -69,7 +76,7 @@ export function readFetchNotFound(error: unknown): FetchNotFound | null {
 export function notFoundTexts(
   notFound: FetchNotFound | null | undefined,
   translate: I18nTranslate,
-): { title: string; description: string } {
+) {
   return {
     title: translate(NOT_FOUND_TITLE_KEY, {}),
     description:

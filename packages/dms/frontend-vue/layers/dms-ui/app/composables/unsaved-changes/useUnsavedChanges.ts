@@ -44,7 +44,7 @@ export interface UseUnsavedChangesReturn {
 function resolveElement(source: ElementSource): Element | null {
   if (!source) return null;
   if (source instanceof Element) return source;
-  const element = (source as ComponentPublicInstance).$el;
+  const element = source.$el;
   return element instanceof Element ? element : null;
 }
 
@@ -62,7 +62,7 @@ export function useDiscardChangesPrompt(): () => Promise<boolean> {
       description: t("dms.leave_guard.description"),
       confirmLabel: t("dms.leave_guard.discard"),
       cancelLabel: t("dms.leave_guard.keep_editing"),
-      // Staying is the safe answer: Enter keeps editing.
+
       initialFocus: "cancel",
       color: "warning",
       icon: "i-ph-warning",
@@ -100,13 +100,10 @@ export function useUnsavedChanges(
     revisit: (href) => router.push(href),
   });
 
-  // A discarded form asks again once it was clean in between (another role
-  // picked in the editor, then edited).
   watch(isDirty, (dirty) => {
     if (!dirty) entry.released = false;
   });
 
-  // The drawer or modal runs its guards before closing.
   const removeGuard = containerId
     ? useLeaveGuard().addGuard(containerId, () => confirmLeave({ containerId }))
     : undefined;

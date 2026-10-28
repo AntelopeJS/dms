@@ -18,8 +18,6 @@ function createRegistry(): PeriodScopeRegistry {
   return markRaw({ scopes: new Map(), version: ref(0) });
 }
 
-// A browser tab runs one application, whose scopes every caller shares; a
-// server renders many requests at once, each with its own scopes.
 const browserRegistry = createRegistry();
 
 function usePeriodScopeRegistry(): PeriodScopeRegistry {

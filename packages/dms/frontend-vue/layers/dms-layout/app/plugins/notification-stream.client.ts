@@ -2,6 +2,8 @@ import type {
   FeedCounts,
   UserNotification,
 } from "../composables/notification/useNotifications";
+import type { RealtimeEvent } from "#dms-core/app/composables/realtime/useUserRealtime";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 
 const NOTIFICATION_TOPIC_PREFIX = "notifications:user:";
 const NOTIFICATION_NEW_TYPE = "notification:new";
@@ -19,9 +21,7 @@ interface IncomingPayload {
 const isNotificationEvent = (
   event: unknown,
 ): event is { type: string; payload?: IncomingPayload } =>
-  !!event &&
-  typeof event === "object" &&
-  typeof (event as Record<string, unknown>).type === "string";
+  !!event && isObject(event) && isString(event.type);
 
 type Handler = (payload: IncomingPayload | undefined) => void | Promise<void>;
 
@@ -35,7 +35,7 @@ export default defineDmsPlugin(() => {
   } = useNotifications();
   const realtime = useUserRealtime();
 
-  const handlers: Record<string, Handler> = {
+  const handlers: Record<RealtimeEvent["type"], Handler> = {
     [NOTIFICATION_NEW_TYPE]: (payload) => {
       if (payload?.notification)
         handleIncomingNotification(payload.notification);

@@ -16,10 +16,10 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
-import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 
 const SCHEMA = "relation-cycles-test";
@@ -124,7 +124,7 @@ relateTo(MemberAPI, "team", TeamAPI);
 
 interface RelationOptions {
   searchUrl?: string;
-  addForm?: { options?: unknown };
+  addForm?: SerializedForm;
 }
 
 interface SerializedForm {
@@ -133,25 +133,58 @@ interface SerializedForm {
   };
 }
 
-type TableOptions = TableViewOptionsSerialized & {
-  columns: {
-    id: string;
-    type?: { inputComponent: { options?: RelationOptions } };
-  }[];
-};
+const relationOptionsSchema: z.ZodType<RelationOptions> = z.lazy(() =>
+  z.object({
+    searchUrl: z.string().optional(),
+    addForm: formSchema.optional(),
+  }),
+);
+
+const formSchema: z.ZodType<SerializedForm> = z.object({
+  options: z
+    .object({
+      fields: z
+        .array(
+          z.object({
+            id: z.string(),
+            component: z.object({ options: relationOptionsSchema.optional() }),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+});
+
+const tableOptionsSchema = z.object({
+  columns: z.array(
+    z.object({
+      id: z.string(),
+      type: z
+        .object({
+          inputComponent: z.object({
+            options: relationOptionsSchema.optional(),
+          }),
+        })
+        .optional(),
+    }),
+  ),
+  formComponents: z.object({ new: formSchema.optional() }),
+});
+
+type TableOptions = z.infer<typeof tableOptionsSchema>;
 
 function tableOptions(controller: ControllerClass): TableOptions {
-  // SAFETY: a TableView serializes its columns with their data types.
-  return TableView(controller).serializeSync().options as TableOptions;
+  return tableOptionsSchema.parse(
+    TableView(controller).serializeSync().options,
+  );
 }
 
 function relationOptions(
-  form: { options?: unknown } | undefined,
+  form: SerializedForm | undefined,
   id: string,
 ): RelationOptions | undefined {
-  // SAFETY: a serialized Form, the add form included, holds its fields there.
-  const fields = (form as SerializedForm | undefined)?.options?.fields;
-  return fields?.find((field) => field.id === id)?.component.options;
+  return form?.options?.fields?.find((field) => field.id === id)?.component
+    .options;
 }
 
 function columnSearchUrl(
@@ -179,9 +212,10 @@ describe("[unit] interfaces/dms-base/table-view-relation-cycles — cyclic relat
     });
 
     it("nests the add form once, without the add form that loops", () => {
-      const { formComponents } = tableOptions(EmployeeAPI);
-
-      const manager = relationOptions(formComponents.new, "manager");
+      const manager = relationOptions(
+        tableOptions(EmployeeAPI).formComponents.new,
+        "manager",
+      );
       expect(manager?.searchUrl).to.equal(
         "/relation-cycles-test/employees/select",
       );
@@ -212,9 +246,10 @@ describe("[unit] interfaces/dms-base/table-view-relation-cycles — cyclic relat
     });
 
     it("keeps the add form of the other table and leaves out the one back", () => {
-      const { formComponents } = tableOptions(TeamAPI);
-
-      const lead = relationOptions(formComponents.new, "lead");
+      const lead = relationOptions(
+        tableOptions(TeamAPI).formComponents.new,
+        "lead",
+      );
       const team = relationOptions(lead?.addForm, "team");
       expect(team?.searchUrl).to.equal("/relation-cycles-test/teams/select");
       const back = relationOptions(team?.addForm, "lead");

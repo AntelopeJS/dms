@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { SelectItem } from "@nuxt/ui";
-import StageCard from "../../../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import type { OnboardingPlatform } from "../../../composables/onboarding/steps";
 import StepMeta from "../StepMeta.vue";
 import {
@@ -39,7 +39,6 @@ const schema = useLocalizedSchema(
 const form = useTemplateRef<LiveFormHandle>("form");
 useLiveFormErrors(form, platform.value);
 
-// Read in the browser: the server render does not know the public address.
 const host = ref("");
 const isSecure = ref(false);
 

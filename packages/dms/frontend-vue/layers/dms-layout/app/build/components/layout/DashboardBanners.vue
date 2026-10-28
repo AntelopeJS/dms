@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsBlockActions from "#dms-ui/app/build/components/blocks/BlockActions.vue";
+import DmsBlockActions from "#dms-ui/app/entries/components/blocks/BlockActions";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
 /**
@@ -13,8 +13,6 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
 const { banners, dismiss } = useLayoutBanners();
 const { processText } = useComposedText();
 
-// Rows read as tinted bands (design .banner strip): no ring, the colour kept
-// for the icon and the hairline between stacked rows.
 const ROW_SEPARATOR: Record<LayoutBannerVariant, string> = {
   info: "border-info/40",
   warning: "border-warning/40",

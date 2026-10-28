@@ -1,4 +1,5 @@
 import { computed, type ComputedRef } from "vue";
+import { isNumber } from "#dms-core/app/utils/type-check";
 import { useChartFetch } from "../../../composables/chart/useChartFetch";
 import { useComponentEvent } from "../../../../../dms-core/app/composables/components/useComponentEvent";
 import { useWatch } from "../../../../../dms-core/app/composables/watch/useWatch";
@@ -85,7 +86,7 @@ export function useBlockItems<T>(
     isFetched ? (data.value?.items ?? []) : (options.items() ?? []),
   );
   const count = computed<number | undefined>(() =>
-    typeof data.value?.count === "number" ? data.value.count : undefined,
+    isNumber(data.value?.count) ? data.value.count : undefined,
   );
   const isPending = computed(
     () => isFetched && isLoading.value && data.value === null,

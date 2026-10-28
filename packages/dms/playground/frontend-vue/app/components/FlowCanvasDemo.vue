@@ -45,8 +45,6 @@ interface StageSpec {
   data: DemoNodeData;
 }
 
-// A small pipeline spread over five columns with one branch, so fitting the
-// view lands near 100 % instead of blowing three nodes up to the maximum zoom.
 const STAGES: StageSpec[] = [
   {
     id: "trigger",

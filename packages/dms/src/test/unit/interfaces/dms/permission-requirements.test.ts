@@ -5,14 +5,9 @@ import { registerTableViewActions } from "@antelopejs/interface-dms/base/table-v
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import { permissionMap } from "@antelopejs/interface-dms/page/internal/registry";
-// Wires the permission id an action reads off its component.
+
 import "@antelopejs/interface-dms/page/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-
-// A table's edit form loads its row through the view route: a role holding
-// the edit without the view opened the form empty. The edit declares the
-// view as a dependency, and so does the export, which writes fields past the
-// columns; a saved role is completed with them.
 
 const PAGE = "prq-crm.contacts";
 const TABLE = `${PAGE}.table`;
@@ -31,7 +26,7 @@ const REGISTERED = [
   { id: TABLE, title: "Table" },
   { id: VIEW, title: "View" },
   { id: EDIT, title: "Edit", dependencies: [VIEW] },
-  // A dependency elsewhere in the tree, itself depending on another.
+
   { id: EXPORT, title: "Export", dependencies: [AUDIT_VIEW] },
   { id: "prq-audit", title: "Audit" },
   { id: AUDIT_PAGE, title: "Log" },
@@ -165,7 +160,7 @@ describe("[unit] interfaces/dms-base/table-view — the actions reached from the
     expect(permissions.add?.dependencies).to.equal(undefined);
     expect(permissions.edit?.dependencies).to.deep.equal([VIEW]);
     expect(permissions.view?.dependencies).to.equal(undefined);
-    // Pressed from the rows whatever the forms do.
+
     expect(permissions.delete?.dependencies).to.deep.equal([LIST]);
     expect(permissions.export?.dependencies).to.deep.equal([VIEW, LIST]);
   });

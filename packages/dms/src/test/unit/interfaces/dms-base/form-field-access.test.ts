@@ -54,12 +54,10 @@ class OrderAPI extends DataController(
   @Model(OrderModel)
   declare model: OrderModel;
 
-  // Set when the order is created, never changed after.
   @Column({ name: "Reference", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite, { edit: AccessMode.ReadOnly })
   declare reference: string;
 
-  // Set by the server on creation, chosen afterwards.
   @Column({
     name: "Customer",
     type: new DefaultDataTypes.StringType(),
@@ -68,7 +66,6 @@ class OrderAPI extends DataController(
   @Access(AccessMode.ReadWrite, { new: AccessMode.ReadOnly })
   declare customer: string;
 
-  // Read-only but for the new form.
   @Column({ name: "Status", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadOnly, { new: AccessMode.ReadWrite })
   declare status: string;
@@ -91,6 +88,7 @@ class OrderAPI extends DataController(
 
 function formFields(mode: "new" | "edit" | "view"): Map<string, FormField> {
   const meta = GetMetadata(OrderAPI, TableViewMeta);
+  // SAFETY: OrderAPI declares only ungrouped columns; getFormFields includes groups in its return type for other controllers.
   const fields = meta.getFormFields(mode) as FormField[];
   return new Map(fields.map((field) => [field.id, field]));
 }

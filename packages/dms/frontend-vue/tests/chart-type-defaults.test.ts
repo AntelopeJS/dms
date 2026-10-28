@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
+import type { ApexOptions } from "apexcharts";
 
 const DEALS: ChartSeries[] = [
   {
@@ -13,16 +14,22 @@ const DEALS: ChartSeries[] = [
   },
 ];
 
-type Section = Record<string, unknown>;
-type LabelFormatter = (value: unknown, context: unknown) => unknown;
+type Section = ReturnType<typeof useApexChart>["options"]["value"];
+type LabelFormatter = NonNullable<
+  NonNullable<ApexOptions["dataLabels"]>["formatter"]
+>;
 
 function optionsFor(input: Partial<UseApexChartInput>): Section {
   return useApexChart(() => ({ type: "line", series: [], ...input })).options
     .value;
 }
 
-function sectionOf(options: Section, key: string): Section {
-  return options[key] as Section;
+function sectionOf<Key extends keyof ApexOptions>(
+  options: Section,
+  key: Key,
+): NonNullable<ApexOptions[Key]> {
+  // SAFETY: The tested keys are generated Apex sections or object-shaped raw overrides supplied by these fixtures.
+  return options[key] as NonNullable<ApexOptions[Key]>;
 }
 
 function labelContext(dataPointIndex: number) {
@@ -83,7 +90,7 @@ describe("scatter points", () => {
       optionsFor({ type: "scatter", series: DEALS, showLabels: true }),
       "dataLabels",
     );
-    const format = labels.formatter as LabelFormatter;
+    const format: LabelFormatter = labels.formatter!;
     expect(format(120, labelContext(0))).toBe("Acme");
     expect(format(340, labelContext(1))).toBe(340);
   });

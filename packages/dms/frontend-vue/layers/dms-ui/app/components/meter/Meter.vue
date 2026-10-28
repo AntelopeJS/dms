@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 
 /**
@@ -60,7 +60,7 @@ interface MeterProps {
 
 interface MeterSlots {
   /** Extra legend content, pushed right (a "Manage" link). */
-  "legend-end"?: () => unknown;
+  "legend-end"?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<MeterProps>(), {
@@ -94,13 +94,12 @@ const FILL_CLASSES: Record<MeterTone, string> = {
   info: "bg-info",
 };
 
-// v2 .c-meter: a label line with the mono value, the bar, then the legend.
 const theme = tv({
   slots: {
     root: "grid min-w-0 gap-1.5",
     top: "flex min-w-0 items-baseline gap-2 text-[13px]",
     label: "text-toned",
-    // One line beside the label; wraps on a phone rather than being cut.
+
     hint: "text-dimmed truncate text-xs max-sm:whitespace-normal",
     value: "text-toned ms-auto font-mono text-xs font-semibold tabular-nums",
     track: "bg-accented flex w-full gap-0.5 overflow-hidden rounded-full",
@@ -160,7 +159,7 @@ const drawn = computed<DrawnSegment[]>(() => {
     return [
       {
         width: totalPercent.value,
-        // A lone fill keeps the rounded end of the track.
+
         className: `${FILL_CLASSES[singleTone.value]} rounded-[inherit]`,
       },
     ];

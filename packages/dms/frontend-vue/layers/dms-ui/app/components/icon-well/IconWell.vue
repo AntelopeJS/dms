@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import { DMS_TONE_WELL } from "../../build/utils/tone";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type IconWellSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 /**
@@ -32,7 +32,7 @@ interface IconWellProps {
 
 interface IconWellSlots {
   /** Replaces the icon (initials, a glyph, a spinner…). */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<IconWellProps>(), {
@@ -43,7 +43,6 @@ const props = withDefaults(defineProps<IconWellProps>(), {
 });
 defineSlots<IconWellSlots>();
 
-// v2 .icon-well: a tinted rounded tile with an inset 1px line of its tone.
 const theme = tv({
   slots: {
     root: "grid shrink-0 place-items-center ring-1 ring-inset",

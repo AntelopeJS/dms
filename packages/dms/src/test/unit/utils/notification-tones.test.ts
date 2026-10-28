@@ -3,7 +3,7 @@ import {
   backupCodeUsedTone,
   LOW_BACKUP_CODES,
   rolesChangedTone,
-} from "../../../utils/notification-tones";
+} from "../../../utils";
 
 describe("[unit] utils/notification-tones", () => {
   it("turns a backup code alert into an error once codes run low", () => {

@@ -1,3 +1,7 @@
+import {
+  isString,
+  isNumber,
+} from "../../../../../dms-core/app/utils/type-check";
 import { readonly, ref, type Ref } from "vue";
 
 interface PublishedEvent {
@@ -8,17 +12,15 @@ interface PublishedEvent {
 function rowKeysOf(event: PublishedEvent): string[] {
   const ids = event.payload?.ids;
   if (!Array.isArray(ids)) return [];
-  const topic = typeof event.topic === "string" ? event.topic : "";
+  const topic = isString(event.topic) ? event.topic : "";
   return ids
-    .filter((id) => typeof id === "string" || typeof id === "number")
+    .filter((id) => isString(id) || isNumber(id))
     .map((id) => JSON.stringify([topic, id]));
 }
 
 function batchCountOf(event: PublishedEvent): number | null {
   const count = event.payload?.count;
-  return typeof count === "number" && Number.isInteger(count) && count > 0
-    ? count
-    : null;
+  return isNumber(count) && Number.isInteger(count) && count > 0 ? count : null;
 }
 
 /**
@@ -38,12 +40,13 @@ export class MissedTally {
   /** The rows and events counted since the last reset. */
   readonly total: Readonly<Ref<number>> = readonly(this.count);
 
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Any object is an event identity, including events without payload fields; narrowing to a transport shape would reject supported callers.
   add(event: object | undefined): void {
     if (event) {
       if (this.events.has(event)) return;
       this.events.add(event);
     }
-    this.count.value += this.weightOf(event as PublishedEvent | undefined);
+    this.count.value += this.weightOf(event);
   }
 
   reset(): void {

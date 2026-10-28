@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import type { ButtonProps } from "@nuxt/ui";
 import { buttonLinkProps } from "../../utils/link";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
+import type { BlockAction } from "#dms-core/app/entries/types/block-action";
 
-/** A link button a block option declares (interface-dms `BlockLinkAction`). */
-export interface BlockAction {
-  label: string;
-  /** Route, `#anchor` or URL; an absolute URL opens in a new tab. */
-  to: string;
-  icon?: string;
-  variant?: ButtonProps["variant"];
-  color?: Tone;
-}
+export type { BlockAction } from "#dms-core/app/entries/types/block-action";
 
 /**
  * A button running a target (interface-dms `BannerButtonAction`): the block
@@ -27,11 +20,6 @@ export interface BlockButtonAction
 /** A link or a button a block offers. */
 export type BlockActionItem = BlockAction | BlockButtonAction;
 
-// The buttons of a display block (empty state, banner, card head): links, and
-// in a banner, buttons running a target, which the block runs on `press`. One
-// action leads (`leadVariant` / `leadColor`): the first, or the last in a
-// banner where the main action sits right-most. The others are quiet buttons,
-// unless an action sets its own look. Labels follow the `$` i18n convention.
 interface BlockActionsProps {
   actions: BlockActionItem[];
   size?: ButtonProps["size"];
@@ -58,7 +46,7 @@ const { processI18n } = useTranslation();
 const isButtonAction = (action: BlockActionItem): action is BlockButtonAction =>
   "target" in action && Boolean(action.target);
 
-function actionProps(action: BlockActionItem): Record<string, unknown> {
+function actionProps(action: BlockActionItem) {
   if (!isButtonAction(action)) return buttonLinkProps(action.to);
   return { onClick: () => emit("press", action) };
 }

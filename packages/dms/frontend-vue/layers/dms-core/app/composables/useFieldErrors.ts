@@ -4,6 +4,7 @@ import {
   resolveApiMessage,
 } from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./useApiError";
+import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
 /**
  * The dashboard's error rule: an error that belongs to one field (a value
@@ -77,6 +78,17 @@ interface FetchErrorLike {
   data?: unknown;
 }
 
+interface FieldErrorBody {
+  field?: unknown;
+  message?: unknown;
+  values?: unknown;
+  params?: unknown;
+  code?: unknown;
+  fields?: unknown;
+  issues?: unknown;
+  errors?: unknown;
+}
+
 /** A zod issue, as the API serializes it or as zod hands it to an error map. */
 export interface ValidationIssue {
   path?: unknown;
@@ -119,40 +131,44 @@ const FIELD_ERROR_KEYS = {
 /** Issue types whose size is a count (characters, items), not a value. */
 const COUNTED_TYPES = new Set(["string", "array", "set"]);
 
-// The codes the data API (`@antelopejs/interface-data-api`) refuses a body
-// with, `{ code, fields }`: the message each field shows.
-const DATA_API_CODES: Readonly<Record<string, string>> = {
+const DATA_API_CODES: Readonly<
+  Record<ReturnType<typeof resolveApiErrorMessage>, ApiFieldError["message"]>
+> = {
   missing_mandatory_fields: FIELD_ERROR_KEYS.required,
   invalid_field_types: FIELD_ERROR_KEYS.invalid,
 };
 
-// The same, naming the field: "Loss reason is required".
-const NAMED_FIELD_ERROR_KEYS: Readonly<Record<string, string>> = {
+const NAMED_FIELD_ERROR_KEYS: Readonly<
+  Record<ApiFieldError["message"], Parameters<I18nTranslate>[0]>
+> = {
   [FIELD_ERROR_KEYS.required]: "dms.field_errors.named_required",
   [FIELD_ERROR_KEYS.invalid]: "dms.field_errors.named_invalid",
 };
 
-// `name: String must contain…`: one validation issue prefixed with its field.
 const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
-// `error.invalid_2fa_code`, `page.settings.roles.error.name_taken`.
+
 const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
 
 /** The HTTP status of a fetch error; undefined for a network failure. */
-export function apiErrorStatus(error: unknown): number | undefined {
-  if (typeof error !== "object" || error === null) return undefined;
-  const { statusCode, status, response } = error as FetchErrorLike;
+export function apiErrorStatus(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): number | undefined {
+  if (!isObject(error) || error === null) return undefined;
+  const { statusCode, status, response }: FetchErrorLike = error;
   return statusCode ?? status ?? response?.status;
 }
 
 /** The error body, parsed when the server sent JSON as plain text. */
-function bodyOf(error: unknown): unknown {
-  if (typeof error !== "object" || error === null) return undefined;
-  const { data } = error as FetchErrorLike;
-  if (typeof data !== "string") return data;
+function bodyOf(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): FetchErrorLike["data"] {
+  if (!isObject(error) || error === null) return undefined;
+  const { data } = error;
+  if (!isString(data)) return data;
   const text = data.trim();
   if (!text.startsWith("[") && !text.startsWith("{")) return data;
   try {
-    return JSON.parse(text) as unknown;
+    return JSON.parse(text);
   } catch {
     return data;
   }
@@ -168,7 +184,7 @@ function tooSmallMessage(issue: ValidationIssue): string {
   if (issue.type !== undefined && !COUNTED_TYPES.has(String(issue.type))) {
     return FIELD_ERROR_KEYS.tooSmall;
   }
-  return typeof issue.minimum === "number" && issue.minimum <= 1
+  return isNumber(issue.minimum) && issue.minimum <= 1
     ? FIELD_ERROR_KEYS.required
     : FIELD_ERROR_KEYS.tooShort;
 }
@@ -178,7 +194,7 @@ function tooSmallMessage(issue: ValidationIssue): string {
  * `$dms.field_errors.*` key by issue code (zod words its own in English).
  */
 export function validationIssueMessage(issue: ValidationIssue): string {
-  if (typeof issue.message === "string" && isI18nKey(issue.message)) {
+  if (isString(issue.message) && isI18nKey(issue.message)) {
     return issue.message;
   }
   switch (issue.code) {
@@ -201,15 +217,14 @@ export function validationIssueMessage(issue: ValidationIssue): string {
   }
 }
 
-function isIssueList(body: unknown): body is ValidationIssue[] {
+function isIssueList(
+  body: ReturnType<typeof bodyOf>,
+): body is Array<ValidationIssue & { path: unknown[] }> {
   return (
     Array.isArray(body) &&
     body.length > 0 &&
     body.every(
-      (issue) =>
-        typeof issue === "object" &&
-        issue !== null &&
-        Array.isArray((issue as ValidationIssue).path),
+      (issue) => isObject(issue) && issue !== null && Array.isArray(issue.path),
     )
   );
 }
@@ -217,66 +232,61 @@ function isIssueList(body: unknown): body is ValidationIssue[] {
 /** `field.part.0` for a path reaching into a field, else undefined. */
 function partPath(path: readonly unknown[]): string | undefined {
   if (path.length < 2) return undefined;
-  return path.every((step) => ["string", "number"].includes(typeof step))
+  return path.every((step) => isString(step) || isNumber(step))
     ? path.join(".")
     : undefined;
 }
 
-function fromIssues(issues: ValidationIssue[]): ApiFieldError[] {
+function fromIssues(
+  issues: Array<ValidationIssue & { path: unknown[] }>,
+): ApiFieldError[] {
   return issues.map((issue) => {
-    const path = issue.path as unknown[];
+    const path = issue.path;
     const [field] = path;
     const part = partPath(path);
     return {
-      field: typeof field === "string" ? field : "",
+      field: isString(field) ? field : "",
       message: validationIssueMessage(issue),
       ...(part && { path: part }),
     };
   });
 }
 
-const PARAM_TYPES = new Set(["string", "number", "boolean"]);
-
 /** The placeholder values of a body, keeping only the plain ones. */
-function paramsOf(params: unknown): ApiFieldErrorParams | undefined {
-  if (typeof params !== "object" || params === null || Array.isArray(params)) {
+function paramsOf(
+  params: FieldErrorBody["params"],
+): ApiFieldErrorParams | undefined {
+  if (!isObject(params) || params === null || Array.isArray(params)) {
     return undefined;
   }
-  const entries = Object.entries(params).filter(([, value]) =>
-    PARAM_TYPES.has(typeof value),
+  const entries = Object.entries(params).filter(
+    (entry): entry is [string, ApiFieldErrorParams[string]] =>
+      isString(entry[1]) || isNumber(entry[1]) || isBoolean(entry[1]),
   );
-  return entries.length > 0
-    ? (Object.fromEntries(entries) as ApiFieldErrorParams)
-    : undefined;
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 /** `{ field, message, values?, params? }`, the shape the DMS answers with. */
-function fromFieldObject(body: Record<string, unknown>): ApiFieldError[] {
+function fromFieldObject(body: FieldErrorBody): ApiFieldError[] {
   const { field, message, values, params } = body;
-  if (typeof field !== "string" || typeof message !== "string") return [];
+  if (!isString(field) || !isString(message)) return [];
   const placeholders = paramsOf(params);
   return [
     {
       field,
       message,
-      values: Array.isArray(values)
-        ? values.filter((value): value is string => typeof value === "string")
-        : undefined,
+      values: Array.isArray(values) ? values.filter(isString) : undefined,
       ...(placeholders && { params: placeholders }),
     },
   ];
 }
 
 /** `{ code, fields }`, the data API's refusal of a body; undefined otherwise. */
-function fromCodedFields(
-  body: Record<string, unknown>,
-): ApiFieldError[] | undefined {
+function fromCodedFields(body: FieldErrorBody): ApiFieldError[] | undefined {
   const { code, fields } = body;
-  const message = typeof code === "string" ? DATA_API_CODES[code] : undefined;
+  const message = isString(code) ? DATA_API_CODES[code] : undefined;
   if (!message || !Array.isArray(fields)) return undefined;
-  return fields
-    .filter((field): field is string => typeof field === "string")
-    .map((field) => ({ field, message }));
+  return fields.filter(isString).map((field) => ({ field, message }));
 }
 
 function fromText(text: string): ApiFieldError[] {
@@ -296,11 +306,11 @@ function fromText(text: string): ApiFieldError[] {
 }
 
 /** The text code of an error body: the body itself or its `message`. */
-function codeOf(body: unknown): string | undefined {
-  if (typeof body === "string") return body;
-  if (typeof body === "object" && body !== null && !Array.isArray(body)) {
-    const { message } = body as Record<string, unknown>;
-    return typeof message === "string" ? message : undefined;
+function codeOf(body: ReturnType<typeof bodyOf>): string | undefined {
+  if (isString(body)) return body;
+  if (isObject(body) && body !== null && !Array.isArray(body)) {
+    const { message } = body;
+    return isString(message) ? message : undefined;
   }
   return undefined;
 }
@@ -313,16 +323,16 @@ function lookupCode<F extends string>(
   const bare = code.startsWith("$") ? code.slice(1) : code;
   const entry = codes[code] ?? codes[bare] ?? codes[`$${bare}`];
   if (!entry) return undefined;
-  return typeof entry === "string"
+  return isString(entry)
     ? { field: entry, message: code }
     : { field: entry.field, message: entry.message };
 }
 
-function fromBody(body: unknown): ApiFieldError[] {
+function fromBody(body: ReturnType<typeof bodyOf>): ApiFieldError[] {
   if (isIssueList(body)) return fromIssues(body);
-  if (typeof body === "string") return fromText(body);
-  if (typeof body !== "object" || body === null) return [];
-  const record = body as Record<string, unknown>;
+  if (isString(body)) return fromText(body);
+  if (!isObject(body) || body === null) return [];
+  const record: FieldErrorBody = body;
   if (isIssueList(record.issues)) return fromIssues(record.issues);
   if (isIssueList(record.errors)) return fromIssues(record.errors);
   return fromCodedFields(record) ?? fromFieldObject(record);
@@ -350,7 +360,7 @@ function isClientError(status: number | undefined): status is number {
  *   whether part of the error belongs to no field of the form
  */
 export function resolveFieldErrors<F extends string>(
-  error: unknown,
+  error: Parameters<typeof resolveApiErrorMessage>[0],
   options: ResolveFieldErrorsOptions<F>,
 ): FieldErrorResolution {
   const status = apiErrorStatus(error);
@@ -383,7 +393,7 @@ export function resolveFieldErrors<F extends string>(
  * stands in for one it does not know.
  */
 export function describeFieldErrors(
-  error: unknown,
+  error: Parameters<typeof resolveApiErrorMessage>[0],
   translate: I18nTranslate,
   labelOf: (field: string) => string | undefined,
 ): string | undefined {
@@ -392,10 +402,10 @@ export function describeFieldErrors(
     return undefined;
   }
   const body = bodyOf(error);
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+  if (!isObject(body) || body === null || Array.isArray(body)) {
     return undefined;
   }
-  const entries = fromCodedFields(body as Record<string, unknown>);
+  const entries = fromCodedFields(body);
   if (!entries?.length) return undefined;
   return entries
     .map(({ field, message }) =>
@@ -411,7 +421,9 @@ export function describeFieldErrors(
  * message key, the first validation issue's (or a generic one), else the
  * generic server error.
  */
-export function describeApiError(error: unknown): string {
+export function describeApiError(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): string {
   return apiErrorText(error) ?? resolveApiErrorMessage(error);
 }
 
@@ -420,7 +432,9 @@ export function describeApiError(error: unknown): string {
  * validation issue's), or `undefined` when it carries none (a network
  * failure).
  */
-export function apiErrorText(error: unknown): string | undefined {
+export function apiErrorText(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): string | undefined {
   const body = bodyOf(error);
   if (isIssueList(body)) return validationIssueMessage(body[0]!);
   const text = codeOf(body);
@@ -471,19 +485,20 @@ export interface HandleApiErrorOptions {
  * Bind `errors[field]` to the message element (id `errorId(field)`) and
  * `aria(field)` onto the control; call `clear(field)` when its value changes.
  */
+/* oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- Object.keys erases F. The options owner and resolveFieldErrors membership check cannot prove runtime extra keys are F. Filtering would change extra-key behavior. */
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
 ) {
   const { t } = useI18n();
   const toast = useToast();
-  const translate = (key: string, params: Record<string, unknown> = {}) =>
+  const translate = (key: string, params: Parameters<I18nTranslate>[1] = {}) =>
     t(key, params);
   const fieldIds = Object.keys(options.fields) as F[];
-  const errors = reactive({}) as Partial<Record<F, string>>;
+  const errors: Partial<Record<F, string>> = reactive({});
 
   function controlId(field: F): string {
     const control = options.fields[field];
-    return typeof control === "string" ? control : `field-${field}`;
+    return isString(control) ? control : `field-${field}`;
   }
 
   function errorId(field: F): string {
@@ -506,10 +521,9 @@ export function useFieldErrors<F extends string>(
     await nextTick();
     if (typeof document === "undefined") return;
     const control = options.fields[field];
-    const element =
-      typeof control === "string"
-        ? document.getElementById(control)
-        : control();
+    const element = isString(control)
+      ? document.getElementById(control)
+      : control();
     element?.focus();
   }
 
@@ -531,7 +545,9 @@ export function useFieldErrors<F extends string>(
    * @returns Whether the error was a field one; `false` leaves it to the
    *   caller (a toast)
    */
-  async function applyApiError(error: unknown): Promise<boolean> {
+  async function applyApiError(
+    error: Parameters<typeof resolveApiErrorMessage>[0],
+  ): Promise<boolean> {
     const { fields } = resolveFieldErrors(error, {
       fields: fieldIds,
       codes: options.codes,
@@ -548,9 +564,13 @@ export function useFieldErrors<F extends string>(
     await focus(fields[0]!.field as F);
     return true;
   }
+  /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
 
   /** The toast of an error that belongs to no field. */
-  function toastError(error: unknown, toastOptions: HandleApiErrorOptions) {
+  function toastError(
+    error: Parameters<typeof resolveApiErrorMessage>[0],
+    toastOptions: HandleApiErrorOptions,
+  ) {
     toast.add({
       title: t(toastOptions.toastTitle),
       description: toastOptions.toastDescription
@@ -566,7 +586,7 @@ export function useFieldErrors<F extends string>(
    * @returns Whether the error went under a field
    */
   async function handleApiError(
-    error: unknown,
+    error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ): Promise<boolean> {
     if (await applyApiError(error)) return true;

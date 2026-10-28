@@ -11,6 +11,7 @@ import type {
   TableRowGrouping,
 } from "../../components/table/Table.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import type { TableCountQuery } from "./useTableRows";
 import {
   dateGroupLabel,
   groupFilter,
@@ -29,11 +30,9 @@ export interface GroupedRowsOptions {
   /** The rows listed. */
   rows: ComputedRef<Data[] | undefined>;
   /** The count query of the rows listed, narrowed by one more filter. */
-  countQuery: (filter: TableFilter) => Record<string, unknown>;
+  countQuery: (filter: TableFilter) => TableCountQuery["query"];
   /** Asks the counts, by id, in one request (`count/batch`). */
-  countBatch: (
-    queries: { id: string; query: Record<string, unknown> }[],
-  ) => Promise<Record<string, number>>;
+  countBatch: (queries: TableCountQuery[]) => Promise<Record<string, number>>;
 }
 
 /**
@@ -55,8 +54,6 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const keyOf = (row: Data): string =>
     rowGroupKey(get(row, field.value), by.value, locale.value);
 
-  // A date heads its group as a mono eyebrow ("TODAY · 29 SEPT"); a value
-  // as its cell draws it, without the row's other fields.
   const eyebrow = (text: string) =>
     h("span", { class: GROUP_EYEBROW_CLASS }, text);
   const header = (key: string, row: Data) => {
@@ -84,7 +81,6 @@ export function useGroupedRows(options: GroupedRowsOptions) {
       : [],
   );
 
-  // Asked again whenever the groups listed or the rows' filters change.
   const countQueries = computed(() =>
     listedKeys.value.flatMap((key) => {
       const filter = groupFilter(field.value, key, by.value);
@@ -92,14 +88,14 @@ export function useGroupedRows(options: GroupedRowsOptions) {
     }),
   );
 
-  // Counted in the browser: a server render draws the headers without them.
   const refreshCounts = async () => {
     const queries = countQueries.value;
     if (import.meta.env.SSR || queries.length === 0) return;
+    // prettier-ignore
     try {
       counts.value = await options.countBatch(queries);
     } catch {
-      // Without its count a group header still reads.
+      // eslint-disable-line no-empty -- A failed count request leaves the group rows readable.
     }
   };
 

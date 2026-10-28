@@ -27,6 +27,7 @@ import {
 type LayoutTree = SiteLayoutPayload["siteLayoutTree"];
 
 const TENANT = "category-slug-tenant";
+// SAFETY: Category-menu access consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "category-slug-member" } as User;
 const COLLISION_MARKER = "claims the slug";
 const UNKNOWN_CATEGORY_MARKER = "targets unknown category";
@@ -105,9 +106,6 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     expect(navigable.category.urlTransparent).to.equal(false);
   });
 
-  // The registry used to be keyed by slug, so these three replaced each other
-  // and warned about it — while the declaration is exactly what `urlSlug: "/"`
-  // is for.
   it("keeps every transparent section under one parent, without warning", async () => {
     const captured = captureWarnings();
     let sections: TestCategory[] = [];
@@ -132,11 +130,6 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     }
   });
 
-  // The slug-keyed registry only held the last section registered, so
-  // unregistering any earlier one bailed out before `removeFromTree` and left
-  // a heading behind that nothing could remove short of a restart. The dropped
-  // section must therefore be registered *first* — the shadowed position is
-  // the one that used to leak.
   it("removes a transparent section from the tree when it unregisters", async () => {
     const dropped = registerTransparentSection("teardown-dropped");
     const kept = registerTransparentSection("teardown-kept");
@@ -155,9 +148,6 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     expect(findTreeNode(after.siteLayoutTree, kept.category.fullId)).to.exist;
   });
 
-  // A provider addresses its category by `fullId`. Under the slug-keyed
-  // registry a shadowed section was unreachable, and every provider targeting
-  // one was dropped as "unknown category".
   it("resolves a dynamic menu provider targeting a shadowed section", async () => {
     const first = registerTransparentSection("provider-first");
     cleanups.push(first.cleanup);
@@ -205,9 +195,6 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     expect(warnings[0]).to.include(registered[0].category.fullId);
   });
 
-  // The serialized map is what the client resolves a URL against, so a
-  // transparent section in it would answer for its parent's slug — the winner
-  // decided by module registration order.
   it("serializes every category once, keyed by full id, and names it by id", async () => {
     const section = registerTransparentSection("payload-section");
     cleanups.push(section.cleanup);
@@ -226,8 +213,7 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     expect(serialized[navigable.category.fullId]?.fullSlug).to.equal(
       navigable.category.fullSlug,
     );
-    // The browser resolves URLs against the categories that are not
-    // transparent only: it can tell them apart.
+
     expect(serialized[section.category.fullId]?.urlTransparent).to.equal(true);
     expect(serialized[navigable.category.fullId]?.urlTransparent).to.not.equal(
       true,
@@ -235,7 +221,7 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     expect(serialized[section.category.fullId]?.categoryId).to.equal(
       pagesCategory.fullId,
     );
-    // No entry carries a copy of its category: it names it.
+
     for (const entry of [
       ...Object.values(serialized),
       ...Object.values(payload.siteLayout.pages),

@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type { ModuleSourceKind } from "../../../../types/module-store";
+import type { ModuleSourceKind } from "#dms-core/app/types/module-store";
 import { MODULE_SOURCE_ICONS } from "../../../utils/module-store-catalog";
-
-// Where a module's code comes from, as a tile's footer names it: an icon
-// and a short name (npm, GitHub, GitLab, Git, Local).
 
 interface ModuleSourceLabelProps {
   source: ModuleSourceKind;

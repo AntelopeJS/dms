@@ -55,7 +55,6 @@ const tabSchema = z.object({
   icon: ui(z.string().optional(), { widget: "icon" }),
   textColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
   iconColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
-  // A page controller target is a live class: editors set a path.
   to: ui(opaqueOption<TableViewTab["to"]>().optional(), {
     label: "Link to",
     widget: "url",
@@ -146,11 +145,6 @@ const queryParamFilterSchema = paramFilterSchema.extend({
 const kanbanSchema = z.object({
   groupByField: ui(
     z.string().describe("Field the cards are grouped into columns by."),
-    // Each column is fetched with `filter_<field>`, so the field has to be
-    // filterable. It does not have to be listed: the columns themselves are
-    // built from the field's declared type — a select's items, a boolean's two
-    // labels — never from the rows. The one row read is a badge count during a
-    // drag, which goes stale rather than wrong when the field is not listed.
     { label: "Group by", widget: "field", fieldAspect: "filterable" },
   ),
   draggable: ui(z.boolean().default(true), {
@@ -164,8 +158,6 @@ const cardSchema = z.object({
   fields: ui(z.array(z.string()).optional(), {
     label: "Card fields",
     widget: "field",
-    // Resolved against the table's listable columns; an unlisted field renders
-    // as nothing at all rather than reporting anything.
     fieldAspect: "listable",
   }),
   component: ui(opaqueOption<TableViewCardOptions["component"]>().optional(), {
@@ -197,7 +189,6 @@ const displaySchema = z.object({
 const expandableFieldSchema = z.union([
   ui(z.string(), {
     widget: "field",
-    // Read straight off the listed row: an unlisted field shows an empty value.
     fieldAspect: "listable",
   }),
   z.object({
@@ -206,7 +197,7 @@ const expandableFieldSchema = z.union([
   }),
 ]);
 
-const expandableBehaviorShape = {
+const expandableBehaviorOptions = {
   defaultExpanded: ui(z.enum(["none", "first", "all"]).default("none"), {
     label: "Open on arrival",
     widget: "segmented",
@@ -221,19 +212,18 @@ const expandableBehaviorShape = {
   }),
 };
 
-// The band lists fields or renders a component, never both: one shape each.
 const expandableSchema = z.union([
   z.object({
     fields: ui(z.array(expandableFieldSchema), { label: "Detail fields" }),
     fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
-    ...expandableBehaviorShape,
+    ...expandableBehaviorOptions,
   }),
   z.object({
     component: ui(opaqueOption<TableViewExpandableComponent["component"]>(), {
       label: "Detail component",
       hidden: true,
     }),
-    ...expandableBehaviorShape,
+    ...expandableBehaviorOptions,
   }),
 ]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
@@ -321,8 +311,6 @@ export const TableViewSchema = z.object({
     label: "Row id field",
     group: "advanced",
     widget: "field",
-    // Read straight off the fetched row: an unlisted field leaves every row
-    // without an id, which breaks selection, edit, delete and copy-link.
     fieldAspect: "listable",
   }),
   labelKey: ui(
@@ -343,10 +331,6 @@ export const TableViewSchema = z.object({
     group: "features",
     flatten: true,
   }),
-  // Each button's `target` holds a live component the factory calls
-  // `serializeSync()` on, and `permission` may be an `Action`. Neither survives
-  // a JSON round-trip, so the option is read-only here — the same reason
-  // `rowActions.custom`, which has the identical shape, is hidden.
   customButtons: ui(opaqueOption<CustomButton[]>().optional(), {
     label: "Toolbar buttons",
     hidden: true,
@@ -417,7 +401,6 @@ export const TableViewSchema = z.object({
     group: "advanced",
     widget: "switch",
   }),
-  // A topic is a name the backend publishes under, which only its code knows.
   realtimeTopic: ui(
     z
       .union([z.string(), z.array(z.string())])

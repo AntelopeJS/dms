@@ -27,11 +27,10 @@ import {
 const TENANT = "warn-once-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
 const UNKNOWN_CATEGORY = "pages.warn-once-nowhere";
+// SAFETY: Menu permission resolution consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "warn-once-member" } as User;
 const PAGE_SLUG = "/warn-once-target";
 
-// One entry per row, the way a consumer provider lists projects: the message
-// names the row, so keying the cache on it would grow with the data.
 function rowsTargetingNothing(count: number): DynamicMenuItem[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `row-${index}`,
@@ -40,8 +39,6 @@ function rowsTargetingNothing(count: number): DynamicMenuItem[] {
   }));
 }
 
-// The provider only runs once its category is reachable, so the caller holds
-// that permission; the entries it returns are what these cases are about.
 async function buildLayout(): Promise<void> {
   const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
   await buildSiteLayoutPayload(MEMBER, memberModel, roleModel, TENANT);
@@ -62,8 +59,6 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
 
-    // The colliding entries must reach the merge step, so their target page
-    // has to exist and be reachable.
     cleanups.push(
       await registerTestPage(
         PageController("warn-once-target", {
@@ -75,8 +70,6 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
     );
   });
 
-  // The whole point of keying on the pattern: a provider returning a thousand
-  // broken rows reports the reason once, not a thousand times.
   it("reports one warning per reason, whatever the resolver returns", async () => {
     const captured = captureWarnings();
     const dispose = RegisterDynamicMenuProvider(CATEGORY_FULL_ID, async () =>
@@ -119,8 +112,6 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
     expect(unknown).to.have.lengthOf(1);
   });
 
-  // Each provider owns its verdicts: one reporting a reason must not silence
-  // another, and unregistering one must not make the other speak up again.
   it("keeps two providers of one category apart", async () => {
     const first = RegisterDynamicMenuProvider(CATEGORY_FULL_ID, async () =>
       rowsTargetingNothing(3),
@@ -141,7 +132,6 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
     );
     expect(targeting).to.have.lengthOf(2);
 
-    // The survivor said its piece already and stays quiet.
     first();
     const afterDispose = captureWarnings();
     try {
@@ -157,9 +147,6 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
     ).to.have.lengthOf(0);
   });
 
-  // The entries of every provider are pooled into one category, so a collision
-  // verdict keyed on that category would let the first provider to clash
-  // silence the diagnostic of every other.
   it("reports a collision to each provider whose entry was dropped", async () => {
     const collidingId = "warn-once-collision";
     const entry: DynamicMenuItem = {
@@ -187,14 +174,11 @@ describe("[unit] implementations/dms/page — warning cadence", () => {
       captured.restore();
     }
 
-    // The first entry is kept; the two that follow are dropped, and each of
-    // their providers is told.
     expect(
       captured.messages.filter((message) => message.includes("collides with")),
     ).to.have.lengthOf(2);
   });
 
-  // Staying silent forever would hide a misconfiguration that came back.
   it("reports again when a still-broken provider is registered anew", async () => {
     const first = RegisterDynamicMenuProvider(UNKNOWN_CATEGORY, async () => []);
     await buildLayout();

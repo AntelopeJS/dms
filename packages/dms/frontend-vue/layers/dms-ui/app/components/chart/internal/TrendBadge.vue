@@ -62,7 +62,6 @@ function directionOf(delta: number | null | undefined): TrendTone {
   return delta > 0 ? "up" : "down";
 }
 
-// The arrow follows the raw direction; the colour follows the meaning.
 const direction = computed(() => directionOf(props.delta));
 const tone = computed(() =>
   props.invert ? INVERTED_TONE[direction.value] : direction.value,

@@ -1,8 +1,6 @@
 import type { Class } from "@antelopejs/interface-core/decorators";
 import type { ColumnDisplay, ColumnDisplaySerialized } from "../column-display";
 
-// Weak: a hot reload registers a module's displays again as new classes, and
-// the replaced ones must not stay reachable through this lookup.
 /** @internal */
 export const displayIds = new WeakMap<Class<ColumnDisplay<object>>, string>();
 
@@ -36,6 +34,10 @@ export function serializeColumnDisplay(
   }
   const { options } = display;
   return options
-    ? { type, options: options as Record<string, unknown> }
+    ? {
+        type,
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published display envelope requires a dictionary, but ColumnDisplay<object> does not prove an index signature; module-owned options pass through unchanged.
+        options: options as NonNullable<ColumnDisplaySerialized["options"]>,
+      }
     : { type };
 }

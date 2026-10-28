@@ -1,8 +1,3 @@
-// The options of the `ResourceForm` block, declared without loading the table
-// view runtime, so builder tooling reads the block from the catalog alone. The
-// factory lives with the forms it shares with `TableView`, in
-// `table-view/resource-form`.
-
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";

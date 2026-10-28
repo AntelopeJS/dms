@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { AutomationRegistrationLifecycle } from "../../automation/registration-lifecycle";
+import { AutomationRegistrationLifecycle } from "../../automation";
 
 describe("AutomationRegistrationLifecycle", () => {
   it("retries cleanup after a teardown operation fails", () => {

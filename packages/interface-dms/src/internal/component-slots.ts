@@ -19,21 +19,29 @@ export const COMPONENT_SLOT_KEY = "slotId";
 /** @internal */
 export const slotResolvers = new Map<string, ComponentSlotResolver>();
 
-function resolvableSlotIdOf(node: unknown): string | undefined {
+function resolvableSlotIdOf(
+  node: Parameters<ComponentSlotResolver>[0][string],
+): string | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized option trees contain primitives and arrays as well as slot-bearing objects.
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return undefined;
   }
-  const slotId = (node as SlotOptions)[COMPONENT_SLOT_KEY];
+  const slot: Partial<Pick<SlotOptions, typeof COMPONENT_SLOT_KEY>> = node;
+  const slotId = slot[COMPONENT_SLOT_KEY];
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A serialized slot id must be a registered string; other option values remain ordinary data.
   if (typeof slotId !== "string" || !slotResolvers.has(slotId)) {
     return undefined;
   }
   return slotId;
 }
 
-function hasResolvableSlot(node: unknown): boolean {
+function hasResolvableSlot(
+  node: Parameters<ComponentSlotResolver>[0][string],
+): boolean {
   if (Array.isArray(node)) {
     return node.some(hasResolvableSlot);
   }
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursion stops at primitive leaves without parsing or changing consumer options.
   if (!node || typeof node !== "object") {
     return false;
   }
@@ -48,11 +56,14 @@ function hasResolvableSlot(node: unknown): boolean {
  * what a resolver contributes is never walked again, which would let a
  * contribution declaring the slot it was contributed to loop forever.
  */
-async function resolveNode(node: unknown): Promise<void> {
+async function resolveNode(
+  node: Parameters<ComponentSlotResolver>[0][string],
+): Promise<void> {
   if (Array.isArray(node)) {
     for (const item of node) await resolveNode(item);
     return;
   }
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only objects in the serialized options tree have children or mutable slot options.
   if (!node || typeof node !== "object") {
     return;
   }
@@ -62,15 +73,13 @@ async function resolveNode(node: unknown): Promise<void> {
   const resolver = slotId ? slotResolvers.get(slotId) : undefined;
   if (!resolver) return;
 
+  // SAFETY: node is a non-null object and SlotOptions imposes no value constraint on its keys.
   const target = node as SlotOptions;
   try {
     const resolved = await resolver(target);
     if (resolved === target) return;
     for (const key of Object.keys(target)) delete target[key];
     Object.assign(target, resolved);
-    // A resolver that throws leaves the component as its author declared it:
-    // the screen still renders, without the contribution. Failing the whole
-    // layout would take down a page over a contributor's bug.
   } catch (error) {
     Logging.Error(
       `[dms] component slot "${slotId}" could not be resolved:`,

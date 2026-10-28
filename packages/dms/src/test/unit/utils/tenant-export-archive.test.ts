@@ -10,7 +10,8 @@ import {
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
-import { buildTenantExportArchive } from "../../../utils/tenant-export-archive";
+import { buildTenantExportArchive } from "../../../utils";
+import { readText } from "../../helpers/files";
 
 const TENANT_ID = "tenant-1";
 
@@ -33,9 +34,8 @@ async function build(signal?: AbortSignal) {
     localPath,
     signal: signal ?? new AbortController().signal,
   });
-  // Entry names sit uncompressed in the local file headers, so scanning the
-  // raw bytes is enough to assert the archive layout without a zip reader.
-  const raw = fs.readFileSync(localPath).toString("latin1");
+
+  const raw = readText(localPath, "latin1");
   fs.rmSync(localPath, { force: true });
   return { summary, raw };
 }
@@ -163,7 +163,7 @@ describe("[unit] utils/tenant-export-archive", () => {
     await build();
     const late = await escaped
       ?.addJson("late.json", {})
-      .catch((error: unknown) => error);
+      .catch((error) => error);
 
     expect(late).to.be.instanceOf(Error);
   });
@@ -175,11 +175,9 @@ describe("[unit] utils/tenant-export-archive", () => {
       throw new Error("contributor noticed the abort");
     });
 
-    const failure = await build(controller.signal).catch(
-      (error: unknown) => error,
-    );
+    const failure = await build(controller.signal).catch((error) => error);
 
     expect(failure).to.be.instanceOf(Error);
-    expect((failure as Error).message).to.equal("cancelled by user");
+    expect(failure.message).to.equal("cancelled by user");
   });
 });

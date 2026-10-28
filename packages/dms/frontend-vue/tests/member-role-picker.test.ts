@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -10,12 +10,13 @@ import {
   onMounted,
   provide,
   ref,
+  type VNode,
 } from "vue";
 import {
   formFieldInjectionKey,
   formStateInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
-import { sameFormValue } from "../layers/dms-ui/app/build/composables/unsaved-changes/formValue";
+import { sameFormValue } from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const ROLES_URL = "/settings/workspace/members/role-options";
@@ -29,14 +30,14 @@ const ROLE_OPTIONS = {
 };
 
 const fieldError = ref<string | undefined>();
-const formState = ref<Record<string, unknown>>({});
+const formState = ref<{ isTenantOwner?: boolean }>({});
 const model = ref<string[] | null | undefined>([]);
 const authFetch = vi.fn();
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
-const translate = (key: string, named?: Record<string, unknown>) =>
+const translate = (key: string, named?: import("vue-i18n").NamedValue) =>
   named ? `${key} ${Object.values(named).join("/")}` : key;
 
 async function flush(): Promise<void> {
@@ -44,9 +45,9 @@ async function flush(): Promise<void> {
 }
 
 /** The picker inside a UFormField named `roleIds`, as a form renders it. */
-async function mountPicker(props: Record<string, unknown> = {}) {
+async function mountPicker(props: NonNullable<VNode["props"]> = {}) {
   const { default: MemberRolePicker } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/members/MemberRolePicker"
   );
   const Field = defineComponent({
     setup() {
@@ -56,7 +57,7 @@ async function mountPicker(props: Record<string, unknown> = {}) {
           name: "roleIds",
           error: fieldError.value,
           ariaId: "field-roles",
-        })) as never,
+        })),
       );
       provide(
         formStateInjectionKey,
@@ -141,7 +142,7 @@ it("offers the server's roles and picks and unpicks them", async () => {
   await toggle("Admin");
   expect(model.value).toEqual(["finance", "admin"]);
   expect(pressed()).toEqual(["Admin", "Finance"]);
-  // Permissions granted by both roles count once.
+
   expect(hint()).toContain(
     "page.settings.members.invite.roles_hint Admin + Finance/4/10",
   );
@@ -178,12 +179,11 @@ it("rings the unpicked pills and marks the group invalid on a field error", asyn
   expect(group.getAttribute("aria-describedby")).toBe("field-roles-error");
   expect(pill("Finance").className).toContain("border-error");
   expect(pill("Support").className).toContain("border-error");
-  // A picked role keeps its picked look.
+
   expect(pill("Admin").className).not.toContain("border-error");
 });
 
 it("puts a role picked again back in its loaded place, leaving the form clean", async () => {
-  // As the members data API loads them: `{ _id, name }` each.
   const loaded = [
     { _id: "support", name: "Support" },
     { _id: "admin", name: "Admin" },
@@ -201,7 +201,6 @@ it("puts a role picked again back in its loaded place, leaving the form clean", 
   expect(model.value).toEqual(["support", "admin"]);
   expect(sameFormValue(model.value, ["support", "admin"])).toBe(true);
 
-  // A role new to the form follows the loaded ones.
   await toggle("Finance");
   expect(model.value).toEqual(["support", "admin", "finance"]);
 });

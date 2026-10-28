@@ -1,7 +1,5 @@
 import { defineConfig } from "@antelopejs/interface-core/config";
 
-// Preferred port only: when it is taken, the api module reserves the next free
-// one and publishes it, so every other URL derives from `${@api.*}`.
 const preferredApiPort = process.env.PORT ?? "5010";
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
 
@@ -18,10 +16,6 @@ export default defineConfig({
         type: "local",
         path: "..",
         watchDir: ["src"],
-        // Builds the playground too. Modules install in parallel, and the
-        // playground compiles against `@antelopejs/interface-dms/dist`, which
-        // the DMS build wipes and rebuilds first: building both here runs them
-        // in order instead of racing them.
         installCommand: ["pnpm build", "pnpm --dir playground build"],
       },
       config: {
@@ -31,22 +25,9 @@ export default defineConfig({
           description: "AntelopeJS DMS playground",
         },
         auth: {
-          // Signs the DMS's own internal tokens — upload-destination binding,
-          // OAuth state and relay, email validation, password recovery — and is
-          // distinct from the auth-jwt module's session secret, which is why
-          // logging in works without it. Left unset it defaults to "", and both
-          // serving a page that holds a File/Image field and starting an OAuth
-          // flow fail with a 500. Development value: a real deployment must
-          // supply its own.
           jwtSecret: process.env.DMS_JWT_SECRET ?? "dev",
-          // The DB-IP database is only downloaded when a release is packed,
-          // and the playground's sign-ins come from a local address no
-          // database places in a country anyway: without this, every start
-          // warns about the missing file.
           signInCountry: { database: false },
         },
-        // Signs the backend's calls to the frontend's HTML renderer. The
-        // development value is refused by a production start.
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
         },
@@ -55,8 +36,6 @@ export default defineConfig({
         frontend: {
           bootstrapSecret: process.env.DMS_BOOTSTRAP_SECRET,
         },
-        // Serves /dms-preview, the page the documentation embeds to render
-        // live blocks and the screenshot script captures.
         docsPreview: true,
       },
     },
@@ -65,7 +44,6 @@ export default defineConfig({
         type: "local",
         path: ".",
         watchDir: ["src"],
-        // Built by the `dms` install step, see above.
         reloadCommand: ["pnpm exec tsc"],
       },
     },
@@ -119,12 +97,6 @@ export default defineConfig({
         storagePath: ".antelope/file-storage",
         baseUrl: "${@api.API_PUBLIC_BASE_URL}",
         defaultVisibility: "private",
-        // Sweep abandoned staged uploads (files presigned with `staging: true`
-        // but never saved, so never promoted out of `__staging__/`) after this
-        // TTL, in seconds — otherwise they accumulate as permanent orphans.
-        // Confirmed uploads are promoted on form save and are never swept.
-        // S3-backed deployments should configure a lifecycle rule via
-        // `stagingExpirationDays` instead.
         stagingExpiration: 86400,
       },
     },
@@ -142,8 +114,6 @@ export default defineConfig({
   environments: {
     docs: {
       logging: { channelFilter: { "*": "warn" } },
-      // Keep the required email interface, but never contact Ethereal or SMTP
-      // outside the pod. An attempted send fails on the closed discard port.
       modules: {
         nodemailer: {
           config: { ethereal: false, host: "127.0.0.1", port: 9 },

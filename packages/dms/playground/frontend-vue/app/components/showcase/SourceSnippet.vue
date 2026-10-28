@@ -13,6 +13,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { maxLines: 30 });
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- File extensions come from the caller's string path; unsupported keys intentionally use the text fallback.
 const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   ts: "typescript",
   vue: "html",
@@ -28,8 +29,6 @@ const RAW_SOURCES = import.meta.glob<string>(
   { query: "?raw", import: "default", eager: true },
 );
 
-// Glob keys are relative to this file: `../../plugins/x.ts` is
-// `plugins/x.ts`, `../custom/X.vue` is `components/custom/X.vue`.
 const SOURCES_BY_PATH: Record<string, string> = Object.fromEntries(
   Object.entries(RAW_SOURCES).map(([file, code]) => [
     file.replace(/^\.\.\/\.\.\//, "").replace(/^\.\.\//, "components/"),

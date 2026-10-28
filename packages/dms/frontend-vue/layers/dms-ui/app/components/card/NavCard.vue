@@ -4,22 +4,10 @@ import { tv } from "tailwind-variants";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 import { navBadgeClass } from "../../build/utils/navBadge";
 
-// Navigation tile (v2 .navcard): an icon well + title + description rendered
-// as a clickable card linking elsewhere (settings overview, a module's home),
-// optionally closed by the target's live state (v2 .sx-state, pinned to the
-// bottom so the states of a row line up) or a mono readout (v2
-// .module-tile__viz). A tag follows the title (v2 .sx-mod); the target's
-// navigation badge sits in the top corner, drawn as the settings nav draws it.
-//
-// Built on a bare <DmsAutoLink> rather than <ULink> on purpose: ULink's theme
-// injects its own `rounded-md` which would override the .dms-card radius.
-// The link is unstyled, so the shared .dms-card surface applies. Classes
-// passed by the caller are merged (tailwind-merge), so `gap-2.5` replaces the
-// default gap instead of competing with it.
 interface NavCardProps {
   /** Route, `#anchor` or URL. */
   to: string;
@@ -61,8 +49,7 @@ const attrs = useAttrs();
 const theme = tv({
   slots: {
     root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
-    // Two lines before the ellipsis: a title cut on its first line no longer
-    // says where the card leads, and the card already grows with its text.
+
     title:
       "text-highlighted line-clamp-2 min-w-0 text-sm font-[650] [overflow-wrap:anywhere]",
     tag: `${MONO_TAG_CLASS} bg-elevated shrink-0 text-dimmed`,
@@ -76,6 +63,7 @@ const theme = tv({
 });
 
 const ui = theme();
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue attrs expose unknown class values; inference and the theme's ClassValue owner cannot prove this pass-through input without validating or transforming it.
 const rootClass = computed(() => ui.root({ class: attrs.class as string }));
 const passthrough = computed(() => {
   const { class: _class, ...rest } = attrs;

@@ -1,3 +1,4 @@
+import type { ApexOptions } from "apexcharts";
 import type { ApexTypeConfig } from "../../../composables/chart/apexTypeConfigs";
 import type { ChartSeries, ChartType } from "../../../composables/chart/types";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
@@ -53,10 +54,7 @@ export function readApexThemeColors(muted: string): ApexThemeColors {
 }
 
 /** Axis label style (v2: Geist Mono 11px in the dimmed text tier). */
-export function axisLabelStyle(
-  color: string,
-  theme: ApexThemeColors,
-): Record<string, unknown> {
+export function axisLabelStyle(color: string, theme: ApexThemeColors) {
   return {
     colors: color,
     fontSize: AXIS_LABEL_FONT_SIZE,
@@ -70,7 +68,7 @@ export function buildLegend(
   input: UseApexChartInput,
   isCircular: boolean,
   theme: ApexThemeColors,
-): Record<string, unknown> {
+): NonNullable<ApexOptions["legend"]> {
   return {
     show: input.showLegend ?? true,
     position: input.legendPosition ?? (isCircular ? "bottom" : "top"),
@@ -79,6 +77,7 @@ export function buildLegend(
     labels: { colors: theme.muted },
     markers: {
       size: LEGEND_MARKER_SIZE,
+      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- ApexOptions owns this literal markers.shape property; renaming it would change the chart configuration.
       shape: "square",
       strokeWidth: 0,
     },
@@ -91,7 +90,7 @@ export function buildGrid(
   input: UseApexChartInput,
   isCircular: boolean,
   theme: ApexThemeColors,
-): Record<string, unknown> {
+): NonNullable<ApexOptions["grid"]> {
   return {
     show:
       !isCircular &&
@@ -109,8 +108,8 @@ export function buildGrid(
 export function buildTooltip(
   input: UseApexChartInput,
   config: ApexTypeConfig,
-): Record<string, unknown> {
-  const tooltip: Record<string, unknown> = {
+): NonNullable<ApexOptions["tooltip"]> {
+  const tooltip: NonNullable<ApexOptions["tooltip"]> = {
     enabled: input.showTooltip ?? true,
     shared: config.sharedTooltip,
     intersect: !config.sharedTooltip,
@@ -129,7 +128,7 @@ function headMarker(
   series: ChartSeries[],
   color: string | undefined,
   theme: ApexThemeColors,
-): Record<string, unknown>[] {
+) {
   const lastIndex = (series[0]?.data.length ?? 0) - 1;
   if (lastIndex < 0 || !color) return [];
   return [
@@ -152,7 +151,7 @@ export function buildMarkers(
   series: ChartSeries[],
   colors: string[],
   theme: ApexThemeColors,
-): Record<string, unknown> {
+): NonNullable<ApexOptions["markers"]> {
   if (POINT_MARKER_TYPES.includes(input.type)) {
     return {
       size: pointSize(input),
@@ -163,8 +162,7 @@ export function buildMarkers(
   const showsHead = HEAD_MARKER_TYPES.includes(input.type) && !input.stacked;
   return {
     size: 0,
-    // A discrete marker makes Apex draw every point: any stroke would show
-    // as a bump on the line, so markers carry none.
+
     strokeWidth: 0,
     hover: { size: HOVER_MARKER_SIZE },
     discrete: showsHead ? headMarker(series, colors[0], theme) : [],
@@ -192,9 +190,15 @@ interface DataLabelContext {
 }
 
 /** A point's own `label` when it has one, else the value Apex would print. */
-function pointLabel(value: unknown, context: DataLabelContext): unknown {
+function pointLabel(
+  value: Parameters<
+    NonNullable<NonNullable<ApexOptions["dataLabels"]>["formatter"]>
+  >[0],
+  context: DataLabelContext,
+) {
   const point =
     context.w.config.series[context.seriesIndex]?.data[context.dataPointIndex];
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof retains the ChartSeries point contract without asserting or validating plugin values.
   if (typeof point !== "object" || point === null || !("label" in point)) {
     return value;
   }
@@ -210,8 +214,8 @@ export function buildDataLabels(
   theme: ApexThemeColors,
   isCircular = false,
   offsetY = 0,
-): Record<string, unknown> {
-  return {
+): NonNullable<ApexOptions["dataLabels"]> {
+  const labels: NonNullable<ApexOptions["dataLabels"]> = {
     enabled,
     offsetY,
     dropShadow: { enabled: false },
@@ -220,6 +224,7 @@ export function buildDataLabels(
       fontFamily: theme.monoFont,
       fontWeight: DATA_LABEL_FONT_WEIGHT,
     },
-    ...(isCircular ? {} : { formatter: pointLabel }),
   };
+  if (!isCircular) labels.formatter = pointLabel;
+  return labels;
 }

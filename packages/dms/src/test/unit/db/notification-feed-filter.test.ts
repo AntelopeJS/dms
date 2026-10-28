@@ -1,5 +1,5 @@
 import { ValueProxy } from "@antelopejs/interface-database";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   FEED_SEARCH_MAX_KEYS,
   FEED_SEARCH_MAX_LENGTH,
@@ -11,7 +11,7 @@ import {
   messageKeyValues,
   parseNotificationFeedQuery,
   rawTextPattern,
-} from "../../../db/models/notification-feed-filter";
+} from "../../../db/models";
 import type { UserNotification } from "../../../db/tables";
 
 const INLINE_CASE_FLAG = "(?i)";
@@ -23,7 +23,7 @@ function toRegExp(pattern: string): RegExp {
     : new RegExp(pattern);
 }
 
-type Predicate = (row: ValueProxy<UserNotification>) => unknown;
+type Predicate = Parameters<Parameters<typeof applyFeedFilter>[0]["filter"]>[0];
 
 /** Records the predicates a filter adds, the way a feed query chains them. */
 class RecordingFeed {
@@ -37,7 +37,8 @@ class RecordingFeed {
 
 function stagesOf(predicate: Predicate): string {
   const result = predicate(ValueProxy.arg<UserNotification>(0));
-  return JSON.stringify((result as ValueProxy<boolean>).build());
+  assert.instanceOf(result, ValueProxy);
+  return JSON.stringify(result.build());
 }
 
 describe("[unit] db/notification-feed-filter", () => {

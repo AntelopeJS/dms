@@ -1,0 +1,108 @@
+/* Reduced motion (Settings › Appearance › Accessibility): Tailwind's
+   motion-safe / motion-reduce variants follow the device setting, the
+   `dms-reduce-motion` / `dms-full-motion` class on <html>, before the
+   system's prefers-reduced-motion, which they follow when neither is set. */
+@custom-variant motion-reduce {
+  :root.dms-reduce-motion & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root:not(.dms-full-motion) & {
+      @slot;
+    }
+  }
+}
+@custom-variant motion-safe {
+  :root.dms-full-motion & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not(.dms-reduce-motion) & {
+      @slot;
+    }
+  }
+}
+
+/* Self-hosted Geist (SIL OFL 1.1, files and LICENSE.txt in ../fonts).
+   Variable files cover weights 100–900 and keep builds deterministic offline.
+   Geist has no narrow no-break space (U+202F), which French and a few other
+   locales group digits with: a fallback face drew it a fraction of a digit
+   wide, so "1 234" read as "1234". Each file here maps U+202F to its no-break
+   space glyph (fontTools: cmap[0x202F] = cmap[0xA0]); keep that mapping when
+   updating them. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/Geist-Italic-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/GeistMono-Italic-Variable.woff2") format("woff2");
+}
+
+/* Interface scale: Nuxt UI / Tailwind sizing is rem-based, so scaling the
+   root font-size scales the whole interface while keeping proportions. */
+:root[data-scale="small"] {
+  font-size: 87.5%;
+}
+:root[data-scale="large"] {
+  font-size: 112.5%;
+}
+
+/* Antelope DMS design tokens (DMS design v2, dms-design-mockup-v2/css/tokens.css).
+   "dms" is the cyan DMS product accent, NOT the cobalt --blue-* which is the
+   Labs/foundation color; the neutral scale is the v2 cool slate, whose steps
+   are the v2 surfaces, borders and text colors of both themes. */
+@theme static {
+  /* Geist display/body + Geist Mono. Inter and the system stack are fallbacks. */
+  --font-sans:
+    "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Tailwind v4 preflight sets the base element font from
+     --default-font-family (NOT --font-sans), so wire it through. */
+  --default-font-family: var(--font-sans);
+  --default-mono-font-family: var(--font-mono);
+
+  --color-dms-50: #e6fbfc;
+  --color-dms-100: #c5f5f8;
+  --color-dms-200: #95ecf0;
+  --color-dms-300: #66e1e8;
+  --color-dms-400: #4dd9e6;
+  --color-dms-500: #2dc1cf;
+  --color-dms-600: #1ba2af;
+  --color-dms-700: #167f8a;
+  --color-dms-800: #136470;
+  --color-dms-900: #114f59;
+  --color-dms-950: #062e35;
+
+  --color-neutral-50: #f4f6f7;
+  --color-neutral-100: #eef1f3;
+  --color-neutral-200: #e2e7ea;
+  --color-neutral-300: #cfd6db;
+  --color-neutral-400: #8a949d;
+  --color-neutral-500: #5b6671;
+  --color-neutral-600: #3a4550;
+  --color-neutral-700: #262e36;
+  --color-neutral-800: #161c21;
+  --color-neutral-900: #10151a;
+  --color-neutral-950: #07090b;
+}

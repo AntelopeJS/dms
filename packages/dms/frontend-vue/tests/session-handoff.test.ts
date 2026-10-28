@@ -1,25 +1,39 @@
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { ref } from "vue";
-import { useSessionHandoff } from "../layers/dms-layout/app/build/composables/security/useSessionHandoff";
+import { nextTick, ref } from "vue";
+import { useSessionHandoff } from "../layers/dms-layout/app/entries/composables/security/useSessionHandoff";
+import { useMultiAccount } from "../layers/dms-core/app/composables/auth/useMultiAccount";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { browserRuntime } from "./helpers/api-data-runtime";
+import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
-const addCurrentAccount = vi.fn();
-const refreshUser = vi.fn(async () => {});
+const session = ref({ accountId: "account-before" });
+const user = ref({ _id: "user", email: "member@example.test", name: "Member" });
+const refreshUser = vi.fn(async () => {
+  session.value = { accountId: "account-after" };
+});
 const fetchCalls: Array<[string, unknown]> = [];
 
-vi.mock("#dms-core/app/composables/auth/useMultiAccount", () => ({
-  useMultiAccount: () => ({ addCurrentAccount }),
-}));
-
 beforeEach(() => {
+  installAuthSettingsRuntime();
+  browserRuntime();
+  localStorage.clear();
   fetchCalls.length = 0;
-  addCurrentAccount.mockClear();
   refreshUser.mockClear();
-  vi.stubGlobal("$fetch", async (url: string, options: unknown) => {
-    fetchCalls.push([url, options]);
-    return {};
-  });
+  session.value = { accountId: "account-before" };
+  vi.stubGlobal(
+    "$fetch",
+    async (
+      url: string,
+      options: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
+    ) => {
+      fetchCalls.push([url, options]);
+      return {};
+    },
+  );
   vi.stubGlobal("useDmsUserSession", () => ({
-    session: ref({ accountId: "account-before" }),
+    session,
+    user,
     fetch: refreshUser,
   }));
 });
@@ -29,6 +43,7 @@ afterEach(() => {
 });
 
 it("reopens the session from the handoff, then drops the account it replaced", async () => {
+  useMultiAccount().addCurrentAccount();
   await useSessionHandoff()({
     endpoint: "/api/auth/session-handoff",
     payload: { token: "handoff" },
@@ -50,7 +65,16 @@ it("reopens the session from the handoff, then drops the account it replaced", a
     ],
   ]);
   expect(refreshUser).toHaveBeenCalledOnce();
-  expect(addCurrentAccount).toHaveBeenCalledOnce();
+  await nextTick();
+  expect(useMultiAccount().accounts.value).toEqual([
+    expect.objectContaining({ userId: "user", accountId: "account-after" }),
+  ]);
+  expect(JSON.parse(localStorage.getItem("antelopejs-accounts")!)).toEqual([
+    expect.objectContaining({
+      email: "member@example.test",
+      accountId: "account-after",
+    }),
+  ]);
 });
 
 it("does nothing without a handoff", async () => {

@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { replaceUrlVariables } from "../layers/dms-ui/app/composables/form/useForm";
 
-// A page-mode form sub-page under a page whose own slug is `:id`: the carrying
-// page contributes one `:id` and the form slug appends another.
 const NESTED_FORM_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NESTED_FORM_PATH = "/workspaces/ws-1/invoiceTable/row-7/edit";
 
@@ -72,8 +70,6 @@ describe("form URL variables on a repeated placeholder", () => {
     routeQuery: {},
   };
 
-  // What the TableView factory generates for the edit form: the bare name has
-  // to stay the row id, on a nested route as on a flat one.
   it("resolves the bare name to the row id", () => {
     expect(
       replaceUrlVariables("/invoices/edit?id={{params.id}}", context),

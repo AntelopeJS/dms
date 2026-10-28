@@ -30,8 +30,6 @@ function smallBox(label: string) {
   });
 }
 
-// Three narrow boxes per row, so the leftover width shows where each
-// distribution puts it.
 function distributionRow(distribution: StackDistribution) {
   return HStack({ distribution, spacing: "8px", alignment: "center" })
     .child(

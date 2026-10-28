@@ -23,6 +23,7 @@ export const listWithSearch = InterfaceFunction<
     user?: User,
     permissions?: Set<string>,
   ) => Promise<{
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The runtime proxy returns module-defined rows; its published result cannot name a single module's row schema.
     results: Record<string, unknown>[];
     total: number;
     offset: number;
@@ -44,8 +45,7 @@ export const countWithSearch =
 
 /** @internal */
 export const summarizeWithSearch = InterfaceFunction<
-  // A published contract: the runtime calls this positionally.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- The runtime implements summarizeWithSearch with this positional interface signature.
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
     ctx: RequestContext,
@@ -86,7 +86,8 @@ export interface BulkRowSource {
  */
 export const resolveBulkRowIds = InterfaceFunction<
   (
-    // `this` of a data controller, or a `BulkRowSource`.
+    /** `this` of a data controller, or a `BulkRowSource`. */
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The runtime proxy accepts controller instances or BulkRowSource; replacing its published unknown input would narrow existing callers.
     table: unknown,
     ctx: RequestContext,
     user: User,
@@ -101,10 +102,7 @@ export const BULK_ALL_MATCHING_KEY = "allMatching";
 
 /** @internal */
 export const startExport = InterfaceFunction<
-  // A published contract: the runtime calls this positionally and every
-  // implementing module declares the same shape, so an options object
-  // cannot be introduced from this side.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- The runtime implements startExport with this positional interface signature.
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
     ctx: RequestContext,
@@ -175,11 +173,11 @@ export const validateRowsAgainstRule =
   >();
 
 /** @internal */
-export const fetchRowForGuard =
-  InterfaceFunction<
-    (
-      controller: DataControllerCallback | DataControllerCallbackWithOptions,
-      id: string,
-      idField: string,
-    ) => Promise<Record<string, unknown> | undefined>
-  >();
+export const fetchRowForGuard = InterfaceFunction<
+  (
+    controller: DataControllerCallback | DataControllerCallbackWithOptions,
+    id: string,
+    idField: string,
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Guard rows come from module-owned models through this published runtime proxy; values have no shared schema here.
+  ) => Promise<Record<string, unknown> | undefined>
+>();

@@ -9,9 +9,6 @@ import { resetDatabase } from "../../helpers/db";
 import { captureEmails } from "../../helpers/emails";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// Adding a second factor asks for the account password, and the profile's
-// copies of the two-factor routes, which asked for nothing, are gone.
-
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
 const LEGACY_TWO_FACTOR = pageRoutePath(
   "/settings/user/profile",
@@ -21,8 +18,7 @@ const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
-// Adding email codes now sends the first one, which takes longer than
-// mocha's default on CI runners (as in two-factor-codes.test.ts).
+
 const TEST_TIMEOUT_MS = 20 * 1000;
 
 describe("[integration] auth/adding a two-factor method", function () {
@@ -31,7 +27,6 @@ describe("[integration] auth/adding a two-factor method", function () {
   let user: RegisteredUser;
   let client: AxiosInstance;
 
-  // Adding email codes sends the first one.
   before(captureEmails);
 
   beforeEach(async () => {

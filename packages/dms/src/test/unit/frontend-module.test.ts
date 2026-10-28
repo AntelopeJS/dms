@@ -1,17 +1,15 @@
 import { expect } from "chai";
 import type { Config } from "../../config";
 import { frontendModule } from "../../frontend-module";
-import { findVersionDrift } from "../../implementations/dms/frontend-ready";
+import { findVersionDrift } from "../../store/frontend";
 
 const PRODUCTION = { dev: false };
 const CLIENT_ORIGIN = "https://dashboard.example.com";
 const HALF_AN_HOUR_MS = 30 * 60 * 1000;
 
 function productionOptions(config: Partial<Config>) {
-  return frontendModule(
-    { clientBaseUrl: CLIENT_ORIGIN, ...config } as Config,
-    PRODUCTION,
-  )?.options;
+  return frontendModule({ clientBaseUrl: CLIENT_ORIGIN, ...config }, PRODUCTION)
+    ?.options;
 }
 
 describe("[unit] dms frontend module", () => {
@@ -19,6 +17,7 @@ describe("[unit] dms frontend module", () => {
     const options = productionOptions({
       apiBaseUrl: "https://api.example.com",
       homepage: "/home",
+      // SAFETY: frontendModule reads only the lifetime and OAuth providers from auth; the test intentionally omits unrelated backend auth configuration.
       auth: {
         accessTokenLifetime: HALF_AN_HOUR_MS,
         oauth: {

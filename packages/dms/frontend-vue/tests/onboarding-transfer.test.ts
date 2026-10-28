@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The onboarding status the global middleware reads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
@@ -22,8 +22,6 @@ vi.stubGlobal("navigateDms", engine.navigateDms);
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: true } }));
 vi.stubGlobal("useHomepage", () => "/dashboard");
 
-// Whether the code running is an async data handler's, as the server
-// renderer tracks it: what the runtime's untransferred-read warning checks.
 let inHandler = false;
 const readsInHandler: boolean[] = [];
 const $authFetch = vi.fn(async () => {

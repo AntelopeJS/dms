@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsListRow from "../list-row/ListRow.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
-// DMS activity / feed / history row (v2 .activity): the feed preset of
-// DmsListRow — a 30px tinted well, a one-line title, a dimmed subtitle and a
-// mono trailing time. Stack these in DmsActivityFeed or a card for activity
-// feeds, "Recent requests", history panels… The title, subtitle and trailing
-// accept slots so callers can inline badges or rich markup.
 interface Props {
   icon?: string;
   /** Well tone (v2 .activity.is-*). */
@@ -35,9 +30,9 @@ interface Props {
 }
 
 interface Slots {
-  default?: () => unknown;
-  subtitle?: () => unknown;
-  trailing?: () => unknown;
+  default?: () => ReturnType<Slot>;
+  subtitle?: () => ReturnType<Slot>;
+  trailing?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<Props>(), {

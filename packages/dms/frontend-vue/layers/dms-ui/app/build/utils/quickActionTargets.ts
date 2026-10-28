@@ -12,8 +12,6 @@ export interface MountedQuickActionTarget {
   run: QuickActionTargetRunner;
 }
 
-// Browser-only: table views register once mounted, so a server render never
-// adds to this module-wide set shared by every request.
 const mountedTargets = new Set<MountedQuickActionTarget>();
 
 /**

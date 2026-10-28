@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,
-} from "../layers/dms-layout/app/build/composables/settings/useSettingsNavigation";
+} from "../layers/dms-layout/app/entries/composables/settings/useSettingsNavigation";
 
 interface NodeFixture {
   fullId: string;
@@ -29,8 +29,6 @@ function page(fullId: string, order = 0, hasAccess = true): NodeFixture {
   };
 }
 
-// The site layout lists a node's children in menu order (`order`, then name):
-// the fixture takes them in that order.
 function category(
   fullId: string,
   children: NodeFixture[],

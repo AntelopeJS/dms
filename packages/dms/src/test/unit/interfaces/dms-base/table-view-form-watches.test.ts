@@ -32,10 +32,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
-import {
-  ComponentId,
-  type WatchAction,
-} from "@antelopejs/interface-dms/base/types/watch";
+import { ComponentId } from "@antelopejs/interface-dms/base/types/watch";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   type ComponentNodeMap,
@@ -109,9 +106,7 @@ function watchesOf(
   return Object.fromEntries(
     Object.entries(options.formComponents).map(([kind, form]) => [
       kind,
-      (
-        form?.options as { watchActions?: WatchAction[] } | undefined
-      )?.watchActions?.map((watch) => watch.functionId),
+      form?.options?.watchActions?.map((watch) => watch.functionId),
     ]),
   );
 }
@@ -140,6 +135,7 @@ async function servedOptions(
     { tenantId: "form-watch-tenant", user: undefined },
   );
   if (!served.table) throw new Error("the table view was not served");
+  // SAFETY: filterComponents preserves the table-view options shape while filtering permissions; its heterogeneous component map erases each component's generic.
   return served.table.options as TableViewOptionsSerialized;
 }
 
@@ -154,10 +150,8 @@ describe("[unit] interfaces/dms-base — table view form watches", () => {
 
   it("hands each kind's generated form to its callback, before embedding it", () => {
     const table = TableView(ContactAPI, { forms, realtime: false });
-    const options = table.serializeSync().options as TableViewOptionsSerialized;
-    const editOptions = options.formComponents.edit?.options as
-      | { watchActions: WatchAction[] }
-      | undefined;
+    const options = table.serializeSync().options!;
+    const editOptions = options.formComponents.edit?.options;
     const [watch] = editOptions?.watchActions ?? [];
 
     expect(watchesOf(options)).to.deep.equal({
@@ -191,7 +185,7 @@ describe("[unit] interfaces/dms-base — table view form watches", () => {
 
   it("adds no watch unless a callback declares one", () => {
     const table = TableView(ContactAPI, { realtime: false });
-    const options = table.serializeSync().options as TableViewOptionsSerialized;
+    const options = table.serializeSync().options!;
 
     expect(watchesOf(options)).to.deep.equal({
       new: undefined,

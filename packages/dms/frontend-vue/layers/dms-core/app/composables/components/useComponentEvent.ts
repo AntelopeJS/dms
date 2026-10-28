@@ -1,6 +1,10 @@
 import { isUndefined } from "../../utils/type-check";
 
-function sendComponentEvent(name: string, componentId: string, data?: unknown) {
+function sendComponentEvent(
+  name: string,
+  componentId: string,
+  data?: ComponentEventData["data"],
+) {
   if (!isUndefined(window)) {
     const customEvent = new CustomEvent<ComponentEventData>(name, {
       detail: {

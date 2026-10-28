@@ -1,9 +1,9 @@
-import { MONO_TAG_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { MONO_TAG_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import {
   formatShortDate,
   type RelativeDayBucket,
   relativeDayBucket,
-} from "#dms-ui/app/build/components/activity-feed/activityFeedDays";
+} from "#dms-ui/app/entries/components/activity-feed/activityFeedDays";
 import type {
   NotificationTone,
   UserNotification,
@@ -13,7 +13,7 @@ import type {
  * Notifications without a tone stand out in `primary` until read. Mirrors
  * the server's `resolveNotificationTone` (`src/utils/notification-tones.ts`),
  * which weighs the unread badge of the bell and the navigation with it; a
- * test holds the two together.
+ * repository check holds the two together.
  */
 export const resolveNotificationTone = (
   notification: UserNotification,

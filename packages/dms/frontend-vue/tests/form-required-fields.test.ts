@@ -1,27 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { jsonSchemaToZod, type JsonSchema } from "json-schema-to-zod";
+import { jsonSchemaToZod } from "json-schema-to-zod";
 import {
   buildValidationSchema,
   isFieldMarkedRequired,
   makeFieldSchemaRequired,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
-// Rebuild the exact client-side schema the form uses: the backend serializes an
-// optional field as `nullable().optional()`, `zodToJsonSchema` emits
-// `{"type":["string","null"]}`, and `json-schema-to-zod` reconstructs it as
-// `z.union([z.string(), z.null()]).optional()`.
 function roundTrippedOptionalString(): z.ZodTypeAny {
   const source = z.object({ value: z.string().nullable().optional() });
-  const json = zodToJsonSchema(source) as unknown as JsonSchema;
+  const json = zodToJsonSchema(source);
   const code = jsonSchemaToZod(json, { module: "none" }).replace(
     /\.strict\(\)$/,
     ".passthrough()",
   );
-  const reconstructed = new Function("z", `"use strict"; return (${code})`)(
-    z,
-  ) as z.ZodObject<{ value: z.ZodTypeAny }>;
+  const reconstructed: z.ZodObject<{ value: z.ZodTypeAny }> = new Function(
+    "z",
+    `"use strict"; return (${code})`,
+  )(z);
   return reconstructed.shape.value;
 }
 
@@ -52,7 +49,7 @@ describe("buildValidationSchema", () => {
   const baseSchema = z.object({
     firstname: roundTrippedOptionalString(),
     lastname: roundTrippedOptionalString(),
-  }) as z.ZodObject<Record<string, z.ZodTypeAny>>;
+  });
 
   it("returns the base schema when nothing is toggled", () => {
     expect(

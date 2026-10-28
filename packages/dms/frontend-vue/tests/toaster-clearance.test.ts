@@ -1,11 +1,11 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import {
   TOASTER_CLEARANCE_VAR,
   toasterClearance,
   trackToasterClearance,
-} from "../layers/dms-ui/app/build/composables/form/toasterClearance";
+} from "../layers/dms-ui/app/entries/composables/form/toasterClearance";
 
 const VIEWPORT_HEIGHT = 800;
 
@@ -16,18 +16,16 @@ const box = (top: number, bottom: number) => ({
 });
 
 it("clears the highest bar anchored to the bottom edge", () => {
-  // The floating save bar: 50px tall, 16px off the edge.
   expect(toasterClearance([box(734, 784)], VIEWPORT_HEIGHT)).toBe(66);
-  // A drawer's footer band, flush with the edge, under a taller one.
+
   expect(
     toasterClearance([box(734, 784), box(700, 800)], VIEWPORT_HEIGHT),
   ).toBe(100);
 });
 
 it("leaves the corner to bars away from the bottom edge", () => {
-  // A short form's bar, ending mid-page.
   expect(toasterClearance([box(400, 450)], VIEWPORT_HEIGHT)).toBe(0);
-  // A bar scrolled below the viewport, and a collapsed one.
+
   expect(toasterClearance([box(820, 870)], VIEWPORT_HEIGHT)).toBe(0);
   expect(toasterClearance([box(800, 800)], VIEWPORT_HEIGHT)).toBe(0);
   expect(toasterClearance([], VIEWPORT_HEIGHT)).toBe(0);

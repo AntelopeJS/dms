@@ -8,15 +8,15 @@ import {
 } from "@antelopejs/interface-dms/base/export-jobs";
 
 const HTTP_UNAUTHORIZED = 401;
-// Outside the test runner an unbound proxy never settles; inside it, it
-// rejects with a missing-provider error. The bound wait covers the first case
-// and the status check the second: only the module answers 401.
+
 const SETTLE_TIMEOUT_MS = 2000;
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The unauthenticated caller is intentionally outside the public User contract so the runtime's unauthorized rejection is exercised.
 const ANONYMOUS_USER = undefined as unknown as User;
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization rejects before reading the request context; the empty context is an intentional test double.
 const UNUSED_CONTEXT = {} as RequestContext;
 const UNKNOWN_JOB_ID = "unknown-export-job";
 
-async function rejectionOf(call: Promise<unknown>): Promise<unknown> {
+async function rejectionOf(call: Promise<unknown>) {
   const timeout = new Promise<never>((_, reject) => {
     setTimeout(
       () => reject(new Error("the call never reached the module")),
@@ -25,15 +25,17 @@ async function rejectionOf(call: Promise<unknown>): Promise<unknown> {
   });
   try {
     await Promise.race([call, timeout]);
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return error;
   }
   throw new Error("expected the call to be rejected");
 }
 
-function expectModuleRejection(error: unknown): void {
+function expectModuleRejection(
+  error: Awaited<ReturnType<typeof rejectionOf>>,
+): void {
   expect(error).to.be.instanceOf(HTTPResult);
-  expect((error as HTTPResult).getStatus()).to.equal(HTTP_UNAUTHORIZED);
+  expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
 }
 
 describe("[unit] interfaces/dms-base/export-jobs — entry points reach the module", () => {

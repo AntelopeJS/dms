@@ -1,11 +1,11 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
-import type { OAuthPolicy } from "../../routes/auth/oauth/config";
+import { assert, expect } from "chai";
 import {
+  type OAuthPolicy,
   decideOAuthResolution,
   type OAuthAccountMatch,
-} from "../../routes/auth/oauth/linking-policy";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+  type ProviderIdentity,
+} from "../../routes/oauth";
 
 const HTTP_FORBIDDEN = 403;
 
@@ -39,13 +39,13 @@ const OPEN_POLICY: OAuthPolicy = {
   linkByVerifiedEmail: true,
 };
 
-function expectRefusal(run: () => unknown, expectedMessage: string): void {
+function expectRefusal<T>(run: () => T, expectedMessage: string): void {
   try {
     run();
   } catch (error: unknown) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect((error as HTTPResult).getBody()).to.equal(expectedMessage);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(error.getBody()).to.equal(expectedMessage);
     return;
   }
   expect.fail(`expected a refusal with "${expectedMessage}"`);
@@ -116,9 +116,6 @@ describe("[unit] oauth linking policy", () => {
       expect(resolution).to.equal("claim-unvalidated");
     });
 
-    // The takeover the password signup already refuses, reached through OAuth: a
-    // module provisions a real account without validating its e-mail, so it
-    // looks unvalidated, yet a workspace seat proves it is inhabited.
     it("never reclaims an unvalidated account that holds a workspace seat, even with an invitation", () => {
       expectRefusal(
         () =>

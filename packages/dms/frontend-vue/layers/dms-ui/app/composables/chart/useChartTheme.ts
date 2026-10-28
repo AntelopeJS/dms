@@ -1,3 +1,5 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
+import type { ChartSeries } from "./types";
 const DEFAULT_COLOR_NAME = "primary";
 const SAFE_HEX_FALLBACK = "#7c3aed";
 const MUTED_FALLBACK = "#6b7280";
@@ -24,7 +26,12 @@ const DEFAULT_PALETTE = [
   "--dms-chart-5",
 ];
 
-const COLOR_NAME_TO_VAR: Record<string, string> = {
+type CssVariableName = Parameters<typeof readCssVariable>[0];
+
+const COLOR_NAME_TO_VAR: Record<
+  NonNullable<ChartSeries["color"]>,
+  CssVariableName
+> = {
   primary: "--ui-primary",
   secondary: "--ui-secondary",
   success: "--ui-success",
@@ -64,7 +71,7 @@ function toApexColor(color: string, fallback: string): string {
   if (!color || color === "transparent" || color === "rgba(0, 0, 0, 0)")
     return fallback;
   if (color.startsWith("rgb")) return color;
-  // Computed styles preserve OKLCH in modern browsers; Apex expects sRGB.
+
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 1;
   const context = canvas.getContext("2d");
@@ -73,8 +80,7 @@ function toApexColor(color: string, fallback: string): string {
   context.fillRect(0, 0, 1, 1);
   const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
   if (!alpha) return fallback;
-  // Apex reads the alpha of an rgba() series colour as its fill opacity,
-  // overriding fill.opacity and gradient stops, so opaque colours stay rgb().
+
   if (alpha === COLOR_CHANNEL_MAX) return `rgb(${red}, ${green}, ${blue})`;
   return `rgba(${red}, ${green}, ${blue}, ${alpha / COLOR_CHANNEL_MAX})`;
 }
@@ -94,7 +100,7 @@ function probeCssColor(varName: string, fallback: string): string {
   const cached = colorProbeCache.get(cacheKey);
   if (cached) return cached;
   const probe = document.createElement("div");
-  // Background does not inherit body text when a token is missing or invalid.
+
   probe.style.backgroundColor = `var(${varName}, ${fallback})`;
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
@@ -131,11 +137,13 @@ export function resolveChartColor(value: string | undefined): string {
 }
 
 /** Resolve a supplied color list or the unchanged default semantic palette. */
-export function resolveChartColors(value: unknown): string[] {
+export function resolveChartColors(
+  value: Parameters<typeof isString>[0],
+): string[] {
   if (Array.isArray(value)) {
     return value.map((entry) => resolveChartColor(String(entry)));
   }
-  if (typeof value === "string") return [resolveChartColor(value)];
+  if (isString(value)) return [resolveChartColor(value)];
   return DEFAULT_PALETTE.map((name) => resolveChartColor(name));
 }
 

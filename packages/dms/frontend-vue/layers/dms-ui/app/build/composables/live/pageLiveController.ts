@@ -10,7 +10,7 @@ import type {
   PageLiveNote,
   PageLiveNoteInput,
   PageLiveOptions,
-} from "../../../types/live";
+} from "#dms-core/app/types/live";
 import { refreshLivePageBlocks } from "../../../utils/blockRefresh";
 import { liveIntervalMs } from "./liveCadence";
 import { LiveHolds, toLiveNote } from "./liveHolds";
@@ -39,6 +39,7 @@ export interface LiveSubscription {
    * reaching several blocks counts once in the page's `missedCount`; its
    * `payload.ids` or `payload.count` say how many rows it stands for.
    */
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Event identity is any object; payload-less events and arbitrary publisher objects must remain accepted.
   trigger(event?: object): void;
   /** Rows and events the block received while paused or held, not read yet. */
   readonly missed: Readonly<Ref<number>>;
@@ -254,8 +255,6 @@ class PageLive implements PageLiveController {
     this.poller.stop();
   }
 
-  // A hidden tab outranks everything: nobody sees the page. The user's pause
-  // comes next, and says nothing more; a hold names its reason.
   private reason(): PageLiveNote | null {
     if (this.isHidden.value) return HIDDEN_TAB_NOTE;
     if (this.isUserPaused.value) return null;
@@ -274,7 +273,7 @@ class PageLive implements PageLiveController {
 
   private enterPause(): void {
     this.paused.value = true;
-    // A trailing read still waiting stands for events not shown yet.
+
     for (const state of this.subscribers) this.flushPending(state, true);
   }
 
@@ -310,16 +309,19 @@ class PageLive implements PageLiveController {
     }
   }
 
-  private trigger(state: SubscriberState, event: object | undefined): void {
+  private trigger(
+    state: SubscriberState,
+    event: Parameters<LiveSubscription["trigger"]>[0],
+  ): void {
     if (this.paused.value) this.countMissed(state, event, true);
     else if (state.isHeld) this.countMissed(state, event, false);
     else this.triggerDirect(state, event);
   }
 
-  // Leading and trailing: the first event of a quiet block reads at once, the
-  // ones within the interval of a read collapse into one read when it ends,
-  // so the last event of a burst is never lost.
-  private triggerDirect(state: SubscriberState, event: object | undefined) {
+  private triggerDirect(
+    state: SubscriberState,
+    event: Parameters<LiveSubscription["trigger"]>[0],
+  ) {
     if (state.timer) {
       state.pendingEvents.push(event);
       return;
@@ -358,7 +360,7 @@ class PageLive implements PageLiveController {
 
   private countMissed(
     state: SubscriberState,
-    event: object | undefined,
+    event: Parameters<LiveSubscription["trigger"]>[0],
     isPageMissed: boolean,
   ): void {
     state.tally.add(event);

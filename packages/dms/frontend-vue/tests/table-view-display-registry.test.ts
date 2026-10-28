@@ -1,7 +1,7 @@
 import { ref, type Ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTableViewDisplay } from "../layers/dms-ui/app/composables/table-view/useTableViewDisplays";
-import { storeTableViewDisplay } from "../layers/dms-ui/app/build/composables/table-view/displayRegistry";
+import { storeTableViewDisplay } from "../layers/dms-ui/app/entries/composables/table-view/displayRegistry";
 import type { TableViewDisplay } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 const display = (id: string): TableViewDisplay => ({

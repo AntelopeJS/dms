@@ -116,7 +116,7 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("accepts link buttons in a top list's head", () => {
-    const valid = (actions: unknown) =>
+    const valid = (actions: Array<{ label: string; to?: string }>) =>
       ValidateBlockOptions("TopListCard", { title: "Top plans", actions })
         .valid;
 
@@ -137,7 +137,7 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("accepts a copy button on a key / value row", () => {
-    const valid = (item: Record<string, unknown>) =>
+    const valid = (item: { copy?: boolean | string; copyValue?: string }) =>
       ValidateBlockOptions("KeyValueList", {
         items: [
           { label: "Endpoint", value: "https://api.example.com", ...item },

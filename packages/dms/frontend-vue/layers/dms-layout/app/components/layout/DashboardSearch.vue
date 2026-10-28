@@ -22,9 +22,9 @@ const {
 
 const footerRef = useTemplateRef<HTMLElement>("footer");
 const input = { onKeydown: onInputKeydown };
-// The halo eases between the accent ring and the violet assistant ring.
+
 const MODAL_TRANSITION_CLASS = "transition-shadow duration-300";
-// In assistant mode, the empty slot holds the DMS's own padded states.
+
 const ASSISTANT_EMPTY_CLASS = "p-0 text-start";
 const SEARCH_UI = { modal: MODAL_TRANSITION_CLASS };
 const ASSISTANT_UI = {

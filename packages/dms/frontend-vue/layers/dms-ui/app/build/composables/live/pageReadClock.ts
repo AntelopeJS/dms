@@ -1,8 +1,5 @@
 import { type Ref, readonly, shallowRef } from "vue";
 
-// Client-only, like the live controller: the browser shows one page at a
-// time, and a module-level value on the server would be shared between
-// requests.
 const readAt = shallowRef<number | null>(null);
 
 /**

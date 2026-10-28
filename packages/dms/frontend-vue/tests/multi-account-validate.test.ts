@@ -16,14 +16,14 @@ function makeAccount(overrides: Partial<StoredAccount> = {}): StoredAccount {
   };
 }
 
-function stubFetch(implementation: () => Promise<unknown>) {
+function stubFetch<Result>(implementation: () => Promise<Result>) {
   const fetchMock = vi.fn(implementation);
-  (globalThis as Record<string, unknown>).$fetch = fetchMock;
+  Reflect.set(globalThis, "$fetch", fetchMock);
   return fetchMock;
 }
 
 afterEach(() => {
-  delete (globalThis as Record<string, unknown>).$fetch;
+  Reflect.deleteProperty(globalThis, "$fetch");
 });
 
 describe("validateAccount", () => {

@@ -8,18 +8,13 @@ import { selectedRowIds } from "../../composables/table-view/utils/bulkActions";
 import { isAllMatchingAction } from "../../composables/actions/bulkSelection";
 import type { CustomRowAction } from "../../../types/row-action";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
-// v2 bulk bar: an accent-tinted band across the card, between the chrome and
-// the column headers: a page checkbox, "n of page selected" and the bulk
-// actions. In archive mode it turns amber and offers restore instead.
 const theme = tv({
   slots: {
     base: "flex min-h-11 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-(--dms-accent-line) bg-linear-to-r from-(--dms-accent-tint-strong) to-(--dms-accent-tint) to-60% py-1.5 ps-[18px] pe-3.5 text-[13px]",
     count: "inline-flex items-center gap-2.5 font-semibold text-highlighted",
     countNumber: "font-mono tabular-nums text-primary",
-    // Phones keep the count and the clear button on the first line, the
-    // actions wrapping on a line of their own below.
+
     actions:
       "ms-auto flex flex-wrap items-center gap-1.5 max-sm:order-last max-sm:empty:hidden max-sm:ms-0 max-sm:w-full",
     clear: "text-muted hover:text-highlighted max-sm:ms-auto sm:-ms-1",
@@ -48,7 +43,8 @@ interface TableRowSelectionProps {
 
 const props = defineProps<TableRowSelectionProps>();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableRowSelection: Partial<typeof theme> };
 };
 
@@ -58,12 +54,11 @@ const { processI18n } = useTranslation();
 const rowSelectionState = defineModel<RowSelectionState>("rowSelection", {
   default: (): RowSelectionState => ({}),
 });
-// Every row the filters match is selected, not only the ones ticked.
+
 const allMatching = defineModel<boolean>("allMatching", { default: false });
 
 const tableSharedData = useTableContext<Data>();
 
-// Every selected row, other pages included: a bulk action covers them all.
 const selectedIds = computed(() => selectedRowIds(rowSelectionState.value));
 const selectedCount = computed(() => selectedIds.value.length);
 const pageRowCount = computed(
@@ -78,7 +73,6 @@ const clearSelection = () => {
   rowSelectionState.value = {};
 };
 
-// The bar's checkbox completes the page selection, or clears it once full.
 const togglePageSelection = () => {
   if (isWholePageSelected.value) {
     clearSelection();
@@ -87,9 +81,6 @@ const togglePageSelection = () => {
   tableSharedData?.table.toggleAllPageRowsSelected(true);
 };
 
-// Delete, archive and restore ask first: the table drops the rows from the
-// selection once the action went through, a cancelled one keeps it. An export
-// asks nothing and is done with the selection.
 const emitForSelection = (
   event: "delete" | "archive" | "restore" | "export",
 ) => {
@@ -97,8 +88,6 @@ const emitForSelection = (
   if (event === "export") clearSelection();
 };
 
-// Rows selected on other pages (or gone since) are not among the page's:
-// "3 of 2 selected" would read as nonsense, so the count then stands alone.
 const isSelectionWithinPage = computed(() => {
   const pageIds = new Set(
     tableSharedData?.table.getRowModel().rows.map((row) => row.id) ?? [],
@@ -116,8 +105,7 @@ const canExportSelection = computed(() => !props.archived && props.canExport);
 const canDelete = computed(() => isActionEnabled(props.rowActions?.delete));
 
 const matchingTotal = computed(() => props.total ?? 0);
-// Only actions able to find the rows themselves (and the export, which
-// runs on the whole query) reach the rows of other pages.
+
 const allMatchingActions = computed(() =>
   (props.bulkActions ?? []).filter(isAllMatchingAction),
 );
@@ -148,7 +136,7 @@ const formattedTotal = computed(() =>
 
 const uiTableRowSelectionVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableRowSelection || {}),
+  ...appConfig.ui?.tableRowSelection,
 });
 const uiTableRowSelection = computed(() =>
   uiTableRowSelectionVariant({ archived: !!props.archived }),

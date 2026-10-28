@@ -36,7 +36,7 @@ export const DOCUMENTS_CONSTRAINTS: UploadConstraints = {
  * Server-side declaration of the profile form's native file fields. The save
  * route validates and promotes against these, never against the client's.
  */
-export const PROFILE_ATTACHMENT_FIELDS: AttachmentField[] = [
+export const PROFILE_ATTACHMENT_FIELDS = [
   {
     id: AVATAR_ATTACHMENT_FIELD,
     key: "avatar",
@@ -62,16 +62,11 @@ export const PROFILE_ATTACHMENT_FIELDS: AttachmentField[] = [
     kind: "file",
     constraints: DOCUMENTS_CONSTRAINTS,
   },
-];
+] satisfies (AttachmentField & { key: keyof Profile })[];
 
 /** The stored values of the native file fields, as `SaveComponentFiles` compares them. */
-export function pickAttachmentValues(
-  profile: Profile,
-): Record<string, unknown> {
+export function pickAttachmentValues(profile: Profile) {
   return Object.fromEntries(
-    PROFILE_ATTACHMENT_FIELDS.map(({ key }) => [
-      key,
-      profile[key as keyof Profile],
-    ]),
+    PROFILE_ATTACHMENT_FIELDS.map(({ key }) => [key, profile[key]]),
   );
 }

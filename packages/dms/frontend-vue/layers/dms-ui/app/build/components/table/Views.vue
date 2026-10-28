@@ -2,7 +2,6 @@
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
 import { toneTextClass } from "../../utils/tone";
 import TableTabs, { type TableTabItem } from "./Tabs.vue";
@@ -41,8 +40,6 @@ const emit = defineEmits<{
   delete: [id: string];
 }>();
 
-// v2 saved views (saas workspaces): eyebrow, outline pills, the open one on
-// the accent tint, a dashed "+ Save current view" at the end.
 const theme = tv({
   slots: {
     strip:
@@ -69,12 +66,13 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableViews: Partial<typeof theme> };
 };
 const uiVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableViews || {}),
+  ...appConfig.ui?.tableViews,
 });
 const ui = computed(() => uiVariant({ divided: props.divided }));
 
@@ -153,14 +151,12 @@ const viewActions = computed<ViewAction[]>(() => {
   return actions;
 });
 
-// The strip ends with its own "+ Save current view" pill.
 const barActions = computed(() =>
   props.layout === "strip"
     ? viewActions.value.filter((action) => action.id !== "saveAs")
     : viewActions.value,
 );
 
-// A menu group left empty would draw a stray separator.
 const menuItems = computed(() =>
   [
     props.items.map((view) => ({

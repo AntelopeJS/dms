@@ -6,9 +6,6 @@ import { dynamicNavigationCategory } from "./category";
 const SECTION_PATH = "/dynamic-nav/section";
 const SECTION_ARCHIVE_PATH = "/dynamic-nav/section-archive";
 
-// Two siblings whose slugs share a prefix without one containing the other: on
-// `section-archive`, only that entry is active, since `section` is not one of
-// its parents.
 @RegisterPage()
 export class NavigationSectionPage extends PageController(
   "section",

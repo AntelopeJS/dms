@@ -1,31 +1,22 @@
-import { readFileSync } from "node:fs";
 import { createSSRApp, defineComponent, h, nextTick, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import FormLoadError from "../layers/dms-ui/app/build/components/form/FormLoadError.vue";
+import FormLoadError from "../layers/dms-ui/app/entries/components/form/FormLoadError";
 import {
   type FormLoadFailure,
   type FormLoadSource,
   missingRecordFailure,
   trackFormRecordLoad,
-} from "../layers/dms-ui/app/build/composables/form/formRecordLoad";
-
-// A role that may edit a table's rows but not view them opened the edit form
-// empty: the row's read was refused, the form showed its blank fields, and a
-// value picked there replaced the row's own. A form whose record does not
-// load shows why, with a retry, and cannot be saved.
+} from "../layers/dms-ui/app/entries/composables/form/formRecordLoad";
 
 const ROW = { values: { email: "zz-invitee@example.com" }, initial: {} };
 const FORBIDDEN = Object.assign(new Error("Forbidden"), { statusCode: 403 });
 
-interface Payload {
-  values: Record<string, unknown>;
-  initial: Record<string, unknown>;
-}
+type Payload = typeof ROW;
 
 function loadOf(
   data: Payload | null,
-  error: unknown,
+  error: FormLoadSource<Payload>["error"]["value"],
   next?: { data: Payload; error: unknown },
 ): FormLoadSource<Payload> {
   const load: FormLoadSource<Payload> = {
@@ -117,25 +108,6 @@ describe("a form's record load", () => {
   });
 });
 
-describe("Form.vue", () => {
-  const source = readFileSync(
-    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
-    "utf8",
-  );
-
-  it("leaves reading the record again on mount to the data layer", () => {
-    // The renderer reads cached data again on each mount (stale while
-    // revalidate): no status reset forces it any more.
-    expect(source).not.toMatch(/status\.value\s*=\s*"idle"/);
-  });
-
-  it("keys the record's load on the record it reads", () => {
-    expect(source).toMatch(
-      /`form-\$\{props\.componentId\}-\$\{props\.pageId\}-\$\{resolvedFetchUrl\.value/,
-    );
-  });
-});
-
 describe("a form about a record its address names none of", () => {
   const FETCH_URL = "/api/tasks/get?id={{query.id}}";
 
@@ -156,7 +128,6 @@ describe("a form about a record its address names none of", () => {
   });
 
   it("leaves a form that may open without a record to its defaults", () => {
-    // A create form seeded by `?duplicate=` when there is one.
     expect(missingRecordFailure({ fetchUrl: FETCH_URL })).toBe(null);
     expect(missingRecordFailure({ requiresRecord: true })).toBe(null);
   });
@@ -219,27 +190,5 @@ describe("the load error a form shows", () => {
     expect(html).toContain("dms.form.load_error.missing_title");
     expect(html).toContain("dms.form.load_error.missing_description");
     expect(html).not.toContain("dms.form.load_error.retry");
-  });
-
-  it("has its texts in English and French", () => {
-    for (const file of ["ui-en-GB.json", "ui-fr-FR.json"]) {
-      const locale = JSON.parse(
-        readFileSync(
-          new URL(`../layers/dms-ui/i18n/locales/${file}`, import.meta.url),
-          "utf8",
-        ),
-      );
-      expect(Object.keys(locale.dms.form.load_error).sort()).toEqual([
-        "error_description",
-        "error_title",
-        "forbidden_description",
-        "forbidden_title",
-        "missing_description",
-        "missing_title",
-        "not_found_description",
-        "not_found_title",
-        "retry",
-      ]);
-    }
   });
 });

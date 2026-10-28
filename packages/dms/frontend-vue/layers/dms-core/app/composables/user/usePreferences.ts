@@ -7,12 +7,12 @@ import {
   PREFERENCES_COOKIE_NAME,
   readAt,
   writeAt,
+  type PreferencesTree,
 } from "../../build/composables/user/preferencesCookie";
 import { clearLocalTableEntries } from "../../build/composables/user/tablePreferences";
+import { isString } from "../../utils/type-check";
 
-export interface UserPreferences {
-  [key: string]: unknown;
-}
+export interface UserPreferences extends PreferencesTree {}
 
 const COOKIE_MAX_AGE_ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -30,10 +30,8 @@ const LEGACY_COOKIE_NAME = "user-preferences";
  */
 export const MAX_PREFERENCES_COOKIE_BYTES = 3 * 1024;
 
-// A plain copy, as the cookie will read it back: the refs hand out reactive
-// proxies, which a caller may keep mutating after the write.
 const toPlain = <T>(value: T): T =>
-  value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T);
+  value === undefined ? value : JSON.parse(JSON.stringify(value));
 
 const expireLegacyCookie = (): void => {
   if (typeof document === "undefined") return;
@@ -59,9 +57,8 @@ export const usePreferences = () => {
   });
   expireLegacyCookie();
 
-  // The cookie ref is shared by name, so every caller decodes the same value.
   const tree = computed<UserPreferences>(() =>
-    typeof preferenceCookie.value === "string"
+    isString(preferenceCookie.value)
       ? decodePreferencesTree(preferenceCookie.value)
       : {},
   );
@@ -81,10 +78,14 @@ export const usePreferences = () => {
 
   const getPreference = <T = unknown>(keyPath: string, defaultValue?: T): T => {
     const value = readAt(tree.value, keyPath.split("."));
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The stored tree does not validate caller-selected T. Returning the tree value type would change the public generic contract; retain existing unchecked reads.
     return (value === undefined ? defaultValue : value) as T;
   };
 
-  const setPreference = (keyPath: string, value: unknown): void => {
+  const setPreference = (
+    keyPath: string,
+    value: UserPreferences[string],
+  ): void => {
     const keys = keyPath.split(".");
     const next = toPlain(tree.value);
     writeAt(next, keys, toPlain(value));
@@ -107,7 +108,7 @@ export const usePreferences = () => {
     keyPath: string,
     value: Partial<T>,
   ): void => {
-    const current = getPreference<T>(keyPath, {} as T);
+    const current = getPreference(keyPath, {});
     const merged = { ...current, ...value };
     setPreference(keyPath, merged);
   };

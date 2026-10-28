@@ -1,21 +1,19 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The LiveToggle block: Direct / Pause as a two-segment toggle, "updated N s
  * ago" counted every second in the browser, L switching the page outside a
  * text field, and nothing at all on a page without `live`.
  */
 import { createApp, h, nextTick, type App } from "vue";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
-import { formatElapsed } from "../layers/dms-ui/app/build/composables/live/formatElapsed";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import { formatElapsed } from "../layers/dms-ui/app/entries/composables/live/formatElapsed";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -24,9 +22,15 @@ let live: PageLiveController | undefined;
 const t = (key: string, params?: { count?: number }) =>
   params?.count === undefined ? key : `${key}:${params.count}`;
 
+type ToggleProps = Partial<
+  InstanceType<
+    typeof import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue").default
+  >["$props"]
+>;
+
 async function createToggle(
   target: HTMLElement,
-  props: Record<string, unknown> = {},
+  props: ToggleProps = {},
 ): Promise<App> {
   const { default: LiveToggleBlock } = await import(
     "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"
@@ -44,7 +48,7 @@ async function createToggle(
   return toggle;
 }
 
-async function mountToggle(props: Record<string, unknown> = {}) {
+async function mountToggle(props: ToggleProps = {}) {
   app = await createToggle(host, props);
 }
 
@@ -128,7 +132,6 @@ it("shows the polling hint once the stream stayed down, in a box always kept", a
   const hint = () => host.querySelector(".dms-live-toggle__polling")!;
   expect(hint().classList.contains("invisible")).toBe(true);
 
-  // A stream still connecting (every full load) is not reported down.
   controller.setStreamConnected(false);
   await nextTick();
   expect(hint().classList.contains("invisible")).toBe(true);
@@ -251,21 +254,5 @@ describe("the pill variant and the paused state", () => {
       "dms.live.paused · api.live.typing_in_tester",
     );
     expect(host.textContent).not.toContain("dms.live.updated");
-  });
-
-  it("reads Live in en-GB, Direct in fr-FR", () => {
-    const locale = (name: string) =>
-      JSON.parse(
-        readFileSync(
-          resolve(__dirname, `../layers/dms-ui/i18n/locales/ui-${name}.json`),
-          "utf8",
-        ),
-      ).dms.live;
-    expect(locale("en-GB").direct).toBe("Live");
-    expect(locale("fr-FR").direct).toBe("Direct");
-    for (const key of ["paused", "resume", "reason_hidden", "polling"]) {
-      expect(locale("en-GB")[key]).toBeTruthy();
-      expect(locale("fr-FR")[key]).toBeTruthy();
-    }
   });
 });

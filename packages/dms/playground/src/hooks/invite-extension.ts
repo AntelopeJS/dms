@@ -12,7 +12,6 @@ const TEAMS = ["sales", "ops"] as const;
 const onboardingSchema = z.object({ team: z.enum(TEAMS) });
 type Onboarding = z.infer<typeof onboardingSchema>;
 
-// Workspaces whose seats the hooks page marked as all taken.
 const fullWorkspaces = new Set<string>();
 
 export function toggleSeatsFull(tenantId: string): boolean {
@@ -29,9 +28,6 @@ export function areSeatsFull(tenantId: string): boolean {
   return fullWorkspaces.has(tenantId);
 }
 
-// A field merged into the invite modal, after the email. Its payload rides
-// along with the invitation and each step of its life is logged to the
-// hooks feed.
 RegisterInviteExtension<Onboarding>({
   key: "playground",
   label: "Playground onboarding",
@@ -74,8 +70,6 @@ RegisterInviteExtension<Onboarding>({
     }),
 });
 
-// Disables the invite button of the members pages with a reason while the
-// hooks page marks the seats as taken.
 RegisterInviteAvailability(({ tenantId }) =>
   areSeatsFull(tenantId)
     ? { reason: "$demo.pages.hooks.seats_full" }

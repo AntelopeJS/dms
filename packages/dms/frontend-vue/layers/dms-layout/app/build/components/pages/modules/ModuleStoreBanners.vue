@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import { FRONTEND_BUILD_COMMAND } from "../../../utils/module-store-catalog";
-import type { StoreListing } from "../../../../types/module-store";
+import type { StoreListing } from "#dms-core/app/types/module-store";
 import type { StoreFrontendNotice } from "../../../../composables/page/useModuleStoreActions";
-
-// What keeps the store from changing modules here, and what follows a
-// change while the interface lags behind the backend: shown above the
-// installed modules and the store alike.
 
 interface ModuleStoreBannersProps {
   listing: StoreListing | undefined;

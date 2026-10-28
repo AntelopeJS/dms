@@ -1,6 +1,3 @@
-// Form field types built from the others: rows of fields, key-value pairs,
-// secrets, code and tags. They live apart from `default-types.ts`, which
-// re-exports them in `DefaultDataTypes`.
 import { z } from "zod";
 import { adaptFieldValidationSchema, FormComponents } from "../form-schema";
 import { DefaultDataCompareTypes } from "./compare-types";
@@ -162,7 +159,7 @@ export class ArrayType extends DataType {
   }
 
   getValidation() {
-    const shape = Object.fromEntries(
+    const properties = Object.fromEntries(
       this.fields().map(([id, field]) => [
         id,
         adaptFieldValidationSchema(field.type.getValidation(), {
@@ -170,7 +167,7 @@ export class ArrayType extends DataType {
         }),
       ]),
     );
-    let schema = z.array(z.object(shape));
+    let schema = z.array(z.object(properties));
     if (this.options.min !== undefined) schema = schema.min(this.options.min);
     if (this.options.max !== undefined) schema = schema.max(this.options.max);
     return schema;
@@ -295,7 +292,6 @@ export class TagsType extends DataType {
     return FormComponents.InputTags(options);
   }
 
-  // A filter keeps the rows holding a tag, typed in: one text, not a list.
   override filterComponents() {
     return {
       default: FormComponents.InputText({

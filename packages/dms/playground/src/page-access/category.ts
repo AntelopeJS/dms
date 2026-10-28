@@ -9,8 +9,6 @@ export const pageAccessCategory = Category("page-access", {
   category: pagesSection,
 });
 
-// Every signed-in member opens what is declared under it without a role
-// grant, and its pages inherit its layout unless they declare their own.
 export const memberAccessCategory = Category("access-members", {
   displayName: "Member access",
   icon: "i-ph-users",

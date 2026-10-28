@@ -6,15 +6,11 @@ import type {
   NotificationCategoryInfo,
   NotificationSubjectInfo,
 } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
+import { UserNotificationPreferencesModel } from "../../db/models";
 import { internal } from "../../implementations/dms-notifications";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-
-// A locked (mandatory) subject cannot be muted: not through the legacy PUT that
-// replaces the whole map, and not by a `false` stored before the lock — the
-// send ignores it.
 
 const PREFERENCES = pageRoutePath(
   "/settings/user/notifications",
@@ -95,10 +91,10 @@ describe("[integration] locked notification subjects", () => {
         subject,
       }).toUser(userId);
     }
-    const list = await client.get(
+    const list = await client.get<StoredNotification[]>(
       pageRoutePath("/settings/user/notifications", "/list"),
     );
-    const titles = (list.data as StoredNotification[]).map((row) => row.title);
+    const titles = list.data.map((row) => row.title);
     expect(titles).to.include("Sent on mandatory");
     expect(titles).to.not.include("Sent on optional");
   });
