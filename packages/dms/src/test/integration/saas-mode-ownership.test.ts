@@ -85,7 +85,8 @@ describe("Platform ownership in and out of SaaS mode", () => {
   it("lets the last tenant owner go in SaaS mode", async () => {
     await insertUser(true);
     RegisterSaasMode();
-    await removeLastOwner();
+    expect(await removeLastOwner()).to.equal(undefined);
+    expect(await isPlatformOwner()).to.equal(true);
   });
 
   it("goes back to mirroring once the SaaS module unloads", async () => {

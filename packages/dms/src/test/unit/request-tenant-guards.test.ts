@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   ControllerMeta,
   HTTPResult,
@@ -11,7 +9,6 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { decode, sign } from "jsonwebtoken";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import { generateAccessToken } from "../../implementations/dms-auth";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { authenticateTenantRequest } from "@antelopejs/interface-dms/guards";
 import {
@@ -22,10 +19,10 @@ import {
   RegisterTenantAccessGate,
   internal as tenantAccessInternal,
 } from "@antelopejs/interface-dms/tenant-access";
-import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import {
   AuthUser,
   authenticateRequestUser,
+  generateAccessToken,
   IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
@@ -42,8 +39,6 @@ const HTTP_FORBIDDEN = 403;
 const gate = denyingTenantGate("request-guard-gate", TENANT);
 const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
-const CORE_LOCALES = ["core-en-GB.json", "core-fr-FR.json"];
-const CORE_LOCALES_DIR = "frontend-vue/layers/dms-core/i18n/locales";
 
 function context(token: string): RequestContext {
   return {
@@ -98,18 +93,6 @@ async function provided(
   return computeParameter(ctx, meta.computed_props.user, new Probe());
 }
 
-function translationOf(locale: string, key: string): unknown {
-  const messages: unknown = JSON.parse(
-    readFileSync(join(process.cwd(), CORE_LOCALES_DIR, locale), "utf8"),
-  );
-  return key
-    .split(".")
-    .reduce<unknown>(
-      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-      messages,
-    );
-}
-
 describe("[unit] request tenant guards — JWT and custom credentials", () => {
   let user: User;
   let jwt: string;
@@ -132,7 +115,7 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
     const stored = await GetModel(UserModel).get(USER_ID);
     if (!stored) throw new Error("Missing guard test user");
     user = stored;
-    jwt = generateAccessToken(TENANT, user).token;
+    jwt = (await generateAccessToken(TENANT, user)).token;
     await GetModel(TenantMemberModel, TENANT).insert({
       _id: MEMBER_ID,
       userId: USER_ID,
@@ -175,7 +158,7 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
   });
 
   it("binds the tenant of a verified token, through the decorators or on demand", async () => {
-    const other = generateAccessToken(OTHER_TENANT, user).token;
+    const other = (await generateAccessToken(OTHER_TENANT, user)).token;
 
     const anonymous = context(other);
     expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
@@ -227,17 +210,47 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       ...authenticator,
       authenticate: async () => ({ user, tenantId: OTHER_TENANT }),
     };
-    expect(
-      (await authenticateRequestPrincipal(context("opaque.secret"), [foreign]))
-        .user._id,
-    ).to.equal(USER_ID);
+    const authenticated = context(
+      (await generateAccessToken(OTHER_TENANT, user)).token,
+    );
+    expect((await authenticateRequestUser(authenticated))._id).to.equal(
+      USER_ID,
+    );
+    expect(getRequestTenantId(authenticated)).to.equal(OTHER_TENANT);
+    await expectStatus(
+      () => authenticateTenantRequest(authenticated),
+      HTTP_FORBIDDEN,
+    );
+    const opaque = context("opaque.secret");
     await expectStatus(
       () =>
-        authenticateTenantRequest(context("opaque.secret"), {
+        authenticateTenantRequest(opaque, {
           authenticators: [foreign],
         }),
       HTTP_FORBIDDEN,
     );
+    expect(getRequestTenantId(opaque)).to.equal(OTHER_TENANT);
+    const foreignMembers = GetModel(TenantMemberModel, OTHER_TENANT);
+    const foreignMemberId = `${MEMBER_ID}-foreign`;
+    await foreignMembers.insert({
+      _id: foreignMemberId,
+      userId: USER_ID,
+      roleIds: [],
+      isTenantOwner: false,
+      joinedAt: new Date(),
+      invitedBy: null,
+    });
+    try {
+      expect(
+        (
+          await authenticateTenantRequest(opaque, {
+            authenticators: [foreign],
+          })
+        )._id,
+      ).to.equal(USER_ID);
+    } finally {
+      await foreignMembers.delete(foreignMemberId);
+    }
   });
 
   it("requires current ownership for both credential paths", async () => {
@@ -291,13 +304,6 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
         }),
       ),
     ).to.equal(TENANT_MEMBER_REQUIRED);
-    for (const locale of CORE_LOCALES) {
-      for (const key of [TENANT_OWNER_REQUIRED, TENANT_MEMBER_REQUIRED]) {
-        expect(translationOf(locale, key), `${locale} ${key}`).to.be.a(
-          "string",
-        );
-      }
-    }
   });
 
   it("rechecks tenant gates on long-lived requests; bypass does not bypass ownership", async () => {

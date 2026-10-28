@@ -3,7 +3,6 @@ import type { Session, User } from "@antelopejs/interface-dms/auth/db";
 import type { TenantMember, UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../../db";
 import {
-  ACCOUNT_ACTIVITY_LIMIT,
   type AccountActivitySources,
   buildAccountActivity,
   notificationToEvent,
@@ -257,8 +256,7 @@ describe("account activity", () => {
       ),
     );
     const events = buildAccountActivity(sources({ sessions }));
-    expect(ACCOUNT_ACTIVITY_LIMIT).to.equal(20);
-    expect(events).to.have.length(ACCOUNT_ACTIVITY_LIMIT);
+    expect(events).to.have.length(20);
     expect(events[0]?.date).to.deep.equal(at("2026-09-25T09:00:00Z"));
     expect(events.at(-1)?.date).to.deep.equal(at("2026-09-06T09:00:00Z"));
   });

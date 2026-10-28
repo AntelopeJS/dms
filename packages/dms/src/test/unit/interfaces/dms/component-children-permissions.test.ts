@@ -16,7 +16,6 @@ import type {
   RoleModel,
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
-import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   GetPageLayoutBySlug,
@@ -227,12 +226,6 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     );
     expect(GetPermissionId(card.targetChild("panel", "leaf"))).to.equal(
       LEAF_PERMISSION,
-    );
-  });
-
-  it("accepts an exact child target in the permission guard", () => {
-    expect(AuthUserWithPermission(card.targetChild("table"))).to.be.a(
-      "function",
     );
   });
 

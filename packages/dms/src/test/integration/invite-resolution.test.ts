@@ -17,10 +17,7 @@ import {
   type TenantDeletionContext,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import {
-  applyInviteExtension,
-  clearInviteExtensions,
-} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
+import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
 import {
   assertInviteReady,
   completeInviteResolution,
@@ -84,15 +81,15 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
   let failAccept: boolean;
   let cleaned: Set<string>;
   let accepted: Set<string>;
+  let unregisterExtension: () => void;
 
   beforeEach(async () => {
     await resetDatabase();
-    clearInviteExtensions();
     failCleanup = false;
     failAccept = false;
     cleaned = new Set();
     accepted = new Set();
-    applyInviteExtension({
+    unregisterExtension = RegisterInviteExtension({
       key: "test",
       component: Form({ fields: [] }),
       schema: z.object({ value: z.string() }),
@@ -135,7 +132,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     invite = row;
   });
 
-  afterEach(() => clearInviteExtensions());
+  afterEach(() => unregisterExtension());
 
   it("chooses one outcome under simultaneous acceptance and cancellation", async () => {
     const results = await Promise.allSettled([
@@ -333,7 +330,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       invite,
       reason: "cancelled",
     });
-    clearInviteExtensions();
+    unregisterExtension();
     await assert.rejects(
       completeInviteResolution(resolution),
       /awaits extensions/,

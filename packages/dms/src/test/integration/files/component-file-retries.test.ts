@@ -166,7 +166,7 @@ async function assertCommittedSave(
   await assertFinal(f);
 }
 
-async function concurrentSaves(f: Fixture, failing: SaveOrder): Promise<void> {
+async function concurrentSaves(f: Fixture, failing: SaveOrder) {
   const promotion = new PromotionBarrier(f.staged);
   const firstPromoted = barrier();
   const finishFirst = barrier();
@@ -195,14 +195,11 @@ async function concurrentSaves(f: Fixture, failing: SaveOrder): Promise<void> {
       finishFirst.release();
     }
     const results = { first: await first, second: await second };
-    expect(results[failing]).to.deep.equal({
-      status: "rejected",
-      reason: SAVE_FAILURE,
-    });
     await assertCommittedSave(
       f,
       results[failing === "first" ? "second" : "first"],
     );
+    return results[failing];
   } finally {
     promotion.restore();
     finishFirst.release();
@@ -215,7 +212,11 @@ describe("[integration] native canonical file retries", () => {
 
   for (const failing of ["first", "second"] as const) {
     it(`keeps committed bytes when the ${failing} promoter fails after the other save commits`, async () => {
-      await concurrentSaves(await fixture(), failing);
+      const result = await concurrentSaves(await fixture(), failing);
+      expect(result).to.deep.equal({
+        status: "rejected",
+        reason: SAVE_FAILURE,
+      });
     });
   }
 

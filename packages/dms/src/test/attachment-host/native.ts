@@ -31,7 +31,7 @@ import {
   RegisterPage,
   RootPageController,
 } from "@antelopejs/interface-dms/page";
-import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
+import { authenticateRequestUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -118,8 +118,8 @@ const form = TableView(NativeDocumentController, {
   rowActions: { add: true, edit: true, details: true },
   guards: {
     get: async (context, { current }) => {
-      const principal = await authenticateRequestPrincipal(context);
-      if (current.readerId !== principal.user._id)
+      const user = await authenticateRequestUser(context);
+      if (current.readerId !== user._id)
         throw new HTTPResult(403, "Native row denied");
     },
   },

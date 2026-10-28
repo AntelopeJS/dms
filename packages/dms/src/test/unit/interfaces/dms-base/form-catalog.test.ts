@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { serializeFormField } from "@antelopejs/interface-dms/base/internal/form-schema";
+import { Form } from "@antelopejs/interface-dms/base/form";
 
 /**
  * A form's entries are a field or a group of fields, and both are objects: a
@@ -37,13 +37,17 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
       widget: "switch",
       advanced: true,
     });
-    const serialized = serializeFormField({
-      id: "retention",
-      type: new DefaultDataTypes.NumberType(),
-      defaultValue: 30,
-      offersDefault: true,
-    });
-    expect(serialized.offersDefault).to.equal(true);
+    const serialized = Form({
+      fields: [
+        {
+          id: "retention",
+          type: new DefaultDataTypes.NumberType(),
+          defaultValue: 30,
+          offersDefault: true,
+        },
+      ],
+    }).serializeSync().options?.fields[0];
+    expect(serialized).to.have.property("offersDefault", true);
   });
 
   it("offers how it saves and what it edits, and hides the former flags", () => {
