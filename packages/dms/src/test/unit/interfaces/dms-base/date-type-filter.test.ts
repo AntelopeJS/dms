@@ -182,3 +182,26 @@ describe("[unit] interfaces/dms-base — order filters on a number", () => {
     });
   }
 });
+
+describe("[unit] interfaces/dms-base — is_between on a numeric field", () => {
+  /**
+   * Catches an IsBetween that hands the parsed Date objects to the numeric
+   * value proxy: the sibling order filters send epoch milliseconds.
+   */
+  it("sends epoch milliseconds for ISO date bounds", () => {
+    const built = new DefaultDataCompareTypes.IsBetween().filter(
+      context,
+      recordingProxy(),
+      "occurredAtMs",
+      "2026-10-01, 2026-10-15T12:00:00.000Z",
+      row,
+    );
+    expect(built).to.deep.equal(
+      whenSet(
+        expression("ge", Date.parse("2026-10-01T00:00:00.000Z")).and(
+          expression("le", Date.parse("2026-10-15T12:00:00.000Z")),
+        ),
+      ),
+    );
+  });
+});

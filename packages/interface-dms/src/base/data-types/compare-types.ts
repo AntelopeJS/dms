@@ -6,6 +6,7 @@ import type {
 import {
   assertPrimitiveValue,
   parseValue,
+  type Primitive,
 } from "../../utils/internal/value-parser";
 import { isNumber } from "../../utils/internal/type-check";
 import { whenValueSet } from "./internal/compare-types";
@@ -184,6 +185,13 @@ export namespace DefaultDataCompareTypes {
     }
   }
 
+  function epochBound(bound: Primitive): number | undefined {
+    if (bound instanceof Date) {
+      return bound.getTime();
+    }
+    return isNumber(bound) ? bound : undefined;
+  }
+
   @RegisterDataCompareMode("is_between")
   export class IsBetween implements DataCompareMode {
     filter(
@@ -194,19 +202,16 @@ export namespace DefaultDataCompareTypes {
       // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const parsedArray = value.split(",").map((v) => parseValue(v.trim()));
+      const bounds = value
+        .split(",")
+        .map((bound) => epochBound(parseValue(bound.trim())));
+      const [min, max] = bounds;
 
-      if (
-        parsedArray.length !== 2 ||
-        parsedArray.some((v) => {
-          return !isNumber(v) && !(v instanceof Date);
-        })
-      ) {
+      if (bounds.length !== 2 || min === undefined || max === undefined) {
         throw new Error(
           `Value must be an array of two numbers or dates for is_between comparison. Got: ${value}`,
         );
       }
-      const [min, max] = parsedArray;
 
       return whenValueSet(proxy, proxy.ge(min).and(proxy.le(max)));
     }
