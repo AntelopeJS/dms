@@ -26,9 +26,6 @@ const dataCompareModesMetadata = new Map<
   DataCompareModeMetadata
 >();
 const dataTypes: Record<string, Class<DataType>> = {};
-// Weak: a hot reload registers a module's data types again as new classes, and
-// the replaced ones must not stay reachable through this lookup. Only read
-// through `get`, which a WeakMap supports.
 const dataTypesReverse = new WeakMap<Class<DataType>, string>();
 
 export interface DataCompareMode {
@@ -48,10 +45,7 @@ export abstract class DataType {
     public readonly options?: Record<string, unknown>,
   ) {}
 
-  // A published contract: the runtime calls this positionally and every
-  // implementing module declares the same shape, so an options object
-  // cannot be introduced from this side.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- Data-type implementations and callers share this positional filter contract.
   public filter(
     context: RequestContext,
     proxy: ValueProxy<unknown>,

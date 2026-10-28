@@ -72,22 +72,7 @@ export async function authorizeAction(
     (thisObj as { constructor: ControllerClass }).constructor,
     TableViewMeta,
   );
-  // Table-view data routes are tenant product surfaces: the tenant access
-  // gate applies even when the action carries no permission id. Table views
-  // flagged `bypassTenantAccessGate` opt out so they stay reachable on
-  // recovery surfaces.
-  //
-  // Several table views may share the controller (one per page mounting it):
-  // a read is guarded by the permission of each of them, never by the one
-  // built last alone, which refused every other table's callers. A write is
-  // guarded by the writing one's.
   const permissionIds = meta.actionPermissionIds(actionId);
-  // The opt-out only rides along with a stamped, read-only action. The flag
-  // latches controller-wide, so anything else — an unstamped action on a
-  // component no page mounted, or a write — would be served from every page
-  // sharing the controller, to any member of a denied tenant. What the
-  // opt-out exists for is reading a recovery surface, never changing the data
-  // of a tenant the product has been shut off for.
   if (
     !meta.bypassTenantAccessGate ||
     !isGateBypassableAction(actionId, permissionIds)

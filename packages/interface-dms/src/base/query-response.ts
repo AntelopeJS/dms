@@ -151,9 +151,6 @@ export function chartCardData(
   }
   addComparison(data, value, options);
   if (options.previous && options.previous.length > 0) {
-    // Named after the series it is compared against, not marked apart in its
-    // name: the block already sets it apart by colour and stroke, and a word
-    // added here would reach the legend in one language whatever the reader's is.
     data.comparisonSeries = chartSeries(options.previous, name);
   }
   return data;
@@ -176,7 +173,6 @@ export function kpiCardData(
   }
   addComparison(data, value, options);
   const values = measuredValues(points);
-  // One point is a figure, not a trend: a sparkline of it would draw a dot.
   if (values.length > 1) {
     data.sparkline = values;
   }

@@ -7,8 +7,6 @@ import type {
 import { getUiHints, mergeUiHints } from "./ui";
 
 const MAX_DEPTH = 6;
-// Wrappers nest independently of the shape's depth: optional-of-default-of-
-// nullable is three peels around a single node.
 const MAX_WRAPPERS = 8;
 
 interface ZodDefLike {
@@ -40,8 +38,6 @@ const WRAPPER_INNER: Partial<Record<ZodFirstPartyTypeKind, InnerAccessor>> = {
   [ZodFirstPartyTypeKind.ZodBranded]: (def) => def.type as ZodTypeAny,
   [ZodFirstPartyTypeKind.ZodEffects]: (def) => def.schema as ZodTypeAny,
   [ZodFirstPartyTypeKind.ZodLazy]: (def) => (def.getter as () => ZodTypeAny)(),
-  // The registry validates what a caller passes, so a pipeline describes its
-  // input rather than what it transforms into.
   [ZodFirstPartyTypeKind.ZodPipeline]: (def) => def.in as ZodTypeAny,
 };
 
@@ -89,12 +85,7 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
     }
     current = inner(def);
   }
-  // The loop reads hints at the top of each turn, so the node it stops on has
-  // not been read yet — at exactly the budget its hints would be lost.
   hints.push(getUiHints(current));
-  // Still on a wrapper: the budget ran out rather than the walk finishing, and
-  // the node below is never described. Saying so beats reporting a shape that
-  // reads as "no structure".
   result.exhausted =
     peeled && WRAPPER_INNER[defOf(current).typeName] !== undefined;
   result.schema = current;
@@ -195,8 +186,6 @@ function describeUnion(def: ZodDefLike, depth: number): BlockOptionSchema {
     return merged;
   }
   const discriminator = def.discriminator as string | undefined;
-  // The branches disagree on kind, so the union has none of its own: a consumer
-  // switches on `oneOf` rather than on `type`.
   const described: BlockOptionSchema = {
     type: "union",
     oneOf: branches,
@@ -262,8 +251,6 @@ export function describeSchema(
   const unwrapped = unwrap(schema);
   const def = defOf(unwrapped.schema);
   assertDescribable(def);
-  // Past the depth bound the shape is not walked, but its kind is still known:
-  // reporting `unknown` would read as "no structure" rather than "more below".
   const truncated =
     unwrapped.exhausted === true ||
     (depth >= MAX_DEPTH && def.typeName in STRUCTURED_TYPE);

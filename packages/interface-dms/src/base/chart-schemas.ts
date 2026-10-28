@@ -107,9 +107,6 @@ const baseChartShape = {
     group: "appearance",
     widget: "number",
   }),
-  // A chart draws its tooltip, legend, grid, curve and rounded bars unless
-  // they are turned off: declared, so an editor's switch does not show them
-  // off while they show.
   showTooltip: ui(z.boolean().default(true), {
     label: "Show tooltip",
     group: "appearance",

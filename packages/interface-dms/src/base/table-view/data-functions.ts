@@ -44,8 +44,7 @@ export const countWithSearch =
 
 /** @internal */
 export const summarizeWithSearch = InterfaceFunction<
-  // A published contract: the runtime calls this positionally.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- The runtime implements summarizeWithSearch with this positional interface signature.
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
     ctx: RequestContext,
@@ -86,7 +85,7 @@ export interface BulkRowSource {
  */
 export const resolveBulkRowIds = InterfaceFunction<
   (
-    // `this` of a data controller, or a `BulkRowSource`.
+    /** `this` of a data controller, or a `BulkRowSource`. */
     table: unknown,
     ctx: RequestContext,
     user: User,
@@ -101,10 +100,7 @@ export const BULK_ALL_MATCHING_KEY = "allMatching";
 
 /** @internal */
 export const startExport = InterfaceFunction<
-  // A published contract: the runtime calls this positionally and every
-  // implementing module declares the same shape, so an options object
-  // cannot be introduced from this side.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- The runtime implements startExport with this positional interface signature.
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
     ctx: RequestContext,

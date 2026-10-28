@@ -38,18 +38,13 @@ interface StaticComponentField {
  * Static component fields of a class, in declaration order. Underscore-prefixed
  * fields are skipped, so a class can keep private static state.
  */
-// `object` is the contract: this walks a decorated class whose static
-// fields are only known at run time, which is the whole point of the
-// decorator. A narrower type would only push an assertion here.
-// oxlint-disable-next-line anti-slop/no-object-parameters
+// oxlint-disable-next-line anti-slop/no-object-parameters -- Decorated classes expose static component fields known only at runtime.
 function collectStaticComponents(cl: object): StaticComponentField[] {
   const fields: StaticComponentField[] = [];
   for (const key of Object.getOwnPropertyNames(cl)) {
     if (key.startsWith("_")) continue;
 
-    // Reading a static field whose name is only known at run time is the
-    // whole job here; the alternative is an assertion to a dictionary.
-    // oxlint-disable-next-line anti-slop/no-reflect-get
+    // oxlint-disable-next-line anti-slop/no-reflect-get -- The static field name comes from Object.getOwnPropertyNames; its value is narrowed with instanceof Component.
     const value: unknown = Reflect.get(cl, key);
     if (value instanceof Component) {
       fields.push({ key, component: value });
@@ -69,16 +64,11 @@ export const RegisterPage = MakeClassDecorator((cl) => {
 });
 
 function buildExtensionComponents(
-  // `object` is the contract: this walks a decorated class whose static
-  // fields are only known at run time, which is the whole point of the
-  // decorator. A narrower type would only push an assertion here.
-  // oxlint-disable-next-line anti-slop/no-object-parameters
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Extension components are collected from the decorated class static fields at runtime.
   extensionClass: object,
 ): PageExtensionComponent[] {
   return collectStaticComponents(extensionClass).map(({ key, component }) => {
     const placement = component.placement ?? DEFAULT_PLACEMENT;
-    // `anchorPath` is set only when the placement names an anchor: its absence
-    // is what extension-assembly reads as "append at the end".
     const entry: PageExtensionComponent = {
       key,
       component,
@@ -193,9 +183,6 @@ function assertValidSlowRate(id: string, live: PageLiveOptions): void {
   }
 }
 
-// A rate the browser would read as "no cap" or as a busy loop, a period it
-// cannot read or an empty remember key are refused at declaration, where the module
-// author sees them, rather than ignored at run time.
 function assertValidLiveOptions(id: string, options: MenuOptions): void {
   const live = options.live;
   if (!live) return;
@@ -323,9 +310,6 @@ export function RootCategory(
       `RootCategory id "${id}" is reserved by the built-in Pages/Modules/Settings groups. Choose a different id.`,
     );
   }
-  // Spread options first so an explicitly-passed type wins, then default an
-  // omitted type to "label". Spreading after the default would let an explicit
-  // `type: undefined` clobber it.
   return createRootCategory(id, {
     ...options,
     type: options.type ?? "label",

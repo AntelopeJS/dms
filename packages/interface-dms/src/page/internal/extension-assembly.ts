@@ -21,13 +21,6 @@ function compareText(a: string, b: string): number {
   return a < b ? -1 : 1;
 }
 
-// Placement is anchor-relative first; the comparator only breaks ties inside a
-// single anchor group (or the appended tail). Every criterion after `order` is
-// intrinsic to the declaration — never the order the modules were started in —
-// so the same set of extensions always assembles the same page. Comparison is
-// codepoint-wise rather than locale-aware for the same reason. `key` closes the
-// total order: keys are unique on a page, a collision being a registration
-// error.
 function compareExtensionEntries(
   a: PageExtensionEntry,
   b: PageExtensionEntry,

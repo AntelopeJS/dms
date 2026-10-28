@@ -1,8 +1,4 @@
-// Every DataCompareMode receives a `ValueProxy<unknown>` from the interface and
-// narrows it to the shape its own data type stores. The two never overlap, so
-// each of the thirteen narrowings needs the chain; the alternative is a generic
-// on DataCompareMode.filter, which would ripple through every implementation.
-/* oxlint-disable anti-slop/no-chained-type-assertions */
+/* oxlint-disable anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only. */
 import type {
   ControllerClass,
   RequestContext,
@@ -23,15 +19,7 @@ import { parseValue } from "../../utils/internal/value-parser";
 import { isString } from "../../utils/internal/type-check";
 import { GetAttachmentValidationMetadata } from "../../attachments";
 import { Form, FormComponents } from "../form-schema";
-// Import from the defining leaf, not the table-view barrel: the barrel pulls
-// in the assembled routes, whose composition runs at module evaluation — and
-// this module sits on the import path of the pieces being composed.
-// The cycle is what registers the default data types: they declare
-// themselves through decorators, and this barrel is the only value
-// path that evaluates them. Breaking it left the registry empty and
-// every column serialised without a type, silently. Safe because
-// neither side dereferences the other while it evaluates.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- TableViewMeta is read in relation methods; its data-types barrel import evaluates the built-in registration decorators.
 import { TableViewMeta } from "../table-view/meta";
 import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
@@ -57,14 +45,11 @@ export const BOOLEAN_DISPLAYS = ["switch", "checkbox", "card"] as const;
 
 export type BooleanDisplay = (typeof BOOLEAN_DISPLAYS)[number];
 
-// Displays picking one value only: a select picking several shows cards.
 const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>(["segmented", "radio"]);
 
 type SelectInputOptions = FormComponents.SelectOptions &
   Pick<FormComponents.ChoiceCardsOptions, "columns">;
 
-// The cards keep `columns` out of their options unless it is set, so a select
-// that does not set it serializes as before.
 function choiceCardsOptions({
   items,
   multiple,
@@ -75,7 +60,6 @@ function choiceCardsOptions({
   return options;
 }
 
-// The input each display of a select renders.
 const SELECT_INPUTS: Record<
   SelectDisplay,
   (options: SelectInputOptions) => ComponentInfoSerialized
@@ -90,7 +74,6 @@ const SELECT_INPUTS: Record<
 
 type BooleanInputOptions = FormComponents.BooleanCardOptions;
 
-// The input each display of a boolean renders.
 const BOOLEAN_INPUTS: Record<
   BooleanDisplay,
   (options: BooleanInputOptions) => ComponentInfoSerialized
@@ -315,7 +298,6 @@ export namespace DefaultDataTypes {
       return this.editableInputComponent();
     }
 
-    // A filter is typed in, even on a value the form only shows.
     override filterComponents() {
       return { default: this.editableInputComponent() };
     }
@@ -407,10 +389,7 @@ export namespace DefaultDataTypes {
       });
     }
 
-    // A published contract: the runtime calls this positionally and every
-    // implementing module declares the same shape, so an options object
-    // cannot be introduced from this side.
-    // oxlint-disable-next-line eslint/max-params
+    // oxlint-disable-next-line eslint/max-params -- This override preserves the positional DataType.filter contract used by callers.
     override filter(
       context: RequestContext,
       proxy: ValueProxy<unknown>,
@@ -434,8 +413,6 @@ export namespace DefaultDataTypes {
       return super.filter(context, proxy, key, value, mode, row);
     }
 
-    // A stored date is a date: comparing it with the instant's milliseconds,
-    // as the generic number comparison does, matches every row or none.
     private instant(value: string): Date {
       const parsed = parseValue(value);
       if (!(parsed instanceof Date)) {
@@ -444,8 +421,6 @@ export namespace DefaultDataTypes {
       return parsed;
     }
 
-    // A picked day stands for the whole day; an instant (a `{{now-7d}}`
-    // token) is compared as it is.
     private orderFilter(
       stored: ValueProxy<Date>,
       value: string,
@@ -530,11 +505,6 @@ export namespace DefaultDataTypes {
 
     getValidation() {
       if (this.options.range) {
-        // A range is `{ start, end }`, the date picker's shape; a pair of
-        // dates `[start, end]` is still read, and validates to the same
-        // object. Each date gets its own schema: one shared instance would
-        // serialize as a JSON Schema `$ref`, which the form rebuilds as
-        // "anything".
         return z
           .union([
             z.tuple([this.singleDateValidation(), this.singleDateValidation()]),
@@ -663,7 +633,6 @@ export namespace DefaultDataTypes {
       return SELECT_INPUTS[shown](options);
     }
 
-    // A filter picks from a dropdown, whatever the form shows.
     override filterComponents() {
       const { display: _display, columns: _columns, ...options } = this.options;
       return { default: FormComponents.InputSelect(options) };
@@ -859,8 +828,6 @@ export namespace DefaultDataTypes {
     from: string;
   }
 
-  // A multiple relation stores an array of ids: `is` would compare the
-  // whole array, so it offers whether the array includes the picked id.
   function relationCompareModes(multiple?: boolean) {
     return [
       multiple ? DefaultDataCompareTypes.Include : DefaultDataCompareTypes.Is,
@@ -945,8 +912,6 @@ export namespace DefaultDataTypes {
       return this.relationInput(true, this.options.multiple);
     }
 
-    // A filter picks among the rows there are: it never adds one. A multiple
-    // relation is filtered on one id at a time (`include`).
     override filterComponents() {
       return { default: this.relationInput(false, false) };
     }
@@ -955,9 +920,6 @@ export namespace DefaultDataTypes {
       return this.relationInput(false, this.options.multiple);
     }
 
-    // The picker, with the related table's "new" form when a row can be
-    // added through it: that form, nested relations included, is the bulk of
-    // the component, and only an editable field opens it.
     private relationInput(canAdd: boolean, multiple: boolean | undefined) {
       const tableViewMeta = GetMetadata(
         this.options.dataApiController,
@@ -1014,8 +976,6 @@ export namespace DefaultDataTypes {
       return this.options.multiple ? z.array(z.string()) : z.string();
     }
 
-    // The search route drops a filter the related controller does not
-    // declare, so an unfilterable `field` would offer every row in silence.
     private assertFilterByFilterable(key: PropertyKey): void {
       const field = this.options.filterBy?.field;
       if (!field) return;
@@ -1035,10 +995,6 @@ export namespace DefaultDataTypes {
       descriptor?: PropertyDescriptor,
     ): void {
       this.assertFilterByFilterable(key);
-      // Filter-only relations never resolve the related row: skip the join so
-      // the raw scalar id stays in the `/list` output and the row id key is
-      // preserved. The funnel filter still works (relation picker +
-      // `@Filter` equality on the raw column). See {@link options.filterOnly}.
       if (this.options.filterOnly) {
         return;
       }
@@ -1107,7 +1063,6 @@ export namespace DefaultDataTypes {
       return this.cascaderInput(this.options.multiple);
     }
 
-    // A multiple relation is filtered on one id at a time (`include`).
     override filterComponents() {
       return { default: this.cascaderInput(false) };
     }
@@ -1143,7 +1098,6 @@ export namespace DefaultDataTypes {
       key: PropertyKey,
       descriptor?: PropertyDescriptor,
     ): void {
-      // See RelationType.decorateField: a filter-only relation skips the join.
       if (this.options.filterOnly) {
         return;
       }
@@ -1388,8 +1342,6 @@ export namespace DefaultDataTypes {
     return z.string().refine(
       async (resourceKey) => {
         if (!constraints && !attachmentField) return true;
-        // An empty value is the absence of a file, not a reference to check;
-        // whether the field may be empty is the schema's business.
         if (!resourceKey) return true;
 
         const getMetadata = attachmentField
@@ -1401,11 +1353,6 @@ export namespace DefaultDataTypes {
             throw error;
           },
         );
-        // `undefined` comes from the attachment lookup: the key belongs to no
-        // prepared attachment, so it is an invalid reference. `null` means the
-        // object itself is gone, which an attachment-backed field survives:
-        // the attachment row proves provenance and the save replays the
-        // promotion of a staged key.
         if (metadata === null) {
           return attachmentField !== undefined;
         }
@@ -1553,7 +1500,6 @@ export namespace DefaultDataTypes {
     }
   }
 
-  // The field types of `field-types.ts`, under the namespace modules use.
   export const ArrayType = FieldTypes.ArrayType;
   export type ArrayType = FieldTypes.ArrayType;
   export type ArrayTypeOptions = FieldTypes.ArrayTypeOptions;

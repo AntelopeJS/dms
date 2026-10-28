@@ -22,12 +22,7 @@ import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
 import type { ColumnDisplay } from "./column-display";
 import { serializeColumnDisplay } from "./internal/column-display";
-// Through the barrel, not core: the default data types register themselves by
-// decorator, and this value import is what evaluates them. serializeType below
-// reads the registry they fill, so importing the definitions alone would leave
-// every column serialised without a type -- silently, since serializeType then
-// just returns undefined.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
 import { type DataType, serializeType } from "../data-types";
 import {
   type FieldCondition,
@@ -58,8 +53,6 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   new: FormMode.new,
 };
 
-// The data-api action each form runs, whose `@Access` override applies: a
-// form shows a row it read through `get`.
 const ACCESS_ACTION_BY_FORM_MODE: Record<FormMode, string> = {
   [FormMode.new]: "new",
   [FormMode.edit]: "edit",
@@ -159,10 +152,8 @@ function copyDataType(type: DataType): DataType {
   });
 }
 
-// A footer summary's id: its index among the controller's summaries.
 const FOOTER_SUMMARY_ID = /^\d+$/;
 
-// The actions of a table view that change rows through the data routes.
 const WRITE_ACTION_IDS = new Set([
   "add",
   "edit",
@@ -188,9 +179,6 @@ export class TableViewMeta {
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
-  // Held weakly: a page module that hot-reloads builds a new TableView or
-  // ResourceForm on the same controller, and the one it replaced must not stay
-  // reachable from here.
   private readonly componentBuilderRefs = new WeakRefList<
     ComponentBuilder<TableViewOptionsSerialized>
   >();
@@ -206,10 +194,6 @@ export class TableViewMeta {
    * parent's: the derived controller serves its own.
    */
   public inherit(parent: TableViewMeta): void {
-    // Each column gets its own copy of its type: a file column's type carries
-    // the attachment field of the controller it saves through, stamped when a
-    // form over that controller is built, and the two controllers save
-    // through different routes.
     for (const [key, column] of Object.entries(parent.columns)) {
       this.columns[key] = { ...column, type: copyDataType(column.type) };
     }
@@ -302,16 +286,12 @@ export class TableViewMeta {
     this.controllerGuards = guards;
   }
 
-  // Latched, never reset: routes are shared by every registration of the
-  // controller, so a later TableView() call without the flag (another page
-  // showing the same data) must not silently re-gate — or un-gate — them.
   public setBypassTenantAccessGate() {
     this.bypassTenantAccessGate = true;
   }
 
   private gateBypassRegistrations = new Set<boolean>();
 
-  // Both kinds of registration seen for this controller, in any order.
   public get hasMixedGateBypassRegistrations(): boolean {
     return this.gateBypassRegistrations.size > 1;
   }
@@ -373,8 +353,6 @@ export class TableViewMeta {
       label: options.name ?? key,
       description: options.description,
       type: options.type,
-      // A read-only field displays its value: what only editing uses (a
-      // relation's add form) stays out of it.
       inputComponent:
         options.inputComponent?.serializeSync() ??
         (isDisabled ? options.type.describedInputComponent() : undefined),
@@ -505,9 +483,6 @@ export class TableViewMeta {
     this.groups[id] = config;
   }
 
-  // Footer summaries every table view over the controller declared, by id:
-  // the `summary` route computes the ones a request names, and never a
-  // figure a table did not declare.
   private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
@@ -542,9 +517,7 @@ export const Column = MakeMethodAndPropertyDecorator(
     meta.setColumn(key as string, options);
 
     if (options.validate !== false) {
-      // Referenced to test that the type declares it; the call below goes
-      // through `options.type`, bound.
-      // oxlint-disable-next-line typescript/unbound-method
+      // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
       assert(options.type.getValidation, "Type has no getValidation method");
 
       const dataMeta = GetMetadata(
@@ -569,8 +542,6 @@ export const Column = MakeMethodAndPropertyDecorator(
           : undefined,
       });
 
-      // The parse result rather than its success flag: the data API writes
-      // the parsed value, so a date sent as text is stored as a date.
       Validator((value) => zodSchema.safeParseAsync(value))(
         target,
         key,
@@ -597,11 +568,8 @@ export function ColumnGroup(id: string, config: ColumnGroupConfig) {
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
   GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
 
-  // Archive field need to be data-api filterable and listable to work properly
   Filter()(target, key as string);
   Listable()(target, key as string);
-  // ...and readable: the rows carry it, for the client to evaluate the
-  // archive rules. A field declaring its own access keeps it.
   const field = GetMetadata(target.constructor as ControllerClass, DataAPIMeta)
     .fields[key as string];
   if (!field?.mode) Access(AccessMode.ReadOnly)(target, key as string);

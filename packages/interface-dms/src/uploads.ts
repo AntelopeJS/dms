@@ -104,7 +104,6 @@ export async function StampUploadFieldTokens<T>(options: T): Promise<T> {
   if (!hasUploadField(options)) {
     return options;
   }
-  // Serialized form options can cross the interface boundary as context-bound proxies.
   const cloned = JSON.parse(JSON.stringify(options)) as T;
   await stampNode(cloned);
   return cloned;

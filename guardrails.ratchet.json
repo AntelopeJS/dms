@@ -1,6 +1,6 @@
 {
   "rules": {
-    "antelopejs/no-comments": 827,
+    "antelopejs/no-comments": 74,
     "anti-slop/no-chained-type-assertions": 1,
     "anti-slop/no-conditional-empty-object-spread": 1,
     "anti-slop/no-known-value-widening": 29,
@@ -15,13 +15,12 @@
   },
   "oversizeFiles": {
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
-    "packages/interface-dms/src/base/data-types/default-types.ts": 49790,
-    "packages/interface-dms/src/base/form-schema.ts": 25278,
-    "packages/interface-dms/src/base/table-view/internal/factory-helpers.ts": 23996,
-    "packages/interface-dms/src/base/table-view/meta.ts": 21416,
+    "packages/interface-dms/src/base/data-types/default-types.ts": 46358,
+    "packages/interface-dms/src/base/form-schema.ts": 24660,
+    "packages/interface-dms/src/base/table-view/internal/factory-helpers.ts": 22992,
     "packages/interface-dms/src/base/table-view/options.ts": 47006,
-    "packages/interface-dms/src/component.ts": 24334,
-    "packages/interface-dms/src/page/controllers.ts": 21505,
-    "packages/interface-dms/src/page/metadata.ts": 40983
+    "packages/interface-dms/src/component.ts": 23293,
+    "packages/interface-dms/src/page/controllers.ts": 20667,
+    "packages/interface-dms/src/page/metadata.ts": 34286
   }
 }

@@ -9,9 +9,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-// Payloads cross module boundaries as per-context views, which
-// `isDeepStrictEqual` refuses to equate with plain data holding the same
-// values: both sides are compared as plain JSON.
 function isSamePayload(a: unknown, b: unknown): boolean {
   return isDeepStrictEqual(
     JSON.parse(JSON.stringify(a ?? null)),

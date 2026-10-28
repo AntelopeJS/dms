@@ -100,8 +100,6 @@ function buildBatchCountContext(
   return { ...ctx, url };
 }
 
-// The selection arrives as a repeated query parameter (`?ids=a&ids=b`): every
-// value is read, a single-value read would act on the first row only.
 const createBulkOperationRoute = (
   operationFunc: (...args: RowBulkOperationParams) => unknown,
 ): DataControllerCallback => ({
@@ -380,10 +378,7 @@ export namespace TableViewRoutes {
       "export",
       DefaultRoutes.WithOptions(
         {
-          // A published contract: the runtime calls this positionally and every
-          // implementing module declares the same shape, so an options object
-          // cannot be introduced from this side.
-          // oxlint-disable-next-line eslint/max-params
+          // oxlint-disable-next-line eslint/max-params -- DefaultRoutes.WithOptions calls this export route with positional context, list parameters and export arguments.
           func: function (
             ctx: RequestContext,
             listParams: Parameters.ListParameters,

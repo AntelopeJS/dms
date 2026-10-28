@@ -53,9 +53,6 @@ export namespace internal {
   >();
 }
 
-// One registration per topic, not per page: the core keys what it replays to a
-// new DMS generation by this id, so an id shared by the topics of one page
-// would bring back only the last of them.
 function pageTopicId(pageId: string, topic: string): string {
   return JSON.stringify([pageId, topic]);
 }

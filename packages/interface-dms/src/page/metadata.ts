@@ -8,10 +8,6 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import { AuthOwnerOnly, AuthUser } from "../auth";
-// Import from the defining leaf, not the dms-base barrel: the barrel pulls in
-// table-view, which imports the page interface back — entering through the
-// barrel would then call DefaultLayout() while the barrel is still
-// mid-evaluation.
 import { DefaultLayout } from "../base/layouts";
 import {
   Action,
@@ -36,9 +32,7 @@ import { AssertTenantAccess } from "../tenant-access";
 import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import { SignUploadToken, internal as uploadInternal } from "../uploads";
-// Categories resolve controller classes through PageMetadata; neither module
-// dereferences the other during evaluation.
-// oxlint-disable import/no-cycle
+// oxlint-disable import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the category proxies after evaluation.
 import { internal, isInsideModule } from "./categories";
 import {
   resolveCategoryInfo,
@@ -147,8 +141,6 @@ function resolveWritePermission(
   return "__native_upload_disabled__";
 }
 
-// Only a page that declared components has hidden them all: one declaring
-// none has nothing to explain.
 function hiddenComponentsFlag(
   declared: Record<string, ComponentInfoSerialized>,
   served: Record<string, ComponentInfoSerialized>,
@@ -185,9 +177,6 @@ export class PageMetadata {
       .filter((node) => node.component === component && node.access === "own")
       .map((node) => node.permissionId);
   }
-  // What each declared component actually claimed, so the teardown gives back
-  // exactly that — the tree is read from the component itself, which a hot
-  // reload may have rebuilt by then.
   private componentTrees = new Map<string, ComponentTreeNode[]>();
   private notifiedComponents = new Set<Component>();
   private extensionEntries = new Map<PageExtensionInfo, PageExtensionEntry[]>();
@@ -286,19 +275,11 @@ export class PageMetadata {
     this.notifiedComponents = new Set();
     this.extensionEntries = new Map();
     this.detached = false;
-    // Shut before the page is published: from that point an extension can find
-    // it and try to graft onto it. Everything that follows runs inside the try,
-    // so nothing failing on the way can leave the gate shut — a page whose gate
-    // stays shut holds every sync on it, teardowns included.
     this.closeOwnComponentsGate();
 
     try {
       this.publish(pageInfo);
 
-      // Every permission is registered before the first await, so
-      // GetResponsibleModule() still sees the registering module's frame:
-      // resolved from an async continuation it returns nothing, and the
-      // core's own sweep then has no module to attribute them to.
       const prepared = Object.entries(this.components).map(([key, component]) =>
         this.prepareComponent(component, key),
       );
@@ -309,9 +290,6 @@ export class PageMetadata {
       this.ownComponentsReady = true;
       this.rebuildLayoutComponents();
     } catch (error) {
-      // A half-registered page is worse than none: it sits in the registry,
-      // routed, with no layout to serve. Detached with it, so a sync held back
-      // by the gate does not graft extensions onto the wreck once released.
       this.detached = true;
       this.registration.dispose();
       throw error;
@@ -384,12 +362,7 @@ export class PageMetadata {
   public Dispose(): void {
     this.detached = true;
     this.releaseOwnComponentsGate();
-    // Extensions belong to other modules: they survive this page and re-apply
-    // if it registers again, but nothing of theirs may outlive it in the
-    // permission tree. Synchronous, unlike registration, so a hot reload that
-    // re-registers immediately cannot have this land on the replacement.
-    // Snapshot: dropExtension deletes from the map being iterated.
-    // oxlint-disable-next-line unicorn/no-useless-spread
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
     for (const info of [...this.extensionEntries.keys()]) {
       this.dropExtension(info);
     }
@@ -413,8 +386,6 @@ export class PageMetadata {
     const run = this.extensionSyncQueue
       .then(() => this.awaitOwnComponents())
       .then(() => this.applyRegisteredExtensions());
-    // The queue itself must never stay rejected, or a single failed sync would
-    // silently freeze every later registration and teardown on this page.
     this.extensionSyncQueue = run.catch(() => undefined);
     return run;
   }
@@ -468,9 +439,6 @@ export class PageMetadata {
 
   private closeOwnComponentsGate(): void {
     this.ownComponentsReady = false;
-    // Release the gate being replaced before dropping the only handle on its
-    // resolver: whoever waits on it would otherwise wait on a promise nobody
-    // can settle any more. `awaitOwnComponents` catches them up with this one.
     this.releaseOwnComponentsGate();
     this.ownComponentsGate = new Promise<void>((resolve) => {
       this.releaseOwnComponentsGate = resolve;
@@ -482,8 +450,7 @@ export class PageMetadata {
       ? []
       : (pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
     const desired = new Set(infos);
-    // Snapshot: dropExtension deletes from the map being iterated.
-    // oxlint-disable-next-line unicorn/no-useless-spread
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
     for (const info of [...this.extensionEntries.keys()]) {
       if (!desired.has(info)) {
         this.dropExtension(info);
@@ -527,8 +494,6 @@ export class PageMetadata {
     const apimeta = GetMetadata(this.target, ControllerMeta);
     const resolvePageLayout = (request: PageLayoutRequest) =>
       this.resolvePageLayout(request);
-    // The by-slug entry carries no guard of its own, so it asks the resolver
-    // to assert the gate; the route below is already guarded.
     const handler: PageLayoutHandler = (request) =>
       this.resolvePageLayout(request, { enforceTenantAccessGate: true });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
@@ -556,10 +521,6 @@ export class PageMetadata {
       if (pageLayoutHandlers.get(pageInfo.fullSlug) === handler) {
         pageLayoutHandlers.delete(pageInfo.fullSlug);
       }
-      // …and the page's own HTTP route. The by-slug entry used to be the only
-      // half taken down, so an unregistered page kept answering on its direct
-      // route for as long as its module stayed loaded — the very thing the
-      // by-slug cleanup was added to prevent.
       UnregisterRoute(routeId);
     });
   }
@@ -574,7 +535,6 @@ export class PageMetadata {
       params,
       resolverContext,
     }: PageLayoutRequest,
-    // Only for the by-slug entry, which has no guard of its own.
     { enforceTenantAccessGate = false } = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
@@ -582,16 +542,6 @@ export class PageMetadata {
       throw new Error("PageMetadata not properly initialized");
     }
 
-    // Only for the by-slug entry: the page's own route already asserts the
-    // gate through its auth decorators, and asserting again would cost every
-    // page load a second sweep of user-supplied gate callbacks. `/dms/pagelayout`
-    // has no such guard — it asks for a session and nothing else — so without
-    // this the page-level `bypassTenantAccessGate` flag would be advisory: a
-    // member of a denied tenant could read the layout, upload tokens included,
-    // of every page that did not opt out.
-    //
-    // Which surfaces survive a denial is `gateAllowsSurface`'s call, shared
-    // with the menu and realtime page access so the three cannot drift.
     if (
       enforceTenantAccessGate &&
       user &&
@@ -601,17 +551,8 @@ export class PageMetadata {
       await AssertTenantAccess(user._id, tenantId);
     }
 
-    // Slots are resolved per request rather than baked into the cached layout:
-    // a component that opens one is answering contributors that may register at
-    // any time, long after this page did. Resolved *before* the permission
-    // filter, so contributed content goes through every filter the page's own
-    // content does — a contributed watch guarded by `requirePermission`
-    // included.
     const components = await ResolveComponentSlots(layout.components);
 
-    // Upload tokens are already baked into the cached layout: each form
-    // stamped its own fields when it serialized, at registration
-    // (`SignUploadToken` in interfaces/dms/uploads).
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
@@ -624,10 +565,6 @@ export class PageMetadata {
       );
     };
 
-    // Header actions declaring a permission are filtered on every page, even
-    // one skipping component permissions: they name their own requirement.
-    // The page's record is read first, so every availability of the page
-    // reads it with the URL.
     const context: ComponentFilterContext = { tenantId, user, query, params };
     const read = await readPageRecord(layout.layout, context);
     context.record = read?.record;
@@ -659,8 +596,6 @@ export class PageMetadata {
 
     return {
       ...layout,
-      // A component's header buttons are added once it was filtered: the
-      // ones the caller may not press are gone already.
       layout: withComponentHeaderButtons(
         await filterLayoutHeaderActions(
           layout.layout,
@@ -676,9 +611,6 @@ export class PageMetadata {
     };
   }
 
-  // Component and action ids descend from the page permission id, so a module
-  // page's mark already covers them — they only need to stay out of the
-  // grantable permission tree.
   private registersComponentPermissions(): boolean {
     return !this.skipComponentPermissions && !this.moduleScoped;
   }
@@ -721,9 +653,6 @@ export class PageMetadata {
     );
     this.componentTrees.set(componentKey, nodes);
 
-    // Tracked before anything is claimed: `onPageCreated` is consumer code and
-    // can throw between the permission being registered and the end of this
-    // method, and the rollback can only undo what it was told about.
     this.registration.track(() => {
       this.unregisterComponent(component, componentKey);
     });
@@ -837,15 +766,8 @@ export class PageMetadata {
     const { component, permissionId } = node;
     this.componentMap.set(permissionId, node);
 
-    // A withheld position claims nothing: its id belongs to an action, and it
-    // is in the map only so the filter can refuse it. Its hook stays unrun —
-    // a component that is never served must not register side effects.
     if (node.access === "withheld") return;
 
-    // First position wins, and the walk is parent-first: a component mounted
-    // both by the page and inside another keeps the id it is declared under.
-    // Overwriting would make `GetPermissionId` — and every guard built on it —
-    // depend on walk order.
     if (node.access === "own" && !permissionMap.has(component)) {
       permissionMap.set(component, permissionId);
     }
@@ -893,9 +815,6 @@ export class PageMetadata {
     try {
       node.component.onPageCreated(this);
     } catch (error) {
-      // …except what two components both claim (a form route, the writing
-      // TableView of a controller): the page cannot honour both declarations,
-      // and carrying on would silently serve one of them in place of the other.
       if (error instanceof PageDeclarationConflictError) throw error;
       Logging.Error(
         `[dms] component "${node.permissionId}" failed its onCreated hook on page "${this.pageInfo?.fullId}": ${String(error)}`,
@@ -914,10 +833,6 @@ export class PageMetadata {
     return owner === undefined || owner === this;
   }
 
-  // Nothing was prepared under this key — a teardown replayed after the
-  // extension that owned it was already dropped, or a walk that threw before
-  // claiming anything. Giving back what was never taken would unregister a
-  // permission another position still holds.
   private unregisterComponent(_component: Component, componentKey: string) {
     const nodes = this.componentTrees.get(componentKey);
     if (!nodes) return;
@@ -940,9 +855,6 @@ export class PageMetadata {
     }
   }
 
-  // Action ids are resolved through `permissionMap`, so the node's own entry
-  // only goes once its actions have been given back — and only when the entry
-  // is this position's, since another one may have claimed the instance first.
   private unregisterComponentNode(node: ComponentTreeNode): void {
     if (node.access === "withheld") return;
     if (this.registersComponentPermissions()) {
@@ -959,19 +871,12 @@ export class PageMetadata {
     }
   }
 
-  // A component is tracked before it is processed, so a detach landing mid-way
-  // still finds it. One that fails to register is taken back down and left out
-  // of the layout, while the rest of its extension stands: the extension is
-  // recorded either way, so a later sync never replays an `onPageCreated` side
-  // effect that already ran.
   private async addExtension(info: PageExtensionInfo): Promise<void> {
     const errors = collectExtensionErrors(info, {
       own: this.ownComponents,
       taken: this.takenComponentKeys(),
     });
     const entries: PageExtensionEntry[] = [];
-    // Recorded even when it contributes nothing: an extension the page refused
-    // must not be re-examined — and re-reported — on every later sync.
     this.extensionEntries.set(info, entries);
     if (errors.length > 0) {
       for (const error of errors) {
@@ -981,8 +886,6 @@ export class PageMetadata {
     }
 
     for (const [declarationIndex, contribution] of info.components.entries()) {
-      // Revoked mid-way: its module is going away, and running in that
-      // module's context now would claim a generation that is being released.
       if (!isPageExtensionRegistered(info)) break;
       entries.push({
         ...contribution,
@@ -991,9 +894,6 @@ export class PageMetadata {
       });
       try {
         const componentPath = this.extensionComponentPath(contribution);
-        // Both halves, as the extending module: the claim registers
-        // permissions and runs `onCreated`, the serialization binds native
-        // upload fields.
         const prepare = runAsPageExtensionOwner(info, () =>
           this.prepareComponent(contribution.component, componentPath),
         );

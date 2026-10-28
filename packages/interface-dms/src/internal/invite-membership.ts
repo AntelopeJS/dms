@@ -50,7 +50,6 @@ async function beginMembership(resolution: InviteResolution): Promise<void> {
     await model.advanceMembership(resolution, "applied");
     return;
   }
-  // `changeTenantMembers` announced this membership before the write began.
   await ExecuteHooks(Hook.MEMBER_BEING_ADDED, {
     tenantId,
     userId,

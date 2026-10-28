@@ -43,8 +43,6 @@ export function logInviteExtensionFailure(
   Logging.Error(`[dms] invite extension "${key}" failed to ${action}:`, error);
 }
 
-// An unresolved module matches nothing: two registrations whose owner is
-// unknown are not known to be the same module, so they still warn.
 function isSameRegisteringModule(
   held: InviteExtensionInfo,
   incoming: InviteExtensionInfo,
@@ -82,8 +80,6 @@ export function applyInviteExtension(info: InviteExtensionInfo): void {
 /** @internal */
 export function revokeInviteExtension(info: InviteExtensionInfo): void {
   const existing = inviteExtensions.get(info.key);
-  // A hot reload registers the replacement before the old one unregisters,
-  // so an unconditional delete would drop the live registration.
   if (!existing || existing.info !== info) return;
   inviteExtensions.delete(info.key);
 }

@@ -1,9 +1,3 @@
-// The declaration checks the TableView factory runs before building anything:
-// every option naming a column, a display or a form slug must name one the
-// table view actually has.
-//
-// Split out of factory-helpers.ts.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -96,10 +90,6 @@ export function assertKnownColumns(
   }
 }
 
-// Types whose quick filter values are known whatever their input: the two
-// labels of a boolean or a status, the rows a relation's `select` endpoint
-// lists. Their input is not built here: a relation's reads the metadata of
-// the controller it points to, which may not be declared yet.
 const QUICK_FILTER_VALUED_TYPES = new Set([
   "boolean",
   "status",
@@ -250,7 +240,6 @@ const RESERVED_DISPLAY_IDS: readonly string[] = [
   CARDS_DISPLAY_ID,
   GROUPED_DISPLAY_ID,
 ];
-// `<module>:<id>`: the module's name, then the display's own id.
 const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
 
 /**
@@ -404,8 +393,6 @@ export function validateGroupedOptions(
       `TableView grouped on ${controllerName} groups "${groupByField}" by ${by}, which needs a DateType column (got "${typeId}")`,
     );
   }
-  // A group is counted with `filter_<column>`, which the count route ignores
-  // on a column without a filter: every header would read the whole total.
   const filters = GetMetadata(
     meta.target as ControllerClass,
     DataAPIMeta,

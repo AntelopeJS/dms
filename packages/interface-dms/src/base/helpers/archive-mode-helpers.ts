@@ -42,8 +42,6 @@ export function applyArchiveModeDefaultRules<T extends Record<string, unknown>>(
       continue;
     }
 
-    // A rule of the table's own narrows the archive one, never lifts it: an
-    // archived row stays out of reach of edit, a live one of delete.
     if (typeof userConfig === "object") {
       result[actionKey] = {
         ...userConfig,

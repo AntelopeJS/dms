@@ -131,7 +131,6 @@ export const blockPeriodScopeOption = () =>
 
 /** The `realtimeTopic` option of a block that refetches on realtime events. */
 export const blockRealtimeTopicOption = () =>
-  // A topic is a name the backend publishes under, which only its code knows.
   ui(
     z
       .union([z.string(), z.array(z.string())])

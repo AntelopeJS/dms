@@ -91,7 +91,6 @@ function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
       )
     : undefined;
 
-  // `onParam` is set only when the contribution declared conditions.
   const resolvedWatch: WatchAction = { ...watch, params };
   if (conditions) resolvedWatch.onParam = conditions;
   return resolvedWatch;
@@ -117,9 +116,6 @@ function prefixSchemaEntries(
 async function buildContribution(
   info: InviteExtensionInfo,
 ): Promise<InviteFieldContribution | undefined> {
-  // Serializing here — not at registration — is what runs the form's option
-  // transforms, so the upload fields it carries are stamped exactly as they
-  // would be on a page that hosts the form directly.
   const serialized = await info.component.serialize();
   const options = serialized.options as FormPropsSerialized | undefined;
   const fields = flattenSerializedFields(options?.fields ?? []);
@@ -165,9 +161,6 @@ function contributionOf(
   entry.contribution ??= buildContribution(entry.info).catch(
     (error: unknown) => {
       logInviteExtensionFailure(entry.info.key, "serialize its form", error);
-      // Cleared so a later request retries: a transient failure (an unreachable
-      // signing implementation while the DMS is still starting) must not leave
-      // the extension permanently out of the modal.
       entry.contribution = undefined;
       return undefined;
     },
@@ -175,9 +168,6 @@ function contributionOf(
   return entry.contribution;
 }
 
-// Every criterion is intrinsic to the declaration — never module start order —
-// so the modal assembles identically on every host and across restarts. Keys
-// are unique, so they close the total order.
 function compareContributions(
   a: InviteFieldContribution,
   b: InviteFieldContribution,
@@ -193,8 +183,6 @@ function disableGroup(group: FieldGroupSerialized): FieldGroupSerialized {
   };
 }
 
-// Returns a copy: the contribution is the process-wide cache shared by every
-// request and by both invite forms.
 function adaptToHost(
   contribution: InviteFieldContribution,
   host: InviteFormHost,
@@ -283,14 +271,6 @@ function assembleFields(
     contributions,
     new Set(own.map((field) => field.id)),
   );
-  // Cloned, not spread: the group hangs off a process-wide cache shared by
-  // every request, and a shallow copy would hand each of them the same field
-  // objects — one in-place edit downstream and the cache is corrupted for
-  // every tenant.
-  //
-  // A contributed block lays out like the form it lands in unless its author
-  // asked otherwise: a block that reads sideways in a column of fields looks
-  // like a rendering bug, not like a deliberate choice.
   const blockOf = (
     contribution: InviteFieldContribution,
   ): FieldGroupSerialized => ({
@@ -315,8 +295,6 @@ function assembleFields(
   return assembled;
 }
 
-// The browser validates against the form's JSON schema, so a contributed field
-// left out of it would submit unchecked — its own `required` flag included.
 function mergeSchema(
   own: unknown,
   contributions: InviteFieldContribution[],
@@ -344,18 +322,13 @@ async function resolveInviteFormSlot(
   options: SlotOptions,
   host: InviteFormHost,
 ): Promise<SlotOptions> {
-  // The marker has done its job here; leaving it in would ship an internal id
-  // to the browser, where an unknown form prop lands as a DOM attribute.
   const { [COMPONENT_SLOT_KEY]: _slot, ...resolved } = options;
   const contributions = (await collectContributions()).map((contribution) =>
     adaptToHost(contribution, host),
   );
   if (contributions.length === 0) return resolved;
 
-  // The source and the target do not overlap, so this cannot be one
-  // assertion: the value reaches here through a decorator, a JWT
-  // payload or a filter tuple, none of which the type system sees.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- SlotOptions erases the form shape; this invite-form resolver reads its serialized fields and watches.
   const form = options as unknown as FormPropsSerialized & {
     watchActions?: WatchAction[];
   };
@@ -364,8 +337,6 @@ async function resolveInviteFormSlot(
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
-  // `watchActions` is set only when there is at least one, so a form with none
-  // carries no key for it.
   const merged: Record<string, unknown> = {
     ...resolved,
     fields: assembleFields(
@@ -379,8 +350,6 @@ async function resolveInviteFormSlot(
   return merged as SlotOptions;
 }
 
-// Claimed on import: the DMS invite forms declare their slots at page
-// registration, which can run before any module extends them.
 RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>
   resolveInviteFormSlot(options, INVITE_FORM_HOST),
 );

@@ -76,7 +76,6 @@ export interface DefaultLayoutOptions {
   record?: PageRecordLoader;
 }
 
-// A button without an id is keyed by its place in the header.
 const HEADER_BUTTON_ID_PREFIX = "header-";
 
 function declareHeaderButton(

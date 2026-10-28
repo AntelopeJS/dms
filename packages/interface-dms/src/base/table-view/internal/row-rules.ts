@@ -48,8 +48,6 @@ const ACTION_VALIDATION_CONFIGS: Record<
     extractIds: (params) => [(params as Parameters.EditParameters).id],
     emptyResultBehavior: EmptyResultBehavior.Strict,
   },
-  // A bulk route's first argument after the context is the id list itself:
-  // the rows a rule rejects are dropped from it before the operation runs.
   archive: {
     extractIds: (ids) => normalizeToArray(ids as string | string[]),
     emptyResultBehavior: EmptyResultBehavior.Graceful,
@@ -70,8 +68,6 @@ interface ValidationContext {
   idField: string;
 }
 
-// The writing TableView's rules and options are the controller's: it is the
-// only one the write routes serve.
 const getValidationContext = (
   controller: unknown,
   actionName: ValidatedActionName,

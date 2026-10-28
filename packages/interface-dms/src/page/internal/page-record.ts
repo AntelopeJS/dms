@@ -5,9 +5,6 @@ import type {
 } from "../../base/internal/layouts";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
 
-// The record a page shows (`DefaultLayout({ record })`), read with its layout:
-// `{{record.X}}` in a header button's target, a button acting on it.
-
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
 const PATH_SEPARATOR = ".";

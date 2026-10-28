@@ -1,8 +1,4 @@
-// The builder tracks which fields are set in a phantom type parameter, so each
-// setter returns `this` widened by one more key. TypeScript cannot narrow
-// `this` to a different instantiation of its own class, which is what makes the
-// chain unavoidable for this pattern.
-/* oxlint-disable anti-slop/no-chained-type-assertions */
+/* oxlint-disable anti-slop/no-chained-type-assertions -- Setters widen the phantom set-of-fields type on the same builder instance; TypeScript does not narrow this to that generic instantiation. */
 import { SendableNotification } from "./sendable";
 import type {
   NotificationData,

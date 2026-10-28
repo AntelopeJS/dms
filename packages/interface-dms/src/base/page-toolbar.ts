@@ -164,7 +164,6 @@ export const PAGE_TOOLBAR_PERIOD_DEFAULTS: PeriodSelectorProps = {
 };
 
 const NO_COMPARISON: PeriodComparison = "none";
-// What a `PeriodSelector` offers without `comparisons`.
 const SELECTOR_DEFAULT_COMPARISONS: PeriodComparison[] = [
   NO_COMPARISON,
   "previous-period",
@@ -177,8 +176,6 @@ interface ToolbarComparisonSetup {
   defaultComparison?: PeriodComparison;
 }
 
-// The comparison control of PAGE_TOOLBAR_PERIOD_DEFAULTS' doc, under what
-// the page's `period` sets itself.
 function toolbarComparisonSetup(
   period: PeriodSelectorProps,
 ): ToolbarComparisonSetup {
@@ -206,8 +203,6 @@ interface ToolbarControl extends BlockInitialChild {
   build(): Component;
 }
 
-// A control built over its defaults, carrying the metadata and the options
-// transform it was given.
 function placed<P>(
   builder: ComponentBuilder<P>,
   { meta, transformOptions }: PageToolbarChildOptions<P>,
@@ -334,7 +329,6 @@ RegisterBlockType({
       "Context bar of a page: its scope, the last update, live mode and period.",
     group: "data",
   },
-  // What `pageToolbar()` places, for an editor building a toolbar.
   initialChildren: toolbarControls(undefined, undefined).map(
     ({ id, type, options }) => ({ id, type, options }),
   ),

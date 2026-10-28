@@ -1,8 +1,6 @@
 import type { Class } from "@antelopejs/interface-core/decorators";
 import type { ColumnDisplay, ColumnDisplaySerialized } from "../column-display";
 
-// Weak: a hot reload registers a module's displays again as new classes, and
-// the replaced ones must not stay reachable through this lookup.
 /** @internal */
 export const displayIds = new WeakMap<Class<ColumnDisplay<object>>, string>();
 

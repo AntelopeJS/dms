@@ -7,13 +7,9 @@ export interface WatchActionCondition {
   value: unknown;
 }
 
-// Intentionally empty: modules extend it through declaration merging.
 export interface WatchFunctionParamMap {}
 
-// WatchFunctionParamMap is empty here and filled by declaration merging in
-// the consuming modules, so `keyof` is only `never` from this file's point
-// of view. `& string` is what keeps the merged keys usable as identifiers.
-// oxlint-disable-next-line typescript/no-redundant-type-constituents
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- Consumers augment WatchFunctionParamMap by declaration merging; intersecting its keys with string excludes non-string keys.
 export type WatchFunctionId = keyof WatchFunctionParamMap & string;
 
 export type WatchFunctionParams<F extends string> =

@@ -68,9 +68,6 @@ async function resolveNode(node: unknown): Promise<void> {
     if (resolved === target) return;
     for (const key of Object.keys(target)) delete target[key];
     Object.assign(target, resolved);
-    // A resolver that throws leaves the component as its author declared it:
-    // the screen still renders, without the contribution. Failing the whole
-    // layout would take down a page over a contributor's bug.
   } catch (error) {
     Logging.Error(
       `[dms] component slot "${slotId}" could not be resolved:`,
