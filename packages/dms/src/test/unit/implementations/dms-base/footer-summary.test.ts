@@ -25,6 +25,9 @@ const field = (name: string) =>
       expression(`${name}!=${String(value)}`),
   }) as unknown as ValueProxy<unknown>;
 
+const fromJson = (json: string): Parameters<typeof compileRowRule>[0] =>
+  JSON.parse(json);
+
 const compile = (rule: Parameters<typeof compileRowRule>[0]) => {
   const condition = compileRowRule(rule, field);
   // SAFETY: Nonliteral results originate from this fixture's eq/ne and expression combinators, all of which return an Expression with text.
@@ -77,5 +80,62 @@ describe("[unit] dms-base — footer summary rules", () => {
         ],
       }),
     ).to.equal(false);
+  });
+
+  it("rejects mixed-key rules whose dispatched operand is malformed, not first-key dispatch that throws a TypeError", () => {
+    const andOperand = { field: "amount", equals: 41, and: 123 };
+    const inOperand = { field: "amount", notIn: [41], in: 123 };
+    expect(() => compile(andOperand)).to.throw(
+      Error,
+      /rule\.and must be an array of rules/,
+    );
+    expect(() => compile(inOperand)).to.throw(
+      Error,
+      /rule\.in must be an array/,
+    );
+  });
+
+  it("rejects malformed operands nested in and, or and not instead of throwing a TypeError", () => {
+    expect(() =>
+      compile(
+        fromJson('{"and":[{"field":"a","equals":1},{"field":"b","in":"x"}]}'),
+      ),
+    ).to.throw(Error, /rule\.and\[1\]\.in must be an array/);
+    expect(() =>
+      compile(
+        fromJson(
+          '{"or":[{"field":"a","equals":1},{"not":{"field":"b","notIn":7}}]}',
+        ),
+      ),
+    ).to.throw(Error, /rule\.or\[1\]\.not\.notIn must be an array/);
+    expect(() =>
+      compile(fromJson('{"not":{"field":"b","equals":1,"or":{}}}')),
+    ).to.throw(Error, /rule\.not\.or must be an array of rules/);
+    expect(() => compile(fromJson('{"not":null}'))).to.throw(
+      Error,
+      /rule\.not must be a rule object/,
+    );
+    expect(() => compile(fromJson('{"not":[]}'))).to.throw(
+      Error,
+      /rule\.not must be a rule object/,
+    );
+    expect(() => compile(fromJson('{"and":[null]}'))).to.throw(
+      Error,
+      /rule\.and\[0\] must be a rule object/,
+    );
+    expect(() => compile(fromJson('{"or":[[]]}'))).to.throw(
+      Error,
+      /rule\.or\[0\] must be a rule object/,
+    );
+  });
+
+  it("keeps compiling a valid rule that carries a shadowed operator", () => {
+    expect(
+      compile({
+        field: "amount",
+        equals: 41,
+        and: [{ field: "a", equals: 1 }],
+      }),
+    ).to.equal("a=1");
   });
 });

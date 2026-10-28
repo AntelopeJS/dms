@@ -141,6 +141,24 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     );
   });
 
+  it("refuses a malformed where rule at declaration instead of failing a request later", () => {
+    const declare = (json: string) =>
+      optionsOf({
+        footer: {
+          summary: [{ label: "Bad", op: "count", where: JSON.parse(json) }],
+        },
+      });
+    expect(() => declare('{"field":"amount","equals":41,"and":123}')).to.throw(
+      /footer summary "Bad".*where\.and must be an array of rules/,
+    );
+    expect(() => declare('{"field":"amount","notIn":[41],"in":123}')).to.throw(
+      /footer summary "Bad".*where\.in must be an array/,
+    );
+    expect(() =>
+      declare('{"not":{"or":[{"field":"amount","in":"x"}]}}'),
+    ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
+  });
+
   it("serializes the empty states, a component included", () => {
     const options = optionsOf({
       emptyStates: {
