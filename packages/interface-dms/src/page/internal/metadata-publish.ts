@@ -54,8 +54,8 @@ export function publish(
   context.registerPermission(pageInfo);
   permissionMap.set(page.target, context.permissionId());
   context.registration().track(() => {
-    if (!context.ownsPermissions()) return;
     permissionMap.delete(page.target);
+    if (!context.ownsPermissions()) return;
     if (context.registeredPermission() && context.permissionId()) {
       UnregisterPermission(context.permissionId());
       context.clearRegisteredPermission();
