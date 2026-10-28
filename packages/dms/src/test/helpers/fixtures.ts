@@ -62,8 +62,7 @@ export async function updateUserByEmail(
   if (!user) {
     throw new Error(`User not found: ${email}`);
   }
-  // Saved whole: a partial update rewrites the hashed fields' stored state and
-  // loses the password.
+
   await model.update(Object.assign(user, update));
 }
 
@@ -80,23 +79,17 @@ export async function seedGeneralSettings(
 ): Promise<void> {
   const model = GetModel(SystemStateModel);
   const current = await model.getConfig();
-  await model.updateConfig({
-    // The spread row is an AntelopeJS table class: `Table` declares one
-    // field and a static, no instance methods, and the value is
-    // serialised to JSON on the way out. No prototype to lose.
-    // oxlint-disable-next-line typescript/no-misused-spread
-    ...current,
-    has_onboarded: overrides.has_onboarded ?? false,
-    updatedAt: new Date(),
-  } as Parameters<SystemStateModel["updateConfig"]>[0]);
+  await model.updateConfig(
+    Object.assign({}, current, {
+      has_onboarded: overrides.has_onboarded ?? false,
+      updatedAt: new Date(),
+    }),
+  );
 }
 
-export async function getGeneralSettings(): Promise<Record<
-  string,
-  unknown
-> | null> {
+export async function getGeneralSettings() {
   const config = await GetModel(SystemStateModel).getConfig();
-  return (config as Record<string, unknown> | undefined) ?? null;
+  return config ?? null;
 }
 
 export async function listUserInvitesByEmail(

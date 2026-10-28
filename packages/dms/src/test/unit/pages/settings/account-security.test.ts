@@ -11,12 +11,10 @@ import {
   changePassword,
   listSessions,
   revokeOtherSessions,
-} from "../../../../pages/settings/users/account-credentials";
-import { requestEmailChange } from "../../../../pages/settings/users/email-change";
-import {
+  requestEmailChange,
   getTwoFactorStatus,
   markBackupCodesSaved,
-} from "../../../../pages/settings/users/two-factor-operations";
+} from "../../../../pages/account";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
@@ -46,6 +44,7 @@ interface Harness {
 }
 
 function buildUser(password: string | null): User {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
   return {
     _id: USER_ID,
     email: OWN_EMAIL,
@@ -54,13 +53,14 @@ function buildUser(password: string | null): User {
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
-    // Mirrors HashModifier: the stored hash is compared, never exposed.
+
     testHash: (_field: string, candidate: string) =>
       candidate === CURRENT_PASSWORD,
   } as unknown as User;
 }
 
 function session(id: string, lastActiveAt: number): Session {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session fixture omits the required userAgent field, which these credential operations do not read.
   return {
     _id: id,
     userId: USER_ID,
@@ -71,10 +71,11 @@ function session(id: string, lastActiveAt: number): Session {
     location: "",
     createdAt: new Date(0),
     lastActiveAt: new Date(lastActiveAt),
-  } as unknown as Session;
+  } as Session;
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Model doubles are assigned immediately below after the harness exists for their closures.
   const harness = {
     user: buildUser(password),
     sessions: [
@@ -85,16 +86,16 @@ function buildHarness(password: string | null = "hashed"): Harness {
     updates: 0,
     refreshTokens: new Map<string, string>(),
   } as Harness;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This model double implements only lookup and update operations consumed by the credential flow.
   harness.userModel = {
     get: async () => harness.user,
     getByEmail: async (email: string) =>
-      email === TAKEN_EMAIL
-        ? ({ _id: OTHER_USER_ID } as unknown as User)
-        : undefined,
+      email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
     update: async () => {
       harness.updates += 1;
     },
   } as unknown as UserModel;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This session model double implements only listing, deletion and refresh-token replacement.
   harness.sessionModel = {
     getByUserId: async () => [...harness.sessions],
     delete: async (id: string) => {
@@ -112,13 +113,16 @@ const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TEN
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
     () => undefined,
-    (error: unknown) => error,
+    (error) => error,
   );
   if (outcome instanceof HTTPResult) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);
 }
 
-function passwordChange(harness: Harness, body: Record<string, unknown>) {
+function passwordChange(
+  harness: Harness,
+  body: Parameters<typeof changePassword>[1],
+) {
   return changePassword(harness.user, body, {
     userModel: harness.userModel,
     sessionModel: harness.sessionModel,

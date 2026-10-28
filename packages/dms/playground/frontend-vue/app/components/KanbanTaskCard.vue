@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import type { TableViewCardProps } from "#dms-ui/app/composables/table-view/types";
+
+interface TaskRow {
+  [field: string]: TableViewCardProps["row"][string];
+}
+
 interface KanbanColumnMeta {
   id: string;
   header: string;
@@ -14,24 +20,21 @@ interface CustomRowAction {
 
 const START_ACTION_ID = "start";
 
-// The card props every card display hands a custom card (`card.component`),
-// mirrored locally so this example stays decoupled from the dms package's
-// internal type paths.
 interface TaskCardProps {
   /** The row the card stands for */
-  row: Record<string, unknown>;
+  row: TaskRow;
   /** Its id */
   rowId: string;
   /** Column metadata of the table view (types, labels) */
   columns: KanbanColumnMeta[];
   /** The table's row actions and their per-row predicates */
   actions: {
-    canDeleteRow: (item: Record<string, unknown>) => boolean;
+    canDeleteRow: (item: TaskRow) => boolean;
     delete: (ids: string[]) => void;
     /** The custom row actions the row offers (their `rule` accepted) */
-    customFor: (item: Record<string, unknown>) => CustomRowAction[];
+    customFor: (item: TaskRow) => CustomRowAction[];
     /** Runs a custom row action on the row */
-    custom: (action: CustomRowAction, item?: Record<string, unknown>) => void;
+    custom: (action: CustomRowAction, item?: TaskRow) => void;
   };
   /** The row is selected */
   selected: boolean;
@@ -47,14 +50,13 @@ const props = defineProps<TaskCardProps>();
 
 const { formatDate, formatPrice } = useRegionalFormat();
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Priority is a dynamic row value converted to string; unknown keys intentionally reach the neutral fallback.
 const PRIORITY_COLORS: Record<string, string> = {
   low: "neutral",
   medium: "warning",
   high: "error",
 };
 
-// The row's "Start" action, found by its id among the actions its rule
-// leaves it: absent once the task is no longer pending.
 const startAction = computed(() =>
   props.actions
     .customFor(props.row)

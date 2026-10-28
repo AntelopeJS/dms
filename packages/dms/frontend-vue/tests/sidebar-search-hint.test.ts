@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -16,9 +16,8 @@ import {
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
+import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
-import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
 
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
@@ -37,7 +36,9 @@ let host: HTMLDivElement;
 /** Stands in for Nuxt UI's button: its kbds, and its tooltip's while collapsed. */
 const SearchButton = defineComponent({
   props: {
+    // SAFETY: Sidebar passes the search button's keyboard labels as strings.
     kbds: { type: Array as PropType<string[]>, default: () => [] },
+    // SAFETY: Sidebar supplies the tooltip's keyboard labels in its kbds property.
     tooltip: { type: Object as PropType<{ kbds?: string[] }>, default: null },
   },
   setup: (props) => () =>
@@ -49,7 +50,7 @@ const SearchButton = defineComponent({
     ]),
 });
 
-function installRuntime(initialCookies: Record<string, unknown>) {
+function installRuntime(initialCookies: Record<string, string>) {
   cookies = new Map(
     Object.entries(initialCookies).map(([key, value]) => [key, ref(value)]),
   );
@@ -59,7 +60,6 @@ function installRuntime(initialCookies: Record<string, unknown>) {
     watch,
     onMounted,
     onBeforeUnmount,
-    addActiveStateToMenuItem,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsAppConfig", () => ({}));
@@ -67,13 +67,13 @@ function installRuntime(initialCookies: Record<string, unknown>) {
     processI18n: (value: string) => value,
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+  vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
-  // One ref per cookie, shared by every caller, as `useDmsCookie` does.
+
   vi.stubGlobal(
     "useDmsCookie",
-    (key: string, options: { default: () => unknown }) => {
+    <T>(key: string, options: { default: () => T }) => {
       if (!cookies.has(key)) cookies.set(key, ref(options.default()));
       return cookies.get(key);
     },
@@ -92,7 +92,7 @@ function installRuntime(initialCookies: Record<string, unknown>) {
   vi.stubGlobal("useCurrentModule", () => computed(() => null));
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
-  vi.stubGlobal("getExpandedItemIds", () => []);
+  vi.stubGlobal("collectOpenItemIds", () => []);
 }
 
 function useNavigator(kind: keyof typeof NAVIGATORS) {

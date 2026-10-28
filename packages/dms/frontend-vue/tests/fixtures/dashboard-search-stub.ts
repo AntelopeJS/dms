@@ -1,10 +1,6 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "@nuxt/ui";
 import { defineComponent, h, type PropType } from "vue";
 
-interface PaletteInputProps {
-  onKeydown?: (event: KeyboardEvent) => void;
-}
-
 function matchingItems(
   group: CommandPaletteGroup,
   term: string,
@@ -47,10 +43,11 @@ export const PaletteStub = defineComponent({
     colorMode: { type: Boolean, default: true },
     searchTerm: { type: String, default: "" },
     groups: {
+      // SAFETY: Vue's Array constructor declares the palette group array prop; callers supply CommandPaletteGroup entries.
       type: Array as PropType<CommandPaletteGroup[]>,
       default: () => [],
     },
-    input: { type: Object as PropType<PaletteInputProps>, default: () => ({}) },
+    input: { type: Object, default: () => ({}) },
     icon: { type: String, default: undefined },
     placeholder: { type: String, default: undefined },
   },
@@ -72,6 +69,7 @@ export const PaletteStub = defineComponent({
             placeholder: props.placeholder,
             "data-icon": props.icon,
             onKeydown: props.input.onKeydown,
+            // SAFETY: This listener is attached to the input rendered immediately above, so its target is that HTMLInputElement.
             onInput: (event: Event) =>
               emit(
                 "update:searchTerm",

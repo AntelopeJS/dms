@@ -9,7 +9,7 @@ import { resolveActionError } from "../../confirm/actionError";
  * required."). Never the raw ofetch error line.
  */
 export function describeTableWriteError(
-  error: unknown,
+  error: Parameters<typeof resolveActionError>[0],
   translate: I18nTranslate,
   columns: ReadonlyArray<Pick<TableViewColumn, "accessorKey" | "header">>,
   processI18n: (text: string) => string,

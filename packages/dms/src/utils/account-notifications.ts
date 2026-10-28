@@ -175,6 +175,7 @@ export function notifyTwoFactorDisabled(
   return emitNotification(userId, twoFactorTemplate("disabled", method));
 }
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Counts outside zero and one deliberately miss this lookup and use the plural copy.
 const COUNT_DESCRIPTION_KEYS: Readonly<Record<number, string>> = {
   0: "description_none",
   1: "description_one",

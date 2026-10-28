@@ -8,7 +8,6 @@ import {
 
 const EXPLICIT_REGISTRATION = { id: "saas-mode-test-registration" };
 
-// A registration belongs to the module that made it: here, the test module.
 function unloadRegisteringModule(): void {
   const moduleId = GetResponsibleModule();
   if (!moduleId) throw new Error("No responsible module for the test");

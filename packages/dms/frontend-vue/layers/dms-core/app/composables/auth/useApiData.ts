@@ -8,6 +8,7 @@ import type {
 } from "#dms/frontend-module";
 import { getCurrentInstance, toValue, watch, type MaybeRefOrGetter } from "vue";
 import { useLivePauseSource } from "../live/livePauseSource";
+import { isFunction } from "../../utils/type-check";
 
 /** The authenticated fetch `useAuthFetch` returns. */
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -90,7 +91,7 @@ export function useApiData<T>(
   options?: UseAsyncDataOptions<T>,
 ): ApiDataResult<T> {
   const { $authFetch } = useAuthFetch();
-  if (typeof handlerOrOptions === "function")
+  if (isFunction(handlerOrOptions))
     return followLivePause(
       useDmsAsyncData<T>(
         source,
@@ -102,7 +103,7 @@ export function useApiData<T>(
   return followLivePause(
     useDmsFetch<T>(source, {
       ...gateLivePolling(handlerOrOptions),
-      $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
+      $fetch: $authFetch,
     }),
     handlerOrOptions,
   );
@@ -114,10 +115,6 @@ interface PolledReadOptions {
   immediate?: boolean;
 }
 
-// A component's polling is one more read nobody asked for: on a live page it
-// stops while the page is paused, as the blocks' refetches do. A plugin's
-// polling (the shell's, outside any page) keeps running. The pause is read
-// through the app's `LIVE_PAUSE_SOURCE`, which the UI layer provides.
 function isGatedPolling(
   options: PolledReadOptions | undefined,
 ): options is PolledReadOptions {
@@ -154,7 +151,7 @@ function followLivePause<
     }
     const period = toValue(options.refreshInterval);
     if (!period || period <= 0 || Date.now() - pausedAt < period) return;
-    // Data a caller waits to `execute()` is not read before it is.
+
     if (result.status.value === "idle" && options.immediate === false) return;
     void result.refresh({ dedupe: "defer" });
   });

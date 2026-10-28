@@ -39,8 +39,6 @@ export function collectComponentTree(
       return;
     }
     nodes.push(node);
-    // Recorded, so the filter knows to withhold it, but not walked: nothing
-    // below a position that is never served can be reached either.
     if (node.access === "withheld") {
       Logging.Error(
         `[dms] "${node.permissionId}" is claimed by both an action and a child of the same name; the child and everything below it is withheld. Rename one of them.`,

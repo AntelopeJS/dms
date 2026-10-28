@@ -3,9 +3,6 @@ import type { MenuItemParams } from "@antelopejs/interface-dms/page";
 const SLUG_SEPARATOR = "/";
 const ROUTE_PARAM_PREFIX = ":";
 
-// Fills the `:name` segments of a page slug. An unfilled segment would ship a
-// literal `:name` link, and a parameter filling none is most likely a typo, so
-// either leaves the entry without a link.
 export function fillRouteParams(
   fullSlug: string,
   params: MenuItemParams = {},

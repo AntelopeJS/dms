@@ -1,6 +1,6 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import type { Tone } from "#dms-ui/app/types/tone";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** Base URL of the Security page API. */
 export const SECURITY_ENDPOINT = pageRoutePath("/settings/user/security");
@@ -78,7 +78,7 @@ const ATTENTION_TONE_ORDER: Tone[] = [
 export function useSecurityOverview() {
   const summary = useApiData<SecurityOverview>(SECURITY_ENDPOINT);
   const overview = computed(() => summary.data.value ?? null);
-  // A retry in progress is not a failure to show.
+
   const isUnavailable = computed(
     () => !!summary.error.value && summary.status.value !== "pending",
   );

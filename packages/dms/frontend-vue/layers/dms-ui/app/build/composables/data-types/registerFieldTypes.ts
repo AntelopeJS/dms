@@ -1,10 +1,11 @@
 import { h } from "vue";
-import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "#dms-core/app/composables/data-types/useDataType";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
-// How the field types made of several values read in a table cell or a
-// read-only form: a count, a masked secret, the first line of the code,
-// the tags as pills.
 const SECRET_TAIL = 4;
 const SECRET_MASK = "••••";
 const TAG_CLASS =
@@ -12,33 +13,33 @@ const TAG_CLASS =
 const TAGS_CLASS = "inline-flex flex-wrap items-center gap-1";
 const CODE_CLASS = "font-mono text-[12px] truncate";
 
-const countOf = (value: unknown): number => {
+const countOf = (value: Parameters<DataTypeFormatter>[0]): number => {
   if (Array.isArray(value)) return value.length;
-  if (value && typeof value === "object") return Object.keys(value).length;
+  if (value && isObject(value)) return Object.keys(value).length;
   return 0;
 };
 
 function renderCount(key: string) {
-  return (value: unknown) => {
+  return (value: Parameters<DataTypeFormatter>[0]) => {
     const { t } = getAppTranslation();
     const count = countOf(value);
     return t(key, { count }, count);
   };
 }
 
-function renderSecret(value: unknown): string {
-  return typeof value === "string" && value
+function renderSecret(value: Parameters<DataTypeFormatter>[0]): string {
+  return isString(value) && value
     ? `${SECRET_MASK}${value.slice(-SECRET_TAIL)}`
     : "";
 }
 
-function renderCode(value: unknown) {
-  if (typeof value !== "string") return "";
+function renderCode(value: Parameters<DataTypeFormatter>[0]) {
+  if (!isString(value)) return "";
   const [firstLine = ""] = value.split("\n");
   return h("span", { class: CODE_CLASS, title: value }, firstLine);
 }
 
-function renderTags(value: unknown) {
+function renderTags(value: Parameters<DataTypeFormatter>[0]) {
   if (!Array.isArray(value)) return "";
   return h(
     "span",

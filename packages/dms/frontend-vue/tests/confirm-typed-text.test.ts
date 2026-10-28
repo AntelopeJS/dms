@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -11,17 +11,7 @@ import {
 } from "vue";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
 
-// The modal's title and description need a reka DialogRoot: plain text here.
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -47,8 +37,6 @@ const Button = defineComponent({
       ),
 });
 
-// The UFormField contract the typed check relies on: its error marks the
-// input and shows under it.
 const FormField = defineComponent({
   props: { error: String },
   setup:
@@ -74,6 +62,7 @@ const Input = defineComponent({
       h("input", {
         ref: inputRef,
         value: props.modelValue,
+        // SAFETY: This handler is attached to the input created here; dispatched input events target that HTMLInputElement.
         onInput: (event: Event) =>
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       });
@@ -86,8 +75,13 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-function mount(props: Record<string, unknown>): void {
-  app = createApp(ConfirmModal, { onClose: closed, ...props });
+function mount(
+  props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+): void {
+  app = createApp({
+    render: () =>
+      h(DialogRoot, null, () => h(ConfirmModal, { onClose: closed, ...props })),
+  });
   app.config.globalProperties.$t = (key: string) => key;
   app.component("UModal", Slots);
   app.component("UButton", Button);
@@ -116,8 +110,12 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
-      params ? `${key} ${JSON.stringify(params)}` : key,
+    t: (
+      key: string,
+      params?: Parameters<
+        import("../layers/dms-core/app/composables/translation/useTranslation").I18nTranslate
+      >[1],
+    ) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }));
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => message,
@@ -154,7 +152,6 @@ it("flags an empty or different typed text instead of disabling confirm", async 
   expect(document.activeElement).toBe(typedInput());
   expect(onConfirm).not.toHaveBeenCalled();
 
-  // Typing clears it; a wrong text is a mismatch.
   await type("admin@");
   expect(typedError()).toBeUndefined();
   confirmButton().click();
@@ -222,7 +219,7 @@ it("runs the body check with the typed one and stays open when it fails", async 
   confirmButton().click();
   await flush();
   expect(validate).toHaveBeenCalledOnce();
-  // Both fields are flagged at once; the body one keeps the focus.
+
   expect(typedError()).toBe("dms.field_errors.required");
   expect(document.activeElement).not.toBe(typedInput());
   expect(onConfirm).not.toHaveBeenCalled();

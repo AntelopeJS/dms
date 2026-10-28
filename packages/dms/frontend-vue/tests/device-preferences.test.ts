@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEVICE_PREFERENCE_COOKIES,
   resetDevicePreferences,
-} from "../layers/dms-layout/app/build/utils/devicePreferences";
+} from "../layers/dms-layout/app/entries/utils/devicePreferences";
 
 const cookieNames = () =>
   document.cookie

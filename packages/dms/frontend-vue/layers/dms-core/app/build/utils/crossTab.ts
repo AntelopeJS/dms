@@ -1,3 +1,4 @@
+import { isFunction } from "../../utils/type-check";
 /**
  * Coordination between the tabs of one browser profile, for the long-lived
  * streams a dashboard keeps open.
@@ -17,7 +18,9 @@
 
 const TAB_LOCK_SEPARATOR = ":tab:";
 
-export type TabMessageHandler = (message: unknown) => void;
+export type TabMessageHandler = (
+  message: Parameters<typeof structuredClone>[0],
+) => void;
 
 /** The browser APIs the coordination rides on; injected by the tests. */
 export interface CrossTabEnvironment {
@@ -27,7 +30,7 @@ export interface CrossTabEnvironment {
 
 export interface TabBus {
   /** Sends to every tab on the bus, this one included. */
-  post(message: unknown): void;
+  post(message: Parameters<TabMessageHandler>[0]): void;
   listen(handler: TabMessageHandler): () => void;
   close(): void;
 }
@@ -42,7 +45,7 @@ export interface HeldLock {
 /** What the running browser offers. */
 export function browserCrossTabEnvironment(): CrossTabEnvironment {
   const locks = globalThis.navigator?.locks;
-  const canBroadcast = typeof globalThis.BroadcastChannel === "function";
+  const canBroadcast = isFunction(globalThis.BroadcastChannel);
   if (!locks || !canBroadcast) return {};
   return { locks, createChannel: (name) => new BroadcastChannel(name) };
 }
@@ -57,7 +60,8 @@ export function openTabBus(
   environment: CrossTabEnvironment,
 ): TabBus {
   const listeners = new Set<TabMessageHandler>();
-  const deliver = (message: unknown) => {
+  const deliver = (message: Parameters<TabMessageHandler>[0]) => {
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Delivery snapshots listeners so removals and additions during callbacks affect only subsequent messages; iterating the live Set changes that behavior.
     for (const listener of [...listeners]) listener(message);
   };
   const channel = canShareAcrossTabs(environment)
@@ -65,8 +69,6 @@ export function openTabBus(
     : undefined;
   if (channel) channel.onmessage = (event) => deliver(event.data);
   return {
-    // A BroadcastChannel never echoes to its sender: this tab's own
-    // listeners hear the message directly.
     post: (message) => {
       channel?.postMessage(message);
       deliver(message);
@@ -100,7 +102,6 @@ export function electLeader(
   let stepDown: (() => void) | undefined;
   environment
     .locks!.request(name, { signal: abort.signal }, () => {
-      // Granted while the resignation was on its way.
       if (isResigned) return;
       return new Promise<void>((resolve) => {
         const stop = lead();
@@ -184,7 +185,7 @@ export function whenReleased(
  */
 export function shareAcrossTabs(
   name: string,
-  open: (emit: (message: unknown) => void) => () => void,
+  open: (emit: TabMessageHandler) => () => void,
   onMessage: TabMessageHandler,
   environment: CrossTabEnvironment = browserCrossTabEnvironment(),
 ): () => void {

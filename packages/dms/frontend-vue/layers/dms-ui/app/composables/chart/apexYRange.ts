@@ -1,3 +1,4 @@
+import { isNumber, isObject } from "../../../../dms-core/app/utils/type-check";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import type { ChartSeries } from "./types";
 import type { UseApexChartInput } from "./useApexChart.types";
@@ -21,17 +22,17 @@ interface AutoYBounds {
   max?: (nativeMax: number) => number;
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return isNumber(value) && Number.isFinite(value);
 }
 
 function withoutFloatNoise(value: number): number {
   return Number(value.toPrecision(SIGNIFICANT_DIGITS));
 }
 
-function pointValues(point: ChartSeries["data"][number]): unknown[] {
-  if (typeof point === "number") return [point];
-  if (!point || typeof point !== "object") return [];
+function pointValues(point: ChartSeries["data"][number]) {
+  if (isNumber(point)) return [point];
+  if (!point || !isObject(point)) return [];
   return Array.isArray(point.y) ? point.y : [point.y];
 }
 
@@ -55,7 +56,9 @@ function resolvePadding(input: UseApexChartInput): number {
 }
 
 function padOutward(bound: number, padding: number, direction: number): number {
-  return bound + direction * (Math.abs(bound) || ZERO_BOUND_MAGNITUDE) * padding;
+  return (
+    bound + direction * (Math.abs(bound) || ZERO_BOUND_MAGNITUDE) * padding
+  );
 }
 
 /** The smallest 1, 2 or 5 times a power of ten that covers `span`. */
@@ -103,7 +106,8 @@ export function buildAutoYRange(input: UseApexChartInput): AutoYBounds {
   );
   const bound = (native: number, direction: number, round: Rounding) => {
     const extent = [native, ...annotations];
-    const raw = direction === DOWNWARD ? Math.min(...extent) : Math.max(...extent);
+    const raw =
+      direction === DOWNWARD ? Math.min(...extent) : Math.max(...extent);
     const padded = padOutward(raw, padding, direction);
     return snapToStep(padded, stepForBound(padded, knownStep), round);
   };
@@ -119,5 +123,7 @@ export function buildAutoYRange(input: UseApexChartInput): AutoYBounds {
  * once one price carries float noise.
  */
 export function formatPlainAxisValue(value: number): string {
-  return isFiniteNumber(value) ? String(withoutFloatNoise(value)) : String(value);
+  return isFiniteNumber(value)
+    ? String(withoutFloatNoise(value))
+    : String(value);
 }

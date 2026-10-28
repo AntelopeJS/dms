@@ -1,0 +1,41 @@
+import type { Ref } from "vue";
+import type { GalleryItem } from "./imageItems";
+
+export interface ImagePresentationState {
+  t: ReturnType<typeof useI18n>["t"];
+  ariaAttrs: ReturnType<typeof useFormField>["ariaAttrs"];
+  fileInput: Ref<HTMLInputElement | null>;
+  items: Ref<GalleryItem[]>;
+  singleItem: Ref<GalleryItem | null>;
+  detailItem: Ref<GalleryItem | null>;
+  isDraggingOver: Ref<boolean>;
+  dragItemId: Ref<string | null>;
+  dragOverItemId: Ref<string | null>;
+  detailAltDraft: Ref<string>;
+  isDetailOpen: Ref<boolean>;
+  invalid: Ref<boolean>;
+  isFull: Ref<boolean>;
+  acceptString: Ref<string>;
+  formatsHint: Ref<string>;
+  pasteShortcut: Ref<string>;
+  dropZoneClass: Ref<string>;
+  rejections: Ref<string[]>;
+  rejectionId: string;
+  singleAltInputId: string;
+  detailAltInputId: string;
+  onFileInputChange: (event: Event) => void;
+  onDrop: (event: DragEvent) => void;
+  onPaste: (event: ClipboardEvent) => void;
+  onImageLoad: (item: GalleryItem, event: Event) => void;
+  openFilePicker: () => void;
+  openDetail: (id: string) => void;
+  saveDetail: () => void;
+  onSingleAltChange: () => void;
+  setPrincipal: (id: string) => void;
+  removeItem: (id: string) => void;
+  retryUpload: (id: string) => void;
+  onTileDragStart: (event: DragEvent, id: string) => void;
+  onTileDragEnter: (id: string) => void;
+  onTileDragEnd: () => void;
+  onTileDrop: (id: string) => void;
+}

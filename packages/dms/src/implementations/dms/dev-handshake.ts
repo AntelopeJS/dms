@@ -2,7 +2,7 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { getFrontendBootstrapSecret } from "./frontend-bootstrap";
+import { getFrontendBootstrapSecret } from "../../store/frontend";
 
 const HANDSHAKE_RELATIVE_PATH = join(".antelope", "dms-dev.json");
 const TEMP_FILE_SUFFIX = ".tmp";

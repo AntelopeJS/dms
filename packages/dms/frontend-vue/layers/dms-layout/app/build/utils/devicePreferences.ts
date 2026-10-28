@@ -1,9 +1,9 @@
-import { PREFERENCES_COOKIE_NAME } from "#dms-core/app/build/composables/user/preferencesCookie";
-import { LOCAL_TABLE_KEY_PREFIX } from "#dms-core/app/build/composables/user/tablePreferences";
-import { DRAWER_SIZE_COOKIE } from "#dms-ui/app/build/composables/containers/drawerSize";
-import { LIVE_PAUSE_KEY_PREFIX } from "#dms-ui/app/build/composables/live/liveStorage";
-import { ACCESSIBILITY_COOKIE } from "#dms-ui/app/build/utils/accessibilityPreferences";
-import { BANNER_DISMISSED_COOKIE } from "#dms-ui/app/build/utils/bannerDismissals";
+import { PREFERENCES_COOKIE_NAME } from "#dms-core/app/entries/composables/user/preferencesCookie";
+import { LOCAL_TABLE_KEY_PREFIX } from "#dms-core/app/entries/composables/user/tablePreferences";
+import { DRAWER_SIZE_COOKIE } from "#dms-ui/app/entries/composables/containers/drawerSize";
+import { LIVE_PAUSE_KEY_PREFIX } from "#dms-ui/app/entries/composables/live/liveStorage";
+import { ACCESSIBILITY_COOKIE } from "#dms-ui/app/entries/utils/accessibilityPreferences";
+import { BANNER_DISMISSED_COOKIE } from "#dms-ui/app/entries/utils/bannerDismissals";
 import {
   COLOR_MODE_COOKIE,
   COLOR_SCHEME_STORAGE_KEY,
@@ -13,7 +13,7 @@ import { DISMISSED_BANNERS_COOKIE } from "../../composables/layout/useLayoutBann
 import { MODULE_HISTORY_COOKIE } from "../../composables/page/useModuleHistory";
 import { GITHUB_STAR_PROMPT_KEY_PREFIX } from "../composables/general/useGithubStarPrompt";
 import { SIDEBAR_START_COLLAPSED_COOKIE } from "../composables/general/useSidebarStartCollapsed";
-import { SIDE_PANEL_COOKIE } from "../composables/layout/sidePanelState";
+import { SIDE_PANEL_COOKIE } from "#dms-ui/app/entries/composables/layout/sidePanelState";
 import { NOTIFICATION_GROUP_STORAGE_PREFIX } from "../composables/notification/useNotificationGroupsOpen";
 import { DASHBOARD_STORAGE_KEY } from "./dashboardStorage";
 

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table with a `deepLink` action opens the row `?record=` names on arrival
  * and on each visit that keeps the page mounted, including a link to a row
@@ -6,33 +6,20 @@
  * holds the same value and only the visit tells the link was followed again.
  */
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
-import type { DeepLinkedRow } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+import type { DeepLinkedRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   clearWrittenRecord,
   writeRecordId,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   currentQuery,
   withoutQueryParam,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/urlFilters";
-
-type NavigateListener = (event: { detail: { page: { url: string } } }) => void;
-const navigateListeners = new Set<NavigateListener>();
-
-vi.mock("@inertiajs/vue3", () => ({
-  router: {
-    on: (type: string, listener: NavigateListener) => {
-      if (type !== "navigate") return () => {};
-      navigateListeners.add(listener);
-      return () => navigateListeners.delete(listener);
-    },
-  },
-}));
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/urlFilters";
 
 const { useTableRecordLink } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRecordLink"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRecordLink"
 );
 
 interface Row {
@@ -41,23 +28,24 @@ interface Row {
 
 const ROWS: Row[] = [{ id: "r1" }, { id: "r2" }];
 const SCOPE = { tableId: "sends", isSoleTableView: true };
+// SAFETY: Record-link resolution reads only the deep-link flag and target kind; no drawer is instantiated here.
 const DRAWER = {
   id: "details",
   deepLink: true,
   target: { type: "drawer" },
-} as unknown as CustomRowAction;
+} as CustomRowAction;
 
 const mounted: Array<{ unmount: () => void }> = [];
 
 const flush = () => new Promise<void>((done) => setTimeout(done));
 
 /** A visit of the page: Inertia pushes its URL, then announces it. */
-async function visit(route: { query: Record<string, unknown> }, url: string) {
+async function visit(route: { query: Record<string, string> }, url: string) {
   window.history.pushState({}, "", url);
   route.query = Object.fromEntries(new URL(url, "http://x").searchParams);
   await nextTick();
-  navigateListeners.forEach((listener) =>
-    listener({ detail: { page: { url } } }),
+  document.dispatchEvent(
+    new CustomEvent("inertia:navigate", { detail: { page: { url } } }),
   );
   await flush();
 }
@@ -65,10 +53,7 @@ async function visit(route: { query: Record<string, unknown> }, url: string) {
 function mountTable(url: string) {
   window.history.replaceState({}, "", url);
   const route = reactive({
-    query: Object.fromEntries(new URL(url, "http://x").searchParams) as Record<
-      string,
-      unknown
-    >,
+    query: Object.fromEntries(new URL(url, "http://x").searchParams),
   });
   const opened: string[] = [];
   const notify = vi.fn();
@@ -84,7 +69,7 @@ function mountTable(url: string) {
             const row = ROWS.find((candidate) => candidate.id === id);
             return row ? { row, isMissing: false } : { isMissing: true };
           },
-          // The drawer writes the row it opens, as the action's targets do.
+
           open: (row) => {
             opened.push(row.id);
             writeRecordId(SCOPE, row.id);
@@ -99,15 +84,13 @@ function mountTable(url: string) {
   );
   app.mount(document.createElement("div"));
   mounted.push(app);
-  // Closing the drawer removes the row from the URL in place.
+
   const close = () => {
     writeRecordId(SCOPE);
     link?.shown(undefined);
   };
   return { route, opened, notify, close };
 }
-
-beforeEach(() => navigateListeners.clear());
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
@@ -118,9 +101,11 @@ describe("a record link on a mounted table", () => {
   it("opens the row a link names on arrival, once", async () => {
     const { route, opened } = mountTable("/sends?record=r1");
     await flush();
-    // The visit that mounted the table is announced after it mounted.
-    navigateListeners.forEach((listener) =>
-      listener({ detail: { page: { url: "/sends?record=r1" } } }),
+
+    document.dispatchEvent(
+      new CustomEvent("inertia:navigate", {
+        detail: { page: { url: "/sends?record=r1" } },
+      }),
     );
     await flush();
     expect(opened).toEqual(["r1"]);
@@ -138,7 +123,7 @@ describe("a record link on a mounted table", () => {
   it("opens the same row again after its drawer closed", async () => {
     const { route, opened, close } = mountTable("/sends?record=r1");
     await flush();
-    // A link to the row shown opens nothing more.
+
     await visit(route, "/sends?record=r1");
     expect(opened).toEqual(["r1"]);
 
@@ -155,7 +140,6 @@ describe("a record link on a mounted table", () => {
     expect(notify).toHaveBeenCalledWith("notify");
     expect(window.location.search).toBe("?tab=all");
 
-    // Following the same link again tells it again.
     await visit(route, "/sends?tab=all&record=gone");
     expect(notify).toHaveBeenCalledTimes(2);
   });
@@ -181,7 +165,7 @@ describe("the URL a closed drawer leaves", () => {
 
   it("rebuilds a removed filter's visit from the URL the browser shows", () => {
     window.history.replaceState({}, "", "/sends?email=a%40b.test&tab=all");
-    // The route still holds the row of the drawer closed in place.
+
     const routeQuery = { email: "a@b.test", tab: "all", record: "r1" };
     expect(withoutQueryParam(currentQuery(routeQuery), "email")).toEqual({
       tab: "all",

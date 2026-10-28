@@ -1,17 +1,5 @@
 <script setup lang="ts">
-import type { DmsLogoSources } from "#dms-core/shared/types/app-config";
 import { emailLogoUrl, emailStyles } from "./index";
-
-interface EmailLogoConfig {
-  default?: Partial<DmsLogoSources>;
-  email?: Partial<DmsLogoSources>;
-}
-
-interface EmailAppConfig {
-  branding?: {
-    logo?: EmailLogoConfig;
-  };
-}
 
 const DARK_SCHEME_MEDIA = "(prefers-color-scheme: dark)";
 
@@ -34,7 +22,7 @@ const props = withDefaults(
   { divider: true, logoAlt: "Logo", publicLogoOnly: false },
 );
 
-const appConfig = useDmsAppConfig() as EmailAppConfig;
+const appConfig = useDmsAppConfig();
 const runtimeConfig = useDmsRuntimeConfig();
 
 const logo = appConfig.branding?.logo;
@@ -46,9 +34,7 @@ function logoSource(path: string | undefined): string {
 }
 
 const logoUrl = logoSource(logo?.email?.light || logo?.default?.light);
-// Offered to the mail clients that follow the reader's dark mode; the others
-// skip the picture's source and draw the light image. Taken from the email
-// slot only, so an instance that sets none keeps its single image.
+
 const darkCandidate = logoSource(logo?.email?.dark);
 const darkLogoUrl = darkCandidate === logoUrl ? "" : darkCandidate;
 </script>

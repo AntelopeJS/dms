@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { serializeType } from "@antelopejs/interface-dms/base/data-types";
+import { FormComponents } from "@antelopejs/interface-dms/base/form";
 
 const ITEMS = [
   { label: "Low", value: "low", description: "When there is time" },
@@ -122,11 +123,10 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
   it("renders a repeater, a column per field", () => {
     const component = headers().inputComponent();
     expect(component.componentName).to.equal("dms-repeater");
-    const options = component.options as {
-      columns: Array<{ id: string; label: string; type: string }>;
-      sortable: boolean;
-      addLabel: string;
-    };
+    // SAFETY: ArrayType builds InputRepeater options; DataType.inputComponent erases that concrete options type.
+    const options = component.options as NonNullable<
+      Parameters<typeof FormComponents.InputRepeater>[0]
+    >;
     expect(
       options.columns.map(({ id, label, type }) => [id, label, type]),
     ).to.deep.equal([

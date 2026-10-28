@@ -4,6 +4,7 @@ import {
   regionalDayNumber,
 } from "./regional";
 import { isNumber } from "./type-check";
+import type { I18nTranslate } from "../composables/translation/useTranslation";
 
 const DEFAULT_LOCALE = "en-US";
 const DEFAULT_CURRENCY = "EUR";
@@ -22,7 +23,7 @@ const TIME_UNITS = {
 
 type TranslateFunction = (
   key: string,
-  params?: Record<string, unknown>,
+  params?: Parameters<I18nTranslate>[1],
 ) => string;
 
 type RelativeTimeRule = {
@@ -124,7 +125,6 @@ interface RelativeUnit {
   below: number;
 }
 
-// Months and years by their average length: a distance, not a calendar span.
 const MONTH_MS = 30 * TIME_UNITS.d;
 const YEAR_MS = 365 * TIME_UNITS.d;
 
@@ -179,6 +179,7 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function formatDate(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Public formatter accepts arbitrary values for Date coercion; Date constructor types exclude supported runtime inputs such as booleans.
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
@@ -194,6 +195,7 @@ export function formatDate(
     if (date instanceof Date) {
       validDate = date;
     } else {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This is deliberately unchecked Date coercion inside the existing catch; narrowing to constructor parameter types would change accepted inputs.
       validDate = new Date(date as string | number);
     }
 
@@ -252,15 +254,15 @@ export function formatNumber(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatNumber(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatNumber(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   if (!isNumber(value)) return value;
   try {
     return readableNumberFormat(locale, options).format(value);
@@ -276,15 +278,15 @@ export function formatPrice(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatPrice(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatPrice(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "currency",
     currency: DEFAULT_CURRENCY,
@@ -301,15 +303,15 @@ export function formatPercentage(
   options?: Intl.NumberFormatOptions,
 ): string;
 export function formatPercentage(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale?: string,
   options?: Intl.NumberFormatOptions,
-): unknown;
+): Parameters<typeof isNumber>[0];
 export function formatPercentage(
-  value: unknown,
+  value: Parameters<typeof isNumber>[0],
   locale: string = DEFAULT_LOCALE,
   options?: Intl.NumberFormatOptions,
-): unknown {
+): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "percent",
     minimumFractionDigits: 0,
@@ -318,7 +320,10 @@ export function formatPercentage(
   });
 }
 
-const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
+const TIME_SPAN_UNITS: Record<
+  NonNullable<ReturnType<typeof UNIT_SPAN_PART.exec>>[number],
+  keyof typeof TIME_UNITS
+> = {
   y: "y",
   M: "M",
   mo: "M",
@@ -331,11 +336,10 @@ const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
   ms: "ms",
 };
 
-// `01:30`, `8:15`, `26:00:30`: hours, then minutes and seconds under 60.
 const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
-// `8h15`, `8 h 05`: hours, then bare minutes, the way a time is often written.
+
 const HOUR_MINUTE_SPAN = /^(\d+)\s*h\s*([0-5]?\d)$/i;
-// `1h30m`, `1h 30m`, `7 h 30 min`, `1h:30m` (older displays), `1.5h`.
+
 const UNIT_SPAN = /^(?:\d+(?:[.,]\d+)?\s*(?:ms|mo|min|[Mmwydhs])[\s:]*)+$/;
 const UNIT_SPAN_PART = /(\d+(?:[.,]\d+)?)\s*(ms|mo|min|[Mmwydhs])/g;
 
@@ -389,12 +393,10 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-// Durations count in hours at most: a day or a month is a calendar span, not
-// a number of hours.
 const DURATION_UNITS = [
   { symbol: "h", ms: TIME_UNITS.h, fractionDigits: 0 },
   { symbol: "min", ms: TIME_UNITS.m, fractionDigits: 0 },
-  // The seconds carry the milliseconds, so nothing is rounded away.
+
   { symbol: "s", ms: TIME_UNITS.s, fractionDigits: 3 },
 ] as const;
 const MS_FRACTION_DIGITS = 3;
@@ -458,7 +460,7 @@ function roundedDuration(ms: number, locale: string): string {
     ms < TIME_UNITS.h
       ? ([TIME_UNITS.m, "min", TIME_UNITS.s, "s"] as const)
       : ([TIME_UNITS.h, "h", TIME_UNITS.m, "min"] as const);
-  // Rounded as a whole first, so 1 min 59.7 s reads "2 min", not "1 min 60 s".
+
   const total = Math.round(ms / minor) * minor;
   const whole = Math.floor(total / major);
   const rest = (total - whole * major) / minor;

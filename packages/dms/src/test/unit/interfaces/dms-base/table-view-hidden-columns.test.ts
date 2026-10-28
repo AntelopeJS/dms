@@ -86,6 +86,7 @@ interface SerializedColumn {
 }
 
 const columnsOf = (options: InvoiceOptions): SerializedColumn[] =>
+  // SAFETY: TableView serializes metadata columns including id and visibility; its public options type omits the runtime columns property.
   (
     TableView(InvoiceAPI, {
       realtime: false,

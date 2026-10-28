@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -8,7 +8,6 @@ import {
   onScopeDispose,
   ref,
   watch,
-  type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import File from "../layers/dms-ui/app/components/form/components/File.vue";
@@ -21,7 +20,7 @@ const dropZone = defineComponent({
       h("span", String(attrs.label ?? "")),
 });
 
-function mountFile(multiple: boolean): { app: App; container: HTMLElement } {
+function mountFile(multiple: boolean) {
   const app = createApp({
     render: () => h(File, { modelValue: null, multiple }),
   });

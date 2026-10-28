@@ -7,7 +7,7 @@
  * Keyed by panel id, so each panel keeps its own focus bookkeeping.
  */
 import DashboardSidePanel from "./DashboardSidePanel.vue";
-import { useActiveSidePanel } from "../../composables/layout/sidePanelState";
+import { useActiveSidePanel } from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 const { panel } = useActiveSidePanel();
 </script>

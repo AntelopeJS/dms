@@ -1,6 +1,6 @@
-import { RegisterNativeUploadField } from "../../attachments/access";
-import type { UploadTokenClaims } from "../../utils/upload-token";
-import { signUploadToken } from "../../utils/upload-token";
+import { RegisterNativeUploadField } from "../../attachments";
+import type { UploadTokenClaims } from "../../utils";
+import { signUploadToken } from "../../utils";
 
 export const internal = { RegisterNativeUploadField };
 

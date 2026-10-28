@@ -3,7 +3,7 @@ import {
   relationIdsQuery,
   sameRelationValue,
   unlabeledRelationIds,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
 
 const ANN = { _id: "u-1", name: "Ann", avatar: "ann.png" };
 const BOB = { _id: "u-2", name: "Bob" };

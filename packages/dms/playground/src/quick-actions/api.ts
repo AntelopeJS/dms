@@ -61,6 +61,10 @@ interface RowsResponse {
   total: number;
 }
 
+interface PressResponse {
+  pressed: boolean;
+}
+
 export class QuickActionsDemoController extends Controller(
   QUICK_ACTIONS_DEMO_API,
 ) {
@@ -70,7 +74,7 @@ export class QuickActionsDemoController extends Controller(
   }
 
   @Post("press")
-  press(@AuthUser() _user: User): { pressed: boolean } {
+  press(@AuthUser() _user: User): PressResponse {
     return { pressed: true };
   }
 }

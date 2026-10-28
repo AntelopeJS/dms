@@ -40,7 +40,7 @@ export interface FakeConnection {
   id: string;
   signal: AbortSignal;
   isOpen(): boolean;
-  write(eventName: string, data: unknown): void;
+  write<Data>(eventName: string, data: Data): void;
   end(): void;
 }
 
@@ -77,20 +77,20 @@ export interface FakeRealtimeServer {
   openConnections(): FakeConnection[];
   lastConnection(): FakeConnection;
   /** Sends a frame to one session, through the connection it rides on. */
-  send(sessionId: string, eventName: string, data: unknown): void;
+  send<Data>(sessionId: string, eventName: string, data: Data): void;
   /** Stream requests the browser made, refused ones included. */
   streamAttempts: number;
   /** Request headers the renderer's proxy would have dropped. */
   droppedHeaders: string[];
 }
 
-interface JsonAnswer {
+interface JsonAnswer<Body> {
   ok: boolean;
   status: number;
-  json: () => Promise<unknown>;
+  json: () => Promise<Body>;
 }
 
-const json = (body: unknown, status = HTTP_OK): JsonAnswer => ({
+const json = <Body>(body: Body, status = HTTP_OK): JsonAnswer<Body> => ({
   ok: status >= HTTP_OK && status < 300,
   status,
   json: async () => body,
@@ -136,10 +136,7 @@ const openConnection = (server: FakeRealtimeServer, signal: AbortSignal) => {
   return { ok: true, status: HTTP_OK, body };
 };
 
-const openSession = (
-  server: FakeRealtimeServer,
-  connectionId: string,
-): JsonAnswer => {
+const openSession = (server: FakeRealtimeServer, connectionId: string) => {
   if (server.sessionStatus) return json({}, server.sessionStatus);
   if (server.unknownConnectionAnswers > 0) {
     server.unknownConnectionAnswers -= 1;
@@ -167,7 +164,7 @@ const recordPageCall = (
   server: FakeRealtimeServer,
   url: string,
   sessionId: string,
-): JsonAnswer => {
+) => {
   const pageId =
     url === UNSUBSCRIBE_URL ? null : url.slice(SUBSCRIBE_URL_PREFIX.length);
   server.pageCalls.push({ sessionId, pageId });
@@ -208,11 +205,9 @@ export function createRealtimeServer(): FakeRealtimeServer {
 const relayHeaders = (
   server: FakeRealtimeServer,
   init: RequestInit | undefined,
-): Record<string, string> => {
+) => {
   const relayed: Record<string, string> = {};
-  for (const [name, value] of Object.entries(
-    (init?.headers ?? {}) as Record<string, string>,
-  )) {
+  for (const [name, value] of Object.entries(init?.headers ?? {})) {
     const key = name.toLowerCase();
     if (RELAYED_HEADERS.has(key)) relayed[key] = value;
     else server.droppedHeaders.push(name);
@@ -225,6 +220,7 @@ const relayHeaders = (
  * renderer's backend proxy.
  */
 export function installRealtimeFetch(server: FakeRealtimeServer): void {
+  // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- This fetch double exposes only the response members realtime code consumes. Inference cannot assign partial responses to fetch and the Response owner requires unrelated browser methods; the boundary remains intentionally incomplete.
   globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
     const headers = relayHeaders(server, init);
     if (url === CONNECTION_URL) {
@@ -240,7 +236,7 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       const session = server.sessions.find(
         (candidate) => candidate.id === sessionId,
       );
-      // As the backend: only a session on the connection named is ended.
+
       if (!session || session.connectionId !== headers[CONNECTION_HEADER]) {
         return json({ ok: false });
       }
@@ -252,4 +248,5 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
     }
     return json({}, HTTP_NOT_FOUND);
   }) as unknown as typeof fetch;
+  // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions
 }

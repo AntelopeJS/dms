@@ -11,7 +11,6 @@ export interface HorizontalScroll {
   clientWidth: number;
 }
 
-// Sub-pixel widths leave a fraction of a pixel to scroll at either end.
 const EDGE_TOLERANCE_PX = 1;
 
 /**

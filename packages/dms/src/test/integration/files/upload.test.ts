@@ -1,6 +1,6 @@
 import axios from "axios";
 import { expect } from "chai";
-import { DEFAULT_MAX_UPLOAD_SIZE } from "../../../index";
+import { DEFAULT_MAX_UPLOAD_SIZE } from "../../..";
 import { nativeUploadToken } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";

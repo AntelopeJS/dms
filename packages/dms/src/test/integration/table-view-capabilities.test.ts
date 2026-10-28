@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
 
-// The table view capabilities the server takes part in, over the test host's
-// invoices (src/test/attachment-host/capabilities.ts): footer summaries,
-// filter tokens resolved per caller, and a bulk route finding its rows.
-
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
 const COLLECTION = "capability-invoices";
@@ -61,9 +57,11 @@ async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
 }
 
 async function list(client: AxiosInstance, query = ""): Promise<Invoice[]> {
-  const response = await client.get(`${LOCATION}/list?limit=50${query}`);
+  const response = await client.get<{ results: Invoice[] }>(
+    `${LOCATION}/list?limit=50${query}`,
+  );
   expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-  return response.data.results as Invoice[];
+  return response.data.results;
 }
 
 describe("[integration] table view capabilities", () => {
@@ -85,7 +83,7 @@ describe("[integration] table view capabilities", () => {
     expect(options.tableId).to.equal("content");
     expect(options.isSoleTableView).to.equal(true);
     expect(options.footer.legend).to.equal("status");
-    const summaries = options.footer.summary as FooterSummary[];
+    const summaries: FooterSummary[] = options.footer.summary;
     expect(summaries.map((summary) => summary.label)).to.deep.equal([
       "Total",
       "Open",
@@ -118,7 +116,7 @@ describe("[integration] table view capabilities", () => {
 
   it("stores the dates an edit sends as text as dates, and keeps what it leaves out", async () => {
     const [invoice] = await list(client, "&filter_number=is:INV-3");
-    const edit = async (body: Record<string, unknown>) => {
+    const edit = async (body: Parameters<AxiosInstance["put"]>[1]) => {
       const response = await client.put(`${LOCATION}/edit`, body, {
         params: { id: invoice!._id },
       });

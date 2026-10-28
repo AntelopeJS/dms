@@ -48,12 +48,6 @@ export const UnregisterPermission = (id: string) => {
   internal.RegisterPermission.unregister(id);
 };
 
-// Module access is platform-owner-only: permissions that belong to module
-// pages/categories are never registered into the permission tree (Roles form)
-// and must never grant anything to a non-owner, even when a stored role still
-// references their id. Marking an id here also covers every dot-separated
-// descendant id (components, actions), which are always built by suffixing
-// the page or category permission id.
 const moduleScopedPermissionIds = new Set<string>();
 
 export function MarkModuleScopedPermission(id: string): void {
@@ -141,18 +135,12 @@ export async function HasPermission(
   return grantsPermission(permissions, permissionId, new Set());
 }
 
-// `checked` holds the ids already on the dependency path, so a dependency
-// cycle declared by a module ends instead of recursing forever.
 async function grantsPermission(
   permissions: Set<string>,
   permissionId: string,
   checked: Set<string>,
 ): Promise<boolean> {
   if (permissions.has("*")) return true;
-  // Module permissions are owner-only regardless of role grants. This covers
-  // the guards that funnel through HasPermission (route validator, table
-  // actions); realtime page access short-circuits earlier via isInsideModule
-  // in userCanAccessPage/computeEntryAccess (implementations/dms/page.ts).
   if (IsModuleScopedPermission(permissionId)) return false;
   const permission = await GetPermission(permissionId);
   if (permission?.defaultGranted) return true;
@@ -164,10 +152,6 @@ async function grantsPermission(
   );
 }
 
-// The role routes store a grant with every id it sits under. An ancestor
-// counts as held when granted, `defaultGranted`, or not a registered
-// permission at all (a page declaring `permission: { id: "mailing.access" }`
-// has no `mailing` above it).
 async function holdsAncestors(
   permissions: Set<string>,
   permissionId: string,
@@ -180,8 +164,6 @@ async function holdsAncestors(
   return true;
 }
 
-// A dependency counts like an ancestor: granted with its own ancestors and
-// dependencies, `defaultGranted`, or not a registered permission at all.
 async function holdsDependencies(
   permissions: Set<string>,
   permission: Permission | undefined,

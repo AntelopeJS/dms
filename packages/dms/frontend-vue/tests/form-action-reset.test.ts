@@ -2,6 +2,8 @@ import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import { formSubmitEvent } from "./helpers/form-submit-event";
 
 const authFetch = vi.fn();
 const addToast = vi.fn();
@@ -25,7 +27,7 @@ function setupForm(kind?: "record" | "action") {
       fields: FIELDS,
       submitUrl: "/api/messages/send",
       kind,
-    } as never),
+    }),
   )!;
 }
 
@@ -33,9 +35,7 @@ function setupForm(kind?: "record" | "action") {
 async function fillAndSubmit(form: ReturnType<typeof setupForm>) {
   form.initialValues.value = { channel: "general" };
   Object.assign(form.state.value, { title: "Hello", channel: "random" });
-  await form.onSubmit({
-    data: { title: "Hello", channel: "random" },
-  } as never);
+  await form.onSubmit(formSubmitEvent({ title: "Hello", channel: "random" }));
 }
 
 beforeEach(() => {
@@ -44,7 +44,7 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
@@ -59,11 +59,15 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
   vi.stubGlobal("useEventedAction", () => ({
-    execute: (action: () => Promise<unknown>) => action(),
+    execute: <Result>(action: () => Promise<Result>) => action(),
   }));
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial }),
     }),

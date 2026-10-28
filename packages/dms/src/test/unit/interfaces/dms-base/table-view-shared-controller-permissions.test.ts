@@ -37,10 +37,25 @@ class SharedAPI extends DataController(
 function stampedBuilder(
   actions: Record<string, string | undefined>,
 ): ComponentBuilder<TableViewOptionsSerialized> {
-  return {
+  const builder = {
     getAction: (id: string) =>
       id in actions ? { permissionId: actions[id] } : undefined,
-  } as unknown as ComponentBuilder<TableViewOptionsSerialized>;
+  } satisfies {
+    getAction: (
+      id: string,
+    ) =>
+      | Pick<
+          NonNullable<
+            ReturnType<
+              ComponentBuilder<TableViewOptionsSerialized>["getAction"]
+            >
+          >,
+          "permissionId"
+        >
+      | undefined;
+  };
+  // SAFETY: actionPermissionIds only calls getAction and reads permissionId; no serialization or other builder methods run in these metadata tests.
+  return builder as ComponentBuilder<TableViewOptionsSerialized>;
 }
 
 function metaWith(

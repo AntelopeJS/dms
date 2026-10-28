@@ -1,6 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import { UserNotificationPreferencesModel } from "../../../db/models/userNotificationPreferences.model";
+import { UserNotificationPreferencesModel } from "../../../db/models";
 
 const USER_ID = "notification-preferences-concurrent-user";
 const CONCURRENT_READS = 5;

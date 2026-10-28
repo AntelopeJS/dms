@@ -1,12 +1,13 @@
 import type { TableUrlFilter } from "../../../components/table/Table.vue";
 import type { QueryParamFilters } from "../../../../composables/table-view/types/config";
+import type { LocationQuery } from "#dms/frontend-module";
 
 const DEFAULT_FILTER_MODE = "is";
 
 /** The `queryParamFilters` declared `visible` that the URL applies now. */
 export function visibleUrlFilters(
   filters: QueryParamFilters | undefined,
-  query: Record<string, unknown>,
+  query: LocationQuery,
 ): TableUrlFilter[] {
   return Object.entries(filters ?? {})
     .filter(([param, config]) => config.visible && query[param] !== undefined)
@@ -20,12 +21,12 @@ export function visibleUrlFilters(
 }
 
 /** The URL query without `param`, for a chip the user removed. */
-export function withoutQueryParam<Query extends Record<string, unknown>>(
+export function withoutQueryParam<Query extends LocationQuery>(
   query: Query,
   param: string,
-): Query {
+) {
   const { [param]: _removed, ...rest } = query;
-  return rest as Query;
+  return rest;
 }
 
 /** The query of a URL, absolute or relative to the page, one value per key. */
@@ -39,9 +40,7 @@ export function queryOfUrl(url: string): Record<string, string> {
  * route, which follows the last visit, can still hold a key the browser no
  * longer shows: a visit rebuilt from it would bring the key back.
  */
-export function currentQuery(
-  routeQuery: Record<string, unknown>,
-): Record<string, unknown> {
+export function currentQuery(routeQuery: LocationQuery): LocationQuery {
   if (typeof window === "undefined") return routeQuery;
   return queryOfUrl(window.location.href);
 }

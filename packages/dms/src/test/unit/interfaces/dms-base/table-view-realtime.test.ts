@@ -23,21 +23,16 @@ import {
   withRealtimeMutation,
 } from "@antelopejs/interface-dms/base/table-view/internal/realtime";
 
-// A table view reaches the DMS through two interface functions the DMS
-// implements, never through a callback the DMS left in the interface: the core
-// binds them to the generation that implements them now, and holds what is
-// sent while no generation does.
-
 const LOCATION = "/api/table-view-realtime";
 const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
 const TENANT = "table-view-realtime-tenant";
 
-// The route's auth decorator binds the verified user and tenant to the
-// request; the handler reads the tenant from that binding.
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Principal binding reads rawRequest.headers only; this fixture deliberately omits the rest of the HTTP context.
 const REQUEST_CONTEXT = {
   rawRequest: { headers: { authorization: "Bearer table-view-realtime" } },
-} as unknown as RequestContext;
+} as RequestContext;
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Realtime actor resolution needs id and name only, not a complete persisted user.
 const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
 bindVerifiedRequestPrincipal(REQUEST_CONTEXT, {
   userId: USER._id,
@@ -72,7 +67,7 @@ const getRoute = withPresenceAcquire({
   func: async () => ({ ok: true }),
 });
 
-function edit(id: string): Promise<unknown> {
+function edit(id: string): ReturnType<typeof editRoute.func> {
   return editRoute.func.call(
     controller,
     undefined,
@@ -83,7 +78,7 @@ function edit(id: string): Promise<unknown> {
   );
 }
 
-function open(id: string): Promise<unknown> {
+function open(id: string): ReturnType<typeof getRoute.func> {
   return getRoute.func.call(
     controller,
     undefined,
@@ -126,10 +121,9 @@ function attach(implementation: TableViewRealtime): void {
   ImplementInterface({ internal: tableView }, implementation);
 }
 
-// What the core does to the functions a generation implemented when it
-// destroys that generation.
 function detachGeneration(): void {
   for (const fn of [tableView.PublishMutation, tableView.AcquirePresence]) {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction's public callable type omits the core proxy handle; this test deliberately detaches that private handle to simulate reload.
     (fn as unknown as ProxiedFunction).proxy.detach();
   }
 }
@@ -168,8 +162,7 @@ describe("[unit] interfaces/dms-base — table-view realtime across DMS generati
     attach(generation("first"));
     detachGeneration();
     const stubMode = runtime.testStubMode;
-    // The test runner fails a call that finds no provider; a running project
-    // queues it, which is the behaviour a DMS reload relies on.
+
     runtime.testStubMode = false;
     try {
       const routes = Promise.all([edit("row-3"), open("row-3")]);

@@ -1,5 +1,3 @@
-// Overlays reka-ui dismisses on Escape (modals, slideovers, popovers, menus,
-// selects). They move focus inside themselves while open.
 const OVERLAY_SELECTOR =
   '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 

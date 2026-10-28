@@ -95,8 +95,7 @@ export function gridResponsiveStyles(
     `@container ${scope} (width < ${trackBreakpoint(tracks, gap, minColumnWidth)})`;
   const hideSpacers = `${cells}.dms-spacer, ${cells}:has(> .dms-spacer) { display: none; }`;
   const rules: string[] = [];
-  // Widest first: at a given width the narrowest matching rule comes last and
-  // wins. The first one (one track short of every column) also hides spacers.
+
   for (
     let tracks = columns - SINGLE_COLUMN;
     tracks >= SINGLE_COLUMN;

@@ -35,7 +35,7 @@ describe("[unit] interfaces/dms/page — a page takes its permissions down with 
 
   it("registers the page and component permissions, then releases both", async () => {
     const meta = GetMetadata(PageWithComponent, PageMetadata);
-    // What `@RegisterPage` does with the class's static component fields.
+
     meta.SetComponent(COMPONENT_KEY, PageWithComponent.panel);
     await meta.Register();
 
@@ -47,8 +47,6 @@ describe("[unit] interfaces/dms/page — a page takes its permissions down with 
     if (!meta.pageInfo) throw new Error("pageInfo not initialized");
     pageInterfaceInternal.RegisterPage.unregister(meta.pageInfo);
 
-    // Left behind, these outlive the page: the roles tree keeps offering them
-    // and `HasPermission` keeps answering for a surface that no longer serves.
     expect(await GetPermission(PAGE_FULL_ID)).to.equal(undefined);
     expect(await GetPermission(COMPONENT_PERMISSION_ID)).to.equal(undefined);
   });

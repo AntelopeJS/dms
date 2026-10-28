@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import {
-  PAGE_TOOLBAR_LIVE_CHILD_ID,
   PAGE_TOOLBAR_LIVE_DEFAULTS,
   PAGE_TOOLBAR_PERIOD_CHILD_ID,
   PAGE_TOOLBAR_PERIOD_DEFAULTS,
@@ -64,18 +63,14 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(childOf(serialized, "live")?.options).to.deep.equal(
       PAGE_TOOLBAR_LIVE_DEFAULTS,
     );
-    // The selector's default comparisons: more than one choice, a menu.
+
     expect(childOf(serialized, "period")?.options).to.deep.equal({
       ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+      rangeLabel: "relative",
+      defaultPreset: "last-24h",
       comparisonControl: "menu",
       defaultComparison: "previous-period",
       id: "page",
-    });
-    expect(PAGE_TOOLBAR_LIVE_DEFAULTS).to.include({ variant: "pill" });
-    expect(PAGE_TOOLBAR_PERIOD_DEFAULTS).to.include({
-      variant: "segmented",
-      rangeLabel: "relative",
-      defaultPreset: "last-24h",
     });
   });
 
@@ -128,7 +123,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       }),
     ).to.deep.include({ defaultComparison: "previous-year" });
 
-    // A single comparison stays on without a control; none, nothing to draw.
     const single = periodOf({ comparisons: ["previous-period"] });
     expect(single).to.deep.include({ comparisonControl: "hidden" });
     expect(single).to.not.have.property("defaultComparison");
@@ -136,7 +130,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       comparisonControl: "hidden",
     });
 
-    // The page's own control wins.
     expect(
       periodOf({
         comparisons: ["previous-period", "none"],
@@ -162,23 +155,15 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       "toggle",
       PAGE_TOOLBAR_PERIOD_CHILD_ID,
     ]);
-    // `childId` and `meta` place the child: they are not the control's options.
-    const live = childOf(serialized, "toggle")?.options as Record<
-      string,
-      unknown
-    >;
+
+    const live = childOf(serialized, "toggle")?.options;
     expect(live).to.not.have.any.keys("childId", "meta");
     expect(live).to.include({ missedLabel: "$my.new", variant: "pill" });
-    const period = childOf(serialized, PAGE_TOOLBAR_PERIOD_CHILD_ID)
-      ?.options as Record<string, unknown>;
+    const period = childOf(serialized, PAGE_TOOLBAR_PERIOD_CHILD_ID)?.options;
     expect(period).to.include({ id: "my-scope" });
     expect(period).to.not.have.any.keys("childId", "meta");
 
-    const children = (
-      toolbar as unknown as {
-        _children: Array<{ id: string; component: { metadata: unknown } }>;
-      }
-    )._children;
+    const children = toolbar["_children"];
     expect(children[0]?.component.metadata).to.deep.include({
       name: "$my.permissions.live.name",
       icon: "i-ph-broadcast",
@@ -186,11 +171,9 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(children[1]?.component.metadata).to.deep.include({
       name: "$my.permissions.period.name",
     });
-    expect(PAGE_TOOLBAR_LIVE_CHILD_ID).to.equal("live");
   });
 
   it("runs a child's transformOptions each time the page registers, over the defaults", async () => {
-    // A module's setting, known only once it is configured.
     let comparisons: Array<"previous-period" | "previous-year" | "none"> = [
       "previous-period",
       "none",
@@ -222,7 +205,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       variant: "pill",
     });
 
-    // A second registration reads the setting again.
     comparisons = ["none"];
     const second = await toolbar.serialize();
     expect(childOf(second, "period")?.options).to.deep.include({
@@ -240,8 +222,11 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(initial?.[0]?.options).to.deep.equal(
       childOf(serialized, "live")?.options,
     );
-    const { id: _scope, ...periodOptions } = (childOf(serialized, "period")
-      ?.options ?? {}) as Record<string, unknown>;
+    const {
+      id: _scope,
+      ...periodOptions
+    }: NonNullable<Exclude<PageToolbarOptions["period"], boolean>> =
+      childOf(serialized, "period")?.options ?? {};
     expect(initial?.[1]?.options).to.deep.equal(periodOptions);
   });
 });

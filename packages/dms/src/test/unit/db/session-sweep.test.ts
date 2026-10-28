@@ -2,7 +2,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { SessionModel } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../../../config";
-import { runSweepExpiredSessions } from "../../../crons/sweep-expired-sessions";
+import { runSweepExpiredSessions } from "../../../crons";
 
 const USER_ID = "session-sweep-user";
 const STALE_SESSION_ID = "session-sweep-stale";

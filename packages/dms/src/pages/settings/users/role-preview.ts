@@ -180,10 +180,7 @@ function classifyNode(
   titleOf: (permissionId: string) => string,
   blocks: Record<string, RolePreviewBlock>,
 ): void {
-  // Only what the viewer is served is ever classified: the layout was
-  // filtered by their own permissions, and an action they lack is no change.
   if (!grants.preview.has(node.permissionId)) {
-    // Its children sit under the same veil; one per hidden branch is enough.
     blocks[node.path] = { state: "hidden" };
     return;
   }
@@ -217,7 +214,7 @@ export function classifyPreviewBlocks(
   grants: RolePreviewGrants,
   pageHidden: boolean,
   titleOf: (permissionId: string) => string = (id) => id,
-): Record<string, RolePreviewBlock> {
+): RolePreviewResult["blocks"] {
   const blocks: Record<string, RolePreviewBlock> = {};
   for (const node of nodes) {
     if (pageHidden) {

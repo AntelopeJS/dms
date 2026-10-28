@@ -4,7 +4,7 @@ import {
   classifySignIn,
   describeSignInDevice,
   type SignInHistory,
-} from "../../../utils/sign-in-devices";
+} from "../../../utils";
 
 function agent(overrides: Partial<ParsedUserAgent> = {}): ParsedUserAgent {
   return {

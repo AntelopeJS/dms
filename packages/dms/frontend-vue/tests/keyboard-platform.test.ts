@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_KEYBOARD_PLATFORM,
   detectKeyboardPlatform,
   formatKeyboardShortcut,
   keyboardKeyLabel,
 } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
-import { PAGE_SEARCH_HINT_KEYS } from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
+import { PAGE_SEARCH_HINT_KEYS } from "../layers/dms-ui/app/entries/composables/global/searchShortcuts";
 
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
@@ -45,8 +44,7 @@ describe("detectKeyboardPlatform", () => {
   });
 
   it("falls back to the server default without a navigator", () => {
-    expect(detectKeyboardPlatform(undefined)).toBe(DEFAULT_KEYBOARD_PLATFORM);
-    expect(DEFAULT_KEYBOARD_PLATFORM).toBe("other");
+    expect(detectKeyboardPlatform(undefined)).toBe("other");
   });
 });
 

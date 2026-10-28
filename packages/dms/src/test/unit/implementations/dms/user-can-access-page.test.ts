@@ -27,8 +27,6 @@ const REGULAR_PAGE_FULL_ID = "pages.ucap-normal";
 
 describe("[unit] implementations/dms/page — userCanAccessPage module gating", () => {
   before(async () => {
-    // Wire the mocha-loaded interface proxies to the mocha-loaded
-    // implementation so registered pages land in its page registry.
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
@@ -58,6 +56,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       MODULE_PAGE_FULL_ID,
     ]);
+    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
     const nonOwner = { _id: "user-1" } as User;
     expect(
       await userCanAccessPage(
@@ -72,6 +71,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
 
   it("allows the platform owner on a module page", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
+    // SAFETY: Page access reads this id and owner flag, not persisted-user methods.
     const owner = { _id: "user-2", owner: true } as User;
     expect(
       await userCanAccessPage(
@@ -98,10 +98,6 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
   });
 
   it("unmarks a module page permission when the page unregisters (hot reload)", async () => {
-    // Default ids stay covered by the still-marked module root prefix, so
-    // the stale-deny scenario is only observable for a custom permission id
-    // living outside the modules.* namespace — exactly what unregister must
-    // release.
     const customPermissionId = "ucap-custom-perm";
     const reloadedPage = PageController("ucap-reloaded", {
       displayName: "Reloaded module page",
@@ -125,6 +121,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       REGULAR_PAGE_FULL_ID,
     ]);
+    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
     const nonOwner = { _id: "user-3" } as User;
     expect(
       await userCanAccessPage(

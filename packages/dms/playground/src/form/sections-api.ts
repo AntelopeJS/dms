@@ -8,13 +8,14 @@ import {
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import type { DemoRecord } from "./demo-record-api";
 import { PageFormSections } from "./sections/page";
 
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
 
 /** The demo's settings, kept in memory: a restart puts the defaults back. */
-const settings: Record<string, unknown> = {
+const settings = {
   profileName: "Default profile",
   agent: "claude",
   thinking: "medium",
@@ -41,7 +42,7 @@ export class FormSectionsAPIController extends Controller(
   }
 
   @Put("save")
-  async save(@JSONBody() body: Record<string, unknown>) {
+  async save(@JSONBody() body: DemoRecord) {
     const parsed = await formSchema(PageFormSections.form)
       .partial()
       .safeParseAsync(body);

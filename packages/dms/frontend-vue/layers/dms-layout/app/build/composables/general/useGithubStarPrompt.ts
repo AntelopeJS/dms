@@ -39,10 +39,11 @@ function readStorage(key: string): string | null {
 }
 
 function writeStorage(key: string, value: string): void {
+  // prettier-ignore
   try {
     localStorage.setItem(key, value);
   } catch {
-    /* storage unavailable (private mode, quota): the prompt state lasts the page */
+    // eslint-disable-line no-empty -- Unavailable storage leaves prompt state in memory for this page only.
   }
 }
 
@@ -89,8 +90,6 @@ export const useGithubStarPrompt = (isEnabled: boolean): GithubStarPrompt => {
       now.value >= snoozedUntil.value,
   );
 
-  // Merged with what this page holds: a choice made in another tab is
-  // followed here, and one made here outlives a storage that cannot be read.
   function load(): void {
     activeMs.value = storedActiveMs();
     snoozedUntil.value = Math.max(
@@ -109,9 +108,6 @@ export const useGithubStarPrompt = (isEnabled: boolean): GithubStarPrompt => {
     );
   }
 
-  // Added to the stored total rather than written over it, so two tabs add
-  // up. One tick at most is counted per call: a longer gap means the device
-  // slept, which is not time spent on the dashboard.
   function count(): void {
     if (countedSince === null) return;
     const at = Date.now();

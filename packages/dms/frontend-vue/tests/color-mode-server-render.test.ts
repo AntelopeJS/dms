@@ -9,16 +9,16 @@ import { createSSRApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
 
 interface CookieOptions {
-  default: () => unknown;
+  default: () => string;
   maxAge?: number;
 }
 
 const COLOR_MODE_COOKIE = "dms-color-mode";
 const ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
 const requestCookies = new Map<string, unknown>();
-const cookieReads = vi.fn();
+const cookieReads = vi.fn<(name: string, options: CookieOptions) => void>();
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
 vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsCookie", (name: string, options: CookieOptions) => {
   cookieReads(name, options);
@@ -37,6 +37,7 @@ async function renderHead(preference?: string) {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The color-mode plugin does not read its context; this fixture deliberately provides none of the unrelated runtime services.
   await app.runWithContext(() => colorModePlugin({} as never));
   return renderSSRHead(head);
 }
@@ -68,15 +69,13 @@ it("reads the dms-color-mode cookie, kept a year and defaulting to system", asyn
   await renderHead();
 
   expect(cookieReads).toHaveBeenCalledOnce();
-  const [name, options] = cookieReads.mock.calls[0] as [string, CookieOptions];
+  const [name, options] = cookieReads.mock.calls[0]!;
   expect(name).toBe(COLOR_MODE_COOKIE);
   expect(options.maxAge).toBe(ONE_YEAR_IN_SECONDS);
   expect(options.default()).toBe("system");
 });
 
 it("ships the pre-paint script as a classic inline script in <head>", async () => {
-  // No src, type, defer or async: the browser runs it while it parses <head>,
-  // before the deferred entry module that installs Nuxt UI.
   const { headTags, bodyTags, bodyTagsOpen } = await renderHead("dark");
 
   expect(headTags).toMatch(/<script id="dms-color-mode">\(\(\) => \{/);

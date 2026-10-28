@@ -8,11 +8,11 @@
  * Every class stays a literal string so Tailwind finds it when scanning.
  */
 
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import {
   CLOSING_OVERLAY_CLASS,
   UNCOVERED_PANEL_CLASS,
-} from "#dms-ui/app/build/components/containers/constants";
+} from "#dms-ui/app/entries/components/containers/constants";
 
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =
@@ -34,7 +34,6 @@ const CLOSING_PANEL = `data-[state=closed]:pointer-events-none! ${UNCOVERED_PANE
 
 const cardTheme = {
   slots: {
-    // 48px head carrying the mono eyebrow title, 18px body, muted footer band.
     header:
       "flex items-center gap-2.5 min-h-12 py-2 ps-[18px] pe-4 sm:ps-[18px] sm:pe-4",
     title: `${EYEBROW_CLASS} text-muted`,
@@ -44,7 +43,6 @@ const cardTheme = {
   },
   variants: {
     variant: {
-      // The shared .dms-card surface: 14px radius, hairline border, card shadow.
       outline: {
         root: "rounded-(--dms-radius-card) bg-(--dms-surface-card) ring ring-default shadow-(--dms-shadow-card)",
       },
@@ -92,7 +90,6 @@ const popoverTheme = {
 
 const tooltipTheme = {
   slots: {
-    // Inverted chip; its keycaps drop their surface and follow the ink.
     content:
       "bg-inverted text-inverted ring-0 rounded-[6px] h-auto min-h-6 px-2 py-1 text-xs font-medium shadow-(--dms-shadow-pop)",
     arrow: "fill-(--ui-bg-inverted) stroke-(--ui-bg-inverted)",
@@ -167,10 +164,10 @@ const toastTheme = {
     description: "text-[13px]/[1.45]",
     icon: "size-[18px] mt-px",
     actions: "gap-1.5",
-    // Ghost xs square button (design .toast__close), pulled into the corner.
+
     close:
       "-mt-1 -me-1.5 p-1 rounded-md text-dimmed hover:text-highlighted hover:bg-elevated [&_[data-slot=leadingIcon]]:size-4",
-    // 2px duration bar on the muted hairline (design .toast__timer).
+
     progress:
       "[&_[data-slot=base]]:h-0.5 [&_[data-slot=base]]:rounded-none [&_[data-slot=base]]:bg-(--ui-border-muted) [&_[data-slot=indicator]]:rounded-none",
   },
@@ -242,7 +239,6 @@ const alertTheme = {
     },
   },
   compoundVariants: [
-    // Tinted alerts: only the icon (and the tint) carries the colour.
     {
       variant: ["soft", "subtle", "outline"],
       class: { title: "text-highlighted", description: "text-muted" },
@@ -261,7 +257,6 @@ const alertTheme = {
 const avatarTheme = {
   variants: {
     color: {
-      // The default initials avatar: the brand gradient with mono dark ink.
       neutral: {
         root: "bg-linear-135 from-(--ui-color-primary-400) to-(--ui-color-secondary-400)",
         fallback: "font-mono font-bold text-(--dms-accent-on-fill)",

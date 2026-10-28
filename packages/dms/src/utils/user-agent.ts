@@ -9,6 +9,7 @@ export type {
   ParsedUserAgent,
 } from "@antelopejs/interface-dms/auth/internal/user-agent";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- UAParser device names are open-ended; unknown names intentionally use the existing desktop fallback.
 const DEVICE_TYPES: Record<string, DeviceType> = {
   mobile: "mobile",
   tablet: "tablet",

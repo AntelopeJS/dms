@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A TopListCard's period badge across a server render and its hydration,
  * through the runtime's real payload: once its selector set up before it, the
@@ -22,13 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
 import { browserTimeZone } from "../layers/dms-core/app/utils/regional";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ items: [{ id: "pro", title: "Pro", value: 12 }] }),
-    isLoading: ref(false),
-  }),
-}));
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
 const engine = await import("#dms/frontend-module");
 const { usePeriod } = await import(
@@ -54,7 +48,6 @@ function selector(preset: PeriodPreset): Component {
   });
 }
 
-// A skeleton carries an aria-label; the badge renders its label.
 const Slot = defineComponent({
   props: { ariaLabel: String },
   setup:
@@ -96,7 +89,7 @@ async function serverRender(children: Component[], cookies?: string) {
   const app = page(children);
   engine.provideDmsFrontendRuntime(app, runtime);
   engine.setDmsServerRuntimeResolver(() => runtime);
-  // What the server sees: no `window`.
+
   const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);
   try {
@@ -111,13 +104,10 @@ const mounted: App[] = [];
 
 async function hydrate(
   children: Component[],
-  { html, payload }: { html: string; payload: unknown },
+  { html, payload }: Awaited<ReturnType<typeof serverRender>>,
 ) {
   const browser = engine.createDmsFrontendRuntime(undefined, {});
-  engine.restoreDmsPayload(
-    browser,
-    structuredClone(payload) as Parameters<typeof engine.restoreDmsPayload>[1],
-  );
+  engine.restoreDmsPayload(browser, structuredClone(payload));
   const container = document.createElement("div");
   container.innerHTML = html;
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -145,16 +135,11 @@ function badge(html: string): string {
   return html.includes(SKELETON) ? SKELETON : "none";
 }
 
-beforeEach(() => {
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
+beforeEach(async () => {
+  await stubBlockRuntime(async () => ({
+    items: [{ id: "pro", title: "Pro", value: 12 }],
   }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
-  vi.stubGlobal("useDmsState", engine.useDmsState);
-  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
-  vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
+  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
 });
 
 afterEach(() => {

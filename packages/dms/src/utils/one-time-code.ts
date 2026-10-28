@@ -1,5 +1,3 @@
-// The short numeric codes a user receives by email and types back. Only a
-// hash of each is stored, so a database leak does not hand out live codes.
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 
 const CODE_DIGITS = 6;

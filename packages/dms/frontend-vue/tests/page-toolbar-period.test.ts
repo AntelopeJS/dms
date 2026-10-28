@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The PeriodSelector of a `pageToolbar()`, mounted from the options the
  * interface gives it: every segment named in full whatever it shows (a short
@@ -8,8 +8,9 @@
  * other controls, naming the compared window that the range label then leaves
  * out.
  */
-import { createApp, h, nextTick, ref, type App } from "vue";
+import { computed, createApp, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import {
   pageToolbar,
   type PageToolbarOptions,
@@ -18,17 +19,8 @@ import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
 import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
-import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-
-vi.mock("@inertiajs/vue3", () => ({ router: { replace: vi.fn() } }));
-vi.mock(
-  "#dms-core/app/composables/user/useUserRegionalPreferences",
-  async () => {
-    const { ref: vueRef } = await import("vue");
-    return { useUserRegionalPreferences: () => ({ weekStartsOn: vueRef(1) }) };
-  },
-);
+import coreEnGB from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFrFR from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -54,7 +46,7 @@ function toolbarPeriod(
 ): PeriodSelectorProps {
   const serialized = pageToolbar({ live: false, period }).serializeSync();
   const child = serialized.children?.find((entry) => entry.id === "period");
-  return child?.component.options as PeriodSelectorProps;
+  return child?.component.options;
 }
 
 async function mountPeriod(period: PageToolbarOptions["period"]) {
@@ -102,11 +94,12 @@ const menuTrigger = () => comparisonMenu()?.querySelector("button");
 const rangeLabel = () =>
   host.querySelector(".dms-period-selector__range")?.textContent?.trim();
 
-// Local noon: the last 24 hours and the windows they are compared with stay
-// clear of midnight, whatever zone the suite runs in.
 const NOW = new Date(2026, 9, 18, 13, 57);
 
 beforeEach(() => {
+  vi.spyOn(inertiaRouter, "replace").mockImplementation(() => {});
+  vi.stubGlobal("computed", computed);
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref({ weekStart: 1 }) }));
   vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({}));
@@ -126,6 +119,7 @@ afterEach(() => {
   app = undefined;
   host.remove();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("its segments", () => {

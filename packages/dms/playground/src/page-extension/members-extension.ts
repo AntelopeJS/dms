@@ -1,5 +1,3 @@
-// A page extension is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
 import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
 

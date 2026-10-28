@@ -7,16 +7,13 @@ import {
 import type { BlockLinkAction } from "@antelopejs/interface-dms/base/display";
 import type { BlockText } from "@antelopejs/interface-dms/base/types/composed-text";
 import { withResolverTimeout } from "./resolver-timeout";
-import { warnOnceFor } from "./warn-once";
+import { warnOnceFor } from "../../store/frontend";
 
 const DEFAULT_BANNER_ORDER = 0;
 
 const bannersByKey = new Map<string, LayoutBannerInfo>();
 
 export namespace internal {
-  // Keyed by `key` rather than by object: across the interface boundary the
-  // runtime receives a view of the registration, and reference equality does
-  // not survive the round trip.
   export const RegisterLayoutBanner = {
     register: (info: LayoutBannerInfo) => {
       bannersByKey.set(info.key, info);
@@ -43,7 +40,7 @@ export interface LayoutBannerSerialized {
   text?: BlockText;
   actions?: BlockLinkAction[];
   component?: string;
-  props?: Record<string, unknown>;
+  props?: LayoutBannerInfo["props"];
 }
 
 type LayoutBannerBody = Pick<
@@ -64,8 +61,6 @@ const LAYOUT_BANNER_SCOPES: ReadonlySet<string> = new Set(
   Object.values(LayoutBannerScope),
 );
 
-// An untyped registration may name a scope that does not exist: it reads as
-// the default, `app`, so the dashboard only ever receives a known one.
 function resolveScope(banner: LayoutBannerInfo): LayoutBannerScope {
   const { scope } = banner;
   return scope && LAYOUT_BANNER_SCOPES.has(scope)
@@ -88,8 +83,6 @@ function serializeLayoutBanner(
   };
 }
 
-// The types forbid a banner with no content, but an untyped registration can
-// still carry one: it would render as an empty colored strip.
 function hasContent(banner: LayoutBannerInfo): boolean {
   if (banner.text || banner.component || banner.resolve) return true;
   warnOnceFor(
@@ -107,8 +100,7 @@ async function readBody(
 ): Promise<LayoutBannerBody | undefined> {
   if (banner.resolve) {
     const content = await banner.resolve(context);
-    // A resolver answering an empty text has nothing to say: an empty strip
-    // would only push the page down.
+
     if (!content?.text) return undefined;
     return { text: content.text, actions: content.actions };
   }
@@ -129,8 +121,6 @@ async function resolveBanner(
     );
     return body && serializeLayoutBanner(banner, body);
   } catch (error) {
-    // Throwing and hanging land here alike: the banner stays hidden for this
-    // request rather than taking the whole site layout down with it.
     warnOnceFor(
       banner,
       "resolver-failed",
@@ -149,8 +139,6 @@ async function resolveBanner(
 export async function resolveLayoutBanners(
   context: LayoutBannerContext,
 ): Promise<LayoutBannerSerialized[]> {
-  // Snapshot first, so a module registering while the resolvers are pending
-  // does not change the set this request answers.
   const banners = [...bannersByKey.values()];
   const resolved = await Promise.all(
     banners.map((banner) => resolveBanner(banner, context)),

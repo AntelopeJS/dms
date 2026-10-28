@@ -3,8 +3,6 @@ import {
   NotificationSubject,
 } from "@antelopejs/interface-dms/notifications";
 
-// A category and a subject of the playground's own: both show in Settings ›
-// Notifications, where each member can turn the subject off.
 export const PlaygroundNotificationCategory = NotificationCategory(
   "playground",
   {

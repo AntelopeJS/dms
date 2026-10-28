@@ -1,3 +1,5 @@
+import { isString } from "#dms-core/app/utils/type-check";
+
 const OAUTH_ERROR_QUERY = "oauth_error";
 const ERROR_KEY_PREFIX = "error.";
 const FALLBACK_ERROR_KEY = "error.oauth.failed";
@@ -17,8 +19,10 @@ export function useOAuthErrorToast(): void {
   const toast = useToast();
   const { t, te } = useI18n();
 
-  function toErrorMessageKey(value: unknown): string | undefined {
-    if (typeof value !== "string" || !value) return undefined;
+  function toErrorMessageKey(
+    value: ReturnType<typeof useDmsRoute>["query"][string],
+  ): string | undefined {
+    if (!isString(value) || !value) return undefined;
     if (value.startsWith(ERROR_KEY_PREFIX) && te(value)) return value;
     return FALLBACK_ERROR_KEY;
   }

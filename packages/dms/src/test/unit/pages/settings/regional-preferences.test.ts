@@ -6,14 +6,15 @@ import {
   fromRegionFormValues,
   readRegionalPreferences,
   toRegionFormValues,
-} from "../../../../pages/settings/users/regional-preferences";
+  regionPreferencesForm,
+} from "../../../../pages/account";
 import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form-types";
-import { regionPreferencesForm } from "../../../../pages/settings/users/region-form";
-import { regionalPreferencesSchema } from "../../../../validation/regional-preferences.schema";
+import { regionalPreferencesSchema } from "../../../../validation";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
 
 function storedUser(): User {
+  // SAFETY: The preference helpers read and update regional fields only; password is retained to assert unrelated fields survive, and no persistence methods run.
   return {
     _id: "regional-user",
     email: "ada@acme.dev",
@@ -21,7 +22,7 @@ function storedUser(): User {
     language: "en",
     password: PASSWORD_HASH,
     timeZone: "Asia/Tokyo",
-  } as unknown as User;
+  } as User;
 }
 
 describe("[unit] regional preferences — validation", () => {
@@ -127,6 +128,7 @@ describe("[unit] regional preferences — the Language & region form", () => {
   });
 
   it("is one instant form with a section per group", () => {
+    // SAFETY: regionPreferencesForm builds a form component; its serialized options contain the form sections and save mode read by these assertions.
     const options = regionPreferencesForm().serializeSync()
       .options as FormPropsSerialized;
     expect(options?.saveMode).to.equal("instant");

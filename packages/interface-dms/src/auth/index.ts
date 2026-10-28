@@ -61,9 +61,11 @@ export async function authenticateRequestUser(
 ): Promise<User> {
   const authHeader = ctx.rawRequest?.headers?.authorization;
   const token =
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The incoming authorization header is checked before selecting a bearer token for validation.
     typeof authHeader === "string" ? authHeader.split(" ")[1] : undefined;
   const decoded = await internal.AuthUserAuthenticator(token);
   const validated = await internal.AuthUserValidator(decoded);
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published validator accepts boolean sentinel results as well as users; sentinels cannot bind request identity.
   if (!validated || typeof validated === "boolean") {
     throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
   }

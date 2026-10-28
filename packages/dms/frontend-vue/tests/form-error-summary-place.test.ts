@@ -1,42 +1,34 @@
-/**
- * The error summary of a refused submit keeps its place until the form is
- * saved: the last fix turns it into "no field to fix" rather than removing
- * it, so the fields and the submit button do not move up under the pointer
- * on its way to Save, and the click lands where it was aimed.
- */
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+/** @vitest-environment jsdom */
+import { expect, it, vi } from "vitest";
+import { nextTick } from "vue";
+import { button, host, mountForm, t } from "./helpers/form-runtime";
 
-const read = (path: string) =>
-  readFileSync(
-    new URL(`../layers/dms-ui/app/${path}`, import.meta.url),
-    "utf8",
+it("rejects a public form whose summary cannot focus its field or keeps errors after the last fix", async () => {
+  await mountForm({
+    sections: [{ id: "contact", label: "Contact", fieldIds: ["name"] }],
+  });
+  button("Reject submit").click();
+  await nextTick();
+  const link = host.querySelector<HTMLAnchorElement>('[role="alert"] a');
+  expect(link?.textContent).toContain("Name");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+    "Contact",
   );
-
-const form = read("components/form/Form.vue");
-const summary = read("build/components/form/FormErrorSummary.vue");
-
-describe("the form's error summary", () => {
-  it("shows from a refused submit until the form is saved", () => {
-    expect(form).toMatch(/<DmsFormErrorSummary\s+v-if="showsErrorSummary"/);
-    expect(form).not.toMatch(/watch\(invalidFields/);
-    const markClean = /function markFormClean\(\): void \{[\s\S]*?\n\}/.exec(
-      form,
-    )?.[0];
-    expect(markClean).toContain("showsErrorSummary.value = false;");
-  });
-
-  it("says every field is fixed in place, on a line of its own", () => {
-    expect(summary).toContain(
-      "const isResolved = computed(() => props.items.length === 0);",
-    );
-    expect(summary).toContain(":color=\"isResolved ? 'success' : 'error'\"");
-    expect(summary).toMatch(
-      /<p v-if="isResolved"[^>]*>\s*\{\{ t\("dms\.form\.error_summary\.resolved"\) \}\}/,
-    );
-    expect(en.dms.form.error_summary.resolved).toBeTruthy();
-    expect(fr.dms.form.error_summary.resolved).toBeTruthy();
-  });
+  expect(link?.getAttribute("href")).toBe("#name");
+  await vi.waitFor(() =>
+    expect(document.activeElement).toBe(host.querySelector("input")),
+  );
+  button("Fix errors").focus();
+  expect(document.activeElement).toBe(button("Fix errors"));
+  link?.click();
+  await vi.waitFor(() =>
+    expect(document.activeElement).toBe(host.querySelector("input")),
+  );
+  button("Fix errors").click();
+  await nextTick();
+  expect(host.querySelector('[role="alert"]')).toBeNull();
+  expect(host.querySelector('[role="status"]')?.textContent).toContain(
+    t("dms.form.error_summary.resolved"),
+  );
+  expect(host.querySelector('[role="status"] a')).toBeNull();
 });

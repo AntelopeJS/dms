@@ -117,7 +117,10 @@ const buildStatusColumns = ({
     falseColor: options?.offlineColor,
   });
 
-const KANBAN_COLUMN_TYPE_HANDLERS: Record<string, KanbanColumnTypeHandler> = {
+const KANBAN_COLUMN_TYPE_HANDLERS: Record<
+  TableViewColumn["type"]["id"],
+  KanbanColumnTypeHandler
+> = {
   select: {
     isEligible: (options) => !options?.multiple,
     build: buildSelectColumns,
@@ -135,8 +138,7 @@ const KANBAN_COLUMN_TYPE_HANDLERS: Record<string, KanbanColumnTypeHandler> = {
 
 const getColumnTypeOptions = (
   column: TableViewColumn,
-): KanbanColumnTypeOptions | undefined =>
-  column.type.inputComponent?.options as KanbanColumnTypeOptions | undefined;
+): KanbanColumnTypeOptions | undefined => column.type.inputComponent?.options;
 
 export const isEligibleKanbanColumn = (column: TableViewColumn): boolean => {
   const handler = KANBAN_COLUMN_TYPE_HANDLERS[column.type.id];

@@ -35,6 +35,10 @@ interface ItemsResponse {
   items: KeyValueListItem[];
 }
 
+interface ExportResponse {
+  exported: boolean;
+}
+
 function grantItem(label: string, granted: boolean): KeyValueListItem {
   return {
     label,
@@ -108,7 +112,7 @@ export class PermissionsDemoController extends Controller(
   }
 
   @Post("export")
-  export(@AuthUser() _user: User): { exported: boolean } {
+  export(@AuthUser() _user: User): ExportResponse {
     return { exported: true };
   }
 

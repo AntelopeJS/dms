@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A rolling period (`last-hour`, `last-24h`) slides every minute, and every
  * block reading it refetches. On a paused live page the period holds still,
@@ -8,8 +8,8 @@
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
-import { createPageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+import { createPageLiveController } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import {
   usePeriod,
@@ -42,7 +42,7 @@ function mountPageWithChart(): UsePeriodReturn {
     defineComponent({
       setup() {
         const { isPaused } = usePageLive();
-        // As the PeriodSelector wires it.
+
         period = usePeriod({
           defaultPreset: "last-hour",
           holdClock: () => isPaused.value,

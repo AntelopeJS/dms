@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Updating what `useApiData` read, through the runtime's real async data:
  * `useDmsData(key)` puts a write's answer in place (and back when the write
@@ -6,7 +6,15 @@
  * without reading it again. The URL form names its key with `key`.
  */
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 interface Task {
   id: string;
@@ -17,12 +25,12 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 const requests: string[] = [];
-const backend: Record<string, Task[]> = {
+const backend = {
   "/api/tasks": [{ id: "1", title: "Write" }],
   "/api/archive": [{ id: "9", title: "Old" }],
-};
+} satisfies Record<string, Task[]>;
 vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
+  $authFetch: async (url: keyof typeof backend) => {
     requests.push(url);
     return structuredClone(backend[url]);
   },
@@ -75,7 +83,6 @@ describe("useDmsData on a useApiData read", () => {
     await nextTick();
     expect(element.textContent).toBe("Write,Review|Write,Review");
 
-    // The write failed: what was there comes back.
     tasks!.data.value = previous;
     await nextTick();
     expect(element.textContent).toBe("Write|Write");
@@ -85,7 +92,6 @@ describe("useDmsData on a useApiData read", () => {
   it("applies a realtime change to a read another component shows", async () => {
     const Archive = defineComponent({
       setup() {
-        // In place changes need a deep read: reads are shallow by default.
         const { data } = useApiData<Task[]>(
           "task-archive",
           ({ $authFetch, signal }) =>
@@ -97,7 +103,6 @@ describe("useDmsData on a useApiData read", () => {
     });
     let archive: ReturnType<typeof engine.useDmsData<Task[]>> | undefined;
     const element = mount(() => {
-      // A realtime listener of the page, which reads nothing itself.
       archive = engine.useDmsData<Task[]>("task-archive");
       return () => h("div", [h(Archive)]);
     });
@@ -105,7 +110,6 @@ describe("useDmsData on a useApiData read", () => {
     await settle();
     expect(element.textContent).toBe("Old");
 
-    // The event names the task it renamed.
     archive!.data.value = archive!.data.value!.map((task) =>
       task.id === "9" ? { ...task, title: "Renamed" } : task,
     );

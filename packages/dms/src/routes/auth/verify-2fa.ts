@@ -11,17 +11,16 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { notifyBackupCodeUsed } from "../../utils/account-notifications";
-import type { ClientOrigin } from "../../utils/sign-in-country";
-import { recordSignIn } from "../../utils/sign-in-monitor";
 import {
+  notifyBackupCodeUsed,
   acceptTotpCode,
   consumeEmailCode,
   emailCodeMatches,
   isEmailCodeExpired,
-} from "../../utils/two-factor-codes";
-import { authSchema } from "../../validation/auth.schema";
-import { firstIssueMessage } from "../../validation/issue-message";
+} from "../../utils";
+import type { ClientOrigin } from "../../utils";
+import { recordSignIn } from "../../hooks";
+import { authSchema, firstIssueMessage } from "../../validation";
 import { answerTwoFactorChallenge } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -81,7 +80,7 @@ const verifyMethods: Record<
 export async function verify2FA(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.verify2FA.parse>[0],
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
@@ -95,7 +94,7 @@ export async function verify2FA(
   const { user, tenantId } = twoFactorPayload;
   assert(tenantId, 401, "error.invalid_token");
 
-  const verifier = verifyMethods[method as VerifyMethod];
+  const verifier = verifyMethods[method];
   assert(verifier, 400, "error.invalid_2fa_method");
   await answerTwoFactorChallenge(user._id, token, () =>
     verifier({ user, code, userModel }),

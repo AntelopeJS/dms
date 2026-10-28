@@ -30,9 +30,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// The same notes behind two writing screens: the second one goes through a
-// controller derived from the first, at a location of its own.
-
 const TABLE = "derived-controller-notes";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)

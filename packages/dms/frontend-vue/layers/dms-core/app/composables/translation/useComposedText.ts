@@ -8,7 +8,6 @@ import { getPluginI18n } from "./useTranslation";
 type ComposedTextI18n = Pick<ReturnType<typeof useI18n>, "t" | "locale">;
 
 function composedTextOf({ t, locale }: ComposedTextI18n) {
-  // vue-i18n reads a third argument as a plural count only when there is one.
   const translate: ComposedTextTranslate = (key, named, plural) =>
     plural === undefined ? t(key, named) : t(key, named, plural);
 

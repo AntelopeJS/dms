@@ -15,17 +15,15 @@ export const withFilePromotion = (
   mode: "save" | "delete" = "save",
 ): DataControllerCallback => ({
   func: async function (
-    this: unknown,
+    this: ThisParameterType<DataControllerCallback["func"]>,
     context: RequestContext,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Route-specific parameters pass unchanged to the wrapped callback or attachment proxy; parsing them here would alter the published wrapper behavior.
     params: unknown,
     ...args: unknown[]
   ) {
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
     }
-    // The writing TableView and every new/edit form mounted on this
-    // controller save through this route, so a file staged from any of them is
-    // one it may promote.
     const { writingComponents } = getTableViewMetaFor(this);
     return internal.SaveTableViewAttachments({
       controller: this,

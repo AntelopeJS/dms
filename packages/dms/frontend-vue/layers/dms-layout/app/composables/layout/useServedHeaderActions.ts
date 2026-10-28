@@ -7,14 +7,14 @@ import {
 } from "vue";
 import { onPageBlocksRefresh } from "#dms-ui/app/utils/blockRefresh";
 import type { LayoutHeaderAction } from "../../build/components/layout/PageHeaderActionBar.vue";
-import type { PageLayout } from "../../types/page";
+import type { PageLayout } from "#dms-core/app/types/page";
 import {
   isSamePageQuery,
   isSameRouteParams,
   fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../../utils/pageQuery";
+} from "#dms-core/app/utils/pageQuery";
 
 interface ServedHeaderActionsOptions {
   /** The buttons the page layout was served with. */
@@ -56,24 +56,23 @@ export function useServedHeaderActions({
   async function askFor(url: string, query: Record<string, string>) {
     const request = ++latestRequest;
     const { $authFetch } = useAuthFetch();
+    // prettier-ignore
     try {
       const layout = await $authFetch<PageLayout>(
         layoutUrlWithQuery(url, query),
       );
       if (request !== latestRequest) return;
-      const options = layout.layout.options as
-        | { headerActions?: LayoutHeaderAction[] }
-        | undefined;
+      const options: { headerActions?: LayoutHeaderAction[] } | undefined =
+        layout.layout.options;
       refreshed.value = options?.headerActions ?? [];
     } catch {
-      // The buttons resolved for the previous query stay: the operation
-      // behind each one still refuses on its own.
+      // eslint-disable-line no-empty -- A failed refresh retains prior buttons; availability is not authorization, so target operations must enforce their own access checks.
     }
   }
 
   function follow() {
     const served = servedQuery();
-    const current = pageQueryValues(route.query as Record<string, unknown>);
+    const current = pageQueryValues(route.query);
     const match = pageRoute();
     const layoutUrl = match?.metadata?.layoutUrl;
     const params = match?.params ?? {};
@@ -96,7 +95,7 @@ export function useServedHeaderActions({
     if (!servedQuery() || !layoutUrl) return;
     void askFor(
       fillRouteParams(layoutUrl, pageRoute()?.params ?? {}),
-      pageQueryValues(route.query as Record<string, unknown>),
+      pageQueryValues(route.query),
     );
   }
 

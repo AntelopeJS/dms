@@ -15,10 +15,9 @@ const props = withDefaults(defineProps<ChartSkeletonProps>(), {
   circular: false,
 });
 
-// Ghost columns at plot height, rising like a series would (heights in %).
 const GHOST_BAR_HEIGHTS = [38, 52, 46, 64, 58, 72, 66, 80, 74, 88, 70, 92];
 const PERCENT_UNIT = "%";
-// The ring spans most of the frame, like Apex sizes a donut to its box.
+
 const RING_SIZE = "min(78%, 16rem)";
 const RING_HOLE_MASK =
   "radial-gradient(circle, transparent 54%, #000 calc(54% + 1px))";

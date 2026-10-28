@@ -1,3 +1,4 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import { formatRelativeDistance } from "#dms-core/app/utils/formatter";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 
@@ -35,7 +36,7 @@ export function formatDayMonth(
   now: number = Date.now(),
 ): string {
   const day = new Date(date);
-  // Years read in the reader's time zone, as the date is written.
+
   const year = regionalDateTimeFormat(locale, YEAR_FORMAT);
   const isOtherYear = year.format(day) !== year.format(now);
   return regionalDateTimeFormat(
@@ -45,6 +46,6 @@ export function formatDayMonth(
 }
 
 /** First word of a name, for "Sep 27 · by Camille". */
-export function firstNameOf(name: unknown): string {
-  return typeof name === "string" ? (name.trim().split(/\s+/)[0] ?? "") : "";
+export function firstNameOf(name: Parameters<typeof isString>[0]): string {
+  return isString(name) ? (name.trim().split(/\s+/)[0] ?? "") : "";
 }

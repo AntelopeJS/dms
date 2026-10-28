@@ -2,7 +2,8 @@ import type {
   MissingInterface,
   StoreActionBody,
   StoreDependencyChoice,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
+import { isObject } from "#dms-core/app/utils/type-check";
 
 /**
  * The radio value of the "Other npm package" choice: not an npm package
@@ -43,7 +44,7 @@ export interface DependencyDraftErrors {
 /** A config as the dialog reads it: absent when left empty. */
 export interface ParsedDependencyConfig {
   isValid: boolean;
-  config?: Record<string, unknown>;
+  config?: StoreDependencyChoice["config"];
 }
 
 export function isNpmPackageName(value: string): boolean {
@@ -52,8 +53,10 @@ export function isNpmPackageName(value: string): boolean {
   );
 }
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const isPlainObject = (
+  value: unknown,
+): value is NonNullable<StoreDependencyChoice["config"]> =>
+  isObject(value) && value !== null && !Array.isArray(value);
 
 /** Reads a typed config: empty is no config, anything else a JSON object. */
 export function parseDependencyConfig(text: string): ParsedDependencyConfig {

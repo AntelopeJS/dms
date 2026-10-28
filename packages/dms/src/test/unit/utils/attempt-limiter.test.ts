@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { AttemptLimiter } from "../../../utils/attempt-limiter";
+import { AttemptLimiter } from "../../../utils";
 
 const LIMIT = 3;
 const WINDOW_MS = 1000;

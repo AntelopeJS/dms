@@ -5,8 +5,6 @@ import { resetDevicePreferences } from "../../../../utils/devicePreferences";
 const { t } = useI18n();
 const { confirm } = useConfirm();
 
-// Everything goes back to its default at once: the page is drawn again from
-// scratch, without the preferences it read.
 async function reset(): Promise<void> {
   const isConfirmed = await confirm({
     title: t("page.settings.appearance.reset.confirm_title"),

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * "Changed · was X" words what a field loaded with. A relation holds the id
  * of its row in the form, the server sent the joined row: the note names the
@@ -18,22 +18,21 @@ import {
 import {
   mapRelationBeforeState,
   sameRelationValue,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
+import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
+import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
-const LABEL_KEY = "name";
-
-// The relation type as registered, with a formatter naming joined rows by
-// their label and leaving an id as it is (renderRelation).
-const wordRow = (value: unknown): string =>
-  typeof value === "object" && value !== null
-    ? String((value as Record<string, unknown>)[LABEL_KEY])
-    : String(value);
+const wordRow = (value: string | { name: string }): string =>
+  isString(value) ? value : String(value.name);
 const relationType = {
   id: "relation",
   formatter: {
-    default: (value: unknown) =>
+    default: (
+      value: Parameters<typeof wordRow>[0] | Parameters<typeof wordRow>[0][],
+    ) =>
       Array.isArray(value) ? value.map(wordRow).join(", ") : wordRow(value),
   },
   beforeStateMapper: mapRelationBeforeState,
@@ -64,31 +63,40 @@ afterEach(() => {
 });
 
 interface NotesSetup {
-  loaded: unknown;
-  baseline: unknown;
-  value: unknown;
-  options?: Record<string, unknown>;
+  loaded: FormData[string];
+  baseline: FormData[string];
+  value: FormData[string];
+  options?: FormField["component"]["options"];
 }
 
 async function changeNote(setup: NotesSetup): Promise<string> {
   const { default: FormFieldNotes } = await import(
-    "../layers/dms-ui/app/build/components/form/FormFieldNotes.vue"
+    "../layers/dms-ui/app/entries/components/form/FormFieldNotes"
   );
-  const field = {
+  const field: FormField = {
     id: "customer",
     type: "relation",
     component: { componentName: "DmsRelation", options: setup.options },
-  } as unknown as FormField;
+  };
   app = createApp({
     setup() {
       provide(FORM_ENTRY_CONTEXT_KEY, {
         state: ref({ customer: setup.value }),
         initialValues: ref({ customer: setup.loaded }),
+        loading: ref(false),
+        componentId: "notes",
+        pageId: "customers",
+        layoutClasses: () => FORM_LAYOUT_CLASSES.vertical,
+        isFieldHidden: () => false,
+        isFieldRequired: () => false,
+        isReadOnly: ref(false),
         showsChanges: true,
         isFieldChanged: () => true,
         isFieldDisabled: () => false,
         baselineValue: () => setup.baseline,
-      } as never);
+        fieldSaveState: () => "idle",
+        retrySave: () => {},
+      });
       return () => h(FormFieldNotes, { field });
     },
   });
@@ -125,7 +133,6 @@ it("names the rows of a multiple relation", async () => {
 });
 
 it("words the baseline itself once it is no longer the loaded row", async () => {
-  // Saved since it loaded: the baseline is the id saved, not the row.
   const note = await changeNote({
     loaded: { _id: "cust-006", name: "Ferme du Try" },
     baseline: "cust-010",

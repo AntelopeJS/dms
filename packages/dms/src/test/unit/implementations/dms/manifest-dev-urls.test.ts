@@ -2,7 +2,7 @@ import { expect } from "chai";
 import {
   applyDevManifestUrls,
   devOriginRewrites,
-} from "../../../../implementations/dms/manifest";
+} from "../../../../store/frontend";
 
 const CONFIGURED = {
   apiBaseUrl: "http://127.0.0.1:5010",

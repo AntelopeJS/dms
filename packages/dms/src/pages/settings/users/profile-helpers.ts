@@ -1,11 +1,3 @@
-// The operations the profile controller chains together: avatar promotion and
-// rollback, TOTP secret, backup codes and session formatting.
-//
-// The class stays in profile.ts: its @RegisterPage is what registers the page,
-// and that only runs if the framework loads that file.
-//
-// Split out of profile.ts.
-
 import crypto from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
@@ -142,14 +134,16 @@ export function assertAvatarKeyAllowed(
  * while the file has already been promoted. Map that stale staged key back to
  * the stored key so the resubmission validates and stays a no-op.
  */
+/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter recognizes only resubmitted avatar keys and leaves all other input untouched for validation by the profile schema. */
 export function normalizeResubmittedAvatar(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw profile values must reach the downstream profile schema after stale-key normalization.
   body: unknown,
   currentKey: string | undefined,
-): unknown {
+) {
   if (!currentKey || !body || typeof body !== "object") {
     return body;
   }
-  const { avatar } = body as AvatarBodyProbe;
+  const { avatar }: AvatarBodyProbe = body;
   if (!avatar || typeof avatar !== "object") {
     return body;
   }
@@ -161,6 +155,7 @@ export function normalizeResubmittedAvatar(
   }
   return { ...body, avatar: { ...avatar, key: currentKey } };
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export function generateTotpSecret(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -216,6 +211,7 @@ export interface SessionClaims {
 export function extractSessionClaims(authorization: string): SessionClaims {
   const token = authorization?.split(" ")[1];
   if (!token) return {};
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This helper decodes without schema validation today; the route verifies authenticity, not the optional claims' types.
   return (decode(token) as SessionClaims | null) ?? {};
 }
 

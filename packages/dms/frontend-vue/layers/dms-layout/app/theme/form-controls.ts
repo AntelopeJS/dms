@@ -1,3 +1,11 @@
+import {
+  checkboxTheme,
+  radioGroupTheme,
+  checkboxGroupTheme,
+  switchTheme,
+} from "./choice-controls";
+import { pinInputTheme } from "./pin-input";
+
 /**
  * Nuxt UI themes of the form controls (DMS design v2, mockup
  * components/input.html, select.html, checkbox.html and form.html), spread
@@ -43,7 +51,6 @@ const FIELD_VARIANTS = {
   ghost: FIELD_GHOST,
 };
 
-// Nuxt UI fades a disabled control to 75%, which still reads as enabled.
 const FIELD_DISABLED = "disabled:opacity-50";
 
 /**
@@ -62,7 +69,7 @@ const FIELD_STATE_COMPOUNDS = [
     variant: ["outline", "subtle", "soft", "ghost"],
     class: "outline-(--dms-error-tint)",
   },
-  // Soft and ghost fields draw their focus border in the field colour.
+
   {
     color: "primary",
     variant: ["soft", "ghost"],
@@ -188,7 +195,7 @@ const inputNumberTheme = {
     { orientation: "vertical", increment: true, size: "sm", class: "pe-8" },
     { orientation: "vertical", increment: true, size: "md", class: "pe-8.5" },
     { orientation: "vertical", increment: true, size: "lg", class: "pe-9" },
-    // Borderless fields drop the stepper hairlines too.
+
     {
       variant: ["soft", "ghost"],
       orientation: "vertical",
@@ -220,268 +227,6 @@ const inputTagsTheme = {
  * the hit area; selected = accent border, accent-line halo and the tint;
  * disabled = muted band at half opacity. Put an icon well in the label slot.
  */
-const CHOICE_CARD = [
-  "items-start rounded-[10px] border-accented bg-default shadow-(--shadow-xs)",
-  "transition-[border-color,background-color,box-shadow] duration-150",
-  "hover:not-has-data-[state=checked]:border-(--dms-field-border-hover)",
-  "has-data-[state=checked]:bg-(--dms-accent-tint) has-data-[state=checked]:shadow-[0_0_0_1px_var(--dms-accent-line)]",
-].join(" ");
-
-const CHOICE_CARD_LABEL = "font-semibold text-highlighted";
-
-/** Group legends read as the mono eyebrow (`.check-group > legend`). */
-const CHOICE_LEGEND =
-  "mb-2.5 font-mono font-semibold uppercase tracking-[0.12em] text-dimmed";
-
-/** Card padding, the accent border, the 12px gap and the disabled band. */
-function CHOICE_CARD_COMPOUNDS(slot: "root" | "item") {
-  return [
-    { size: "md", variant: "card", class: { [slot]: "px-3.5 py-3" } },
-    {
-      color: "primary",
-      variant: "card",
-      class: { [slot]: "has-data-[state=checked]:border-primary" },
-    },
-    {
-      variant: "card",
-      disabled: true,
-      class: {
-        [slot]:
-          "opacity-50 bg-(--dms-bg-muted) shadow-none hover:border-accented",
-      },
-    },
-    {
-      variant: "card",
-      indicator: "start",
-      class: { wrapper: "ms-3", description: "mt-[3px] leading-[1.45]" },
-    },
-    {
-      variant: "card",
-      indicator: "end",
-      class: { wrapper: "me-3", description: "mt-[3px] leading-[1.45]" },
-    },
-  ];
-}
-
-/**
- * v2 checkbox: 16px box with a 4.5px radius on the field surface; checked is
- * the solid accent with dark ink and the fill highlight in both themes.
- */
-const checkboxTheme = {
-  slots: {
-    base: "rounded-[4.5px] ring-(--dms-border-top) bg-(--dms-bg-field)",
-    label: "font-normal text-default",
-    description: "text-[12.5px] text-muted",
-  },
-  variants: {
-    color: {
-      primary: {
-        base: "outline-(--dms-accent-tint-strong)",
-        indicator:
-          "bg-(--dms-accent-fill) text-(--dms-accent-on-fill) shadow-(--dms-fill-highlight)",
-      },
-    },
-    indicator: { start: { wrapper: "ms-2.5" }, end: { wrapper: "me-2.5" } },
-    size: { md: { wrapper: "text-[13px]" } },
-    disabled: { true: { root: "opacity-45" } },
-    variant: { card: { root: CHOICE_CARD, label: CHOICE_CARD_LABEL } },
-  },
-  compoundVariants: CHOICE_CARD_COMPOUNDS("root"),
-};
-
-/** v2 radio: checked is a 5px accent ring around the field surface. */
-const radioGroupTheme = {
-  slots: {
-    legend: CHOICE_LEGEND,
-    base: "ring-(--dms-border-top) bg-(--dms-bg-field)",
-    indicator: "after:bg-(--dms-bg-field)",
-    label: "font-normal text-default",
-    description: "text-[12.5px] text-muted",
-  },
-  variants: {
-    color: {
-      primary: {
-        base: "outline-(--dms-accent-tint-strong)",
-        indicator: "bg-(--dms-accent-fill)",
-      },
-    },
-    indicator: { start: { wrapper: "ms-2.5" }, end: { wrapper: "me-2.5" } },
-    size: { md: { item: "text-[13px]", legend: "text-[10.5px]" } },
-    disabled: { true: { item: "opacity-45" } },
-    variant: { card: { item: CHOICE_CARD, label: CHOICE_CARD_LABEL } },
-  },
-  compoundVariants: [
-    { orientation: "horizontal", class: { fieldset: "gap-x-4.5 gap-y-2" } },
-    { orientation: "vertical", class: { fieldset: "gap-y-2" } },
-    ...CHOICE_CARD_COMPOUNDS("item"),
-    // Card tiles flow in a grid of 180px minimum columns (.check-cards).
-    {
-      orientation: "horizontal",
-      variant: "card",
-      class: {
-        fieldset: "grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2.5",
-      },
-    },
-    {
-      orientation: "vertical",
-      variant: "card",
-      class: { fieldset: "gap-2.5" },
-    },
-  ],
-};
-
-/** Checkbox group: the radio spacing, and the card grid. */
-const checkboxGroupTheme = {
-  slots: { legend: CHOICE_LEGEND },
-  variants: { size: { md: { legend: "text-[10.5px]" } } },
-  compoundVariants: [
-    { orientation: "horizontal", class: { fieldset: "gap-x-4.5 gap-y-2" } },
-    { orientation: "vertical", class: { fieldset: "gap-y-2" } },
-    {
-      orientation: "horizontal",
-      variant: "card",
-      class: {
-        fieldset: "grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2.5",
-      },
-    },
-    {
-      orientation: "vertical",
-      variant: "card",
-      class: { fieldset: "gap-2.5" },
-    },
-  ],
-};
-
-/**
- * v2 switch: 32×18 track with a 14px knob (22/26/32/40/46px tracks across
- * the sizes); off is the strongest border in light and the accented one in
- * dark, on is the accent fill with a dark knob.
- */
-const switchTheme = {
-  slots: {
-    base: "data-[state=unchecked]:bg-(--dms-border-top) dark:data-[state=unchecked]:bg-(--ui-border-accented)",
-    thumb: "bg-white shadow-sm data-[state=checked]:bg-(--dms-accent-on-fill)",
-    wrapper: "ms-2.5",
-    label: "font-normal text-default",
-    description: "text-[12.5px] text-muted",
-  },
-  variants: {
-    color: {
-      primary: {
-        base: "data-[state=checked]:bg-(--dms-accent-fill) outline-(--dms-accent-tint-strong)",
-      },
-    },
-    size: {
-      xs: {
-        base: "w-[22px]",
-        thumb:
-          "size-2 data-[state=checked]:translate-x-2.5 data-[state=checked]:rtl:-translate-x-2.5",
-      },
-      sm: {
-        base: "w-[26px]",
-        thumb:
-          "size-2.5 data-[state=checked]:translate-x-3 data-[state=checked]:rtl:-translate-x-3",
-      },
-      md: {
-        base: "w-8",
-        thumb:
-          "size-3.5 data-[state=checked]:translate-x-3.5 data-[state=checked]:rtl:-translate-x-3.5",
-        wrapper: "text-[13px]",
-      },
-      xl: {
-        base: "w-[46px]",
-        thumb:
-          "size-5 data-[state=checked]:translate-x-5.5 data-[state=checked]:rtl:-translate-x-5.5",
-      },
-    },
-    disabled: { true: { root: "opacity-45" } },
-    // The knob turns into a spinner ring; a busy switch is not faded.
-    loading: {
-      true: {
-        thumb: "bg-transparent shadow-none data-[state=checked]:bg-transparent",
-        icon: "size-full text-white group-data-[state=checked]:text-(--dms-accent-on-fill)",
-      },
-    },
-  },
-  compoundVariants: [
-    {
-      loading: false,
-      disabled: false,
-      class: {
-        base: "hover:data-[state=unchecked]:bg-(--dms-field-border-hover) dark:hover:data-[state=unchecked]:bg-(--dms-field-border-hover)",
-      },
-    },
-    {
-      color: "primary",
-      loading: false,
-      disabled: false,
-      class: {
-        base: "hover:data-[state=checked]:bg-(--dms-accent-fill-hover)",
-      },
-    },
-    { loading: true, class: { root: "opacity-100", base: "cursor-progress" } },
-    // Invalid (UFormField error): error hairline plus the error halo.
-    {
-      color: "error",
-      highlight: true,
-      class: {
-        base: "ring ring-error shadow-[0_0_0_4px_var(--dms-error-tint)]",
-      },
-    },
-  ],
-};
-
-/**
- * v2 code cells (`.au-otp`, `.cs-otp`): mono semibold digits on the field
- * surface, accent border plus halo on focus. Cells 28x32, 32x36, 38x44,
- * 42x48 and 46x52 (the sign-in code); `xl` also widens the gap.
- */
-const PIN_FIELD =
-  "bg-(--dms-bg-field) ring-accented shadow-(--shadow-xs) hover:ring-(--dms-field-border-hover)";
-
-const pinInputTheme = {
-  slots: {
-    root: "gap-1.5",
-    base: "font-mono font-semibold text-highlighted tabular-nums rounded-lg disabled:opacity-50",
-  },
-  variants: {
-    variant: {
-      outline: PIN_FIELD,
-      soft: "bg-elevated hover:bg-accented/60 focus:bg-(--dms-bg-field)",
-      ghost: "hover:bg-elevated focus:bg-(--dms-bg-field)",
-    },
-    size: {
-      xs: { base: "h-8 w-7 text-[13px]/4" },
-      sm: { base: "h-9 w-8 text-[15px]/5" },
-      md: { base: "h-11 w-[38px] text-lg/6" },
-      lg: { base: "h-12 w-[42px] text-xl/6" },
-      xl: {
-        base: "h-[52px] w-[46px] rounded-[10px] text-[22px]/7 max-sm:h-[46px] max-sm:w-[38px]",
-      },
-    },
-  },
-  compoundVariants: [
-    {
-      color: "primary",
-      variant: ["outline", "subtle", "soft", "ghost"],
-      class: "outline-(--dms-accent-tint-strong)",
-    },
-    {
-      color: "error",
-      variant: ["outline", "subtle", "soft", "ghost"],
-      class: "outline-(--dms-error-tint)",
-    },
-    { color: "primary", highlight: true, class: "hover:ring-primary" },
-    { color: "error", highlight: true, class: "hover:ring-error" },
-    { fixed: false, size: "xs", class: "md:text-[13px]" },
-    { fixed: false, size: "sm", class: "md:text-[15px]" },
-    { fixed: false, size: "md", class: "md:text-lg" },
-    { fixed: false, size: "lg", class: "md:text-xl" },
-    { fixed: false, size: "xl", class: "md:text-[22px]" },
-    { size: "xl", class: { root: "gap-2 max-sm:gap-[5px]" } },
-  ],
-};
-
 /**
  * Date field: the text-field looks with mono tabular segments; the focused
  * segment takes the accent tint. Nuxt UI turns `focus:` into `has-focus:`

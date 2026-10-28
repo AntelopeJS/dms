@@ -24,8 +24,6 @@ const props = withDefaults(defineProps<RolesListItemProps>(), {
 const emit = defineEmits<{ select: [] }>();
 const { t } = useI18n();
 
-// v2 .cs-ritem: name and members on one line, the coverage bar below; the
-// active role gets the accent tint and a 2px accent edge.
 const theme = tv({
   slots: {
     root: "grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 gap-y-1.5 border-t border-muted py-3 ps-4 pe-3.5 text-start transition-colors first:border-t-0 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--dms-accent-line)",

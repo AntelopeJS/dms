@@ -9,9 +9,9 @@ type LogLevel = "Warn" | "Error";
 
 function capture(level: LogLevel): CapturedMessages {
   const messages: string[] = [];
-  const logger = Logging as Record<LogLevel, (...args: unknown[]) => void>;
+  const logger: { -readonly [K in LogLevel]: (typeof Logging)[K] } = Logging;
   const original = logger[level];
-  logger[level] = (...args: unknown[]) => {
+  logger[level] = (...args: Parameters<typeof original>) => {
     messages.push(String(args[0]));
   };
   return {

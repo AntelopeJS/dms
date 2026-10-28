@@ -25,10 +25,6 @@ function componentName(path: string): string {
   return file.replace(/\.vue$/, "");
 }
 
-// No `componentPrefix`, although a published module should set one: every
-// page of the playground names its components bare in `CustomComponent(...)`,
-// and so do the plugins (`component: "SidePanelDemo"`). Adding the prefix
-// means renaming them all in one change.
 const playgroundFrontend: DmsFrontendModule = {
   setup(sdk) {
     sdk.registerPlugin(appWidgetDemoPlugin);

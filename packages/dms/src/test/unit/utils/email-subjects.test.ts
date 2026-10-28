@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  builtInEmailSubject,
-  resolveEmailLanguage,
-} from "../../../utils/email-subjects";
+import { builtInEmailSubject, resolveEmailLanguage } from "../../../utils";
 
 describe("[unit] utils/email-subjects", () => {
   describe("resolveEmailLanguage", () => {

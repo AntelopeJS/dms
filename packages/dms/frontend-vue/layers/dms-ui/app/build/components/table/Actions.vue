@@ -2,10 +2,9 @@
 import { injectLocal, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { nextTick, type ShallowRef } from "vue";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 import TableMenu from "./Menu.vue";
-import type { Data, TableSharedData } from "./Table.vue";
+import type { Data, TableFilter, TableSharedData } from "./Table.vue";
 import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import { useTableContext } from "../../composables/table/useTableContext";
@@ -32,25 +31,21 @@ const theme = tv({
     search: "flex items-center",
     searchContainer:
       "transition-width relative overflow-hidden duration-300 ease-in-out",
-    // Always-open search field of a reduced chrome (v2 settings lists).
+
     searchField: "w-[240px] max-sm:w-full",
-    // A quick filter: a secondary button naming the picked value, joined by
-    // its clear button while it has no chip to clear it from.
+
     quickFilterGroup: "inline-flex",
     quickFilter: "max-sm:h-8",
     quickFilterClear: "rounded-s-none border-s border-default max-sm:h-8",
-    // v2 toolbar icon triggers: muted until hovered, lit while their panel
-    // is open or their configuration differs from the default.
-    // Phones get 32px touch targets (28px from sm up).
+
     trigger:
       "text-muted hover:bg-elevated hover:text-highlighted max-sm:size-8",
     triggerIndicatorHost: "relative inline-flex",
     triggerIndicator:
       "pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-(--dms-accent-fill) ring-2 ring-(--ui-bg)",
-    // Phones wrap the toolbar: a separator would dangle at a line end.
+
     separator: "mx-1 h-[18px] w-px bg-(--ui-border) max-sm:hidden",
-    // v2 display switch: an icon-only segmented control (table, kanban,
-    // cards…) on the band color, the active display raised onto the card.
+
     displaySwitch:
       "inline-flex h-7 items-center gap-0.5 rounded-md border border-default bg-(--dms-bg-muted) p-0.5 max-sm:h-8",
     displaySwitchItem:
@@ -58,8 +53,7 @@ const theme = tv({
     groupBy:
       "inline-flex h-7 items-center gap-1.5 rounded-full border border-accented px-[11px] font-mono text-xs text-muted hover:text-highlighted max-sm:h-8",
     groupByValue: "font-semibold text-default",
-    // Archive mode toggle: a secondary button that turns amber while the
-    // table lists archived rows.
+
     archiveToggle: "max-sm:h-8",
 
     add: "hidden sm:flex",
@@ -133,7 +127,7 @@ const showSearch = computed(
   () => capabilities.value.search && chrome.value.search !== "none",
 );
 const isSearchField = computed(() => chrome.value.search === "field");
-// The icon toolbar is left out altogether when the chrome draws none of it.
+
 const hasIconControls = computed(
   () =>
     (showSearch.value && !isSearchField.value) ||
@@ -145,11 +139,8 @@ const hasIconControls = computed(
 
 const tableSharedData = useTableContext<T>();
 
-// Chrome capabilities of the active display; gates the transverse controls.
 const capabilities = computed(() => tableSharedData.activeCapabilities.value);
 
-// The sort menu lists the columns the list route can sort on; with none, the
-// button would open an empty menu.
 const hasSortableColumns = computed(() =>
   tableSharedData.labeledColumns.value.some((col) => col.column.getCanSort()),
 );
@@ -160,7 +151,8 @@ const showSortControl = computed(
     hasSortableColumns.value,
 );
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableActions: Partial<typeof theme> };
 };
 
@@ -172,12 +164,11 @@ const addRowLabel = computed(() =>
 const addRowIcon = computed(() => props.addIcon ?? appConfig.ui.icons.plus);
 
 const searchActive = ref(false);
-const searchInputRef = ref<HTMLInputElement>();
+const searchInputRef = ref<{ $el: HTMLElement }>();
 const searchSectionRef = ref<HTMLElement>();
 
 const { focused: searchAreaFocused } = useFocusWithin(searchSectionRef);
 
-// A search set from outside (a view opened) shows in its field.
 watch(
   () => tableSharedData!.globalFilterState.value,
   (newValue) => {
@@ -189,15 +180,10 @@ watch(
   { immediate: true },
 );
 
-// A "clear all" action emptied the search: fold it back to its icon, as
-// leaving an empty field does.
 tableSharedData.onFiltersCleared(() => {
   if (!searchAreaFocused.value) searchActive.value = false;
 });
 
-// Opening the search unmounts the trigger button that held the focus: the
-// area reads as left for a moment, until the field takes the focus. Only an
-// area still left once the field rendered folds the search back.
 watch(searchAreaFocused, async (isFocused) => {
   if (isFocused || !searchActive.value) return;
   await nextTick();
@@ -212,9 +198,7 @@ const focusSearchBar = () => {
   const host = isSearchField.value
     ? searchFieldRef.value
     : searchInputRef.value;
-  (host as unknown as { $el: HTMLElement } | undefined)?.$el
-    ?.querySelector("input")
-    ?.focus();
+  host?.$el?.querySelector("input")?.focus();
 };
 
 const openSearch = async () => {
@@ -232,8 +216,6 @@ const searchPlaceholderText = computed(() =>
 const pickedQuickFilter = (filter: ResolvedQuickFilter): string | undefined =>
   quickFilterValue(tableSharedData.columnFiltersState.value, filter);
 
-// Without a filters row to show the chip (the compact layout), the button
-// names the column and its value ("Role: Admin") and carries the clear.
 const quickFilterLabel = (filter: ResolvedQuickFilter): string =>
   quickFilterButtonLabel(
     filter,
@@ -244,7 +226,6 @@ const quickFilterLabel = (filter: ResolvedQuickFilter): string =>
 const isQuickFilterClearable = (filter: ResolvedQuickFilter): boolean =>
   !chrome.value.filters && pickedQuickFilter(filter) !== undefined;
 
-// A new value lists the first page.
 const setQuickFilter = (
   filter: ResolvedQuickFilter,
   value: string | undefined,
@@ -304,7 +285,10 @@ const hasCustomFilterConfig = computed(() => {
   });
 });
 
-const areEqualValues = (a: unknown, b: unknown): boolean => {
+const areEqualValues = (
+  a: TableFilter["value"],
+  b: TableFilter["value"],
+): boolean => {
   if (a === b) return true;
   if (a == null && b == null) return true;
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -325,10 +309,6 @@ const filtersRowOpen = computed(
 
 const hasCustomSort = computed(() => !!tableSharedData?.hasCustomSort.value);
 
-// The offered displays and the group-by options can change after setup (a
-// display registered from a `.client` plugin joins after hydration), so they
-// are read from the live shared ref rather than from the snapshot
-// `useTableContext` returns.
 const sharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const displays = computed(() => sharedDataRef?.value?.displays ?? []);
@@ -377,7 +357,7 @@ const hasTrailingButtons = computed(
 
 const uiTableActionsVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableActions || {}),
+  ...appConfig.ui?.tableActions,
 });
 const uiTableActions = computed(() => uiTableActionsVariant());
 </script>

@@ -3,8 +3,6 @@ import { KeyValueList } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { dynamicNavigationCategory, NAVIGATION_DEMO_API } from "./category";
 
-// Reached only through the "resto-lucca (path)" dynamic entry, whose `params`
-// fill the `:projectId` segment of this page's slug.
 @RegisterPage()
 export class DynamicNavigationProjectDetailPage extends PageController(
   "project-detail",

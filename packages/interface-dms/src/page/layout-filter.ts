@@ -50,10 +50,15 @@ async function filterComponentInfo(
   return filtered;
 }
 
-type WatchHolder = Record<string, unknown> & { watchActions?: WatchAction[] };
+type WatchHolder = Record<string, ComponentInfoSerialized["options"]> & {
+  watchActions?: WatchAction[];
+};
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+const isPlainObject = (
+  value: ComponentInfoSerialized["options"],
+): value is Record<string, ComponentInfoSerialized["options"]> =>
   !!value &&
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This boundary excludes primitives before inspecting plain-object prototypes; it does not validate contributor options.
   typeof value === "object" &&
   (Object.getPrototypeOf(value) === Object.prototype ||
     Object.getPrototypeOf(value) === null);
@@ -71,9 +76,9 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
  * it is a component's options. A value with no gated watch keeps its identity.
  */
 async function filterRequiredPermissionWatches(
-  value: unknown,
+  value: ComponentInfoSerialized["options"],
   permissions: Set<string>,
-): Promise<unknown> {
+): Promise<ComponentInfoSerialized["options"]> {
   if (Array.isArray(value)) {
     const items = await Promise.all(
       value.map((item) => filterRequiredPermissionWatches(item, permissions)),

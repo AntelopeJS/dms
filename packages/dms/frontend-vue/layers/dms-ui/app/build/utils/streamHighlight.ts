@@ -1,8 +1,4 @@
-// A CodeMirror stream parser (a language written as a line tokenizer, like
-// the shell's) run for read-only highlighting. `StreamLanguage` would do it
-// inside an editor state, and so pull CodeMirror's view and state into every
-// page showing a snippet: this drives the parser the same way, line by line
-// over `StringStream`, and names its tokens' tags the same way.
+import { isFunction } from "../../../../dms-core/app/utils/type-check";
 import { type StreamParser, StringStream } from "@codemirror/streamparser";
 import { type Highlighter, type Tag, tags } from "@lezer/highlight";
 
@@ -13,19 +9,15 @@ export type HighlightedRange = (
   classes: string,
 ) => void;
 
-// CodeMirror's defaults, which `StreamLanguage` hands every stream.
 const TAB_SIZE = 4;
 const INDENT_UNIT = 2;
-// Zero-length tokens a parser may return in a row (each one changing its
-// state) before the stream moves on by itself, as `StreamLanguage` allows.
+
 const MAX_EMPTY_TOKENS = 10;
 
-type TagValue = Tag | readonly Tag[] | ((tag: Tag) => Tag);
-const TAG_TABLE = tags as unknown as Record<string, TagValue | undefined>;
+type TagValue = (typeof tags)[keyof typeof tags];
+const TAG_TABLE: Record<string, TagValue | undefined> = tags;
 const tagsByName = new Map<string, Tag[]>();
 
-// A token type names tags the way `StreamLanguage` reads them: space
-// separated, each a tag followed by its modifiers (`variableName.special`).
 function tagsOf(type: string): Tag[] {
   const cached = tagsByName.get(type);
   if (cached) return cached;
@@ -33,9 +25,9 @@ function tagsOf(type: string): Tag[] {
     let found: Tag[] = [];
     for (const part of name.split(".")) {
       const value = TAG_TABLE[part];
-      if (typeof value === "function") found = found.map(value);
+      if (isFunction(value)) found = found.map(value);
       else if (value && !found.length)
-        found = Array.isArray(value) ? [...value] : [value as Tag];
+        found = Array.isArray(value) ? [...value] : [value];
     }
     return found;
   });
@@ -47,6 +39,9 @@ function tagsOf(type: string): Tag[] {
  * Tokenizes `code` with `parser` and calls `put` for each range its
  * highlighter styles, adjacent ranges of one style merged, as
  * `highlightTree` reports a parsed tree.
+ * Follows CodeMirror's `StreamLanguage` token tags, default tab size of 4,
+ * indent unit of 2 and ten-token limit on zero-length tokens without
+ * loading its editor state or view for read-only snippets.
  */
 export function highlightStream<State>(
   parser: StreamParser<State>,
@@ -54,6 +49,7 @@ export function highlightStream<State>(
   highlighter: Highlighter,
   put: HighlightedRange,
 ): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The CodeMirror-compatible fallback is true regardless of State; retain that unchecked parser default.
   const state = parser.startState?.(INDENT_UNIT) ?? (true as State);
   let pending: { from: number; to: number; classes: string } | null = null;
   const flush = () => {

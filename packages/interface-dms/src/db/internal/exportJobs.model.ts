@@ -75,6 +75,7 @@ export class ExportJobModel extends BasicDataModel(
   async markAsCompleted(
     jobId: string,
     resultPath: string,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published model method serializes consumer-defined export results without imposing their schema.
     result?: unknown,
   ): Promise<void> {
     await this.update(jobId, {
@@ -89,6 +90,7 @@ export class ExportJobModel extends BasicDataModel(
   /** Retains an uploaded object for cleanup when export completion fails. */
   async markAsFailed(
     jobId: string,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Error["cause"] is equivalent but changes this published declaration; export failures accept arbitrary thrown values for serialization.
     error: unknown,
     resultPath?: string,
   ): Promise<void> {

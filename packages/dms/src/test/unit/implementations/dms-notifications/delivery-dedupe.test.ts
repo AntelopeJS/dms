@@ -4,7 +4,7 @@ import {
   type DuplicateIdentity,
   duplicateIds,
   isWithinDuplicateWindow,
-} from "../../../../implementations/dms-notifications/delivery-dedupe";
+} from "../../../../implementations/dms-notifications/services";
 
 const SECURITY = { id: "security", labelKey: "security", icon: "i-ph-lock" };
 const SIGN_IN_SUBJECT = {

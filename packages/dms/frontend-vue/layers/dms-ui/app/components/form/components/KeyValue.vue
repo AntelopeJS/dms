@@ -24,7 +24,9 @@ interface KeyValueProps {
 }
 
 const props = defineProps<KeyValueProps>();
-const model = defineModel<Record<string, unknown> | null | undefined>();
+const model = defineModel<
+  Record<string, KeyValueRow["value"]> | null | undefined
+>();
 const { t } = useI18n();
 const { report } = useControlError();
 
@@ -49,10 +51,6 @@ const columns = computed(() => [
   },
 ]);
 
-// The rows are the editor's own: an object cannot hold a row still without
-// a name, nor two rows of one name while the user fixes it. The object the
-// field holds follows them, and they follow the object when it changes from
-// elsewhere (loaded, reset).
 const rows = ref<KeyValueRow[]>(keyValueRows(model.value, props.toggleable));
 let emitted = JSON.stringify(model.value ?? {});
 
@@ -80,6 +78,6 @@ function onRows(next: KeyValueRow[] | null | undefined): void {
     :columns="columns"
     :add-label="props.addLabel"
     :disabled="props.disabled"
-    @update:model-value="onRows($event as KeyValueRow[] | null | undefined)"
+    @update:model-value="onRows($event)"
   />
 </template>

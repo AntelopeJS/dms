@@ -1,4 +1,5 @@
 import { getCurrentInstance } from "vue";
+import { isNumber } from "../../utils/type-check";
 
 /**
  * The instant a server render reads the clock at, handed to the browser with
@@ -29,5 +30,5 @@ export function serverRenderNow(): number | null {
     RENDER_NOW_STATE_KEY,
     () => null,
   ).value;
-  return typeof transferred === "number" ? transferred : null;
+  return isNumber(transferred) ? transferred : null;
 }

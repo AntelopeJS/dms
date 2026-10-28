@@ -9,13 +9,10 @@ import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
 
 const PAGE_ID = "watch-actions";
-// The form's own permission: a user who reaches the form without it (a role
-// granting the page only) is served the form without the gated watch.
 const FORM_PERMISSION = `${pageCategory.fullId}.${PAGE_ID}.form`;
 const OWNER_FIELD = "isOwner";
 const LOCK_FIELD = "lockOwner";
 const PLAN_FIELD = "plan";
-// The seats a plan suggests: picking a plan writes them into Seats.
 const SEATS_BY_PLAN = { solo: 1, team: 5, enterprise: 50 };
 
 const whenField = (fieldId: string, value: boolean) => [

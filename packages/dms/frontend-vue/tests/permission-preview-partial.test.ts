@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -18,13 +18,9 @@ import {
   type PreviewEntryState,
   type PreviewLockableEntry,
   resolvePreviewEntryState,
-} from "#dms-core/app/build/utils/permission-preview";
+} from "#dms-core/app/entries/utils/permission-preview";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
-
-// "Preview as role": an entry the previewed role opens without all of it (a
-// block, an action or one of its entries lost) is drawn with the orange hatch
-// and lock; one it cannot open keeps the red ones. Never outside a preview.
 
 const HIDDEN = new Set(["pages.sales.invoices"]);
 const PARTIAL = new Set(["pages.sales", "pages.sales.orders", "settings"]);
@@ -105,6 +101,56 @@ describe("applyPreviewEntryStates", () => {
 });
 
 describe("NavigationMenu in a role preview", () => {
+  const fixture = createPermissionPreviewPartialFixture();
+  registerPreviewMenuTests(fixture);
+});
+
+describe("PermissionVeil partial state (settings overview cards)", () => {
+  let app: App | undefined;
+  let host: HTMLDivElement;
+
+  afterEach(() => {
+    app?.unmount();
+    app = undefined;
+    host.remove();
+  });
+
+  it("keeps the card usable under an orange hatch with the lock badge", async () => {
+    const { default: PermissionVeil } = await import(
+      "../layers/dms-ui/app/entries/components/permission/PermissionVeil"
+    );
+    host = document.createElement("div");
+    document.body.append(host);
+    const Stub = defineComponent({
+      props: { name: { type: String, default: undefined } },
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("span", { "data-icon": props.name }, slots.default?.()),
+    });
+    app = createApp(() =>
+      h(
+        PermissionVeil,
+        { state: "partial", label: "Partial access", persistent: true },
+        () => h("a", { class: "card", href: "/settings/workspace/members" }),
+      ),
+    );
+    app.component("UTooltip", Stub);
+    app.component("UIcon", Stub);
+    app.mount(host);
+
+    const root = host.querySelector("[data-permission-veil]")!;
+    expect(root.getAttribute("data-permission-veil")).toBe("partial");
+    expect(root.querySelector("[inert]")).toBeNull();
+    const veil = root.querySelector(".absolute.inset-0")!;
+    expect(veil.className).toContain("pointer-events-none");
+    expect(veil.className).toContain("var(--ui-warning)");
+    expect(root.querySelector('[data-icon="i-ph-lock-simple"]')).not.toBeNull();
+    expect(root.textContent).toContain("Partial access");
+  });
+});
+
+function createPermissionPreviewPartialFixture() {
   const WARNING_HATCH = "dms-hatch-partial";
   const ERROR_HATCH = "dms-hatch-locked";
   const ITEMS: NavigationMenuItem[] = [
@@ -131,11 +177,10 @@ describe("NavigationMenu in a role preview", () => {
   let host: HTMLDivElement;
   let state: Map<string, Ref<unknown>>;
 
-  // Renders each item the way UNavigationMenu hands them over: its classes,
-  // its title and the trailing icon's classes, nested items included.
   const MenuStub = defineComponent({
     props: {
       items: {
+        // SAFETY: Vue's Array constructor validates the container; every supplied item comes from ITEMS.
         type: Array as PropType<NavigationMenuItem[][]>,
         required: true,
       },
@@ -177,7 +222,7 @@ describe("NavigationMenu in a role preview", () => {
           : null,
       ),
     );
-    // A stale result alone never draws anything: only a running preview does.
+
     state.set("dms-permission-preview-result", ref(RESULT));
     app = createApp(NavigationMenu, { items: ITEMS });
     app.component("UNavigationMenu", MenuStub);
@@ -194,7 +239,7 @@ describe("NavigationMenu in a role preview", () => {
       t: (key: string, values?: { role?: string }) =>
         values?.role ? `${key}(${values.role})` : key,
     }));
-    vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+    vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
       if (!state.has(key)) state.set(key, ref(initial()));
       return state.get(key);
     });
@@ -209,91 +254,51 @@ describe("NavigationMenu in a role preview", () => {
     host.remove();
     vi.unstubAllGlobals();
   });
+  return { mount, entry, WARNING_HATCH, ERROR_HATCH };
+}
 
+function registerPreviewMenuTests(
+  fixture: ReturnType<typeof createPermissionPreviewPartialFixture>,
+) {
   it("draws a partial entry and its group orange, a refused one red", () => {
-    mount(true);
-    const orders = entry("pages.sales.orders");
+    fixture.mount(true);
+    const orders = fixture.entry("pages.sales.orders");
     expect(orders.dataset.state).toBe("partial");
-    expect(orders.className).toContain(WARNING_HATCH);
-    expect(orders.className).not.toContain(ERROR_HATCH);
+    expect(orders.className).toContain(fixture.WARNING_HATCH);
+    expect(orders.className).not.toContain(fixture.ERROR_HATCH);
     expect(orders.dataset.trailing).toBe("i-ph-lock-simple");
     expect(orders.dataset.trailingClass).toContain("text-warning");
     expect(orders.title).toBe(
       "page.settings.roles.preview.menu_partial(Support)",
     );
 
-    const sales = entry("pages.sales");
+    const sales = fixture.entry("pages.sales");
     expect(sales.dataset.state).toBe("partial");
-    expect(sales.className).toContain(WARNING_HATCH);
+    expect(sales.className).toContain(fixture.WARNING_HATCH);
 
-    const invoices = entry("pages.sales.invoices");
+    const invoices = fixture.entry("pages.sales.invoices");
     expect(invoices.dataset.state).toBe("hidden");
-    expect(invoices.className).toContain(ERROR_HATCH);
+    expect(invoices.className).toContain(fixture.ERROR_HATCH);
     expect(invoices.dataset.trailingClass).toContain("text-error");
 
-    const reports = entry("pages.reports");
+    const reports = fixture.entry("pages.reports");
     expect(reports.dataset.state).toBeUndefined();
-    expect(reports.className).not.toContain(WARNING_HATCH);
+    expect(reports.className).not.toContain(fixture.WARNING_HATCH);
   });
 
   it("draws no partial state outside a preview", () => {
-    mount(false);
+    fixture.mount(false);
     for (const fullId of [
       "pages.sales",
       "pages.sales.orders",
       "pages.sales.invoices",
       "pages.reports",
     ]) {
-      const link = entry(fullId);
+      const link = fixture.entry(fullId);
       expect(link.dataset.state).toBeUndefined();
-      expect(link.className).not.toContain(WARNING_HATCH);
-      expect(link.className).not.toContain(ERROR_HATCH);
+      expect(link.className).not.toContain(fixture.WARNING_HATCH);
+      expect(link.className).not.toContain(fixture.ERROR_HATCH);
       expect(link.dataset.trailing).toBeUndefined();
     }
   });
-});
-
-describe("PermissionVeil partial state (settings overview cards)", () => {
-  let app: App | undefined;
-  let host: HTMLDivElement;
-
-  afterEach(() => {
-    app?.unmount();
-    app = undefined;
-    host.remove();
-  });
-
-  it("keeps the card usable under an orange hatch with the lock badge", async () => {
-    const { default: PermissionVeil } = await import(
-      "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue"
-    );
-    host = document.createElement("div");
-    document.body.append(host);
-    const Stub = defineComponent({
-      props: { name: { type: String, default: undefined } },
-      setup:
-        (props, { slots }) =>
-        () =>
-          h("span", { "data-icon": props.name }, slots.default?.()),
-    });
-    app = createApp(() =>
-      h(
-        PermissionVeil,
-        { state: "partial", label: "Partial access", persistent: true },
-        () => h("a", { class: "card", href: "/settings/workspace/members" }),
-      ),
-    );
-    app.component("UTooltip", Stub);
-    app.component("UIcon", Stub);
-    app.mount(host);
-
-    const root = host.querySelector("[data-permission-veil]")!;
-    expect(root.getAttribute("data-permission-veil")).toBe("partial");
-    expect(root.querySelector("[inert]")).toBeNull();
-    const veil = root.querySelector(".absolute.inset-0")!;
-    expect(veil.className).toContain("pointer-events-none");
-    expect(veil.className).toContain("var(--ui-warning)");
-    expect(root.querySelector('[data-icon="i-ph-lock-simple"]')).not.toBeNull();
-    expect(root.textContent).toContain("Partial access");
-  });
-});
+}

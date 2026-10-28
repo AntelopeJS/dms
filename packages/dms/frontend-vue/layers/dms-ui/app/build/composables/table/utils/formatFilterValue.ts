@@ -1,4 +1,5 @@
 import type { TableFilter } from "../../../components/table/Table.vue";
+import { isString } from "#dms-core/app/utils/type-check";
 
 interface FilterColumn {
   value: string;
@@ -7,8 +8,7 @@ interface FilterColumn {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// `{{now}}`, `{{now-7d}}`, `{{now+14d}}`: the tokens the server resolves in a
-// filter value (`filter-tokens.ts`), read here with the same rule.
+
 const NOW_TOKEN = /\{\{\s*now(?:\s*([+-])\s*(\d+)d)?\s*\}\}/g;
 const BETWEEN_MODE = "is_between";
 const BETWEEN_SEPARATOR = ",";
@@ -25,8 +25,8 @@ export function resolveNowTokens(value: string, now = Date.now()): string {
  * The value as the formatters read it: tokens resolved, and an `is_between`
  * bound pair written as text (`a,b`, the way the query sends it) split.
  */
-const readableValue = (filter: TableFilter): unknown => {
-  if (typeof filter.value !== "string") return filter.value;
+const readableValue = (filter: TableFilter): TableFilter["value"] => {
+  if (!isString(filter.value)) return filter.value;
   const value = resolveNowTokens(filter.value);
   if (filter.mode !== BETWEEN_MODE) return value;
   return value.split(BETWEEN_SEPARATOR).map((bound) => bound.trim());
@@ -49,14 +49,9 @@ export function formatFilterValue(
   const formatter =
     dataType.formatter[filter.mode] || dataType.formatter.default;
 
-  // A filter's value need not have the column's shape (a tag typed against
-  // a tags column, whose formatter draws a list): a formatter that writes
-  // nothing for it leaves the value as typed.
   try {
     const result = formatter(readableValue(filter), locale);
-    return typeof result === "string" && result !== ""
-      ? result
-      : String(filter.value);
+    return isString(result) && result !== "" ? result : String(filter.value);
   } catch {
     return String(filter.value);
   }

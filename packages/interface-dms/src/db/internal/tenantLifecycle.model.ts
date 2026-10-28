@@ -65,8 +65,6 @@ export class TenantLifecycleModel extends BasicDataModel(
     while (true) {
       const state = await this.state(tenantId);
       if (state.closed) throw new Error("Tenant lifecycle admission is closed");
-      // A deliberate refusal with nothing written: a 409 the caller can show
-      // and retry once the barrier is released, not an indeterminate 500.
       assert(
         !state.barrierId,
         HTTP_CONFLICT,

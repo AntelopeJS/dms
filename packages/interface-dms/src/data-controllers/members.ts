@@ -61,7 +61,8 @@ async function describeEditRoute(
 ): Promise<MemberChange[]> {
   const member = await model.get(String(params.id));
   if (!member) return [];
-  return describeMemberEdit(member, parseGuardBody(body) as MemberEdit);
+  const edit: MemberEdit = parseGuardBody(body);
+  return describeMemberEdit(member, edit);
 }
 
 async function describeDeleteRoute(
@@ -91,9 +92,6 @@ function memberWriteRoute(
   };
 }
 
-// No `new`, `archive` or `restore` route: members join through an invitation
-// or `applyTenantOwnership`, and leave through `delete`, the writes that go
-// through `changeTenantMembers`.
 const {
   new: _unmountedNew,
   archive: _unmountedArchive,
@@ -135,7 +133,6 @@ export class memberSettingDataAPI extends DataController(
     }),
     filterable: true,
     size: 260,
-    // Avatar, name, a "You" tag, the unverified-email badge and the address.
     display: new DefaultDisplays.IdentityDisplay({
       avatarField: "avatar",
       subtitleField: "email",
@@ -175,7 +172,6 @@ export class memberSettingDataAPI extends DataController(
       placeholder: "$page.settings.members.placeholder.email",
     }),
     filterable: true,
-    // Drawn under the name, in the member cell.
     isVisible: false,
   })
   @Sortable({ noIndex: true })
@@ -194,7 +190,6 @@ export class memberSettingDataAPI extends DataController(
     description: "$page.settings.members.description.roles",
     filterable: true,
     size: 140,
-    // An owner holds every permission: one crown pill replaces the roles.
     display: new DefaultDisplays.PillsDisplay({
       exclusive: {
         field: "isTenantOwner",
@@ -213,7 +208,6 @@ export class memberSettingDataAPI extends DataController(
     name: "$page.settings.members.column.tenant_owner",
     type: new DefaultDataTypes.BooleanType(),
     description: "$page.settings.members.description.tenant_owner",
-    // Drawn as the crown pill of the roles cell.
     isVisible: false,
   })
   @Access(AccessMode.ReadWrite)

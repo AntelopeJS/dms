@@ -1,22 +1,19 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../index";
-import {
-  assertValidOAuthState,
-  signOAuthState,
-} from "../../routes/auth/oauth/state";
+import { getAuthConfig } from "../..";
+import { assertValidOAuthState, signOAuthState } from "../../routes/oauth";
 
 const HTTP_BAD_REQUEST = 400;
 const INVALID_STATE_MESSAGE = "error.oauth.invalid_state";
 
-function expectRejection(run: () => unknown): void {
+function expectRejection<T>(run: () => T): void {
   try {
     run();
   } catch (error: unknown) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_BAD_REQUEST);
-    expect((error as HTTPResult).getBody()).to.equal(INVALID_STATE_MESSAGE);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+    expect(error.getBody()).to.equal(INVALID_STATE_MESSAGE);
     return;
   }
   expect.fail("expected the state to be rejected");

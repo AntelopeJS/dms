@@ -22,8 +22,8 @@ import {
   MEMBER_INVITE_BUTTON_ID,
   MembersSettingsController,
   membersTableAddAction,
-} from "../../../../pages/settings/users/members";
-import { inviteMemberQuickAction } from "../../../../pages/settings/users/quick-actions";
+} from "../../../../pages/members";
+import { inviteMemberQuickAction } from "../../../../pages/account";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const ACTION_KEY = `${inviteMemberQuickAction.category.id}:${inviteMemberQuickAction.id}`;
@@ -48,14 +48,11 @@ function invitePermission(): string {
   return permissionId;
 }
 
-// The role as the roles editor stores it: completed with what each grant
-// depends on (the invite button sits on the members table, so its `list`).
-async function actionsFor(
-  grantedPermissions: string[],
-): Promise<Record<string, unknown>> {
+async function actionsFor(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(
     await withRequiredPermissions(grantedPermissions),
   );
+  // SAFETY: Site layout permission resolution uses only the user id with the provided member and role stubs; no other user fields are read.
   const payload = await buildSiteLayoutPayload(
     { _id: "invite-quick-action-member" } as User,
     memberModel,

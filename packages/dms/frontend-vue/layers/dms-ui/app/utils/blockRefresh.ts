@@ -56,6 +56,7 @@ export function waitForPageBlocksRefresh(
   event: Event,
   work: Promise<unknown>,
 ): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Window listeners also receive ordinary or malformed events; retain the unchecked detail access and existing waitUntil behavior.
   const detail = (event as CustomEvent<PageBlocksRefreshDetail | null>).detail;
   detail?.waitUntil(work);
 }

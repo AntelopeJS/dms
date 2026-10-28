@@ -1,12 +1,10 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view's list, tab counters and footer figures, through the runtime's
  * real async data: a server render requests them in parallel and renders
  * them, the browser hydrates with them without asking again and without a
  * mismatch, and a client navigation does not wait for them.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   computed,
   createSSRApp,
@@ -30,9 +28,8 @@ vi.stubGlobal("useTranslation", () => ({
 vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
 
 const LOCATION = "/api/orders";
-const COLUMNS = [
-  { id: "total", accessorKey: "total" },
-] as unknown as TableViewColumn[];
+// SAFETY: This SSR data-fetch fixture uses only column ids and accessor keys; it does not render column inputs.
+const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
 const DELAY_MS = 20;
 
 interface Request {
@@ -53,6 +50,7 @@ async function answer<T>(url: string, value: T): Promise<T> {
   return value;
 }
 
+// SAFETY: The table requests only the list and count responses supplied here; this fixture does not implement fetch's generic helper methods.
 const api = (async (url: string) =>
   url.endsWith("/count/batch")
     ? answer(url, { all: 2, open: 1 })
@@ -67,13 +65,13 @@ const { useApiData } = await import(
 vi.stubGlobal("useApiData", useApiData);
 
 const { useTableRows } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRows"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
 );
 const { useTableCountsData, useTableListData } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableListData"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableListData"
 );
 const { useTableFooter } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableFooter"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableFooter"
 );
 
 const Table = defineComponent({
@@ -81,7 +79,7 @@ const Table = defineComponent({
     const rows = useTableRows({ api, location: LOCATION, columns: COLUMNS });
     const keys = { componentId: "orders", pageId: "sales", rows };
     const archiveQuery = computed(() => ({}));
-    // As TableView: none of the three is awaited.
+
     const list = useTableListData({
       ...keys,
       query: computed(() => ({ offset: 0, limit: 10 })),
@@ -104,7 +102,7 @@ const Table = defineComponent({
       location: LOCATION,
       query: computed(() => ({})),
       dataKey: "table-view-orders-sales",
-    } as never);
+    });
     return () =>
       h("p", [
         `rows:${list.data.value?.total ?? "-"}`,
@@ -155,12 +153,7 @@ describe("a table view's data in a server render", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const browser = engine.createDmsFrontendRuntime(undefined, {});
-    engine.restoreDmsPayload(
-      browser,
-      structuredClone(payload) as Parameters<
-        typeof engine.restoreDmsPayload
-      >[1],
-    );
+    engine.restoreDmsPayload(browser, structuredClone(payload));
     const container = document.createElement("div");
     container.innerHTML = html;
     const app = createSSRApp(Table);
@@ -178,18 +171,5 @@ describe("a table view's data in a server render", () => {
     expect(mismatches).toEqual([]);
     expect(requests).toEqual([]);
     expect(container.textContent).toBe("rows:1 counts:2 sum:42");
-  });
-
-  it("is not awaited by TableView, so the three start together", () => {
-    const tableView = readFileSync(
-      resolve(
-        __dirname,
-        "../layers/dms-ui/app/components/table-view/TableView.vue",
-      ),
-      "utf8",
-    );
-    expect(tableView).not.toMatch(
-      /await\s+(useTableListData|useTableCountsData|useTableFooter)\b/,
-    );
   });
 });

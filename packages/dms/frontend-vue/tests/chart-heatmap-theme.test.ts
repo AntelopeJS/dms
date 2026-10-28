@@ -1,23 +1,14 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+/** @vitest-environment jsdom */
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
+import { clearChartColorCache } from "../layers/dms-ui/app/composables/chart/useChartTheme";
 
 const LIGHT_SURFACE = "rgb(255, 255, 255)";
 const DARK_SURFACE = "rgb(10, 10, 10)";
 const surface = { value: LIGHT_SURFACE };
-
-vi.mock(
-  "../layers/dms-ui/app/composables/chart/useChartTheme",
-  async (importOriginal) => ({
-    ...(await importOriginal<object>()),
-    readThemeSurface: () => surface.value,
-  }),
-);
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: ref(null), isLoading: ref(false) }),
-}));
 
 const ROWS = [
   {
@@ -48,7 +39,7 @@ interface HeatmapOptions {
 
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<HeatmapOptions>, required: true },
+    options: { type: Object, required: true },
   },
   setup: (props) => () => h("output", JSON.stringify(props.options)),
 });
@@ -60,8 +51,9 @@ const Slot = defineComponent({
 });
 
 async function heatmapOptions(
-  props: Record<string, unknown>,
+  props: Partial<InstanceType<typeof Chart>["$props"]>,
 ): Promise<HeatmapOptions> {
+  clearChartColorCache();
   const app = createSSRApp({
     render: () =>
       h(Chart, {
@@ -76,6 +68,7 @@ async function heatmapOptions(
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app);
   const html = await renderToString(app);
   const json = /<output[^>]*>(.*)<\/output>/.exec(html)![1]!;
   return JSON.parse(json.replaceAll("&quot;", '"'));
@@ -90,9 +83,12 @@ function rangeColors(options: HeatmapOptions): string[] {
 beforeEach(() => {
   surface.value = LIGHT_SURFACE;
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+  vi.stubGlobal("getComputedStyle", (element: HTMLElement) => ({
+    backgroundColor: element.style.backgroundColor.includes("--ui-bg")
+      ? surface.value
+      : "rgb(128, 128, 128)",
+    getPropertyValue: () => "",
+  }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -121,13 +117,12 @@ describe("heatmap colours", () => {
     surface.value = DARK_SURFACE;
     const dark = await heatmapOptions({ color: colors, shadeIntensity: 0.6 });
 
-    // The lowest range: 40 % of the colour over the surface.
     expect(rangeColors(light)[0]).toBe("rgb(255, 153, 153)");
     expect(rangeColors(dark)[0]).toBe("rgb(108, 6, 6)");
-    // The highest range: the colour itself.
+
     expect(rangeColors(light).at(-1)).toBe("rgb(0, 0, 255)");
     expect(rangeColors(dark).at(-1)).toBe("rgb(0, 0, 255)");
-    // Apex would lighten each range towards white again.
+
     expect(dark.plotOptions.heatmap.enableShades).toBe(false);
   });
 

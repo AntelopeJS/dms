@@ -181,7 +181,6 @@ export function nextCollapseDepth(
   levels: PermissionLevels,
   expanded: Set<string>,
 ): number | null {
-  // Rows shown open at the current depth: open, under a row shown open.
   let shownOpen = new Set<string>();
   let deepest: number | null = null;
   for (const [position, ids] of levels.levels.entries()) {

@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { AvatarProps } from "@nuxt/ui";
 
-// The signed-in user as the shell shows them: their picture (initials
-// without one), name, then the e-mail in mono (the sidebar menu's trigger and
-// its header).
-
 interface UserIdentityProps {
   name?: string;
   email?: string;

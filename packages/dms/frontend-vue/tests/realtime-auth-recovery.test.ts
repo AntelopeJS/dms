@@ -30,11 +30,14 @@ function streamingResponse(frames: string[]) {
 
 describe("openSseStream", () => {
   it("surfaces the HTTP status on a non-ok response so 401 stays detectable", async () => {
-    globalThis.fetch = vi.fn(async () => ({
-      ok: false,
-      status: 401,
-      body: null,
-    })) as unknown as typeof fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+        body: null,
+      })),
+    );
 
     const error = await new Promise<unknown>((resolve) => {
       openSseStream({
@@ -44,14 +47,17 @@ describe("openSseStream", () => {
       });
     });
 
-    expect((error as { status?: number }).status).toBe(401);
+    expect(error).toHaveProperty("status", 401);
     expect(isUnauthorizedStreamError(error)).toBe(true);
   });
 
   it("parses SSE frames from the stream body", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      streamingResponse(['event: hello\ndata: {"sessionId":"s1"}\n\n']),
-    ) as unknown as typeof fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        streamingResponse(['event: hello\ndata: {"sessionId":"s1"}\n\n']),
+      ),
+    );
 
     const event = await new Promise<{ name: string; data: unknown }>(
       (resolve) => {
@@ -68,9 +74,12 @@ describe("openSseStream", () => {
   });
 
   it("reports a network failure without a status (not treated as a 401)", async () => {
-    globalThis.fetch = vi.fn(async () => {
-      throw new Error("network down");
-    }) as unknown as typeof fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
 
     const error = await new Promise<unknown>((resolve) => {
       openSseStream({ url: "http://api", onEvent: () => {}, onError: resolve });
@@ -95,7 +104,7 @@ describe("isUnauthorizedStreamError", () => {
 
 describe("runDeduped", () => {
   it("coalesces concurrent calls into a single run", async () => {
-    const holder: Record<PropertyKey, unknown> = {};
+    const holder = {};
     let runs = 0;
     let release!: (value: boolean) => void;
     const task = () => {
@@ -117,7 +126,7 @@ describe("runDeduped", () => {
   });
 
   it("starts a fresh run once the previous one has settled", async () => {
-    const holder: Record<PropertyKey, unknown> = {};
+    const holder = {};
     let runs = 0;
     const task = () => {
       runs += 1;
@@ -131,7 +140,7 @@ describe("runDeduped", () => {
   });
 
   it("clears the slot even when the task rejects", async () => {
-    const holder: Record<PropertyKey, unknown> = {};
+    const holder = {};
     await expect(
       runDeduped(holder, "session", () => Promise.reject(new Error("boom"))),
     ).rejects.toThrow("boom");

@@ -1,10 +1,13 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A card dropped on a column the server refuses for a mandatory field it
  * lacks (a deal moved to "Lost" without its reason): the toast names the
  * field by its column's label, translated, never the raw fetch error line.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "./helpers/table-runtime";
+import { useRealDataEngine } from "./fixtures/dataEngine";
+import Sortable from "sortablejs";
 import {
   type App,
   type Component,
@@ -20,23 +23,6 @@ import {
 } from "vue";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
-
-type ChangeHandler = (event: { added?: { element: unknown } }) => unknown;
-const changeHandlers: ChangeHandler[] = [];
-
-vi.mock(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue",
-  () => ({
-    default: defineComponent({
-      props: { list: { type: Array, default: () => [] } },
-      emits: ["change"],
-      setup: (_, { emit }) => {
-        changeHandlers.push((event) => emit("change", event));
-        return () => h("div");
-      },
-    }),
-  }),
-);
 
 const DEAL = { _id: "d1", stage: "lead", lostReason: null };
 
@@ -61,7 +47,6 @@ const LOST_REASON_COLUMN = {
   type: { id: "select" },
 };
 
-// What an ofetch FetchError carries for the edit route's refusal.
 const refusal = Object.assign(
   new Error('[PUT] "/deals/edit?id=d1": 400 Bad Request'),
   {
@@ -83,7 +68,12 @@ const authFetch = vi.fn(
 
 const addToast = vi.fn();
 
-const translate = (key: string, params?: Record<string, unknown>) =>
+const translate = (
+  key: string,
+  params?: Parameters<
+    (typeof import("../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts"))["resolveConfirmText"]
+  >[1],
+) =>
   key === "dms.field_errors.named_required"
     ? `${String(params?.field)} est obligatoire.`
     : key;
@@ -92,7 +82,6 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
-  changeHandlers.length = 0;
   addToast.mockClear();
   for (const [name, value] of Object.entries({
     computed,
@@ -100,28 +89,17 @@ beforeEach(() => {
     watch,
     h,
     inject,
-    useId: () => "board",
     useAuthFetch: () => ({ $authFetch: authFetch }),
-    useTranslation: () => ({
-      processI18n: (text: string) => text,
-      processApiMessage: (text: string) => text,
-    }),
-    useDataTypes: () => ({ getDataType: () => undefined }),
     useI18n: () => ({ locale: ref("fr"), t: translate }),
     useToast: () => ({ add: addToast }),
-    normalizeActionConfig: () => ({ isEnabled: false }),
-    evaluateRowActionRule: () => true,
     resolveDmsComponent: () => undefined,
     Color: { error: "error", success: "success" },
     CONTENT_LANGUAGE_HEADER: "x-content-language",
     AccessMode: { ReadOnly: 1, WriteOnly: 2, ReadWrite: 3 },
-    useDmsAsyncData: async (_key: string, read: () => Promise<unknown>) => {
-      const data = ref(await read());
-      return { data, status: ref("success"), refresh: vi.fn() };
-    },
   })) {
     vi.stubGlobal(name, value);
   }
+  useRealDataEngine();
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -139,6 +117,7 @@ async function mountBoard() {
   app = createApp({
     render: () =>
       h(Suspense, null, {
+        // SAFETY: The imported SFC is a Vue component; mounting it does not require preserving its generic row signature.
         default: () =>
           h(KanbanBoard as Component, {
             groupByField: "stage",
@@ -159,9 +138,21 @@ async function mountBoard() {
 describe("a card dropped on a column the server refuses", () => {
   it("names the missing field by its column's label", async () => {
     await mountBoard();
-    // The board's columns in order: lead, then lost.
-    expect(changeHandlers).toHaveLength(2);
-    changeHandlers[1]!({ added: { element: { ...DEAL } } });
+    const lists = [...host.querySelectorAll("div")]
+      .map((element) => Sortable.get(element))
+      .filter((list) => list !== undefined);
+    expect(lists).toHaveLength(2);
+    const [source, target] = lists;
+    const item = source!.el.children[0]!;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
+    source!.option("onStart")!({ item, oldIndex: 0 } as never);
+    target!.el.append(item);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
+    target!.option("onAdd")!({ item, newIndex: 0 } as never);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
+    source!.option("onRemove")!({ item, oldIndex: 0 } as never);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
+    source!.option("onEnd")!({} as never);
     await flushPromises();
     await flushPromises();
 

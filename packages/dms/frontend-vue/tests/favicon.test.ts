@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The favicon plugin: the `<link rel="icon">` tags it declares from
  * `branding.logo.favicon`, their type and color-scheme media, and the icon
@@ -13,7 +13,7 @@ import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import layoutAppConfig from "../layers/dms-layout/app/app.config";
-import type { DmsLogoSources } from "../layers/dms-core/shared/types/app-config";
+import type { DmsLogoSources } from "../layers/dms-core/app/entries/shared/types/app-config";
 
 interface FaviconAppConfig {
   branding: { logo?: { favicon?: Partial<DmsLogoSources> } };
@@ -21,11 +21,10 @@ interface FaviconAppConfig {
 
 const ANTELOPE_ICON = "/images/antelope-logo/icon.svg";
 const ICON_TAG_START = '<link rel="icon"';
-// The loader keeps the merged app config in a ref and swaps it on a
-// development update; `useDmsAppConfig()` returns its current value.
+
 const appConfig = ref<FaviconAppConfig>({ branding: {} });
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <T>(setup: T) => setup);
 vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsAppConfig", () => appConfig.value);
 
@@ -37,11 +36,11 @@ function useFavicon(favicon?: Partial<DmsLogoSources>): void {
   appConfig.value = { branding: { logo: { favicon } } };
 }
 
-// unhead adds its own charset and viewport tags around them.
 async function renderIconTags(): Promise<string[]> {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
   app.runWithContext(() => faviconPlugin({} as never));
   const { headTags } = await renderSSRHead(head);
   return headTags.split("\n").filter((tag) => tag.startsWith(ICON_TAG_START));
@@ -110,6 +109,7 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
     app.runWithContext(() => faviconPlugin({} as never));
     await renderDOMHead(head);
     expect(

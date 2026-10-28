@@ -6,39 +6,6 @@ import { MiniMap } from "@vue-flow/minimap";
 import type { Component } from "vue";
 import { computed, useId, useSlots } from "vue";
 
-// Generic DMS-themed wrapper around @vue-flow/core. It owns the canvas
-// "chrome" (dotted background, zoom controls, optional minimap, themed
-// node/handle/edge styling, pan/zoom + fit-view) and stays free of any
-// business logic: consumers pass their own `nodeTypes`/`edgeTypes`, drive
-// data through `nodes`/`edges`, and reach the imperative flow controller via
-// a template ref (see <defineExpose>). Any VueFlow prop or event not declared
-// here is forwarded through `$attrs` (e.g. `nodes-draggable`, `pan-on-drag`,
-// `is-valid-connection`, `@connect`, `@nodes-change`, `@node-drag-stop`).
-//
-// Slots:
-// - `#node-<type>` / `#edge-<type>` (and any other VueFlow slot such as
-//   `#connection-line`) are forwarded verbatim, so consumers can declare
-//   custom renderers inline instead of passing `nodeTypes`/`edgeTypes`.
-// - One slot per `PanelPosition` (`#top-left`, `#bottom-center`, …) renders
-//   its content inside a positioned VueFlow `<Panel>` — toolbars, inspectors.
-// - The default slot is appended as raw VueFlow children, for anything else
-//   the consumer needs to mount inside the flow (extra panels, overlays).
-//
-// Opt-in affordances (all default-off, so existing consumers are untouched):
-// - `deletableNodes` renders a themed delete badge on selected nodes and lets
-//   Delete/Backspace remove the selection. Both paths only *emit* the
-//   `delete-nodes` intent — the badge for its own node, Delete/Backspace for
-//   the whole selection — the wrapper never mutates the consumer's
-//   `nodes`/`edges`; the consumer applies the removal. `deleteBadge: false`
-//   hides the badge and keeps the keyboard path, for a consumer that draws
-//   its own delete control.
-// - `zoomReadout` adds a live zoom percentage to the control bar that doubles
-//   as a reset-to-100% button.
-//
-// - dms-automation plugs its GenericNode/GroupNode editor onto it.
-// - dms-database plugs its table/relation ERD onto it (imperative setNodes
-//   + dagre layout live in the consumer).
-
 const DMS_GRID_GAP = 24;
 const DMS_GRID_DOT_SIZE = 1.2;
 const DMS_GRID_COLOR = "rgba(127, 140, 170, 0.25)";
@@ -64,7 +31,9 @@ interface FlowNode {
   id: string;
   type?: string;
   position: { x: number; y: number };
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumer node renderers own this unparsed payload; VueFlow's generic data owner has no shared schema and its default any would weaken this object contract.
   data?: Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumers forward arbitrary node extensions; VueFlow's closed Node fields would exclude existing extension keys.
   [key: string]: unknown;
 }
 
@@ -75,6 +44,7 @@ interface FlowEdge {
   sourceHandle?: string | null;
   targetHandle?: string | null;
   type?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumers forward arbitrary edge extensions; VueFlow's closed Edge fields would exclude existing extension keys.
   [key: string]: unknown;
 }
 
@@ -133,6 +103,7 @@ interface Props {
   zoomReadout?: boolean;
 }
 
+/** Undeclared VueFlow props and events pass through `$attrs`. */
 const props = withDefaults(defineProps<Props>(), {
   nodes: () => [],
   edges: () => [],
@@ -153,22 +124,19 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  /** Deletion intent for the given node ids (keyboard or badge). */
+  /** Deletion intent only. The consumer removes nodes and edges. */
   "delete-nodes": [ids: string[]];
 }>();
 
 defineOptions({ inheritAttrs: false });
 
-// A stable per-instance id binds the rendered <VueFlow> and the controller we
-// expose to the same store, so imperative consumers (fitView, setNodes,
-// onNodeDrag…) act on this canvas and not a detached instance.
 const flowId = useId();
 const flow = useVueFlow(flowId);
 
 const slots = useSlots();
 
 const isPanelSlot = (name: string): name is PanelPosition =>
-  (PANEL_POSITIONS as readonly string[]).includes(name);
+  PANEL_POSITIONS.some((position) => position === name);
 
 const activePanelPositions = computed(() =>
   PANEL_POSITIONS.filter((position) => slots[position]),
@@ -178,9 +146,6 @@ const forwardedSlotNames = computed(() =>
   Object.keys(slots).filter((name) => name !== "default" && !isPanelSlot(name)),
 );
 
-// Keys our emit-only keyboard path listens for. Empty while delete is off or
-// when the consumer passes `deleteKeyCode: null` (badge-only); otherwise the
-// consumer's key(s), defaulting to Delete + Backspace.
 const deleteKeys = computed<Set<string>>(() => {
   if (!props.deletableNodes) return new Set();
   const code =
@@ -191,10 +156,6 @@ const deleteKeys = computed<Set<string>>(() => {
   return new Set(Array.isArray(code) ? code : [code]);
 });
 
-// While delete is enabled we own the keyboard path (emit-only), so VueFlow's
-// built-in mutating delete is disabled with `null`. While it's off we resolve
-// to `undefined`, which VueFlow skips (isDef guard) — its native "Backspace"
-// default stays untouched, so existing consumers are unaffected.
 const resolvedDeleteKeyCode = computed<DeleteKeyCode | undefined>(() =>
   props.deletableNodes ? null : undefined,
 );
@@ -203,8 +164,6 @@ const zoomPercent = computed(() =>
   Math.round((flow.viewport.value?.zoom ?? ZOOM_RESET_LEVEL) * 100),
 );
 
-// Project each selected node's top-right corner from flow space to screen
-// space through the live viewport transform, so badges track pan/zoom/drag.
 const deleteAffordances = computed<DeleteAffordance[]>(() => {
   if (!props.deletableNodes || !props.deleteBadge) return [];
   const {
@@ -248,6 +207,11 @@ function resetZoom() {
   flow.zoomTo(ZOOM_RESET_LEVEL, { duration: ZOOM_TRANSITION_MS });
 }
 
+/**
+ * Exposes the VueFlow controller through the component ref.
+ * Node, edge, and other named VueFlow slots forward unchanged. Panel-position
+ * slots render inside positioned panels; the default slot adds flow children.
+ */
 defineExpose(flow);
 </script>
 

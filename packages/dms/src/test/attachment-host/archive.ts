@@ -30,12 +30,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// Notes in archive mode. A note is created without its archive field, which
-// only archive and restore write: the active list keeps it through the `ne`
-// filter, the database adapter matching a missing field as "not archived".
-// Its `select` route serves a relation picker's reads (table-view-select-ids).
-// Its labels serve a tags filter (table-view-tags-filter).
-
 const TABLE = "archive-notes";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
@@ -77,8 +71,6 @@ export class ArchiveNoteController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare labels: string[];
 
-  // No access of its own: @ArchiveField makes it readable, so the rows carry
-  // it for the client to evaluate the archive rules.
   @ArchiveField()
   declare isArchived: boolean;
 }

@@ -5,8 +5,9 @@ import type {
   TableViewDisplayContext,
 } from "../../../../composables/table-view/types/display";
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 
-// The columns a card shows when its table declares no `card.fields`.
 const FALLBACK_CARD_FIELD_COUNT = 4;
 
 /** What a card shows already, so its fields leave it out. */
@@ -20,7 +21,8 @@ export interface CardShownKeys {
 
 /** The id of a row, read with the table's `rowIdKey`. */
 export function cardRowId<T>(item: T, rowIdKey: string): string {
-  return String(get(item as Record<string, unknown>, rowIdKey) ?? "");
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unconstrained T cannot satisfy Nuxt get's object declaration. Its owner-derived input type preserves the implementation's null and primitive handling without narrowing the public generic.
+  return String(get(item as Parameters<typeof get>[0], rowIdKey) ?? "");
 }
 
 /**
@@ -95,10 +97,9 @@ export interface CardIdentity {
 }
 
 const optionString = (
-  options: Record<string, unknown> | undefined,
+  options: NonNullable<TableViewColumn["display"]>["options"],
   key: string,
-): string | undefined =>
-  typeof options?.[key] === "string" ? options[key] : undefined;
+): string | undefined => (isString(options?.[key]) ? options[key] : undefined);
 
 /** The identity the title column (`labelKey`) declares, if it is one. */
 export function cardIdentity(
@@ -117,7 +118,7 @@ export function cardIdentity(
   };
 }
 
-const hasValue = (value: unknown): boolean =>
+const hasValue = (value: Parameters<DataTypeFormatter>[0]): boolean =>
   value !== undefined && value !== null && value !== "";
 
 /**
@@ -130,8 +131,9 @@ export function cardSubtitle<T>(
   item: T,
   identity: CardIdentity,
   shown: CardShownKeys,
-): unknown {
-  const row = item as Record<string, unknown>;
+): Parameters<DataTypeFormatter>[0] {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The row generic has no object constraint. Nuxt get's owner type cannot prove T, and runtime validation would change dynamic field reads on malformed rows.
+  const row = item as Parameters<typeof get>[0];
   if (identity.subtitleField) {
     const subtitle: unknown = get(row, identity.subtitleField);
     if (hasValue(subtitle)) return subtitle;
@@ -149,13 +151,14 @@ export function cardAvatar<T>(
 ): { key: string } | string | undefined {
   if (!identity.avatarField) return undefined;
   const avatar: unknown = get(
-    item as Record<string, unknown>,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The row generic has no object constraint. Retain Nuxt get's existing null and primitive lookup behavior rather than validate or narrow T.
+    item as Parameters<typeof get>[0],
     identity.avatarField,
   );
-  if (typeof avatar === "string") return avatar || undefined;
-  if (avatar && typeof avatar === "object" && "key" in avatar) {
-    const { key } = avatar as { key: unknown };
-    return typeof key === "string" && key ? { key } : undefined;
+  if (isString(avatar)) return avatar || undefined;
+  if (avatar && isObject(avatar) && "key" in avatar) {
+    const { key } = avatar;
+    return isString(key) && key ? { key } : undefined;
   }
   return undefined;
 }
@@ -163,15 +166,9 @@ export function cardAvatar<T>(
 /** The narrowest a card of the `cards` display gets (backend `card.minWidth`). */
 export const DEFAULT_CARD_MIN_WIDTH = "230px";
 
-// The grid's gap and side padding, as `CARD_GRID_CLASS` sets them: the width
-// cap below adds them to the cards' own.
 const CARD_GRID_GAP = "0.75rem";
 const CARD_GRID_PADDING = "36px";
 
-// How much wider than `card.minWidth` a card may stretch when the row has room
-// for more cards than the list holds. A full row hardly reaches it: n cards
-// fit, but not n + 1, so each one stays under twice the minimum, give or take
-// a gap.
 const CARD_MAX_WIDTH_FACTOR = 2;
 
 /**

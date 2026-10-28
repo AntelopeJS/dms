@@ -1,7 +1,5 @@
 <script setup lang="ts">
-// v2 .cs-editor head, shared by the role editor and the owner panel: the
-// icon well, the role's name as the panel's heading, then a mono detail.
-
+import type { Slot } from "vue";
 interface RolePanelHeadProps {
   icon: string;
   /** Id of the heading, named by the panel's `aria-labelledby`. */
@@ -16,7 +14,7 @@ const props = withDefaults(defineProps<RolePanelHeadProps>(), {
 
 interface RolePanelHeadSlots {
   /** The role's name, and what follows it (a lock). */
-  default: () => unknown;
+  default: Slot;
 }
 
 defineSlots<RolePanelHeadSlots>();

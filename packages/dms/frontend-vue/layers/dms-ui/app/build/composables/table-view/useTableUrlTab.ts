@@ -1,6 +1,7 @@
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import { onBeforeUnmount, onMounted, watch, type Ref } from "vue";
 import { queryOfUrl } from "./utils/urlFilters";
+import type { LocationQuery } from "#dms/frontend-module";
 import {
   readTableUrlKey,
   type TableUrlScope,
@@ -11,7 +12,7 @@ const TAB_URL_KEY = "tab";
 
 /** The route fields the URL tab is read from. */
 export interface TableUrlTabRoute {
-  query: Record<string, unknown>;
+  query: LocationQuery;
 }
 
 /** What `useTableUrlTab` reads the tab from and drives. */
@@ -29,7 +30,7 @@ export interface TableUrlTabOptions {
  * carrying a single table view), as it reads on arrival.
  */
 export function readTableUrlTab(
-  query: Record<string, unknown>,
+  query: LocationQuery,
   urlScope: TableUrlScope,
 ): string | undefined {
   return readTableUrlKey(query, urlScope, TAB_URL_KEY).value;
@@ -46,17 +47,13 @@ export function readTableUrlTab(
 export function useTableUrlTab(options: TableUrlTabOptions): void {
   const { activeTabId, urlScope } = options;
 
-  const follow = (query: Record<string, unknown>) => {
+  const follow = (query: LocationQuery) => {
     const tabId = readTableUrlTab(query, urlScope);
     if (!tabId || tabId === activeTabId.value) return;
     if (!options.isOpenable(tabId)) return;
     activeTabId.value = tabId;
   };
 
-  // The tab is written in place, so the route keeps the value of the last
-  // visit: a link back to that tab leaves it unchanged, and only the visit
-  // tells it was followed. A `router.replace`, which Inertia does not
-  // announce, still moves the route.
   watch(
     () => readTableUrlTab(options.route.query, urlScope),
     () => follow(options.route.query),

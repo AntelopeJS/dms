@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
 import {
@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const MIN_NAME_LENGTH = 2;
 
@@ -29,8 +30,10 @@ interface ClosedInvitationNotice {
   description: string;
 }
 
-// The refusals the server gives a link it would not sign up with.
-const CLOSED_INVITATION_CODES: Record<string, ClosedInvitation> = {
+const CLOSED_INVITATION_CODES: Record<
+  ReturnType<typeof resolveApiErrorMessage>,
+  ClosedInvitation
+> = {
   "error.invalid_token": "invalid",
   "error.invite_expired": "expired",
   "error.invite_revoked": "revoked",
@@ -69,7 +72,9 @@ const CLOSED_INVITATION_NOTICES: Record<
   },
 };
 
-function closedInvitationOf(error: unknown): ClosedInvitation | undefined {
+function closedInvitationOf(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): ClosedInvitation | undefined {
   return CLOSED_INVITATION_CODES[resolveApiErrorMessage(error)];
 }
 
@@ -81,19 +86,14 @@ const { formError, clearFormError, showError } = useAuthFormError();
 const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
-const queryToken = computed(() => route.query.token as string);
-const queryEmail = computed(() => route.query.email as string);
-const queryName = computed(() => route.query.name as string | undefined);
-// Only an invitation email links here, so a link without its token was cut
-// short on the way: say so, rather than answering with a server error.
+const queryToken = computed(() => route.query.token);
+const queryEmail = computed(() => route.query.email);
+const queryName = computed(() => route.query.name);
+
 const hasInvitationToken = computed(
-  () => typeof queryToken.value === "string" && queryToken.value !== "",
+  () => isString(queryToken.value) && queryToken.value !== "",
 );
 
-// A revoked, replaced or expired link says so as the page opens, rather than
-// after the whole form was filled: checked with the page, so the server
-// renders the notice. The server answers with the very check the signup
-// runs; any other failure leaves the form to the signup to settle.
 const invitationCheck = useApiData(
   () => (hasInvitationToken.value ? "/api/auth/validate-invite-token" : null),
   {
@@ -101,7 +101,7 @@ const invitationCheck = useApiData(
     body: () => ({ token: queryToken.value, email: queryEmail.value }),
   },
 );
-// The invitation can be retired while the form is open: the signup says so.
+
 const closedOnSignup = ref<ClosedInvitation>();
 const invitationState = computed<InvitationState>(() => {
   if (!hasInvitationToken.value) return "invalid";
@@ -112,13 +112,11 @@ const invitationState = computed<InvitationState>(() => {
 });
 const closedInvitation = computed(() =>
   invitationState.value in CLOSED_INVITATION_NOTICES
-    ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
+    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing in lookup includes inherited keys; stronger own-key validation would change malformed error-code handling, and TypeScript does not narrow the key here.
+      CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
     : undefined,
 );
 
-// The invitation link carries the language the invitee was invited in: the
-// page opens in it, and the footer switcher still lets them pick another one
-// before the account is created with whichever is current.
 const invitationLanguage = locales.value.find(
   (available) => available.code === route.query.lang,
 );
@@ -161,14 +159,12 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ),
     );
   } catch (error: unknown) {
-    // The invitation can be retired while the form is open.
     const closed = closedInvitationOf(error);
     if (closed) {
       closedOnSignup.value = closed;
       return;
     }
-    // A refused value (an address already used) shows under its field;
-    // anything else above the form.
+
     await showError(error, "page.signup.error_title", {
       fields: ["name", "email", "password"],
       codes: { "error.email_already_used": "email" },

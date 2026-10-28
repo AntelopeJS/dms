@@ -14,7 +14,7 @@ export function currentPageUrlValues(): ReplaceUrlVariablesContext {
   const route = useDmsRoute();
   return {
     routeParams: useSiteLayout().findMatchingRoute(route.path)?.params,
-    routeQuery: route.query as Record<string, unknown>,
+    routeQuery: route.query,
   };
 }
 

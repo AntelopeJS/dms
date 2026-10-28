@@ -1,87 +1,72 @@
-// @vitest-environment jsdom
-import { createApp, h, type App } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+/** @vitest-environment jsdom */
+import { createApp, h, nextTick, type App } from "vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FlowCanvas from "../layers/dms-ui/app/components/flow-canvas/FlowCanvas.vue";
-
-vi.mock("@vue-flow/core", async () => {
-  const vue = await import("vue");
-  const selectedNodes = vue.ref([
-    {
-      id: "users",
-      computedPosition: { x: 10, y: 20 },
-      dimensions: { width: 100, height: 40 },
-    },
-  ]);
-  const Slotted = vue.defineComponent({
-    setup:
-      (_, { slots }) =>
-      () =>
-        vue.h("div", slots.default?.()),
-  });
-  return {
-    VueFlow: Slotted,
-    Panel: Slotted,
-    PanelPosition: {
-      TopLeft: "top-left",
-      TopCenter: "top-center",
-      TopRight: "top-right",
-      BottomLeft: "bottom-left",
-      BottomCenter: "bottom-center",
-      BottomRight: "bottom-right",
-    },
-    useVueFlow: () => ({
-      viewport: vue.ref({ x: 0, y: 0, zoom: 1 }),
-      getSelectedNodes: selectedNodes,
-      zoomTo: () => undefined,
-    }),
-  };
-});
-
-vi.mock("@vue-flow/background", () => ({
-  Background: { render: () => null },
-}));
-vi.mock("@vue-flow/controls", () => ({
-  Controls: { render: () => null },
-  ControlButton: { render: () => null },
-}));
-vi.mock("@vue-flow/minimap", () => ({ MiniMap: { render: () => null } }));
 
 let app: App | undefined;
 
-function mountCanvas(props: Record<string, unknown>) {
+beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
+
+async function mountCanvas(
+  props: Partial<InstanceType<typeof FlowCanvas>["$props"]>,
+) {
   const deleted: string[][] = [];
   app = createApp({
     render: () =>
       h(FlowCanvas, {
         deletableNodes: true,
+        grid: false,
+        controls: false,
+        fitViewOnInit: false,
+        nodes: [
+          {
+            id: "users",
+            position: { x: 10, y: 20 },
+            data: { label: "Users" },
+            selected: true,
+          },
+        ],
         ...props,
         onDeleteNodes: (ids: string[]) => deleted.push(ids),
       }),
   });
   app.config.globalProperties.$t = (key: string) => key;
   const container = document.createElement("div");
+  document.body.append(container);
   app.mount(container);
-  return { root: container.firstElementChild as HTMLElement, deleted };
+  await nextTick();
+  return { root: container.firstElementChild!, deleted };
 }
 
 afterEach(() => {
   app?.unmount();
   app = undefined;
+  document.body.replaceChildren();
+  vi.unstubAllGlobals();
 });
 
 const BADGE = ".dms-flow-canvas__delete-button";
 
 describe("flow canvas delete badge", () => {
-  it("draws a delete badge on a selected node by default", () => {
-    const { root, deleted } = mountCanvas({});
+  it("draws a delete badge on a selected node by default", async () => {
+    const { root, deleted } = await mountCanvas({});
     const badge = root.querySelector<HTMLButtonElement>(BADGE);
     expect(badge).not.toBeNull();
     badge!.click();
     expect(deleted).toEqual([["users"]]);
   });
 
-  it("hides the badge on request and keeps keyboard deletion", () => {
-    const { root, deleted } = mountCanvas({ deleteBadge: false });
+  it("hides the badge on request and keeps keyboard deletion", async () => {
+    const { root, deleted } = await mountCanvas({ deleteBadge: false });
     expect(root.querySelector(BADGE)).toBeNull();
     root.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete" }));
     expect(deleted).toEqual([["users"]]);

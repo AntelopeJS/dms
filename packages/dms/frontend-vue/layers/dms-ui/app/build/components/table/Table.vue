@@ -1,763 +1,68 @@
 <script lang="ts">
-import { readableNumberFormat } from "#dms-core/app/utils/formatter";
-import type {
-  ColumnDef,
-  ColumnFiltersOptions,
-  ColumnOrderOptions,
-  ColumnPinningState,
-  ColumnSizingOptions,
-  ColumnSizingState,
-  ExpandedOptions,
-  ExpandedState,
-  GlobalFilterOptions,
-  Header,
-  PaginationOptions,
-  PaginationState,
-  RowSelectionOptions,
-  RowSelectionState,
-  SortingOptions,
-  SortingState,
-  Table,
-  VisibilityState,
-} from "@tanstack/vue-table";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import { useTable } from "../../composables/table/useTable";
-import { MAX_PAGE_SIZE } from "../../composables/table/constants";
-import { useRowScrollAnchor } from "../../composables/table/useRowScrollAnchor";
-import type { LabeledColumn } from "../../composables/table/useTableColumns";
-import {
-  defaultSortingState,
-  type SortValueKind,
-} from "../../composables/table-view/utils/sortableColumns";
-import type {
-  CustomButton,
-  TableViewDisplayCapabilities,
-  TableViewDisplayReorder,
-  TableViewEmptyStatesConfig,
-} from "../../../composables/table-view/types";
-import type {
-  FormContainer,
-  FormPageUrls,
-} from "../../composables/table-view/useTableViewConfig";
-import type { CustomRowAction } from "../../../types/row-action";
-import type { TableViewRowClick } from "../../utils/rowClickTrigger";
-import type { RowActionConfig } from "#dms-core/app/types/row-action";
-import type { TableTabItem } from "./Tabs.vue";
-import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
-import type { ResolvedTableChrome } from "../../composables/table-view/utils/chrome";
-import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
-import type { ClearableTableFilters } from "../../composables/table/utils/clearTableFilters";
-import type { EventHookOn } from "@vueuse/core";
-import type { VNodeChild } from "vue";
-import {
-  REORDER_HANDLE_CLASS,
-  useReorderHandles,
-} from "../../composables/table-view/useReorderHandles";
-
-export interface Data {
-  [key: string]: unknown;
-}
-
-export type TableDensity = "default" | "compact";
-
-/**
- * Rows split into groups under header rows, the `grouped` display: the rows
- * arrive sorted on the grouped column, and a page starting inside a group
- * repeats its header.
- */
-export interface TableRowGrouping<T = Data> {
-  /** Key of the group a row belongs to. */
-  keyOf: (row: T) => string;
-  /** Content of a group's header row, read off its first row. */
-  header: (key: string, row: T) => VNodeChild;
-  /** Number of rows the group holds, once counted. */
-  countOf?: (key: string) => number | undefined;
-  /** A click on the header folds the group's rows. */
-  collapsible?: boolean;
-}
-
-/**
- * A list growing by pages instead of paging (`loadMore`, `infinite`): what
- * the footer shows instead of its pager.
- */
-export interface TableAccumulation {
-  mode: "loadMore" | "infinite";
-  /** Rows listed so far. */
-  shown: number;
-  hasMore: boolean;
-  loading: boolean;
-  /** Appends the next page. */
-  load: () => void;
-}
-
-/** Rows ordered by hand (backend `reorder`): a handle moves a row. */
-export type TableReorder = TableViewDisplayReorder;
-
-/** Where a table draws its views (see `TableProps.viewsPlacement`). */
-export type TableViewsPlacement = "band" | "header";
-
-export type TableColumn<T> = ColumnDef<T> & {
-  type?: DataTypeConfig;
-  /** Wrap the default cell renderer without clipping; custom cell slots own their layout. */
-  cellWrap?: boolean;
-  /** Data type the cells render through instead of the column's own `type`. */
-  display?: ColumnDisplay;
-};
-
-export interface TableRowActionOptions {
-  add?: boolean | RowActionConfig;
-  edit?: boolean | RowActionConfig;
-  delete?: boolean | RowActionConfig;
-  archive?: boolean | RowActionConfig;
-  restore?: boolean | RowActionConfig;
-  showArchived?: boolean;
-  duplicate?: boolean | RowActionConfig;
-  details?: boolean | RowActionConfig;
-  copyLink?: boolean | RowActionConfig;
-  hasSelection?: boolean;
-  custom?: CustomRowAction[];
-  /** Name of a row's ⋯ menu button, its `{field}` braces filled from the row. */
-  menuLabel?: string;
-}
-
-export interface NavItem {
-  label: string;
-  icon: string;
-  kbds?: string[];
-  hasSubMenu?: boolean;
-  showIndicator?: boolean;
-  onSelect?: (e: MouseEvent) => void;
-}
-
-export interface TableRowPresenceActor {
-  id: string;
-  displayName?: string;
-  avatarUrl?: string;
-  sessionId: string;
-}
-
-export type TableRowPresenceMap = Record<string, TableRowPresenceActor[]>;
-
-export interface KanbanGroupByOption {
-  label: string;
-  value: string;
-}
-
-/** An entry of the display switcher in the table options menu. */
-export interface TableViewSwitcherItem {
-  id: string;
-  label: string;
-  icon: string;
-}
-
-export interface TableProps<T> {
-  caption?: string;
-
-  rowIdKey?: string;
-  /** Field naming a row: the default name of its ⋯ menu button. */
-  labelKey?: string;
-  rowActions?: TableRowActionOptions;
-  /**
-   * What runs a row's click action: a double-click (the default) or a single
-   * click (`"single"`). See `isRowClickTrigger`.
-   */
-  rowClick?: TableViewRowClick;
-  /** Id of the row a side panel has open: the grid highlights it. */
-  openRowId?: string;
-  customNavItems?: NavItem[];
-  tabs?: TableTabItem[];
-  customButtons?: CustomButton[];
-  onCustomButton?: (button: CustomButton) => void;
-  onCustomRowAction?: (action: CustomRowAction, rowData: T) => void;
-  componentId?: string;
-  formContainer?: FormContainer;
-  formPages?: FormPageUrls;
-  routeParams?: Record<string, string>;
-  defaultSort?: { field: string; desc?: boolean };
-  /**
-   * Name of the default sort's column in the toolbar sort menu: the field may
-   * not be a displayed column. Defaults to the column's label.
-   */
-  defaultSortLabel?: string;
-  /** How the default sort's values compare, for its direction label. */
-  defaultSortKind?: SortValueKind;
-  initialColumnVisibility?: VisibilityState;
-  presenceByRow?: TableRowPresenceMap;
-  canExport?: boolean;
-  /**
-   * Displays offered by this table view (registry ∩ config, filtered by
-   * availability). When more than one, the options menu shows a "view mode"
-   * switcher. In kanban mode the menu also edits the `kanbanGroupBy` model
-   * among `kanbanGroupByOptions`, in grouped mode the `groupedGroupBy` model
-   * among `groupedGroupByOptions`.
-   */
-  displays?: TableViewSwitcherItem[];
-  kanbanGroupByOptions?: KanbanGroupByOption[];
-  groupedGroupByOptions?: KanbanGroupByOption[];
-  /** Chrome capabilities of the active display; gates filters/search/sort/columns. */
-  activeCapabilities?: Required<TableViewDisplayCapabilities>;
-
-  /**
-   * Archive mode: shows the "Archived" toolbar toggle (bound to the
-   * `showArchived` model). While on, the table lists archived rows under an
-   * amber strip and swaps the row and bulk actions to restore.
-   */
-  archiveToggle?: boolean;
-  /**
-   * Caption count while the archived rows show: a `$` key receiving
-   * `{ count }` and pluralized on it, or a text with `{count}`. Defaults to
-   * "Archived: {count}".
-   */
-  archivedCountLabel?: string;
-  /**
-   * Controls drawn around the rows (the resolved backend `chrome`). Defaults
-   * to the full chrome.
-   */
-  chrome?: ResolvedTableChrome;
-  /** Placeholder of the search field. */
-  searchPlaceholder?: string;
-  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
-  searchShortcut?: string;
-  /**
-   * One-click dropdown filters of the toolbar, writing the column filters
-   * (the `columnFilters` model).
-   */
-  quickFilters?: ResolvedQuickFilter[];
-  /** Footer texts: the row count (i18n key receiving `{ count }`) and a hint. */
-  footer?: TableFooterTexts;
-  /**
-   * The table's own rows per page, offered in the footer picker next to the
-   * standard sizes.
-   */
-  defaultPageSize?: number;
-  /**
-   * Caps the rows in a scroll area of their own (any CSS length), under a
-   * header band that stays in view.
-   */
-  maxHeight?: string;
-  /**
-   * Where the `views` slot is drawn: a band of its own under the header
-   * (views as tabs or pills), or inside the header (a views menu).
-   */
-  viewsPlacement?: TableViewsPlacement;
-  /** Splits the rows into groups under header rows. */
-  grouping?: TableRowGrouping<T>;
-  /** The list grows by pages instead of paging. */
-  accumulation?: TableAccumulation;
-  /** Rows ordered by hand: a drag handle in front of each row. */
-  reorder?: TableReorder;
-  /** Custom actions the selection bar offers (backend `bulk`). */
-  bulkActions?: CustomRowAction[];
-  /** What the empty body says, per reason it is empty. */
-  emptyStates?: TableViewEmptyStatesConfig;
-  /**
-   * Filters the toolbar does not show narrow the rows (the page URL's
-   * `queryParamFilters`): the table reads as filtered, and its empty body
-   * says no row matches rather than that there are none yet.
-   */
-  hiddenFiltersApply?: boolean;
-  /**
-   * The page URL's filters declared `visible`: drawn as chips of the filters
-   * row, each removable (`removeUrlFilter`).
-   */
-  urlFilters?: TableUrlFilter[];
-
-  data?: T[] | null;
-  columns?: TableColumn<T>[];
-  loading?: boolean;
-  /**
-   * No answer has arrived yet. Without it, a load with no row listed counts
-   * as the first one, which also draws the skeleton over a re-read of an
-   * empty list.
-   */
-  firstPageLoading?: boolean;
-  /**
-   * Message (i18n key) of a failed data fetch; switches the empty-table panel
-   * to its error state so a refused query never reads as "no data".
-   */
-  loadError?: string;
-
-  orderOptions?: ColumnOrderOptions;
-  sizingOptions?: Omit<ColumnSizingOptions, "onColumnSizingChange">;
-  globalFilterOptions?: Omit<GlobalFilterOptions<T>, "onGlobalFilterChange">;
-  columnFiltersOptions?: Omit<
-    ColumnFiltersOptions<T>,
-    "getFilteredRowModel" | "onColumnFiltersChange"
-  >;
-  sortingOptions?: Omit<
-    SortingOptions<T>,
-    "getSortedRowModel" | "onSortingChange"
-  >;
-  expandedOptions?: Omit<
-    ExpandedOptions<T>,
-    "getExpandedRowModel" | "onExpandedChange"
-  >;
-  rowSelectionOptions?: Omit<RowSelectionOptions<T>, "onRowSelectionChange">;
-  paginationOptions?: Omit<PaginationOptions, "onPaginationChange">;
-}
-
-export interface TableFooterTexts {
-  /** i18n key (`$`-prefixed) receiving `{ count }`, pluralized on it. */
-  countLabel?: string;
-  /** Hint at the right of the count. */
-  hint?: string;
-  /** Figures computed over the listed rows, after the count. */
-  summaries?: TableFooterSummary[];
-  /** A legend of a select column's values. */
-  legend?: TableFooterLegendItem[];
-}
-
-/** A figure of the footer band, its value drawn (absent while it loads). */
-export interface TableFooterSummary {
-  id: string;
-  label: string;
-  value?: VNodeChild;
-}
-
-/** An entry of the footer legend: a value and its color. */
-export interface TableFooterLegendItem {
-  label: string;
-  /** Tone of its dot. */
-  color?: string;
-}
-
-export interface TableEmits<T> {
-  (e: "add" | "refresh" | "exportAll"): void;
-  (e: "bulkAction", action: CustomRowAction): void;
-  (e: "details" | "edit", item: T): void;
-  (e: "delete" | "archive" | "restore" | "export", itemIds: string[]): void;
-  (e: "duplicate", itemId: string): void;
-  (e: "removeUrlFilter", param: string): void;
-}
-
-export interface TableFilter {
-  accessorKey: string;
-  value?: unknown | unknown[];
-  mode: string;
-  pinned?: boolean;
-  initialValue?: unknown | unknown[];
-}
-
-/** A filter the page URL applies and shows (see `TableProps.urlFilters`). */
-export interface TableUrlFilter extends TableFilter {
-  /** The query parameter carrying it, removed with the chip. */
-  param: string;
-  /** The chip's name, before the column's label. */
-  label?: string;
-}
-
-export interface TableSharedData<T> {
-  table: Table<T>;
-  emits: TableEmits<T>;
-  globalFilterState: ModelRef<string>;
-  columnOrderState: ModelRef<string[]>;
-  columnFiltersState: ModelRef<TableFilter[]>;
-  columnVisibilityState: ModelRef<VisibilityState>;
-  columnPinningState: ModelRef<ColumnPinningState>;
-  sortingState: ModelRef<SortingState>;
-  filtersRowOpenState: ModelRef<boolean>;
-  paginationState: ModelRef<PaginationState>;
-  labeledColumns: ComputedRef<LabeledColumn<T>[]>;
-  customNavItems: NavItem[];
-  hasCustomSort: ComputedRef<boolean>;
-  /** The table's default sort, if it has one. */
-  defaultSort?: { field: string; desc?: boolean };
-  /** Name of the default sort's column (see `TableProps.defaultSortLabel`). */
-  defaultSortLabel?: string;
-  /** How the default sort's values compare (see `TableProps.defaultSortKind`). */
-  defaultSortKind?: SortValueKind;
-  /** The list is sorted by its default sort: the user sorted nothing. */
-  isUsingDefaultSort: ComputedRef<boolean>;
-  /** Goes back to the default sort (none without one). */
-  resetSorting: () => void;
-  hasCustomColumns: ComputedRef<boolean>;
-  deleteFilter: (index: number) => void;
-  /** The URL filters shown as chips (see `TableProps.urlFilters`). */
-  urlFilters: TableUrlFilter[];
-  /**
-   * Clears everything that narrows the rows — filter chips (quick filters
-   * included) and the toolbar search — and goes back to the first page.
-   */
-  resetFilters: () => void;
-  /** Empties the toolbar search alone (the toolbar folds it). */
-  clearSearch: () => void;
-  /** Clears the filter chips alone, the search kept. */
-  clearFilters: () => void;
-  /** What `resetFilters` would clear (nothing: no clear action to offer). */
-  clearableFilters: ComputedRef<ClearableTableFilters>;
-  /** A search, a filter chip or a hidden filter narrows the rows. */
-  isFiltered: ComputedRef<boolean>;
-  /** Runs after `resetFilters` (e.g. the toolbar folds its search). */
-  onFiltersCleared: EventHookOn;
-  deleteSorting: (index: number) => void;
-  rowCount: number;
-  /** No row listed yet while the first page loads: footers draw placeholders. */
-  firstPageLoading: boolean;
-  displays: TableViewSwitcherItem[];
-  hasDisplaySwitcher: boolean;
-  activeDisplayState: ModelRef<string>;
-  activeCapabilities: ComputedRef<Required<TableViewDisplayCapabilities>>;
-  kanbanGroupByState: ModelRef<string>;
-  kanbanGroupByOptions: KanbanGroupByOption[];
-  groupedGroupByState: ModelRef<string>;
-  groupedGroupByOptions: KanbanGroupByOption[];
-  showArchivedState: ModelRef<boolean>;
-  /** Row height: `compact` gives 36px rows under a 32px header band. */
-  densityState: ModelRef<TableDensity>;
-  chrome: ComputedRef<ResolvedTableChrome>;
-  footer?: TableFooterTexts;
-  /** See `TableProps.defaultPageSize`. */
-  defaultPageSize?: number;
-  /** See `TableProps.accumulation`. */
-  accumulation?: TableAccumulation;
-  /**
-   * See `TableProps.emptyStates`: a custom display's empty body says them
-   * too.
-   */
-  emptyStates?: TableViewEmptyStatesConfig;
-  /** The add action's configured label (`$`: i18n key), if any. */
-  addLabel?: string;
-  /** The add action's configured icon, if any. */
-  addIcon?: string;
-}
+export type * from "./Table.types";
 </script>
 
 <script setup lang="ts" generic="T extends Data">
-import { normalizeActionConfig } from "#dms-core/app/utils/row-action-rule-evaluator";
+import type {
+  ColumnPinningState,
+  ColumnSizingState,
+  ExpandedState,
+  Header,
+  PaginationState,
+  RowSelectionState,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/vue-table";
+import { useTable } from "../../composables/table/useTable";
 import {
-  resolveRowClickAction,
-  type RowClickAction,
-} from "../../../utils/rowClickAction";
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_INDEX,
+  DEFAULT_PAGE_SIZE,
+} from "../../composables/table/constants";
+import { useRowScrollAnchor } from "../../composables/table/useRowScrollAnchor";
+import type { TableViewDisplayCapabilities } from "../../../composables/table-view/types";
+import { useReorderHandles } from "../../composables/table-view/useReorderHandles";
 import { FlexRender } from "@tanstack/vue-table";
-import {
-  computed,
-  type ComputedRef,
-  type ModelRef,
-  ref,
-  shallowRef,
-  useId,
-  useSlots,
-  useTemplateRef,
-  watch,
-  watchEffect,
-} from "vue";
-import { createEventHook, provideLocal, useElementSize } from "@vueuse/core";
+import { computed, shallowRef, useId, useSlots, watchEffect } from "vue";
+import { provideLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import { get } from "@nuxt/ui/runtime/utils/index.js";
-
 import TableActions from "./Actions.vue";
-import TableEmpty from "./Empty.vue";
 import TablePagination from "./Pagination.vue";
 import TableFiltersRow from "./FiltersRow.vue";
 import TableRowSelection from "./RowSelection.vue";
 import TableTabs from "./Tabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
 import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
-import { formatArchivedCount } from "../../composables/table/utils/archivedCount";
-import {
-  clearTableColumnFilters,
-  clearTableFilters,
-  clearTableSearch,
-  clearableTableFilters,
-  isTableNarrowed,
-  type TableNarrowingState,
-} from "../../composables/table/utils/clearTableFilters";
-import {
-  DEFAULT_PAGE_INDEX,
-  DEFAULT_PAGE_SIZE,
-} from "../../composables/table/constants";
-import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
-import {
-  horizontalScrollEdges,
-  type ScrollEdges,
-} from "../../composables/table/utils/scrollEdges";
-import { groupRows } from "../../composables/table-view/utils/groupedRows";
-import { EYEBROW_CLASS } from "../../utils/eyebrow";
-import { isRowClickTrigger } from "../../utils/rowClickTrigger";
 
-// Same color as the surrounding card frame (.dms-card) so sticky
-// rail/pinned cells blend in instead of showing a contrasting block.
-const PANEL_MATCH_BG = "bg-(--dms-surface-card)";
+import type {
+  TableDensity,
+  TableProps,
+  TableEmits,
+  TableFilter,
+  TableSharedData,
+} from "./Table.types";
+import { HEADER_MATCH_BG, theme } from "./tableComponentTheme";
+import { useTableComponentGroups } from "./tableComponentGroups";
+import { useTableComponentRows } from "./tableComponentRows";
+import { useTableComponentScroll } from "./tableComponentScroll";
+import { useTableComponentPinning } from "./tableComponentPinning";
+import { useTableComponentPreferences } from "./tableComponentPreferences";
+import { useTableComponentHeader } from "./tableComponentHeader";
+import { useTableComponentFilters } from "./tableComponentFilters";
+import TableBody from "./TableBody.vue";
+import type { TableBodyContext } from "./TableBody.types";
 
-const HEADER_PLACEMENT = "header";
-
-// Header cells sit on the v2 band color; sticky header cells need the same
-// opaque background as the non-sticky ones.
-const HEADER_MATCH_BG = "bg-(--dms-bg-muted)";
-
-// Sticky cells paint their own opaque background over the row's, so they have
-// to repeat the hover tint under the exact same condition as the row itself;
-// otherwise only the pinned column lights up.
-const ROW_HOVER_BG = "hover:bg-elevated";
-const ROW_HOVER_CELL_BG = "group-hover:bg-elevated";
-
-// A selected row is tinted with the accent; sticky cells need an opaque mix of
-// the same tint so scrolled content never shows through them.
-const ROW_SELECTED_BG = "data-[selected=true]:bg-primary/10";
-const ROW_SELECTED_CELL_BG =
-  "group-data-[selected=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
-
-// The row a side panel has open: the accent tint of a selected row and a 2px
-// accent bar on its leading edge, the "current item" of the design system
-// (a list row, a settings role). The bar is drawn by the first cell: a
-// table row's own box shadow is not painted under its cells' backgrounds.
-const ROW_OPEN_BG =
-  "data-[open=true]:bg-primary/10 data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]";
-const ROW_OPEN_CELL_BG =
-  "group-data-[open=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
-
-// An expanded row keeps the hover tint and hands its bottom rule to the detail
-// band below it.
-const ROW_EXPANDED_BG = "data-[expanded=true]:bg-elevated";
-const ROW_EXPANDED_CELL_BG = "group-data-[expanded=true]:bg-elevated";
-
-// Sticky header: the band gains a soft shadow once the body scrolls under it.
-const HEADER_SCROLL_SHADOW =
-  "shadow-[0_8px_10px_-8px_color-mix(in_srgb,var(--ui-border-accented)_90%,transparent)]";
-
-// The v2 bands start 18px from the card edge. The first data cell carries that
-// gutter; after the 2px presence rail (an empty first cell) it takes the rest.
-const FIRST_HEAD_CELL_GUTTER = "first:ps-[18px] [th:empty:first-child+&]:ps-4";
-const FIRST_ROW_CELL_GUTTER = "first:ps-[18px] [td:empty:first-child+&]:ps-4";
-
-const theme = tv({
-  slots: {
-    root: "dms-card flow-root overflow-hidden",
-    header:
-      "flex flex-wrap items-center gap-x-3 gap-y-2.5 py-3 ps-[18px] pe-3.5",
-    caption:
-      "me-auto flex min-w-0 items-center gap-2.5 text-[15px] leading-[1.2] font-[650] tracking-[-0.015em] text-highlighted",
-    captionLabel: "truncate",
-    captionCount: "font-mono text-xs font-medium tabular-nums text-dimmed",
-    captionCountPlaceholder: "h-3 w-6 rounded-[4px]",
-
-    scrollFrame: "relative",
-    // An inset shadow, whatever the card's background, on the side the
-    // table still hides columns.
-    scrollFade: "pointer-events-none absolute inset-y-0 z-30 w-3",
-    tableRoot: "relative overflow-x-auto whitespace-nowrap",
-    tableBase: "inline-block min-w-full align-middle",
-    table: "text-default w-full min-w-full table-fixed text-left text-[13px]/5",
-    tableCaption: "sr-only",
-
-    // 2px indeterminate bar riding the bottom edge of the header band.
-    loadingBar:
-      "pointer-events-none absolute inset-x-0 top-9 z-40 h-0.5 overflow-hidden",
-    loadingBarIndicator:
-      "absolute inset-y-0 start-0 w-1/2 rounded-full bg-(--dms-accent-fill) animate-[carousel_1.3s_ease-in-out_infinite]",
-    skeletonRow: "pointer-events-none",
-    skeletonCell: "block h-2.5 rounded-md",
-
-    // Archive mode: an amber strip under the chrome while archived rows show.
-    archiveStrip:
-      "flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-(--dms-warning-line) bg-(--dms-warning-tint) py-[9px] ps-[18px] pe-3.5 text-[13px] text-highlighted",
-    archiveStripIcon: "size-[17px] shrink-0 text-warning",
-    archiveStripText: "min-w-0",
-    archiveStripTitle: "font-semibold",
-    archiveStripDescription: "text-[12.5px] text-muted",
-    archiveStripAction: "ms-auto",
-
-    // Detail band of an expanded row, on the muted surface and indented to
-    // the content column.
-    expandedCell:
-      "border-b border-default bg-(--dms-bg-muted) p-0 whitespace-normal in-[tr:last-child]:border-b-0",
-    // The band sticks to the visible part of a horizontally scrolled table
-    // (its width is the scroll area's, --dms-table-viewport), so the detail
-    // never hides past the card edge. Phones drop the content-column indent.
-    expandedBody:
-      "sticky start-0 w-[var(--dms-table-viewport,auto)] pt-4 pb-[18px] pe-[18px] ps-[18px] sm:ps-[68px]",
-    // The empty body centres on the visible part of a table wider than its
-    // card, not on the whole scroll width.
-    emptyBody: "sticky start-0 w-[var(--dms-table-viewport,auto)]",
-
-    headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 ${EYEBROW_CLASS} last:pe-2.5`,
-    headCellInternal: "flex w-full items-center justify-between gap-1",
-    colOptionsTrigger: "opacity-0 transition-opacity group-hover:opacity-100",
-    colResizer:
-      "bg-primary/40 absolute right-0 top-0 z-10 h-full w-1 cursor-col-resize touch-none select-none opacity-0 hover:opacity-100",
-
-    row: `group ${ROW_SELECTED_BG} ${ROW_EXPANDED_BG} ${ROW_OPEN_BG}`,
-    rowCell: `${FIRST_ROW_CELL_GUTTER} border-b-muted border-b h-11 px-3.5 py-0 text-[13px] last:pe-2.5 in-[tr:last-child]:border-b-0 group-data-[expanded=true]:border-b-transparent`,
-    rowInternal: "transition-opacity duration-150",
-    rowContainer: "relative",
-    rowSpan: "line-clamp-1 text-ellipsis",
-
-    // The row checkbox and the row actions (the … menu and every other icon
-    // of the last column) stay visible but faded, and come to full strength
-    // when the row is hovered, selected, focused or one of its menus is open.
-    rowSelection:
-      "opacity-40 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
-    rowAction:
-      "flex items-center justify-end gap-1 opacity-40 transition-opacity group-hover:opacity-100 group-data-[selected=true]:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100",
-
-    columnActiveSortIcon: "size-3 shrink-0 text-primary",
-
-    // Group header of the grouped display, on the band color, kept in view
-    // over a horizontally scrolled table like a detail band.
-    groupCell: `${HEADER_MATCH_BG} border-b border-default p-0`,
-    groupHeader:
-      "sticky start-0 flex h-9 w-[var(--dms-table-viewport,auto)] items-center gap-2 ps-[18px] pe-3.5 text-[12.5px] text-muted",
-    groupToggle:
-      "inline-flex min-w-0 items-center gap-2 hover:text-highlighted",
-    groupCount:
-      "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
-
-    // The move handle of a hand-ordered table, in a narrow first column.
-    handleHeadCell: `${HEADER_MATCH_BG} border-b-default w-8 border-b p-0`,
-    handleCell:
-      "border-b-muted w-8 border-b ps-2 pe-0 in-[tr:last-child]:border-b-0",
-    handle: REORDER_HANDLE_CLASS,
-  },
-  variants: {
-    // A wrapped cell grows its row past the 44px band: it keeps the band's
-    // breathing room above and below its lines instead of touching the
-    // hairlines (one line still fits the band, so its row keeps its height).
-    cellWrap: {
-      true: {
-        rowCell: "py-2.5",
-        rowSpan: "line-clamp-none whitespace-normal [overflow-wrap:anywhere]",
-      },
-    },
-    // The header sits straight on the column band when no tabs row follows
-    // it, and then carries the rule itself.
-    headerDivided: {
-      true: {
-        header: "border-b border-default",
-      },
-    },
-    // Tabs up in the header band (no caption): they take its full height and
-    // their underline lands on its bottom rule.
-    tabsInline: {
-      true: {
-        header: "min-h-11 py-0",
-      },
-    },
-    pinned: {
-      left: {
-        headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
-      },
-      right: {
-        headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
-      },
-    },
-    // Dense lists: 36px rows under a 32px header band.
-    density: {
-      default: "",
-      compact: {
-        headCell: "h-8",
-        rowCell: "h-9 text-[12.5px]",
-        loadingBar: "top-8",
-      },
-    },
-    // The header band sticks to the top of a height-capped scroll area.
-    scrollArea: {
-      true: {
-        tableRoot: "overflow-y-auto overscroll-contain",
-        table: "border-separate border-spacing-0",
-        headCell: "sticky top-0 z-20",
-      },
-    },
-    scrolled: {
-      true: "",
-    },
-    side: {
-      start: {
-        scrollFade: "shadow-[inset_12px_0_10px_-10px_rgb(0_0_0/0.28)]",
-      },
-      end: {
-        scrollFade: "shadow-[inset_-12px_0_10px_-10px_rgb(0_0_0/0.28)]",
-      },
-    },
-    // Rows listed while viewing the archive read as set aside.
-    // Restore stays on show there, it is the only thing to do with them.
-    archived: {
-      true: {
-        rowCell: "text-muted",
-        rowAction: "opacity-100",
-      },
-    },
-    // A re-fetch keeps the rows on show, faded once it lasts (the delay
-    // spares quick ones a flicker), under the header band's loading bar.
-    loading: {
-      true: {
-        row: "cursor-wait hover:bg-transparent",
-        rowInternal: "opacity-60 delay-200",
-      },
-    },
-    rowClickable: {
-      true: "",
-    },
-    isResizing: {
-      true: {
-        colResizer: "opacity-100",
-      },
-    },
-    rowSelected: {
-      true: {
-        rowSelection: "opacity-100",
-      },
-    },
-    // Labelled inline actions are the row's actions on show: never faded.
-    prominent: {
-      true: {
-        rowAction: "opacity-100",
-      },
-    },
-    presence: {
-      true: {
-        row: "bg-elevated",
-      },
-    },
-  },
-  compoundVariants: [
-    {
-      loading: false,
-      rowClickable: true,
-      class: {
-        row: ROW_HOVER_BG,
-      },
-    },
-    {
-      loading: false,
-      rowClickable: true,
-      pinned: ["left", "right"],
-      class: {
-        rowCell: ROW_HOVER_CELL_BG,
-      },
-    },
-    {
-      scrollArea: true,
-      pinned: ["left", "right"],
-      class: {
-        headCell: "z-30",
-      },
-    },
-    {
-      scrollArea: true,
-      scrolled: true,
-      class: {
-        headCell: HEADER_SCROLL_SHADOW,
-      },
-    },
-  ],
-});
-
-// Grid-like default for standalone use; TableView always passes the active
-// display's resolved capabilities.
 const DEFAULT_CAPABILITIES = resolveDisplayCapabilities({
   columnManagement: true,
 });
 
-// Undefined, not the `false` an absent boolean prop casts to: the table then
-// judges the first load by itself.
 const props = withDefaults(defineProps<TableProps<T>>(), {
   firstPageLoading: undefined,
 });
 const emits = defineEmits<TableEmits<T>>();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { table: Partial<typeof theme> };
 };
 
@@ -807,81 +112,41 @@ const showArchivedState = defineModel<boolean>("showArchived", {
 const densityState = defineModel<TableDensity>("density", {
   default: "default",
 });
-// "Select all N matching": a bulk action covers every row the filters match.
+
 const allMatchingState = defineModel<boolean>("allMatching", {
   default: false,
 });
 
 const slots = useSlots();
-// A detail renderer turns the expander column on.
+
 const isExpandable = !!slots.expanded;
-// The caret button names the detail row it opens (aria-controls).
+
 const tableDomId = `dms-table-${useId()}`;
 const expandedRowDomId = (rowId: string): string =>
   `${tableDomId}-detail-${rowId.replace(/\s+/g, "_")}`;
 
-// Rows are archived ones only while the toggle is on.
 const isShowingArchived = computed(
   () => !!props.archiveToggle && showArchivedState.value,
 );
 
-// As many placeholder rows as the page will list, fading out: the footer
-// (count, page size, pages) and what follows the table already stand where a
-// full page puts them, and do not move when the rows land.
 const SKELETON_MAX_ROW_COUNT = MAX_PAGE_SIZE;
 const SKELETON_TOTAL_FADE = 0.7;
 const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
   SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
 
-// The scroll shadow under a sticky header only shows once rows went under it.
-const hasScrollArea = computed(() => !!props.maxHeight);
-const isScrolled = ref(false);
-// Columns beyond the card's edge fade out on that side: the scrollbar sits
-// under the last row, out of view on a long list.
-const scrollEdges = ref<ScrollEdges>({ start: false, end: false });
-const syncScrollEdges = () => {
-  const area = tableRootRef.value;
-  if (area) scrollEdges.value = horizontalScrollEdges(area);
-};
-const onTableScroll = (event: Event) => {
-  syncScrollEdges();
-  if (!hasScrollArea.value) return;
-  isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
-};
-// Expanded detail bands, group headers and the empty body are as wide as
-// the visible scroll area.
-const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
-const { width: tableViewportWidth } = useElementSize(tableRootRef);
-const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
-const { width: tableContentWidth } = useElementSize(tableBaseRef);
-watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
-// The column header band's height, for what the table view lays over the
-// first rows (the live hold's pill) to land under it, sticky or not; unset
-// while a custom display draws no header.
-const tableHeadRef = useTemplateRef<HTMLElement>("tableHead");
-const { height: tableHeadHeight } = useElementSize(tableHeadRef, undefined, {
-  box: "border-box",
-});
-const rootStyle = computed(() => ({
-  "--dms-table-head-height":
-    tableHeadHeight.value > 0 ? `${tableHeadHeight.value}px` : undefined,
-}));
-const tableRootStyle = computed(() => ({
-  maxHeight: props.maxHeight,
-  "--dms-table-viewport":
-    tableViewportWidth.value > 0 ? `${tableViewportWidth.value}px` : undefined,
-}));
+const {
+  hasScrollArea,
+  isScrolled,
+  scrollEdges,
+  onTableScroll,
+  tableRootRef,
+  tableViewportWidth,
+  rootStyle,
+  tableRootStyle,
+  syncClippedTitle,
+} = useTableComponentScroll(props);
 
-// A clipped cell value reads in full in a native tooltip.
-const syncClippedTitle = (event: MouseEvent) => {
-  const cell = event.currentTarget as HTMLElement;
-  if (cell.scrollWidth > cell.clientWidth) {
-    cell.title = cell.textContent?.trim() ?? "";
-  } else {
-    cell.removeAttribute("title");
-  }
-};
 const paginationState = defineModel<PaginationState>("pagination", {
   default: (): PaginationState => ({
     pageIndex: DEFAULT_PAGE_INDEX,
@@ -889,8 +154,6 @@ const paginationState = defineModel<PaginationState>("pagination", {
   }),
 });
 
-// The first page is on its way: skeleton rows (and placeholders for the
-// counts) hold the list's place instead of its empty state.
 const isFirstPageLoading = computed(
   () => props.firstPageLoading ?? (!!props.loading && !props.data?.length),
 );
@@ -912,13 +175,11 @@ const onResize = (
 
 const PRESENCE_RAIL_WIDTH = 2;
 const PRESENCE_RAIL_WIDTH_PX = `${PRESENCE_RAIL_WIDTH}px`;
-// Someone else editing the row is the violet (AI/collaboration) accent; a row
-// selected here is the cyan one.
-const PRESENCE_RAIL_ACTIVE_BG = "bg-secondary";
+
 const SELECTION_RAIL_BG = "bg-primary";
 
 const hasPresenceRail = computed(() => props.presenceByRow !== undefined);
-// Cells drawn in front of the columns: the presence rail, the move handle.
+
 const leadingCellCount = computed(
   () => (hasPresenceRail.value ? 1 : 0) + (props.reorder ? 1 : 0),
 );
@@ -928,90 +189,14 @@ const reorderHandles = useReorderHandles({
   count: () => table.getRowModel().rows.length,
 });
 
-// Pinned columns stick only while they cover at most 60% of the visible scroll
-// area: on a phone, labelled row actions or a wide pinned set would otherwise
-// hide every column scrolling under them. The wider side lets go first.
-const PINNED_MAX_VIEWPORT_SHARE = 0.6;
-const stickyPinnedSides = computed(() => {
-  const budget = tableViewportWidth.value * PINNED_MAX_VIEWPORT_SHARE;
-  const left = table.getLeftTotalSize();
-  const right = table.getRightTotalSize();
-  if (!budget || left + right <= budget) return { left: true, right: true };
-  const keepLeft = left < right && left <= budget;
-  const keepRight = left >= right && right <= budget;
-  return { left: keepLeft, right: keepRight };
-});
-
-// The fades sit inside the columns pinned on their side, which never scroll.
-const scrollFadeInsets = computed(() => {
-  const sides = stickyPinnedSides.value;
-  return {
-    start:
-      (sides.left ? table.getLeftTotalSize() : 0) +
-      (hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0),
-    end: sides.right ? table.getRightTotalSize() : 0,
-  };
-});
-
-const getStickyPin = (column: { getIsPinned: () => unknown }) => {
-  const pinned = column.getIsPinned();
-  if (pinned === "left" && stickyPinnedSides.value.left) return "left";
-  if (pinned === "right" && stickyPinnedSides.value.right) return "right";
-  return undefined;
-};
-
-const getPinnedLeftOffset = (column: {
-  getIsPinned: () => unknown;
-  getStart: (pos: "left") => number;
-}) => {
-  if (getStickyPin(column) !== "left") return undefined;
-  const base = column.getStart("left");
-  const rail = hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0;
-  return `${base + rail}px`;
-};
-
-const getPinnedRightOffset = (column: {
-  getIsPinned: () => unknown;
-  getAfter: (pos: "right") => number;
-}) => {
-  if (getStickyPin(column) !== "right") return undefined;
-  return `${column.getAfter("right")}px`;
-};
-
-const getPinnedVariant = getStickyPin;
-
-// A scrolling column is never wider than the room the sticky columns leave
-// (a 300px identity column on a phone): its content truncates in view
-// instead of running under the pinned actions.
-const MIN_SCROLLING_COLUMN_WIDTH = 120;
-const scrollingColumnMaxWidth = computed(() => {
-  const viewport = tableViewportWidth.value;
-  if (!viewport) return Infinity;
-  const sides = stickyPinnedSides.value;
-  const sticky =
-    (sides.left ? table.getLeftTotalSize() : 0) +
-    (sides.right ? table.getRightTotalSize() : 0) +
-    (hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0);
-  return Math.max(viewport - sticky, MIN_SCROLLING_COLUMN_WIDTH);
-});
-
-const getHeaderWidth = (header: Header<T, unknown>): string => {
-  const size = header.getSize();
-  if (getStickyPin(header.column)) return `${size}px`;
-  return `${Math.min(size, scrollingColumnMaxWidth.value)}px`;
-};
-
-// Only a header the list can be sorted on states its order to assistive
-// technologies; the others carry no `aria-sort` at all.
-const headerAriaSort = (
-  column: Header<T, unknown>["column"],
-): "ascending" | "descending" | "none" | undefined => {
-  if (!column.getCanSort()) return undefined;
-  const sorted = column.getIsSorted();
-  if (sorted === "asc") return "ascending";
-  if (sorted === "desc") return "descending";
-  return "none";
-};
+const {
+  scrollFadeInsets,
+  getPinnedLeftOffset,
+  getPinnedRightOffset,
+  getPinnedVariant,
+  getHeaderWidth,
+  headerAriaSort,
+} = useTableComponentPinning(() => table, tableViewportWidth, hasPresenceRail);
 
 const isUsingDefaultSort = computed(() => {
   if (!props.defaultSort) return false;
@@ -1026,7 +211,7 @@ const isUsingDefaultSort = computed(() => {
 
 const uiTableRoot = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.table || {}),
+  ...appConfig.ui?.table,
 });
 const uiTable = computed(() =>
   uiTableRoot({
@@ -1067,56 +252,11 @@ const {
 
 const rowCount = computed(() => props.paginationOptions?.rowCount ?? 0);
 
-type TableRow = ReturnType<typeof table.getRowModel>["rows"][number];
+const { bodyEntries, collapsedGroups, toggleGroup } = useTableComponentGroups(
+  props,
+  table,
+);
 
-/** A line of the table body: a row, or the header of the group it opens. */
-interface BodyEntry {
-  kind: "row" | "group";
-  id: string;
-  /** The row, or the first row of the group a header opens. */
-  row: TableRow;
-  /** Group key, on a group header. */
-  key?: string;
-  /**
-   * Draws a group header with the grouping it was listed under: a header
-   * still rendering once the grouping is gone reads it, not the prop.
-   */
-  header?: () => VNodeChild;
-}
-
-const GROUP_ENTRY_PREFIX = "group:";
-const collapsedGroups = ref<string[]>([]);
-const toggleGroup = (key: string) => {
-  collapsedGroups.value = collapsedGroups.value.includes(key)
-    ? collapsedGroups.value.filter((collapsed) => collapsed !== key)
-    : [...collapsedGroups.value, key];
-};
-
-const bodyEntries = computed<BodyEntry[]>(() => {
-  const rows = table.getRowModel().rows;
-  const grouping = props.grouping;
-  if (!grouping) return rows.map((row) => ({ kind: "row", id: row.id, row }));
-  const entries: BodyEntry[] = [];
-  for (const group of groupRows(rows, (row) => grouping.keyOf(row.original))) {
-    const { key } = group;
-    const [first] = group.rows as [TableRow];
-    entries.push({
-      kind: "group",
-      id: GROUP_ENTRY_PREFIX + key,
-      row: first,
-      key,
-      header: () => grouping.header(key, first.original),
-    });
-    if (collapsedGroups.value.includes(key)) continue;
-    for (const row of group.rows) {
-      entries.push({ kind: "row", id: row.id, row });
-    }
-  }
-  return entries;
-});
-
-// Rows added above the ones the reader scrolled to (a live list's new rows)
-// do not push them down.
 useRowScrollAnchor(tableRootRef, () =>
   bodyEntries.value
     .filter((entry) => entry.kind === "row")
@@ -1125,149 +265,53 @@ useRowScrollAnchor(tableRootRef, () =>
 
 const { t, locale } = useI18n();
 
-const formattedRowCount = computed(() =>
-  readableNumberFormat(locale.value).format(rowCount.value),
-);
-
-const captionCountLabel = computed(() =>
-  isShowingArchived.value
-    ? formatArchivedCount(
-        t,
-        rowCount.value,
-        formattedRowCount.value,
-        props.archivedCountLabel,
-      )
-    : formattedRowCount.value,
-);
-
-const hasTabs = computed(() => (props.tabs?.length ?? 0) > 0);
-const hasViewsBand = computed(
-  () => !!slots.views && props.viewsPlacement === "band",
-);
-const hasViewsInHeader = computed(
-  () => !!slots.views && props.viewsPlacement === "header",
-);
-
-const resolvedChrome = computed<ResolvedTableChrome>(
-  () => props.chrome ?? FULL_TABLE_CHROME,
-);
-// Without a caption, the tabs move up into the header band.
-const tabsInline = computed(
-  () => hasTabs.value && !resolvedChrome.value.caption,
-);
-// A button placed in the page header is drawn there, not in the toolbar; it
-// stays pressable by id (header button, quick action).
-const toolbarButtons = computed(() =>
-  (props.customButtons ?? []).filter(
-    (button) => button.placement !== HEADER_PLACEMENT,
-  ),
-);
-const canAddFromToolbar = computed(() => {
-  const add = normalizeActionConfig(props.rowActions?.add);
-  return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
+const {
+  captionCountLabel,
+  hasTabs,
+  hasViewsBand,
+  hasViewsInHeader,
+  resolvedChrome,
+  tabsInline,
+  toolbarButtons,
+  canAddFromToolbar,
+  addLabel,
+  addIcon,
+  hasBulkActions,
+} = useTableComponentHeader(props, slots, rowCount, isShowingArchived, {
+  t,
+  locale,
 });
-// Drawn on the toolbar and empty-state buttons, as the header one draws them.
-const addLabel = computed(
-  () => normalizeActionConfig(props.rowActions?.add).label,
-);
-const addIcon = computed(
-  () => normalizeActionConfig(props.rowActions?.add).icon,
-);
 
-// The bulk bar shows whenever selected rows have something to go to.
-const hasBulkActions = computed(
-  () =>
-    normalizeActionConfig(props.rowActions?.delete).isEnabled ||
-    normalizeActionConfig(props.rowActions?.archive).isEnabled ||
-    normalizeActionConfig(props.rowActions?.restore).isEnabled ||
-    !!props.canExport ||
-    (props.bulkActions?.length ?? 0) > 0,
-);
-
-// Defined once (stable ref identity) so consumers that capture tableSharedData
-// by value (e.g. Actions.vue via useTableContext) still react when the active
-// display — and thus its capabilities — changes.
 const resolvedCapabilities = computed<Required<TableViewDisplayCapabilities>>(
   () => props.activeCapabilities ?? DEFAULT_CAPABILITIES,
 );
 
-// The single "clear all" of the table: every clear action goes through it.
-const narrowingState: TableNarrowingState = {
-  columnFilters: columnFiltersState,
-  globalFilter: globalFilterState,
-  pagination: paginationState,
-  searchApplies: computed(() => resolvedCapabilities.value.search),
-  hiddenFiltersApply: computed(() => !!props.hiddenFiltersApply),
-};
-const filtersCleared = createEventHook();
-const resetFilters = () => {
-  clearTableFilters(narrowingState);
-  void filtersCleared.trigger();
-};
-// Clearing the search folds the toolbar's field, as a full clear does; the
-// filters alone leave it as it is.
-const clearSearch = () => {
-  clearTableSearch(narrowingState);
-  void filtersCleared.trigger();
-};
-const clearFilters = () => clearTableColumnFilters(narrowingState);
-const clearableFilters = computed(() => clearableTableFilters(narrowingState));
-const isFiltered = computed(() => isTableNarrowed(narrowingState));
-
-// A partial order (a view's) names some columns: the others follow.
-watch(columnOrderState, (order) => {
-  const merged = mergeColumnOrder(order, declaredColumnOrder);
-  if (!isSameColumnList(merged, order)) columnOrderState.value = merged;
-});
-const baselineColumnOrder = declaredColumnOrder;
-
-function isSameColumnList(a: readonly unknown[], b: readonly unknown[]) {
-  return a.length === b.length && a.every((item, index) => item === b[index]);
-}
-const baselineColumnPinning = JSON.parse(
-  JSON.stringify(columnPinningState.value),
-) as ColumnPinningState;
-
-const hasCustomSort = computed(() => {
-  const sorting = sortingState.value;
-  if (!props.defaultSort) return sorting.length > 0;
-  if (sorting.length === 0) return true;
-  return !isUsingDefaultSort.value;
+const {
+  filtersCleared,
+  resetFilters,
+  clearSearch,
+  clearFilters,
+  clearableFilters,
+  isFiltered,
+} = useTableComponentFilters(props, {
+  columnFiltersState,
+  globalFilterState,
+  paginationState,
+  resolvedCapabilities,
 });
 
-const resetSorting = () => {
-  sortingState.value = defaultSortingState(props.defaultSort);
-};
-
-const arePinningEqual = (
-  a: ColumnPinningState,
-  b: ColumnPinningState,
-): boolean => {
-  return (
-    isSameColumnList(a.left ?? [], b.left ?? []) &&
-    isSameColumnList(a.right ?? [], b.right ?? [])
+const { hasCustomSort, resetSorting, hasCustomColumns } =
+  useTableComponentPreferences(
+    props,
+    {
+      columnOrderState,
+      columnPinningState,
+      columnVisibilityState,
+      sortingState,
+      isUsingDefaultSort,
+    },
+    declaredColumnOrder,
   );
-};
-
-const hasCustomColumns = computed(() => {
-  if (!isSameColumnList(columnOrderState.value, baselineColumnOrder))
-    return true;
-  if (!arePinningEqual(columnPinningState.value, baselineColumnPinning))
-    return true;
-
-  if (props.initialColumnVisibility) {
-    const current = columnVisibilityState.value;
-    const baseline = props.initialColumnVisibility;
-    const keys = new Set([...Object.keys(current), ...Object.keys(baseline)]);
-    for (const key of keys) {
-      const a = current[key] ?? true;
-      const b = baseline[key] ?? true;
-      if (a !== b) return true;
-    }
-  }
-
-  return false;
-});
 
 const tableSharedData = shallowRef<TableSharedData<T>>(null!);
 
@@ -1325,66 +369,57 @@ watchEffect(() => {
 
 provideLocal("tableSharedData", tableSharedData);
 
-const DEFAULT_ROW_ID_KEY = "_id";
-const rowIdKey = props.rowIdKey ?? DEFAULT_ROW_ID_KEY;
-const hoveredRowId = ref<string | null>(null);
+const {
+  hoveredRowId,
+  handleRowHover,
+  handleRowLeave,
+  getRowPresence,
+  presenceTooltipText,
+  isRowClickable,
+  handleRowPointer,
+  isOpenRow,
+  isSingleClickRow,
+  presenceRailBackground,
+} = useTableComponentRows(props, emits, t);
 
-const handleRowHover = (row: { original: T; id: string }) => {
-  hoveredRowId.value = get(row.original, rowIdKey) as string;
-};
-
-const handleRowLeave = () => {
-  hoveredRowId.value = null;
-};
-
-const getRowPresence = (row: T): TableRowPresenceActor[] | undefined => {
-  if (!props.presenceByRow) return undefined;
-  const id = get(row, rowIdKey) as string | undefined;
-  if (!id) return undefined;
-  const actors = props.presenceByRow[id];
-  return actors && actors.length > 0 ? actors : undefined;
-};
-
-const presenceTooltipText = (actors: TableRowPresenceActor[]): string =>
-  t("dms.realtime.row_edited_by", {
-    names: actors.map((a) => a.displayName || a.id).join(", "),
-  });
-
-const rowClickAction = (row: T): RowClickAction | undefined =>
-  resolveRowClickAction(props.rowActions, row as Record<string, unknown>);
-
-// The hover tint and the double-click read the same resolution, so a row that
-// lights up always opens something.
-const isRowClickable = (row: T): boolean => rowClickAction(row) !== undefined;
-
-const runRowClickAction = (row: T) => {
-  const action = rowClickAction(row);
-  if (!action) return;
-  if (typeof action === "string") {
-    emits(action, row);
-    return;
-  }
-  props.onCustomRowAction?.(action, row);
-};
-
-// Both events reach the row: `rowClick` tells which one runs its action.
-const handleRowPointer = (event: MouseEvent, row: T) => {
-  if (!isRowClickTrigger(props.rowClick, event)) return;
-  runRowClickAction(row);
-};
-
-const isOpenRow = (row: T): boolean =>
-  props.openRowId !== undefined &&
-  String(get(row, rowIdKey)) === props.openRowId;
-
-const isSingleClickRow = (row: T): boolean =>
-  props.rowClick === "single" && isRowClickable(row);
-
-const presenceRailBackground = (row: T): string => {
-  if (getRowPresence(row)) return PRESENCE_RAIL_ACTIVE_BG;
-  if (props.loading || !isRowClickable(row)) return PANEL_MATCH_BG;
-  return `${PANEL_MATCH_BG} ${ROW_HOVER_CELL_BG}`;
-};
+const bodyContext = computed<TableBodyContext<T>>(() => ({
+  t,
+  uiTable: uiTable.value,
+  table,
+  bodyEntries: bodyEntries.value,
+  leadingCellCount: leadingCellCount.value,
+  collapsedGroups: collapsedGroups.value,
+  toggleGroup,
+  isOpenRow,
+  getRowPresence,
+  presenceTooltipText,
+  isRowClickable,
+  isSingleClickRow,
+  handleRowPointer,
+  handleRowHover,
+  handleRowLeave,
+  reorderHandles,
+  hasPresenceRail: hasPresenceRail.value,
+  SELECTION_RAIL_BG,
+  presenceRailBackground,
+  PRESENCE_RAIL_WIDTH_PX,
+  getPinnedVariant,
+  getPinnedLeftOffset,
+  getPinnedRightOffset,
+  syncClippedTitle,
+  expandedRowDomId,
+  isFirstPageLoading: isFirstPageLoading.value,
+  skeletonRowCount: skeletonRowCount.value,
+  skeletonRowOpacity,
+  skeletonWidth,
+  isShowingArchived: isShowingArchived.value,
+  grouping: props.grouping,
+  loading: props.loading,
+  reorder: props.reorder,
+  rowActions: props.rowActions,
+  loadError: props.loadError,
+  emptyStates: props.emptyStates,
+}));
 
 defineShortcuts({
   delete: createTableViewDeleteShortcut(
@@ -1598,214 +633,11 @@ defineShortcuts({
                 </tr>
               </thead>
 
-              <tbody>
-                <template v-if="table.getRowModel().rows?.length">
-                  <template
-                    v-for="{ kind, id, row, key, header } in bodyEntries"
-                    :key="id"
-                  >
-                    <tr v-if="kind === 'group' && grouping">
-                      <td
-                        :colspan="
-                          row.getVisibleCells().length + leadingCellCount
-                        "
-                        :class="uiTable.groupCell()"
-                      >
-                        <div :class="uiTable.groupHeader()">
-                          <component
-                            :is="grouping.collapsible ? 'button' : 'span'"
-                            :type="grouping.collapsible ? 'button' : undefined"
-                            :aria-expanded="
-                              grouping.collapsible
-                                ? !collapsedGroups.includes(key!)
-                                : undefined
-                            "
-                            :class="uiTable.groupToggle()"
-                            @click="grouping.collapsible && toggleGroup(key!)"
-                          >
-                            <UIcon
-                              v-if="grouping.collapsible"
-                              :name="
-                                collapsedGroups.includes(key!)
-                                  ? 'i-ph-caret-right'
-                                  : 'i-ph-caret-down'
-                              "
-                              class="size-3"
-                            />
-                            <component :is="header" />
-                          </component>
-                          <span
-                            v-if="grouping.countOf?.(key!) !== undefined"
-                            :class="uiTable.groupCount()"
-                          >
-                            {{ grouping.countOf(key!) }}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                    <template v-else>
-                      <tr
-                        :data-row-id="id"
-                        :data-selected="row.getIsSelected()"
-                        :data-expanded="row.getIsExpanded()"
-                        :data-open="isOpenRow(row.original) || undefined"
-                        :aria-current="isOpenRow(row.original) || undefined"
-                        :data-presence="!!getRowPresence(row.original)"
-                        :title="
-                          getRowPresence(row.original)
-                            ? presenceTooltipText(getRowPresence(row.original)!)
-                            : undefined
-                        "
-                        :class="[
-                          uiTable.row({
-                            loading,
-                            rowClickable: isRowClickable(row.original),
-                            presence: !!getRowPresence(row.original),
-                          }),
-                          { 'cursor-pointer': isSingleClickRow(row.original) },
-                        ]"
-                        @click="handleRowPointer($event, row.original)"
-                        @dblclick="handleRowPointer($event, row.original)"
-                        @mouseenter="handleRowHover(row)"
-                        @mouseleave="handleRowLeave"
-                        @dragover="reorderHandles.allowDrop"
-                        @drop="reorderHandles.drop(row.index)"
-                      >
-                        <td
-                          v-if="hasPresenceRail"
-                          :class="[
-                            'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
-                            row.getIsSelected() && !getRowPresence(row.original)
-                              ? SELECTION_RAIL_BG
-                              : presenceRailBackground(row.original),
-                          ]"
-                          :style="{
-                            width: PRESENCE_RAIL_WIDTH_PX,
-                            minWidth: PRESENCE_RAIL_WIDTH_PX,
-                          }"
-                        />
-                        <td v-if="reorder" :class="uiTable.handleCell()">
-                          <button
-                            v-bind="reorderHandles.handleFor(row.index)"
-                            :class="uiTable.handle()"
-                          >
-                            <UIcon name="i-ph-dots-six-vertical" />
-                          </button>
-                        </td>
-                        <td
-                          v-for="cell in row.getVisibleCells()"
-                          :key="cell.id"
-                          :data-pinned="cell.column.getIsPinned()"
-                          :class="
-                            uiTable.rowCell({
-                              pinned: getPinnedVariant(cell.column),
-                              loading,
-                              rowClickable: isRowClickable(row.original),
-                              cellWrap: (
-                                cell.column.columnDef as TableColumn<T>
-                              ).cellWrap,
-                            })
-                          "
-                          :style="{
-                            left: getPinnedLeftOffset(cell.column),
-                            right: getPinnedRightOffset(cell.column),
-                          }"
-                        >
-                          <div :class="uiTable.rowContainer()">
-                            <div :class="uiTable.rowInternal({ loading })">
-                              <slot
-                                :name="`${cell.column.id}-cell`"
-                                v-bind="cell.getContext()"
-                              >
-                                <div
-                                  :class="
-                                    uiTable.rowSpan({
-                                      cellWrap: (
-                                        cell.column.columnDef as TableColumn<T>
-                                      ).cellWrap,
-                                    })
-                                  "
-                                  @mouseenter="syncClippedTitle"
-                                >
-                                  <FlexRender
-                                    :render="cell.column.columnDef.cell"
-                                    :props="cell.getContext()"
-                                  />
-                                </div>
-                              </slot>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr
-                        v-if="row.getIsExpanded()"
-                        :id="expandedRowDomId(row.id)"
-                      >
-                        <td
-                          :colspan="
-                            row.getVisibleCells().length + leadingCellCount
-                          "
-                          :class="uiTable.expandedCell()"
-                        >
-                          <div :class="uiTable.expandedBody()">
-                            <slot name="expanded" :row="row" />
-                          </div>
-                        </td>
-                      </tr>
-                    </template>
-                  </template>
+              <TableBody :context="bodyContext">
+                <template v-for="(_, name) in slots" #[name]="slotData">
+                  <slot :name="name" v-bind="slotData" />
                 </template>
-                <!-- First load: skeleton rows keep the column rhythm instead of
-                flashing the empty state. -->
-                <template v-else-if="isFirstPageLoading">
-                  <tr
-                    v-for="rowIndex in skeletonRowCount"
-                    :key="`skeleton-${rowIndex}`"
-                    aria-hidden="true"
-                    :class="uiTable.skeletonRow()"
-                    :style="{ opacity: skeletonRowOpacity(rowIndex) }"
-                  >
-                    <td
-                      v-if="hasPresenceRail"
-                      class="border-b-muted border-b p-0 in-[tr:last-child]:border-b-0"
-                    />
-                    <td v-if="reorder" :class="uiTable.handleCell()" />
-                    <td
-                      v-for="(
-                        column, columnIndex
-                      ) in table.getVisibleLeafColumns()"
-                      :key="column.id"
-                      :class="uiTable.rowCell()"
-                    >
-                      <USkeleton
-                        :aria-label="t('dms.a11y.loading')"
-                        v-if="column.columnDef.meta"
-                        :class="uiTable.skeletonCell()"
-                        :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
-                      />
-                    </td>
-                  </tr>
-                </template>
-                <tr v-else>
-                  <td
-                    :colspan="
-                      table.getVisibleLeafColumns().length + leadingCellCount
-                    "
-                    class="p-0"
-                  >
-                    <div :class="uiTable.emptyBody()">
-                      <TableEmpty
-                        :can-add-row="
-                          normalizeActionConfig(rowActions?.add).isEnabled
-                        "
-                        :load-error="loadError"
-                        :archived="isShowingArchived"
-                        :empty-states="emptyStates"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
+              </TableBody>
             </table>
           </div>
         </section>

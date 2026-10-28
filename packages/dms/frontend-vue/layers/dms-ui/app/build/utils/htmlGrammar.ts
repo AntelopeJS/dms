@@ -1,17 +1,11 @@
-// HTML as the editor's language reads it (`@codemirror/lang-html`): scripts,
-// styles, `style` attributes and event handlers parsed in their own
-// languages, from the lezer grammars alone. The nesting mirrors lang-html's
-// defaults, so a snippet colours HTML exactly like the editor. A module of its
-// own because HTML is the one grammar composed of others.
 import { parser as cssParser } from "@lezer/css";
 import { configureNesting, parser } from "@lezer/html";
 import { parser as javascriptParser } from "@lezer/javascript";
 
-// What lezer read of a tag's attributes; an absent one is undefined.
 type Attributes = Readonly<Record<string, string | undefined>>;
 
 const typescriptParser = javascriptParser.configure({ dialect: "ts" });
-// A JSON script holds one value, read as JavaScript reads it.
+
 const jsonScriptParser = javascriptParser.configure({
   top: "SingleExpression",
 });
@@ -73,7 +67,12 @@ const NESTED_ATTRIBUTES = [
   ...EVENT_ATTRIBUTES.map((name) => ({ name, parser: javascriptParser })),
 ];
 
-/** The HTML grammar, with its embedded languages. */
+/**
+ * The HTML grammar, with its embedded languages. Keep nesting aligned with
+ * `@codemirror/lang-html` defaults so snippets and the editor color the same
+ * code alike. Use the Lezer grammars here without loading the editor state
+ * or view into pages that only display snippets.
+ */
 export const htmlParser = parser.configure({
   wrap: configureNesting(NESTED_TAGS, NESTED_ATTRIBUTES),
 });

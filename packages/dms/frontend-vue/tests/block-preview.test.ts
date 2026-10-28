@@ -11,7 +11,7 @@ import {
   resolvePreviewTree,
   type PreviewBlockTypes,
   type PreviewState,
-} from "../layers/dms-ui/app/build/utils/blockPreview";
+} from "../layers/dms-ui/app/entries/utils/blockPreview";
 
 const BLOCK_TYPES: PreviewBlockTypes = {
   KpiCard: { componentName: "dms-kpi-card" },
@@ -42,7 +42,7 @@ describe("preview state parameter", () => {
   });
 
   it("refuses garbage, a missing tree and an unknown theme", () => {
-    const encode = (value: unknown) =>
+    const encode = <Value>(value: Value) =>
       Buffer.from(JSON.stringify(value)).toString("base64url");
     expect(decodePreviewState("%%%")).toBeUndefined();
     expect(decodePreviewState(encode({ theme: "dark" }))).toBeUndefined();

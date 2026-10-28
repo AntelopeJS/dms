@@ -7,16 +7,16 @@ import {
   DEV_RELOAD_TOPIC,
   scheduleBroadcast,
   setSlugProvider,
-} from "../../../implementations/dms/dev-reload";
+} from "../../../store/frontend";
 import {
   buildUserNotificationTopic,
   getRealtimeBroker,
   InMemoryBroker,
   setRealtimeBroker,
   stopRealtime,
+  getSessionInfo,
 } from "../../../realtime";
-import { getSessionInfo } from "../../../realtime/sessions";
-import { RealtimeController } from "../../../routes/realtime";
+import { RealtimeController } from "../../../routes";
 
 const USER = { _id: "shared-connection-user", email: "u@example.com" };
 const OTHER_USER = { _id: "shared-connection-other", email: "o@example.com" };
@@ -29,7 +29,7 @@ interface FakeStream {
 
 interface Frame {
   event: string;
-  data: Record<string, unknown>;
+  data: ReturnType<typeof JSON.parse>;
 }
 
 interface SessionGreeting {
@@ -39,7 +39,6 @@ interface SessionGreeting {
   devReloadTopic?: string;
 }
 
-// Comfortably past the 250 ms dev reload broadcast debounce.
 const BROADCAST_SETTLE_MS = 400;
 
 const createFakeStream = (): FakeStream => {
@@ -55,6 +54,7 @@ const createFakeStream = (): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies lifecycle events and a writer, not the complete HTTP context.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
@@ -79,10 +79,11 @@ const openConnection = async (stream: FakeStream): Promise<string> => {
   await controller.connectionStream.call(
     undefined,
     stream.ctx,
-    USER as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    USER as User,
   );
   const hello = parseFrames(stream).find((frame) => frame.event === "hello");
-  return hello!.data.connectionId as string;
+  return hello!.data.connectionId;
 };
 
 const openSession = (
@@ -93,7 +94,8 @@ const openSession = (
     undefined,
     createFakeStream().ctx,
     connectionId,
-    user as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    user as User,
   );
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -128,8 +130,7 @@ describe("[unit] realtime — shared connection", () => {
 
     for (const greeting of [first, second]) {
       const delivered = sessionFramesOf(stream, greeting.sessionId!).filter(
-        (frame) =>
-          (frame.data.data as { type?: string }).type === "notification:new",
+        (frame) => frame.data.data.type === "notification:new",
       );
       expect(delivered).to.have.length(1);
       expect(delivered[0]!.data.event).to.equal(
@@ -148,7 +149,8 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       first.sessionId!,
-      USER as unknown as User,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+      USER as User,
     );
 
     expect(ack.ok).to.equal(true);
@@ -187,7 +189,8 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       greeting.sessionId!,
-      OTHER_USER as unknown as User,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The foreign-user fixture supplies identity fields only, not a complete stored user instance.
+      OTHER_USER as User,
     );
 
     expect(ack.ok).to.equal(false);
@@ -203,7 +206,8 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       otherConnectionId,
       greeting.sessionId!,
-      USER as unknown as User,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+      USER as User,
     );
 
     expect(ack.ok).to.equal(false);
@@ -237,8 +241,8 @@ describe("[unit] realtime — shared connection", () => {
     let status: number | undefined;
     try {
       await openSession(connectionId, OTHER_USER);
-    } catch (error) {
-      status = (error as { status?: number }).status;
+    } catch (error: PromiseRejectedResult["reason"]) {
+      status = error.status;
     }
     expect(status).to.equal(403);
   });

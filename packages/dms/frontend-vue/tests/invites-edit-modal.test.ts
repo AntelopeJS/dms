@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
@@ -7,21 +7,22 @@ import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-r
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
-import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import layout from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
+import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import layout from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
+import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
+import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
 
-vi.mock("../layers/dms-ui/app/components/form/Form.vue", () => ({
-  default: { name: "DmsForm" },
-}));
-
-type Messages = Record<string, unknown>;
+interface Messages {
+  [key: string]: string | Messages;
+}
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
     target[key] =
-      current && typeof current === "object" && typeof value === "object"
-        ? merge({ ...(current as Messages) }, value as Messages)
+      current && isObject(current) && isObject(value)
+        ? merge({ ...current }, value)
         : value;
   }
   return target;
@@ -32,15 +33,15 @@ const i18n = createI18n({
   locale: "en",
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: merge(merge(merge({}, core), ui), layout) as never },
+  messages: { en: merge(merge(merge({}, core), ui), layout) },
 });
-const t = i18n.global.t as (...args: unknown[]) => string;
+const t = i18n.global.t;
 
 const INVITE = { _id: "invite-1", email: "zz-invitee@example.com" };
 const INVITES_PAGE = "/settings/workspace/invites";
 
 const modal = { close: vi.fn() };
-const openModal = vi.fn(() => modal);
+const openModal = vi.fn((_options: ModalOptions) => modal);
 const navigateDms = vi.fn();
 const refresh = vi.fn();
 
@@ -51,16 +52,17 @@ const refresh = vi.fn();
  */
 async function invitesRowActions() {
   const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
+    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Editing opens a modal without fetching; the mock deliberately omits unused fetch methods.
     api: vi.fn() as never,
     location: "/api/tables/admin-invites",
     componentId: "table",
     pageId: "settings.workspace.invites",
     labelKey: "email",
     formContainer: {
-      type: "modal",
+      type: FormContainerType.modal,
       size: "md",
       pages: {
         edit: {
@@ -68,8 +70,9 @@ async function invitesRowActions() {
           description: "$page.settings.invites.form.edit_description",
         },
       },
-    } as never,
+    },
     formComponents: {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This serialized edit-form fixture intentionally omits unrelated required form options.
       edit: {
         componentName: "DmsForm",
         options: {
@@ -84,8 +87,9 @@ async function invitesRowActions() {
 }
 
 beforeEach(() => {
-  const globals: Record<string, unknown> = {
+  const globals = {
     ref,
+    shallowRef,
     Color,
     HttpMethod,
     normalizeActionConfig,
@@ -121,23 +125,16 @@ describe("Invitations table: Edit invitation", () => {
 
     expect(navigateDms).not.toHaveBeenCalled();
     expect(openModal).toHaveBeenCalledTimes(1);
-    const [opened] = openModal.mock.calls[0] as unknown as [
-      {
-        title: string;
-        description: string;
-        size: string;
-        componentOptions: Record<string, unknown>;
-      },
-    ];
+    const [opened] = openModal.mock.calls[0]!;
     expect(opened.title).toBe("Edit invitation · zz-invitee@example.com");
     expect(opened.description).toBe(
       "The name, roles and language the invitee gets on accepting.",
     );
     expect(opened.size).toBe("md");
-    expect(opened.componentOptions.fetchUrl).toBe(
+    expect(opened.componentOptions!.fetchUrl).toBe(
       "/api/tables/admin-invites/get?id=invite-1",
     );
-    expect(opened.componentOptions.submitUrl).toBe(
+    expect(opened.componentOptions!.submitUrl).toBe(
       "/api/tables/admin-invites/edit?id=invite-1",
     );
   });
@@ -146,10 +143,8 @@ describe("Invitations table: Edit invitation", () => {
     const { editRow } = await invitesRowActions();
     await editRow(INVITE);
 
-    const [opened] = openModal.mock.calls[0] as unknown as [
-      { componentOptions: { onSuccessCallback: () => void } },
-    ];
-    opened.componentOptions.onSuccessCallback();
+    const [opened] = openModal.mock.calls[0]!;
+    opened.componentOptions!.onSuccessCallback();
 
     expect(modal.close).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1);

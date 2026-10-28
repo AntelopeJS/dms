@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -11,7 +11,7 @@ import {
   type SessionHandoff,
   useSessionHandoff,
 } from "../../../../composables/security/useSessionHandoff";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
@@ -49,10 +49,9 @@ const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const isCurrentInvalid = ref(false);
-// Errors show once the field was left or the form submitted, and go away
-// as soon as the value is fixed.
+
 const isSubmitted = ref(false);
-// Something typed and not submitted yet.
+
 const { dirty: isDirty } = useFormDirty(
   () => ({
     currentPassword: currentPassword.value,
@@ -99,7 +98,6 @@ const confirmError = computed(() => {
     : t("page.settings.security.password.mismatch");
 });
 
-// The "incorrect" mark goes away as soon as the password is edited.
 watch(currentPassword, () => {
   isCurrentInvalid.value = false;
 });
@@ -161,8 +159,6 @@ async function submit(): Promise<void> {
     isEditing.value = false;
     await refresh();
   } catch (error) {
-    // A wrong current password is shown under its field; anything else
-    // (rate limit, server error) goes to a toast.
     const isCurrentRefused =
       resolveFieldErrors(error, {
         fields: ["currentPassword"],

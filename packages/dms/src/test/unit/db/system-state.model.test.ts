@@ -1,5 +1,5 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { SystemStateModel } from "../../../db";
 import type { SystemState } from "../../../db/tables";
 
@@ -21,8 +21,8 @@ describe("[unit] system state model — updateConfig addresses one row", () => {
       });
     }
     const config = await model.getConfig();
-    expect(config, "the fixture row").to.not.equal(undefined);
-    current = config as SystemState;
+    assert.isDefined(config, "the fixture row");
+    current = config;
     await model.table
       .insert({
         _id: OTHER_ROW_ID,

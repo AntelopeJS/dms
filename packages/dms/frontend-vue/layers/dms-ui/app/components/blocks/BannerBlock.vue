@@ -46,11 +46,6 @@ interface ResolvedBanner extends BannerContent {
   actions: BlockActionItem[];
 }
 
-// `Banner` block (interface-dms `base/banner`): the v2 notice banner placed
-// on a page, with actions and an optional dismiss that is remembered.
-// Dismissals live in a cookie (like the dashboard banners) so the server
-// render already leaves a dismissed banner out instead of flashing it. With a
-// `fetchUrl` the route answers the content, or nothing for no banner.
 interface BannerBlockProps
   extends Partial<DefaultComponentProps>,
     BannerContent {
@@ -77,11 +72,9 @@ const props = withDefaults(defineProps<BannerBlockProps>(), {
 });
 
 const DISMISSED_MAX_AGE_S = 60 * 60 * 24 * 365;
-// Keeps the cookie well under the 4 KB limit; the oldest dismissals go first.
+
 const DISMISSED_MAX_KEYS = 40;
 
-// Keys the actions' drawers and modals are opened under, for a banner placed
-// outside a page (a preview).
 const FALLBACK_COMPONENT_ID = "banner";
 const FALLBACK_PAGE_ID = "page";
 
@@ -99,8 +92,6 @@ const { data } = useChartFetch<BannerContent | null>({
   watchSource: () => JSON.stringify(watchState.value),
 });
 
-// A button that changed something changes what the page shows: its blocks,
-// this banner included, read their data again.
 const { handleCustomButton } = useActionTargets({
   api: useAuthFetch().$authFetch,
   componentId: props.componentId ?? FALLBACK_COMPONENT_ID,
@@ -109,14 +100,10 @@ const { handleCustomButton } = useActionTargets({
   handleApiError: (error, title) => useApiError(error, { title }),
 });
 
-// A fetched banner is an alert: it draws nothing until its route answered
-// something (a skeleton would flash a banner that may not exist), and nothing
-// when the answer is empty.
 const hasFetchedContent = computed(
-  () => Boolean(data.value) && Object.keys(data.value as object).length > 0,
+  () => !!data.value && Object.keys(data.value).length > 0,
 );
 
-// Field by field, the route's answer over the options.
 const banner = computed<ResolvedBanner>(() => {
   const fetched: BannerContent = data.value ?? {};
   return {
@@ -166,6 +153,7 @@ function dismiss(): void {
 }
 
 function press(action: BlockButtonAction): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Block buttons permit Nuxt UI variants wider than CustomButtonVariant; deriving either owner cannot prove the narrower variant, and this dispatcher forwards the original object unchanged.
   handleCustomButton(action as CustomButton);
 }
 </script>

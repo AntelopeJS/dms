@@ -8,6 +8,7 @@ import {
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import type { DemoRecord } from "./demo-record-api";
 import { PageFormInstant } from "./instant/page";
 
 const HTTP_BAD_REQUEST = 400;
@@ -18,7 +19,7 @@ const TAKEN_NAME = "taken";
 const OFFLINE_NAME = "offline";
 
 /** The demo's preferences, kept in memory: a restart puts them back. */
-const preferences: Record<string, unknown> = {
+const preferences = {
   name: "Acme",
   website: "https://acme.example",
   digest: "weekly",
@@ -37,7 +38,7 @@ export class FormInstantAPIController extends Controller("/api/form-instant") {
   }
 
   @Put("save")
-  async save(@JSONBody() body: Record<string, unknown>) {
+  async save(@JSONBody() body: DemoRecord) {
     if (body.name === TAKEN_NAME) {
       throw new HTTPResult(
         HTTP_CONFLICT,

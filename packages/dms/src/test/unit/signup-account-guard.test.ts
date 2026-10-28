@@ -7,15 +7,13 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { signup } from "../../routes/auth/signup";
+import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
 
 const HTTP_BAD_REQUEST = 400;
 const EMAIL_TAKEN = "error.email_already_used";
 const INVALID_TOKEN = "error.invalid_token";
-// Deliberately not the tenant the seeded invitations belong to: a seat in any
-// workspace makes an account real, which is what reading membership across
-// instances buys.
+
 const WORKSPACE_ID = "signup-guard-workspace";
 const UNKNOWN_INVITE_TOKEN = "00000000-0000-0000-0000-000000000000";
 const INVITEE_NAME = "Invitee";
@@ -27,11 +25,12 @@ const USER_AGENT = "signup-guard-test";
 const IP = "127.0.0.1";
 
 interface SignupAttempt {
-  error: unknown;
+  error: PromiseRejectedResult["reason"];
   updatedUsers: User[];
 }
 
 function buildAccount(id: string, email: string, isValidated: boolean): User {
+  // SAFETY: Signup's account guard and draft takeover read or replace these plain fields; the fixture does not implement persisted-row methods.
   return {
     _id: id,
     email,
@@ -40,7 +39,7 @@ function buildAccount(id: string, email: string, isValidated: boolean): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated,
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 async function joinWorkspace(userId: string): Promise<void> {
@@ -67,9 +66,8 @@ async function attemptSignup(
   lang?: string,
 ): Promise<SignupAttempt> {
   const updatedUsers: User[] = [];
+  // SAFETY: The harness implements signup's account lookups and records writes; unsupported downstream token interfaces may fail after those writes and are deliberately captured below.
   const userModel = {
-    // `UserModel.getByEmail` reads the `email` index, which matches exactly:
-    // a lookup that skips normalisation misses the account it is guarding.
     getByEmail: async (lookup: string) =>
       lookup === existingUser.email ? existingUser : undefined,
     get: async () => existingUser,
@@ -85,6 +83,7 @@ async function attemptSignup(
   try {
     await signup(
       userModel,
+      // SAFETY: This deliberately unimplemented session model is not a working persistence model; the harness observes guard refusal or earlier user writes and captures downstream failures.
       {} as SessionModel,
       {
         name: INVITEE_NAME,
@@ -96,7 +95,7 @@ async function attemptSignup(
       USER_AGENT,
       { ip: IP },
     );
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return { error, updatedUsers };
   }
   return { error: undefined, updatedUsers };
@@ -104,15 +103,12 @@ async function attemptSignup(
 
 function expectRefusal(attempt: SignupAttempt, message: string): void {
   expect(attempt.error).to.be.instanceOf(HTTPResult);
-  const refusal = attempt.error as HTTPResult;
+  const refusal = attempt.error;
   expect(refusal.getStatus()).to.equal(HTTP_BAD_REQUEST);
   expect(refusal.getBody()).to.equal(message);
 }
 
 describe("[unit] auth/signup — overwriting an existing account", () => {
-  // The attack as it was observed: a genuine invitation, sent to the address of
-  // an account a module provisioned, used to be answered with that account
-  // rewritten and a session handed back.
   it("refuses an unvalidated account that already belongs to a workspace", async () => {
     const provisioned = buildAccount(
       "signup-guard-provisioned",
@@ -131,9 +127,6 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expect(provisioned.authKey).to.equal(HOLDER_AUTH_KEY);
   });
 
-  // Accounts are stored lower-cased and the `email` index matches exactly, so
-  // a guard reading the address as typed can be walked around by capitalising
-  // it — and the signup would then insert a second account on the same address.
   it("refuses the same address claimed in another case", async () => {
     const provisioned = buildAccount(
       "signup-guard-mixed-case",
@@ -180,8 +173,6 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expect(draft.authKey).to.not.equal(HOLDER_AUTH_KEY);
   });
 
-  // A draft taken over under a capitalised address must not be stored that
-  // way: `login` looks the address up lower-cased and would never find it.
   it("stores the taken-over draft under the canonical address", async () => {
     const draft = buildAccount(
       "signup-guard-draft-case",
@@ -227,8 +218,6 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expect(draft.language).to.equal("en");
   });
 
-  // Refusing before the invitation is settled would answer an anonymous prober:
-  // one bogus token, two different refusals, and the address is identified.
   it("settles the invitation before disclosing that the address is taken", async () => {
     const provisioned = buildAccount(
       "signup-guard-probed",

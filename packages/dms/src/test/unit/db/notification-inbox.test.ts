@@ -1,8 +1,8 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationsModel } from "../../../db/models/userNotifications.model";
-import { resolveNotificationTone } from "../../../utils/notification-tones";
+import { UserNotificationsModel } from "../../../db/models";
+import { resolveNotificationTone } from "../../../utils";
 
 const USER_ID = "notification-inbox-user";
 const OTHER_USER_ID = "notification-inbox-other-user";

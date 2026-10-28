@@ -1,3 +1,5 @@
+import type { TriggerType } from "@antelopejs/interface-dms-automation";
+
 export interface MemberAddedEvent {
   tenantId: string;
   userId: string;
@@ -53,7 +55,7 @@ interface AutomationEventPayloads {
 
 export type AutomationEventName = keyof AutomationEventPayloads;
 
-export type AutomationEventListener = (payload: unknown) => void;
+export type AutomationEventListener = Parameters<TriggerType["activate"]>[1];
 
 const eventListeners = new Map<
   AutomationEventName,
@@ -80,10 +82,10 @@ export function emitAutomationEvent<E extends AutomationEventName>(
   payload: AutomationEventPayloads[E],
 ): void {
   for (const listener of listenersFor(event)) {
+    // oxfmt-ignore
     try {
       listener(payload);
     } catch {
-      // a failing procedure must never break the emitting business flow
     }
   }
 }

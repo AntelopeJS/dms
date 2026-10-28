@@ -10,7 +10,6 @@ const TOPIC = "subscribe-message:topic";
 const OTHER_TOPIC = "subscribe-message:other-topic";
 const MESSAGE_TYPE = "something-happened";
 
-// The broker hands events to its subscribers on the next tick at the latest.
 const flush = (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
 
@@ -53,10 +52,6 @@ describe("[unit] implementations/dms/realtime — SubscribeMessage", () => {
     expect(received).to.have.length(1);
   });
 
-  // `configureRealtime()` installs a fresh broker at start() and closes the
-  // previous one. A subscription bound to the broker of the moment — the case
-  // of a consumer module subscribing from its construct(), before the DMS
-  // started — would go silently dead there.
   it("keeps delivering after the broker is swapped", async () => {
     const received = collectMessages("sub-swap", TOPIC);
     const initialBroker = new InMemoryBroker();

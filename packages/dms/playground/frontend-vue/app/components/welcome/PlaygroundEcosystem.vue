@@ -65,7 +65,7 @@ const props = withDefaults(defineProps<Props>(), {
   hosting: undefined,
 });
 
-function accentStyle(accent: EcosystemAccent): Record<string, string> {
+function accentStyle(accent: EcosystemAccent) {
   const colors = ACCENTS[accent];
   return { "--eco-dark": colors.dark, "--eco-light": colors.light };
 }

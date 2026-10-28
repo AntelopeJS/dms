@@ -11,10 +11,6 @@ import type {
   RoleSendOptions,
 } from "./types";
 
-// On its own rather than in index.ts: sendable.ts sends through these proxies
-// and index.ts imports the builder that imports sendable, so reading them from
-// the barrel closed a cycle.
-
 /**
  * @internal
  */

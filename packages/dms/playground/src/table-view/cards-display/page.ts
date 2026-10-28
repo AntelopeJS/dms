@@ -62,9 +62,6 @@ export class PageTableViewCardsDisplay extends PageController(
         },
       ],
     },
-    // The display *type* (label, icon, component) is registered by
-    // playground/frontend-vue/app/plugins/table-view-cards-display.ts. Here we
-    // opt this table view into it and provide the SSR-renderable component.
     displays: [
       { id: TABLE_DISPLAY_ID },
       {

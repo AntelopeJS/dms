@@ -3,16 +3,22 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
-import { isCompatible } from "../../../store/compatibility";
-import { findDependents, isProjectModule } from "../../../store/interfaces";
-import { packageDeclarationSource } from "../../../store/declarations";
-import { supportsFrontend } from "../../../store/frontend-compatibility";
-import { findWorkingCopy, isLive, sourceKindOf } from "../../../store/runtime";
-import { startStoreOperation } from "../../../store/operations";
-import { readTarFile } from "../../../store/tarball";
-import { storeInstallSchema } from "../../../validation/store.schema";
-import type { RuntimeModule } from "../../../store/types";
+import {
+  loadStoreCatalog,
+  readCatalogDocument,
+  isCompatible,
+  findDependents,
+  isProjectModule,
+  packageDeclarationSource,
+  supportsFrontend,
+  findWorkingCopy,
+  isLive,
+  sourceKindOf,
+  startStoreOperation,
+  readTarFile,
+} from "../../../store";
+import { storeInstallSchema } from "../../../validation";
+import type { RuntimeModule } from "../../../store";
 
 const HTTP_FORBIDDEN = 403;
 
@@ -113,18 +119,17 @@ describe("[unit] store/runtime sources", () => {
 });
 
 describe("[unit] store/production", () => {
-  // The harness runs the module outside development mode, as production does.
   it("refuses to change a module outside development", async () => {
     const refusal = await startStoreOperation(
       "install",
       "@antelopejs/dms-lang",
     ).then(
       () => undefined,
-      (error: unknown) => error,
+      (error) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect((refusal as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect((refusal as HTTPResult).getBody()).to.equal("error.store_disabled");
+    expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(refusal.getBody()).to.equal("error.store_disabled");
   });
 });
 
@@ -203,7 +208,7 @@ describe("[unit] store/interfaces", () => {
 
   async function moduleAt(
     id: string,
-    manifest: Record<string, unknown>,
+    manifest: Parameters<typeof JSON.stringify>[0],
   ): Promise<RuntimeModule> {
     const localPath = path.join(root, id);
     await mkdir(localPath, { recursive: true });

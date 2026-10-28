@@ -3,7 +3,6 @@ import {
   RegisterModule,
 } from "@antelopejs/interface-dms/page";
 
-// Each catalog load reports the next state, so every pill shows in turn.
 const STATUS_CYCLE: ModuleStatus[] = ["beta", "update", "attention"];
 let catalogLoads = 0;
 
@@ -13,8 +12,6 @@ function nextStatus(): ModuleStatus {
   return status;
 }
 
-// No `defaultCategory` declared: this module's loose pages fall back to the
-// generic "Pages" grouping, exercising the legacy behaviour.
 export const plainModule = RegisterModule({
   id: "plain",
   title: "Plain Module",

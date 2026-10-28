@@ -1,3 +1,4 @@
+import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
 import type { ChartSeries } from "./types";
 import type { UseApexChartInput } from "./useApexChart.types";
 
@@ -100,10 +101,10 @@ function utcDay(date: Date): CalendarDay | null {
  * route bucketing by month often sends `2026-10-01T00:00:00Z`.
  */
 function calendarDayOf(
-  x: unknown,
+  x: Exclude<ChartSeries["data"][number], number>["x"] | undefined,
   readDay: typeof localDay,
 ): CalendarDay | null {
-  if (typeof x === "string") {
+  if (isString(x)) {
     const match = DATE_ONLY.exec(x);
     if (match) {
       return {
@@ -113,14 +114,15 @@ function calendarDayOf(
       };
     }
   }
-  if (typeof x !== "string" && typeof x !== "number" && !(x instanceof Date)) {
+  if (!isString(x) && !isNumber(x) && !(x instanceof Date)) {
     return null;
   }
   const date = new Date(x);
   return Number.isNaN(date.getTime()) ? null : readDay(date);
 }
 
-function pointX(point: ChartSeries["data"][number]): unknown {
+function pointX(point: ChartSeries["data"][number]) {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens the ChartSeries point's x to unknown; typeof keeps the owner's union without validating or converting its data.
   return typeof point === "object" && point !== null ? point.x : undefined;
 }
 
@@ -255,6 +257,7 @@ export function toBucketSeries(
     ...entry,
     data: buckets.keys.map((key, position) => {
       const point = entry.data[buckets.sourceIndexes[seriesIndex]![position]!];
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard makes this closed point union unspreadable; typeof retains its owner fields without a cast or changed coercion.
       return typeof point === "object"
         ? { ...point, x: key }
         : { x: key, y: null };
@@ -278,7 +281,11 @@ function intlFormat(
 export function bucketAxisFormatter(
   buckets: DatetimeBuckets,
   input: UseApexChartInput,
-): (value: string, timestamp?: unknown, opts?: ApexLabelOptions) => string {
+): (
+  value: string,
+  timestamp?: Parameters<typeof isNumber>[0],
+  opts?: ApexLabelOptions,
+) => string {
   const formats = BUCKET_FORMATS[buckets.bucket];
   return (value, _timestamp, opts) => {
     if (!DATE_ONLY.test(String(value))) return String(value ?? "");
@@ -301,6 +308,6 @@ export function bucketTooltipFormatter(
   const formats = BUCKET_FORMATS[buckets.bucket];
   return (value) =>
     DATE_ONLY.test(String(value))
-      ? intlFormat(value, input.locale, formats.tooltipIntl)
+      ? intlFormat(String(value), input.locale, formats.tooltipIntl)
       : String(value ?? "");
 }

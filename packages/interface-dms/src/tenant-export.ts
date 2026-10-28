@@ -11,6 +11,7 @@ import type { Readable } from "node:stream";
  */
 export interface TenantExportArchive {
   /** Serializes `data` as a JSON entry. */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published archive accepts arbitrary consumer JSON input; it does not own the contributor's schema.
   addJson(path: string, data: unknown): Promise<void>;
   /** Adds an artifact already materialized on disk. */
   addFile(path: string, localPath: string): Promise<void>;

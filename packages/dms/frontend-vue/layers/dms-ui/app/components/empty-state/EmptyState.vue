@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import type { ButtonProps } from "@nuxt/ui";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type EmptyStateVariant = "no-data" | "no-result" | "no-access" | "error";
 export type EmptyStateSize = "sm" | "md" | "lg";
@@ -34,11 +34,11 @@ interface EmptyStateProps {
 
 interface EmptyStateSlots {
   /** Rich description, replaces `description`. */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Under the text, above the actions: a snippet to start with. */
-  content?: () => unknown;
+  content?: () => ReturnType<Slot>;
   /** Buttons or links under the text. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<EmptyStateProps>(), {
@@ -65,8 +65,6 @@ const WELL_SIZES: Record<EmptyStateSize, IconWellSize> = {
   lg: "2xl",
 };
 
-// v2 .c-empty: icon well, title, a short explanation and the actions that
-// fit the case, centred.
 const theme = tv({
   slots: {
     root: "relative grid justify-items-center gap-1.5 text-center",
@@ -109,9 +107,7 @@ const resolvedIcon = computed(() => props.icon ?? VARIANT_ICONS[props.variant]);
 const resolvedTone = computed<Tone>(
   () => props.tone ?? (props.variant === "error" ? "error" : "neutral"),
 );
-// Read at each render rather than in a computed: the slots object is not
-// reactive, so a computed would keep the slots of the first render and miss
-// a slot the parent adds or removes later.
+
 const hasDescription = (): boolean => !!props.description || !!slots.default;
 const hasActions = (): boolean => !!slots.actions || !!props.actions?.length;
 </script>

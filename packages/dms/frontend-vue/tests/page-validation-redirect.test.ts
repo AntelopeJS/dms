@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createSSRApp,
@@ -15,7 +15,7 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CatchAllPage from "../layers/dms-layout/app/pages/[...slug].vue";
-import { pageValidationRedirect } from "../layers/dms-layout/app/build/utils/pageValidationRedirect";
+import { pageValidationRedirect } from "../layers/dms-layout/app/entries/utils/pageValidationRedirect";
 import {
   runCustomValidation,
   validateRequiredQueryParams,
@@ -25,29 +25,8 @@ import {
   providePageFillHeight,
   usePageFillHeight,
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
-import type { PageValidation } from "../layers/dms-layout/app/types/page";
-
-// The page's data refresh and the visit's navigation badges read the
-// realtime session and Inertia's page, which these tests do not run.
-vi.mock(
-  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
-  () => ({ usePageDataRefresh: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/page/usePageRecordDeletion",
-  () => ({ usePageRecordDeletion: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
-  () => ({ useVisitNavBadges: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
-  async () => {
-    const { ref } = await import("vue");
-    return { useDevReloading: () => ref(false) };
-  },
-);
+import type { PageValidation } from "../layers/dms-core/app/types/page";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 
 const PAGE_PATH = "/modules/marketing/funnel";
 const LIST_PATH = "/modules/marketing/funnels";
@@ -60,7 +39,9 @@ class HttpError extends Error {
 }
 
 const navigateDms = vi.fn(async () => {});
-const pageQuery = ref<Record<string, unknown>>({});
+const pageQuery = ref<
+  Parameters<typeof pageValidationRedirect>[2]["routeQuery"]
+>({});
 const validation = ref<PageValidation | undefined>(undefined);
 
 const PageComponent: FunctionalComponent<{ componentId: string }> = (props) =>
@@ -69,9 +50,10 @@ PageComponent.props = ["componentId"];
 
 function installRuntime(): void {
   const pageLayout = ref({
+    layout: { options: {} },
     components: { report: { componentName: "FunnelReport" } },
   });
-  const runtime: Record<string, unknown> = {
+  const runtime = {
     computed,
     inject,
     onMounted,
@@ -101,8 +83,13 @@ function installRuntime(): void {
     useDmsRoute: () => ({ path: PAGE_PATH, query: pageQuery.value }),
     useHomepage: () => "/",
     useI18n: () => ({ t: (key: string) => key }),
+    useToast: () => ({ add: vi.fn() }),
     usePageLayout: async () => ({ pageLayout }),
-    usePageRealtime: () => ({}),
+    usePageRealtime: () => ({
+      pageTopics: ref([]),
+      sessionId: ref(undefined),
+      subscribe: () => () => {},
+    }),
     usePermissions: () => ({
       permissions: ref([]),
       refreshIfStale: async () => {},
@@ -151,6 +138,7 @@ async function renderPage(): Promise<RenderedPage> {
 }
 
 beforeEach(() => {
+  useRealDataEngine();
   navigateDms.mockClear();
   pageQuery.value = {};
   validation.value = undefined;

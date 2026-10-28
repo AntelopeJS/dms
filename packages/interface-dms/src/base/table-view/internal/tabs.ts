@@ -1,8 +1,3 @@
-// The filter tabs of a table view: how the options carry them, which ones a
-// request is served, and the warning when their counters have no route.
-//
-// Split out of factory-helpers.ts.
-
 import {
   type ControllerClass,
   ControllerMeta,
@@ -20,6 +15,7 @@ import type {
 } from "../options";
 
 function dataApiLocation(countFrom: ControllerClass | string): string {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The option declares either a literal location or a controller class; typeof selects the declared variant.
   return typeof countFrom === "string"
     ? countFrom
     : GetMetadata(countFrom, ControllerMeta).location;
@@ -44,6 +40,7 @@ export function serializeTableViewTabs(
       ...tab
     }) => {
       const serialized: TableViewTabSerialized = { ...tab };
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A tab target is declared as a path or controller class; only the path is serializable before page registration.
       if (typeof to === "string") serialized.to = to;
       if (countFrom) serialized.countFrom = dataApiLocation(countFrom);
       return serialized;
@@ -74,6 +71,7 @@ export async function resolveTableViewTabs(
   for (const [index, tab] of serializedTabs.entries()) {
     const declared = declaredTabs[index];
     const target = declared?.to;
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published tab target union uses strings for paths and classes for pages; this selects the page variant.
     if (target && typeof target !== "string") {
       const page = GetMetadata(target, PageMetadata).pageInfo;
       if (!page) continue;
@@ -119,8 +117,6 @@ const EDGE_SLASHES = /^\/+|\/+$/g;
 
 const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
 
-// Matched on the mounted path and method rather than on the route object: a
-// module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
 /** @internal */
 export function servesRoute(
   endpoints: Record<string, DataControllerCallbackWithOptions>,

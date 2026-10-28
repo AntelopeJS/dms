@@ -24,7 +24,6 @@ const overflowCount = computed(
   () => props.images.length - visibleImages.value.length,
 );
 
-// Read with the page: the server renders the thumbnails.
 watch(
   visibleImages,
   (images) => images.forEach((image) => void files.resolve(image.key)),

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -13,7 +13,10 @@ import DmsRecordCard from "../layers/dms-ui/app/components/record-card/RecordCar
 
 let app: App | undefined;
 
-function mount(component: Component, props: Record<string, unknown>) {
+function mount(
+  component: Component,
+  props: InstanceType<typeof DmsRecordCard>["$props"],
+) {
   app = createApp(defineComponent({ setup: () => () => h(component, props) }));
   app.component(
     "UButton",
@@ -46,7 +49,7 @@ describe("DmsRecordCard", () => {
   it("draws the record and opens it, its buttons acting without opening it", async () => {
     const onOpen = vi.fn();
     const onEdit = vi.fn();
-    const container = mount(DmsRecordCard as Component, {
+    const container = mount(DmsRecordCard, {
       title: "Saved views",
       subtitle: "@antelopejs/dms",
       badge: { label: "Tables" },
