@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, reactive, watchEffect } from "vue";
+import { computed, provide, reactive } from "vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 
 import DmsTrendBadge from "./internal/TrendBadge.vue";
@@ -133,27 +133,17 @@ const previousFormatted = computed(() =>
 
 const hasComparison = computed(() => cardComparisonSeries.value.length > 0);
 
-const nestedContext = reactive<NestedChartContext>({
-  cardSeries: [],
-  cardComparisonSeries: [],
-  isLoading: false,
-  hideLegend: !props.showSeriesLegend,
-  valueFormat: props.valueFormat,
-  currencyCode: props.currencyCode,
-  valuePrecision: props.valuePrecision,
+const nestedContext: NestedChartContext = reactive({
+  cardSeries,
+  cardComparisonSeries,
+  isLoading,
+  hideLegend: computed(() => !props.showSeriesLegend),
+  valueFormat: computed(() => props.valueFormat),
+  currencyCode: computed(() => props.currencyCode),
+  valuePrecision: computed(() => props.valuePrecision),
 });
 
 provide(NESTED_CHART_INJECT_KEY, nestedContext);
-
-watchEffect(() => {
-  nestedContext.cardSeries = cardSeries.value;
-  nestedContext.cardComparisonSeries = cardComparisonSeries.value;
-  nestedContext.isLoading = isLoading.value;
-  nestedContext.hideLegend = !props.showSeriesLegend;
-  nestedContext.valueFormat = props.valueFormat;
-  nestedContext.currencyCode = props.currencyCode;
-  nestedContext.valuePrecision = props.valuePrecision;
-});
 
 const primaryLegendLabel = computed(() =>
   props.primaryLabel
