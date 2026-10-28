@@ -5,8 +5,16 @@ import type {
 import { isObject } from "#dms-core/app/utils/type-check";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
-import { buildRelationBadges } from "./relationBadges";
-import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
+import {
+  buildRelationBadges,
+  MAX_RELATION_BADGES,
+  readRelationLabel,
+} from "./relationBadges";
+import {
+  DEFAULT_RELATION_VALUE_KEY,
+  mapRelationBeforeState,
+  sameRelationValue,
+} from "./relationValue";
 import { NotFoundRelation, relationSelectSource } from "./relationRows";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 import { CascaderPath } from "./defaultDisplayComponents";
@@ -57,7 +65,11 @@ function renderNotFoundRelation(relation: NotFoundRelation) {
   );
 }
 
-function renderRelationBadges(values: unknown[], labelKey: string) {
+function renderRelationBadges(
+  values: unknown[],
+  labelKey: string,
+  valueKey: string,
+) {
   const { processI18n, t } = getAppTranslation();
   const notFound = values.filter(
     (item): item is NotFoundRelation => item instanceof NotFoundRelation,
@@ -65,6 +77,8 @@ function renderRelationBadges(values: unknown[], labelKey: string) {
   const { visible, hidden } = buildRelationBadges(
     values.filter((item) => !(item instanceof NotFoundRelation)),
     labelKey,
+    MAX_RELATION_BADGES,
+    valueKey,
   );
   const badges = [
     ...visible.map((label) => renderRelationBadge(processI18n(label))),
@@ -83,9 +97,10 @@ function renderRelation(value: CellValue, options: CellOptions) {
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Relation options cross the erased plugin boundary; multiple and keyMapping retain unchecked reads.
   const opts = options as RelationOptions | undefined;
   const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
+  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
   if (opts?.multiple && Array.isArray(value)) {
-    return renderRelationBadges(value, labelKey);
+    return renderRelationBadges(value, labelKey, valueKey);
   }
 
   if (value instanceof NotFoundRelation) return renderNotFoundRelation(value);
@@ -93,7 +108,7 @@ function renderRelation(value: CellValue, options: CellOptions) {
 
   const valueObject = value;
   const avatarKey = opts?.keyMapping?.avatar;
-  const label = valueObject[labelKey] || String(value);
+  const label = readRelationLabel(value, labelKey, valueKey);
 
   if (!avatarKey || !valueObject[avatarKey]) return label;
 

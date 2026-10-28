@@ -5,7 +5,8 @@ import type {
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 
-const DEFAULT_RELATION_VALUE_KEY = "_id";
+/** The key a related row is referenced by when `keyMapping.value` maps none. */
+export const DEFAULT_RELATION_VALUE_KEY = "_id";
 
 interface RelationKeyMapping {
   value?: string;

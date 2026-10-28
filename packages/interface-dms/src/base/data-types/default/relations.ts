@@ -3,12 +3,12 @@ import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
-import { Form, FormComponents } from "../../form-schema";
-import type { TableViewMeta } from "../../table-view/meta";
+import { FormComponents } from "../../form-schema";
 import type { FormContainerPageTexts } from "../../table-view/options";
-import { HttpMethod } from "../../types";
 import { DataType, RegisterDataType } from "../core";
 import { absolutizeJoinedSchemas } from "../internal/compare-types";
+import { buildOutsideCycle } from "../internal/relation-add-form";
+import { relationAddOptions, selectUrl } from "../internal/relation-endpoints";
 import { DefaultDataCompareTypes } from "../compare-types";
 
 /** {@link FormComponents.RelationFilterBy}, `field` typed on the related row. */
@@ -108,56 +108,22 @@ export class RelationType<T extends ControllerClass> extends DataType {
   }
 
   private relationInput(canAdd: boolean, multiple: boolean | undefined) {
-    const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-    const tableViewMeta = GetMetadata(
-      this.options.dataApiController,
-      tableViews.TableViewMeta,
-    );
-    const { config } = tableViewMeta;
-    const { endpoints } = GetMetadata(
-      this.options.dataApiController,
-      DataAPIMeta,
-    );
-
-    const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
+    const controller = this.options.dataApiController;
     const addOptions = canAdd
-      ? this.buildAddOptions(tableViewMeta, endpoints)
+      ? buildOutsideCycle(controller, () => relationAddOptions(controller))
       : undefined;
 
     return FormComponents.InputRelation({
       placeholder: this.options.placeholder,
       multiple,
       deselectable: this.options.deselectable,
-      searchUrl: location,
+      searchUrl: selectUrl(controller),
       keyMapping: this.options.keyMapping,
       filterBy: this.options.filterBy,
       addForm: addOptions?.addForm,
       addPermissionIds: addOptions?.addPermissionIds,
       addFormTexts: this.options.addForm,
     });
-  }
-
-  private buildAddOptions(
-    tableViewMeta: TableViewMeta,
-    endpoints: { new?: unknown },
-  ) {
-    if (!endpoints.new) return undefined;
-
-    const newFields = tableViewMeta.getFormFields("new");
-    if (newFields.length === 0) return undefined;
-
-    const submitUrl = `${tableViewMeta.config.location}/new`;
-    const addForm = Form({
-      fields: newFields,
-      submitUrl,
-      submitUrlMethod: HttpMethod.post,
-      kind: "create",
-    }).serializeSync();
-
-    return {
-      addForm,
-      addPermissionIds: tableViewMeta.actionPermissionIds("add"),
-    };
   }
 
   getValidation(): z.ZodType {
@@ -255,21 +221,11 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
   }
 
   private cascaderInput(multiple: boolean | undefined) {
-    const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-    const { config } = GetMetadata(
-      this.options.dataApiController,
-      tableViews.TableViewMeta,
-    );
-    const { endpoints } = GetMetadata(
-      this.options.dataApiController,
-      DataAPIMeta,
-    );
-
     return FormComponents.InputCascader({
       placeholder: this.options.placeholder,
       multiple,
       deselectable: this.options.deselectable,
-      searchUrl: `${config.location}/${endpoints.select.endpoint || "select"}`,
+      searchUrl: selectUrl(this.options.dataApiController),
       keyMapping: this.options.keyMapping,
       maxDepth: this.options.maxDepth,
       leafOnly: this.options.leafOnly,

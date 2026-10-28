@@ -1,11 +1,10 @@
 /** Stable postal-address data type. @packageDocumentation */
 import type { ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
-import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
 import { FormComponents } from "../../form-schema";
 import { DataType, RegisterDataType } from "../core";
 import { DefaultDataCompareTypes } from "../compare-types";
+import { selectUrl } from "../internal/relation-endpoints";
 
 /**
  * Structured postal address aligned with ISO 19160-1 address components and
@@ -103,21 +102,9 @@ export class AddressType<
       return FormComponents.InputAddress(baseConfig);
     }
 
-    const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-    const { config } = GetMetadata(
-      this.options.dataApiController,
-      tableViews.TableViewMeta,
-    );
-    const { endpoints } = GetMetadata(
-      this.options.dataApiController,
-      DataAPIMeta,
-    );
-
-    const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
-
     return FormComponents.InputAddress({
       ...baseConfig,
-      searchUrl: location,
+      searchUrl: selectUrl(this.options.dataApiController),
       keyMapping: this.options.keyMapping,
     });
   }
