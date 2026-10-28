@@ -127,6 +127,80 @@ const settle = async () => {
 };
 
 describe("useApiData", () => {
+  registerApiHydrationTests();
+  registerApiPollingTests();
+  registerApiRequestContextTests();
+});
+
+describe("useApiPagedData", () => {
+  interface Listing {
+    url: string;
+    page: number | null;
+  }
+  const LAST_PAGE = 3;
+
+  function listing() {
+    let list: ReturnType<typeof useApiPagedData<Listing, number>> | undefined;
+    const Explorer = defineComponent({
+      setup() {
+        list = useApiPagedData<Listing, number>(
+          "media:root",
+          ({ $authFetch, cursor, signal }) =>
+            $authFetch<Listing>("/api/media", {
+              query: { page: cursor },
+              signal,
+            }),
+          {
+            initialCursor: 1,
+            nextCursor: (page) =>
+              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
+          },
+        );
+        return () =>
+          h("p", list!.pages.value.map((page) => page.page).join(","));
+      },
+    });
+    return { Explorer, list: () => list! };
+  }
+
+  it("renders the first page on the server, then loads more in the browser", async () => {
+    const server = listing();
+    const { html, payload } = await serverRender(server.Explorer);
+    expect(html).toBe("<p>1</p>");
+    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
+
+    sent.length = 0;
+    const browser = listing();
+    const container = hydrate(browser.Explorer, html, payload);
+    await settle();
+    expect(sent).toEqual([]);
+
+    await browser.list().loadMore();
+    await browser.list().loadMore();
+    await settle();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 2 }, { page: 3 }]);
+    expect(container.textContent).toBe("1,2,3");
+    expect(browser.list().hasMore.value).toBe(false);
+  });
+
+  it("reads every loaded page again on a refresh", async () => {
+    const { Explorer, list } = listing();
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp(Explorer);
+    engine.provideDmsFrontendRuntime(app, runtime);
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await settle();
+    await list().loadMore();
+    sent.length = 0;
+
+    await list().refresh();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 1 }, { page: 2 }]);
+    expect(list().pages.value).toHaveLength(2);
+  });
+});
+
+function registerApiHydrationTests() {
   it("reads in the server render, and the browser hydrates without asking again", async () => {
     const page = ref(1);
     const Orders = defineComponent({
@@ -225,7 +299,9 @@ describe("useApiData", () => {
       "1",
     ]);
   });
+}
 
+function registerApiPollingTests() {
   it("waits for execute() with immediate: false, as a dialog does", async () => {
     let execute: (() => Promise<void>) | undefined;
     const Dialog = defineComponent({
@@ -321,7 +397,9 @@ describe("useApiData", () => {
     expect(sent).toHaveLength(stopped);
     runtime.scope.stop();
   });
+}
 
+function registerApiRequestContextTests() {
   it("asks in the language current when each request leaves", async () => {
     const runtime = engine.createDmsFrontendRuntime(transport);
     const app = createApp({ render: () => null });
@@ -340,72 +418,4 @@ describe("useApiData", () => {
   it("is the one read helper: useAuthFetch returns $authFetch alone", () => {
     expect(Object.keys(useAuthFetch())).toEqual(["$authFetch"]);
   });
-});
-
-describe("useApiPagedData", () => {
-  interface Listing {
-    url: string;
-    page: number | null;
-  }
-  const LAST_PAGE = 3;
-
-  function listing() {
-    let list: ReturnType<typeof useApiPagedData<Listing, number>> | undefined;
-    const Explorer = defineComponent({
-      setup() {
-        list = useApiPagedData<Listing, number>(
-          "media:root",
-          ({ $authFetch, cursor, signal }) =>
-            $authFetch<Listing>("/api/media", {
-              query: { page: cursor },
-              signal,
-            }),
-          {
-            initialCursor: 1,
-            nextCursor: (page) =>
-              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
-          },
-        );
-        return () =>
-          h("p", list!.pages.value.map((page) => page.page).join(","));
-      },
-    });
-    return { Explorer, list: () => list! };
-  }
-
-  it("renders the first page on the server, then loads more in the browser", async () => {
-    const server = listing();
-    const { html, payload } = await serverRender(server.Explorer);
-    expect(html).toBe("<p>1</p>");
-    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
-
-    sent.length = 0;
-    const browser = listing();
-    const container = hydrate(browser.Explorer, html, payload);
-    await settle();
-    expect(sent).toEqual([]);
-
-    await browser.list().loadMore();
-    await browser.list().loadMore();
-    await settle();
-    expect(sent.map(({ query }) => query)).toEqual([{ page: 2 }, { page: 3 }]);
-    expect(container.textContent).toBe("1,2,3");
-    expect(browser.list().hasMore.value).toBe(false);
-  });
-
-  it("reads every loaded page again on a refresh", async () => {
-    const { Explorer, list } = listing();
-    const runtime = engine.createDmsFrontendRuntime(transport);
-    const app = createApp(Explorer);
-    engine.provideDmsFrontendRuntime(app, runtime);
-    app.mount(document.createElement("div"));
-    mounted.push(app);
-    await settle();
-    await list().loadMore();
-    sent.length = 0;
-
-    await list().refresh();
-    expect(sent.map(({ query }) => query)).toEqual([{ page: 1 }, { page: 2 }]);
-    expect(list().pages.value).toHaveLength(2);
-  });
-});
+}

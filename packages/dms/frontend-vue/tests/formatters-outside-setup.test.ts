@@ -92,6 +92,25 @@ const SAMPLE_VALUES: unknown[] = [
 
 const SAMPLE_OPTIONS: unknown[] = [undefined, {}, { multiple: true }];
 
+function collectFormatterFailures(
+  id: string,
+  mode: string,
+  format: NonNullable<DataType["formatter"]>[string],
+  failures: string[],
+) {
+  for (const value of SAMPLE_VALUES) {
+    for (const options of SAMPLE_OPTIONS) {
+      try {
+        format(value, "en-GB", options, {});
+      } catch (error) {
+        failures.push(
+          `${id}.${mode}(${JSON.stringify(value)}, ${JSON.stringify(options)}): ${String(error)}`,
+        );
+      }
+    }
+  }
+}
+
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
@@ -113,17 +132,7 @@ describe("data-type formatters outside a component setup", () => {
     const failures: string[] = [];
     for (const [id, dataType] of dataTypes) {
       for (const [mode, format] of Object.entries(dataType.formatter ?? {})) {
-        for (const value of SAMPLE_VALUES) {
-          for (const options of SAMPLE_OPTIONS) {
-            try {
-              format(value, "en-GB", options, {});
-            } catch (error) {
-              failures.push(
-                `${id}.${mode}(${JSON.stringify(value)}, ${JSON.stringify(options)}): ${String(error)}`,
-              );
-            }
-          }
-        }
+        collectFormatterFailures(id, mode, format, failures);
       }
     }
     expect(failures).toEqual([]);

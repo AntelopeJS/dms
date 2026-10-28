@@ -131,6 +131,13 @@ afterEach(() => {
 });
 
 describe("Table row actions: refusals", () => {
+  registerRowActionRefusalTests();
+  registerBulkActionRefusalTests();
+  registerRowActionDialogTests();
+  registerRowActionConfirmationTests();
+});
+
+function registerRowActionRefusalTests() {
   it("runs a confirmed action inside its dialog, which shows the refusal", async () => {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),
@@ -211,7 +218,9 @@ describe("Table row actions: refusals", () => {
     );
     expect(refresh).toHaveBeenCalledOnce();
   });
+}
 
+function registerBulkActionRefusalTests() {
   it("keeps the dialog open when the rules refused every row", async () => {
     api.mockResolvedValue({ deleted: 0 });
     const { deleteRows } = await rowActions();
@@ -287,7 +296,9 @@ describe("Table row actions: refusals", () => {
       body: { notify: false, scope: "all", reason: "spam" },
     });
   });
+}
 
+function registerRowActionDialogTests() {
   it("asks the dialog a `from` URL words for one row, before a delete", async () => {
     api.mockImplementation(async (url: string) =>
       url === "/api/task/t1/delete-confirm"
@@ -377,7 +388,9 @@ describe("Table row actions: refusals", () => {
     expect(api).not.toHaveBeenCalledWith("/api/task/t1/delete-confirm");
     expect(dialogs[0]!.options.title).toBe("Delete 2 items?");
   });
+}
 
+function registerRowActionConfirmationTests() {
   it("hands a `from` URL naming no row the whole selection, and the delete its answer", async () => {
     api.mockImplementation(async (url: string) =>
       url.startsWith("/api/roles/delete-confirm")
@@ -425,4 +438,4 @@ describe("Table row actions: refusals", () => {
     await runConfirmedBuiltIn(true, undefined, proceed);
     expect(proceed).toHaveBeenCalledTimes(2);
   });
-});
+}

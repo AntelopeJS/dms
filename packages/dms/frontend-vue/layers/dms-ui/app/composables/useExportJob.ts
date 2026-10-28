@@ -71,7 +71,27 @@ export interface RunExportJobOptions {
 const EXPORT_STATUS_COMPLETED = "completed";
 const EXPORT_STATUS_FAILED = "failed";
 
-export const useExportJob = () => {
+function resolveExportLabels(
+  t: ReturnType<typeof useI18n>["t"],
+  overrides?: Partial<UseExportJobLabels>,
+): UseExportJobLabels {
+  const merged = overrides ?? {};
+  return {
+    title: merged.title ?? t("dms.table.export.title"),
+    exporting: merged.exporting ?? t("dms.table.export.exporting"),
+    downloading: merged.downloading ?? t("dms.table.export.downloading"),
+    successTitle: merged.successTitle ?? t("dms.table.export.success_title"),
+    successMessage:
+      merged.successMessage ?? t("dms.table.export.success_message"),
+    errorTitle: merged.errorTitle ?? t("dms.table.export.error_title"),
+    fallbackErrorTitle: merged.fallbackErrorTitle ?? t("dms.form.error_title"),
+    retry: merged.retry ?? t("dms.table.export.retry"),
+  };
+}
+
+function createExportToasts(
+  runJob: (opts: RunExportJobOptions) => Promise<void>,
+) {
   const toast = useToast();
   const { t } = useI18n();
   const { processApiMessage } = useTranslation();
@@ -80,19 +100,7 @@ export const useExportJob = () => {
   function resolveLabels(
     overrides?: Partial<UseExportJobLabels>,
   ): UseExportJobLabels {
-    const merged = overrides ?? {};
-    return {
-      title: merged.title ?? t("dms.table.export.title"),
-      exporting: merged.exporting ?? t("dms.table.export.exporting"),
-      downloading: merged.downloading ?? t("dms.table.export.downloading"),
-      successTitle: merged.successTitle ?? t("dms.table.export.success_title"),
-      successMessage:
-        merged.successMessage ?? t("dms.table.export.success_message"),
-      errorTitle: merged.errorTitle ?? t("dms.table.export.error_title"),
-      fallbackErrorTitle:
-        merged.fallbackErrorTitle ?? t("dms.form.error_title"),
-      retry: merged.retry ?? t("dms.table.export.retry"),
-    };
+    return resolveExportLabels(t, overrides);
   }
 
   function renderProgressDescription(label: string, progress: ProgressValue) {
@@ -197,6 +205,20 @@ export const useExportJob = () => {
     return newId;
   }
 
+  return {
+    $authFetch,
+    resolveLabels,
+    createExportToast,
+    updateProgressToast,
+    showSuccess,
+    showFailure,
+    showError,
+  };
+}
+
+function createExportTransport(context: ReturnType<typeof createExportToasts>) {
+  const { $authFetch, updateProgressToast } = context;
+
   async function startJob(opts: RunExportJobOptions): Promise<ExportJobTicket> {
     const method = opts.startMethod ?? "POST";
     const init: NonNullable<Parameters<typeof $authFetch<ExportJobTicket>>[1]> =
@@ -223,37 +245,6 @@ export const useExportJob = () => {
     if (opts.downloadUrl) return opts.downloadUrl(ticket);
     const base = opts.startUrl.replace(/\/start$/, "");
     return `${base}/download/${ticket.jobId}`;
-  }
-
-  async function readStreamWithProgress(
-    stream: ReadableStream<Uint8Array>,
-    totalBytes: number,
-    onProgress: (progress: ProgressValue) => void,
-  ): Promise<Blob> {
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
-    let receivedBytes = 0;
-
-    onProgress(totalBytes > 0 ? 0 : null);
-
-    let chunk = await reader.read();
-    while (!chunk.done) {
-      chunks.push(chunk.value);
-      receivedBytes += chunk.value.length;
-      if (totalBytes > 0) {
-        onProgress(Math.floor((receivedBytes / totalBytes) * 100));
-      }
-      chunk = await reader.read();
-    }
-
-    if (totalBytes > 0 && receivedBytes !== totalBytes) {
-      throw new Error(
-        `Download incomplete: received ${receivedBytes} of ${totalBytes} bytes`,
-      );
-    }
-
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reader chunks are not checked for SharedArrayBuffer backing; preserve Blob's existing rejection rather than copy or validate the bytes.
-    return new Blob(chunks as BlobPart[]);
   }
 
   async function pollStatus(
@@ -308,7 +299,7 @@ export const useExportJob = () => {
       response.headers.get("content-disposition"),
     );
 
-    const blob = await readStreamWithProgress(stream, totalBytes, (progress) =>
+    const blob = await readExportStream(stream, totalBytes, (progress) =>
       updateProgressToast(toastId, labels.downloading, progress),
     );
 
@@ -321,15 +312,72 @@ export const useExportJob = () => {
     }
   }
 
-  function getErrorMessage(
-    error: Parameters<typeof apiErrorText>[0],
-  ): string | undefined {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
-    const err = error as { data?: string; message?: string };
-    const data = err?.data;
-    const message = err?.message;
-    return data || message;
+  return {
+    startJob,
+    resolveStatusUrl,
+    resolveDownloadUrl,
+    pollStatus,
+    downloadResult,
+  };
+}
+
+async function readExportStream(
+  stream: ReadableStream<Uint8Array>,
+  totalBytes: number,
+  onProgress: (progress: ProgressValue) => void,
+): Promise<Blob> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+
+  onProgress(totalBytes > 0 ? 0 : null);
+
+  let chunk = await reader.read();
+  while (!chunk.done) {
+    chunks.push(chunk.value);
+    receivedBytes += chunk.value.length;
+    if (totalBytes > 0) {
+      onProgress(Math.floor((receivedBytes / totalBytes) * 100));
+    }
+    chunk = await reader.read();
   }
+
+  if (totalBytes > 0 && receivedBytes !== totalBytes) {
+    throw new Error(
+      `Download incomplete: received ${receivedBytes} of ${totalBytes} bytes`,
+    );
+  }
+
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reader chunks are not checked for SharedArrayBuffer backing; preserve Blob's existing rejection rather than copy or validate the bytes.
+  return new Blob(chunks as BlobPart[]);
+}
+
+function getErrorMessage(
+  error: Parameters<typeof apiErrorText>[0],
+): string | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
+  const err = error as { data?: string; message?: string };
+  const data = err?.data;
+  const message = err?.message;
+  return data || message;
+}
+
+export const useExportJob = () => {
+  const context = createExportToasts((opts) => runJob(opts));
+  const {
+    resolveLabels,
+    createExportToast,
+    showSuccess,
+    showFailure,
+    showError,
+  } = context;
+  const {
+    startJob,
+    resolveStatusUrl,
+    resolveDownloadUrl,
+    pollStatus,
+    downloadResult,
+  } = createExportTransport(context);
 
   async function runJob(opts: RunExportJobOptions): Promise<void> {
     const labels = resolveLabels(opts.labels);

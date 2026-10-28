@@ -1,43 +1,26 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { nextTick, onScopeDispose } from "vue";
-import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
+import { nextTick } from "vue";
+import type { FormProps, FormSubmitResponse } from "./types";
 import { FormEvents } from "./types/events";
 import type { FormData } from "./types/value";
-import type { FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
-import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
-import { orderFormEntries } from "../../build/composables/form/formEntryOrder";
 import {
   type ReplaceUrlVariablesContext,
   resolveLinkVariables,
-  resolveUrlVariables,
 } from "../../build/utils/urlVariables";
-import {
-  apiErrorStatus,
-  apiErrorText,
-} from "#dms-core/app/composables/useFieldErrors";
+import { apiErrorText } from "#dms-core/app/composables/useFieldErrors";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
-import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
-import { isNumber, isString } from "#dms-core/app/utils/type-check";
+import { isNumber } from "#dms-core/app/utils/type-check";
+import { isPlainObject } from "../../build/composables/unsaved-changes/formValue";
+import { createFormFields } from "../../build/composables/form/formState";
 import {
-  isPlainObject,
-  sameFormValue,
-} from "../../build/composables/unsaved-changes/formValue";
-import {
-  buildValidationSchema,
   collectSubmitData,
   computeResetState,
-  createBaseValidationSchema,
-  createFieldValueComparer,
-  flattenFields,
   processBeforeStateMappers,
   resolveFormFieldErrors,
-  resolveSubmitDefaults,
   resolveSubmitTarget,
   snapshotFormState,
-  watchFieldChanges,
-  withConditionFields,
 } from "../../build/composables/form/useFormModel";
 
 export {
@@ -106,163 +89,19 @@ interface FormResetTarget {
   clear?: () => void;
 }
 
-export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
-  const toast = useToast();
-  const { $authFetch } = useAuthFetch();
-  const { getDataType } = useDataTypes();
-  const isSameFieldValue = createFieldValueComparer(getDataType);
-  const { processI18n, processApiMessage } = useTranslation();
-  const route = useDmsRoute();
-
-  const { sendComponentEvent } = useComponentEvent(props.componentId);
-
-  const { execute: executeSubmit } = useEventedAction<FormSubmitResponse>({
-    componentId: props.componentId,
-    events: {
-      start: FormEvents.SUBMIT,
-      success: FormEvents.SUBMIT_SUCCESS,
-      error: FormEvents.SUBMIT_ERROR,
-    },
-  });
-
-  const { isLoading: loading, state } = useWatch(
-    props.watchActions || [],
-    props.componentId,
-    {
-      disabledFields: new Set<string>(),
-      hiddenFields: new Set<string>(),
-      requiredFields: new Set<string>(),
-    },
-  );
-  const initialValues = ref<FormData>({});
-  const submitSucceeded = ref(false);
-
-  const allFields = computed(() => flattenFields(props.fields));
-
-  const isStartingValue = (
-    fieldId: string,
-    value: Parameters<FieldValueComparer>[1],
-  ): boolean => {
-    const field = allFields.value.find((entry) => entry.id === fieldId);
-    const initial = initialValues.value[fieldId];
-    return field
-      ? isSameFieldValue(field, value, initial)
-      : sameFormValue(value, initial);
-  };
-
-  watchFieldChanges(
-    state,
-    props.componentId,
-    sendComponentEvent,
-    isStartingValue,
-  );
-
-  let isApplyingSavedRecord = false;
-  let isDisposed = false;
-  onScopeDispose(() => {
-    isDisposed = true;
-  });
-  watch(
-    () => state.value,
-    () => {
-      if (isApplyingSavedRecord) return;
-      if (submitSucceeded.value) submitSucceeded.value = false;
-    },
-    { deep: true },
-  );
-
-  const inactiveFields = computed(() =>
-    withConditionFields(allFields.value, state.value, {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions own these sets but expose open state. Preserve the existing unchecked iterable behavior for malformed replacements rather than filtering them.
-      disabled: state.value.disabledFields as Set<string> | undefined,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; keep malformed hidden-field replacements observable to the existing Set constructor.
-      hidden: state.value.hiddenFields as Set<string> | undefined,
-    }),
-  );
-  const disabledFields = computed(() => inactiveFields.value.disabled);
-  const hiddenFields = computed(() => inactiveFields.value.hidden);
-  const requiredFields = computed(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; retaining this unchecked field preserves existing size/has behavior for malformed replacements.
-    () => state.value.requiredFields as Set<string> | undefined,
-  );
-
-  const fields = computed<FormFieldOrGroup[]>(() =>
-    orderFormEntries(props.fields).map((item) => {
-      if (isFieldGroup(item)) {
-        return {
-          ...item,
-          fields: item.fields.map((f) => processFieldI18n(f, processI18n)),
-        };
-      }
-      return processFieldI18n(item, processI18n);
-    }),
-  );
-
-  const buildUrlContext = (
-    response?: ReplaceUrlVariablesContext["response"],
-  ): ReplaceUrlVariablesContext => ({
-    routeParams: props.routeParams,
-    routeQuery: route.query,
-    response,
-  });
-  const effectiveSubmitDefaults = computed(() =>
-    resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
-  );
-  const resolvedFetchUrl = computed(() =>
-    resolveUrlVariables(props.fetchUrl, buildUrlContext()),
-  );
-  const isRecordUpdate = computed(
-    () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
-  );
-  const createsRecord = props.kind === "create";
-
-  /** Reads the record at fetchUrl and maps its values for the fields. */
-  const loadRecord = async () => {
-    if (!props.fetchUrl) return undefined;
-    const processedUrl = resolveUrlVariables(props.fetchUrl, buildUrlContext());
-    if (processedUrl === undefined) return undefined;
-    const fetchedData = await $authFetch<FormFetchResponse>(processedUrl, {
-      method: props.fetchUrlMethod || "GET",
-      headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-    });
-    initialValues.value = {
-      ...initialValues.value,
-      ...JSON.parse(JSON.stringify(fetchedData)),
-    };
-    return processBeforeStateMappers(fetchedData, props.fields, getDataType);
-  };
-
-  const fetchData = async () => {
-    try {
-      return await loadRecord();
-    } catch (error) {
-      if (!import.meta.env.SSR && apiErrorStatus(error) !== HTTP_NOT_FOUND)
-        showFetchErrorToast(error);
-      throw error;
-    }
-  };
-
-  const showFetchErrorToast = (error: Parameters<typeof apiErrorStatus>[0]) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are arbitrary; keep direct data access, primitive boxing and nullish throws rather than treating this unchecked error projection as validated.
-    const err = error as Error & { data?: string };
-    toast.add({
-      title: processI18n("$dms.form.fetch_error_title"),
-      description: isString(err.data)
-        ? processApiMessage(err.data)
-        : processI18n("$dms.form.fetch_error_unknown"),
-      color: Color.error,
-    });
-  };
-
-  const baseSchema = createBaseValidationSchema(props.schema);
-  const validationSchema = computed(() =>
-    buildValidationSchema(
-      baseSchema,
-      disabledFields.value,
-      hiddenFields.value,
-      requiredFields.value,
-    ),
-  );
+function createFormNotices(
+  context: ReturnType<typeof createFormFields>,
+  options: UseFormOptions,
+) {
+  const {
+    props,
+    toast,
+    processI18n,
+    processApiMessage,
+    allFields,
+    disabledFields,
+    hiddenFields,
+  } = context;
 
   const showSubmitSuccessToast = (response: FormSubmitResponse | undefined) => {
     toast.add(
@@ -344,6 +183,29 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
+  return {
+    ...context,
+    options,
+    showSubmitSuccessToast,
+    showSubmitNotice,
+    showServerFieldErrors,
+    showSubmitErrorToast,
+  };
+}
+
+function createSavedForm(context: ReturnType<typeof createFormNotices>) {
+  const {
+    props,
+    options,
+    state,
+    initialValues,
+    getDataType,
+    submitSucceeded,
+    lifecycle,
+    loadRecord,
+    allFields,
+  } = context;
+
   /** Puts every field back to the value it opened with. */
   const restoreInitialValues = (): void => {
     const restored = computeResetState(state.value, initialValues.value);
@@ -368,11 +230,11 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
   /** Applies the saved record without clearing the saved flag in the watcher. */
   const applyStoredRecord = async (stored: FormData): Promise<void> => {
-    isApplyingSavedRecord = true;
+    lifecycle.isApplyingSavedRecord = true;
     Object.assign(state.value, stored);
     options.onSaved?.();
     await nextTick();
-    isApplyingSavedRecord = false;
+    lifecycle.isApplyingSavedRecord = false;
   };
 
   /** Re-reads a saved record, keeping intervening edits or failed-read values. */
@@ -383,7 +245,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     } catch {
       return;
     }
-    if (isDisposed || !submitSucceeded.value) return;
+    if (lifecycle.isDisposed || !submitSucceeded.value) return;
     if (!stored || Object.keys(stored).length === 0) return;
     await applyStoredRecord(stored);
   };
@@ -409,6 +271,23 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       processBeforeStateMappers(record, props.fields, getDataType),
     );
   };
+
+  return { ...context, restoreInitialValues, markSubmitSaved, showSavedRecord };
+}
+
+function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
+  const {
+    props,
+    toast,
+    processI18n,
+    buildUrlContext,
+    showSubmitSuccessToast,
+    showSubmitNotice,
+    executeSubmit,
+    $authFetch,
+    showServerFieldErrors,
+    showSubmitErrorToast,
+  } = context;
 
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
@@ -476,6 +355,36 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     }
   };
 
+  return {
+    ...context,
+    handleSubmitSuccess,
+    showUnresolvedTargetToast,
+    sendSubmit,
+    reportSubmitError,
+  };
+}
+
+function createFormActions(context: ReturnType<typeof createFormSubmission>) {
+  const {
+    props,
+    buildUrlContext,
+    showUnresolvedTargetToast,
+    allFields,
+    initialValues,
+    effectiveSubmitDefaults,
+    disabledFields,
+    isRecordUpdate,
+    isSameFieldValue,
+    loading,
+    sendSubmit,
+    markSubmitSaved,
+    handleSubmitSuccess,
+    showSavedRecord,
+    reportSubmitError,
+    restoreInitialValues,
+    sendComponentEvent,
+  } = context;
+
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
@@ -533,6 +442,37 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     restoreInitialValues();
     sendComponentEvent(FormEvents.RESET, props.componentId, {});
   };
+
+  return { ...context, onSubmit, submitChanges, reset };
+}
+
+export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
+  const context = createFormActions(
+    createFormSubmission(
+      createSavedForm(createFormNotices(createFormFields(props), options)),
+    ),
+  );
+  const {
+    loading,
+    state,
+    initialValues,
+    isSameFieldValue,
+    validationSchema,
+    onSubmit,
+    submitChanges,
+    reportSubmitError,
+    reset,
+    fetchData,
+    fields,
+    allFields,
+    disabledFields,
+    hiddenFields,
+    requiredFields,
+    submitSucceeded,
+    resolvedFetchUrl,
+    createsRecord,
+    effectiveSubmitDefaults,
+  } = context;
 
   return {
     loading,

@@ -59,6 +59,11 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("useInstantSave", () => {
+  registerSaveLifecycleTests();
+  registerPendingSaveTests();
+});
+
+function registerSaveLifecycleTests() {
   it("saves a pick at once, alone, and shows saving then saved", async () => {
     const server = deferredServer();
     const { values, instant } = setup(server.save);
@@ -175,7 +180,9 @@ describe("useInstantSave", () => {
     vi.advanceTimersByTime(INSTANT_SAVE_DEBOUNCE_MS);
     expect(server.save).toHaveBeenLastCalledWith({ name: "Acme Inc" });
   });
+}
 
+function registerPendingSaveTests() {
   it("queues a value the source already shows, from the confirmed one", async () => {
     const server = deferredServer();
     const { values, instant } = setup(server.save);
@@ -214,4 +221,4 @@ describe("useInstantSave", () => {
     expect(combineSaveStates(["idle", "saved", undefined])).toBe("saved");
     expect(combineSaveStates([])).toBe("idle");
   });
-});
+}

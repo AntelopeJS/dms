@@ -237,6 +237,11 @@ describe("useLayoutBanners", () => {
 });
 
 describe("DashboardBanners", () => {
+  registerBannerPresentationTests();
+  registerBannerScopeAndDismissalTests();
+});
+
+function registerBannerPresentationTests() {
   it("server-renders the banners in order, each with its variant's role", async () => {
     serveBanners([
       banner({ key: "billing", variant: "error", text: "$billing.overdue" }),
@@ -342,7 +347,9 @@ describe("DashboardBanners", () => {
     expect(renderedKeys()).toEqual(["overdue", "past-due"]);
     app.unmount();
   });
+}
 
+function registerBannerScopeAndDismissalTests() {
   it("server-renders only the banners scoped to the requested page", async () => {
     route.path = MODULE_PAGE;
     serveBanners([
@@ -379,4 +386,4 @@ describe("DashboardBanners", () => {
     ).toEqual(["sticky"]);
     app.unmount();
   });
-});
+}

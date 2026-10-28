@@ -182,21 +182,7 @@ function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
   };
 }
 
-/**
- * Where a table view reads its rows: its data controller's routes, or the
- * route of a `TableView.fromSource` table — which answers `{ results, total }`
- * for the part of the query it handles. A route answering every row leaves
- * the rest to the browser; a route answering one page is taken as it is.
- *
- * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
- * while one has no value nothing is requested and the list is empty. A
- * source's `periodScope` adds the period of its selector to the URL, like a
- * chart's; until that selector registers, nothing is requested and the list
- * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
- * URL requested, for the caller to list again when it changes. The rows
- * `pinnedRows` accepts lead each list answered.
- */
-export function useTableRows<T extends Record<string, unknown>>(
+function createTableSource<T extends Record<string, unknown>>(
   options: TableRowsOptions,
 ) {
   const { api, location, source, columns } = options;
@@ -277,6 +263,29 @@ export function useTableRows<T extends Record<string, unknown>>(
       options.pinnedRows?.(),
     );
   };
+
+  return { api, location, source, sourceUrl, isPeriodPending, listFromSource };
+}
+
+/**
+ * Where a table view reads its rows: its data controller's routes, or the
+ * route of a `TableView.fromSource` table — which answers `{ results, total }`
+ * for the part of the query it handles. A route answering every row leaves
+ * the rest to the browser; a route answering one page is taken as it is.
+ *
+ * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
+ * while one has no value nothing is requested and the list is empty. A
+ * source's `periodScope` adds the period of its selector to the URL, like a
+ * chart's; until that selector registers, nothing is requested and the list
+ * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
+ * URL requested, for the caller to list again when it changes. The rows
+ * `pinnedRows` accepts lead each list answered.
+ */
+export function useTableRows<T extends Record<string, unknown>>(
+  options: TableRowsOptions,
+) {
+  const { api, location, source, sourceUrl, isPeriodPending, listFromSource } =
+    createTableSource<T>(options);
 
   const withPinnedRows = (
     page: TableViewListResponse<T> | null,

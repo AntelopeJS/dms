@@ -85,7 +85,69 @@ describe("TableView layout", () => {
 
 describe("TableView quick filters", () => {
   const translate = (key: string) => key.replace(/^\$/, "t:");
+  registerQuickFilterSourceTests(translate);
 
+  const roles = { field: "roleIds", mode: "array_contains_string" } as const;
+  const dueDate = {
+    accessorKey: "dueDate",
+    mode: "before",
+    value: "2026-01-01",
+    pinned: false,
+  };
+
+  it("writes the picked value as the column's own filter", () => {
+    const filters = applyQuickFilter([dueDate], roles, "r1");
+    expect(filters).toEqual([
+      dueDate,
+      {
+        accessorKey: "roleIds",
+        mode: "array_contains_string",
+        value: "r1",
+        pinned: false,
+      },
+    ]);
+    expect(quickFilterValue(filters, roles)).toBe("r1");
+    expect(applyQuickFilter(filters, roles, "r2")).toHaveLength(2);
+    expect(
+      quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles),
+    ).toBe("r2");
+  });
+
+  it("clears its filter on All, leaving the others", () => {
+    const filters = applyQuickFilter([dueDate], roles, "r1");
+    expect(applyQuickFilter(filters, roles, undefined)).toEqual([dueDate]);
+    expect(quickFilterValue([dueDate], roles)).toBe(undefined);
+  });
+
+  it("sets a default filter on the column rather than adding a second one", () => {
+    const pinned = {
+      accessorKey: "roleIds",
+      mode: "array_contains_string",
+      value: undefined,
+      pinned: true,
+      initialValue: undefined,
+    };
+    expect(applyQuickFilter([pinned], roles, "r1")).toEqual([
+      { ...pinned, value: "r1" },
+    ]);
+  });
+
+  it("names the column and its value on the button of a table without filters row", () => {
+    const role = {
+      ...roles,
+      label: "Role",
+      icon: "i-ph-funnel",
+      allLabel: "All",
+      items: [{ value: "r1", label: "Admin" }],
+    };
+    const filters = applyQuickFilter([], role, "r1");
+    expect(quickFilterButtonLabel(role, [], false)).toBe("Role");
+    expect(quickFilterButtonLabel(role, filters, true)).toBe("Admin");
+    expect(quickFilterButtonLabel(role, filters, false)).toBe("Role: Admin");
+  });
+});
+
+function registerQuickFilterSourceTests(translate: (key: string) => string) {
   it("lists a select's items and a boolean's two values", () => {
     expect(
       staticQuickFilterItems(
@@ -163,63 +225,4 @@ describe("TableView quick filters", () => {
 
     expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
   });
-
-  const roles = { field: "roleIds", mode: "array_contains_string" } as const;
-  const dueDate = {
-    accessorKey: "dueDate",
-    mode: "before",
-    value: "2026-01-01",
-    pinned: false,
-  };
-
-  it("writes the picked value as the column's own filter", () => {
-    const filters = applyQuickFilter([dueDate], roles, "r1");
-    expect(filters).toEqual([
-      dueDate,
-      {
-        accessorKey: "roleIds",
-        mode: "array_contains_string",
-        value: "r1",
-        pinned: false,
-      },
-    ]);
-    expect(quickFilterValue(filters, roles)).toBe("r1");
-    expect(applyQuickFilter(filters, roles, "r2")).toHaveLength(2);
-    expect(
-      quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles),
-    ).toBe("r2");
-  });
-
-  it("clears its filter on All, leaving the others", () => {
-    const filters = applyQuickFilter([dueDate], roles, "r1");
-    expect(applyQuickFilter(filters, roles, undefined)).toEqual([dueDate]);
-    expect(quickFilterValue([dueDate], roles)).toBe(undefined);
-  });
-
-  it("sets a default filter on the column rather than adding a second one", () => {
-    const pinned = {
-      accessorKey: "roleIds",
-      mode: "array_contains_string",
-      value: undefined,
-      pinned: true,
-      initialValue: undefined,
-    };
-    expect(applyQuickFilter([pinned], roles, "r1")).toEqual([
-      { ...pinned, value: "r1" },
-    ]);
-  });
-
-  it("names the column and its value on the button of a table without filters row", () => {
-    const role = {
-      ...roles,
-      label: "Role",
-      icon: "i-ph-funnel",
-      allLabel: "All",
-      items: [{ value: "r1", label: "Admin" }],
-    };
-    const filters = applyQuickFilter([], role, "r1");
-    expect(quickFilterButtonLabel(role, [], false)).toBe("Role");
-    expect(quickFilterButtonLabel(role, filters, true)).toBe("Admin");
-    expect(quickFilterButtonLabel(role, filters, false)).toBe("Role: Admin");
-  });
-});
+}

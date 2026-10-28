@@ -9,7 +9,6 @@ import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
   fieldValuesOfSubmitDefaults,
-  type FormServerFieldError,
   formShowsActions,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
@@ -44,19 +43,17 @@ import {
   SECTION_LAYOUT_CLASSES,
 } from "../../build/composables/form/formLayout";
 import { formComponentFocus } from "../../build/composables/form/formComponentFocus";
+import {
+  formComponentErrors,
+  watchFormComponentServerErrors,
+} from "../../build/composables/form/formComponentErrors";
+import { formComponentCancel } from "../../build/composables/form/formComponentCancel";
 import { formComponentRealtime } from "../../build/composables/form/formComponentRealtime";
 import { formComponentSections } from "../../build/composables/form/formComponentSections";
 import {
   formComponentValidation,
   watchFormComponentFieldFlags,
 } from "../../build/composables/form/formComponentValidation";
-import {
-  changedServerErrorFields,
-  keptServerErrors,
-  serverErrorValue,
-  type KeptServerError,
-  type PlacedServerError,
-} from "../../build/composables/form/serverFieldErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
 import { fieldSavedMarker } from "../../build/composables/form/fieldSaved";
 import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
@@ -71,7 +68,6 @@ import {
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
 import { isHiddenOnCreate } from "../../build/composables/form/createFormFields";
-import { isString } from "#dms-core/app/utils/type-check";
 
 const props = defineProps<FormProps>();
 const form = useTemplateRef("form");
@@ -88,66 +84,19 @@ const FormWrapper =
 
 const { processI18n, processApiMessage } = useTranslation();
 
-const serverErrors = new Map<string, KeptServerError>();
-
 const { focusField, revealField } = formComponentFocus({
   element: () => form.value?.$el,
   loading: () => form.value?.loading,
   fieldIds: () => allFieldIds.value,
 });
 
-/**
- * A refused submit: its field errors go under the fields, the first focused.
- *
- * @returns Whether any landed on a field this form renders
- */
-function showFieldErrors(errors: FormServerFieldError[]): boolean {
-  const target = form.value;
-  if (!target) return false;
-
-  if (!isInstant) {
-    target.setErrors([]);
-    serverErrors.clear();
-  }
-  for (const error of errors) placeServerError(target, error);
-  const shown = errors.filter(
-    (error) => target.getErrors(fieldErrorPattern(error.name)).length,
-  );
-  for (const error of shown) {
-    serverErrors.set(error.name, {
-      value: serverErrorValue(state.value[error.name]),
-      errors: target
-        .getErrors(fieldErrorPattern(error.name))
-        .map(({ name, message }: PlacedServerError) => ({ name, message })),
-    });
-  }
-  showsErrorSummary.value = shown.length > 0;
-  void focusField(target.errors[0]?.name);
-  return shown.length > 0;
-}
-
-/**
- * Puts a server error under its field, replacing that field's: on the part
- * it names (an address's street) when the field's control declares it, on
- * the whole field otherwise.
- */
-function placeServerError(
-  target: NonNullable<typeof form.value>,
-  error: FormServerFieldError,
-): void {
-  const scope = fieldErrorPattern(error.name);
-  target.setErrors([{ ...error, name: error.path ?? error.name }], scope);
-  if (!error.path || target.getErrors(error.path).length) return;
-  target.setErrors([error], scope);
-}
-
-/** A submit the client-side validation stopped: focus the first bad field. */
-function onValidationError(event: { errors: Array<{ name?: string }> }): void {
-  showsErrorSummary.value = true;
-  void focusField(event.errors[0]?.name);
-}
-
-const showsErrorSummary = ref(false);
+const { serverErrors, showsErrorSummary, showFieldErrors, onValidationError } =
+  formComponentErrors({
+    target: () => form.value,
+    isInstant: () => isInstant,
+    state: () => state.value,
+    focusField,
+  });
 
 const {
   loading,
@@ -171,19 +120,11 @@ const {
   effectiveSubmitDefaults,
 } = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
-watch(
+const validateServerErrors = watchFormComponentServerErrors({
   state,
-  (current) => {
-    for (const name of changedServerErrorFields(serverErrors, current)) {
-      serverErrors.delete(name);
-      form.value?.clear(fieldErrorPattern(name));
-    }
-  },
-  { deep: true },
-);
-
-const validateServerErrors = (current: typeof state.value) =>
-  keptServerErrors(serverErrors, current, !!form.value?.loading);
+  serverErrors,
+  target: () => form.value,
+});
 
 const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
@@ -292,14 +233,17 @@ useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
 const isActionForm = props.kind === "action";
 
-const cameFromAppPage = ref(false);
-onMounted(() => {
-  cameFromAppPage.value = !!previousAppPage();
+const { canCancel, cancelForm } = formComponentCancel({
+  inFormContainer,
+  container,
+  backTo: () => props.backTo,
+  isDirty: () => isDirty.value,
+  discardChanges,
+  back: () => router.back(),
+  navigate: () => {
+    if (props.backTo) void router.push(pageLink(props.backTo));
+  },
 });
-const canCancel = computed(
-  () =>
-    inFormContainer || !!container || !!props.backTo || cameFromAppPage.value,
-);
 const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
 
 /** Validates one field alone: whether it holds no error. */
@@ -331,35 +275,6 @@ const hasChangeableFields = computed(() =>
 
 const router = useDmsRouter();
 const route = useDmsRoute();
-/**
- * The page of the app this one was reached from, which the router records
- * in the history entry: none for a page opened from a link outside the app,
- * a bookmark or a new tab, where going back would leave the app.
- */
-function previousAppPage(): string | undefined {
-  const back: unknown = window.history.state?.back;
-  return isString(back) ? back : undefined;
-}
-
-/**
- * Cancel: drops what was changed, then closes the drawer or modal, or leaves
- * a page form for the page of the app the user came from (its list, when
- * opened from one), or its `backTo` when the form was opened directly.
- * Discarding first means leaving never asks about changes the user just chose
- * to drop.
- */
-function cancelForm(): void {
-  if (isDirty.value) discardChanges();
-  if (container) {
-    void container.close();
-    return;
-  }
-  if (previousAppPage()) {
-    router.back();
-    return;
-  }
-  if (props.backTo) void router.push(pageLink(props.backTo));
-}
 
 const validators = new Set<FormValidator>();
 

@@ -112,7 +112,11 @@ describe("file read URLs in the browser", () => {
     vi.setSystemTime(START_TIME);
     browserRuntime();
   });
+  registerFileUrlRefreshTests();
+  registerDeferredFileUrlTests();
+});
 
+function registerFileUrlRefreshTests() {
   it("preserves expiry and refreshes a visible URL before it expires", async () => {
     authFetch
       .mockResolvedValueOnce({
@@ -203,7 +207,9 @@ describe("file read URLs in the browser", () => {
     expect(urls.getUrl(RESOURCE_KEY)).toBeUndefined();
     scope.stop();
   });
+}
 
+function registerDeferredFileUrlTests() {
   it("does not restart refresh timers when an in-flight lookup finishes after disposal", async () => {
     // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This resolver completes an unparsed network response after disposal; the real file URL composable owns parsing, not this transport double.
     let finish!: (value: unknown) => void;
@@ -244,4 +250,4 @@ describe("file read URLs in the browser", () => {
       "https://example.test/uploaded",
     );
   });
-});
+}

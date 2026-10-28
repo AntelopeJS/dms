@@ -36,6 +36,23 @@ export interface StoreFrontendNotice {
 
 type ModuleStore = ReturnType<typeof useModuleStore>;
 
+function renderDependencyPicker(
+  entry: ModuleStoreEntry,
+  drafts: Ref<DependencyDraft[]>,
+  showErrors: boolean,
+): VNode {
+  return h(ModuleStoreDependencyPicker, {
+    missing: entry.missingInterfaces,
+    drafts: drafts.value,
+    showErrors,
+    onUpdate: (index: number, patch: Partial<DependencyDraft>) => {
+      drafts.value = drafts.value.map((draft, position) =>
+        position === index ? { ...draft, ...patch } : draft,
+      );
+    },
+  });
+}
+
 /**
  * The store's actions as both Modules views run them: the confirmations,
  * the install dialog that picks the modules for missing interfaces, and a
@@ -83,23 +100,6 @@ export const useModuleStoreActions = (
 
   /** What the owner last picked in a module's install dialog, for a retry. */
   const lastDependencyDrafts = new Map<string, DependencyDraft[]>();
-
-  function renderDependencyPicker(
-    entry: ModuleStoreEntry,
-    drafts: Ref<DependencyDraft[]>,
-    showErrors: boolean,
-  ): VNode {
-    return h(ModuleStoreDependencyPicker, {
-      missing: entry.missingInterfaces,
-      drafts: drafts.value,
-      showErrors,
-      onUpdate: (index: number, patch: Partial<DependencyDraft>) => {
-        drafts.value = drafts.value.map((draft, position) =>
-          position === index ? { ...draft, ...patch } : draft,
-        );
-      },
-    });
-  }
 
   /**
    * Asks which modules implement the interfaces the release misses, then

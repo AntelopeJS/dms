@@ -12,6 +12,49 @@ const FIELDS = ["name", "email", "password"] as const;
 const zodBody = (issues: unknown[]) => JSON.stringify(issues, null, 2);
 
 describe("resolveFieldErrors", () => {
+  registerMappedFieldErrorTests();
+  registerStructuredFieldErrorTests();
+  registerUnmatchedFieldErrorTests();
+});
+
+describe("describeApiError", () => {
+  it("words a toast from the body, its message or its first issue", () => {
+    expect(describeApiError({ data: "error.rate_limited" })).toBe(
+      "error.rate_limited",
+    );
+    expect(describeApiError({ data: { message: "$key" } })).toBe("$key");
+    expect(
+      describeApiError({
+        data: zodBody([{ code: "custom", message: "$first", path: ["x"] }]),
+      }),
+    ).toBe("$first");
+  });
+
+  it("falls back to the generic server error without a body", () => {
+    expect(describeApiError(new Error("down"))).toBe("error.500.description");
+    expect(apiErrorText(new Error("down"))).toBeUndefined();
+  });
+});
+
+describe("resolveApiMessage", () => {
+  const translate = (
+    key: string,
+    params: Parameters<Parameters<typeof resolveApiMessage>[0]>[1],
+  ) =>
+    key === "page.error.budget_max" ? `At most ${String(params.max)}` : key;
+
+  it("fills the translation's placeholders with the params", () => {
+    expect(
+      resolveApiMessage(translate, "$page.error.budget_max", { max: 5000 }),
+    ).toBe("At most 5000");
+  });
+
+  it("keeps an untranslated message as it came", () => {
+    expect(resolveApiMessage(translate, "Too big", { max: 1 })).toBe("Too big");
+  });
+});
+
+function registerMappedFieldErrorTests() {
   it("ties a mapped API code to its field, with the code as message", () => {
     expect(
       resolveFieldErrors(
@@ -99,7 +142,9 @@ describe("resolveFieldErrors", () => {
       hasUnmatched: false,
     });
   });
+}
 
+function registerStructuredFieldErrorTests() {
   it("keeps the first issue of a field and flags issues on unknown keys", () => {
     const error = {
       statusCode: 400,
@@ -198,7 +243,9 @@ describe("resolveFieldErrors", () => {
       }),
     ).toEqual({ fields: [], hasUnmatched: true });
   });
+}
 
+function registerUnmatchedFieldErrorTests() {
   it("leaves an unmapped code to the toast", () => {
     expect(
       resolveFieldErrors(
@@ -216,41 +263,4 @@ describe("resolveFieldErrors", () => {
       ),
     ).toEqual({ fields: [], hasUnmatched: true });
   });
-});
-
-describe("describeApiError", () => {
-  it("words a toast from the body, its message or its first issue", () => {
-    expect(describeApiError({ data: "error.rate_limited" })).toBe(
-      "error.rate_limited",
-    );
-    expect(describeApiError({ data: { message: "$key" } })).toBe("$key");
-    expect(
-      describeApiError({
-        data: zodBody([{ code: "custom", message: "$first", path: ["x"] }]),
-      }),
-    ).toBe("$first");
-  });
-
-  it("falls back to the generic server error without a body", () => {
-    expect(describeApiError(new Error("down"))).toBe("error.500.description");
-    expect(apiErrorText(new Error("down"))).toBeUndefined();
-  });
-});
-
-describe("resolveApiMessage", () => {
-  const translate = (
-    key: string,
-    params: Parameters<Parameters<typeof resolveApiMessage>[0]>[1],
-  ) =>
-    key === "page.error.budget_max" ? `At most ${String(params.max)}` : key;
-
-  it("fills the translation's placeholders with the params", () => {
-    expect(
-      resolveApiMessage(translate, "$page.error.budget_max", { max: 5000 }),
-    ).toBe("At most 5000");
-  });
-
-  it("keeps an untranslated message as it came", () => {
-    expect(resolveApiMessage(translate, "Too big", { max: 1 })).toBe("Too big");
-  });
-});
+}

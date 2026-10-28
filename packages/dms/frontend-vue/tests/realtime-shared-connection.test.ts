@@ -114,6 +114,11 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime across tabs", () => {
+  registerSharedConnectionDeliveryTests();
+  registerSharedConnectionRecoveryTests();
+});
+
+function registerSharedConnectionDeliveryTests() {
   it("shares one connection between every tab, each with a session of its own", async () => {
     const opened = await openTabs(TAB_COUNT);
 
@@ -218,7 +223,9 @@ describe("useUserRealtime across tabs", () => {
     await settle();
     expect(followers[2]!.received).toEqual([eventFor(2)]);
   });
+}
 
+function registerSharedConnectionRecoveryTests() {
   it("keeps the connection when the leader's stream drops, on the next one", async () => {
     const opened = await openTabs(3);
 
@@ -299,4 +306,4 @@ describe("useUserRealtime across tabs", () => {
     expect(isolated.sessionId.value).toBeDefined();
     expect(isolated.sessionId.value).not.toBe(sessionOf(first));
   });
-});
+}

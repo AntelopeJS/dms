@@ -54,17 +54,7 @@ const NOTIFICATIONS_PAGE_SIZE = 20;
 const buildListUrl = (offset: number) =>
   `${API_BASE}/list?limit=${NOTIFICATIONS_PAGE_SIZE}&offset=${offset}`;
 
-/**
- * Shared notification state of the header bell (unread count and tone,
- * popover feed) and of the settings navigation; the settings inbox is a
- * table view of its own (`dms:inbox`), which lists the feed again when these
- * counts change.
- *
- * The bell and the Notifications entry show the same badge: `unreadCount`,
- * the whole feed's unread total, in `unreadTone`. Opening the bell changes
- * neither; a notification leaves the count once opened or marked read.
- */
-export const useNotifications = () => {
+const useNotificationFeed = () => {
   const { $authFetch } = useAuthFetch();
   const { sendComponentEvent } = useComponentEvent();
   const unreadCount = useDmsState<number>(
@@ -169,6 +159,96 @@ export const useNotifications = () => {
     else await fetchBellCounts();
   };
 
+  return {
+    $authFetch,
+    sendComponentEvent,
+    unreadCount,
+    unreadTone,
+    areCountsLoaded,
+    unreadPreview,
+    notifications,
+    offset,
+    hasMore,
+    setReadState,
+    setAllRead,
+    removeFromLists,
+    emitRead,
+    emitCount,
+    fetchBellCounts,
+    readBellCounts,
+    applyBellCounts,
+    takeWriteCounts,
+  };
+};
+
+function createRemoteFeedHandlers(
+  feed: ReturnType<typeof useNotificationFeed>,
+) {
+  const {
+    setReadState,
+    unreadPreview,
+    takeWriteCounts,
+    emitRead,
+    emitCount,
+    setAllRead,
+  } = feed;
+
+  const handleRemoteRead = async (ids: string[], counts?: FeedCounts) => {
+    if (ids.length === 0) return;
+    setReadState(ids, true);
+    unreadPreview.value = unreadPreview.value.filter((n) => !n.isRead);
+    await takeWriteCounts(counts);
+    emitRead(ids);
+  };
+
+  const handleRemoteUnread = async (ids: string[], counts?: FeedCounts) => {
+    if (ids.length === 0) return;
+    setReadState(ids, false);
+    await takeWriteCounts(counts);
+    emitCount();
+  };
+
+  const handleRemoteAllRead = async (counts?: FeedCounts) => {
+    setAllRead();
+    await takeWriteCounts(counts);
+    emitCount();
+  };
+
+  return { handleRemoteRead, handleRemoteUnread, handleRemoteAllRead };
+}
+
+/**
+ * Shared notification state of the header bell (unread count and tone,
+ * popover feed) and of the settings navigation; the settings inbox is a
+ * table view of its own (`dms:inbox`), which lists the feed again when these
+ * counts change.
+ *
+ * The bell and the Notifications entry show the same badge: `unreadCount`,
+ * the whole feed's unread total, in `unreadTone`. Opening the bell changes
+ * neither; a notification leaves the count once opened or marked read.
+ */
+export const useNotifications = () => {
+  const feed = useNotificationFeed();
+  const {
+    $authFetch,
+    sendComponentEvent,
+    unreadCount,
+    unreadTone,
+    areCountsLoaded,
+    unreadPreview,
+    notifications,
+    offset,
+    hasMore,
+    setReadState,
+    removeFromLists,
+    emitRead,
+    emitCount,
+    fetchBellCounts,
+    readBellCounts,
+    applyBellCounts,
+    takeWriteCounts,
+  } = feed;
+
   const fetchUnreadPreview = async () => {
     const data = await $authFetch<UserNotification[]>(
       `${API_BASE}/unread-preview`,
@@ -232,26 +312,8 @@ export const useNotifications = () => {
     );
   };
 
-  const handleRemoteRead = async (ids: string[], counts?: FeedCounts) => {
-    if (ids.length === 0) return;
-    setReadState(ids, true);
-    unreadPreview.value = unreadPreview.value.filter((n) => !n.isRead);
-    await takeWriteCounts(counts);
-    emitRead(ids);
-  };
-
-  const handleRemoteUnread = async (ids: string[], counts?: FeedCounts) => {
-    if (ids.length === 0) return;
-    setReadState(ids, false);
-    await takeWriteCounts(counts);
-    emitCount();
-  };
-
-  const handleRemoteAllRead = async (counts?: FeedCounts) => {
-    setAllRead();
-    await takeWriteCounts(counts);
-    emitCount();
-  };
+  const { handleRemoteRead, handleRemoteUnread, handleRemoteAllRead } =
+    createRemoteFeedHandlers(feed);
 
   /**
    * A notification pushed in real time: listed first, counted unread, and its

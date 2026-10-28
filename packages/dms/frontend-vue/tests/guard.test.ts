@@ -113,6 +113,28 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Guard", () => {
+  registerGuardDataTests();
+  registerGuardNotFoundTests();
+});
+
+describe("Guard field", () => {
+  it("reads a dot path, stopping where it ends", () => {
+    expect(readFieldPath({ a: { b: 3 } }, "a.b")).toBe(3);
+    expect(readFieldPath({ a: null }, "a.b")).toBeUndefined();
+    expect(readFieldPath({ calls: 0 }, "calls")).toBe(0);
+  });
+
+  it("calls absent, null, false, 0, empty text and empty lists empty", () => {
+    for (const value of [undefined, null, false, 0, "", []]) {
+      expect(isEmptyValue(value)).toBe(true);
+    }
+    for (const value of [1, true, "x", [0], {}]) {
+      expect(isEmptyValue(value)).toBe(false);
+    }
+  });
+});
+
+function registerGuardDataTests() {
   it("reads the route like a block's data source", async () => {
     await render({ ...GUARD });
     expect(authFetch).toHaveBeenCalledWith(
@@ -188,7 +210,9 @@ describe("Guard", () => {
     const html = await render({ ...GUARD, fallback: undefined });
     expect(html).toContain("t(dms.blocks.empty)");
   });
+}
 
+function registerGuardNotFoundTests() {
   describe("when notFound", () => {
     const NOT_FOUND = {
       fetchUrl: "/api/routes/{{params.id}}",
@@ -259,21 +283,4 @@ describe("Guard", () => {
       expect(await render(NOT_FOUND)).toContain("data-children");
     });
   });
-});
-
-describe("Guard field", () => {
-  it("reads a dot path, stopping where it ends", () => {
-    expect(readFieldPath({ a: { b: 3 } }, "a.b")).toBe(3);
-    expect(readFieldPath({ a: null }, "a.b")).toBeUndefined();
-    expect(readFieldPath({ calls: 0 }, "calls")).toBe(0);
-  });
-
-  it("calls absent, null, false, 0, empty text and empty lists empty", () => {
-    for (const value of [undefined, null, false, 0, "", []]) {
-      expect(isEmptyValue(value)).toBe(true);
-    }
-    for (const value of [1, true, "x", [0], {}]) {
-      expect(isEmptyValue(value)).toBe(false);
-    }
-  });
-});
+}

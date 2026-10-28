@@ -28,274 +28,10 @@ import {
 } from "./helpers/role-permissions-fixtures";
 
 describe("role permissions", () => {
-  const index = buildPermissionIndex(TREE);
-
-  it("splits sections into areas, in the order the tree comes in", () => {
-    const areas = buildPermissionAreas(TREE, identity);
-    expect(
-      areas.map((area) => [area.node.id, area.sectionNode?.id, area.section]),
-    ).toEqual([
-      ["pages.sales", "pages", "Pages"],
-      ["settings.user", "settings", "Settings"],
-      ["media.upload.form", "media.upload", "Upload"],
-      ["examples", undefined, undefined],
-    ]);
-  });
-
-  it("sorts the collapsible rows below the section headings by depth", () => {
-    const { levels, parents } = buildPermissionLevels(
-      buildPermissionAreas(TREE, identity),
-    );
-
-    expect(levels).toEqual([
-      ["pages.sales", "settings.user"],
-      ["pages.sales.orders", "settings.user.roles", "settings.user.profile"],
-      ["settings.user.roles.table"],
-    ]);
-    expect(parents.get("settings.user.roles.table")).toBe(
-      "settings.user.roles",
-    );
-    expect(parents.has("settings.user")).toBe(false);
-  });
-
-  it("grants a permission with the nodes above it and what it depends on", () => {
-    const grant = grantPermission(
-      index,
-      new Set(),
-      "pages.sales.orders.refund",
-      anyone,
-    );
-    expect(sorted(grant.selection)).toEqual([
-      "pages",
-      "pages.sales",
-      "pages.sales.orders",
-      "pages.sales.orders.read",
-      "pages.sales.orders.refund",
-    ]);
-    expect(sorted(grant.autoAdded)).toEqual([
-      "pages",
-      "pages.sales",
-      "pages.sales.orders",
-      "pages.sales.orders.read",
-    ]);
-  });
-
-  it("grants a table's view with its edit, where the form loads the row", () => {
-    const grant = grantPermission(
-      index,
-      new Set(),
-      "settings.user.roles.table.edit",
-      anyone,
-    );
-    expect(grant.selection.has("settings.user.roles.table.view")).toBe(true);
-    expect(grant.autoAdded).toContain("settings.user.roles.table.view");
-    expect(grant.selection.has("settings.user.roles.table.list")).toBe(false);
-  });
-
-  it("leaves a dependency the user may not grant", () => {
-    const grant = grantPermission(
-      index,
-      new Set(),
-      "pages.sales.orders.refund",
-      (id) => id !== "pages.sales.orders.read",
-    );
-    expect(grant.selection.has("pages.sales.orders.read")).toBe(false);
-    expect(grant.selection.has("pages.sales.orders.refund")).toBe(true);
-  });
-
-  it("leaves the unregistered id a lifted permission sits under to the server", () => {
-    const grant = grantPermission(index, new Set(), "media.upload", anyone);
-
-    expect(sorted(grant.selection)).toEqual([
-      "media.upload",
-      "media.upload.form",
-    ]);
-    expect(grant.autoAdded).toEqual([]);
-  });
-
-  it("skips what the user may not grant", () => {
-    const grant = grantPermission(
-      index,
-      new Set(),
-      "pages.sales",
-      (id) => id !== "pages.sales.export",
-    );
-    expect(grant.selection.has("pages.sales.export")).toBe(false);
-    expect(grant.selection.has("pages.sales.orders.read")).toBe(true);
-  });
-
-  it("revokes what depends on a revoked permission, then the emptied ancestors", () => {
-    const all = new Set(index.allIds);
-    const afterRead = revokePermission(index, all, "pages.sales.orders.read");
-    expect(afterRead.has("pages.sales.orders.refund")).toBe(false);
-    expect(afterRead.has("pages.sales.orders")).toBe(false);
-    expect(afterRead.has("pages.sales")).toBe(true);
-    const afterRefund = revokePermission(
-      index,
-      all,
-      "pages.sales.orders.refund",
-    );
-    expect(afterRefund.has("pages.sales.orders.read")).toBe(true);
-    expect(afterRefund.has("pages.sales.orders")).toBe(true);
-  });
-
-  it("revokes a table's edit with its view", () => {
-    const granted = grantPermission(
-      index,
-      new Set(),
-      "settings.user.roles.table.edit",
-      anyone,
-    ).selection;
-    const revoked = revokePermission(
-      index,
-      new Set([...granted, "settings.user.roles.table.list"]),
-      "settings.user.roles.table.view",
-    );
-    expect(revoked.has("settings.user.roles.table.edit")).toBe(false);
-    expect(revoked.has("settings.user.roles.table.list")).toBe(true);
-  });
-
-  it("judges every ancestor before dropping any, like the original form", () => {
-    const next = revokePermission(
-      index,
-      new Set([
-        "settings",
-        "settings.user",
-        "settings.user.roles",
-        "settings.user.roles.table",
-        "settings.user.roles.table.list",
-      ]),
-      "settings.user.roles.table.list",
-    );
-
-    expect(sorted(next)).toEqual([
-      "settings",
-      "settings.user",
-      "settings.user.roles",
-    ]);
-  });
-
-  it("keeps ids the tree does not know", () => {
-    const next = revokePermission(
-      index,
-      new Set(["legacy.permission", "pages.sales.export"]),
-      "pages.sales.export",
-    );
-    expect([...next]).toEqual(["legacy.permission"]);
-  });
-
-  it("keeps the wildcard of a role through toggles", () => {
-    const granted = grantPermission(index, new Set(["*"]), "examples", anyone);
-    expect(granted.selection.has("*")).toBe(true);
-    const revoked = revokePermission(index, granted.selection, "examples");
-    expect(sorted(revoked)).toEqual(["*"]);
-  });
-
-  it("shows a checkbox state by the original form's rule", () => {
-    const selection = new Set(["pages.sales.orders"]);
-
-    expect(checkboxState(index, "pages.sales.orders", selection)).toBe(true);
-    expect(
-      checkboxState(
-        index,
-        "pages.sales.orders",
-        new Set(["pages.sales.orders", "pages.sales.orders.read"]),
-      ),
-    ).toBe("indeterminate");
-
-    expect(
-      checkboxState(
-        index,
-        "pages.sales.orders",
-        new Set(["pages.sales.orders.read", "pages.sales.orders.refund"]),
-      ),
-    ).toBe(false);
-  });
-
-  it("stores what the original form stored for the same clicks", () => {
-    const plain = buildPermissionIndex(withoutDependencies(TREE));
-    const random = seeded(20261001);
-    const ids = plain.allIds;
-    for (let run = 0; run < 200; run++) {
-      const start = ids.filter(() => random() < 0.3);
-      if (random() < 0.3) start.push("legacy.permission");
-      let before = [...start];
-      let after = new Set(start);
-      for (let click = 0; click < 12; click++) {
-        const id = ids[Math.floor(random() * ids.length)]!;
-        const node = plain.nodes.get(id)!;
-        const originalState = original.checkbox(before, node);
-        expect(checkboxState(plain, id, after)).toBe(originalState);
-        before = original.check(before, node, clickedValue(originalState));
-        after = editorClick(plain, after, id);
-
-        const known = before.filter(
-          (kept) => plain.nodes.has(kept) || start.includes(kept),
-        );
-        expect(sorted(after)).toEqual(sorted(known));
-      }
-    }
-  });
-
-  it("counts a subtree and reports its checkbox state", () => {
-    const count = countSelected(
-      index,
-      "pages.sales.orders",
-      new Set(["pages.sales.orders", "pages.sales.orders.read"]),
-    );
-    expect(count).toEqual({ selected: 2, total: 3 });
-    expect(selectionState(count)).toBe("indeterminate");
-    expect(selectionState({ selected: 3, total: 3 })).toBe(true);
-    expect(selectionState({ selected: 0, total: 3 })).toBe(false);
-  });
-
-  it("finds permissions under the path that locates them", () => {
-    const hits = searchPermissions(
-      index,
-      buildPermissionAreas(TREE, identity),
-      "refund",
-      identity,
-    );
-    expect(hits).toEqual([
-      {
-        heading: "Pages › Sales › Orders",
-        node: expect.objectContaining({ id: "pages.sales.orders.refund" }),
-        areaId: "pages.sales",
-      },
-    ]);
-  });
-
-  it("finds the section and area headings too", () => {
-    const hits = searchPermissions(
-      index,
-      buildPermissionAreas(TREE, identity),
-      "settings",
-      identity,
-    );
-    expect(hits.map((hit) => [hit.node.id, hit.heading, hit.areaId])).toEqual(
-      expect.arrayContaining([
-        ["settings", "", "settings"],
-        ["settings.user", "Settings", "settings.user"],
-        ["settings.user.roles", "Settings › User settings", "settings.user"],
-      ]),
-    );
-  });
-
-  it("marks every occurrence of the query", () => {
-    expect(highlightSegments("Refund refunds", "refund")).toEqual([
-      { text: "Refund", isMatch: true },
-      { text: " ", isMatch: false },
-      { text: "refund", isMatch: true },
-      { text: "s", isMatch: false },
-    ]);
-  });
-
-  it("diffs the selection against the saved permissions", () => {
-    expect(diffPermissions(["a", "b"], new Set(["b", "c"]))).toEqual({
-      added: ["c"],
-      removed: ["a"],
-    });
-  });
+  const fixture = createRolePermissionsFixture();
+  registerPermissionGrantTests(fixture);
+  registerPermissionRevokeTests(fixture);
+  registerPermissionSelectionTests(fixture);
 });
 
 const INVOICES = "pages.billing.invoices.table";
@@ -387,3 +123,307 @@ describe("table actions depending on the list", () => {
     expect([...kept]).toEqual([["a", ["b"]]]);
   });
 });
+
+function createRolePermissionsFixture() {
+  const index = buildPermissionIndex(TREE);
+  return { index };
+}
+
+function registerPermissionGrantTests(
+  fixture: ReturnType<typeof createRolePermissionsFixture>,
+) {
+  it("splits sections into areas, in the order the tree comes in", () => {
+    const areas = buildPermissionAreas(TREE, identity);
+    expect(
+      areas.map((area) => [area.node.id, area.sectionNode?.id, area.section]),
+    ).toEqual([
+      ["pages.sales", "pages", "Pages"],
+      ["settings.user", "settings", "Settings"],
+      ["media.upload.form", "media.upload", "Upload"],
+      ["examples", undefined, undefined],
+    ]);
+  });
+
+  it("sorts the collapsible rows below the section headings by depth", () => {
+    const { levels, parents } = buildPermissionLevels(
+      buildPermissionAreas(TREE, identity),
+    );
+
+    expect(levels).toEqual([
+      ["pages.sales", "settings.user"],
+      ["pages.sales.orders", "settings.user.roles", "settings.user.profile"],
+      ["settings.user.roles.table"],
+    ]);
+    expect(parents.get("settings.user.roles.table")).toBe(
+      "settings.user.roles",
+    );
+    expect(parents.has("settings.user")).toBe(false);
+  });
+
+  it("grants a permission with the nodes above it and what it depends on", () => {
+    const grant = grantPermission(
+      fixture.index,
+      new Set(),
+      "pages.sales.orders.refund",
+      anyone,
+    );
+    expect(sorted(grant.selection)).toEqual([
+      "pages",
+      "pages.sales",
+      "pages.sales.orders",
+      "pages.sales.orders.read",
+      "pages.sales.orders.refund",
+    ]);
+    expect(sorted(grant.autoAdded)).toEqual([
+      "pages",
+      "pages.sales",
+      "pages.sales.orders",
+      "pages.sales.orders.read",
+    ]);
+  });
+
+  it("grants a table's view with its edit, where the form loads the row", () => {
+    const grant = grantPermission(
+      fixture.index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    );
+    expect(grant.selection.has("settings.user.roles.table.view")).toBe(true);
+    expect(grant.autoAdded).toContain("settings.user.roles.table.view");
+    expect(grant.selection.has("settings.user.roles.table.list")).toBe(false);
+  });
+
+  it("leaves a dependency the user may not grant", () => {
+    const grant = grantPermission(
+      fixture.index,
+      new Set(),
+      "pages.sales.orders.refund",
+      (id) => id !== "pages.sales.orders.read",
+    );
+    expect(grant.selection.has("pages.sales.orders.read")).toBe(false);
+    expect(grant.selection.has("pages.sales.orders.refund")).toBe(true);
+  });
+
+  it("leaves the unregistered id a lifted permission sits under to the server", () => {
+    const grant = grantPermission(
+      fixture.index,
+      new Set(),
+      "media.upload",
+      anyone,
+    );
+
+    expect(sorted(grant.selection)).toEqual([
+      "media.upload",
+      "media.upload.form",
+    ]);
+    expect(grant.autoAdded).toEqual([]);
+  });
+
+  it("skips what the user may not grant", () => {
+    const grant = grantPermission(
+      fixture.index,
+      new Set(),
+      "pages.sales",
+      (id) => id !== "pages.sales.export",
+    );
+    expect(grant.selection.has("pages.sales.export")).toBe(false);
+    expect(grant.selection.has("pages.sales.orders.read")).toBe(true);
+  });
+}
+
+function registerPermissionRevokeTests(
+  fixture: ReturnType<typeof createRolePermissionsFixture>,
+) {
+  it("revokes what depends on a revoked permission, then the emptied ancestors", () => {
+    const all = new Set(fixture.index.allIds);
+    const afterRead = revokePermission(
+      fixture.index,
+      all,
+      "pages.sales.orders.read",
+    );
+    expect(afterRead.has("pages.sales.orders.refund")).toBe(false);
+    expect(afterRead.has("pages.sales.orders")).toBe(false);
+    expect(afterRead.has("pages.sales")).toBe(true);
+    const afterRefund = revokePermission(
+      fixture.index,
+      all,
+      "pages.sales.orders.refund",
+    );
+    expect(afterRefund.has("pages.sales.orders.read")).toBe(true);
+    expect(afterRefund.has("pages.sales.orders")).toBe(true);
+  });
+
+  it("revokes a table's edit with its view", () => {
+    const granted = grantPermission(
+      fixture.index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    ).selection;
+    const revoked = revokePermission(
+      fixture.index,
+      new Set([...granted, "settings.user.roles.table.list"]),
+      "settings.user.roles.table.view",
+    );
+    expect(revoked.has("settings.user.roles.table.edit")).toBe(false);
+    expect(revoked.has("settings.user.roles.table.list")).toBe(true);
+  });
+
+  it("judges every ancestor before dropping any, like the original form", () => {
+    const next = revokePermission(
+      fixture.index,
+      new Set([
+        "settings",
+        "settings.user",
+        "settings.user.roles",
+        "settings.user.roles.table",
+        "settings.user.roles.table.list",
+      ]),
+      "settings.user.roles.table.list",
+    );
+
+    expect(sorted(next)).toEqual([
+      "settings",
+      "settings.user",
+      "settings.user.roles",
+    ]);
+  });
+
+  it("keeps ids the tree does not know", () => {
+    const next = revokePermission(
+      fixture.index,
+      new Set(["legacy.permission", "pages.sales.export"]),
+      "pages.sales.export",
+    );
+    expect([...next]).toEqual(["legacy.permission"]);
+  });
+
+  it("keeps the wildcard of a role through toggles", () => {
+    const granted = grantPermission(
+      fixture.index,
+      new Set(["*"]),
+      "examples",
+      anyone,
+    );
+    expect(granted.selection.has("*")).toBe(true);
+    const revoked = revokePermission(
+      fixture.index,
+      granted.selection,
+      "examples",
+    );
+    expect(sorted(revoked)).toEqual(["*"]);
+  });
+
+  it("shows a checkbox state by the original form's rule", () => {
+    const selection = new Set(["pages.sales.orders"]);
+
+    expect(checkboxState(fixture.index, "pages.sales.orders", selection)).toBe(
+      true,
+    );
+    expect(
+      checkboxState(
+        fixture.index,
+        "pages.sales.orders",
+        new Set(["pages.sales.orders", "pages.sales.orders.read"]),
+      ),
+    ).toBe("indeterminate");
+
+    expect(
+      checkboxState(
+        fixture.index,
+        "pages.sales.orders",
+        new Set(["pages.sales.orders.read", "pages.sales.orders.refund"]),
+      ),
+    ).toBe(false);
+  });
+}
+
+function registerPermissionSelectionTests(
+  fixture: ReturnType<typeof createRolePermissionsFixture>,
+) {
+  it("stores what the original form stored for the same clicks", () => {
+    const plain = buildPermissionIndex(withoutDependencies(TREE));
+    const random = seeded(20261001);
+    const ids = plain.allIds;
+    for (let run = 0; run < 200; run++) {
+      const start = ids.filter(() => random() < 0.3);
+      if (random() < 0.3) start.push("legacy.permission");
+      let before = [...start];
+      let after = new Set(start);
+      for (let click = 0; click < 12; click++) {
+        const id = ids[Math.floor(random() * ids.length)]!;
+        const node = plain.nodes.get(id)!;
+        const originalState = original.checkbox(before, node);
+        expect(checkboxState(plain, id, after)).toBe(originalState);
+        before = original.check(before, node, clickedValue(originalState));
+        after = editorClick(plain, after, id);
+
+        const known = before.filter(
+          (kept) => plain.nodes.has(kept) || start.includes(kept),
+        );
+        expect(sorted(after)).toEqual(sorted(known));
+      }
+    }
+  });
+
+  it("counts a subtree and reports its checkbox state", () => {
+    const count = countSelected(
+      fixture.index,
+      "pages.sales.orders",
+      new Set(["pages.sales.orders", "pages.sales.orders.read"]),
+    );
+    expect(count).toEqual({ selected: 2, total: 3 });
+    expect(selectionState(count)).toBe("indeterminate");
+    expect(selectionState({ selected: 3, total: 3 })).toBe(true);
+    expect(selectionState({ selected: 0, total: 3 })).toBe(false);
+  });
+
+  it("finds permissions under the path that locates them", () => {
+    const hits = searchPermissions(
+      fixture.index,
+      buildPermissionAreas(TREE, identity),
+      "refund",
+      identity,
+    );
+    expect(hits).toEqual([
+      {
+        heading: "Pages › Sales › Orders",
+        node: expect.objectContaining({ id: "pages.sales.orders.refund" }),
+        areaId: "pages.sales",
+      },
+    ]);
+  });
+
+  it("finds the section and area headings too", () => {
+    const hits = searchPermissions(
+      fixture.index,
+      buildPermissionAreas(TREE, identity),
+      "settings",
+      identity,
+    );
+    expect(hits.map((hit) => [hit.node.id, hit.heading, hit.areaId])).toEqual(
+      expect.arrayContaining([
+        ["settings", "", "settings"],
+        ["settings.user", "Settings", "settings.user"],
+        ["settings.user.roles", "Settings › User settings", "settings.user"],
+      ]),
+    );
+  });
+
+  it("marks every occurrence of the query", () => {
+    expect(highlightSegments("Refund refunds", "refund")).toEqual([
+      { text: "Refund", isMatch: true },
+      { text: " ", isMatch: false },
+      { text: "refund", isMatch: true },
+      { text: "s", isMatch: false },
+    ]);
+  });
+
+  it("diffs the selection against the saved permissions", () => {
+    expect(diffPermissions(["a", "b"], new Set(["b", "c"]))).toEqual({
+      added: ["c"],
+      removed: ["a"],
+    });
+  });
+}

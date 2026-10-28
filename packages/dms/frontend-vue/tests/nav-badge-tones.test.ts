@@ -117,40 +117,40 @@ describe("the counts a page visit carries", () => {
   });
 });
 
-describe("NavigationMenu badges", () => {
-  const MenuStub = defineComponent({
-    props: {
-      items: {
-        // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
-        type: Array as PropType<NavigationMenuItem[][]>,
-        required: true,
-      },
+const MenuStub = defineComponent({
+  props: {
+    items: {
+      // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
+      type: Array as PropType<NavigationMenuItem[][]>,
+      required: true,
     },
-    setup(props, { slots }) {
-      const renderItem = (item: NavigationMenuItem): VNode =>
-        h(
-          "div",
-          {
-            "data-entry": item.fullId,
-            "data-badge": item.badge?.label,
-            "data-color": item.badge?.color,
-            "data-variant": item.badge?.variant,
-            "data-prefetch": String(item.prefetch),
-            "data-trailing-icon": item.trailingIcon,
-          },
-          [
-            slots["item-leading"]?.({
-              item,
-              active: item.active,
-              ui: { linkLeadingIcon: () => "size-4" },
-            }),
-            ...(item.children?.map(renderItem) ?? []),
-          ],
-        );
-      return () => h("nav", props.items.flat().map(renderItem));
-    },
-  });
+  },
+  setup(props, { slots }) {
+    const renderItem = (item: NavigationMenuItem): VNode =>
+      h(
+        "div",
+        {
+          "data-entry": item.fullId,
+          "data-badge": item.badge?.label,
+          "data-color": item.badge?.color,
+          "data-variant": item.badge?.variant,
+          "data-prefetch": String(item.prefetch),
+          "data-trailing-icon": item.trailingIcon,
+        },
+        [
+          slots["item-leading"]?.({
+            item,
+            active: item.active,
+            ui: { linkLeadingIcon: () => "size-4" },
+          }),
+          ...(item.children?.map(renderItem) ?? []),
+        ],
+      );
+    return () => h("nav", props.items.flat().map(renderItem));
+  },
+});
 
+describe("NavigationMenu badges", () => {
   const ITEMS = [
     { label: "Plain", fullId: "pages.plain", to: "/plain", badge: "7" },
     {

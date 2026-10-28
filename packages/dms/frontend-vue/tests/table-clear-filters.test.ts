@@ -203,6 +203,12 @@ describe("clearing the search or the filters alone", () => {
 });
 
 describe("table empty state", () => {
+  const fixture = createTableClearFiltersFixture();
+  registerEmptyStateClearTests(fixture);
+  registerEmptyStateCustomTests(fixture);
+});
+
+function createTableClearFiltersFixture() {
   let app: App | undefined;
 
   const mountEmpty = (
@@ -257,14 +263,19 @@ describe("table empty state", () => {
     app = undefined;
     vi.unstubAllGlobals();
   });
+  return { mountEmpty };
+}
 
+function registerEmptyStateClearTests(
+  fixture: ReturnType<typeof createTableClearFiltersFixture>,
+) {
   it("clears the filters and the search from the no-results state", async () => {
     const state = createState({
       columnFilters: [dueDate],
       globalFilter: "dfgdf",
       pageIndex: 1,
     });
-    const container = mountEmpty(state);
+    const container = fixture.mountEmpty(state);
 
     expect(container.textContent).toContain("dms.table.no_results_title");
     const button = container.querySelector("button")!;
@@ -283,7 +294,7 @@ describe("table empty state", () => {
 
   it("offers to clear a search alone", async () => {
     const state = createState({ globalFilter: "dfgdf" });
-    const container = mountEmpty(state);
+    const container = fixture.mountEmpty(state);
 
     const button = container.querySelector("button")!;
     expect(button.textContent).toBe("dms.table.clear_search");
@@ -293,7 +304,7 @@ describe("table empty state", () => {
   });
 
   it("says no row matches, not that there are none yet, under hidden filters", () => {
-    const container = mountEmpty({
+    const container = fixture.mountEmpty({
       ...createState(),
       hiddenFiltersApply: ref(true),
     });
@@ -322,7 +333,7 @@ describe("table empty state", () => {
       columnFilters: [dueDate],
       globalFilter: "late",
     });
-    mountEmpty(state, {
+    fixture.mountEmpty(state, {
       filtered: { title: "", component: { componentName: "LogsEmpty" } },
     });
     const props = received.at(-1)!;
@@ -335,7 +346,11 @@ describe("table empty state", () => {
     received.at(-1)!.clearFilters!();
     expect(state.columnFilters.value).toEqual([]);
   });
+}
 
+function registerEmptyStateCustomTests(
+  fixture: ReturnType<typeof createTableClearFiltersFixture>,
+) {
   it("lets a component inside the table clear through useTableViewEmptyState", async () => {
     const state = createState({
       columnFilters: [dueDate],
@@ -350,7 +365,7 @@ describe("table empty state", () => {
         },
       }),
     );
-    mountEmpty(state, {
+    fixture.mountEmpty(state, {
       filtered: { title: "", component: { componentName: "LogsEmpty" } },
     });
     expect(controls!.search.value).toBe("late");
@@ -365,10 +380,10 @@ describe("table empty state", () => {
   });
 
   it("offers no clear action when only default filters narrow the rows", () => {
-    const container = mountEmpty(
+    const container = fixture.mountEmpty(
       createState({ columnFilters: [pinnedStatus("open")] }),
     );
     expect(container.textContent).toContain("dms.table.no_results_title");
     expect(container.querySelector("button")).toBeNull();
   });
-});
+}

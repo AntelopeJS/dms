@@ -35,6 +35,11 @@ interface PageRoute {
 }
 
 describe("source tables", () => {
+  registerTableSourceQueryTests();
+  registerTableSourceUrlTests();
+});
+
+function registerTableSourceQueryTests() {
   it("sends the route only the part of the query it handles", () => {
     const query = {
       search: "orders",
@@ -125,7 +130,9 @@ describe("source tables", () => {
       body: { queries: [{ id: "all", query: {} }] },
     });
   });
+}
 
+function registerTableSourceUrlTests() {
   describe("with a templated fetchUrl", () => {
     const FETCH_URL = "/api/ws/{{params.id}}/requests?route={{query.route}}";
 
@@ -228,4 +235,4 @@ describe("source tables", () => {
       expect(api).not.toHaveBeenCalled();
     });
   });
-});
+}

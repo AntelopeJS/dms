@@ -141,205 +141,8 @@ describe("module store catalog", () => {
     expect(actionKinds(listingEntry("a", { state: "busy" }))).toEqual([]);
   });
 
-  it("asks for confirmation before uninstalling only", () => {
-    const confirmed = storeActions(listingEntry("a", { state: "disabled" }))
-      .filter((action) => action.confirm)
-      .map((action) => action.kind);
-    expect(confirmed).toEqual(["uninstall"]);
-  });
-
-  it("says an installed module's state on its pill, the store's first", () => {
-    const module = {
-      id: "a",
-      title: "A",
-      description: "",
-      icon: "i-ph-cube",
-      hasAccess: true,
-      landingSlug: "/modules/a/home",
-    };
-    const pill = (overrides: Partial<StoreListingEntry>) =>
-      installedTileStatus(module, listingEntry("a", overrides));
-    expect(pill({ state: "active" })).toEqual({
-      tone: "success",
-      labelKey: "modules.status.live",
-    });
-    expect(pill({ state: "disabled" })).toEqual({
-      tone: "warning",
-      labelKey: "modules.store.state.disabled",
-    });
-    expect(pill({ state: "error" }).tone).toBe("error");
-    expect(pill({ state: "busy" }).dot).toBe("live");
-    expect(pill({ state: "active", updateAvailable: true }).labelKey).toBe(
-      "modules.status.update",
-    );
-    expect(pill({ state: "active", frontend: "pending" }).labelKey).toBe(
-      "modules.status.restart_required",
-    );
-    expect(
-      installedTileStatus({ ...module, status: "attention" }, undefined)
-        .labelKey,
-    ).toBe("modules.status.attention");
-  });
-
-  it("lists the installed modules that register nothing among the installed", () => {
-    const paused = storeEntry("media", {
-      state: "disabled",
-      installedVersion: "0.5.0",
-      source: "npm",
-    });
-    const running = storeEntry("lang", {
-      state: "active",
-      installedVersion: "0.2.0",
-    });
-    const available = storeEntry("cms");
-    const listed = storeOnlyModules(
-      [paused, running, available],
-      [{ id: "lang" }],
-    );
-    expect(listed).toEqual([
-      expect.objectContaining({
-        id: "media",
-        version: "0.5.0",
-        source: "npm",
-        landingSlug: "",
-        catalogCategory: paused.catalogCategory,
-      }),
-    ]);
-  });
-
-  it("words why a store action waits", () => {
-    const t = (key: string, params?: Record<string, string>) =>
-      `${key}${params ? JSON.stringify(params) : ""}`;
-    const used = listingEntry("a", {
-      state: "active",
-      usedByProject: true,
-      latestVersion: "1.0.0",
-    });
-    expect(storeBlockMessage(used, "uninstall", t)).toBe(
-      "modules.store.used_by_project",
-    );
-    expect(storeBlockMessage(used, "update", t)).toBeUndefined();
-  });
-
-  it("names every source in both locales", () => {
-    for (const messages of [en, fr]) {
-      for (const source of ["npm", "github", "gitlab", "git", "local"]) {
-        expect(lookup(messages, `modules.source.${source}`)).toEqual(
-          expect.any(String),
-        );
-      }
-    }
-  });
-
-  it("waits on the frontend only once the operation is over", () => {
-    expect(isAwaitingFrontend(listingEntry("a", { frontend: "pending" }))).toBe(
-      true,
-    );
-    expect(
-      isAwaitingFrontend(
-        listingEntry("a", { state: "busy", frontend: "pending" }),
-      ),
-    ).toBe(false);
-    expect(isAwaitingFrontend(listingEntry("a", { frontend: "unknown" }))).toBe(
-      false,
-    );
-  });
-
-  it("searches the name, description, category and id", () => {
-    const search = (query: string) =>
-      filterModules(catalog, {
-        query,
-        category: MODULE_CATEGORY_ALL,
-        resolve,
-      }).map((entry) => entry.id);
-    expect(search("translat")).toEqual(["lang"]);
-    expect(search("ASSET")).toEqual(["media"]);
-    expect(search("content")).toEqual(["media", "lang"]);
-    expect(search("  ai ")).toEqual(["ai"]);
-    expect(search("payments")).toEqual([]);
-  });
-
-  it("offers the categories present, with their counts", () => {
-    expect(moduleCategoryOptions(catalog, resolve)).toEqual([
-      { value: "AI", label: "AI", count: 1 },
-      { value: "Content", label: "Content", count: 2 },
-      { value: "Data", label: "Data", count: 1 },
-    ]);
-  });
-
-  it("merges two category keys that read the same into one option", () => {
-    const sameName = [
-      storeEntry("media", {
-        catalogCategory: "$modules.store.category.content",
-      }),
-      storeEntry("lang", { catalogCategory: "Content" }),
-      storeEntry("database"),
-    ];
-    const options = moduleCategoryOptions(sameName, resolve);
-    expect(options.map((option) => [option.label, option.count])).toEqual([
-      ["Content", 2],
-      ["Data", 1],
-    ]);
-    expect(
-      filterModules(sameName, {
-        query: "",
-        category: options[0].value,
-        resolve,
-      }).map((entry) => entry.id),
-    ).toEqual(["media", "lang"]);
-  });
-
-  it("shows a working copy as active and installed, with no action", () => {
-    const entry = listingEntry("media", {
-      state: "active",
-      installedVersion: "0.5.0",
-      isWorkingCopy: true,
-    });
-    expect(filterByScope([entry], "installed")).toEqual([entry]);
-    expect(storeActions(entry)).toEqual([]);
-  });
-
-  it("fills the version and category an installed module does not register", () => {
-    const { installed, store } = versionDetailsFixture();
-    const [media, api] = withStoreDetails(installed, store);
-    expect(media.version).toBe("0.5.0");
-    expect(media.source).toBe("npm");
-    expect(api.source).toBe("github");
-    expect(media.catalogCategory).toBe("$modules.store.category.content");
-    expect(api.version).toBe("0.4.1");
-    expect(api.catalogCategory).toBe("$api.category");
-
-    expect(
-      withStoreDetails(installed, [
-        listingEntry("media", { installedVersion: "^0.5.0" }),
-      ])[0].version,
-    ).toBeUndefined();
-  });
-
-  it("files a module under one category on its installed and store tiles", () => {
-    const installed = categoryInstalledFixture();
-    const listing = [
-      listingEntry("mailing", {
-        category: "growth",
-        installedVersion: "1.0.0",
-      }),
-      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
-      listingEntry("ai", { category: "ai" }),
-    ];
-    const tiles = withStoreDetails(installed, listing);
-    const store = listing.map((entry) => toModuleStoreEntry(entry, installed));
-    for (const tile of tiles) {
-      expect(store.find((entry) => entry.id === tile.id)?.catalogCategory).toBe(
-        tile.catalogCategory,
-      );
-    }
-    expect(tiles.map((tile) => tile.catalogCategory)).toEqual([
-      "$dms_mailing.catalog_category",
-      "$modules.store.category.content",
-    ]);
-
-    expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
-  });
+  registerCatalogActionTests();
+  registerCatalogMetadataTests();
 });
 
 describe("module store blocked actions", () => {
@@ -531,3 +334,207 @@ describe("storeOpenTarget", () => {
     expect(storeOpenTarget({ id: "media" }, installed)).toBeUndefined();
   });
 });
+
+function registerCatalogActionTests() {
+  it("asks for confirmation before uninstalling only", () => {
+    const confirmed = storeActions(listingEntry("a", { state: "disabled" }))
+      .filter((action) => action.confirm)
+      .map((action) => action.kind);
+    expect(confirmed).toEqual(["uninstall"]);
+  });
+
+  it("says an installed module's state on its pill, the store's first", () => {
+    const module = {
+      id: "a",
+      title: "A",
+      description: "",
+      icon: "i-ph-cube",
+      hasAccess: true,
+      landingSlug: "/modules/a/home",
+    };
+    const pill = (overrides: Partial<StoreListingEntry>) =>
+      installedTileStatus(module, listingEntry("a", overrides));
+    expect(pill({ state: "active" })).toEqual({
+      tone: "success",
+      labelKey: "modules.status.live",
+    });
+    expect(pill({ state: "disabled" })).toEqual({
+      tone: "warning",
+      labelKey: "modules.store.state.disabled",
+    });
+    expect(pill({ state: "error" }).tone).toBe("error");
+    expect(pill({ state: "busy" }).dot).toBe("live");
+    expect(pill({ state: "active", updateAvailable: true }).labelKey).toBe(
+      "modules.status.update",
+    );
+    expect(pill({ state: "active", frontend: "pending" }).labelKey).toBe(
+      "modules.status.restart_required",
+    );
+    expect(
+      installedTileStatus({ ...module, status: "attention" }, undefined)
+        .labelKey,
+    ).toBe("modules.status.attention");
+  });
+
+  it("lists the installed modules that register nothing among the installed", () => {
+    const paused = storeEntry("media", {
+      state: "disabled",
+      installedVersion: "0.5.0",
+      source: "npm",
+    });
+    const running = storeEntry("lang", {
+      state: "active",
+      installedVersion: "0.2.0",
+    });
+    const available = storeEntry("cms");
+    const listed = storeOnlyModules(
+      [paused, running, available],
+      [{ id: "lang" }],
+    );
+    expect(listed).toEqual([
+      expect.objectContaining({
+        id: "media",
+        version: "0.5.0",
+        source: "npm",
+        landingSlug: "",
+        catalogCategory: paused.catalogCategory,
+      }),
+    ]);
+  });
+
+  it("words why a store action waits", () => {
+    const t = (key: string, params?: Record<string, string>) =>
+      `${key}${params ? JSON.stringify(params) : ""}`;
+    const used = listingEntry("a", {
+      state: "active",
+      usedByProject: true,
+      latestVersion: "1.0.0",
+    });
+    expect(storeBlockMessage(used, "uninstall", t)).toBe(
+      "modules.store.used_by_project",
+    );
+    expect(storeBlockMessage(used, "update", t)).toBeUndefined();
+  });
+
+  it("names every source in both locales", () => {
+    for (const messages of [en, fr]) {
+      for (const source of ["npm", "github", "gitlab", "git", "local"]) {
+        expect(lookup(messages, `modules.source.${source}`)).toEqual(
+          expect.any(String),
+        );
+      }
+    }
+  });
+}
+
+function registerCatalogMetadataTests() {
+  it("waits on the frontend only once the operation is over", () => {
+    expect(isAwaitingFrontend(listingEntry("a", { frontend: "pending" }))).toBe(
+      true,
+    );
+    expect(
+      isAwaitingFrontend(
+        listingEntry("a", { state: "busy", frontend: "pending" }),
+      ),
+    ).toBe(false);
+    expect(isAwaitingFrontend(listingEntry("a", { frontend: "unknown" }))).toBe(
+      false,
+    );
+  });
+
+  it("searches the name, description, category and id", () => {
+    const search = (query: string) =>
+      filterModules(catalog, {
+        query,
+        category: MODULE_CATEGORY_ALL,
+        resolve,
+      }).map((entry) => entry.id);
+    expect(search("translat")).toEqual(["lang"]);
+    expect(search("ASSET")).toEqual(["media"]);
+    expect(search("content")).toEqual(["media", "lang"]);
+    expect(search("  ai ")).toEqual(["ai"]);
+    expect(search("payments")).toEqual([]);
+  });
+
+  it("offers the categories present, with their counts", () => {
+    expect(moduleCategoryOptions(catalog, resolve)).toEqual([
+      { value: "AI", label: "AI", count: 1 },
+      { value: "Content", label: "Content", count: 2 },
+      { value: "Data", label: "Data", count: 1 },
+    ]);
+  });
+
+  it("merges two category keys that read the same into one option", () => {
+    const sameName = [
+      storeEntry("media", {
+        catalogCategory: "$modules.store.category.content",
+      }),
+      storeEntry("lang", { catalogCategory: "Content" }),
+      storeEntry("database"),
+    ];
+    const options = moduleCategoryOptions(sameName, resolve);
+    expect(options.map((option) => [option.label, option.count])).toEqual([
+      ["Content", 2],
+      ["Data", 1],
+    ]);
+    expect(
+      filterModules(sameName, {
+        query: "",
+        category: options[0].value,
+        resolve,
+      }).map((entry) => entry.id),
+    ).toEqual(["media", "lang"]);
+  });
+
+  it("shows a working copy as active and installed, with no action", () => {
+    const entry = listingEntry("media", {
+      state: "active",
+      installedVersion: "0.5.0",
+      isWorkingCopy: true,
+    });
+    expect(filterByScope([entry], "installed")).toEqual([entry]);
+    expect(storeActions(entry)).toEqual([]);
+  });
+
+  it("fills the version and category an installed module does not register", () => {
+    const { installed, store } = versionDetailsFixture();
+    const [media, api] = withStoreDetails(installed, store);
+    expect(media.version).toBe("0.5.0");
+    expect(media.source).toBe("npm");
+    expect(api.source).toBe("github");
+    expect(media.catalogCategory).toBe("$modules.store.category.content");
+    expect(api.version).toBe("0.4.1");
+    expect(api.catalogCategory).toBe("$api.category");
+
+    expect(
+      withStoreDetails(installed, [
+        listingEntry("media", { installedVersion: "^0.5.0" }),
+      ])[0].version,
+    ).toBeUndefined();
+  });
+
+  it("files a module under one category on its installed and store tiles", () => {
+    const installed = categoryInstalledFixture();
+    const listing = [
+      listingEntry("mailing", {
+        category: "growth",
+        installedVersion: "1.0.0",
+      }),
+      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
+      listingEntry("ai", { category: "ai" }),
+    ];
+    const tiles = withStoreDetails(installed, listing);
+    const store = listing.map((entry) => toModuleStoreEntry(entry, installed));
+    for (const tile of tiles) {
+      expect(store.find((entry) => entry.id === tile.id)?.catalogCategory).toBe(
+        tile.catalogCategory,
+      );
+    }
+    expect(tiles.map((tile) => tile.catalogCategory)).toEqual([
+      "$dms_mailing.catalog_category",
+      "$modules.store.category.content",
+    ]);
+
+    expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
+  });
+}

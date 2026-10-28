@@ -188,6 +188,12 @@ afterEach(() => {
 });
 
 describe("GithubStarPrompt", () => {
+  registerStarPromptTimingTests();
+  registerStarPromptObstructionTests();
+  registerStarPromptEligibilityTests();
+});
+
+function registerStarPromptTimingTests() {
   it("stays hidden before 15 minutes of use", async () => {
     await mount();
     await advance(GITHUB_STAR_PROMPT_DELAY_MS - GITHUB_STAR_PROMPT_TICK_MS);
@@ -300,7 +306,9 @@ describe("GithubStarPrompt", () => {
     await advance(GITHUB_STAR_PROMPT_SNOOZE_MS);
     expect(prompt()).toBeNull();
   });
+}
 
+function registerStarPromptObstructionTests() {
   it("steps aside while a toast is up", async () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     toasts.value = [{ id: 1 }];
@@ -423,7 +431,9 @@ describe("GithubStarPrompt", () => {
 
     expect(prompt()).not.toBeNull();
   });
+}
 
+function registerStarPromptEligibilityTests() {
   it("renders nothing without a signed-in user", async () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     user.value = null;
@@ -451,4 +461,4 @@ describe("GithubStarPrompt", () => {
     expect(setItem).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
-});
+}
