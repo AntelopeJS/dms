@@ -72,7 +72,7 @@ The docs tsconfig in `packages/interface-dms/docs` maps `@antelopejs/interface-d
 
 ## Guardrails
 
-Finish every change with `pnpm run checks`. It runs typecheck, lint, format, knip, tests, size, ratchet, and sync, and prints only what failed. The change is done when it prints no failure.
+Finish every change with `pnpm run checks`. It runs typecheck, lint, format, knip, tests, size, and sync, and prints only what failed. The change is done when it prints no failure.
 
 The tools enforce most rules, listed in the table at the end. The sections below hold the rules no tool checks.
 
@@ -102,10 +102,6 @@ Pass `--probe <file.cjs>` to api-diff when changing receivers, positional calls,
 
 An entry-only rule exempts only its own module. Add a second module entry rather than exempting another importer. A no-upward rule must reject peers in the same tier as well as higher tiers. Probe the rank decision with an import, not just a reading of the configuration.
 
-### Debt
-
-`guardrails.ratchet.json` records the lint findings and oversize files this repository already had. Its numbers only go down. After you remove debt, run `pnpm run ratchet:update` and commit the lowered file. A rule listed there is off for `oxlint`. The ratchet counts it instead, and the pre-commit hook rejects it on every line you add.
-
 ### What enforces what
 
 | Rule                                                                           | Enforced by                                         |
@@ -130,6 +126,5 @@ An entry-only rule exempts only its own module. Add a second module entry rather
 | Managed files match the pack                                                   | `antelopejs-sync --check`                           |
 | Entry-only rules exempt no tracked outsider                                    | `antelopejs-sync --check`                           |
 | A test names the wrong implementation it catches                               | review; no tool                                     |
-| Existing debt only shrinks                                                     | `antelopejs-ratchet`                                |
 
 <!-- antelopejs-guardrails:end -->

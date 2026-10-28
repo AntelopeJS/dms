@@ -1,13 +1,3 @@
-// Downloads the month's DB-IP Country Lite database into `data/`, where the
-// sign-in country lookup reads it (`src/utils/sign-in-country.ts`). Runs from
-// `prepack`, so every release ships the edition current on its publish day;
-// the file stays out of git. DB-IP publishes a new edition at the start of
-// each month, so the previous month's is the fallback while the new one is not
-// out yet.
-//
-// The database is licensed under CC BY 4.0 (https://db-ip.com, no account
-// needed); `data/NOTICE.md` carries the attribution the licence asks for.
-
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

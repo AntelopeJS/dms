@@ -1,14 +1,3 @@
-// Captures the block screenshots of the documentation: each example of
-// docs-data/examples.json, drawn by a running DMS's /dms-preview page, light
-// and dark, cropped to the blocks, into docs/images/blocks/<id>.<theme>.png.
-// The docs fall back on these images when no live preview answers.
-//
-//   pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>] [--theme <light|dark>]
-//
-// The DMS has to run with the preview enabled (`docsPreview: true` or
-// DMS_DOCS_PREVIEW=1), as the playground does. Defaults to the playground's
-// frontend, http://localhost:3001, or DMS_PREVIEW_URL when set.
-
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,8 +11,6 @@ const DEFAULT_WIDTH = 720;
 const VIEWPORT_HEIGHT = 900;
 const DEVICE_SCALE_FACTOR = 2;
 const READY_TIMEOUT_MS = 30_000;
-// Charts animate in and fetched blocks swap their skeleton for data: the
-// capture waits for both to settle.
 const SETTLE_MS = 1_500;
 const BYTES_PER_KILOBYTE = 1024;
 const PREVIEW_SELECTOR = "[data-dms-block-preview]";
