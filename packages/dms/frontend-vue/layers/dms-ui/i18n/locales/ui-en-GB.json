@@ -281,6 +281,7 @@
       "error_fill_all_fields": "Please fill in all required fields",
       "required_legend": "Required fields",
       "unsaved_changes": "Unsaved changes",
+      "error_not_submitted": "The form was not submitted",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
       "load_error": {
