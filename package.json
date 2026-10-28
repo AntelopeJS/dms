@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/tooling-configs": "^0.2.6",
+    "@antelopejs/tooling-configs": "^0.2.7",
     "dependency-cruiser": "^18.7.0",
     "knip": "^6.34.0",
     "lefthook": "^2.2.2",
@@ -29,6 +29,8 @@
     "sync": "antelopejs-sync",
     "sync:check": "antelopejs-sync --check",
     "format:check": "oxfmt --check .",
-    "deps": "depcruise packages --config .dependency-cruiser.cjs"
+    "deps": "depcruise packages --config .dependency-cruiser.cjs",
+    "suppressions": "antelopejs-suppressions",
+    "suppressions:update": "antelopejs-suppressions --update"
   }
 }
