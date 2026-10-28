@@ -83,13 +83,11 @@ export class PageSpacer extends PageController("stack-spacer", {
       .child("spacer", Spacer())
       .child("right", rightBox);
 
-    // minSize keeps at least 120 px between A and B, however narrow the row.
     const example7 = HStack({ spacing: "0", alignment: "center" })
       .child("a", Placeholder({ label: "A", height: "100px", width: "120px" }))
       .child("spacer", Spacer({ minSize: "120px" }))
       .child("b", Placeholder({ label: "B", height: "100px", width: "120px" }));
 
-    // grow 1 against grow 3: the second gap takes three times the first.
     const example8 = HStack({ spacing: "0", alignment: "center" })
       .child("a", Placeholder({ label: "A", height: "100px", width: "100px" }))
       .child("grow1", Spacer({ grow: 1 }))

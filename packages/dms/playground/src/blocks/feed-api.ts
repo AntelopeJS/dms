@@ -11,7 +11,6 @@ import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
 import { ago, attentionEntries, workspaceActivity } from "./feed-data";
 
-// Live payloads for the list / feed / settings block demos.
 const DEMO_LATENCY_MS = 700;
 
 /** Published when an entry is added to the workspace activity. */
@@ -25,14 +24,11 @@ const QUOTA_STEP = 5_000;
 const QUOTA_MAX = 100_000;
 const DEFAULT_PERIOD = "this-month";
 
-// What the quota meter shows for each period of its selector.
 const QUOTA_BY_PERIOD: Record<string, number> = {
   "this-month": 61_400,
   "last-month": 97_800,
 };
 
-// How many requests need attention over each period of the feed's selector:
-// the route's `count` replaces the one the block declares.
 const ATTENTION_COUNT_BY_PERIOD: Record<string, number> = {
   "last-24h": 9,
   "last-7-days": 31,
@@ -71,7 +67,6 @@ interface WorkspaceSettings {
 
 const WORKSPACE_KEYS = ["name", "slug", "language", "description"] as const;
 
-// In memory: the demo form saves here and reads it back.
 const workspace: WorkspaceSettings = {
   name: "Acme Logistics",
   slug: "acme",
@@ -178,8 +173,6 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
     return { ...workspace };
   }
 
-  // Read again once the form saves: the form's SUBMIT_SUCCESS is watched with
-  // BlockFunctions.REFRESH_PAGE.
   @Get("workspace/summary")
   getWorkspaceSummary() {
     return later({

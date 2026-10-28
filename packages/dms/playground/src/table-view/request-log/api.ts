@@ -52,8 +52,6 @@ const STATUS_TONES: Record<number, Tone> = {
 
 type FilterMode = (value: unknown, expected: string) => boolean;
 
-// The compare modes the table's tabs and quick filter send
-// (`filter_status=greater_than_or_equal_to:400`).
 const FILTER_MODES: Record<string, FilterMode> = {
   is: (value, expected) => String(value) === expected,
   greater_than_or_equal_to: (value, expected) =>
@@ -78,8 +76,6 @@ const searchFilter: QueryFilter = (query) => {
     `${entry.method} ${entry.path}`.toLowerCase().includes(search);
 };
 
-// `from` / `to`: the period of the page's PeriodSelector (`periodScope`).
-// `liveHeldAt`: the moment a held table froze its rows, on a paused live page.
 const periodFilter: QueryFilter = (query) => {
   const from = query.get("from");
   const to = query.get("to");

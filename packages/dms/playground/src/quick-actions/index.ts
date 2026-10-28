@@ -20,8 +20,6 @@ const playgroundActions = QuickActionCategory("playground", {
   order: 10,
 });
 
-// Routes to the page. Access follows it: hide the page behind a permission and
-// this entry goes with it, with nothing to declare here.
 QuickAction("open-tabs", {
   category: playgroundActions,
   displayName: "Open the tabs table",
@@ -30,7 +28,6 @@ QuickAction("open-tabs", {
   target: { type: "navigate", page: PageTableViewTabs },
 });
 
-// Routes to a page that needs a query: one page, any number of actions.
 QuickAction("open-invoicer", {
   category: playgroundActions,
   displayName: "Open project invoicer",
@@ -43,8 +40,6 @@ QuickAction("open-invoicer", {
   },
 });
 
-// Routes to the page, then opens the creation form of the table view named
-// here — the page mounts only one, but naming it survives a rename.
 QuickAction("new-task", {
   category: playgroundActions,
   displayName: "New task",
@@ -57,9 +52,6 @@ QuickAction("new-task", {
   },
 });
 
-// The page mounts two table views, so this one names the table it means.
-// Suspend the tenant from System › Tenancy: the action stays
-// listed, because its page opts out of the tenant access gate.
 QuickAction("new-invoice", {
   category: playgroundActions,
   displayName: "New invoice (survives the gate)",
@@ -84,8 +76,6 @@ QuickAction("new-nested-task", {
   },
 });
 
-// Presses a table view's button by its id: the action is listed only for a
-// caller the button admits, and opens what the button opens.
 QuickAction("press-button", {
   category: playgroundActions,
   displayName: "Press the quick actions table's button",
@@ -99,8 +89,6 @@ QuickAction("press-button", {
   },
 });
 
-// Dispatched where the user stands; the page only decides who may run it. The
-// playground's quick-action-ping plugin answers it with a toast.
 QuickAction("ping", {
   category: playgroundActions,
   displayName: "Dispatch a demo event",

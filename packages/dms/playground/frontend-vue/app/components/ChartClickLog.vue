@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// Lists the click events the charts of the page broadcast on the window bus
-// (ChartEvents.SEGMENT_CLICK on circular charts, POINT_CLICK on XY ones), the
-// same events a backend `.watch()` subscribes to.
 
 interface Props {
   title: string;

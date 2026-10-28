@@ -39,7 +39,6 @@ const INBOX_ITEMS = [
 const size = ref<string | number>("sm");
 const recordOpened = ref(false);
 
-// Settings rows: an instant-save switch and a form saved through the bar.
 const digest = ref(true);
 const digestState = ref<"idle" | "saving" | "saved">("idle");
 async function toggleDigest(value: boolean) {

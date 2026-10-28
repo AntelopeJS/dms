@@ -2,9 +2,6 @@ import { Controller, Get, Parameter } from "@antelopejs/interface-api";
 
 const MAX_GENERATED_ITEMS = 500;
 
-// These endpoints size their generated payload from a query parameter and are
-// unauthenticated: without a ceiling, `?count=1000000000` allocates until the
-// process dies.
 function clampCount(value: string | undefined, fallback: number): number {
   const parsed = parseInt(value || `${fallback}`, 10);
   if (!Number.isFinite(parsed) || parsed < 1) return fallback;
@@ -267,8 +264,6 @@ function isoDate(time: number): string {
   return new Date(time).toISOString().slice(0, ISO_DATE_LENGTH);
 }
 
-// The bounds are local midnights of the browser: half a day of slack lands
-// them on the right calendar day whatever its time zone.
 function dayTime(value: string | undefined, shift: number): number | undefined {
   const time = value ? Date.parse(value) : NaN;
   if (!Number.isFinite(time)) return undefined;

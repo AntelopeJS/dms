@@ -33,8 +33,6 @@ export class PageBlocksFeedback extends PageController(
     ],
   }),
 ) {
-  // Nothing until the route answers a banner. The outage lands after the
-  // header's own refresh, so only the realtime event brings it in.
   static providerStatus = Banner({
     fetchUrl: "/api/blocks/provider-status",
     fetchUrlMethod: HttpMethod.get,
@@ -58,7 +56,6 @@ export class PageBlocksFeedback extends PageController(
     dismissKey: "playground-blocks-beta",
   });
 
-  // Dismissible without a dismissKey: the block id is the remembered key.
   static failure = Banner({
     tone: "error",
     title: "Sync failed",

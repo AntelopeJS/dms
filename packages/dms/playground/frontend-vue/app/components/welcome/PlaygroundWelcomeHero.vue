@@ -11,9 +11,7 @@ const DOCS_URL = "https://dms.antelopejs.com/docs/";
 const WEBSITE_URL = "https://dms.antelopejs.com/";
 const REPOSITORY_URL = "https://github.com/AntelopeJS/dms";
 const REPOSITORY_API = "https://api.github.com/repos/AntelopeJS/dms";
-// The repository's star count, cached for the session.
 const STARS_CACHE_KEY = "dms-github-stars";
-// GitHub allows 60 anonymous API calls an hour per visitor.
 const STARS_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const HIGHLIGHTS = [
@@ -79,7 +77,6 @@ function writeCachedStars(count: number): void {
     const cached: CachedStars = { count, fetchedAt: Date.now() };
     sessionStorage.setItem(STARS_CACHE_KEY, JSON.stringify(cached));
   } catch {
-    /* storage unavailable: the count is fetched again next time */
   }
 }
 

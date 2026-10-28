@@ -120,7 +120,6 @@ function customerStats(customer: DemoCustomer): StatGroupItem[] {
   ];
 }
 
-// `{}` draws no banner: only a customer with overdue invoices gets one.
 function customerStatus(customer: DemoCustomer): BannerContent {
   if (!customer.overdue) return {};
   return {

@@ -15,8 +15,6 @@ import { notFound } from "./demo-errors";
 
 const JSON_INDENT = 2;
 
-// A route a page editor can offer to any block reading a `card` answer, bound
-// to the page's period through its `from` / `to` query.
 RegisterDataSource({
   id: "playground.sales",
   title: "Sales",
@@ -33,8 +31,6 @@ RegisterDataSource({
   path: "/api/dashboard/top/routes",
 });
 
-// Two option sets checked against the TopListCard schema: the second gives a
-// number where a title is expected.
 const VALID_OPTIONS = { title: "Top products", showRank: true };
 const INVALID_OPTIONS = { title: 42, highlightTopN: "three" };
 
@@ -99,7 +95,6 @@ export class BlocksCatalogApiController extends Controller(
     return { items: ListBlockTypes().map(typeRow) };
   }
 
-  // What an editor reads to draw a block's config panel.
   @Get("types/:type")
   getType(@Parameter("type", "param") type: string) {
     const descriptor = GetBlockType(type);

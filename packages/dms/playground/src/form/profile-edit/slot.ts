@@ -1,7 +1,3 @@
-// Stands in for another module extending the profile's "Social & Settings"
-// form after it was declared: the form opens a slot, and the owner of the
-// slot rewrites its serialized options as the page layout is served.
-
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Form,
@@ -20,9 +16,6 @@ interface ObjectSchemaJson {
   properties?: Record<string, unknown>;
 }
 
-// Serialized once through a form of its own: a resolver hands the client
-// serialized options, never builders. Its schema joins the form's, which
-// refuses the keys it does not list.
 const contributed = Form({
   fields: [
     {

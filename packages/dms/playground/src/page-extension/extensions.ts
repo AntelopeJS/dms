@@ -1,12 +1,7 @@
-// A page extension is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
 import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
 import { pagesSection } from "../sections";
 
-// The target is named by its page id, the same string the roles screen shows as
-// its permission: "library" (the root category) + "internals" (the section) +
-// the page's own id, i.e. "library.internals.page-extension".
 const TARGET_PAGE_ID = `${pagesSection.fullId}.page-extension`;
 
 /**

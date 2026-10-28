@@ -54,10 +54,6 @@ function buildEntry(sequence: number, at: Date): RequestLogEntry {
   };
 }
 
-// A fixed log: the same seed lists the same requests on every run, newest
-// first, the newest one served when the backend started (so a period
-// selector's "last 24 hours" finds them). The batch routes put new requests
-// on top of it.
 const LOG_START_MS = Date.now();
 export const REQUEST_LOG_ENTRIES: RequestLogEntry[] = Array.from(
   { length: ENTRY_COUNT },

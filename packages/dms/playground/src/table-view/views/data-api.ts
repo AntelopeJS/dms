@@ -43,8 +43,6 @@ import { JobRun, JobRunModel, type JobRunStatus } from "./database";
 export const JOB_RUNS_TOPIC = "playground:job-runs";
 const JOB_RUNS_RERUN_EVENT = "job-runs.rerun";
 
-// Every write a table view makes through the controllers' routes, as the
-// realtime layer broadcasts it: a module's hook for an audit trail.
 registerRealtimeMutationListener((context) => {
   console.info(
     `[playground] ${context.eventType} on ${context.controllerLocation}: ${context.ids.join(", ")}`,
@@ -61,8 +59,6 @@ export const JOB_RUN_STATUSES = [
 
 const HIDDEN_IN_FORMS = ReadonlyBehaviorType.hidden;
 
-// The HTTP answer a run's last call got, and its tone by status class: the
-// server picks the tone per row, the column only names the field.
 const HTTP_STATUS_BY_RUN: Record<JobRunStatus, number> = {
   healthy: 200,
   running: 202,
@@ -78,8 +74,6 @@ const HTTP_TONE_BY_CLASS: Record<number, Tone> = {
   5: "error",
 };
 
-// The locales a run's notification template is written in: a present one as
-// a soft pill, a missing one outlined.
 const NOTIFICATION_LOCALES = ["en", "fr", "de"] as const;
 const LOCALES_BY_RUN: Record<JobRunStatus, readonly string[]> = {
   healthy: NOTIFICATION_LOCALES,

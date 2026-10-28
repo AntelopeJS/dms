@@ -3,8 +3,6 @@ import type { TopListItem } from "@antelopejs/interface-dms/base/top-list-card";
 
 const MINUTE_MS = 60 * 1000;
 const SPARKLINE_LENGTH = 8;
-// The longer the period, the slower the routes look: a visible change when
-// the selector moves.
 const PRESET_SLOWDOWN: Record<string, number> = {
   "this-month": 1,
   "last-month": 1.2,
@@ -76,8 +74,6 @@ function routeItem(timing: RouteTiming, slowdown: number): TopListItem {
   };
 }
 
-// The relative time is computed on each request, so it does not drift with
-// the backend's uptime, and composed in the reader's language when drawn.
 function pageItem(page: PageVisit): TopListItem {
   return {
     id: page.title,

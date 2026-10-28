@@ -5,8 +5,6 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { KeyValueList } from "@antelopejs/interface-dms/base";
 
-// A category of the module's own: its pages name it instead of falling into
-// the module's default category.
 export const demoToolsCategory = Category("tools", {
   displayName: "Tools",
   icon: "i-ph-wrench",

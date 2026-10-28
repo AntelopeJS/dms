@@ -47,8 +47,6 @@ function parseBody<T>(schema: z.ZodType<T>, rawBody: unknown): T {
   );
 }
 
-// How many notifications each user sent themselves from the test page: the
-// nav badge of the page counts them.
 const sentCounts = new Map<string, number>();
 
 export function sentNotificationCount(userId: string): number {

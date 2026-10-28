@@ -210,7 +210,7 @@ export class PageTabsVariants extends PageController("tabs-variants", {
 
   static tabsWorkflow = Tab({
     variant: TabVariant.pill,
-    unmountOnHide: false, // Keep alive for workflow state
+    unmountOnHide: false,
     items: [
       {
         label: "Step 1: Configure",
@@ -310,7 +310,6 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     .child("labsPanel", Placeholder({ label: "Labs" }), { slot: "labs" })
     .child("inboxPanel", Placeholder({ label: "Inbox" }), { slot: "inbox" });
 
-  // `fit` spreads the tabs over the whole width.
   static tabsFit = Tab({
     variant: TabVariant.pill,
     fit: true,

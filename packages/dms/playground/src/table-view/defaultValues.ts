@@ -914,13 +914,10 @@ const generateEmailFromName = (name: string): string => {
     .replace(/[^a-z0-9.]/g, "")}@example.com`;
 };
 
-// A fixed seed: every install lists the same tasks, so the demos whose rules
-// read a task's status or priority behave the same everywhere.
 const FIXTURE_SEED = 0x5eed;
 const UINT32_RANGE = 2 ** 32;
 let randomState = FIXTURE_SEED;
 
-// mulberry32: a small repeatable generator of numbers in [0, 1).
 function seededRandom(): number {
   randomState = (randomState + 0x6d2b79f5) | 0;
   let mixed = Math.imul(randomState ^ (randomState >>> 15), 1 | randomState);
@@ -979,8 +976,6 @@ const buildRandomTask = (i: number): Partial<Task> => {
     phone: "+1-555-123-4567",
     done: false,
     address: buildRandomAddress(),
-    // Every 30th generated task starts archived, so the Archive Mode demo has
-    // rows to show (ids run 16–315).
     isArchived: i % ARCHIVED_TASK_INTERVAL === 0,
     createdAt: dates.createdDate,
     updatedAt: dates.updatedDate,

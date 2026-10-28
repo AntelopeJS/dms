@@ -10,7 +10,6 @@ import SourceSnippet from "../showcase/SourceSnippet.vue";
  * component puts in its own page header (`usePageHeaderActions`).
  */
 
-// Before the page's buttons: a negative order places it first.
 const PAGE_HEADER_ACTION_ORDER = -1;
 const COMPACT_SCALE = "small";
 
