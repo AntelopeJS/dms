@@ -29,6 +29,7 @@ const { useAuthFetch } = await import(
 interface Sent {
   url: string;
   language: string | null;
+  tenant: string | null;
   retry: string | null;
 }
 
@@ -40,6 +41,7 @@ const platformFetch = vi.fn(
     sent.push({
       url: String(input),
       language: headers.get("x-content-language"),
+      tenant: headers.get("x-tenant"),
       retry: headers.get("x-auth-retry"),
     });
     return answers.shift() ?? new Response(null, { status: 404 });
@@ -66,7 +68,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", platformFetch);
 });
 
-it("derives with create a fetch that keeps the backend, its headers and the session retry; a wrapper attaching only raw throws that create is not a function", async () => {
+it("derives with create a fetch that keeps the backend, the language header and the session retry; a wrapper attaching only raw throws that create is not a function", async () => {
   answers.push(json({ message: "expired" }, 401), json({ id: "order-1" }));
   const orders = authFetch().create({ query: { workspace: "acme" } });
 
@@ -77,15 +79,38 @@ it("derives with create a fetch that keeps the backend, its headers and the sess
     {
       url: "https://backend.test/api/orders?workspace=acme",
       language: "fr",
+      tenant: null,
       retry: null,
     },
     {
       url: "https://backend.test/api/orders?workspace=acme",
       language: "fr",
+      tenant: null,
       retry: "1",
     },
   ]);
 });
+
+const CREATE_HEADER_FORMS: Array<[string, HeadersInit]> = [
+  ["a plain object", { "x-tenant": "acme" }],
+  ["a Headers instance", new Headers({ "x-tenant": "acme" })],
+  ["an entry list", [["x-tenant", "acme"]]],
+];
+
+it.each(CREATE_HEADER_FORMS)(
+  "sends the headers given to create as %s on the retry after a 401 too; a retry passing only x-auth-retry as its headers drops them",
+  async (_form, headers) => {
+    answers.push(json({ message: "expired" }, 401), json({ id: "order-1" }));
+    const orders = authFetch().create({ headers });
+
+    await expect(orders("/api/orders")).resolves.toEqual({ id: "order-1" });
+
+    expect(sent.map(({ tenant, retry }) => ({ tenant, retry }))).toEqual([
+      { tenant: "acme", retry: null },
+      { tenant: "acme", retry: "1" },
+    ]);
+  },
+);
 
 it("hands native calls to the platform fetch, as any $fetch.create instance does; a wrapper attaching only raw throws that native is not a function", async () => {
   const answer = new Response("id,total");
