@@ -183,14 +183,18 @@ export class ProfileSettingsController extends PageController("profile", {
   @Post("/")
   async updateProfile(
     @Context() context: RequestContext,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     assert(
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the route's object-only bad-request check before inspecting forbidden fields.
       body && typeof body === "object" && !Array.isArray(body),
       HTTP_BAD_REQUEST,
       "Invalid profile",
     );
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Only the body container is checked above; field values remain untrusted until parseProfile runs.
     const submitted = body as Record<string, unknown>;
     assert(
       !submitted.password,
@@ -219,9 +223,14 @@ export class ProfileSettingsController extends PageController("profile", {
     return sanitizeUser(persistedUser);
   }
 
-  private async parseProfile(body: unknown): Promise<UpdateProfileInput> {
+  private async parseProfile(
+    body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
+  ): Promise<UpdateProfileInput> {
     const parsed =
       await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
     if (parsed.success) return parsed.data as UpdateProfileInput;
 
     const [issue] = parsed.error.issues;
@@ -233,7 +242,9 @@ export class ProfileSettingsController extends PageController("profile", {
   }
 
   private async writeProfile(
-    body: unknown,
+    body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
     userModel: UserModel,
   ): Promise<void> {
     const { name, email, language, avatar } = await this.parseProfile(body);
@@ -285,7 +296,7 @@ export class ProfileSettingsController extends PageController("profile", {
   async deleteAccount(
     @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
     user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof requestAccountDeletion>[1],
   ): Promise<AccountDeletionResult> {
     return requestAccountDeletion(user, body);
   }

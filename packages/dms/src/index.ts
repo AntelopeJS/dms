@@ -8,7 +8,7 @@ import {
 } from "@antelopejs/interface-dms/constants";
 import "./db";
 
-// oxlint-disable-next-line import/no-duplicates -- Load realtime registrations before pages and routes; its later named import also supplies lifecycle helpers.
+// oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
 import "./pages";
 import "./routes";
@@ -267,12 +267,12 @@ export async function start(): Promise<void> {
 
   if (defaultTenantCreated) await provisionDefaultTenant();
 
-  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
+  staleExportsSweep = runSweepStaleExports().catch((error) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
   });
   cronTasks = registerDmsCrons();
 
-  void runCleanupUserInvites().catch((error: unknown) => {
+  void runCleanupUserInvites().catch((error) => {
     Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
   });
   await registerAutomationNodes();

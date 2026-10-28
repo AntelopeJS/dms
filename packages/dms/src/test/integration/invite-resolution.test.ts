@@ -101,6 +101,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       },
       onCleanup: (payload, context) => {
         assert.equal(
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The extension callback erases its payload type; this test assumes the registered slice schema.
           (payload as InviteExtensionSlice | undefined)?.value,
           "snapshot",
         );
@@ -397,7 +398,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
 
   it("keeps automation best-effort and exposes replay identity without promising deduplication", async () => {
     const observed: string[] = [];
-    const listener = (payload: unknown) => {
+    const listener = (
+      payload: Parameters<
+        Parameters<ReturnType<typeof listenersFor>["add"]>[0]
+      >[0],
+    ) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The automation listener contract erases event payloads; this test assumes the member-added event shape.
       observed.push((payload as MemberAddedEvent).deliveryId ?? "missing");
       throw new Error("best-effort observer failed");
     };

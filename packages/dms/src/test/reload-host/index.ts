@@ -39,7 +39,7 @@ const generation = randomUUID();
 let databaseInitialized = false;
 
 function probe(): Probe {
-  const holder = globalThis as Record<symbol, Probe | undefined>;
+  const holder: typeof globalThis & { [PROBE_KEY]?: Probe } = globalThis;
   holder[PROBE_KEY] ??= {
     generations: [],
     calls: [],

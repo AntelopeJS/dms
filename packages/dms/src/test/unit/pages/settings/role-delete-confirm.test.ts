@@ -17,12 +17,8 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
 
   before(async () => {
     const roles = GetModel(RoleModel, TENANT);
-    [heldRole] = (await roles.insert({ name: "Editors", permissions: [] })) as [
-      string,
-    ];
-    [freeRole] = (await roles.insert({ name: "Readers", permissions: [] })) as [
-      string,
-    ];
+    [heldRole] = await roles.insert({ name: "Editors", permissions: [] });
+    [freeRole] = await roles.insert({ name: "Readers", permissions: [] });
     await GetModel(TenantMemberModel, TENANT).insert({
       _id: "role-delete-confirm-member",
       userId: "role-delete-confirm-user",
@@ -60,12 +56,14 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
     expect(dialog.fields).to.equal(undefined);
   });
 
-  async function refusal(run: () => Promise<unknown>): Promise<HTTPResult> {
+  async function refusal(
+    run: () => ReturnType<typeof prepareRoleDeletion>,
+  ): Promise<HTTPResult> {
     try {
       await run();
-    } catch (error) {
+    } catch (error: PromiseRejectedResult["reason"]) {
       expect(error).to.be.instanceOf(HTTPResult);
-      return error as HTTPResult;
+      return error;
     }
     return expect.fail("Expected the deletion to be refused");
   }

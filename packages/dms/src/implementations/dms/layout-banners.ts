@@ -40,7 +40,7 @@ export interface LayoutBannerSerialized {
   text?: BlockText;
   actions?: BlockLinkAction[];
   component?: string;
-  props?: Record<string, unknown>;
+  props?: LayoutBannerInfo["props"];
 }
 
 type LayoutBannerBody = Pick<

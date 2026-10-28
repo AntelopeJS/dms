@@ -11,7 +11,6 @@ import {
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import type { ValueProxy } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
@@ -114,9 +113,9 @@ export class ComputedTaskController extends DataController(
   @Sortable()
   @Column({ name: "Remaining", type: new DefaultDataTypes.NumberType() })
   @Computed((row) =>
-    (row.key("estimate") as ValueProxy<number>).sub(
-      row.key("spent") as ValueProxy<number>,
-    ),
+    row
+      .key<ComputedTask, "estimate">("estimate")
+      .sub(row.key<ComputedTask, "spent">("spent")),
   )
   declare remaining: number;
 
@@ -141,7 +140,7 @@ export class ComputedTaskController extends DataController(
 
   @Listable()
   @Column({ name: "Shout", type: new DefaultDataTypes.StringType() })
-  @Computed((row) => (row.key("title") as ValueProxy<string>).upcase())
+  @Computed((row) => row.key<ComputedTask, "title">("title").upcase())
   @Access(AccessMode.ReadOnly)
   declare shout: string;
 }
@@ -159,6 +158,7 @@ export class ComputedTasksPage extends RootPageController("computed-tasks", {
         body.spent ??= 0;
       },
       edit: (_ctx, { body }) => {
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The edit guard runs before body validation; inference and the controller type cannot assume a submitted title is a string without changing malformed-input handling.
         if (typeof body.title === "string") body.title = body.title.trim();
       },
     },

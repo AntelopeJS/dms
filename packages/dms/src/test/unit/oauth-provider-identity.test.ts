@@ -1,37 +1,37 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { OAUTH_PROVIDERS } from "../../routes/auth/oauth/providers";
 
 const HTTP_BAD_GATEWAY = 502;
 const ACCESS_TOKEN = "provider-access-token";
 
-type FetchResponses = Record<string, unknown>;
+type FetchResponses = Record<string, Parameters<typeof Response.json>[0]>;
 
 const originalFetch = globalThis.fetch;
 
 function stubFetch(responses: FetchResponses): void {
-  globalThis.fetch = (async (input: unknown) => {
-    const url = String(input);
+  globalThis.fetch = async (input) => {
+    const url = input instanceof Request ? input.url : String(input);
     const match = Object.entries(responses).find(([path]) =>
       url.includes(path),
     );
     if (!match) {
-      return { ok: false, json: async () => ({}) };
+      return Response.json({}, { status: 500 });
     }
-    return { ok: true, json: async () => match[1] };
-  }) as typeof fetch;
+    return Response.json(match[1]);
+  };
 }
 
-async function expectRefusal(
-  run: () => Promise<unknown>,
+async function expectRefusal<T>(
+  run: () => Promise<T>,
   expectedMessage: string,
 ): Promise<void> {
   try {
     await run();
   } catch (error: unknown) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_BAD_GATEWAY);
-    expect((error as HTTPResult).getBody()).to.equal(expectedMessage);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_BAD_GATEWAY);
+    expect(error.getBody()).to.equal(expectedMessage);
     return;
   }
   expect.fail(`expected a refusal with "${expectedMessage}"`);

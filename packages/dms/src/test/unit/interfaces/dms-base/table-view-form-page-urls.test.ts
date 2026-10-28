@@ -1,4 +1,4 @@
-import { Controller, type ControllerClass } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   DataController,
@@ -336,13 +336,13 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     class ClashingPage extends RootPageController("fpu-clash", {
       displayName: "Clashing table views",
     }) {}
-    const meta = GetMetadata(ClashingPage as ControllerClass, PageMetadata);
+    const meta = GetMetadata(ClashingPage, PageMetadata);
     meta.SetComponent("first", first);
     meta.SetComponent("second", second);
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error: unknown) => error as Error,
+      (error) => error,
     );
 
     expect(failure?.message ?? "").to.match(
@@ -379,12 +379,12 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     class BorrowingPage extends RootPageController("fpu-borrowing", {
       displayName: "Borrowed table view",
     }) {}
-    const meta = GetMetadata(BorrowingPage as ControllerClass, PageMetadata);
+    const meta = GetMetadata(BorrowingPage, PageMetadata);
     meta.SetComponent("table", defaultTable);
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error: unknown) => error as Error,
+      (error) => error,
     );
 
     expect(failure?.message ?? "").to.contain(

@@ -30,6 +30,7 @@ import {
 
 const TENANT = "layout-banner-tenant";
 const DENIED_TENANT = "layout-banner-denied-tenant";
+// SAFETY: Banner/menu access reads this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "layout-banner-member" } as User;
 const GRANTED_PERMISSION = "pages.layout-banner-page";
 
@@ -155,6 +156,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "untyped",
         variant: "info",
         text: "a",
+        // SAFETY: Intentionally invalid scope models an untyped module registration so normalization, not the TypeScript union, is tested.
         scope: "somewhere" as LayoutBannerScope,
       }),
     );
@@ -322,10 +324,11 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
   });
 
   it("skips an untyped banner that has no content", async () => {
+    // SAFETY: Intentionally omit text to exercise rejection of an untyped contentless registration; this is not a valid LayoutBannerInfo.
     const contentless = {
       key: "empty",
       variant: "info",
-    } as unknown as layoutBannersInterface.LayoutBannerInfo;
+    } as layoutBannersInterface.LayoutBannerInfo;
     disposers.push(RegisterLayoutBanner(contentless));
 
     expect(await bannerKeys()).to.deep.equal([]);

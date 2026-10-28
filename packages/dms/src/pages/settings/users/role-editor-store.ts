@@ -338,6 +338,7 @@ export async function loadRoleDeleteConfirm(
 export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Delete-dialog fields are unparsed until roleDeleteSchema runs below; no values means the distinct bare-delete contract.
   values: Record<string, unknown> | undefined,
 ): Promise<AfterWrite | undefined> {
   if (!values) {

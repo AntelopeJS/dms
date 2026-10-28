@@ -56,6 +56,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       MODULE_PAGE_FULL_ID,
     ]);
+    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
     const nonOwner = { _id: "user-1" } as User;
     expect(
       await userCanAccessPage(
@@ -70,6 +71,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
 
   it("allows the platform owner on a module page", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
+    // SAFETY: Page access reads this id and owner flag, not persisted-user methods.
     const owner = { _id: "user-2", owner: true } as User;
     expect(
       await userCanAccessPage(
@@ -119,6 +121,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       REGULAR_PAGE_FULL_ID,
     ]);
+    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
     const nonOwner = { _id: "user-3" } as User;
     expect(
       await userCanAccessPage(

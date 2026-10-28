@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { getAuthConfig, type OAuthConfig } from "../../index";
 import { buildOAuthAuthorizeUrl } from "../../routes/auth/oauth/authorize-url";
 import {
@@ -54,8 +54,8 @@ describe("[unit] oauth config", () => {
       try {
         getEnabledOAuthProvider("github");
       } catch (error: unknown) {
-        expect(error).to.be.instanceOf(HTTPResult);
-        expect((error as HTTPResult).getStatus()).to.equal(HTTP_NOT_FOUND);
+        assert.instanceOf(error, HTTPResult);
+        expect(error.getStatus()).to.equal(HTTP_NOT_FOUND);
         return;
       }
       expect.fail("expected a disabled provider to be refused");

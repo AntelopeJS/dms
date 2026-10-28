@@ -37,6 +37,7 @@ const MEMBER_PAGE_FULL_ID = "pages.pv-member";
 const MEMBER_CHILD_FULL_ID = `${MEMBER_PAGE_FULL_ID}.pv-member-child`;
 const TENANT = "pv-tenant";
 
+// SAFETY: Preview access consumes this id and owner flag, not persisted-user methods.
 const OWNER = { _id: "pv-owner", owner: true } as User;
 
 async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {

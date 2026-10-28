@@ -37,7 +37,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     const hasUsers = users.length > 0;
 
     if (hasUsers) {
-      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings object's enumerable fields with the updated onboarding flag, not its class prototype.
+      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings instance's own database fields alongside the onboarding flag, not its prototype methods.
       await this.model.updateConfig({ ...settings, has_onboarded: true });
     }
 
@@ -47,7 +47,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Post("/register")
   async postRegister(
     @Model(UserModel) userModel: UserModel,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof onboardingRegisterAdminSchema.parse>[0],
   ) {
     const data = assertValidation(body, (v) =>
       onboardingRegisterAdminSchema.parse(v),
@@ -96,7 +96,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     assert(!settings.has_onboarded, 412, "error.onboarding_already_completed");
 
     await this.model.updateConfig({
-      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the settings object's enumerable fields while replacing onboarding details, not its class prototype.
+      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the settings instance's own persisted fields before overriding onboarding details; its prototype methods are not configuration.
       ...settings,
       has_onboarded: true,
       platform_name: details.platformName ?? settings.platform_name,

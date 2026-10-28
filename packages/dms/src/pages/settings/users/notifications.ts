@@ -86,6 +86,7 @@ function parseOffset(value?: string): number {
 }
 
 const INBOX_READ_FILTER_KEY = "filter_isRead";
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Request filter keys are arbitrary strings; inference and NotificationReadState do not retain the string-indexed lookup used for unrecognized filters without changing its existing property access.
 const INBOX_READ_STATES: Record<string, NotificationReadState> = {
   "is:false": "unread",
   "is:true": "read",
@@ -290,7 +291,9 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Put("/preferences")
   async updatePreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof userNotificationPreferencesSchema.parse
+    >[0],
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {
@@ -309,7 +312,9 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Route("handler", "patch", "/preferences")
   async patchPreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof userNotificationPreferencesPatchSchema.parse
+    >[0],
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {

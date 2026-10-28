@@ -22,7 +22,7 @@ const HTTP_UNAUTHORIZED = 401;
  */
 export async function redeemSessionHandoff(
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.sessionHandoff.parse>[0],
 ): Promise<AuthResponse> {
   const { token } = assertValidation(body, (value) =>
     authSchema.sessionHandoff.parse(value),

@@ -25,7 +25,6 @@ import {
   Column,
   TableView,
   TableViewMeta,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
@@ -83,7 +82,7 @@ const optionsOf = (options: PaymentOptions) =>
     realtime: false,
     rowActions: READ_ONLY,
     ...options,
-  }).serializeSync().options as TableViewOptionsSerialized;
+  }).serializeSync().options!;
 
 describe("[unit] interfaces/dms-base — table view footer and empty states", () => {
   it("serves the summaries by id, keeping their rule on the server", () => {
@@ -130,7 +129,8 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
             {
               label: "Bad",
               op: "count",
-              where: { not: { field: "nope" as "note", equals: "x" } },
+              // @ts-expect-error Unknown column deliberately exercises registration validation.
+              where: { not: { field: "nope", equals: "x" } },
             },
           ],
         },

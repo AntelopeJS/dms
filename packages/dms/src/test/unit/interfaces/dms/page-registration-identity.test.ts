@@ -144,6 +144,7 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     const pageInfo = await registerPage("pri-unregister-token");
     const bearer = buildPageInfo("pri-unregister-token");
     Object.defineProperty(bearer, REGISTRATION_TOKEN, {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Registration stamps a private symbol absent from PageInfo's public contract; this test deliberately copies that token rather than reconstructing a complete registration.
       value: (pageInfo as unknown as Record<symbol, string>)[
         REGISTRATION_TOKEN
       ],

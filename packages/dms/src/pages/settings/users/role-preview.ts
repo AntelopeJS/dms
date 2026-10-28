@@ -214,7 +214,7 @@ export function classifyPreviewBlocks(
   grants: RolePreviewGrants,
   pageHidden: boolean,
   titleOf: (permissionId: string) => string = (id) => id,
-): Record<string, RolePreviewBlock> {
+): RolePreviewResult["blocks"] {
   const blocks: Record<string, RolePreviewBlock> = {};
   for (const node of nodes) {
     if (pageHidden) {

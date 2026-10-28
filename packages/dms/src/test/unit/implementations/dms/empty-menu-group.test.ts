@@ -30,7 +30,9 @@ const PAGE_FULL_ID = `${GROUP_FULL_ID}.emg-page`;
 const DYNAMIC_GROUP_ID = "emg-dynamic";
 const DYNAMIC_GROUP_FULL_ID = `pages.${DYNAMIC_GROUP_ID}`;
 const TENANT = "emg-tenant";
+// SAFETY: This fixture supplies the member id; the access path reads the omitted owner flag as undefined, not as a full persisted user.
 const MEMBER = { _id: "emg-member" } as User;
+// SAFETY: This fixture supplies the id and owner flag consumed by permission resolution; no persisted-user methods are exercised.
 const OWNER = { _id: "emg-owner", owner: true } as User;
 
 async function pagesLevelFor(permissions: string[]) {

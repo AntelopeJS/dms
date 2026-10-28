@@ -93,7 +93,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/password")
   updatePassword(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof changePassword>[1],
     @Model(UserModel) userModel: UserModel,
     @Model(SessionModel) sessionModel: SessionModel,
     @Parameter("authorization", "header") authorization: string,
@@ -107,7 +107,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/email")
   requestEmailChange(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof requestEmailChange>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return requestEmailChange(this.user, body, userModel);
@@ -115,7 +115,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/email/confirm")
   async confirmEmailChange(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof confirmEmailChange>[1],
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     await confirmEmailChange(this.user, body, userModel);
@@ -134,7 +134,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/enable-totp")
   enableTotp(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof startTotpSetup>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return startTotpSetup(this.user, body, userModel);
@@ -142,7 +142,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/confirm-totp")
   confirmTotp(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof confirmTotpSetup>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return confirmTotpSetup(this.user, body, userModel);
@@ -150,7 +150,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/enable-email")
   enableEmail(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof startEmailSetup>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return startEmailSetup(this.user, body, userModel);
@@ -158,7 +158,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/confirm-email")
   confirmEmail(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof confirmEmailSetup>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return confirmEmailSetup(this.user, body, userModel);
@@ -166,7 +166,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/disable")
   disableTwoFactor(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof disableTwoFactorMethod>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return disableTwoFactorMethod(this.user, body, userModel);
@@ -174,7 +174,7 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/regenerate-backup")
   regenerateBackupCodes(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof regenerateBackupCodes>[1],
     @Model(UserModel) userModel: UserModel,
   ) {
     return regenerateBackupCodes(this.user, body, userModel);

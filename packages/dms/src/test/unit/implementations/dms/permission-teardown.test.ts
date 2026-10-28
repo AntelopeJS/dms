@@ -20,7 +20,7 @@ function register(id: string, defaultGranted = false): void {
   });
 }
 
-function treeNode(path: string[]): unknown {
+function treeNode(path: string[]) {
   let level = GetPermissions();
   for (const part of path.slice(0, -1)) {
     const node = level[part];
@@ -67,10 +67,7 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     permissionsImplInternal.RegisterPermission.unregister(PARENT);
 
     expect(GetPermission(PARENT)).to.equal(undefined);
-    expect(
-      (treeNode(["teardown", "parent"]) as { data?: unknown } | undefined)
-        ?.data,
-    ).to.equal(undefined);
+    expect(treeNode(["teardown", "parent"])?.data).to.equal(undefined);
   });
 
   it("prunes the branch once its last descendant goes", () => {

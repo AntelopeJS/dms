@@ -23,6 +23,7 @@ const AUTH_KEY = "notifications-gate-key";
 const gate = denyingTenantGate("notifications-gate", DENIED_TENANT);
 
 function context(token: string): RequestContext {
+  // SAFETY: The user parameter resolver reads only rawRequest.headers.authorization from this request stub; it does not send a response or access transport state.
   return {
     rawRequest: { headers: { authorization: `Bearer ${token}` } },
   } as RequestContext;
@@ -43,7 +44,9 @@ async function insertUser(id: string): Promise<User> {
   return stored;
 }
 
-function resolveControllerUser(token: string): Promise<unknown> {
+function resolveControllerUser(
+  token: string,
+): ReturnType<typeof computeParameter> {
   const meta = GetMetadata(NotificationsApiController, ControllerMeta);
   return computeParameter(
     context(token),
@@ -76,11 +79,13 @@ describe("[unit] pages/settings/users/notifications — tenant access gate", () 
   });
 
   it("serves a member's own notifications while a gate denies the tenant", async () => {
+    // SAFETY: The registered user parameter is AuthUser, which resolves the stored User inserted in this suite; computeParameter erases that decorator-specific result.
     const user = (await resolveControllerUser(memberToken)) as User;
     expect(user._id).to.equal(MEMBER_ID);
   });
 
   it("serves a user who is not a member of the tenant their own notifications", async () => {
+    // SAFETY: The same AuthUser parameter resolves the outsider's stored User; tenant membership is not part of this controller's authentication requirement.
     const user = (await resolveControllerUser(outsiderToken)) as User;
     expect(user._id).to.equal(OUTSIDER_ID);
   });

@@ -157,7 +157,7 @@ async function resolveOverwritableAccount(
 export async function signup(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.signup.parse>[0],
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {

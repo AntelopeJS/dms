@@ -10,6 +10,7 @@ export interface ServedQuickActions {
 export function readHeaderActions(
   layout: { options?: unknown } | undefined,
 ): PageHeaderButtonSerialized[] {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Resolved layout options are opaque; inference and PageHeaderButtonSerialized cannot prove a custom layout follows DefaultLayout's headerActions convention, which this extraction already assumes without checking.
   const options = layout?.options as
     | { headerActions?: PageHeaderButtonSerialized[] }
     | undefined;

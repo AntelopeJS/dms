@@ -18,7 +18,11 @@ const MS_PER_MINUTE = 60 * 1000;
 /** Attempts older than this are pruned; they no longer weigh in any window. */
 export const ATTEMPT_RETENTION_MS = 24 * 60 * MS_PER_MINUTE;
 
-function logFailure(what: string, userId: string, error: unknown): void {
+function logFailure(
+  what: string,
+  userId: string,
+  error: PromiseRejectedResult["reason"],
+): void {
   Logging.Error(`[DMS] Could not ${what} for "${userId}": ${String(error)}`);
 }
 

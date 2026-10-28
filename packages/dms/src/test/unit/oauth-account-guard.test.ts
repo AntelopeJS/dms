@@ -22,6 +22,7 @@ const CLOSED_POLICY: OAuthPolicy = {
 };
 
 function buildUnvalidatedAccount(id: string, email: string): User {
+  // SAFETY: The resolution paths under test read these account fields and rewrite credentials; they do not call persisted-row methods.
   return {
     _id: id,
     email,
@@ -30,7 +31,7 @@ function buildUnvalidatedAccount(id: string, email: string): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated: false,
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 function buildIdentity(email: string): ProviderIdentity {
@@ -54,7 +55,7 @@ async function joinWorkspace(userId: string): Promise<void> {
 }
 
 interface ResolveAttempt {
-  error: unknown;
+  error: PromiseRejectedResult["reason"];
   result: Awaited<ReturnType<typeof resolveOAuthUser>> | undefined;
   updatedUsers: User[];
 }
@@ -66,6 +67,7 @@ interface ResolveAttempt {
  */
 async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
   const updatedUsers: User[] = [];
+  // SAFETY: These resolution paths only perform the supplied lookups and writes; insert explicitly fails to detect unwanted account creation.
   const userModel = {
     getByEmail: async (lookup: string) =>
       lookup === existingUser.email ? existingUser : undefined,
@@ -87,7 +89,7 @@ async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
       language: "fr",
     });
     return { error: undefined, result, updatedUsers };
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return { error, result: undefined, updatedUsers };
   }
 }
@@ -103,7 +105,7 @@ describe("[unit] auth/oauth — claiming an existing account", () => {
     const attempt = await attemptResolve(provisioned);
 
     expect(attempt.error).to.be.instanceOf(HTTPResult);
-    const refusal = attempt.error as HTTPResult;
+    const refusal = attempt.error;
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(refusal.getBody()).to.equal(ACCOUNT_NOT_VALIDATED);
     expect(attempt.updatedUsers).to.deep.equal([]);

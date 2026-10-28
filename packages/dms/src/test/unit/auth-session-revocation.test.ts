@@ -6,7 +6,7 @@ import {
   type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   generateAccessToken,
   internal,
@@ -16,12 +16,12 @@ import {
 const TENANT_ID = "session-revocation-tenant";
 const HTTP_UNAUTHORIZED = 401;
 
-async function expectUnauthorized(run: () => Promise<unknown>): Promise<void> {
+async function expectUnauthorized<T>(run: () => Promise<T>): Promise<void> {
   try {
     await run();
   } catch (error) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_UNAUTHORIZED);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
     return;
   }
   expect.fail("Expected authentication to reject the token");

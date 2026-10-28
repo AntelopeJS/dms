@@ -26,6 +26,7 @@ import {
 
 const TENANT = "menu-hardening-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
+// SAFETY: Dynamic-menu access consumes this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "menu-hardening-member" } as User;
 const TARGET_SLUG = "/menu-hardening-target";
 

@@ -10,6 +10,7 @@ import {
 const WARNING = "$test.warning.owner_level";
 
 function action(permissionId: string | undefined): Action {
+  // SAFETY: The warning registry stores this action and reads only permissionId; no action execution or serialization occurs in this suite.
   return { permissionId } as Action;
 }
 

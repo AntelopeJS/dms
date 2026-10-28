@@ -211,6 +211,7 @@ describe("[integration] native component file security", () => {
     let saves = 0;
     const denied = await SaveComponentFiles(
       {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The rejection-path fixture deliberately supplies no HTTP context fields.
         context: {} as RequestContext,
         componentIds: [],
         fields: [{ id: "unclassified#file", key: "file", kind: "file" }],
@@ -221,7 +222,7 @@ describe("[integration] native component file security", () => {
         saves += 1;
         return { document: submitted, result: "saved" };
       },
-    ).catch((error: unknown) => error);
+    ).catch((error) => error);
     expect(denied).to.be.instanceOf(HTTPResult);
     expect(saves).to.equal(0);
   });

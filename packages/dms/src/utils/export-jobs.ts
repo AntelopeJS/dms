@@ -61,7 +61,9 @@ const ARRAY_JOIN_SEPARATOR = ";";
 const FILENAME_ILLEGAL_CHARS = /[^a-zA-Z0-9._-]/g;
 const FILENAME_REPLACEMENT = "-";
 
-function castCsvValue(value: unknown): string {
+function castCsvValue(
+  value: Parameters<ExportWriter["appendRow"]>[1][string],
+): string {
   if (Array.isArray(value)) return value.join(ARRAY_JOIN_SEPARATOR);
   return String(value);
 }
@@ -74,7 +76,10 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(headers: string[], row: Record<string, unknown>): void {
+  appendRow(
+    headers: string[],
+    row: Parameters<ExportWriter["appendRow"]>[1],
+  ): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
@@ -97,6 +102,7 @@ const csvExporter: Exporter = {
   },
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Format names are open HTTP inputs; missing registry keys retain the existing unknown-format error.
 const exporters: Record<string, Exporter> = {
   csv: csvExporter,
 };
@@ -133,7 +139,7 @@ export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
-  return JSON.parse(exportRecord.json_result) as ExportJobResultSummary;
+  return JSON.parse(exportRecord.json_result);
 }
 
 function exportReadyEmailData(
@@ -182,6 +188,7 @@ const emailDeliverer: Deliverer = {
   },
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Delivery names are open inputs; missing registry keys retain the existing unknown-delivery error.
 const deliverers: Record<string, Deliverer> = {
   download: downloadDeliverer,
   email: emailDeliverer,
@@ -217,14 +224,18 @@ export async function uploadExportToStorage(
   });
 
   const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(presign.uploadUrl, {
-    method: "PUT",
-    headers: presign.headers,
+  const response = await fetch(
+    presign.uploadUrl,
+    // SAFETY: The literal satisfies RequestInit plus Node's duplex option; the assertion hides only that extra property from fetch's DOM declaration.
+    {
+      method: "PUT",
+      headers: presign.headers,
 
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Pass the Node web stream to fetch as its request body; this assertion changes no stream behavior.
-    body: Readable.toWeb(fileStream) as unknown as BodyInit,
-    duplex: "half",
-  } as RequestInit & { duplex: "half" });
+      // SAFETY: Node's web readable stream is accepted by fetch with duplex half despite differing Node and DOM stream declarations.
+      body: Readable.toWeb(fileStream) as BodyInit,
+      duplex: "half",
+    } satisfies RequestInit & { duplex: "half" } as RequestInit,
+  );
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

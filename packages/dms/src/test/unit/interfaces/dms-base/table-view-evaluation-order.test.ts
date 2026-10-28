@@ -16,7 +16,7 @@ describe("[unit] interfaces/dms-base — table-view realtime and evaluation orde
   it("reaches the DMS when its realtime modules evaluate while table-view is still evaluating", async function () {
     this.timeout(PROCESS_TIMEOUT_MS);
     const { stdout } = await runProcess(process.execPath, [FIXTURE]);
-    const result = JSON.parse(stdout) as EvaluationOrderResult;
+    const result: EvaluationOrderResult = JSON.parse(stdout);
 
     expect(result).to.deep.equal({
       published: ["updated"],

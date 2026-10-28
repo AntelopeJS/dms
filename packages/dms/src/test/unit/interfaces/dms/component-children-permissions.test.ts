@@ -88,6 +88,7 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
   expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
     undefined,
   );
+  // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
   const layout = await (handler as NonNullable<typeof handler>)({
     user: { _id: "cc-user" } as User,
     memberModel: {
@@ -100,16 +101,16 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
     } as unknown as RoleModel,
     tenantId: TENANT,
   });
-  return (layout.components.card?.children ?? []) as LayoutChild[];
+  return layout.components.card?.children ?? [];
 }
 
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
     throw new Error("Expected promise to reject");
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
 }
 
@@ -189,7 +190,7 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     const previousValidator = dmsAuthImpl.internal.AuthUserValidator;
     Object.defineProperty(dmsAuthImpl.internal, "AuthUserValidator", {
       configurable: true,
-      value: async () => ({ _id: "cc-user" }) as User,
+      value: async () => ({ _id: "cc-user" }),
     });
 
     try {
@@ -356,6 +357,7 @@ async function sharedLayout(permissions: string[]) {
   expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
     undefined,
   );
+  // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
   return (handler as NonNullable<typeof handler>)({
     user: { _id: "cc-shared-user" } as User,
     memberModel: {

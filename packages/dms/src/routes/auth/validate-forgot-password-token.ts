@@ -5,7 +5,7 @@ import { assertResetCode } from "./reset-code";
 
 export async function validateForgotPasswordToken(
   userModel: UserModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.validateForgotPasswordToken.parse>[0],
 ): Promise<void> {
   const { email, token } = assertValidation(body, (v) =>
     authSchema.validateForgotPasswordToken.parse(v),

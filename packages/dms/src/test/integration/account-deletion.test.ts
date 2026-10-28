@@ -103,10 +103,10 @@ describe("[integration] account deletion", () => {
     const user = await GetModel(UserModel).get(owner.userId);
     const refusal = await deleteAccount(user!).then(
       () => undefined,
-      (error: unknown) => error,
+      (error) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect((refusal as HTTPResult).getStatus()).to.equal(HTTP_CONFLICT);
+    expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
     expect(await GetModel(UserModel).get(owner.userId)).to.not.equal(undefined);
   });
 });

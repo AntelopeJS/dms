@@ -148,12 +148,11 @@ async function formOptions(
 ): Promise<FormPropsSerialized | undefined> {
   const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
   if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
+  // SAFETY: These registered table-view form pages contain a Form builder named form; the registry erases individual component option types.
   return (await form.serialize()).options as FormPropsSerialized | undefined;
 }
 
-async function formRedirects(
-  formPageFullId: string,
-): Promise<Record<string, unknown>[]> {
+async function formRedirects(formPageFullId: string) {
   const options = await formOptions(formPageFullId);
   return (options?.watchActions ?? [])
     .filter(
@@ -164,9 +163,7 @@ async function formRedirects(
     .map((watch) => watch.params ?? {});
 }
 
-async function redirectOf(
-  formPageFullId: string,
-): Promise<Record<string, unknown>> {
+async function redirectOf(formPageFullId: string) {
   const redirects = await formRedirects(formPageFullId);
   expect(redirects).to.have.length(1);
   return redirects[0]!;

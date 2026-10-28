@@ -119,11 +119,11 @@ describe("[unit] store/production", () => {
       "@antelopejs/dms-lang",
     ).then(
       () => undefined,
-      (error: unknown) => error,
+      (error) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect((refusal as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect((refusal as HTTPResult).getBody()).to.equal("error.store_disabled");
+    expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(refusal.getBody()).to.equal("error.store_disabled");
   });
 });
 
@@ -202,7 +202,7 @@ describe("[unit] store/interfaces", () => {
 
   async function moduleAt(
     id: string,
-    manifest: Record<string, unknown>,
+    manifest: Parameters<typeof JSON.stringify>[0],
   ): Promise<RuntimeModule> {
     const localPath = path.join(root, id);
     await mkdir(localPath, { recursive: true });

@@ -17,14 +17,14 @@ const MEMBER_ROLE_OPTIONS = pageRoutePath(
 const WARNINGS = "$page.settings.roles.warning";
 const HTTP_OK = 200;
 
-const EXPECTED_WARNINGS: Record<string, string> = {
+const EXPECTED_WARNINGS = {
   "settings.workspace.members.table.edit": `${WARNINGS}.members`,
   "settings.workspace.members.table.add": `${WARNINGS}.invites`,
   "settings.workspace.invites.table.edit": `${WARNINGS}.invites`,
   "settings.workspace.roles.table.edit": `${WARNINGS}.roles`,
   "settings.workspace.roles.table.add": `${WARNINGS}.roles_add`,
   "settings.workspace.roles.table.delete": `${WARNINGS}.roles_delete`,
-};
+} satisfies Record<string, string>;
 
 function warningsById(
   nodes: RoleEditorPermissionNode[],

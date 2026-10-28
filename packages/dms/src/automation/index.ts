@@ -20,8 +20,10 @@ interface ModuleLoadError extends Error {
 let automationInterfacePromise: Promise<AutomationInterface | undefined>;
 const automationLifecycle = new AutomationRegistrationLifecycle();
 
-function isMissingAutomationInterface(error: unknown): boolean {
-  const moduleError = error as ModuleLoadError;
+function isMissingAutomationInterface(
+  error: PromiseRejectedResult["reason"],
+): boolean {
+  const moduleError: ModuleLoadError = error;
   const firstLine = moduleError?.message?.split("\n", 1)[0] ?? "";
   return (
     ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"].includes(

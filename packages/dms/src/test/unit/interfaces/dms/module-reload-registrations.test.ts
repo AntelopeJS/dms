@@ -18,6 +18,7 @@ import {
 
 const ROW_ID = "reload-host-row";
 const SESSION_ID = "reload-host-session";
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reload authorization needs only the id and email; the fixture is not a complete persisted user.
 const USER = {
   _id: "reload-host-user",
   email: "reload-host@example.test",

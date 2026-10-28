@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { OAuthPolicy } from "../../routes/auth/oauth/config";
 import {
   decideOAuthResolution,
@@ -39,13 +39,13 @@ const OPEN_POLICY: OAuthPolicy = {
   linkByVerifiedEmail: true,
 };
 
-function expectRefusal(run: () => unknown, expectedMessage: string): void {
+function expectRefusal<T>(run: () => T, expectedMessage: string): void {
   try {
     run();
   } catch (error: unknown) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect((error as HTTPResult).getBody()).to.equal(expectedMessage);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(error.getBody()).to.equal(expectedMessage);
     return;
   }
   expect.fail(`expected a refusal with "${expectedMessage}"`);

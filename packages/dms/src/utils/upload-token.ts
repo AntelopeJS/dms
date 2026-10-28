@@ -83,8 +83,10 @@ export function signUploadToken(claims: Partial<UploadTokenClaims>): string {
  * the token is missing, tampered with, signed with a different secret, or was
  * not minted for uploads. Presign treats a `null` result as a rejection.
  */
+/* oxlint-disable anti-slop/no-runtime-typeof -- Signed JWT claims are still untyped input; string checks preserve omission of malformed optional claims. */
 export function verifyUploadToken(token: string): UploadTokenClaims | null {
   try {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Signature verification does not validate the payload schema; the existing purpose and field checks below remain the acceptance policy.
     const payload = verify(token, getUploadTokenSecret(), {
       algorithms: ["HS256"],
     }) as UploadTokenPayload;
@@ -110,3 +112,4 @@ export function verifyUploadToken(token: string): UploadTokenClaims | null {
     return null;
   }
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */

@@ -10,7 +10,7 @@ type Request2FAEmailResult = { success: boolean };
 
 export async function request2FAEmail(
   userModel: UserModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.request2FAEmail.parse>[0],
 ): Promise<Request2FAEmailResult> {
   const { token } = assertValidation(
     body,

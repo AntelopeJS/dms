@@ -54,6 +54,7 @@ export function resolveFilterTokens(
   const resolved: ListFilters = {};
   for (const [field, filter] of Object.entries(filters)) {
     const values = FilterValuesOf(filter).map(([value, mode]): FilterValue => [
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Archive filters also carry boolean values despite FilterValue's string declaration; interpolation must keep those values unchanged.
       typeof value === "string"
         ? resolveFilterValueTokens(value, context)
         : value,

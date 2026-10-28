@@ -12,10 +12,7 @@ const TENANT_ID = "notify-tenant";
 const OTHER_TENANT_ID = "notify-other-tenant";
 const LATE_TIMER_TENANT_ID = "notify-late-timer-tenant";
 
-function collectEvents(topic: string): {
-  events: RealtimeEvent[];
-  stop: () => void;
-} {
+function collectEvents(topic: string) {
   const events: RealtimeEvent[] = [];
   const stop = getRealtimeBroker().subscribe(topic, (event) => {
     events.push(event);

@@ -22,8 +22,10 @@ function isRendererPath(path: string): boolean {
 
 function isValidBackendProxy(proxy: FrontendBackendProxy): boolean {
   return (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy declarations cross the JavaScript module registration boundary, so the existing object rejection remains necessary.
     typeof proxy === "object" &&
     proxy !== null &&
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing boundary rejects nonstring paths instead of coercing them during regex matching.
     typeof proxy.path === "string" &&
     PROXY_PATH.test(proxy.path) &&
     !isRendererPath(proxy.path) &&

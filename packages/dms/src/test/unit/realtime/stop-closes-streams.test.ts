@@ -37,6 +37,7 @@ const createFakeStream = (): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double provides lifecycle events and a writer, not the full HTTP context.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
@@ -49,11 +50,13 @@ const spyOnIntervals = (): TimerSpy => {
   const originalClear = globalThis.clearInterval;
   const started = new Set<unknown>();
   const cleared = new Set<unknown>();
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarding spy covers interval calls only and does not reproduce Node's promisified overload metadata.
   globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
     const timer = originalSet(...args);
     started.add(timer);
     return timer;
   }) as typeof setInterval;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fixture observes Node timer handles only; clearInterval also accepts handles outside this test's contract.
   globalThis.clearInterval = ((timer: NodeJS.Timeout) => {
     cleared.add(timer);
     originalClear(timer);
@@ -71,14 +74,15 @@ const spyOnIntervals = (): TimerSpy => {
 const readConnectionId = (stream: FakeStream): string => {
   const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
   const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return (JSON.parse(data) as { connectionId: string }).connectionId;
+  return JSON.parse(data).connectionId;
 };
 
 const openConnection = async (stream: FakeStream): Promise<void> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    USER as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    USER as User,
   );
 };
 
@@ -88,7 +92,8 @@ const openSession = async (stream: FakeStream): Promise<string> => {
     undefined,
     createFakeStream().ctx,
     readConnectionId(stream),
-    USER as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    USER as User,
   );
   return greeting.sessionId!;
 };

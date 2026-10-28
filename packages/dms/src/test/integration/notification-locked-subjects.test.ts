@@ -91,10 +91,10 @@ describe("[integration] locked notification subjects", () => {
         subject,
       }).toUser(userId);
     }
-    const list = await client.get(
+    const list = await client.get<StoredNotification[]>(
       pageRoutePath("/settings/user/notifications", "/list"),
     );
-    const titles = (list.data as StoredNotification[]).map((row) => row.title);
+    const titles = list.data.map((row) => row.title);
     expect(titles).to.include("Sent on mandatory");
     expect(titles).to.not.include("Sent on optional");
   });

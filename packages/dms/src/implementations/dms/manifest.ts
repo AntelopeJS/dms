@@ -1,15 +1,19 @@
 import type { IncomingMessage } from "node:http";
+import type { AddFrontendModuleOptions } from "@antelopejs/interface-dms/page";
+
+type ModuleOptions = NonNullable<AddFrontendModuleOptions["options"]>;
+type ModuleOption = ModuleOptions[string];
 
 export interface ManifestModuleEntry {
-  options?: Record<string, unknown>;
-  privateOptions?: Record<string, unknown>;
+  options?: AddFrontendModuleOptions["options"];
+  privateOptions?: AddFrontendModuleOptions["privateOptions"];
   path?: string;
   authEstablishEndpoints?: string[];
   publicEndpoints?: unknown[];
   backendProxies?: unknown[];
 }
 
-export interface ModuleManifestShape<
+export interface ModuleManifest<
   T extends ManifestModuleEntry = ManifestModuleEntry,
 > {
   modules: T[];
@@ -75,7 +79,8 @@ export function resolveRequestOrigin(
 ): string | undefined {
   const host = request.headers.host;
   if (!host) return undefined;
-  const socket = request.socket as PossiblyEncryptedSocket;
+  const socket: IncomingMessage["socket"] & PossiblyEncryptedSocket =
+    request.socket;
   const protocol = socket.encrypted ? "https" : "http";
   return `${protocol}://${host}`;
 }
@@ -119,10 +124,23 @@ function buildOriginRewriter(
     value.replace(pattern, (match) => replacements.get(match) ?? match);
 }
 
-function rewriteValue(value: unknown, rewrite: OriginRewriter): unknown {
+function rewriteValue(
+  value: ModuleOptions,
+  rewrite: OriginRewriter,
+): ModuleOptions;
+function rewriteValue(
+  value: ModuleOption,
+  rewrite: OriginRewriter,
+): ModuleOption;
+function rewriteValue(
+  value: ModuleOption,
+  rewrite: OriginRewriter,
+): ModuleOption {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Open module options include scalar strings; rewriting only these leaves all other scalar values unchanged.
   if (typeof value === "string") return rewrite(value);
   if (Array.isArray(value))
     return value.map((item) => rewriteValue(item, rewrite));
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursive option rewriting copies containers while preserving scalar values; the existing object branch must not treat numbers or booleans as records.
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value).map(([key, item]) => [
@@ -141,7 +159,7 @@ function rewriteModuleOptions<T extends ManifestModuleEntry>(
   if (!module.options) return module;
   return {
     ...module,
-    options: rewriteValue(module.options, rewrite) as Record<string, unknown>,
+    options: rewriteValue(module.options, rewrite),
   };
 }
 
@@ -156,10 +174,10 @@ function rewriteModuleOptions<T extends ManifestModuleEntry>(
  * their suffix.
  */
 export function applyDevManifestUrls<T extends ManifestModuleEntry>(
-  manifest: ModuleManifestShape<T>,
+  manifest: ModuleManifest<T>,
   configured: ManifestUrls,
   overrides: ManifestUrls,
-): ModuleManifestShape<T> {
+): ModuleManifest<T> {
   const rewrite = buildOriginRewriter(configured, overrides);
   if (!rewrite) return manifest;
   return {
@@ -184,16 +202,16 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
   module: T,
   keep: ManifestFieldPolicy,
 ): T {
-  const shaped = { ...module };
-  if (!keep.privateOptions) delete shaped.privateOptions;
-  if (!keep.path) delete shaped.path;
+  const served = { ...module };
+  if (!keep.privateOptions) delete served.privateOptions;
+  if (!keep.path) delete served.path;
 
   if (!keep.authEstablishEndpoints) {
-    delete shaped.authEstablishEndpoints;
-    delete shaped.publicEndpoints;
-    delete shaped.backendProxies;
+    delete served.authEstablishEndpoints;
+    delete served.publicEndpoints;
+    delete served.backendProxies;
   }
-  return shaped;
+  return served;
 }
 
 /**
@@ -209,9 +227,9 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
  * @returns A manifest carrying only the permitted fields
  */
 export function stripPrivateManifestFields<T extends ManifestModuleEntry>(
-  manifest: ModuleManifestShape<T>,
+  manifest: ModuleManifest<T>,
   keep: ManifestFieldPolicy,
-): ModuleManifestShape<T> {
+): ModuleManifest<T> {
   if (keep.privateOptions && keep.path && keep.authEstablishEndpoints)
     return manifest;
   return {
@@ -224,9 +242,13 @@ interface NamedManifestModule extends ManifestModuleEntry {
   name: string;
 }
 
-function proxyPath(proxy: unknown): string | undefined {
+function proxyPath(
+  proxy: NonNullable<ManifestModuleEntry["backendProxies"]>[number],
+): string | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Manifest proxy entries are intentionally opaque; retain the existing fallback for primitive entries.
   if (!proxy || typeof proxy !== "object") return undefined;
-  const { path } = proxy as { path?: unknown };
+  const { path }: { path?: unknown } = proxy;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string proxy paths are included in the diagnostic; arbitrary manifest entries retain their existing no-path fallback.
   return typeof path === "string" ? path : undefined;
 }
 

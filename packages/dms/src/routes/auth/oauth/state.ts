@@ -65,8 +65,8 @@ function isSameState(state: string, cookieState: string): boolean {
 
 function decodeState(state: string): OAuthStateClaims | undefined {
   try {
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- verify checks the signature, not OAuthStateClaims; this cast asserts the decoded shape without runtime validation.
-    return verify(state, getStateSecret()) as unknown as OAuthStateClaims;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- verify authenticates the token but its JwtPayload owner type cannot establish these optional claims; preserving the existing nonce acceptance precludes adding claim validation here.
+    return verify(state, getStateSecret()) as OAuthStateClaims;
   } catch {
     return undefined;
   }

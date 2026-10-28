@@ -171,6 +171,7 @@ async function formPageOptions(
 ): Promise<FormPropsSerialized | undefined> {
   const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
   if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
+  // SAFETY: These registered table-view form pages contain a Form builder named form; the registry erases individual component option types.
   return (await form.serialize()).options as FormPropsSerialized | undefined;
 }
 

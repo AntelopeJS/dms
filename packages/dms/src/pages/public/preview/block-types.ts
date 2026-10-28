@@ -8,7 +8,7 @@ import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
  */
 export interface PreviewBlockType {
   componentName: string;
-  fixedOptions?: Record<string, unknown>;
+  fixedOptions?: ReturnType<typeof ListBlockTypes>[number]["fixedOptions"];
   needsController?: boolean;
 }
 

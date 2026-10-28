@@ -44,9 +44,11 @@ async function listTitles(
   location: string,
   search?: string,
 ): Promise<string[]> {
-  const list = await client.get(`${location}/list`, { params: { search } });
+  const list = await client.get<{ results: Note[] }>(`${location}/list`, {
+    params: { search },
+  });
   expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-  return (list.data.results as Note[]).map((note) => note.title);
+  return list.data.results.map((note) => note.title);
 }
 
 /** A member holding the `add` action of one table view (and its page). */
@@ -94,6 +96,7 @@ describe("[integration] a data controller derived from another", () => {
     expect(derived.location).to.equal(DERIVED);
     expect(base.location).to.equal(BASE);
     expect(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout HTTP response is unvalidated; the test assumes table-view columns to check the derived configuration.
       (derived.columns as TableViewColumn[]).map((column) => column.id),
     ).to.have.members(["title", "file"]);
     expect(derived.formComponents.new).to.not.equal(undefined);

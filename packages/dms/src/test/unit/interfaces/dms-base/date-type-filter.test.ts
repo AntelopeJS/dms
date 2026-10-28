@@ -8,15 +8,15 @@ import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-typ
 class Expression {
   constructor(
     readonly op: string,
-    readonly operand: unknown,
+    readonly operand: Date | number | null | Expression[],
   ) {}
 
-  and(other: unknown): Expression {
+  and(other: Expression): Expression {
     return new Expression("and", [this, other]);
   }
 }
 
-const expression = (op: string, operand: unknown) =>
+const expression = (op: string, operand: Expression["operand"]) =>
   new Expression(op, operand);
 
 /** What an order filter wraps its comparison in: the value is set. */
@@ -24,7 +24,8 @@ const whenSet = (comparison: Expression) =>
   expression("and", [expression("ne", null), comparison]);
 
 function recordingProxy(): ValueProxy<unknown> {
-  const compare = (op: string) => (operand: unknown) => expression(op, operand);
+  const compare = (op: string) => (operand: Expression["operand"]) =>
+    expression(op, operand);
   const proxy = {
     gt: compare("gt"),
     ge: compare("ge"),
@@ -33,11 +34,14 @@ function recordingProxy(): ValueProxy<unknown> {
     ne: compare("ne"),
     default: () => proxy,
   };
+  // SAFETY: These order filters only call gt, ge, lt, le, ne, default, and the returned expression's and; they never use other ValueProxy operations or execute the recorded expression.
   return proxy as unknown as ValueProxy<unknown>;
 }
 
+// SAFETY: DateType and these numeric compare modes do not access context members; they only construct comparisons from the provided value proxy.
 const context = {} as RequestContext;
-const row = {} as ValueProxy<Record<string, unknown>>;
+// SAFETY: DateType and these numeric compare modes do not access row members; they only construct comparisons from the provided value proxy.
+const row = {} as Parameters<DataCompareMode["filter"]>[4];
 
 describe("[unit] interfaces/dms-base — date filters", () => {
   const dateType = new DefaultDataTypes.DateType();

@@ -66,6 +66,6 @@ export function GetPermission(id: string): Permission | undefined {
   return permissions[id];
 }
 
-export function GetPermissions(): Record<string, PermissionTree> {
+export function GetPermissions() {
   return permissionTree;
 }

@@ -8,7 +8,7 @@ import {
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import { Schema, type ValueProxy } from "@antelopejs/interface-database";
+import { Schema } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
@@ -28,7 +28,9 @@ import type { ExportWriter } from "../../../../utils";
 
 const SCHEMA = "export-batching-test";
 const TABLE = "invoices";
+// SAFETY: Export filtering uses this id and the absent owner flag; no persisted-user operations are exercised.
 const USER = { _id: "export-batching-user" } as User;
+// SAFETY: The export query path reads ctx.url; this fixture does not exercise the rest of RequestContext.
 const ctx = {
   url: new URL("http://localhost/export"),
 } as RequestContext;
@@ -62,19 +64,22 @@ class InvoiceAPI extends DataController(
   declare position: number;
 
   @Exported()
-  @Computed((row) => (row.key("position") as ValueProxy<number>).add(1))
+  @Computed((row) => row.key<Invoice, "position">("position").add(1))
   declare rank: number;
 }
 
 class CollectingWriter implements ExportWriter {
   readonly headers: string[] = [];
-  readonly rows: Record<string, unknown>[] = [];
+  readonly rows: globalThis.Parameters<ExportWriter["appendRow"]>[1][] = [];
 
   writeHeaders(headers: string[]): void {
     this.headers.push(...headers);
   }
 
-  appendRow(_headers: string[], row: Record<string, unknown>): void {
+  appendRow(
+    _headers: string[],
+    row: globalThis.Parameters<ExportWriter["appendRow"]>[1],
+  ): void {
     this.rows.push(row);
   }
 
@@ -90,7 +95,10 @@ const listParams: Parameters.ListParameters = {
 async function exportAll(ids?: string[]): Promise<CollectingWriter> {
   const writer = new CollectingWriter();
   await generateTableViewExport({
-    controller: controller as never,
+    // SAFETY: ExportRun types its receiver as a callback descriptor, but the implementation reads controller metadata and the model from this real decorated InvoiceAPI instance.
+    controller: controller as unknown as globalThis.Parameters<
+      typeof generateTableViewExport
+    >[0]["controller"],
     ctx,
     listParams,
     writer,

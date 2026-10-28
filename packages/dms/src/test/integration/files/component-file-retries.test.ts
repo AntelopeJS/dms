@@ -57,6 +57,7 @@ async function fixture(field = "file"): Promise<Fixture> {
     token,
   });
   const request: AttachmentSaveRequest = {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The attachment fixture supplies only authorization headers, not a complete HTTP context.
     context: {
       rawRequest: { headers: { authorization: `Bearer ${user.accessToken}` } },
     } as RequestContext,
@@ -93,7 +94,7 @@ async function assertFinal(f: Fixture): Promise<void> {
 
 async function persist(
   f: Fixture,
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<string>["document"],
 ): Promise<AttachmentSaveResult<string>> {
   expect(document.file).to.equal(f.canonical);
   const response = await f.client.post(`${LOCATION}/new`, {
@@ -139,7 +140,7 @@ class PromotionBarrier {
 }
 
 type SaveCallback = (
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<string>["document"],
 ) => Promise<AttachmentSaveResult<string>>;
 
 function startSave(

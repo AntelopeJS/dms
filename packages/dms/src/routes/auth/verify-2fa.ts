@@ -81,7 +81,7 @@ const verifyMethods: Record<
 export async function verify2FA(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.verify2FA.parse>[0],
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
@@ -95,7 +95,7 @@ export async function verify2FA(
   const { user, tenantId } = twoFactorPayload;
   assert(tenantId, 401, "error.invalid_token");
 
-  const verifier = verifyMethods[method as VerifyMethod];
+  const verifier = verifyMethods[method];
   assert(verifier, 400, "error.invalid_2fa_method");
   await answerTwoFactorChallenge(user._id, token, () =>
     verifier({ user, code, userModel }),

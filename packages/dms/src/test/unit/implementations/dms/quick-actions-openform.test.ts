@@ -38,10 +38,17 @@ const RECOVERY_ADD_PERMISSION = `${RECOVERY_PAGE_ID}.invoices.add`;
 
 const gateInfo = denyingTenantGate("of-gate", DENIED_TENANT, "of.suspended");
 
+type ServedAction = Awaited<
+  ReturnType<typeof buildSiteLayoutPayload>
+>["quickActions"]["actions"][string];
+type ServedFormAction = Omit<ServedAction, "target"> & {
+  target: Extract<ServedAction["target"], { type: "openForm" }>;
+};
+
 function formCapableComponent(name: string): ComponentBuilder<unknown> {
   const component = CustomComponent(name).meta({ name });
   component.action("add", { title: "Add" });
-  return component as ComponentBuilder<unknown>;
+  return component;
 }
 
 class PageOfRecovery extends PageController("of-recovery", {
@@ -70,21 +77,17 @@ class PageOfNested extends PageController("of-nested", {
   );
 }
 
-async function actionsFor(
-  grantedPermissions: string[],
-  tenantId: string,
-): Promise<Record<string, { target: { component?: string } }>> {
+async function actionsFor(grantedPermissions: string[], tenantId: string) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
+    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
     { _id: "of-member" } as User,
     memberModel,
     roleModel,
     tenantId,
   );
-  return payload.quickActions.actions as Record<
-    string,
-    { target: { component?: string } }
-  >;
+  // SAFETY: Callers inspect only this suite's of-* registrations, all openForm targets; other global actions are not inspected as forms.
+  return payload.quickActions.actions as Record<string, ServedFormAction>;
 }
 
 async function registerPageWithComponents(

@@ -27,7 +27,6 @@ import {
   type ModuleCatalogContext,
   type ModuleInfo,
   type ModuleReadoutLine,
-  type ModuleReadoutTone,
   type ModuleStatus,
   type PageExtensionInfo,
   type PageInfo,
@@ -357,11 +356,8 @@ function updateChildrenOrders(node: SiteLayoutTree) {
 }
 
 /**
- * Position of every registered menu entry in the main menu: depth first, in
- * the order the sidebar lists them (`childrenOrders`, sorted by
- * `compareMenuChildren`). Keyed by the permission id guarding the entry, and
- * by its full id when that differs, so a permission editor can list its
- * pages and categories the way the menu does.
+ * Depth-first sidebar positions in `childrenOrders` order, keyed by each
+ * entry's permission id and, when different, its full id.
  */
 export function GetMenuOrder(): Map<string, number> {
   const positions = new Map<string, number>();
@@ -387,9 +383,7 @@ export function GetMenuOrder(): Map<string, number> {
 }
 
 /**
- * Permission ids of the registered categories (`Category`, `RootCategory`):
- * the headings and groups of the menu, as opposed to its pages. A permission
- * editor uses them to leave out a heading with nothing below it to grant.
+ * Registered category permission ids, excluding page and component ids.
  */
 export function GetCategoryPermissionIds(): Set<string> {
   return new Set(
@@ -400,10 +394,8 @@ export function GetCategoryPermissionIds(): Set<string> {
 }
 
 /**
- * Permission ids of every registered menu entry, pages and categories alike,
- * as opposed to the components and actions declared on a page. A permission
- * editor uses them to keep listing the entries filed under one every member
- * holds (the settings root).
+ * Permission ids of registered pages and categories, excluding components
+ * and actions. Includes entries below universally granted categories.
  */
 export function GetMenuEntryPermissionIds(): Set<string> {
   return new Set(
@@ -474,18 +466,9 @@ const WILDCARD_PERMISSION = "*";
 const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 /**
- * A change to the navigation structure itself — a page, category or module
- * appearing or going away.
- *
- * The dev resync additionally re-probes routes after a hot reload, so it stays
- * on its own channel; the realtime publish is what reaches production, where a
- * module unloaded at runtime would otherwise sit in every connected menu until
- * the five-minute staleness refresh.
- *
- * Only called for changes a menu can show. Hidden surfaces never enter the
- * navigation tree — the forms a TableView generates are hidden, and every one
- * of them would otherwise wake every session of the deployment for a menu that
- * cannot change.
+ * Invalidates structural previews and broadcasts visible navigation changes.
+ * Dev resync re-probes routes; realtime also reaches production clients.
+ * Hidden surfaces do not enter the tree and must not trigger this broadcast.
  */
 function notifyStructureChanged(): void {
   previewStructureVersion++;
@@ -528,15 +511,16 @@ export function notifyMenuAccessChanged(
 
 const MODULE_CONTEXT_GONE = "ERR_MODULE_CONTEXT_INVALIDATED";
 
-function isModuleContextGone(error: unknown): boolean {
+function isModuleContextGone(error: PromiseRejectedResult["reason"]): boolean {
   return (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Promise rejections can be non-Error objects; preserve the framework code check without imposing an Error constructor.
     typeof error === "object" &&
     error !== null &&
-    (error as { code?: string }).code === MODULE_CONTEXT_GONE
+    error.code === MODULE_CONTEXT_GONE
   );
 }
 
-function ignoreModuleContextGone(error: unknown): void {
+function ignoreModuleContextGone(error: Error["cause"]): void {
   if (!isModuleContextGone(error)) throw error;
 }
 
@@ -726,7 +710,9 @@ export class DMSController extends Controller("/dms") {
   }
 
   @Post("/frontend/ready")
-  frontendReady(@JSONBody() body: unknown): void {
+  frontendReady(
+    @JSONBody() body: Parameters<typeof acknowledgeFrontendReady>[0],
+  ): void {
     acknowledgeFrontendReady(body, this.bootstrapHeader);
   }
 
@@ -1187,34 +1173,35 @@ export interface PermissionPreviewRequest {
   pageLoses?: PreviewPageLossCheck;
 }
 
-function previewMemberModels(previewPermissions: Set<string>): {
-  memberModel: TenantMemberModel;
-  roleModel: RoleModel;
-} {
+function previewMemberModels(previewPermissions: Set<string>) {
   const roleIds = [PREVIEW_ROLE_ID];
   const roles = [
     { _id: PREVIEW_ROLE_ID, permissions: [...previewPermissions] },
   ];
 
-  // oxlint-disable anti-slop/no-chained-type-assertions -- Preview permission checks use only getByUser and getBy; these partial objects do not implement the full model classes.
+  // oxlint-disable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- PageLayoutHandler requires full models; inference and Pick expose only these preview lookup methods.
   return {
     memberModel: {
       getByUser: async () => ({ roleIds }),
     } as unknown as TenantMemberModel,
     roleModel: { getBy: async () => roles } as unknown as RoleModel,
   };
-  // oxlint-enable anti-slop/no-chained-type-assertions
+  // oxlint-enable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion
 }
+
+type ViewerModelResult =
+  | Awaited<ReturnType<TenantMemberModel["getByUser"]>>
+  | Awaited<ReturnType<RoleModel["getBy"]>>;
 
 function memoizeViewerModels(
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
-): { memberModel: TenantMemberModel; roleModel: RoleModel } {
-  const answers = new Map<string, Promise<unknown>>();
+) {
+  const answers = new Map<string, Promise<ViewerModelResult>>();
   const remember = (
     key: string,
-    read: () => PromiseLike<unknown>,
-  ): Promise<unknown> => {
+    read: () => PromiseLike<ViewerModelResult>,
+  ): Promise<ViewerModelResult> => {
     const known = answers.get(key);
     if (known) return known;
     const pending = Promise.resolve(read());
@@ -1222,12 +1209,12 @@ function memoizeViewerModels(
     return pending;
   };
 
-  // oxlint-disable anti-slop/no-chained-type-assertions -- Permission checks use only these memoized lookup methods; the wrappers do not implement the full model classes.
+  // oxlint-disable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- Layout callbacks require full models; inference and Pick expose only the cached lookup methods.
   return {
     memberModel: {
       getByUser: (userId: string) =>
         remember(`member:${userId}`, () => memberModel.getByUser(userId)),
-    } as unknown as TenantMemberModel,
+    } as TenantMemberModel,
     roleModel: {
       getBy: (...args: Parameters<RoleModel["getBy"]>) =>
         remember(`roles:${JSON.stringify(args)}`, () =>
@@ -1235,7 +1222,7 @@ function memoizeViewerModels(
         ),
     } as unknown as RoleModel,
   };
-  // oxlint-enable anti-slop/no-chained-type-assertions
+  // oxlint-enable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion
 }
 
 const PREVIEW_LOSS_TTL_MS = 30_000;
@@ -1496,7 +1483,7 @@ function listPreviewLossTargets(
   nodes: PreviewMenuNode[],
   reading: PreviewMenuReading,
   pagesByFullId: Map<string, PageInfo>,
-): { pages: PageInfo[]; entryTargets: Map<string, string> } {
+) {
   const { served, denied } = reading;
   const pages = new Map<string, PageInfo>();
   const entryTargets = new Map<string, string>();
@@ -1678,15 +1665,9 @@ function isBypassedPermission(
 }
 
 /**
- * What the client may still act on while a gate denies the tenant: the
- * permissions of the surfaces flagged `bypassTenantAccessGate` and of their
- * components and actions. Without this the recovery page renders but every
- * permission-gated control on it stays dead.
- *
- * When no surface carries the flag there is nothing to recover and the answer
- * stays empty — including for the wildcard, which is otherwise kept whole
- * because an owner is exactly who has to use that page. The server keeps
- * enforcing the gate on every other route either way.
+ * Client permissions for bypass surfaces and their components while a tenant
+ * gate denies access. Keeps the wildcard only when a bypass surface exists.
+ * Server authorization on other routes remains unchanged.
  *
  * @param surfaces Bypass flag of every registered permission id, from
  * `collectSurfaceBypassFlags`.
@@ -2114,7 +2095,7 @@ function mergeDynamicChildren(
   categoryFullId: string,
   children: Record<string, SiteLayoutTree>,
   dynamicChildren: SiteLayoutTree[],
-): Record<string, SiteLayoutTree> {
+) {
   const merged = { ...children };
   const category = findNavigationEntryByFullId(categoryFullId);
   for (const node of dynamicChildren) {
@@ -2639,6 +2620,7 @@ async function runModuleStatusHook(
       Promise.resolve(info.status(context)),
       `status of module "${info.id}"`,
     );
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Module hooks are supplied by other modules; the existing boundary rejects non-string runtime results despite their declared return type.
     if (typeof status === "string" && MODULE_STATUSES.has(status)) {
       return status;
     }
@@ -2671,17 +2653,15 @@ async function runModuleReadoutHook(
     return lines
       .filter(
         (line): line is ModuleReadoutLine =>
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- External module hooks may return malformed readout lines; retain the existing text validation at this boundary.
           !!line && typeof line.text === "string" && line.text.length > 0,
       )
       .slice(0, MODULE_READOUT_MAX_LINES)
-      .map((line) => {
+      .map((line): ModuleReadoutLine => {
         const tone = line.tone;
         return {
           text: line.text,
-          tone:
-            tone && MODULE_READOUT_TONES.has(tone)
-              ? tone
-              : ("info" as ModuleReadoutTone),
+          tone: tone && MODULE_READOUT_TONES.has(tone) ? tone : "info",
         };
       });
   } catch (error) {

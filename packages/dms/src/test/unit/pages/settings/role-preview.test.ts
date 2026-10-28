@@ -17,7 +17,7 @@ function leaf(id: string, title = id): PermissionTree {
   return { data: { id, title }, children: {} };
 }
 
-const TREE: Record<string, PermissionTree> = {
+const TREE = {
   sales: {
     children: {
       orders: {
@@ -46,15 +46,15 @@ const TREE: Record<string, PermissionTree> = {
       },
     },
   },
-};
+} satisfies Record<string, PermissionTree>;
 
-const COMPONENTS: Record<string, ComponentInfoSerialized> = {
+const COMPONENTS = {
   kpis: {
     componentName: "DmsGrid",
     children: [{ id: "revenue", component: { componentName: "DmsKpi" } }],
   },
   table: { componentName: "DmsTableView" },
-};
+} satisfies Record<string, ComponentInfoSerialized>;
 
 const childrenOf = (id: string) => listPermissionChildren(TREE, id);
 

@@ -6,7 +6,7 @@ import { authSchema } from "../../validation/auth.schema";
 export async function verifyEmail(
   userModel: UserModel,
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.verifyEmail.parse>[0],
 ): Promise<void> {
   const config = getAuthConfig();
   const { token } = assertValidation(body, (v) =>

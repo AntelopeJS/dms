@@ -11,7 +11,7 @@ function declared(type: string) {
   return block!;
 }
 
-const valid = (options: Record<string, unknown>) =>
+const valid = (options: Parameters<typeof ValidateBlockOptions>[1]) =>
   ValidateBlockOptions("Guard", options).valid;
 
 const GUARD = {

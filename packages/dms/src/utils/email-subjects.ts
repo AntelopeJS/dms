@@ -10,6 +10,7 @@ export type BuiltInEmailSubject =
   | "emailChangeNotice"
   | "exportReady";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- User language tags are open-ended; missing languages intentionally fall back to English.
 const SUBJECTS: Record<string, Record<BuiltInEmailSubject, string>> = {
   en: {
     userValidation: "Verify Your Email",

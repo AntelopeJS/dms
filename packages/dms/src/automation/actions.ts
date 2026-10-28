@@ -23,7 +23,7 @@ interface SendEmailInput {
   subject: string;
   html?: string;
   template?: string;
-  props?: Record<string, unknown>;
+  props?: Parameters<typeof GenerateHtml>[1];
   language?: string;
 }
 
@@ -49,6 +49,7 @@ async function bodyTemplate(
 ): Promise<string | undefined> {
   const template = input.template?.trim();
   if (!template) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal HTML is accepted only when the wired input is a string; preserve the missing-template error for other values.
     if (typeof input.html === "string") return undefined;
     throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
   }

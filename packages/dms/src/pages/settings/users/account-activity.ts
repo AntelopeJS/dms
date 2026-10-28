@@ -135,6 +135,7 @@ export function notificationToEvent(
           ? "two_factor_enabled"
           : "two_factor_disabled",
       date,
+      // SAFETY: TWO_FACTOR_MESSAGE captures only the supported two-factor method alternatives.
       method: twoFactor[2] as TwoFactorMethod,
     };
   }
@@ -329,6 +330,7 @@ export function buildAccountActivity(
 }
 
 function stripEmpty(event: Draft): Draft {
+  // SAFETY: Draft's required type and date are never undefined, so this filter removes only optional properties and preserves every retained value.
   return Object.fromEntries(
     Object.entries(event).filter(([, value]) => value !== undefined),
   ) as Draft;

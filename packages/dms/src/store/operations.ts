@@ -96,7 +96,7 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-function describeError(error: unknown): string {
+function describeError(error: PromiseRejectedResult["reason"]): string {
   if (error instanceof AggregateError && error.errors.length > 0) {
     return error.errors.map(describeError).join("; ");
   }
@@ -106,7 +106,7 @@ function describeError(error: unknown): string {
 async function load(
   context: OperationContext,
   range: string,
-  config?: unknown,
+  config?: StoreDeclaration["config"],
 ): Promise<void> {
   setStep("load");
   await loadStoreModule(context.key, {
@@ -324,7 +324,7 @@ async function execute(
     const message = describeError(error);
     Logging.Error(`[DMS] Module store: ${kind} ${context.id} failed`, error);
     errors.set(context.id, message);
-    await rollback(context).catch((rollbackError: unknown) =>
+    await rollback(context).catch((rollbackError) =>
       Logging.Error(
         `[DMS] Module store: rolling back ${context.id} failed`,
         rollbackError,
@@ -400,7 +400,7 @@ export async function startStoreOperation(
       execute(kind, context).finally(() => {
         setCurrent(undefined);
       }),
-    ).catch((error: unknown) =>
+    ).catch((error) =>
       Logging.Error(`[DMS] Module store: ${kind} ${id} failed`, error),
     );
   } catch (error) {

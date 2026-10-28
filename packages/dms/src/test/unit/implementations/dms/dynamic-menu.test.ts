@@ -33,6 +33,7 @@ const PAGE_SLUG = "/dyn-project";
 const PARAM_PAGE_SLUG = "/dyn-projects/:projectId/services";
 const TENANT_A = "dyn-tenant-a";
 const TENANT_B = "dyn-tenant-b";
+// SAFETY: Dynamic-menu access reads this id and owner flag, not persisted-user methods.
 const OWNER = { _id: "dyn-owner", owner: true } as User;
 const RESTRICTED_PERMISSION = "dyn.restricted";
 const DENIED_TENANT = "dyn-denied-tenant";
@@ -228,6 +229,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "dyn-member" } as User;
     const payload = await buildSiteLayoutPayload(
       member,
@@ -256,6 +258,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const outsider = { _id: "dyn-outsider" } as User;
     const payload = await buildSiteLayoutPayload(
       outsider,
@@ -293,6 +296,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "dyn-member" } as User;
     const payload = await buildSiteLayoutPayload(
       member,
@@ -352,6 +356,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       BYPASS_TARGET_ACTION,
       RESTRICTED_PERMISSION,
     ]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "dyn-suspended" } as User;
     const payload = await buildSiteLayoutPayload(
       member,
@@ -403,6 +408,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-public-target",
       RESTRICTED_PERMISSION,
     ]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "dyn-suspended-member" } as User;
     const payload = await buildSiteLayoutPayload(
       member,
@@ -454,6 +460,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-kept-target",
       settlePermission,
     ]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag; despite its id, this fixture is not a platform owner.
     const member = { _id: "dyn-suspended-owner" } as User;
     const payload = await buildSiteLayoutPayload(
       member,
@@ -488,6 +495,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
+    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
     const member = { _id: "dyn-plain-member" } as User;
     const payload = await buildSiteLayoutPayload(
       member,

@@ -34,14 +34,15 @@ export async function npmView(
   spec: string,
   fields: readonly string[],
   projectPath: string,
-): Promise<unknown> {
+) {
   try {
     const { stdout } = await execFileAsync(
       "npm",
       ["view", spec, ...fields, "--json"],
       { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },
     );
-    return stdout.trim() ? (JSON.parse(stdout) as unknown) : undefined;
+    const view: unknown = stdout.trim() ? JSON.parse(stdout) : undefined;
+    return view;
   } catch {
     return undefined;
   }
@@ -51,6 +52,7 @@ async function viewLatest(
   packageName: string,
   projectPath: string,
 ): Promise<PackageRelease | undefined> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The selected npm fields are historically trusted without schema validation; preserve malformed-registry behavior.
   const view = (await npmView(
     `${packageName}@${LATEST_TAG}`,
     ["version", "dependencies", "antelopeJs"],

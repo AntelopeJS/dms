@@ -26,7 +26,9 @@ import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access"
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const TENANT = "mhb-tenant";
+// SAFETY: Menu permissions consume this id and the absent owner flag, not persisted-user methods.
 const MEMBER = { _id: "mhb-member" } as User;
+// SAFETY: Menu permissions consume this id and owner flag, not persisted-user methods.
 const OWNER = { _id: "mhb-owner", owner: true } as User;
 const BLOCKS_PAGE = "pages.mhb-blocks";
 const NESTED_PAGE = `${BLOCKS_PAGE}.mhb-nested`;

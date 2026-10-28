@@ -8,5 +8,6 @@ import type { NotificationData } from "@antelopejs/interface-dms/notifications/t
 export function hasNotificationTitle(
   data: Pick<NotificationData, "title">,
 ): boolean {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Module callers can forward untyped request data; retain the existing rejection of null and nonstring notification titles.
   return typeof data.title === "string" && data.title.trim().length > 0;
 }

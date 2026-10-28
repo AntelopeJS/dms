@@ -1,9 +1,9 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { generateCode } from "2fa";
-import { decode, type JwtPayload } from "jsonwebtoken";
+import { decode } from "jsonwebtoken";
 import { UserNotificationsModel } from "../../../db/models/userNotifications.model";
 import { generateTwoFactorToken } from "../../../implementations/dms-auth";
 import { acceptTotpCode, totpStepAt } from "../../../utils/two-factor-codes";
@@ -64,11 +64,14 @@ async function enableTotp(
   client: AxiosInstance,
   user: RegisteredUser,
 ): Promise<EnabledTotp> {
-  const setup = await client.post(`${TWO_FACTOR}/enable-totp`, {
-    currentPassword: user.password,
-  });
+  const setup = await client.post<{ secret: string }>(
+    `${TWO_FACTOR}/enable-totp`,
+    {
+      currentPassword: user.password,
+    },
+  );
   expect(setup.status, JSON.stringify(setup.data)).to.equal(HTTP_OK);
-  const { secret } = setup.data as { secret: string };
+  const { secret } = setup.data;
   const code = await currentTotpCode(secret);
   const confirmed = await client.post(`${TWO_FACTOR}/confirm-totp`, { code });
   expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);
@@ -77,20 +80,29 @@ async function enableTotp(
 
 async function lastEmailedCode(): Promise<string> {
   const email = await lastRenderedEmail(TWO_FACTOR_EMAIL_TEMPLATE);
-  const code = email?.props.verificationCode;
-  if (typeof code !== "string") throw new Error("No two-factor code was sent");
-  return code;
+  const props = email?.props;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; owner-derived types cannot establish a captured object's properties.
+  if (!props || typeof props !== "object" || !("verificationCode" in props))
+    throw new Error("No two-factor code was sent");
+  const { verificationCode } = props;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; a template reference carries no runtime schema for the captured value.
+  if (typeof verificationCode !== "string")
+    throw new Error("No two-factor code was sent");
+  return verificationCode;
 }
 
 async function signIn(user: RegisteredUser): Promise<string> {
-  const response = await createClient().post("/api/auth/login", {
+  const response = await createClient().post<{
+    requires_2fa: boolean;
+    two_factor_token: string;
+  }>("/api/auth/login", {
     email: user.email,
     password: user.password,
   });
   expect(response.data.requires_2fa, JSON.stringify(response.data)).to.equal(
     true,
   );
-  return response.data.two_factor_token as string;
+  return response.data.two_factor_token;
 }
 
 function verify(token: string, method: string, code: string) {
@@ -152,7 +164,7 @@ describe("[integration] auth/two-factor codes", function () {
   let client: AxiosInstance;
 
   const methods = async () =>
-    (await client.get(TWO_FACTOR)).data.methods as string[];
+    (await client.get<{ methods: string[] }>(TWO_FACTOR)).data.methods;
 
   const startEmailSetup = () =>
     client.post(`${TWO_FACTOR}/enable-email`, {
@@ -186,7 +198,9 @@ describe("[integration] auth/two-factor codes", function () {
 
     it("gives two sign-ins in the same second a challenge each", async () => {
       const { backupCodes } = await enableTotp(client, user);
-      const { tenantId } = decode(await signIn(user)) as JwtPayload;
+      const claims = decode(await signIn(user), { json: true });
+      assert.exists(claims);
+      const { tenantId } = claims;
       const stored = await storedUser(user.userId);
       const [first, second] = [
         generateTwoFactorToken(tenantId, stored),

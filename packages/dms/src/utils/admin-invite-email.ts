@@ -14,6 +14,7 @@ interface AdminInviteSubjectCopy {
   workspaceOnPlatform: (workspace: string, platform: string) => string;
 }
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- User language tags are open-ended; preserve fallback lookup for languages without built-in copy.
 const SUBJECT_COPY: Record<string, AdminInviteSubjectCopy> = {
   en: {
     generic: "You're Invited to Join",

@@ -35,6 +35,7 @@ const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
 const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Bulk authorization reads only the id; this fixture is deliberately not a complete persisted user.
 const USER = { _id: "bulk-operations-user" } as User;
 const ALL_IDS = ["a", "b", "c", "d"];
 
@@ -105,6 +106,7 @@ function createRows(isArchived: boolean): Map<string, Row> {
 }
 
 function context(query: string): RequestContext {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Parameter computation reads only url; unrelated HTTP context members are deliberately absent.
   return {
     url: new URL(`http://localhost/api/bulk-operations/archive?${query}`),
   } as RequestContext;
@@ -118,6 +120,7 @@ let rows: Map<string, Row>;
 function useRows(next: Map<string, Row>) {
   rows = next;
 
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
   controller.model = { table: createTable(rows) } as never;
 }
 
@@ -188,6 +191,7 @@ describe("[unit] TableView bulk operations", () => {
     meta.setArchiveField(ARCHIVE_FIELD);
 
     Query.Delete = (_table, id) =>
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This double supplies the awaited delete count, not the database query builder's unexercised chaining API.
       createTable(rows)
         .getAll(Array.isArray(id) ? id : [id])
         .delete() as never;
@@ -214,6 +218,7 @@ describe("[unit] TableView bulk operations", () => {
     for (const route of ["archive", "restore"] as const) {
       const callback =
         TableViewRoutes[route === "archive" ? "Archive" : "Restore"];
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback args permit decorator arrays, but these two route definitions put a single ids decorator at this index; changing the call would alter the fixture's route-contract test.
       const decorate = callback.args[IDS_ARG_INDEX] as ArgDecorator;
       decorate(Probe.prototype, route, IDS_ARG_INDEX);
       const parameter = GetMetadata(Probe, ControllerMeta).getParameterArray(

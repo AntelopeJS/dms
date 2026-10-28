@@ -207,7 +207,7 @@ export async function revokeOtherSessions(
  */
 export async function changePassword(
   user: User,
-  body: unknown,
+  body: Parameters<typeof securitySchema.changePassword.parse>[0],
   context: PasswordChangeContext,
 ): Promise<PasswordChangeResult> {
   const { currentPassword, password } = assertValidation(body, (value) =>

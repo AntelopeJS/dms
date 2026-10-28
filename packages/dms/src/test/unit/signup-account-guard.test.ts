@@ -25,11 +25,12 @@ const USER_AGENT = "signup-guard-test";
 const IP = "127.0.0.1";
 
 interface SignupAttempt {
-  error: unknown;
+  error: PromiseRejectedResult["reason"];
   updatedUsers: User[];
 }
 
 function buildAccount(id: string, email: string, isValidated: boolean): User {
+  // SAFETY: Signup's account guard and draft takeover read or replace these plain fields; the fixture does not implement persisted-row methods.
   return {
     _id: id,
     email,
@@ -38,7 +39,7 @@ function buildAccount(id: string, email: string, isValidated: boolean): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated,
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 async function joinWorkspace(userId: string): Promise<void> {
@@ -65,6 +66,7 @@ async function attemptSignup(
   lang?: string,
 ): Promise<SignupAttempt> {
   const updatedUsers: User[] = [];
+  // SAFETY: The harness implements signup's account lookups and records writes; unsupported downstream token interfaces may fail after those writes and are deliberately captured below.
   const userModel = {
     getByEmail: async (lookup: string) =>
       lookup === existingUser.email ? existingUser : undefined,
@@ -81,6 +83,7 @@ async function attemptSignup(
   try {
     await signup(
       userModel,
+      // SAFETY: This deliberately unimplemented session model is not a working persistence model; the harness observes guard refusal or earlier user writes and captures downstream failures.
       {} as SessionModel,
       {
         name: INVITEE_NAME,
@@ -92,7 +95,7 @@ async function attemptSignup(
       USER_AGENT,
       { ip: IP },
     );
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return { error, updatedUsers };
   }
   return { error: undefined, updatedUsers };
@@ -100,7 +103,7 @@ async function attemptSignup(
 
 function expectRefusal(attempt: SignupAttempt, message: string): void {
   expect(attempt.error).to.be.instanceOf(HTTPResult);
-  const refusal = attempt.error as HTTPResult;
+  const refusal = attempt.error;
   expect(refusal.getStatus()).to.equal(HTTP_BAD_REQUEST);
   expect(refusal.getBody()).to.equal(message);
 }

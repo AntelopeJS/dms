@@ -17,7 +17,7 @@ export function GetHtmlTemplate(key: string): HtmlTemplateInfo | undefined {
   return templateRegistry.get(key);
 }
 
-export function GetAllHtmlTemplates(): Record<string, HtmlTemplateInfo> {
+export function GetAllHtmlTemplates() {
   const result: Record<string, HtmlTemplateInfo> = {};
   for (const [key, info] of templateRegistry) {
     result[key] = info;

@@ -84,9 +84,11 @@ describe("[integration] menu events on access changes", () => {
   let member: RegisteredUser;
 
   async function createRole(name: string): Promise<string> {
-    const response = await owner.post(`${ROLES}/create`, { name });
+    const response = await owner.post<{ id: string }>(`${ROLES}/create`, {
+      name,
+    });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.id as string;
+    return response.data.id;
   }
 
   beforeEach(async () => {

@@ -1,4 +1,3 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
@@ -27,6 +26,7 @@ const DENIED_TENANT = "layout-gate-denied-tenant";
 const ALLOWED_TENANT = "layout-gate-allowed-tenant";
 const SUSPENDED_CODE = "layout-gate.suspended";
 const HTTP_FORBIDDEN = 403;
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization uses only this user's id; this fixture deliberately omits unrelated persisted user columns.
 const MEMBER = { _id: "layout-gate-member" } as User;
 
 const gateInfo = denyingTenantGate(
@@ -37,7 +37,7 @@ const gateInfo = denyingTenantGate(
 
 const models = stubPageAccessModels(["*"]);
 
-async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
+async function loadLayout(slug: string, tenantId: string) {
   const handler = GetPageLayoutBySlug(slug);
   if (!handler) throw new Error(`no layout handler registered for ${slug}`);
   return handler({
@@ -51,9 +51,9 @@ async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
 async function refusalOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
   throw new Error("expected the layout resolution to refuse");
 }
@@ -68,7 +68,7 @@ describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant g
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
 
-    const controllers: Record<string, ControllerClass> = {
+    const controllers = {
       product: PageController("lg-product", {
         displayName: "Product",
         category: pagesCategory,

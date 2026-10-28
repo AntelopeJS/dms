@@ -17,6 +17,7 @@ function decodeServiceToken(serviceTokenLifetime: number): ServiceTokenClaims {
   applyConfig({
     htmlRender: { ...getHtmlRenderConfig(), serviceTokenLifetime },
   });
+  // SAFETY: generateServiceToken signs an object with jsonwebtoken's default iat and an expiresIn-derived exp; decode's general payload type leaves those claims optional.
   return decode(generateServiceToken(), { json: true }) as ServiceTokenClaims;
 }
 

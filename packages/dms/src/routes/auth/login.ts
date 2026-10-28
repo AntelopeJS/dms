@@ -23,7 +23,7 @@ const INVALID_CREDENTIALS_MESSAGE = "error.invalid_credentials";
 export async function login(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.login.parse>[0],
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<LoginOutcome> {

@@ -163,7 +163,7 @@ describe("[unit] utils/tenant-export-archive", () => {
     await build();
     const late = await escaped
       ?.addJson("late.json", {})
-      .catch((error: unknown) => error);
+      .catch((error) => error);
 
     expect(late).to.be.instanceOf(Error);
   });
@@ -175,11 +175,9 @@ describe("[unit] utils/tenant-export-archive", () => {
       throw new Error("contributor noticed the abort");
     });
 
-    const failure = await build(controller.signal).catch(
-      (error: unknown) => error,
-    );
+    const failure = await build(controller.signal).catch((error) => error);
 
     expect(failure).to.be.instanceOf(Error);
-    expect((failure as Error).message).to.equal("cancelled by user");
+    expect(failure.message).to.equal("cancelled by user");
   });
 });

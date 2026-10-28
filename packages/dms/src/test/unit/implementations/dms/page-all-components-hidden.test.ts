@@ -23,6 +23,7 @@ import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access"
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
 const TENANT = "hidden-blocks-tenant";
+// SAFETY: Page access consumes this id and the absent owner flag; the test does not call persisted-user methods.
 const MEMBER = { _id: "hidden-blocks-member" } as User;
 const BLOCKS_PAGE_ID = "pages.hidden-blocks";
 const BARE_PAGE_ID = "pages.hidden-blocks-bare";

@@ -6,17 +6,16 @@ import { expect } from "chai";
 import { z } from "zod";
 import {
   RoleModel,
-  type TenantMember,
   TenantMemberModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import {
   ExecuteHooks,
   Hook,
+  type InviteDeletedHookPayload,
   type InviteDeletedReason,
 } from "@antelopejs/interface-dms/hooks";
 import {
-  type InviteCleanupContext,
   type InviteExtensionOptions,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
@@ -29,9 +28,7 @@ import {
 } from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
-import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
-  Form,
   type FormBuilder,
   type FormFieldOrGroupSerialized,
   type FormPropsSerialized,
@@ -47,50 +44,19 @@ import {
   submitInvite,
   TENANT,
 } from "../../../helpers/invite-entry-fixtures";
+import {
+  extensionForm,
+  fieldIds,
+  inviteEditHostForm,
+  inviteHostForm,
+  recordingExtension,
+  topLevelIds,
+} from "../../../helpers/invite-extensions";
 
 let admin: User;
 
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
-}
-
-function textField(id: string, required = false) {
-  return {
-    id,
-    label: id,
-    type: new DefaultDataTypes.StringType({}),
-    required,
-  };
-}
-
-/**
- * Stands in for the DMS invite modal: a form that opens the invite slot, its
- * addresses field under its real id (`member-invite-form.ts`).
- */
-function inviteHostForm(): FormBuilder {
-  return Form({
-    fields: [textField("emails", true), textField("roles")],
-    slotId: "dms.invite-form",
-  });
-}
-
-/**
- * Stands in for the edit form of a pending invitation, which lists the
- * invitation's own columns — its address and roles under their stored names.
- */
-function inviteEditHostForm(): FormBuilder {
-  return Form({
-    fields: [
-      textField("email"),
-      textField("firstname"),
-      textField("roles_ids"),
-    ],
-    slotId: "dms.invite-edit-form",
-  });
-}
-
-function extensionForm(fieldId: string): FormBuilder {
-  return Form({ fields: [textField(fieldId, true)] });
 }
 
 const disposers: Array<() => void> = [];
@@ -99,28 +65,6 @@ function register<T>(options: InviteExtensionOptions<T>): () => void {
   const dispose = RegisterInviteExtension(options);
   disposers.push(dispose);
   return dispose;
-}
-
-interface Recorded {
-  accepted: Array<{ payload: unknown; member: TenantMember }>;
-  cleaned: InviteCleanupContext[];
-}
-
-/** A contributor that records what it was handed, with a one-string payload. */
-function recordingExtension(key: string, fieldId = "note") {
-  const recorded: Recorded = { accepted: [], cleaned: [] };
-  const options: InviteExtensionOptions<{ [k: string]: string }> = {
-    key,
-    component: extensionForm(fieldId),
-    schema: z.object({ [fieldId]: z.string().min(1) }),
-    onAccept: (payload, member) => {
-      recorded.accepted.push({ payload, member });
-    },
-    onCleanup: (_payload, context) => {
-      recorded.cleaned.push(context);
-    },
-  };
-  return { recorded, options };
 }
 
 async function hostLayout(slug: string) {
@@ -134,12 +78,10 @@ async function hostLayout(slug: string) {
   });
 }
 
-async function hostLayoutFields(
-  slug: string,
-): Promise<FormFieldOrGroupSerialized[]> {
+async function hostLayoutFields(slug: string) {
   const layout = await hostLayout(slug);
-  const options = layout.components.invite
-    .options as unknown as FormPropsSerialized;
+  // SAFETY: registerHostPage declares the invite component with a Form builder.
+  const options = layout.components.invite.options as FormPropsSerialized;
   return options.fields;
 }
 
@@ -156,18 +98,6 @@ async function registerHostPage(
   }
   RegisterPage()(Host);
   await settle();
-}
-
-function fieldIds(fields: FormFieldOrGroupSerialized[]): string[] {
-  return fields.flatMap((item) =>
-    isFieldGroupSerialized(item)
-      ? item.fields.map((field) => field.id)
-      : [item.id],
-  );
-}
-
-function topLevelIds(fields: FormFieldOrGroupSerialized[]): string[] {
-  return fields.map((item) => item.id);
 }
 
 async function registrationHostCommand(userId: string): Promise<void> {
@@ -258,9 +188,12 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-schema");
 
       const layout = await hostLayout("/ie-schema");
-      const schema = (
-        layout.components.invite.options as unknown as FormPropsSerialized
-      ).schema as { properties: Record<string, unknown>; required: string[] };
+      // SAFETY: registerHostPage declares invite with Form, which serializes these fields into an object schema.
+      const schema = (layout.components.invite.options as FormPropsSerialized)
+        .schema as {
+        properties: Record<string, FormPropsSerialized["schema"]>;
+        required: string[];
+      };
 
       expect(Object.keys(schema.properties)).to.include("billing__costCenter");
       expect(schema.required).to.include("billing__costCenter");
@@ -580,7 +513,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
   describe("cleanup", () => {
     async function fireDeleted(
       reason: InviteDeletedReason,
-      extensions: Record<string, unknown> | null,
+      extensions: InviteDeletedHookPayload["extensions"],
     ): Promise<void> {
       await ExecuteHooks(Hook.INVITE_DELETED, {
         tenantId: TENANT,

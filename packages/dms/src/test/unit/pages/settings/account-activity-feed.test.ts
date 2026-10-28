@@ -17,6 +17,7 @@ const event = (
   type: string,
   overrides: Partial<AccountActivityEvent> = {},
 ): AccountActivityEvent =>
+  // SAFETY: This feed fixture deliberately includes unknown event types; the formatter skips them and reads only the detail fields supplied for each case.
   ({
     id: `${type}-1`,
     type,
@@ -97,6 +98,7 @@ describe("[unit] settings overview — account activity feed", () => {
       [
         event("two_factor_disabled", { method: "email" }),
         event("two_factor_enabled", {
+          // SAFETY: The invalid method deliberately exercises the formatter's unknown-method fallback without altering the runtime input.
           method: "sms" as AccountActivityEvent["method"],
         }),
         event("workspace_joined", { workspace: "Acme", actor: "Léa" }),

@@ -88,6 +88,7 @@ class OrderAPI extends DataController(
 
 function formFields(mode: "new" | "edit" | "view"): Map<string, FormField> {
   const meta = GetMetadata(OrderAPI, TableViewMeta);
+  // SAFETY: OrderAPI declares only ungrouped columns; getFormFields includes groups in its return type for other controllers.
   const fields = meta.getFormFields(mode) as FormField[];
   return new Map(fields.map((field) => [field.id, field]));
 }

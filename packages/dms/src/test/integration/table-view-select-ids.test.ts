@@ -28,9 +28,11 @@ describe("[integration] table view select by ids", () => {
   });
 
   async function select(query: string): Promise<Note[]> {
-    const response = await client.get(`${LOCATION}/select?${query}`);
+    const response = await client.get<{ results: Note[] }>(
+      `${LOCATION}/select?${query}`,
+    );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.results as Note[];
+    return response.data.results;
   }
 
   const idOf = (title: string) =>

@@ -49,6 +49,7 @@ function createEventTrigger(spec: DmsEventTriggerSpec): TriggerType {
       return listener;
     },
     async deactivate(handle) {
+      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
       listenersFor(spec.event).delete(handle as AutomationEventListener);
     },
   };
@@ -65,7 +66,9 @@ interface RecordTriggerSpec {
   icon: string;
 }
 
-function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
+function createRecordTrigger(
+  spec: RecordTriggerSpec,
+): TriggerType<RecordTriggerConfig | undefined> {
   return {
     id: spec.event,
     name: nodeText(`triggers.${spec.texts}`, "name"),
@@ -92,10 +95,9 @@ function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
       }),
     },
     async activate(config, emit) {
-      const location = (
-        config as RecordTriggerConfig | undefined
-      )?.location?.trim();
+      const location = config?.location?.trim();
       const listener: AutomationEventListener = (payload) => {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record trigger subscriptions receive RecordMutationEvent from emitAutomationEvent; the shared listener registry erases the per-event payload type.
         if (location && (payload as RecordMutationEvent).location !== location)
           return;
         emit(payload);
@@ -104,6 +106,7 @@ function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
       return listener;
     },
     async deactivate(handle) {
+      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
       listenersFor(spec.event).delete(handle as AutomationEventListener);
     },
   };

@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-chained-type-assertions -- Permission fixtures implement only getByUser and getBy, not the full member and role model classes. */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type {
@@ -38,10 +37,13 @@ export function stubPageAccessModels(
 export function stubExactPermissionModels(
   permissions: string[],
 ): PageAccessModels {
+  // SAFETY: Page visibility only calls getByUser for roleIds and getBy for permissions; neither stub implements unrelated model operations or row fields.
   return {
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Inference and Pick preserve the partial row return, which cannot implement the model's complete member return contract.
     memberModel: {
       getByUser: async () => ({ roleIds: ["role-1"] }),
     } as unknown as TenantMemberModel,
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Inference and Pick preserve the partial row return, which cannot implement the model's complete role return contract.
     roleModel: {
       getBy: async () => [{ permissions }],
     } as unknown as RoleModel,

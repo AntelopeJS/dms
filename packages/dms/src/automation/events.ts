@@ -1,3 +1,5 @@
+import type { TriggerType } from "@antelopejs/interface-dms-automation";
+
 export interface MemberAddedEvent {
   tenantId: string;
   userId: string;
@@ -53,7 +55,7 @@ interface AutomationEventPayloads {
 
 export type AutomationEventName = keyof AutomationEventPayloads;
 
-export type AutomationEventListener = (payload: unknown) => void;
+export type AutomationEventListener = Parameters<TriggerType["activate"]>[1];
 
 const eventListeners = new Map<
   AutomationEventName,
