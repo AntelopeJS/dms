@@ -17,10 +17,6 @@ export interface BlockEmptyText {
  */
 export type BlockStatusState = "empty" | "error" | "not-found";
 
-// What a data-driven block shows instead of its content: an empty list, a
-// first load that failed (with a retry), or a source that answered 404.
-// Compact v2 .c-empty in a card, so it keeps the footprint of the block it
-// stands in for.
 interface BlockStatusProps {
   state: BlockStatusState;
   /** Replaces the default texts of the empty state. */

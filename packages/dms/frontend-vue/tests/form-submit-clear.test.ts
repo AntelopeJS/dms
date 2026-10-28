@@ -154,8 +154,6 @@ describe("collectSubmitData on an edit form", () => {
   }
 
   it("sends an emptied text as null, an emptied list as an empty list", () => {
-    // A file or image control emits `null`, a multiple select `[]`, a text
-    // input `""`: the text is a cleared field like the others.
     expect(
       collectSubmitData(
         { file: null, tags: [], title: "" },
@@ -250,7 +248,6 @@ describe("collectSubmitData on an edit form", () => {
   });
 
   it("clears a field of a group like any other", () => {
-    // Groups reach `collectSubmitData` flattened: their fields are fields.
     expect(
       collectSubmitData(
         { email: "a@b.c", phone: undefined },
@@ -281,8 +278,6 @@ describe("collectSubmitData on an edit form", () => {
   });
 
   it("sends a localized field with every language emptied as empty languages", () => {
-    // The database stores a localized field as one value per language and
-    // cannot read a `null` back in its place.
     expect(
       collectSubmitData(
         { title: { en: "", fr: "" }, notes: { en: "<p></p>", fr: "" } },

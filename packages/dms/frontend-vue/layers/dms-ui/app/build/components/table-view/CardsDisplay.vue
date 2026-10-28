@@ -52,12 +52,10 @@ const titleOf = (item: T): string => {
     : rowId(item);
 };
 
-// The subtitle and avatar the title column's identity display declares.
 const identity = computed(() =>
   cardIdentity(props.context.columns, props.context.labelKey),
 );
 
-// An id or an address is data: only a composed text is translated.
 const subtitleOf = (item: T): string | undefined =>
   readSubline(
     cardSubtitle(item, identity.value, {
@@ -72,7 +70,6 @@ const card = computed(
     (props.context.options as { card?: TableViewCardConfig } | undefined)?.card,
 );
 
-// A custom card draws the whole card; it gets the props a kanban card gets.
 const cardComponent = computed(() => {
   const name = card.value?.component?.componentName;
   return name ? resolveDmsComponent(name) || name : undefined;
@@ -85,15 +82,11 @@ const fieldColumns = computed<TableViewColumn[]>(() =>
   }),
 );
 
-// A field renders the same way a table cell does: through its column's
-// display, else its data type (status pills, links, dates…).
 const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
   renderField(fieldProps.column, fieldProps.item);
 
 const openItem = (item: T) => props.context.actions.open(item);
 
-// A custom card draws its row's actions where it likes, as a component: one
-// per row, kept across renders so an open menu is not remounted shut.
 const rowActionsComponents = new Map<string, Component>();
 const rowActionsFor = (id: string): Component => {
   let component = rowActionsComponents.get(id);
@@ -103,7 +96,6 @@ const rowActionsFor = (id: string): Component => {
         name: "CardRowActionsOf",
         render: () =>
           h(CardRowActions, {
-            // `h` cannot carry the display's row type to a generic component.
             table: props.context.table as Table<Record<string, unknown>>,
             rowId: id,
           }),
@@ -114,8 +106,6 @@ const rowActionsFor = (id: string): Component => {
   return component;
 };
 
-// A hand-ordered table (backend `reorder`): each card carries a move handle,
-// and is where another card dragged by its handle drops.
 const { draggedIndex, handleFor, drop, allowDrop } = useReorderHandles({
   reorder: () => props.context.reorder,
   count: () => props.context.items.length,

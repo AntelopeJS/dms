@@ -20,7 +20,6 @@ import {
 import { groupNotificationsByDay } from "../layers/dms-layout/app/build/components/pages/settings/notification/notificationDisplay";
 import type { UserNotification } from "../layers/dms-layout/app/composables/notification/useNotifications";
 
-// 23:30 UTC on 30 Sep: already 1 Oct in Brussels, still 30 Sep in New York.
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));
 
 afterEach(() => {
@@ -120,7 +119,7 @@ describe("withRegionalOptions", () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-    // "Sep 27" has no year: not a full date.
+
     expect(
       withRegionalOptions({ day: "numeric", month: "short" }, {}, numeric),
     ).toEqual({ day: "numeric", month: "short" });

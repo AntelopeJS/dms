@@ -6,7 +6,6 @@ import type {
 } from "../../../../composables/table-view/types/display";
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
 
-// The columns a card shows when its table declares no `card.fields`.
 const FALLBACK_CARD_FIELD_COUNT = 4;
 
 /** What a card shows already, so its fields leave it out. */
@@ -163,15 +162,9 @@ export function cardAvatar<T>(
 /** The narrowest a card of the `cards` display gets (backend `card.minWidth`). */
 export const DEFAULT_CARD_MIN_WIDTH = "230px";
 
-// The grid's gap and side padding, as `CARD_GRID_CLASS` sets them: the width
-// cap below adds them to the cards' own.
 const CARD_GRID_GAP = "0.75rem";
 const CARD_GRID_PADDING = "36px";
 
-// How much wider than `card.minWidth` a card may stretch when the row has room
-// for more cards than the list holds. A full row hardly reaches it: n cards
-// fit, but not n + 1, so each one stays under twice the minimum, give or take
-// a gap.
 const CARD_MAX_WIDTH_FACTOR = 2;
 
 /**

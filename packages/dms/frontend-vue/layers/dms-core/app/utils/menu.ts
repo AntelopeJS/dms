@@ -1,14 +1,6 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { parseLinkQuery, stripQueryAndHash } from "./routePath";
 
-// Menu items carry the registered page/category's dot-separated `fullId`
-// (e.g. `pages.erp.orders`) plus the DMS semantic fields; Nuxt UI's
-// NavigationMenuItem type doesn't know about them, so they are read through
-// `DmsMenuItem`.
-
-// Semantic status → theme color, shared by every menu rendering (expanded
-// sidebar icon, collapsed sidebar dot). A dot renders it as `bg-current`, so one
-// map covers both.
 export const MENU_STATUS_TEXT_CLASSES: Record<MenuItemStatus, string> = {
   success: "text-success",
   warning: "text-warning",
@@ -44,10 +36,6 @@ export const translateMenuItems = (
   );
 };
 
-// Whether `item` is the matched page itself or one of its ancestors in the
-// registered category hierarchy. fullId-based to avoid URL-prefix pitfalls:
-// hidden pages still resolve via `findMatchingRoute` and custom-pages can have
-// urlSlugs that escape their parent category's URL.
 export const shouldExpandMenuItem = (
   item: NavigationMenuItem,
   matchedFullId: string | null,
@@ -61,10 +49,6 @@ export const shouldExpandMenuItem = (
 const normalizeRoutePath = (path: string): string =>
   path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
 
-// The current route is the link itself or one of its sub-routes. Auto-generated
-// detail views (e.g. `/orders/detail/42`) live under their parent page's URL but
-// are never registered as menu links, so plain route matching would drop the
-// parent's highlight.
 const matchesRoutePrefix = (currentPath: string, to: string): boolean => {
   const target = normalizeRoutePath(to);
   const current = normalizeRoutePath(currentPath);
@@ -88,8 +72,6 @@ const resolveItemTarget = (
 const hasQuery = (target: MenuItemTarget | null): boolean =>
   Object.keys(target?.query ?? {}).length > 0;
 
-// Subset match: the entry's own parameters must be the current ones, while
-// unrelated parameters the page adds (tabs, filters) are ignored.
 const queryMatches = (
   declared: MenuItemTarget["query"],
   currentQuery: Record<string, unknown>,

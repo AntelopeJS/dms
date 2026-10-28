@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -22,8 +22,6 @@ const MEMBERS_PATH = "/settings/workspace/members";
 const TABLE_ID = "table";
 const INVITE = "invite";
 
-// The members page as the backend serves it: the table view's "invite"
-// button, placed in the header, which opens the invite modal.
 const INVITE_HEADER_ACTION = {
   id: `${TABLE_ID}:${INVITE}`,
   componentId: TABLE_ID,
@@ -122,8 +120,6 @@ describe("a header action pressing a table view button", () => {
       const button = await mountHeaderBar();
       button.click();
 
-      // Routed through the URL, the modal opened two server visits later,
-      // and over the next page when the user navigated meanwhile.
       expect(run).toHaveBeenCalledTimes(1);
       expect(run).toHaveBeenCalledWith({ kind: "button", button: INVITE });
       expect(routerReplace).not.toHaveBeenCalled();

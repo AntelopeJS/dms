@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A URL shown read-only (a cell, a record's details) is a link, or, when its
  * `UrlType` asks for a `preview`, the image it points to: a remote photo
@@ -39,7 +39,6 @@ function renderUrl(
 }
 
 beforeAll(async () => {
-  // Auto-imports of the layer the default types are registered with.
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
   vi.stubGlobal("isString", isString);

@@ -83,8 +83,6 @@ function renderField(key: string | undefined): VNodeChild {
   return renderColumnValue(column, row, "detail");
 }
 
-// The value slot renders a VNode tree; a functional wrapper keeps it in the
-// template's flow.
 const FieldValue = (fieldProps: { item: KeyValueItem }) =>
   renderField(fieldProps.item.id);
 </script>

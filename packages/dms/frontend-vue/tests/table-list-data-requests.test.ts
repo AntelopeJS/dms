@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The requests behind a table view's list and counters, through the
  * runtime's real async data: a query rebuilt equal by value reads nothing
@@ -175,8 +175,6 @@ describe("a source table's requests", () => {
     unmounts.push(() => app.unmount());
     await settle();
 
-    // The route pages nothing: the list and the "all" counter both read
-    // every row, the same request.
     expect(
       calls.map(({ url, query }) => [url, query?.filter_status]).sort(),
     ).toEqual([

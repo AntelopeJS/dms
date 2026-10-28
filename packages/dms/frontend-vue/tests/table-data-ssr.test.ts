@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view's list, tab counters and footer figures, through the runtime's
  * real async data: a server render requests them in parallel and renders
@@ -79,7 +79,7 @@ const Table = defineComponent({
     const rows = useTableRows({ api, location: LOCATION, columns: COLUMNS });
     const keys = { componentId: "orders", pageId: "sales", rows };
     const archiveQuery = computed(() => ({}));
-    // As TableView: none of the three is awaited.
+
     const list = useTableListData({
       ...keys,
       query: computed(() => ({ offset: 0, limit: 10 })),

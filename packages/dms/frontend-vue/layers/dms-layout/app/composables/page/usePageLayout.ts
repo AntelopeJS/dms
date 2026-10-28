@@ -20,8 +20,6 @@ export async function usePageLayout() {
   );
   const load = async () => {
     if (layoutUrl.value && !pageLayout.value) {
-      // Asked with the page query, for the header buttons whose availability
-      // depends on it; cached for the page whatever its query.
       await siteLayout.loadPageLayout(
         layoutUrl.value,
         pageQueryValues(route.query),

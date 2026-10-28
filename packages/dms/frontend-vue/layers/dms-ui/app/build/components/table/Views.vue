@@ -41,8 +41,6 @@ const emit = defineEmits<{
   delete: [id: string];
 }>();
 
-// v2 saved views (saas workspaces): eyebrow, outline pills, the open one on
-// the accent tint, a dashed "+ Save current view" at the end.
 const theme = tv({
   slots: {
     strip:
@@ -153,14 +151,12 @@ const viewActions = computed<ViewAction[]>(() => {
   return actions;
 });
 
-// The strip ends with its own "+ Save current view" pill.
 const barActions = computed(() =>
   props.layout === "strip"
     ? viewActions.value.filter((action) => action.id !== "saveAs")
     : viewActions.value,
 );
 
-// A menu group left empty would draw a stray separator.
 const menuItems = computed(() =>
   [
     props.items.map((view) => ({

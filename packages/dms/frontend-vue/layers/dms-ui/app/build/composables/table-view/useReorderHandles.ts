@@ -4,8 +4,6 @@ import type {
   TableViewReorderHandle,
 } from "../../../composables/table-view/types/display";
 
-// One place back or forward: a row of the grid steps up and down, a card of
-// the cards grid also left and right.
 const STEP_BY_KEY: Record<string, number> = {
   ArrowUp: -1,
   ArrowLeft: -1,
@@ -55,13 +53,11 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
 
   const startDrag = (index: number, event: DragEvent) => {
     draggedIndex.value = index;
-    // Firefox starts a drag only once it carries data.
+
     event.dataTransfer?.setData("text/plain", String(index));
     if (event.dataTransfer) event.dataTransfer.effectAllowed = DRAG_EFFECT;
   };
 
-  // The handle moves with its row (rows are keyed by id), and the browser
-  // drops the focus of an element it moves: give it back.
   const stepByKey = (index: number, event: KeyboardEvent) => {
     const delta = STEP_BY_KEY[event.key];
     if (delta === undefined) return;

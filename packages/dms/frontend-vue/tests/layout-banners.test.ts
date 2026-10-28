@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -50,8 +50,6 @@ function serveBanners(banners: LayoutBanner[] | undefined): void {
   siteLayout.value = { pages: {}, categories: {}, banners };
 }
 
-// Renders what the real alert exposes to the banner: its description slot and
-// a close button that reports the alert closed.
 const AlertStub = defineComponent({
   props: {
     color: { type: String, default: undefined },
@@ -229,8 +227,6 @@ describe("useLayoutBanners", () => {
     expect(banners.value).toEqual([]);
   });
 
-  // A banner that turned non-dismissible (an overdue invoice) must show again
-  // even to a user who closed its dismissible predecessor under the same key.
   it("ignores a dismissal for a banner that is not dismissible", () => {
     dismissedCookie.value = ["a"];
     serveBanners([banner({ key: "a", dismissible: false })]);
@@ -309,8 +305,6 @@ describe("DashboardBanners", () => {
     ]);
   });
 
-  // The server reads the same cookie, so a dismissed banner never reaches the
-  // page only to be removed on hydration.
   it("leaves a dismissed banner out of the server-rendered page", async () => {
     dismissedCookie.value = ["news"];
     serveBanners([banner({ key: "news", dismissible: true })]);
@@ -321,7 +315,6 @@ describe("DashboardBanners", () => {
     expect(html).not.toContain("data-dms-layout-banners");
   });
 
-  // The site layout is fetched once: the scope is what changes between pages.
   it("adds and removes scoped banners on client-side navigation", async () => {
     serveBanners([
       banner({ key: "overdue", scope: "app" }),

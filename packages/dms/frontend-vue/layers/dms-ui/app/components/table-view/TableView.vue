@@ -216,12 +216,8 @@ interface RealtimePresenceActor {
 
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
-/** A kept field of the table, its state, and its default. */
-// The default may move once mounted (a phone's display): read when written.
 type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
-// The backend options of a table view, declared here as well so the
-// component's runtime props never depend on resolving the imported config.
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
@@ -295,11 +291,7 @@ const urlScope = {
 const ALL_TAB_ID = "all";
 
 const keptPreferences = useTablePreferences(componentId, pageId);
-// A link naming a view, a tab, a record or a URL filter opens on the table's
-// defaults plus what it names, never over the state kept from the last visit
-// (which stays kept for the next plain visit), until the user makes the
-// state shown their own: a view, a tab, a filter or a sort they pick. Only a
-// reload (or Back) of the URL the table wrote for that state restores it.
+
 const isLinked = isLinkedArrival({
   query: route.query,
   urlScope,
@@ -319,8 +311,7 @@ const tablePreferences = linkFollowingPreferences(
     urlScope,
     linkScope: () => urlFilterScope(route.query, queryParamFilters),
     linkKeys: () => linkKeyScope(route.query, urlScope, queryParamFilters),
-    // Read once the table is mounted, past the declarations below. A page
-    // kept without its scope is restored as it is (`usePersistedPagination`).
+
     listingState: () => [
       ["activeView", keptViewId(activeViewId.value), undefined],
       ["activeTab", activeTabId.value, ALL_TAB_ID],
@@ -344,8 +335,7 @@ const kanbanGroupByOptions = kanbanEligibleColumns.map((column) => ({
 const { displays: registeredDisplays, getById } = useTableViewDisplays();
 
 const offeredDisplayIds = new Set(resolvedDisplays.map((d) => d.id));
-// Where a stale or unavailable choice lands: the grid, unless the table view
-// drops it, then its default display.
+
 const fallbackDisplayId = offeredDisplayIds.has(TABLE_DISPLAY_ID)
   ? TABLE_DISPLAY_ID
   : defaultDisplay;
@@ -360,14 +350,11 @@ const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
   | TableViewGroupedConfig
   | undefined;
 
-// Stored under the legacy "viewMode" key (free migration of "table"/"kanban");
-// clamped to the offered set so a stale/removed id never renders an un-offered display.
 const persistedDisplay = tablePreferences.get<string>(
   "viewMode",
   defaultDisplay,
 );
-// A default display that draws its whole interface (no table chrome, hence no
-// switcher) is the only way into the page: a saved choice cannot override it.
+
 const isDefaultDisplayStandalone =
   resolvedDisplay(defaultDisplay)?.capabilities?.header === false;
 const activeDisplayId = ref<string>(
@@ -396,9 +383,6 @@ const availableDisplays = computed<TableViewSwitcherItem[]>(() =>
     .map(({ id, label, icon }) => ({ id, label, icon })),
 );
 
-// SSR-safe: capabilities + self-managed flag come from config, not the
-// client-only registry, so the chrome and list-query decision match across SSR.
-// A hand-ordered table is listed by its position: no sort to pick.
 const reorderConfig = props.reorder;
 const activeCapabilities = computed(() => {
   const capabilities = resolveDisplayCapabilities(
@@ -411,8 +395,6 @@ const isActiveDisplaySelfManaged = computed(
   () => !!resolvedDisplay(activeDisplayId.value)?.selfManagedData,
 );
 
-// Static fallback for built-in displays whose config entry carries options but
-// no component (kanban); the registry confirms the same component client-side.
 const STATIC_DISPLAY_COMPONENTS: Record<string, Component> = {
   [KANBAN_DISPLAY_ID]: KanbanDisplay,
 };
@@ -431,8 +413,7 @@ const resolveDisplayComponentRef = (
 const activeDisplayComponent = computed<Component | string | undefined>(() => {
   const id = activeDisplayId.value;
   if (id === TABLE_DISPLAY_ID || !offeredDisplayIds.has(id)) return undefined;
-  // The instance's own component wins over the registered one: the server
-  // renders it, so the client must hydrate the same tree.
+
   const fromConfig = resolvedDisplay(id)?.component;
   if (fromConfig) return resolveDisplayComponentRef(fromConfig);
   const registered = getById(id)?.component;
@@ -442,8 +423,7 @@ const activeDisplayComponent = computed<Component | string | undefined>(() => {
 
 const defaultKanbanGroupBy = kanbanOptions?.groupByField ?? "";
 const kanbanGroupBy = ref<string>(defaultKanbanGroupBy);
-// A saved preference may point to a column that no longer exists or is no
-// longer eligible after a backend config change.
+
 tablePreferences.restore(
   "kanbanGroupBy",
   kanbanGroupBy,
@@ -453,8 +433,7 @@ tablePreferences.restore(
 );
 
 const DEFAULT_DENSITY = "default";
-// The module's density is the default; the user's pick in the ⋯ menu is kept
-// with the rest of the table's state.
+
 const defaultDensity = props.density ?? DEFAULT_DENSITY;
 const density = ref<"default" | "compact">(defaultDensity);
 tablePreferences.restore("density", density);
@@ -489,8 +468,6 @@ const shownUrlFilters = computed<TableUrlFilter[]>(() =>
   visibleUrlFilters(queryParamFilters, route.query as Record<string, unknown>),
 );
 
-// Rebuilt from the URL the browser shows: a `?record=` a closed drawer
-// removed in place must not come back with the visit.
 const removeUrlFilter = (param: string) =>
   router.replace({
     query: withoutQueryParam(currentQuery(route.query), param),
@@ -508,26 +485,20 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
     }));
 });
 
-// A hidden filter's value changed with the URL, in place or through a
-// remount: the page reached among the previous rows lists from page 1.
 const paginationState = usePersistedPagination({
   preferences: tablePreferences,
   defaults: DEFAULT_PAGINATION,
   scope: () => [queryParamHiddenFilters.value, routeParamHiddenFilters.value],
 });
 const rowSelect = ref<RowSelectionState>({});
-// A column's grid header, for the sort messages.
+
 const columnLabel = (id: string): string => {
   const column = allColumns.find((c) => (c.id ?? c.accessorKey) === id);
   return column ? processI18n(column.header) : id;
 };
 
-// The list route sorts on one `@Sortable()` column and refuses any other key
-// with a 400 that would leave the table on its error panel: every sort it is
-// sent (default, saved, pasted, picked) is checked against the columns first.
 const declaredSortableIds = sortableColumnIds(allColumns);
-// Columns the route refused although declared sortable (see the recovery
-// below): a backend change since the page loaded.
+
 const refusedSortIds = ref<string[]>([]);
 const sortableIds = computed(
   () =>
@@ -538,8 +509,6 @@ const sortableIds = computed(
     ),
 );
 
-// The grouped display's column, picked in the options menu as the kanban's
-// is: the rows of a group follow each other only when the route sorts on it.
 const groupedGroupByOptions = groupedOptions
   ? allColumns
       .filter(
@@ -566,17 +535,14 @@ const activeGroupedOptions = computed<TableViewGroupedConfig | undefined>(
     groupedOptions &&
     groupedOptionsFor(groupedOptions, groupedGroupBy.value, allColumns),
 );
-// The declared default sort when the route accepts it; without one, the
-// sortable creation date, newest first, rather than the database's natural
-// order (see `resolveDefaultSortConfig`).
+
 const tableDefaultSort = resolveDefaultSortConfig(
   defaultSort,
   declaredSortableIds,
   import.meta.env.DEV ? (message) => console.warn(message) : undefined,
 );
 const defaultSortState: SortingState = defaultSortingState(tableDefaultSort);
-// The toolbar sort menu names the default sort even when its field is not a
-// displayed column.
+
 const defaultSortLabel = tableDefaultSort
   ? columnLabel(tableDefaultSort.field)
   : undefined;
@@ -586,8 +552,7 @@ const defaultSortKind = tableDefaultSort
         ?.type?.id,
     )
   : undefined;
-// A hand-ordered table has no sort to pick: a sort saved before it was
-// ordered by hand is not read back.
+
 const sorting = ref<SortingState>(
   reorderConfig
     ? defaultSortState
@@ -617,7 +582,7 @@ const manualFilters = savedFilters
   .filter((f) => !pinnedKeys.has(f.accessorKey))
   .map((f) => ({ ...f, pinned: false }));
 const initialFilters = [...buildPinnedFilters(), ...manualFilters];
-// The pinned filters at their declared value: what a view leaves out of them.
+
 const pinnedDefaultFilters: TableFilter[] = (defaultFilters || []).map(
   (filter) => ({
     accessorKey: filter.accessorKey,
@@ -648,13 +613,10 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
-// The display the table counts as its default: the phone's `mobileDisplay`
-// once applied (see `useMobileDisplay` below).
 const displayDefault = ref(
   offeredDisplayIds.has(defaultDisplay) ? defaultDisplay : fallbackDisplayId,
 );
 
-// Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
   activeViewId,
@@ -676,7 +638,7 @@ const {
     columnOrder: listableColumns.map(
       (column) => column.id ?? column.accessorKey,
     ),
-    // Read when a view opens: a phone's `mobileDisplay` once applied.
+
     get display() {
       return displayDefault.value;
     },
@@ -697,9 +659,6 @@ const {
   urlScope,
 });
 
-// A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
-// after its first columns) unless a display was chosen: saved, fixed by the
-// open view, or the only way in.
 useMobileDisplay({
   mobileDisplay: props.mobileDisplay,
   defaultDisplay: displayDefault,
@@ -714,7 +673,6 @@ useMobileDisplay({
 
 const { t, te, locale } = useI18n();
 
-// A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
   readTableUrlTab(route.query, urlScope) ??
     tablePreferences.get<string>("activeTab", ALL_TAB_ID),
@@ -734,12 +692,9 @@ interface ResolvedTab {
   navBadge?: TableViewTab["navBadge"];
 }
 
-// A configured "all" tab stands in for the implicit one, at its own place.
 const hasConfiguredAllTab = (tabs ?? []).some((tab) => tab.id === ALL_TAB_ID);
 
 const resolvedTabs = computed<ResolvedTab[]>(() => {
-  // Tabs are a transverse-but-table-shaped concept; displays that opt out of the
-  // `tabs` capability (e.g. kanban) hide them and have their own grouping.
   if (!activeCapabilities.value.tabs) return [];
   if (!tabs || tabs.length === 0) return [];
   const implicitAll: ResolvedTab[] = hasConfiguredAllTab
@@ -750,7 +705,7 @@ const resolvedTabs = computed<ResolvedTab[]>(() => {
     ...tabs.map((tab) => ({
       id: tab.id,
       label: processI18n(tab.label),
-      // A link tab filters nothing: it opens another page.
+
       filters: tab.filter && !tab.to ? [{ ...tab.filter }] : [],
       icon: tab.icon,
       textColor: tab.textColor,
@@ -778,8 +733,6 @@ useTableUrlTab({
   isOpenable: isOpenableTab,
 });
 
-// A link to this page while it is shown opens like a linked arrival: on the
-// table's defaults plus what it names, leaving the kept state as it was.
 useTableLinkedVisit({
   route,
   urlScope,
@@ -805,7 +758,7 @@ watch(resolvedTabs, (next) => {
 });
 
 const { $authFetch } = useAuthFetch();
-// The controller's routes, or a `TableView.fromSource` table's route.
+
 const tableRows = useTableRows<T>({
   api: $authFetch,
   location,
@@ -815,15 +768,13 @@ const tableRows = useTableRows<T>({
     routeParams: props.routeParams,
     routeQuery: route.query as Record<string, unknown>,
   }),
-  // Groups keep their rows together: the grouped display pins nothing.
+
   pinnedRows: () => (isGroupedDisplay.value ? undefined : props.pinnedRows),
 });
-// Quick filters: dropdowns of the toolbar over a column's values (a select's
-// items, a boolean, the rows a relation points to), writing that column's
-// filter like the filters row does.
+
 const { getDataType } = useDataTypes();
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
-// Relation values load after mount: until then their buttons hold their place.
+
 const relationQuickFiltersLoaded = ref(false);
 const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
   const column = allColumns.find(
@@ -845,6 +796,7 @@ const loadRelationQuickFilters = async () => {
     quickFilterDefinitions
       .filter((definition) => !definition.items && definition.source)
       .map(async ({ filter, source }) => {
+        // prettier-ignore
         try {
           const response = await $authFetch<
             TableViewListResponse<Record<string, unknown>>
@@ -856,15 +808,13 @@ const loadRelationQuickFilters = async () => {
             [filter.field]: relationQuickFilterItems(response.results, source!),
           };
         } catch {
-          // A picker the caller may not read just stays out of the toolbar.
+          // eslint-disable-line no-empty -- Failed loads retain prior choices.
         }
       }),
   );
   relationQuickFiltersLoaded.value = true;
 };
 
-// A quick filter with nothing to pick is left out of the toolbar; one whose
-// relation values are still loading shows disabled, holding its place.
 const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
   quickFilterDefinitions
     .map(({ filter, column, mode, items, source }) => ({
@@ -911,8 +861,6 @@ const queryParamDefaults = computed<Record<string, unknown> | undefined>(() => {
   return Object.keys(defaults).length > 0 ? defaults : undefined;
 });
 
-// A display that hides a transverse control (capability off) must not silently
-// keep applying that control's persisted state to the shared query.
 const effectiveColumnFilters = computed<TableFilter[]>(() =>
   activeCapabilities.value.filters
     ? columnFilters.value
@@ -931,18 +879,16 @@ const sortingInput = computed<TableSortingInput>(() => ({
   sorting: sorting.value,
   defaultSorting: defaultSortState,
 }));
-// The order the rows are wanted in; the grouped display lists them on the
-// grouped column and orders each group by it (`shownResults`).
+
 const pickedSorting = computed(() => pickedTableSorting(sortingInput.value));
 const effectiveSorting = computed<SortingState>(() => {
   const listed = listTableSorting(sortingInput.value);
-  // The hand order is kept whole: its field need not be a sortable column.
+
   return reorderConfig && !sortingInput.value.grouped
     ? listed
     : sanitizeSorting(listed, sortableIds.value);
 });
 
-// A feed grows by pages (`loadMore`, `infinite`) rather than paging.
 const paginationMode = props.pagination ?? "pages";
 const { isAccumulating, requestedPagination, loadNextPage } =
   useAccumulatedPages({
@@ -970,7 +916,6 @@ const archiveQuery = computed(() =>
   archiveMode ? { showArchived: showArchived.value } : {},
 );
 
-// The row a side panel has open, which the grid highlights.
 const rowSidePanel = useRowSidePanelContent();
 const rowSidePanelOwner = rowSidePanelOwnerKey(pageId!, componentId!);
 const openRowId = computed(() =>
@@ -979,8 +924,6 @@ const openRowId = computed(() =>
     : undefined,
 );
 
-// The gate is set up with the other refresh triggers below; the hold only
-// reads it once the table is on screen.
 const NEW_ROWS_COUNT_ID = "liveHold:new";
 const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
 const liveHold = useTableLiveHold({
@@ -993,8 +936,7 @@ const liveHold = useTableLiveHold({
     isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
     tableElement: () => tableRoot.value?.$el ?? null,
   },
-  // The pill counts the rows the table would list, on its own count route:
-  // the rows its tab, search and filters match now, less those it holds.
+
   newRows: {
     heldList: () => data.value,
     countNow: async (signal) => {
@@ -1021,8 +963,6 @@ const liveHold = useTableLiveHold({
   },
 });
 
-// The list, its counters and its footer figures load in parallel: a server
-// render waits for each before rendering, whether or not the setup awaits it.
 const { data, status, error, refresh } = useTableListData<T>({
   componentId,
   pageId,
@@ -1033,15 +973,10 @@ const { data, status, error, refresh } = useTableListData<T>({
   heldQuery: liveHold.heldQuery,
 });
 
-// The failure of the last answer. The async data keeps it while the next run
-// is in flight; the table shows that run (its skeleton, or the rows it has)
-// rather than the failure it may replace.
 const settledError = computed(() =>
   status.value === "pending" ? null : error.value,
 );
 
-// Nothing listed yet (a client navigation paints before the first page
-// arrives): the table draws its skeleton, never the empty state.
 const isFirstPageLoading = computed(
   () => data.value === null && !settledError.value,
 );
@@ -1049,13 +984,6 @@ const isListLoading = computed(
   () => status.value === "pending" || isFirstPageLoading.value,
 );
 
-// A refused or failed list query must show as an error, never as an empty
-// table: "no data" on a 403 would tell a blocked caller there is nothing
-// to see.
-// Always a key the panel can resolve. The backend body is a message key by
-// contract, but not every one is translated (and a proxy error carries prose
-// or HTML, which must never reach the screen); the HTTP status is the fallback
-// that keeps a refusal distinguishable from a server failure.
 const listLoadError = computed(() => {
   const failure = settledError.value;
   if (!failure) return undefined;
@@ -1067,16 +995,8 @@ const listLoadError = computed(() => {
     : "error.500";
 });
 
-// A list answering 404 names a resource that does not exist (the workspace
-// its rows belong to was deleted): no retry fixes it, so the table gives way
-// to the not-found state blocks show, with what the 404 said.
 const listNotFound = computed(() => readFetchNotFound(settledError.value));
 
-// useDmsAsyncData keeps the previous result when a refetch fails, so rows kept
-// on screen would masquerade as the newly requested page/filter. Hide them
-// while the latest query is in error; the error panel takes their place.
-// Every consumer acting on visible rows (table, displays, selection
-// shortcuts) must read the shown refs, never `data` directly.
 const shownData = computed(() =>
   listLoadError.value ? undefined : data.value,
 );
@@ -1088,17 +1008,10 @@ const shownResults = computed(() => {
     : results;
 });
 
-// Rows selected before the failure can no longer be seen or verified, yet the
-// selection toolbar would keep offering delete/archive/export on them.
 watch(listLoadError, (message) => {
   if (message) rowSelect.value = {};
 });
 
-// Whatever sets the sort (a header, the sort menu, a pasted table config), the
-// route only ever receives a sort it accepts, and a cleared sort goes back to
-// the default one rather than being remembered empty. A new order lists from page 1:
-// the page reached in the previous order shows unrelated rows in the new one.
-// Synchronous, so the list is queried once, with both changes.
 watch(
   sorting,
   (next, previous) => {
@@ -1128,10 +1041,6 @@ watch(
 
 const toast = useToast();
 
-// The route refused the sort key anyway: a column whose `@Sortable()` was
-// removed since the page loaded. Stop sorting on it (the next query drops it)
-// and list again, with a warning, rather than leaving the table on its error
-// panel.
 watch(error, (failure) => {
   if (!failure || !isUnsortableFieldError(failure)) return;
   const refused = effectiveSorting.value[0]?.id;
@@ -1148,10 +1057,6 @@ watch(error, (failure) => {
   });
 });
 
-// A non-self-managed display consumes the shared query, and nothing
-// guarantees it knows how to render a failure. While that query is in error,
-// fall back to the table body so the error panel and its retry replace the
-// display instead of letting it show blank content.
 const activeDisplayBlockedByError = computed(
   () => !!listLoadError.value && !isActiveDisplaySelfManaged.value,
 );
@@ -1182,9 +1087,6 @@ const countState = computed<TableCountState>(() => ({
 }));
 const isCountStateNarrowed = computed(() => isCountNarrowed(countState.value));
 
-// Each counter counts what a click on it would list, so the counters follow
-// the filters, the search, the view and the tab: picks made in a row (quick
-// filters toggled one after the other) are counted once, when they settle.
 const COUNTS_DEBOUNCE_MS = 200;
 const debouncedCountsQuery = refDebounced(
   computed(() =>
@@ -1211,8 +1113,6 @@ const debouncedCountsQuery = refDebounced(
 );
 const tabCountsQuery = computed(() => debouncedCountsQuery.value);
 
-// No default: `null` until the counts arrive, so the tabs draw placeholders
-// instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
   useTableCountsData<T>({
     componentId,
@@ -1245,12 +1145,8 @@ interface ActiveDisplayExposed {
   refresh?: () => Promise<void> | void;
 }
 
-// Ref to the active display component (when one is rendered in #body); used to
-// refresh self-managed displays on realtime updates and manual refresh.
 const activeDisplayRef = ref<ActiveDisplayExposed | null>(null);
 
-// Filters/search/sort query without paging — exposed generically on the context
-// (context.query) for any self-managed display to fetch its own data.
 const baseQuery = computed<Record<string, unknown>>(() => {
   const {
     limit: _limit,
@@ -1280,13 +1176,10 @@ const hasMoreRows = computed(
 const loadMoreRows = () => {
   if (hasMoreRows.value && !isListLoading.value) loadNextPage();
 };
-// A row's drawer or side panel steps through every row the table lists: past
-// the rows loaded, it turns the table's page (or grows its feed) and steps
-// onto the rows that arrive. A display reading its own rows keeps to them.
+
 const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
 const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
-// What a display reading its own rows shows (`setShownRows`), in its order:
-// the rows its row's container steps through. Another display, another set.
+
 const selfManagedRows = shallowRef<Data[]>([]);
 const setSelfManagedRows = (rows: T[]) => {
   selfManagedRows.value = rows as Data[];
@@ -1318,7 +1211,6 @@ const turnPage = (step: RowStep): boolean => {
 };
 let adjacentRowsLoad: Promise<boolean> | undefined;
 const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
-  // A second J while the page loads waits for the same page.
   if (adjacentRowsLoad) return adjacentRowsLoad;
   if (!listsServerPages.value || isListLoading.value || !turnPage(step)) {
     return Promise.resolve(false);
@@ -1334,10 +1226,7 @@ const loadAdjacentRows = (step: RowStep): Promise<boolean> => {
     });
   return adjacentRowsLoad;
 };
-// A row past the rows loaded (a deep link, a row live rows pushed out) is
-// found in the table's whole result, under the query the list reads: its
-// position, and its neighbours for the steps. Its rows read in the order
-// the table shows them: pinned rows lead each page it reads, not the result.
+
 const locateRow = rowLocator({
   list: async (offset, limit) => {
     if (!listsServerPages.value) return null;
@@ -1369,8 +1258,6 @@ const accumulation = computed<TableAccumulation | undefined>(() =>
     : undefined,
 );
 
-// Rows ordered by hand: moving is off while anything narrows the rows, and
-// only the displays drawing the rows in their order move them.
 const ORDERED_DISPLAY_IDS = new Set([TABLE_DISPLAY_ID, CARDS_DISPLAY_ID]);
 const { reorderState } = useTableReorder<T>({
   reorder: reorderConfig,
@@ -1416,8 +1303,6 @@ const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
   countBatch: tableRows.countBatch,
 });
 
-// Only what the (unchanged) KanbanBoard needs beyond the generic context: the
-// two-way group-by ref and the raw action configs for per-row rule evaluation.
 provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   groupByField: kanbanGroupBy,
   editAction: tableProps.value.rowActions?.edit,
@@ -1425,10 +1310,8 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   onCardMoved: () => void refreshCounts(),
 });
 
-// A link tab counts the rows of the list it opens; a list the caller may not
-// read shows no counter.
 const linkTabCounts = ref<Record<string, number>>({});
-// The link counters load after mount: until then their tabs hold a placeholder.
+
 const linkTabCountsLoaded = ref(false);
 const LINK_TAB_COUNT_QUERY = { limit: 1, offset: 0 };
 
@@ -1457,9 +1340,6 @@ const refreshLinkTabCounts = async () => {
   linkTabCountsLoaded.value = true;
 };
 
-// Each re-read follows a change of the rows (a save, an action, a realtime
-// event) or a refresh: what summarises them elsewhere (a navigation count)
-// is told to read its figure again.
 const { notifyTableDataChanged } = useTableDataChanges();
 const refreshCounts = async () => {
   notifyTableDataChanged(location);
@@ -1478,27 +1358,15 @@ const refreshAll = async () => {
   ]);
 };
 
-// The rows can move without the table seeing it (a batch, a job, another
-// block's action): a topic of the backend or a page refresh reads them again,
-// keeping the current rows on screen until the answer lands. On a live page
-// the row events below go through the same gate.
 const liveGate = useRefreshTriggers(props.realtimeTopic, () => refreshAll());
-// What the user asks for (a row action, the refresh button, ⌘R, a display's
-// own action) reads at once, even while the live page is paused, and brings
-// a held table up to date.
+
 const refreshByUser = () => {
   liveGate.acknowledge();
   return refreshAll();
 };
-// A write of the user's (a row or bulk action, a form saved) can move what
-// the rest of the page shows of the same records — a KPI, a tab's badge,
-// another list: every block of the page reads its data again, this table
-// among them, at once even on a paused live page.
+
 const refreshAfterWrite = () => refreshPageBlocks();
 
-// "Preview as role": a link tab to a page the previewed role could not open
-// is drawn locked, one to a page it opens partially is drawn partially
-// locked. Never outside a preview (`entryState` is null then).
 const permissionPreview = usePermissionPreview();
 const previewSiteLayout = useSiteLayout();
 const linkTabPreviewState = (tab: ResolvedTab) => {
@@ -1530,11 +1398,6 @@ const tabsWithCount = computed(() =>
   })),
 );
 
-// A tab declared with `navBadge` keeps the navigation badge the server
-// counted for the page it stands for (the linked page, or this one) up to
-// date: with the tab's own counter while nothing narrows it, else with a
-// count of the tab alone, since the badge stands for the whole page. An
-// empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
 const tabNavBadgeCount = (tab: ResolvedTab, count: number | undefined) =>
   tab.to
@@ -1605,9 +1468,6 @@ const {
   onRecordShown: (id) => recordLink?.shown(id),
 });
 
-// Custom actions offered on the selection bar. "Select all N matching"
-// hands them the table's filters instead of ids; a new query lists other
-// rows, so it ends with it.
 const bulkCustomActions = computed(() =>
   (tableProps.value.rowActions?.custom ?? []).filter(isBulkAction),
 );
@@ -1620,14 +1480,10 @@ const runBulkAction = (action: CustomRowAction) =>
       : { ids: selectedIds.value, count: selectedIds.value.length },
   );
 
-// Archive mode: the toolbar carries an "Archived" toggle for callers allowed
-// to see archived rows.
 const canToggleArchived = computed(
   () => !!archiveMode && tableProps.value.rowActions?.showArchived === true,
 );
 
-// A selection made among the rows a filter, a search or a tab listed would
-// let a bulk action reach rows no longer shown: it goes with them.
 const selectionScope = computed(() =>
   selectionScopeKey({
     columnFilters: effectiveColumnFilters.value,
@@ -1639,8 +1495,6 @@ watch(selectionScope, () => {
   rowSelect.value = {};
 });
 
-// A selection made among active rows means nothing among archived ones, and
-// the page reached in one list rarely exists in the other: start over.
 watch(showArchived, () => {
   rowSelect.value = {};
   paginationState.value = { ...paginationState.value, pageIndex: 0 };
@@ -1660,9 +1514,6 @@ const customNavItems = computed(() => {
   return items;
 });
 
-// Deleted, archived and restored rows leave the listed set: a selection kept
-// on them would offer bulk actions on rows no longer shown. A cancelled
-// confirmation (or a failed request) keeps the selection as it was.
 const deselectRows = (ids: string[]) => {
   const removed = new Set(ids);
   rowSelect.value = Object.fromEntries(
@@ -1670,8 +1521,6 @@ const deselectRows = (ids: string[]) => {
   );
 };
 
-// From the archive, a delete is a permanent one: its confirmation says so.
-// A display holding the rows (a kanban card) hands them for its wording.
 const deleteRows = async (ids: string[], rows?: T[]) => {
   const done = await deleteRowsAction(
     ids,
@@ -1700,12 +1549,12 @@ const handleExportTable = () =>
   exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
 const handleExportSelection = (ids: string[]) =>
   exportTable(location, queryRequest.value, ids);
-// A built-in action declaring a `confirm` asks it first.
+
 const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
   tableProps.value.rowActions?.[key];
 const handleRowClick = (item: T) =>
   runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
-// Its dialog words the row shown (`{name}`), else only its id.
+
 const handleRowDuplicate = (itemId: string) => {
   const idKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
   const shown = shownResults.value?.find(
@@ -1723,7 +1572,7 @@ const handleRowAdd = () =>
   );
 
 const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
-// A source table has no realtime: its route is no data controller's.
+
 const realtimeLocation = tableRows.isSource ? undefined : location;
 const realtimeRowTopic = computed(() =>
   realtimeLocation
@@ -1776,13 +1625,12 @@ const realtimeEventHandlers: Record<
 > = {
   [REALTIME_EVENT_TYPE.DELETED]: (ids) => {
     removeRowsLocal(ids);
-    // Rows gone elsewhere leave the selection too, or it would count them.
+
     deselectRows(ids);
     return refreshAll();
   },
   [REALTIME_EVENT_TYPE.CREATED]: () => refreshAll(),
-  // An edited row can change tab, group or column: the counts are read again
-  // with it.
+
   [REALTIME_EVENT_TYPE.UPDATED]: async (ids) => {
     if (isActiveDisplaySelfManaged.value) {
       await Promise.all([activeDisplayRef.value?.refresh?.(), refreshCounts()]);
@@ -1792,10 +1640,6 @@ const realtimeEventHandlers: Record<
   },
 };
 
-// On a live page a row event is one more event behind the table: in Direct
-// it reads the rows again (at most once per `maxRate`), paused it is counted
-// and the rows stay as they are. Rows gone elsewhere still leave a selection
-// the page shows moving.
 const { isEnabled: isPageLive, isPaused: isPagePaused } = usePageLive();
 const gateRowEvent = (type: string, ids: string[], event: object) => {
   if (type === REALTIME_EVENT_TYPE.DELETED && !isPagePaused.value) {
@@ -1914,9 +1758,6 @@ const presenceByRowFiltered = computed<RealtimePresenceMap>(() => {
   return result;
 });
 
-// Expandable rows: which rows are open. A newly listed set (page, filter,
-// search, sort, tab, archive view) starts from `defaultExpanded`; a refresh of
-// the same set keeps what the user opened, minus rows no longer listed.
 const expandableConfig = props.expandable;
 const expanded = ref<ExpandedRowMap>({});
 
@@ -1954,8 +1795,6 @@ if (expandableConfig) {
   );
 }
 
-// `lazyLoad` bands read their row when it opens; any reload of the listed
-// rows drops what they read, and the open ones read it again.
 const expandedDetails = useExpandedRowDetails<T>((id) => tableRows.getRow(id));
 if (expandableConfig?.lazyLoad) {
   watch(shownResults, () => expandedDetails.reset());
@@ -1974,7 +1813,6 @@ const expandedRowLoadState = (id: string): ExpandedRowLoadState =>
     ? (expandedDetails.entryOf(id)?.state ?? "loading")
     : "ready";
 
-// The band takes any row: its props are the table's, for the row type it lists.
 const expandedRowProps = (listed: T): TableViewExpandedRowProps => {
   const id = getRowId(listed);
   const read = id ? expandedDetails.entryOf(id)?.row : undefined;
@@ -2010,10 +1848,6 @@ watch(rowSelect, (selection) => {
   if (Object.keys(selection).length === 0) allMatching.value = false;
 });
 
-// A deep-linked action reopens on the row the URL names, listed or not. A
-// list still loading is waited for first: a row it lists keeps its position
-// among the rows shown, and a source table without `fetchRowUrl` has no
-// route to read one row from.
 const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
   isDeepLinkAction,
 );
@@ -2066,8 +1900,6 @@ const isRowActionEnabled = (
   );
 };
 
-// Stable API objects (defined once): they only capture stable refs, so the
-// display context keeps a stable identity across renders.
 const displaySelection = {
   isSelected: (id: string) => !!rowSelect.value[id],
   toggle: (id: string, value?: boolean) => {
@@ -2078,8 +1910,7 @@ const displaySelection = {
     const { [id]: _removed, ...rest } = rowSelect.value;
     rowSelect.value = rest;
   },
-  // Decide from the visible page and merge, so selections on other server-paged
-  // pages are preserved rather than cleared.
+
   toggleAll: (value?: boolean) => {
     const ids = (shownResults.value ?? [])
       .map((row) => getRowId(row))
@@ -2116,8 +1947,6 @@ const displayPagination = {
   },
 };
 
-// A display opens an item the way a click opens a row of the grid: its
-// default custom action, else edit, else details.
 const builtInRowClicks: Record<"edit" | "details", (item: T) => unknown> = {
   edit: handleRowEdit,
   details: handleRowClick,
@@ -2154,8 +1983,6 @@ const displayRowActions = {
     ),
 };
 
-// The TanStack instance is only available as a #body slot prop; captured here so
-// the context can stay a memoized computed (stable identity unless its deps change).
 const displayTable = shallowRef<Table<T>>();
 const captureDisplayTable = (table: Table<T>) => {
   if (displayTable.value !== table) displayTable.value = table;
@@ -2216,8 +2043,6 @@ async function clearQuickActionQuery() {
   await router.replace({ query: rest });
 }
 
-// The button is looked up among the ones the server kept for this caller: a
-// button it stripped cannot be pressed through the URL either.
 function pressCustomButton(id: string) {
   const button = customButtons?.find((candidate) => candidate.id === id);
   if (button) handleCustomButton(button);
@@ -2233,15 +2058,12 @@ const quickActionHandlers: {
 };
 
 function runQuickActionIntent(intent: QuickActionIntent) {
-  // Keyed by the intent's own discriminant, so the handler always matches.
   const handler = quickActionHandlers[intent.kind] as (
     value: QuickActionIntent,
   ) => void;
   handler(intent);
 }
 
-// Watched key by key rather than through the parsed intent: a fresh intent
-// object on every unrelated query change would press the button twice.
 watch(
   [
     QUICK_ACTION_QUERY_KEY,
@@ -2251,22 +2073,18 @@ watch(
   () => {
     const intent = readQuickActionIntent(route.query, componentId);
     if (!intent) return;
-    // A server render only drops the query (a redirect): it opens nothing.
+
     if (import.meta.env.SSR) {
       void clearQuickActionQuery();
       return;
     }
-    // Run first, then drop the query: dropping it is a server visit, and a
-    // visit cut short by a navigation still settles, so awaiting it first
-    // opened the form over the page navigated to.
+
     runQuickActionIntent(intent);
     void clearQuickActionQuery();
   },
   { immediate: true },
 );
 
-// A header button of this page presses this table view's buttons in place
-// (see `runMountedQuickAction`): the modal opens on the click.
 let unregisterQuickActionTarget: (() => void) | undefined;
 onMounted(() => {
   if (!componentId) return;
@@ -2290,8 +2108,6 @@ defineShortcuts(
   }),
 );
 
-// Each kept field with its default: a value back to it is forgotten.
-// A hand-ordered table keeps no sort.
 const tableStatePreferences: TableStatePreference[] = [
   ...(reorderConfig
     ? []
@@ -2317,8 +2133,6 @@ tableStatePreferences.forEach(([field, state, defaultValue]) => {
   );
 });
 
-// Resizing fires on every mousemove (columnResizeMode "onChange"); debounce so
-// the preference cookie is only written once the drag settles.
 const COLUMN_SIZING_PERSIST_DEBOUNCE_MS = 500;
 let pendingColumnSizingWrite = false;
 
@@ -2339,9 +2153,6 @@ watchDebounced(columnSizing, persistColumnSizing, {
   debounce: COLUMN_SIZING_PERSIST_DEBOUNCE_MS,
 });
 
-// Flush a pending resize if the user navigates away (SPA route change, unmount)
-// within the debounce window — otherwise the debounced write is cancelled on
-// teardown and the last width is silently dropped.
 onBeforeUnmount(() => {
   if (pendingColumnSizingWrite) persistColumnSizing();
 });
@@ -2387,8 +2198,7 @@ onMounted(() => {
   checkUrlParameter();
   void loadRelationQuickFilters();
   void refreshLinkTabCounts();
-  // The registry is client-only; once hydrated, degrade to the fallback display
-  // if the active id is no longer available (e.g. kanban with no eligible column).
+
   if (
     activeDisplayId.value !== fallbackDisplayId &&
     !isConfigRenderedDisplay(activeDisplayId.value) &&

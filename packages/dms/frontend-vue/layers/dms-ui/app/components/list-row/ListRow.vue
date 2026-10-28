@@ -89,7 +89,7 @@ const props = withDefaults(defineProps<ListRowProps>(), {
   detail: undefined,
   mono: false,
   size: "md",
-  // Undefined, not false: an absent read state is not "read".
+
   unread: undefined,
   marker: "trailing",
   unreadLabel: undefined,
@@ -103,7 +103,6 @@ defineSlots<ListRowSlots>();
 const slots = useSlots();
 const { t } = useI18n();
 
-// The marker column is as tall as the well so the dot sits on its centre.
 const MARKER_HEIGHTS: Record<IconWellSize, string> = {
   "2xs": "h-7",
   xs: "h-[30px]",
@@ -114,9 +113,6 @@ const MARKER_HEIGHTS: Record<IconWellSize, string> = {
   "2xl": "h-11",
 };
 
-// v2 .cs-lead / .activity / .cs-notif: one row of a list inside a card. Rows
-// are set apart by a hairline only between two rows, so a day separator or a
-// card head above the first one keeps its own edge.
 const theme = tv({
   slots: {
     root: "dms-list-row border-muted grid min-w-0 [.dms-list-row+&]:border-t",
@@ -127,8 +123,7 @@ const theme = tv({
     title: "flex items-center gap-2",
     titleText: "",
     description: "text-muted mt-0.5 text-[12.5px]",
-    // The "·" closes each entry followed by another (rather than opening it),
-    // so a wrapped line never starts with a separator.
+
     meta: "flex flex-wrap items-center gap-x-2 gap-y-1 [&>span:has(+span)]:after:text-dimmed [&>span:has(+span)]:after:ms-2 [&>span:has(+span)]:after:content-['·']",
     detail: "text-dimmed mt-0.5 font-mono text-[11px] font-medium",
     trailing: "flex shrink-0 items-center gap-2",
@@ -139,10 +134,6 @@ const theme = tv({
   },
   variants: {
     size: {
-      // A wrapping flex row rather than a grid: the trailing column (a
-      // chevron, a time, a button) stays beside the lead while the lead keeps
-      // at least 11rem, and only then drops under it, end-aligned (a phone,
-      // wide actions).
       md: {
         root: "flex flex-wrap items-center gap-x-5 gap-y-2 px-[18px] py-3.5",
         lead: "flex-[1_1_11rem] items-center",
@@ -185,13 +176,11 @@ const theme = tv({
         root: "bg-linear-90 from-(--dms-accent-tint) to-transparent to-60% shadow-[inset_2px_0_0_var(--dms-accent)]",
       },
     },
-    // One line on wide screens; a phone has no hover to reveal the cut
-    // end, so the title and meta wrap there instead.
+
     truncate: {
       true: {
         title: "truncate flex-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
-        // The text box, not the flex title, carries the ellipsis: a flex
-        // container only clips its overflowing children.
+
         titleText: "truncate max-sm:whitespace-normal",
         meta: "flex-nowrap overflow-hidden whitespace-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
         detail: "truncate max-sm:whitespace-normal",

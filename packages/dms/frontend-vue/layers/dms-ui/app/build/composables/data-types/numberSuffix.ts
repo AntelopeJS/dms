@@ -14,7 +14,6 @@ interface NumberSuffixOptions {
   suffix?: string;
 }
 
-// Keeps the unit on the line of its number when a cell wraps.
 const UNIT_SEPARATOR = " ";
 
 /**

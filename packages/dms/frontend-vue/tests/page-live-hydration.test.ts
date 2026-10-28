@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `usePageLive` while a component hydrates. The server renders a live page
  * with no controller: it knows the page declares `live`, and reads it as

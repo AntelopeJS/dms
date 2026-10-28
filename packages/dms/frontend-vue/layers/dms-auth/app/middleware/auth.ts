@@ -12,10 +12,11 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
 async function loadPermissionsIfNeeded() {
   const { loadPermissions } = usePermissions();
 
+  // prettier-ignore
   try {
     await loadPermissions();
   } catch {
-    /* ignore — permissions load failure is not fatal here */
+    // eslint-disable-line no-empty -- Permission-load failures do not interrupt authentication.
   }
 }
 
@@ -70,10 +71,6 @@ async function isPublicAccessRoute(to: ReturnType<typeof useDmsRoute>) {
 export default defineDmsMiddleware(async (to) => {
   if (to.matched.length === 0) return;
 
-  // An error the page already raised (a failed `validation`, a missing page)
-  // is committed and rendered with its own status. Re-throwing it here would
-  // reject the pending navigation the SSR render awaits, turning that 404 into
-  // a 500 fallback render.
   if (useDmsError().value) return abortDmsNavigation();
 
   const options = to.meta.auth as MiddlewareMeta | undefined;

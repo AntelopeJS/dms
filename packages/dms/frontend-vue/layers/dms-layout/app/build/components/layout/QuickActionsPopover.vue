@@ -9,12 +9,9 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 const { categoryGroups } = useQuickActions();
 
-// v2 quick actions menu: a plain title over mono-eyebrow category groups.
 const TITLE_GROUP_CLASS =
   "font-sans text-[13px] font-semibold text-highlighted normal-case tracking-normal px-2.5 pt-1.5 pb-2";
 
-// "Preview as role": an action the role would not be served stays listed,
-// hatched and locked. Never outside a preview.
 const preview = usePermissionPreview();
 const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
 

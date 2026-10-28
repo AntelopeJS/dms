@@ -1,7 +1,4 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
-// "Preview as role" (roles editor): the shapes the preview endpoint answers
-// with, how a preview session travels from the editor tab to the preview tab,
-// and which requests a preview tab may still send. Pure: no Vue, no window.
 
 /** What a preview does to one block (`packages/dms/src/pages/settings/users/role-preview.ts`). */
 export type PermissionPreviewBlock =

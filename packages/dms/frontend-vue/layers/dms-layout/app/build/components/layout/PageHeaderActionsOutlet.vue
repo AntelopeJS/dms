@@ -27,15 +27,12 @@ const actions = useServedHeaderActions({
 });
 
 const ROOT_SELECTOR = "[data-dms-page-header-actions]";
-// The actions take their own full-width row below `md`, the end of the
-// header row from there on.
+
 const ROOT_CLASS =
   "flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto";
 
 const host = injectPageHeaderActionsHost();
 
-// The server render waits here for the page's actions (the rest of the page
-// keeps rendering meanwhile), so the header's markup carries them.
 onServerPrefetch(() => host?.whenReady());
 
 const pageActions = computed(() => host?.actions.value ?? null);
@@ -43,11 +40,12 @@ const hasActions = computed(
   () => actions.value.length > 0 || !!pageActions.value,
 );
 
-// Hydrating before the page has set up: its actions are not known yet, but
-// the server rendered them. The outlet keeps that markup untouched (same
-// HTML, so nothing moves and hydration matches) until the page is ready,
-// then renders the live actions in its place. The markup is the element's
-// own, rendered by the server and read back from the page.
+/**
+ * This outlet's own server-rendered DOM HTML, read back during hydration
+ * before the page has registered its actions. Reused by `v-html` only until
+ * the host is ready so hydration matches without moving the buttons. This
+ * is not an input for arbitrary HTML supplied by a caller.
+ */
 const serverMarkup =
   !import.meta.env.SSR && host && !host.isReady.value
     ? (document.querySelector(ROOT_SELECTOR)?.innerHTML ?? null)

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -68,7 +68,7 @@ function installRuntime(initialCookies: Record<string, unknown>) {
   vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
     ref(initial()),
   );
-  // One ref per cookie, shared by every caller, as `useDmsCookie` does.
+
   vi.stubGlobal(
     "useDmsCookie",
     (key: string, options: { default: () => unknown }) => {

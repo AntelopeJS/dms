@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
@@ -26,7 +26,6 @@ import { useAccessibilityPreferences } from "../layers/dms-layout/app/composable
 
 const KEY = "page.settings.profile.preferences";
 
-// A tiny en-GB catalog: enough to read the sentences the rows would show.
 const MESSAGES: Record<string, string> = {
   access_roles: "Role: {roles} | Roles: {roles}",
   access_no_role: "No role in this workspace",
@@ -185,7 +184,7 @@ describe("summary sentences", () => {
     ).toBe(
       "System theme (dark now) · compact density · reduced motion and increased contrast on",
     );
-    // "Automatic" motion follows the system: not an option the user turned on.
+
     expect(
       buildAppearanceSummary(t, {
         ...base,
@@ -359,11 +358,9 @@ afterEach(() => {
 describe("Preferences & access section", () => {
   it("holds skeletons while the data loads, never a false 0 unread, with the buttons already there", async () => {
     await mountSection();
-    // Access and notifications wait for their data; region and appearance
-    // were written at mount.
+
     expect(skeletonRows()).toBe(2);
-    // The skeleton is shaped from a sample sentence, blanked: its words'
-    // lengths stay, no sample count is ever in the page.
+
     expect(rowTexts()[2]).not.toMatch(/unread|[0-9]/);
     expect(host.textContent).toContain(
       "x xxxxxx xxxxxxxxxxxxx · x xx x xxxxxxxx xx",
@@ -375,7 +372,6 @@ describe("Preferences & access section", () => {
     ]);
     expect(readsPreferences()).toBe(true);
 
-    // The preferences answer first: still a skeleton until the bell's count.
     resolvePreferences({ "core:c": false });
     await flush();
     expect(skeletonRows()).toBe(2);

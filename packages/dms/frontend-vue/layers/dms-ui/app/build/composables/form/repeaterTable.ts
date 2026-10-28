@@ -29,7 +29,7 @@ export function renderableColumn(
     id: column.type ?? "",
     compareModes: [],
     filterComponents: {},
-    // The column came from the form's JSON: its options are JSON values.
+
     inputComponent: column.component as ComponentInfo<ComponentOptionsData>,
   };
   return { id: column.id, type };

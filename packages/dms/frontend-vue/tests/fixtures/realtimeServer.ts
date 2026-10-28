@@ -240,7 +240,7 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       const session = server.sessions.find(
         (candidate) => candidate.id === sessionId,
       );
-      // As the backend: only a session on the connection named is ended.
+
       if (!session || session.connectionId !== headers[CONNECTION_HEADER]) {
         return json({ ok: false });
       }

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -209,7 +209,7 @@ describe("the default cards", () => {
     expect(first!.querySelector("img")?.getAttribute("src")).toBe(
       "/files/ann.png",
     );
-    // Without an avatar, the title's initials stand in.
+
     expect(second!.querySelector("img")).toBeNull();
     expect(second!.textContent).toContain("SI");
   });
@@ -244,7 +244,7 @@ describe("card subtitle and avatar", () => {
     expect(cardSubtitle(row, {}, { labelKey: "name", rowIdKey: "code" })).toBe(
       "CH-0155",
     );
-    // The title is the id already: no second line repeats it.
+
     expect(
       cardSubtitle(
         { code: "CH-0155" },
@@ -311,7 +311,7 @@ describe("card fields", () => {
       "due",
       "size",
     ]);
-    // A kanban card sits in its group's column: the group is not repeated.
+
     expect(
       keys(
         cardFieldColumns(columns, undefined, { ...shown, others: ["status"] }),

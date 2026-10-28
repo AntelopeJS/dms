@@ -124,9 +124,6 @@ export const useTableRowActions = <T extends Data>(
   const getContainerType = () =>
     config.formContainer?.type ?? DEFAULT_FORM_CONTAINER_TYPE;
 
-  // When opening a form as a page, the current query is dropped by navigation.
-  // Carry forward the params declared in `queryParamFilters` so the generated
-  // form can resolve its `{{query.X}}` submitDefaults from the new page URL.
   const buildForwardedQuery = (): LocationQuery | undefined => {
     const params = config.queryParamFilters;
     if (!params) return undefined;
@@ -560,7 +557,7 @@ export const useTableRowActions = <T extends Data>(
         config.api(`${config.location}/${bulkConfig.kind}`, {
           method: bulkConfig.method,
           query: bulkActionQuery(bulkConfig.queryKey, ids),
-          // The values of the confirmation's fields go with the request.
+
           ...(hasValues ? { body: values } : {}),
         }),
       {
@@ -653,9 +650,7 @@ export const useTableRowActions = <T extends Data>(
    * reaches: a `from` dialog is worded for one row, so several rows keep the
    * generic confirmation. Undefined when none applies.
    */
-  // A `from` URL naming a row (`{{row.id}}`, `{{row._id}}`…) is worded for that row
-  // alone; one naming none receives the rows as `?ids=`, one or several, like
-  // the `from` of a bulk custom action.
+
   const declaredBulkConfirm = (
     actionConfig: boolean | RowActionConfig | undefined,
     ids: string[],
@@ -679,8 +674,6 @@ export const useTableRowActions = <T extends Data>(
   const findRowIn = (rows: Data[] | undefined, id: string) =>
     rows?.find((row) => rowIdOf(row) === id);
 
-  // A row the table does not show (a kanban card, a row deleted from a
-  // custom card) is read by id: a `from` dialog asks the server instead.
   const readRow = async (
     id: string,
     declared: ActionConfirm,
@@ -812,8 +805,6 @@ export const useTableRowActions = <T extends Data>(
     return confirmBulkAction(ids, archiveConfig, "archive", ARCHIVE_CONFIG);
   };
 
-  // Restoring takes nothing away: it asks only when it declares a
-  // confirmation, else it runs at once and its outcome is toasted.
   const restoreRows = async (
     ids: string[],
     restoreConfig: boolean | RowActionConfig | undefined,

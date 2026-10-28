@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A module opening a drawer on a row of its own list (`useDrawer`) asks for
  * the DMS's row header with `rowHeader`, rather than importing the layer's

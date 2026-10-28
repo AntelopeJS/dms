@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Stored files' read URLs through the runtime's real async data: a key
  * resolved in a component's setup is read with the page (the server waits for
@@ -93,7 +93,7 @@ describe("file read URLs in a server render", () => {
     expect(html).toBe(
       '<div><img src="https://example.test/avatar"><img src="https://example.test/avatar"></div>',
     );
-    // Two avatars of one file: one read.
+
     expect(metadataCalls()).toHaveLength(1);
 
     authFetch.mockClear();

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A cascader cell names its value by its path ("Electronics / Audio"), read
  * by `?ids=` for the picked rows the list did not join and the ancestors,

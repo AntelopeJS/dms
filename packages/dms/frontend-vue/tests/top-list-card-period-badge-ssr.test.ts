@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A TopListCard's period badge across a server render and its hydration,
  * through the runtime's real payload: once its selector set up before it, the
@@ -48,7 +48,6 @@ function selector(preset: PeriodPreset): Component {
   });
 }
 
-// A skeleton carries an aria-label; the badge renders its label.
 const Slot = defineComponent({
   props: { ariaLabel: String },
   setup:
@@ -90,7 +89,7 @@ async function serverRender(children: Component[], cookies?: string) {
   const app = page(children);
   engine.provideDmsFrontendRuntime(app, runtime);
   engine.setDmsServerRuntimeResolver(() => runtime);
-  // What the server sees: no `window`.
+
   const browserWindow = globalThis.window;
   vi.stubGlobal("window", undefined);
   try {

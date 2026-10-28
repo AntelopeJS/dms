@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { expect, it, vi } from "vitest";
 import { host, mountForm, unmountForm } from "./helpers/form-runtime";
 import { engine } from "./helpers/api-data-runtime";

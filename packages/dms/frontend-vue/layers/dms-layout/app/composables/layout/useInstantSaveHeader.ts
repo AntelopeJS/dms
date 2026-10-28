@@ -3,8 +3,6 @@ import DmsInstantSaveBadge from "#dms-ui/app/components/save-bar/InstantSaveBadg
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import { usePageHeaderActions } from "./usePageHeaderActions";
 
-// The one state a page shows for many keys: a save running wins, then a
-// failure waiting for its retry, then a save that just went through.
 const STATE_PRIORITY: readonly SaveStatusState[] = ["saving", "error", "saved"];
 
 /**

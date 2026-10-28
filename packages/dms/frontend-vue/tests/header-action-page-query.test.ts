@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A page header's buttons follow the page URL: a target URL takes the
  * `{{params.X}}` / `{{query.X}}` tokens of a block's `fetchUrl`, and a
@@ -412,8 +412,6 @@ describe("a header button's availability", () => {
     route.path = "/modules/lang/queue/de";
   });
 
-  // A write may change what the buttons were served for: the record they
-  // read, what their availability checks.
   it("is asked again once a write refreshed the page", async () => {
     authFetch.mockResolvedValue({
       components: {},
@@ -445,8 +443,6 @@ describe("the order of the header's buttons", () => {
     order,
   });
 
-  // A layout's page body: the outlet, then the page calling
-  // usePageHeaderActions, then the marker saying the page has rendered.
   async function mountPage(
     actions: unknown[],
     options?: PageHeaderActionsOptions,

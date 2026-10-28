@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data block on a detail page reads the record of that page: the
  * `{{params.X}}` / `{{query.X}}` tokens of its `fetchUrl` are filled from the
@@ -37,7 +37,6 @@ const { useBlockItems } = await import(
   "../layers/dms-ui/app/build/composables/blocks/useBlockItems"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -102,8 +101,6 @@ describe("resolveUrlVariables", () => {
     ).toBe("/api/log/a%20b?route=GET%20%2Fapi%2Fa%3Fb%3Dc%26d");
   });
 
-  // The router keeps the page path percent-encoded, and route parameters are
-  // read from it.
   it("does not encode a route parameter twice", () => {
     expect(
       replaceUrlVariables("/api/ws/{{params.id}}", {

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The bell's counts after a change of the feed: a write (mark read or
  * unread, delete) answers them and its realtime event carries them, so the
@@ -37,7 +37,7 @@ function countsOf(): Counts {
 }
 
 const requests: string[] = [];
-// A write's answer can be held, to deliver its echo first.
+
 let holdWrites: Promise<void> | undefined;
 let failWrites = false;
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
@@ -135,7 +135,7 @@ it("takes the counts a write answers, and reads nothing for its echo after the a
   await bell.markAsRead("risk");
   await settle();
   expect(bell.unreadCount.value).toBe(1);
-  // The next most important unread one gives the tone: only the server knows it.
+
   expect(bell.unreadTone.value).toBe("warning");
 
   streamHandler!(echo("notification:read", ["risk"]));

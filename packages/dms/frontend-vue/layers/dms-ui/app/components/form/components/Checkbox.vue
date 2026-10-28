@@ -12,7 +12,6 @@ defineSlots<CheckboxSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
 
-// The app-wide light icon weight is too thin inside a 16px box.
 const CHECK_ICON = "i-ph-check-bold";
 const INDETERMINATE_ICON = "i-ph-minus-bold";
 </script>

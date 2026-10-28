@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every drawer is resizable from `lg`: a handle on its inner edge (the width
  * of a side drawer, the height of a top or bottom one), driven by the pointer
@@ -34,7 +34,7 @@ const SIZE_VARIABLE = "--dms-drawer-size";
 let app: App | undefined;
 let host: HTMLDivElement;
 let cookies: Map<string, Ref<unknown>>;
-// What the stubbed drawer renders at: its rendered width and height.
+
 let renderedRect: { width: number; height: number };
 
 const rendered = reactive<{
@@ -181,8 +181,6 @@ describe("a side drawer's width", () => {
     expect(rendered.ui?.content).toContain("w-3xl");
   });
 
-  // Nuxt UI caps a side drawer at the window less 2rem: a sized one keeps
-  // that strip of backdrop on a phone, as an unsized one does.
   it("leaves the same backdrop strip on a phone, sized or not", async () => {
     await mountDrawer({ direction: "right", size: "3xl" });
     expect(rendered.ui?.content).not.toMatch(/max-sm:|max-w-full/);
@@ -249,8 +247,6 @@ describe("a side drawer's width", () => {
     expect(rendered.ui?.body).toContain("min-h-0");
   });
 
-  // Vaul drags only a dismissible drawer: the press is left to bubble, so
-  // reka's outside-click detection sees it (see container-closing-body).
   it("keeps the drawer's own drag off its handle without swallowing the press", async () => {
     await mountDrawer({ direction: "right" });
     const onContentPointerDown = vi.fn();
@@ -387,8 +383,6 @@ describe("a drawer's heading", () => {
   });
 });
 
-// jsdom lays nothing out: what is checked is the chain a growing body
-// component relies on to fill the drawer and push its footer down.
 describe("a drawer's body", () => {
   it("is a flex column a growing body component and its footer fill", async () => {
     const { default: ContainerFooter } = await import(
@@ -414,14 +408,9 @@ describe("a drawer's body", () => {
   });
 });
 
-// The overlay provider mounts the drawer outside the caller's tree: the body
-// still reads what the caller provides, and the drawer's own provides win.
 describe("a drawer opened through useDrawer, and its caller's provides", () => {
   const EXPLORER_KEY = Symbol("explorer");
 
-  // Opens a drawer from a caller that provides after calling useDrawer(),
-  // inside another container and a Nuxt UI form field; returns what the body
-  // injected.
   async function injectedByBody(
     wrap: (options: Record<string, unknown>) => Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
@@ -477,7 +466,7 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
         return () => null;
       },
     };
-    // The overlay provider, a sibling of the caller under the app root.
+
     const Host: Component = {
       setup: () => () => (opened.value ? h(DynamicDrawer, opened.value) : null),
     };
@@ -499,7 +488,7 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     expect(await injectedByBody((options) => options)).toEqual({
       explorer: "library-1",
       containerId: "inner",
-      // A field in the body does not join the caller's form field.
+
       formField: undefined,
     });
   });
@@ -516,7 +505,6 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
   });
 });
 
-// A container that draws its slot (Nuxt UI's UContainer).
 const PassThrough: Component = {
   setup:
     (_props: unknown, { slots }: { slots: { default?: () => unknown } }) =>

@@ -95,13 +95,10 @@ const REALTIME_EVENT_UPDATED = "updated";
 const props = defineProps<FormProps>();
 const form = useTemplateRef("form");
 
-// Inside a DynamicModal/DynamicDrawer the container already provides the
-// surface, so skip the DmsCard wrapper to avoid a nested, detached card.
 const inFormContainer = inject("dmsFormContainer", false);
-// Inside a framed DmsSection the section card is the surface: the fields
-// become its rows (v2 .st-row) instead of a card nested in a card.
+
 const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
-// A sectioned form is no card either: each of its sections is one.
+
 const hasSections = !!props.sections?.length;
 const FormWrapper =
   inFormContainer || inSection || hasSections
@@ -110,10 +107,6 @@ const FormWrapper =
 
 const { processI18n, processApiMessage } = useTranslation();
 
-// Server errors stay on their field until its value changes or the form is
-// saved, whatever re-validates the field in between: UForm's `validate`
-// answers them with its schema's (see `keptServerErrors`). Each one shown,
-// with the value it was raised against, by field id.
 const serverErrors = new Map<string, KeptServerError>();
 
 /** The control of a field, by its id, inside this form only. */
@@ -129,9 +122,6 @@ function errorNames(field: FormField): string[] {
   return [field.id, ...locales.value.map((lang) => `${field.id}.${lang.code}`)];
 }
 
-// Where a keyboard user starts in a composite control: a calendar's current
-// day (the one cell of its grid in the tab order), not the year buttons
-// above the grid.
 const PREFERRED_FOCUS =
   "[data-reka-calendar-cell-trigger][tabindex='0'], [role='grid'] [tabindex='0']";
 const FOCUSABLE =
@@ -204,8 +194,7 @@ async function revealField(fieldId: string): Promise<void> {
 function showFieldErrors(errors: FormServerFieldError[]): boolean {
   const target = form.value;
   if (!target) return false;
-  // A refused submit replaces every error; a field saved on its own (an
-  // instant form) replaces its own only.
+
   if (!isInstant) {
     target.setErrors([]);
     serverErrors.clear();
@@ -248,10 +237,6 @@ function onValidationError(event: { errors: Array<{ name?: string }> }): void {
   void focusField(event.errors[0]?.name);
 }
 
-// Once a submit is refused, the form lists what to fix above its fields
-// until it is saved. The last fix empties the list, not the place it holds:
-// the fields, and the submit button with them, would move up under the
-// pointer on its way to it, and the click would land beside it.
 const showsErrorSummary = ref(false);
 
 const {
@@ -288,7 +273,6 @@ watch(
   { deep: true },
 );
 
-// UForm is busy while it validates a submit: the kept errors stay out of it.
 const validateServerErrors = (current: Record<string, unknown>) =>
   keptServerErrors(serverErrors, current, !!form.value?.loading);
 
@@ -304,13 +288,9 @@ const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
 const saveMode = formSaveMode(props.saveMode, props.kind);
-// An instant form saves each change on its own: no save bar, no footer.
+
 const isInstant = saveMode === "instant";
 
-// zod words its own messages in English ("String must contain at least 1
-// character(s)"): the issues a schema leaves unworded get the dashboard's.
-// A part left blank (an address's country) is missing, whatever its type
-// would say of a short or absent value: worded as the hand-built forms do.
 const issueErrorMap: ZodErrorMap = (issue, context) => ({
   message: processApiMessage(formIssueMessage(issue, context.data)),
 });
@@ -346,8 +326,6 @@ const localizedSchema = computed(() => {
   };
 });
 
-// What controls refuse of what was typed into them, by field id: a field
-// error of its own, checked again as soon as it is reported or withdrawn.
 const controlErrors = reactive(new Map<string, string>());
 provide(FORM_CONTROL_ERRORS_KEY, {
   report(fieldId, message) {
@@ -382,7 +360,6 @@ watch(
 
 const { t, locale, locales } = useI18n();
 
-// A new row is created, not "changes" saved.
 const DEFAULT_SUBMIT_LABEL = createsRecord
   ? "dms.button.create"
   : "dms.button.save_changes";
@@ -410,8 +387,6 @@ watch(hiddenFields, (newHidden, oldHidden) => {
   }
 });
 
-// The drawer or modal this form sits in, even when a component of the
-// caller's wraps it (only the container's root gets `containerId`).
 const container = inject(DMS_CONTAINER_KEY, undefined);
 const containerId = props.containerId ?? container?.id;
 
@@ -422,12 +397,8 @@ function fieldValues(): Record<string, unknown> {
   );
 }
 
-// Dirty while a field's value differs from the one the form loaded or last
-// saved; putting the original value back makes it clean again.
 const formDirty = useFormDirty(fieldValues);
-// Until the user acts on the form, a control settling its value (a picker
-// mapping what was loaded, an editor normalising its markup) sets the
-// starting point instead of reading as a change.
+
 let isTouched = false;
 watch(
   fieldValues,
@@ -472,7 +443,7 @@ const changedFields = computed(() =>
       ),
   ),
 );
-// Only a form someone can save has unsaved changes to speak of.
+
 const canSave = showActions;
 const isDirty = computed(
   () => canSave.value && !isInstant && changedFields.value.length > 0,
@@ -480,12 +451,8 @@ const isDirty = computed(
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
-// A form offers Cancel when it has somewhere to go back to: its drawer or
-// modal, `backTo` on a page, or the page of the app the user came from. An
-// action form (send, invite, run) saves from its footer band, never from the
-// floating bar.
 const isActionForm = props.kind === "action";
-// Read once mounted: the server renders no history.
+
 const cameFromAppPage = ref(false);
 onMounted(() => {
   cameFromAppPage.value = !!previousAppPage();
@@ -513,8 +480,6 @@ const instantSave = isInstant
     })
   : undefined;
 
-// A page whose form saves as it goes says so once, in its header; a drawer
-// or a modal has no header of its own.
 if (instantSave && !inFormContainer && !container) {
   useInstantSaveHeader(() => instantSave.state.value);
 }
@@ -615,8 +580,6 @@ allFields.value.forEach((field) => {
   ) as FormFieldValue;
 });
 
-// A field the form submits a default under (the parent a table is filtered
-// on) holds it from the start: it shows, and a mandatory one is filled.
 for (const [id, value] of Object.entries(
   fieldValuesOfSubmitDefaults(allFields.value, effectiveSubmitDefaults.value),
 )) {
@@ -626,9 +589,6 @@ for (const [id, value] of Object.entries(
 
 let recordLoad: FormRecordLoad | undefined;
 if (props.fetchUrl) {
-  // Keyed on the record too: the load outlives a drawer or modal, and the
-  // next opening on another row must not show this one's values. A reopening
-  // on the same row shows the cached values at once and reads them again.
   const formLoad = await useDmsAsyncData(
     `form-${props.componentId}-${props.pageId}-${resolvedFetchUrl.value ?? ""}`,
     async () => ({
@@ -671,11 +631,8 @@ async function retryRecordLoad(): Promise<void> {
   if (!recordLoad?.failure.value) markFormClean();
 }
 
-// Loaded (or filled with its defaults): this is what the form starts from.
 markFormClean();
 
-// A form page about one row names it at the end of the breadcrumb. Set once
-// mounted: the header renders before the page, the server-rendered one too.
 if (props.labelKey && !inFormContainer) {
   const { setLabel } = usePageRecordLabel();
   const labelKey = props.labelKey;
@@ -687,11 +644,6 @@ if (props.labelKey && !inFormContainer) {
   });
 }
 
-// A page opened on a field's anchor (`#retentionDays`, the id of its
-// control) brings it into view and focuses it once drawn: a link followed
-// inside the app gets no jump from the browser, and the fields of a record
-// exist only once it loaded. A form in a drawer or a modal follows none: the
-// anchor is the page's.
 if (!inFormContainer && !container) {
   const followFieldAnchor = () => {
     const fieldId = linkedFieldId(window.location.hash, allFieldIds.value);
@@ -715,8 +667,7 @@ const surface: FormSurface = inFormContainer
       ? "section"
       : "card";
 const surfaceClasses = FORM_SURFACE_CLASSES[surface];
-// Clip, not hidden: the card rounds the footer band without becoming the
-// scroll container the sticky footer would stick to.
+
 const wrapperProps =
   FormWrapper === "div" ? {} : { padded: false, class: "overflow-clip" };
 
@@ -766,8 +717,7 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldDisabled,
   isFieldRequired,
   isReadOnly: computed(() => !hasChangeableFields.value),
-  // A new row has no earlier value to compare with: "Changed · was empty"
-  // on every field it fills would say nothing.
+
   showsChanges: !isInstant && !isActionForm && !createsRecord,
   isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
   baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
@@ -783,13 +733,11 @@ const sectionNav = resolveSectionNav(
   props.sections?.length ?? 0,
 );
 
-// The fields the form shows an error on, from UForm's own list: what the
-// validation summary and the sections' counts read.
 const invalidFields = computed<ReadonlySet<string>>(() => {
   const errors: readonly FormErrorRef[] = form.value?.errors ?? [];
   return new Set(invalidFieldIds(errors, allFieldIds.value));
 });
-// An instant form has nothing unsaved to mark: each change is saved.
+
 const changedFieldIds = computed(
   () => new Set(isInstant ? [] : changedFields.value.map((field) => field.id)),
 );
@@ -823,8 +771,6 @@ const sectionOfField = computed(() => {
   return owners;
 });
 
-// One entry per row to fix: the unlabelled fields of a group share its
-// label, and its first invalid field stands for them.
 const errorSummaryItems = computed(() => {
   if (!showsErrorSummary.value) return [];
   const items = [...invalidFields.value].map((id) => {
@@ -843,9 +789,6 @@ const errorSummaryItems = computed(() => {
   );
 });
 
-// The save bar names what changed: the sections holding a change, or the
-// fields whose value moved off the one the form loaded (or last saved — a
-// successful submit snapshots it).
 const formElementId = `dms-form-${props.componentId}`;
 const changedFieldLabels = computed<string[]>(() => {
   if (!usesSaveBar) return [];
@@ -959,7 +902,7 @@ const handleDiscardAndRefresh = async () => {
   if (fresh && Object.keys(fresh).length > 0) {
     Object.assign(state.value, fresh);
   }
-  // The refreshed row is the new starting point: nothing unsaved.
+
   markFormClean();
   showConcurrentEditBanner.value = false;
 };

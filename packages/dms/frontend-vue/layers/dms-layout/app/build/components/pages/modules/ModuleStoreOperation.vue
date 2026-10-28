@@ -5,10 +5,6 @@ import type {
   StoreOperationStep,
 } from "../../../../types/module-store";
 
-// What the store is doing to a module, on whichever tile shows it: the steps
-// of the running operation, the current one spinning, or the error the last
-// one left.
-
 interface ModuleStoreOperationProps {
   entry: ModuleStoreEntry;
 }

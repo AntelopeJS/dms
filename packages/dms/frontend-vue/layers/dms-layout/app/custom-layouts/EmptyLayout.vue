@@ -10,9 +10,6 @@ const DARK_CLASS = "dark";
 const { t } = useI18n();
 const colorModePreference = useColorModePreference();
 
-// Same preference cookie as the dashboard header toggle. The resolved mode is
-// read from the class the color mode plugin keeps on <html>, which settles
-// `system` too; the icons switch through `dark:`, so SSR never has to know.
 function toggleColorMode(): void {
   const isDark = document.documentElement.classList.contains(DARK_CLASS);
   colorModePreference.value = isDark ? "light" : "dark";

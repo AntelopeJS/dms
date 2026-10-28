@@ -30,7 +30,6 @@ export function useRefreshTriggers(
   });
   subscribeRealtimeTopics(realtimeTopic, gate.trigger);
   subscribePageRefresh(gate, (event) => {
-    // The gate reads at once on a page refresh: the read starts in this call.
     pageRefresh = event;
     try {
       gate.catchUp();
@@ -55,8 +54,6 @@ function subscribeRealtimeTopics(
   }
 }
 
-// Mounted only: the page refresh is a browser event, and a block the server
-// renders has nothing to refetch.
 function subscribePageRefresh(
   gate: LiveGate,
   onPageRefresh: (event: Event) => void,

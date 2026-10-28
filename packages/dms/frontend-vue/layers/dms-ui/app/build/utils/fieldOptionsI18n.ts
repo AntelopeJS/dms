@@ -11,8 +11,6 @@ interface FieldWithOptions {
 type Translate = (key: string) => string;
 type Options = Record<string, unknown>;
 
-// Texts of an input component's options a reader sees: its placeholder, the
-// text beside a switch, a repeater's button and headers…
 const TEXT_OPTIONS = [
   "placeholder",
   "label",
@@ -21,8 +19,7 @@ const TEXT_OPTIONS = [
   "keyLabel",
   "valueLabel",
 ] as const;
-// …and those of the entries of its lists: the options of a select, the
-// columns of a repeater.
+
 const LIST_OPTIONS = ["items", "columns"] as const;
 const ENTRY_TEXTS = ["label", "description"] as const;
 

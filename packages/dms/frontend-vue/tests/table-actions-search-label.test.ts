@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -30,7 +30,6 @@ const ButtonStub = defineComponent({
       h("button", slots.default?.()),
 });
 
-// A real UInput wraps its field: the toolbar focuses the input inside it.
 const InputStub = defineComponent({
   inheritAttrs: false,
   setup:

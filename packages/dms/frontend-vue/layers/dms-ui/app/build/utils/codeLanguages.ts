@@ -1,7 +1,3 @@
-// The languages the code views name, shared by the editor's status line and
-// the read-only snippets. Kept apart from the highlighters so a view can
-// label its language before CodeMirror has loaded.
-
 /** The language a snippet is shown as written in. */
 export const PLAIN_CODE_LANGUAGE = "text";
 
@@ -13,7 +9,6 @@ const LANGUAGE_ALIASES: Record<string, string> = {
   plain: PLAIN_CODE_LANGUAGE,
 };
 
-// The label of each language, as the status line and the snippet head show it.
 const CODE_LANGUAGE_LABELS: Record<string, string> = {
   json: "JSON",
   sql: "SQL",

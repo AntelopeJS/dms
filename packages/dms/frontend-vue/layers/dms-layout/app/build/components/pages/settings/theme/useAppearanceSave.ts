@@ -37,14 +37,11 @@ export interface AppearanceSave {
   ) => void;
 }
 
-// One save per page header: the Appearance page is a block per group, and
-// they share it so the header pill states every pick once.
 const savesByHeader = new WeakMap<object, AppearanceSave>();
 
 function createAppearanceSave(): AppearanceSave {
   const preferences = usePreferenceRefs();
-  // Every appearance preference is per device, kept in a cookie: writing the
-  // cookie is the save.
+
   const instant: InstantSave<AppearancePreferences> =
     useInstantSave<AppearancePreferences>({
       read: (key) =>

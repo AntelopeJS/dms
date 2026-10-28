@@ -48,10 +48,6 @@ watch(
   { immediate: true },
 );
 
-// The values the inputs show. Until the form hands a per-locale object back
-// (the watcher above fills it in, but the server render and the hydration
-// pass run before that answer), every locale reads empty, so the inputs are
-// in the markup from the first paint instead of popping in at hydration.
 const EMPTY_TEXT = "";
 const localeValues = computed<Record<string, string>>(() =>
   fieldValue.value && typeof fieldValue.value === "object"
@@ -76,9 +72,6 @@ const showDisplay = computed(
   () => !!props.field.disabled && !!props.field.type,
 );
 
-// The control shown in the reader's language is the field: its errors (and
-// those of the field as a whole, a server's) show under it. The panel lists
-// the other languages, each with its own.
 const otherLocales = computed(() =>
   locales.value.filter((lang) => lang.code !== locale.value),
 );
@@ -89,11 +82,8 @@ const mainErrorPattern = computed(
     ),
 );
 
-// A translation refused while the panel is closed opens it: its error shows
-// on its own line.
 const formErrors = inject(formErrorsInjectionKey, null);
-// The error slot replaces the hint under the field: given only while the
-// field holds an error.
+
 const hasMainError = computed(
   () =>
     !!formErrors?.value.some((error) =>

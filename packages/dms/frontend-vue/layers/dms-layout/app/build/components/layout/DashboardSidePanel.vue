@@ -19,8 +19,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// The panel belongs to the dashboard: a page without its shell (onboarding,
-// an error page) hides it, and keeps it mounted for the way back.
 const HOST_CLASS =
   "contents [body:not(:has([data-dms-persistent-shell]))_&]:hidden";
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -52,8 +50,6 @@ const panelComponent = computed(
   () => resolveDmsComponent(props.panel.component) ?? props.panel.component,
 );
 
-// Escape dismisses the sheet only: docked, the panel is part of the page and
-// its component may give the key a meaning of its own.
 function closeSheetOnEscape(event: KeyboardEvent): void {
   if (event.key !== ESCAPE_KEY || isDocked.value) return;
   close();
@@ -71,8 +67,6 @@ function isFocusInside(): boolean {
   return panelEl.value?.contains(document.activeElement) ?? false;
 }
 
-// The sheet covers the page, so focus moves into it unless the panel's own
-// component already took it; closing gives focus back to where it came from.
 onMounted(() => {
   const active = document.activeElement;
   focusBeforeOpen = active instanceof HTMLElement ? active : null;

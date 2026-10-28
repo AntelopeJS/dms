@@ -1,10 +1,9 @@
 import { markRaw } from "vue";
 import type { DrawerRowHeader } from "../../../../composables/containers/types";
 
-// The drawer's header title, as `DynamicDrawer` draws its own.
 const DRAWER_ROW_HEADING_CLASS =
   "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]";
-// The `data-dms-row-drawer-*` hooks tests and styles find the parts by.
+
 const DRAWER_ROW_HEADER_PART = "dms-row-drawer";
 
 /**
@@ -28,7 +27,7 @@ export function drawerRowHeaderProps(
     headingBreakAfter: header.titleBreakAfter,
     subtitle: header.subtitle,
     subtitleClass: header.subtitleClass,
-    // Kept out of the overlay's reactive props, as the body component is.
+
     component: header.component && markRaw(header.component),
     componentOptions: header.componentOptions,
   };

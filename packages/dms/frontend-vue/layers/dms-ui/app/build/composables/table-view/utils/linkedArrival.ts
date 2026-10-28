@@ -194,8 +194,7 @@ export function isLinkedVisit(visit: TableLinkVisit): boolean {
   const { query, previousQuery, urlScope, isLinkClick } = visit;
   const read = (from: Record<string, unknown>, key: string) =>
     readTableUrlKey(from, urlScope, key).value;
-  // A link clicked counts even when it names what is already there, unless
-  // it opens a row: the table it is opened on stays as it stands.
+
   const isRowLink = read(query, RECORD_URL_KEY) !== undefined;
   const isNew = (value: unknown, current: unknown) =>
     (isLinkClick && !isRowLink) || value !== current;

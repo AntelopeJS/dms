@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   type App,
@@ -13,11 +13,10 @@ import {
 import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
-// The tree components lean on Nuxt auto-imports; provide what they read.
 Object.assign(globalThis, {
   computed,
   ref,
-  // Named values are appended, so a test can read them back.
+
   useI18n: () => ({
     t: (key: string, named?: unknown) =>
       named && typeof named === "object"
@@ -252,7 +251,7 @@ describe("nested role permission tree", () => {
       .querySelector<HTMLButtonElement>('[role="checkbox"]')
       ?.click();
     expect(toggles).toEqual([["pages.form.table", true]]);
-    // Ticking does not open the row.
+
     expect(shownIds(host)).not.toContain("pages.form.table.table");
   });
 });
@@ -277,7 +276,6 @@ const slotStub = defineComponent({
       h("div", slots.default?.()),
 });
 
-// DmsBanner: its title and description as text.
 const BannerStub = defineComponent({
   props: { title: String, description: String },
   setup:
@@ -419,7 +417,7 @@ describe("role editor level buttons", () => {
     await nextTick();
     caretOf(host, "pages.form.table").click();
     await nextTick();
-    // Depth 1 is still incomplete (`settings.user` closed): it opens first.
+
     levelButton(host, "expand").click();
     await nextTick();
     expect(openIds(host)).toEqual([
@@ -436,7 +434,7 @@ describe("role editor level buttons", () => {
       "settings.user",
       "settings.user.profile",
     ]);
-    // Collapse closes the deepest depth shown open, depth 2 here.
+
     levelButton(host, "collapse").click();
     await nextTick();
     expect(openIds(host)).toEqual(["pages.form", "settings.user"]);

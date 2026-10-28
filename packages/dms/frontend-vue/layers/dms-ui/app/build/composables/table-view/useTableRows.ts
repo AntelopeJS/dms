@@ -59,7 +59,6 @@ const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
-// Which capability lets a query key reach the route.
 const QUERY_KEY_CAPABILITIES: Array<
   [matches: (key: string) => boolean, capability: keyof SourceCapabilities]
 > = [
@@ -213,10 +212,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     return source.periodScope ? appendPeriodToUrl(url, periodScope.value) : url;
   });
 
-  // Reads of the same source with the same query, while one is in flight,
-  // share it: the list and the counter of a tab that filters nothing the
-  // route handles ask it the same thing at the same time. The request is
-  // cancelled once every caller waiting on it has given up.
   const sharedReads = new Map<string, SharedRead<T>>();
   const readSource = (
     url: string,
@@ -240,7 +235,7 @@ export function useTableRows<T extends Record<string, unknown>>(
       read = started;
     }
     const joined = read;
-    // A caller without a signal never gives up: the request stays.
+
     joined.waiting += 1;
     if (!signal) return joined.answer;
     return awaitUnlessAborted(joined.answer, signal, () => {
@@ -286,7 +281,6 @@ export function useTableRows<T extends Record<string, unknown>>(
   ): TableViewListResponse<T> | null =>
     page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
 
-  // The list the route answers, before the pinned rows lead it.
   const listAnswered = (
     query: Query,
     signal?: AbortSignal,
@@ -295,7 +289,6 @@ export function useTableRows<T extends Record<string, unknown>>(
       ? listFromSource(source, query, signal)
       : api<TableViewListResponse<T>>(`${location}/list`, { query, signal });
 
-  // `signal` aborts the request once its answer is no longer wanted.
   const list = async (
     query: Query,
     signal?: AbortSignal,
@@ -338,7 +331,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     };
   };
 
-  // A source answers its totals one list at a time.
   const countBatch = async (
     queries: TableCountQuery[],
     signal?: AbortSignal,
@@ -363,8 +355,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     return Object.fromEntries(totals.flat());
   };
 
-  // A source reads one row through its `fetchRowUrl`, if it declares one. It
-  // sends no list query, the period included: one row by id depends on none.
   const getSourceRow = (
     sourceConfig: TableViewSourceConfig,
     id: string,

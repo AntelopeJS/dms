@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/build/types/tree";
 
-// A page the viewer may open but whose every block is hidden from them is
-// served out of the menu (`hasAccess: false`, name kept): an Invitations-only
-// role got a Members entry that opened on "nothing to show for you". The
-// pages nested under it keep their own entries, and opening it leads to the
-// first of them.
-
 type TreeNode = NonNullable<
   Parameters<typeof convertSiteLayoutTreeToTreeItems>[0]
 >;

@@ -167,7 +167,6 @@ describe("findModulePageMatch", () => {
     }),
   };
 
-  // Every category once, by full id: a page names its own.
   const layout = {
     pages,
     categories: {

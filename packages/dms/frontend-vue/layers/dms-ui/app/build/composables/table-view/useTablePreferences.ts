@@ -53,7 +53,6 @@ function useServerTableEntry(id: string) {
   const tables = () =>
     getPreference<Record<string, unknown>>(TABLES_PREFERENCE_KEY, {});
 
-  // The last entry takes the collection with it: no empty branch left over.
   const forget = () => {
     const isLastEntry = Object.keys(tables()).every((key) => key === id);
     removePreference(isLastEntry ? TABLES_PREFERENCE_KEY : path);
@@ -74,7 +73,6 @@ function useServerTableEntry(id: string) {
     else setPreference(path, next);
   };
 
-  // The table used last is evicted last: opening it counts as a write.
   const markUsed = () => {
     const current = entry();
     if (current && Object.keys(tables()).at(-1) !== id) {

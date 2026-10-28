@@ -50,8 +50,6 @@ const emit = defineEmits<{
   "update:modelValue": [value: string | string[] | undefined];
 }>();
 
-// The field state UFormField hands its control: the error border and aria
-// attributes go on the trigger (not on the search input of the panel).
 const {
   color: fieldColor,
   ariaAttrs,
@@ -87,7 +85,7 @@ const { data, status, execute } = await useDmsAsyncData(
       },
     });
   },
-  // Options to pick from, not the page's data.
+
   { lazy: true, immediate: false, refreshOnPageRefresh: false },
 );
 
@@ -99,8 +97,6 @@ const selectedValues = computed<string[]>(() => {
   return props.modelValue ? [String(props.modelValue)] : [];
 });
 
-// The picked rows and their ancestors, read by `?ids=` level by level: the
-// field names its value before the menu is opened, whatever the tree's size.
 const { readRelationRows } = useRelationRows();
 const { data: ancestry } = await useDmsAsyncData(
   () => `cascader-value-${instanceId}-${selectedValues.value.join(",")}`,
@@ -119,7 +115,7 @@ const { data: ancestry } = await useDmsAsyncData(
           selectedValues.value,
         )
       : Promise.resolve(undefined),
-  // The field's label, not the page's data.
+
   { lazy: true, refreshOnPageRefresh: false },
 );
 const rows = computed(() => data.value?.results ?? []);

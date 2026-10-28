@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExpandedRowDetail from "../layers/dms-ui/app/build/components/table-view/ExpandedRowDetail.vue";

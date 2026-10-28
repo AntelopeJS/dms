@@ -124,7 +124,6 @@ interface RelativeUnit {
   below: number;
 }
 
-// Months and years by their average length: a distance, not a calendar span.
 const MONTH_MS = 30 * TIME_UNITS.d;
 const YEAR_MS = 365 * TIME_UNITS.d;
 
@@ -331,11 +330,10 @@ const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
   ms: "ms",
 };
 
-// `01:30`, `8:15`, `26:00:30`: hours, then minutes and seconds under 60.
 const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
-// `8h15`, `8 h 05`: hours, then bare minutes, the way a time is often written.
+
 const HOUR_MINUTE_SPAN = /^(\d+)\s*h\s*([0-5]?\d)$/i;
-// `1h30m`, `1h 30m`, `7 h 30 min`, `1h:30m` (older displays), `1.5h`.
+
 const UNIT_SPAN = /^(?:\d+(?:[.,]\d+)?\s*(?:ms|mo|min|[Mmwydhs])[\s:]*)+$/;
 const UNIT_SPAN_PART = /(\d+(?:[.,]\d+)?)\s*(ms|mo|min|[Mmwydhs])/g;
 
@@ -389,12 +387,10 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-// Durations count in hours at most: a day or a month is a calendar span, not
-// a number of hours.
 const DURATION_UNITS = [
   { symbol: "h", ms: TIME_UNITS.h, fractionDigits: 0 },
   { symbol: "min", ms: TIME_UNITS.m, fractionDigits: 0 },
-  // The seconds carry the milliseconds, so nothing is rounded away.
+
   { symbol: "s", ms: TIME_UNITS.s, fractionDigits: 3 },
 ] as const;
 const MS_FRACTION_DIGITS = 3;
@@ -458,7 +454,7 @@ function roundedDuration(ms: number, locale: string): string {
     ms < TIME_UNITS.h
       ? ([TIME_UNITS.m, "min", TIME_UNITS.s, "s"] as const)
       : ([TIME_UNITS.h, "h", TIME_UNITS.m, "min"] as const);
-  // Rounded as a whole first, so 1 min 59.7 s reads "2 min", not "1 min 60 s".
+
   const total = Math.round(ms / minor) * minor;
   const whole = Math.floor(total / major);
   const rest = (total - whole * major) / minor;

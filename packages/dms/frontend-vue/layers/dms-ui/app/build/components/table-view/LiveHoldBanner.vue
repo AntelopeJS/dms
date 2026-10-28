@@ -31,9 +31,6 @@ const props = withDefaults(
   { reason: null, missedLabel: undefined, detail: null, floating: false },
 );
 
-// Literal class strings (Tailwind extracts them). The pill is opaque and
-// lifted by the theme's pop shadow (deeper in dark), so the rows under it
-// stay apart from it.
 const STRIP_CLASS =
   "border-b border-(--dms-info-line) bg-(--dms-info-tint) py-[7px] ps-[18px] pe-3.5 text-[13px]";
 const PILL_CLASS =

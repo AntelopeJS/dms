@@ -1,18 +1,6 @@
 <script setup lang="ts">
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 
-// Card frame around primary components (design .card). The visual style
-// lives in the .dms-card class (dms-layout main.css) so non-template
-// consumers (e.g. the table's tailwind-variants theme) can share it;
-// this component is the template-facing API.
-//
-// - variant "elevated": stronger shadow for floating, full-page surfaces
-//   (auth boxes, error/account panels) that sit on an empty backdrop.
-// - interactive: hover affordances for clickable cards (accent border +
-//   lift). See <DmsNavCard> for the icon/title/description link tile.
-// - selected: the picked option of a card picker (accent border + glow).
-// - title / #header / #actions: the 48px head with the mono eyebrow title;
-//   #footer: the muted band. With either, `padded` only pads the body.
 interface Props {
   as?: string;
   padded?: boolean;
@@ -59,8 +47,7 @@ const cardClass = computed(() => [
   props.variant === "elevated" && "dms-card--elevated",
   props.interactive && "dms-card--interactive",
   props.selected && "dms-card--selected",
-  // Clip, not hidden: the card rounds its head and footer without becoming
-  // the scroll container a sticky save bar inside it would stick to.
+
   isSectioned.value && "flex flex-col overflow-clip",
   props.padded && !isSectioned.value && BODY_PADDING,
 ]);

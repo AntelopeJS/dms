@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The renderer's error handler only keeps an error for the error page: in
  * development, the original error is logged first, with its stack, and the

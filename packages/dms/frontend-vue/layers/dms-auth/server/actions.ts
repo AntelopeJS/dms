@@ -9,14 +9,10 @@ import {
 } from "./accounts";
 import { isRefusal, type SessionTokens, sessionFrom } from "./session";
 
-// Carries the "keep me signed in" choice of a login across its 2FA step, whose
-// request names only the challenge. Lives as long as the challenge token.
 const PENDING_LOGIN = "dms_pending_login";
 const PENDING_LOGIN_PATH = "/auth/verify-2fa";
 const PENDING_LOGIN_LIFETIME_S = 300;
 
-// Absolute backend API paths only: no scheme, no authority, no query string,
-// and no segment that could climb out of `/api/`.
 const BACKEND_API_PATH =
   /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/[A-Za-z0-9][A-Za-z0-9._~-]*)*$/;
 

@@ -16,12 +16,12 @@ import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDir
 const EMAIL_URL = `${SECURITY_ENDPOINT}/email`;
 const CONFIRM_URL = `${EMAIL_URL}/confirm`;
 const PENDING_URL = `${EMAIL_URL}/pending`;
-// Refusals of the code typed in the confirmation dialog.
+
 const CODE_ERRORS = {
   "error.invalid_token": "code",
   "error.token_expired": "code",
 } as const;
-// Too many wrong codes: the change is dropped and a new code must be asked.
+
 const CODE_BURNT = "error.email_change_too_many_attempts";
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
@@ -30,7 +30,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FORM_ID = "security-email-form";
 const EMAIL_FIELD_ID = "security-new-email";
 const CURRENT_FIELD_ID = "security-email-current-password";
-// API refusals that belong to a field of the panel.
+
 const FIELD_CODES = {
   [INVALID_CURRENT_PASSWORD]: "currentPassword",
   [EMAIL_ALREADY_USED]: "email",
@@ -54,9 +54,9 @@ const isCurrentInvalid = ref(false);
 const isCodeOpen = ref(false);
 const isConfirming = ref(false);
 const codeError = ref<string>();
-// Set on submit: the empty fields say they are required.
+
 const isSubmitted = ref(false);
-// An address or a password typed and not submitted yet.
+
 const { dirty: isDirty } = useFormDirty(
   () => ({ email: newEmail.value.trim(), password: currentPassword.value }),
   { initial: () => ({ email: "", password: "" }) },
@@ -73,9 +73,7 @@ const isUnchanged = computed(
     !!trimmedEmail.value &&
     trimmedEmail.value.toLowerCase() === email.value.toLowerCase(),
 );
-// The format is only checked once the field is left, so typing an address
-// doesn't flash an error at every keystroke. Nothing shows while the panel
-// collapses after a save, when the field already holds the saved address.
+
 const emailError = computed(() => {
   if (!isEditing.value) return undefined;
   if (isSubmitted.value && !trimmedEmail.value) {
@@ -102,7 +100,6 @@ const currentError = computed(() => {
     : undefined;
 });
 
-// A server-side mark goes away as soon as its field is edited.
 watch(newEmail, () => {
   isEmailTaken.value = false;
 });

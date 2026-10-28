@@ -21,7 +21,6 @@ import {
   FIELD_TRIGGER_UI,
 } from "../../../build/utils/fieldTrigger";
 
-// Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
   start: CalendarDate | undefined;
   end: CalendarDate | undefined;
@@ -77,8 +76,6 @@ defineSlots<CalendarSlots>();
 const { locale, t } = useI18n();
 const { weekStartsOn } = useUserRegionalPreferences();
 
-// The picker holds calendar days, read as UTC midnights (see
-// convertToCalendarDate): written in UTC, a day never shifts with the zone.
 const DATE_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
   year: "numeric",
   month: "long",
@@ -122,8 +119,6 @@ function isDateRangeValue(
 }
 
 function convertModelValue(value: DateValue): DateValue {
-  // A range may also arrive as `[start, end]`, the list shape the date type
-  // still accepts.
   if (props.range && Array.isArray(value)) {
     return convertDateRangeValue({
       start: value[0] as string | undefined,
@@ -142,23 +137,14 @@ function convertModelValue(value: DateValue): DateValue {
   return value;
 }
 
-// The field state UFormField hands its control: the error border and aria
-// attributes go on the trigger, picks and closes re-validate the field.
 const {
   color: fieldColor,
   ariaAttrs,
   emitFormBlur,
   emitFormChange,
-} = useFormField(
-  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
-  // `color` and `disabled` from these.
-  props as Parameters<typeof useFormField>[0],
-);
+} = useFormField(props as Parameters<typeof useFormField>[0]);
 const invalid = computed(() => fieldColor.value === "error");
 
-// A range picked halfway (its start only) is no range, and the calendar
-// drops that start once it closes: the field says the end is missing, until
-// a whole range is picked or the field is cleared.
 const RANGE_INCOMPLETE = "$dms.field_errors.range_incomplete";
 const { report } = useControlError();
 let isHalfPicked = false;
@@ -215,8 +201,6 @@ const convertedProps = computed(() => {
   };
 });
 
-// Bound on the calendar itself: forwarding only passes props this component
-// was given, and the bounds arrive as `minDate` / `maxDate`.
 const minValue = computed(() => props.minValue ?? toBoundDate(props.minDate));
 const maxValue = computed(() => props.maxValue ?? toBoundDate(props.maxDate));
 
@@ -226,9 +210,9 @@ type EmitValue = unknown;
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   forwardEmit(event, value);
   if (event === "update:modelValue" && props.range) trackRangePick(value);
-  // After the update: the field re-validates its new value.
+
   if (event === "update:modelValue") emitFormChange();
-  // The day picked, the calendar closes, as it does when left.
+
   if (event === "update:modelValue" && isPickComplete(value)) {
     onPickerToggle(false);
   }
@@ -273,13 +257,11 @@ function formatDateLabel(value: unknown): string | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
-  // A CalendarDate stringifies to its ISO date.
+
   const date = value instanceof Date ? value : String(value);
   return formatDate(date, locale.value, DATE_LABEL_FORMAT) ?? undefined;
 }
 
-// Range mode holds a { start, end } object and multiple mode an array, which
-// formatDate cannot read as a single date.
 const label = computed(() => {
   const value: unknown = modelValue.value;
   if (props.range && Array.isArray(value)) {

@@ -34,7 +34,7 @@ interface BackupCodesResponse {
 
 const TWO_FACTOR_URL = `${SECURITY_ENDPOINT}/two-factor`;
 const INVALID_CODE_KEY = "page.settings.two_factor.invalid_code";
-// Refusals of the typed code: shown under the code, in its dialog.
+
 const CODE_ERRORS = {
   "error.invalid_2fa_code": "code",
   "error.2fa_code_expired": "code",
@@ -44,8 +44,7 @@ const INVALID_PASSWORD_KEY =
 const PASSWORD_ERRORS = {
   "error.invalid_current_password": "currentPassword",
 } as const;
-// Opening a dialog while the previous one is still leaving nests them, and the
-// leaving one stays on top until the new one closes: let it finish first.
+
 const DIALOG_SWAP_MS = 300;
 const METHODS: MethodConfig[] = [
   {
@@ -114,7 +113,7 @@ const isUnsaved = computed(() =>
   attention.value.includes("backup_codes_unsaved"),
 );
 const isLow = computed(() => attention.value.includes("backup_codes_low"));
-// The backup codes row and its pill, in the tone the server gives them.
+
 const backupTone = computed(() =>
   attentionToneOf(["backup_codes_low", "backup_codes_unsaved"]),
 );
@@ -262,8 +261,6 @@ async function confirmTotp(code: string): Promise<void> {
   );
 }
 
-// Like the app, email codes turn on only once a code proves they arrive: a
-// mistyped address would otherwise lock the user out at the next sign-in.
 async function startEmail(currentPassword?: string): Promise<void> {
   await run(
     async () => {
@@ -305,9 +302,6 @@ const ADD_HANDLERS: Record<
   email: startEmail,
 };
 
-// Adding a method asks for the account password first, so a borrowed
-// session cannot enrol a second factor of its own. An account without a
-// password (single sign-on only) has nothing to prove it with.
 async function addMethod(method: TwoFactorMethod): Promise<void> {
   if (!hasPassword.value) {
     await ADD_HANDLERS[method]();

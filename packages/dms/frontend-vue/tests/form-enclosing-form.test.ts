@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * What a `Form` offers a custom field through `useEnclosingForm`: submitting
  * the form as its save button does, a validator that can stop a submit and

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The two reads a server render's guards make, the onboarding status and the
  * permission set, go through the renderer's data layer: on a runtime set up
@@ -63,8 +63,7 @@ const ANSWERS: Record<string, unknown> = {
   [PERMISSIONS]: ["orders.read"],
 };
 const asked: string[] = [];
-// The backend: every request goes through the renderer's own `$fetch`, as
-// `$authFetch` does, which is where a server render tells the reads apart.
+
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
   return ANSWERS[url];
@@ -203,7 +202,6 @@ describe("the reads of a server render's guards", () => {
     expect(host.textContent).toBe("can read");
     expect(asked).toEqual([]);
 
-    // A client navigation past the hydration runs the guards again.
     runtime.hydrating = false;
     await app.runWithContext(async () => {
       await onboardingMiddleware(
@@ -218,7 +216,7 @@ describe("the reads of a server render's guards", () => {
 
   it("let a refresh read the set again, and a cleared set load anew", async () => {
     const runtime = engine.createDmsFrontendRuntime(backend);
-    // Never mounted: the app only carries the runtime the calls run with.
+
     const app = createApp(Page);
     install(app, runtime);
     await settle();

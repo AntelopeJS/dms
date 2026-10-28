@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `TableView.fromSource` table whose `fetchUrl` reads the page query lists
  * again when a link changes that query, through the runtime's real async data
@@ -108,8 +108,6 @@ describe("a source table following the page query", () => {
     expect(requests).toEqual([ENCODED_URL, ENCODED_URL]);
   });
 
-  // An Inertia link without preserveState remounts the page: the new table
-  // reads the new query from its first render, so its URL never changes.
   it("lists again when the link remounts the page", async () => {
     mountTable();
     await settle();

@@ -36,7 +36,7 @@ export function usePersistedPagination(
     hashText(JSON.stringify(options.scope() ?? null)),
   );
   const stored = preferences.get<PaginationState>("pagination", defaults);
-  // A page kept without its scope (the first one): kept as it is.
+
   const storedScope = preferences.get<string>(
     "paginationScope",
     scopeKey.value,
@@ -45,7 +45,6 @@ export function usePersistedPagination(
     storedScope === scopeKey.value ? stored : firstPage(stored),
   );
 
-  // Synchronous, so the list is queried once, with both changes.
   watch(
     scopeKey,
     () => {

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
@@ -35,7 +35,7 @@ describe("metric cell formats", () => {
     expect(formatDuration(7_500_000, "en-GB", ROUNDED)).toBe("2 h 5 min");
     expect(formatDuration(2149, "en-GB", ROUNDED)).toBe("2.1 s");
     expect(formatDuration(252_600, "en-GB", ROUNDED)).toBe("4 min 13 s");
-    // Rounded as a whole: never "1 min 60 s".
+
     expect(formatDuration(119_700, "en-GB", ROUNDED)).toBe("2 min");
   });
 
@@ -82,7 +82,7 @@ describe("metric cells", () => {
     vi.stubGlobal("Color", Color);
     vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
     vi.stubGlobal("useToast", () => ({ add: toast }));
-    // The formatters read the application's composer, not `useI18n()`.
+
     vi.stubGlobal("useDmsApp", () => ({
       $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en-GB" } },
     }));

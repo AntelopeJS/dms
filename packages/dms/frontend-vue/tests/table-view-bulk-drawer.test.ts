@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
@@ -325,7 +325,6 @@ describe("action targets on a selection and on a listed row", () => {
     });
 
     it("counts one row in its confirmation and its success toast", async () => {
-      // Confirmed: the dialog runs the request inside it.
       const confirm = vi.fn(
         async (options: { onConfirm?: (values: object) => unknown }) => {
           await options.onConfirm?.({});
@@ -414,7 +413,6 @@ describe("action targets on a selection and on a listed row", () => {
   });
 
   it("counts the rows a bulk route says it changed, not the selection", async () => {
-    // The dialog runs the request it confirms.
     vi.stubGlobal("useConfirm", () => ({
       confirm: vi.fn(
         async (options: { onConfirm?: (values: object) => unknown }) => {
@@ -439,13 +437,11 @@ describe("action targets on a selection and on a listed row", () => {
     await vi.waitFor(() => expect(toasts).toHaveLength(1));
     expect(toasts[0]?.title).toBe("tickets.resolved(2|2)");
 
-    // Nothing changed: the route says so.
     api.mockResolvedValueOnce({ count: 0 } as never);
     targets.handleBulkCustomAction(action, selection);
     await vi.waitFor(() => expect(toasts).toHaveLength(2));
     expect(toasts[1]?.title).toBe("tickets.resolved(0|0)");
 
-    // A confirmed action runs inside its dialog, and counts the same way.
     api.mockResolvedValueOnce(1 as never);
     targets.handleBulkCustomAction(
       { ...action, confirm: { title: "Resolve?" } },
@@ -522,8 +518,6 @@ describe("action targets on a selection and on a listed row", () => {
     expect(opened.fetchUrl).toBe("/api/runs/get?id={{row._id}}");
   });
 
-  // `Card().child("facts", KeyValueList({ fetchUrl }))` as a drawer's
-  // component: the Card is drawn with its children, which read the row.
   const cardTarget = {
     type: "drawer" as const,
     component: {

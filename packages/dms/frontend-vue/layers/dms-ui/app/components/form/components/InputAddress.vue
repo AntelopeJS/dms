@@ -82,8 +82,6 @@ const defaultCountryCode = computed(
   () => props.defaultCountry?.trim().toUpperCase() ?? "",
 );
 
-// An address with no country shows the default one; it is written with the
-// first part typed, so an address left empty stays empty.
 const safeModelValue = computed<AddressValue>(() => {
   const value = modelValue.value ?? defaultAddress;
   return value.countryCode || !defaultCountryCode.value
@@ -91,11 +89,6 @@ const safeModelValue = computed<AddressValue>(() => {
     : { ...value, countryCode: defaultCountryCode.value };
 });
 
-/* -------------------------------------------------------------------------- */
-/* Field state: which parts show the field's error                            */
-/* -------------------------------------------------------------------------- */
-
-// The parts the address type requires (see AddressType in interface-dms).
 const REQUIRED_PARTS = new Set<keyof AddressValue>([
   "streetName",
   "postalCode",
@@ -103,8 +96,6 @@ const REQUIRED_PARTS = new Set<keyof AddressValue>([
   "countryCode",
 ]);
 
-// Taken here so the sub-inputs do not each pick up the whole field's error:
-// each part shows its own.
 const {
   name: fieldName,
   ariaAttrs,
@@ -127,8 +118,6 @@ function partId(part: keyof AddressValue): string | undefined {
   return part === FIRST_PART ? base : `${base}.${part}`;
 }
 
-// Each part is an input of the form, so an error a server raises on one
-// (`address.postalCode`) lands on it rather than being dropped.
 onMounted(() => {
   const name = fieldName.value;
   if (!name || !formInputs) return;
@@ -170,8 +159,6 @@ function partState(part: keyof AddressValue) {
 
 const root = useTemplateRef<HTMLElement>("root");
 
-// The address is left when focus leaves all of its parts, not each one: a
-// part left for the next must not flag the parts not reached yet.
 function onFocusOut(event: FocusEvent) {
   const next = event.relatedTarget as Node | null;
   if (next && root.value?.contains(next)) return;
@@ -196,10 +183,6 @@ const patchFields = (patch: Partial<AddressValue>) => {
   };
   emitFormInput();
 };
-
-/* -------------------------------------------------------------------------- */
-/* Country select (static i18n list, or remote DMS data API via searchUrl)    */
-/* -------------------------------------------------------------------------- */
 
 const staticCountryOptions = computed(() => {
   const countries = tm("country") as Record<string, unknown>;
@@ -285,14 +268,12 @@ async function fetchCountryOptions(): Promise<CountryOptions> {
   return { ...data, results: items };
 }
 
-// The second argument is the handler of the keyed form; this call is keyless,
-// so the options belong in third position.
 const dynamicCountryData = props.searchUrl
   ? await useDmsAsyncData(fetchCountryOptions, undefined, {
       lazy: true,
       immediate: false,
       watch: [countrySearchTermDebounced],
-      // Options to pick from, not the page's data.
+
       refreshOnPageRefresh: false,
     })
   : { data: ref(null), status: ref("idle"), execute: () => {} };
@@ -303,10 +284,6 @@ const countryOptions = computed(() => {
   }
   return staticCountryOptions.value;
 });
-
-/* -------------------------------------------------------------------------- */
-/* Street autocomplete (Photon geocoder by default — free, key-less, global)  */
-/* -------------------------------------------------------------------------- */
 
 interface PhotonProperties {
   name?: string;
@@ -351,14 +328,9 @@ const streetQueryDebounced = refDebounced(streetQuery, SEARCH_DEBOUNCE_MS);
 const suggestions = ref<AddressSuggestion[]>([]);
 const isSearching = ref(false);
 const showSuggestions = ref(false);
-// Suggestions only open under the street field while it has the focus: an
-// answer arriving once the user left it must not cover the next fields.
+
 const isStreetFocused = ref(false);
 
-// Photon/OSM exposes a single `housenumber`. We only pull a box/unit out when it
-// is *explicitly* marked (BE "bte", NL "bus", "box", or a "/" separator). A bare
-// letter suffix like "182A" — or "12 bis" — is a distinct house number, not a
-// box, so it stays in the house number field.
 const BOX_KEYWORD = /\s+(?:bo[iî]te|bus|box|bte)\s*\.?\s*/i;
 
 const splitHouseNumber = (
@@ -407,8 +379,6 @@ const formatPhotonLabel = (p: PhotonProperties): string => {
   return [street, locality, p.country].filter(Boolean).join(", ");
 };
 
-// Monotonic id so a slow in-flight request can never overwrite the results of
-// a more recent keystroke (out-of-order responses are discarded).
 let searchSeq = 0;
 
 watch(streetQueryDebounced, async (query) => {
@@ -428,8 +398,7 @@ watch(streetQueryDebounced, async (query) => {
       params: {
         q: query,
         lang: photonLang.value,
-        // A wider pool, so the places of the address's country can come
-        // first and the duplicates can go.
+
         limit: suggestionPoolSize(photonLimit.value),
       },
     });
@@ -472,11 +441,9 @@ const streetModel = computed({
 });
 
 const applySuggestion = (suggestion: AddressSuggestion) => {
-  // A place the geocoder gives no country keeps the one shown.
   const { countryCode, ...located } = suggestion.patch;
   patchFields(countryCode ? suggestion.patch : located);
-  // Bump the sequence so any still-in-flight request is discarded and cannot
-  // repopulate the list / reopen the dropdown after the user picked a result.
+
   searchSeq++;
   suggestions.value = [];
   showSuggestions.value = false;
@@ -501,7 +468,7 @@ const onStreetBlur = () => {
 /** Escape closes the suggestions, as it would any list; typing reopens it. */
 const onStreetEscape = (event: KeyboardEvent) => {
   if (!showSuggestions.value) return;
-  // Only the list closes, not the drawer or modal around the form.
+
   event.stopPropagation();
   showSuggestions.value = false;
 };
@@ -509,10 +476,6 @@ const onStreetEscape = (event: KeyboardEvent) => {
 onBeforeUnmount(() => {
   if (blurTimer) clearTimeout(blurTimer);
 });
-
-/* -------------------------------------------------------------------------- */
-/* Placeholders                                                               */
-/* -------------------------------------------------------------------------- */
 
 const resolvePlaceholder = (
   field: keyof AddressValue,
@@ -554,8 +517,6 @@ const placeholders = computed(() => ({
   ),
 }));
 
-// When autocomplete is on, the street field doubles as the address search box,
-// so its placeholder hints that typing will search.
 const streetPlaceholder = computed(() => {
   if (!autocompleteEnabled.value) return placeholders.value.streetName;
   return props.autocomplete?.placeholder

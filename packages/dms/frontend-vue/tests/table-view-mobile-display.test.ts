@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view declaring `mobileDisplay` opens a phone on it once mounted —
  * cards rather than a grid cut after its first columns — unless a display was

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The LiveToggle block: Direct / Pause as a two-segment toggle, "updated N s
  * ago" counted every second in the browser, L switching the page outside a
@@ -126,7 +126,6 @@ it("shows the polling hint once the stream stayed down, in a box always kept", a
   const hint = () => host.querySelector(".dms-live-toggle__polling")!;
   expect(hint().classList.contains("invisible")).toBe(true);
 
-  // A stream still connecting (every full load) is not reported down.
   controller.setStreamConnected(false);
   await nextTick();
   expect(hint().classList.contains("invisible")).toBe(true);

@@ -1,9 +1,3 @@
-// Read-only highlighting: the code parsed by the grammars the editor's
-// CodeMirror languages are built on, and cut into styled tokens, without
-// mounting an editor. Each language's grammar loads on demand and alone: a
-// snippet needs neither the editor's view nor its state, which would triple
-// what a page showing a JSON payload downloads. SQL is the exception: its
-// grammar only ships inside `@codemirror/lang-sql`.
 import type { Parser } from "@lezer/common";
 import {
   type Highlighter,
@@ -34,7 +28,6 @@ const readWith =
   (code, highlighter, put) =>
     highlightTree(parser.parse(code), highlighter, put);
 
-// One dynamic import per language, so a page loads the grammar it shows.
 const READERS: Record<string, () => Promise<RangeReader>> = {
   json: async () => readWith((await import("@lezer/json")).parser),
   javascript: async () => readWith((await import("@lezer/javascript")).parser),
@@ -57,7 +50,6 @@ const READERS: Record<string, () => Promise<RangeReader>> = {
   },
 };
 
-// Each palette entry's position is its class, read back into its style.
 const HIGHLIGHTER = tagHighlighter(
   CODE_PALETTE.map((entry, index) => ({ tag: entry.tag, class: `${index}` })),
 );

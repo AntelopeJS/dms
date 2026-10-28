@@ -218,8 +218,7 @@ type ServedPage = PageInfo & {
 function isOpenablePage(page: ServedPage): boolean {
   if (page.hidden || page.hasAccess === false) return false;
   if (page.type === "label") return false;
-  // A page that needs a URL parameter or a query cannot be opened from a
-  // bare link.
+
   if (page.fullSlug.includes(":")) return false;
   return !page.validation?.requiredQueryParams?.length;
 }

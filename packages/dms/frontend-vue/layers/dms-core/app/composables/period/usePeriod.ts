@@ -212,9 +212,7 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
     () => options.comparisons ?? DEFAULT_COMPARISONS,
   );
   const presetClock = usePresetClock(refs.preset, options.holdClock);
-  // The server render's instant, until the clock ticks or the period changes
-  // once on screen: what the setup applies (the URL's period) the server
-  // applied as well.
+
   const serverNow = serverRenderNow();
   const renderNow = shallowRef(serverNow === null ? null : new Date(serverNow));
   if (renderNow.value) {

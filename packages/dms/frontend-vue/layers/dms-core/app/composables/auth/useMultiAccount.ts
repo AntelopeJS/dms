@@ -12,8 +12,6 @@ const HTTP_POST = "POST" as const;
 
 type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 
-// Keyed on the DMS app rather than the module, so an SSR request never sees
-// another one's ref.
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
 
 /**
@@ -50,9 +48,6 @@ interface BrowserSession {
   activeTenantId?: string;
 }
 
-// Same statuses the validate-account route treats as a verdict on the token;
-// the two paths must agree on what "expired" means, or the switcher shows a
-// badge its own validation would not have set.
 const TOKEN_REJECTION_STATUSES = new Set([400, 401, 403]);
 
 interface UpstreamError {
@@ -167,10 +162,6 @@ function createSwitchAccount(
     try {
       await requestAccountSwitch(account);
     } catch (error) {
-      // Only a verdict on the token expires the account. A 500, a timeout or
-      // an unreachable backend says nothing about it, and painting a healthy
-      // account "Session expired" is exactly what the three-state verdict in
-      // `validateAccount` exists to avoid — the switch path must agree with it.
       if (isTokenRejection(error)) {
         account.isExpired = true;
       }

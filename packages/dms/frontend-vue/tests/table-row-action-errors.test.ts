@@ -39,9 +39,7 @@ const t = i18n.global.t as (...args: unknown[]) => string;
 const toast = { add: vi.fn() };
 const refresh = vi.fn();
 const api = vi.fn();
-// The dialog as ConfirmModal runs it: the action goes inside with the values
-// of its fields, a rejection keeps it open (here: the user then gives up), a
-// partial outcome is acknowledged.
+
 const dialogs: {
   options: ConfirmOptions;
   outcome?: unknown;
@@ -152,7 +150,7 @@ describe("Table row actions: refusals", () => {
     expect(api).toHaveBeenCalledWith("/api/invites/i1/resend", {
       method: HttpMethod.post,
     });
-    // The dialog shows it: no toast on top.
+
     expect((dialogs[0]!.error as { statusCode: number }).statusCode).toBe(404);
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();

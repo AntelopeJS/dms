@@ -48,7 +48,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent }));
-  // The real one: it sends the submit events the watch rules react to.
+
   vi.stubGlobal("useEventedAction", useEventedAction);
   vi.stubGlobal(
     "useWatch",
@@ -67,9 +67,6 @@ afterEach(() => {
 });
 
 describe("DMS form announcing a successful submit", () => {
-  // A form page goes back to its list on the success event: announced while
-  // the form still held its changes, the leave guard asked to discard them
-  // although they were saved, and the page stayed open behind its dialog.
   it("holds nothing unsaved once the success event goes out", async () => {
     const steps: string[] = [];
     const form = setupForm(() => steps.push("saved"));
@@ -85,7 +82,6 @@ describe("DMS form announcing a successful submit", () => {
 
     await form.onSubmit({ data: edited } as never);
 
-    // The record read back afterwards saves it again, after the event.
     expect(steps.slice(0, 2)).toEqual(["saved", "success"]);
     expect(savedValues).toEqual(edited);
     expect(form.submitSucceeded.value).toBe(true);

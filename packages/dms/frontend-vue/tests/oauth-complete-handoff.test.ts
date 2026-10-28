@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -18,10 +18,6 @@ import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePost
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
 import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
 import type { PageLayout } from "../layers/dms-layout/app/types/page";
-
-// The OAuth completion page, drawn by the real page layout cache: the
-// post-login redirect refreshes the site layout for the new identity, which
-// empties that cache and remounts the page while its layout comes back.
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -141,8 +137,7 @@ async function settle() {
 beforeEach(() => {
   state.clear();
   mounts = 0;
-  // Answered on later tasks, like the network, the page layout first as on
-  // the playground: the page is drawn again before the redirect leaves it.
+
   authFetch.mockImplementation(async (url: string) => {
     const site = url === SITE_LAYOUT_URL;
     await new Promise((resolve) => setTimeout(resolve, site ? 5 : 0));
@@ -150,8 +145,7 @@ beforeEach(() => {
   });
   fetchHandoff.mockResolvedValue({ kind: "none" });
   route = reactive({ path: PATH, query: {} });
-  // Leaving the page unmounts it, as the router does: the completion page
-  // has no layout on any other route.
+
   navigate.mockImplementation(async (to: string | { path: string }) => {
     route.path = typeof to === "string" ? to : to.path;
   });
@@ -177,8 +171,7 @@ it("consumes the handoff once when the identity refresh remounts the page", asyn
   expect(fetchHandoff).toHaveBeenCalledOnce();
   expect(siteLayoutFetches()).toBe(1);
   expect(navigate).toHaveBeenCalledOnce();
-  // The refresh did empty the cache and remount the page: the new instance
-  // joined the completion already running.
+
   expect(mounts).toBe(2);
 });
 

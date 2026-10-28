@@ -2,10 +2,6 @@ import { resolve } from "node:path";
 import { build, type Rollup } from "vite";
 import { beforeAll, describe, expect, it } from "vitest";
 
-// What a page downloads to colour a snippet, read from a real build of the
-// highlighter: the chunk it loads first, then the chunks each language's
-// dynamic import brings in.
-
 const ROOT = resolve(__dirname, "..");
 const HIGHLIGHTER = resolve(
   ROOT,
@@ -32,8 +28,6 @@ function closure(start: Chunk): Chunk[] {
 const modulesOf = (loaded: Chunk[]) =>
   loaded.flatMap((chunk) => Object.keys(chunk.modules));
 
-// The modules a language adds: the chunks its dynamic imports load, whose
-// entry module matches `facade`.
 function modulesLoadedFor(facade: RegExp): string[] {
   const loaded = closure(entry)
     .flatMap((chunk) => chunk.dynamicImports)
@@ -44,7 +38,6 @@ function modulesLoadedFor(facade: RegExp): string[] {
   return modulesOf(loaded);
 }
 
-// The package a module belongs to: the name after its last `node_modules`.
 const PACKAGE_OF = /.*node_modules\/((?:@[^/]+\/)?[^/]+)\//;
 
 const packagesIn = (modules: string[]) =>

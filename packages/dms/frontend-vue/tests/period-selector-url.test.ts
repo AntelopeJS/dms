@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A PeriodSelector keeps its period in the page URL: the period it starts
  * from (the URL, then the user's last choice, then its default), the server
@@ -32,10 +32,9 @@ const route = reactive<{ query: Record<string, string> }>({ query: {} });
 const preferences = new Map<string, unknown>();
 
 vi.stubGlobal("useDmsRoute", () => route);
-// Mounted in the browser, never hydrating a server render.
+
 vi.stubGlobal("isDmsHydrating", () => false);
-// Inertia's client-side replace moves its page URL, which the DMS route
-// follows: the route then holds the query the browser shows.
+
 function followInertiaPage({
   url,
 }: Parameters<typeof inertiaRouter.replace>[0]): void {
@@ -233,7 +232,7 @@ describe("a change of period", () => {
     mount("page");
     handles.page!.setPreset("last-7-days");
     await nextTick();
-    // What useTab does: the route's query, plus its own key.
+
     const query = { ...route.query, tab: "2" };
     window.history.replaceState(
       null,

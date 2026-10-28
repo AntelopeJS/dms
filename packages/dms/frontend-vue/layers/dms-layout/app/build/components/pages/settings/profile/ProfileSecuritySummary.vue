@@ -11,8 +11,7 @@ const { overview, attention, attentionTone, isUnavailable } =
   useSecurityOverview();
 
 const needsAttention = computed(() => attention.value.length > 0);
-// Every point is named, in the Security page's own words, joined the way the
-// language joins a list ("…, … and …").
+
 const attentionText = computed(() =>
   new Intl.ListFormat(locale.value, { type: "conjunction" }).format(
     attention.value.map((item) =>
@@ -20,8 +19,7 @@ const attentionText = computed(() =>
     ),
   ),
 );
-// The well takes the tone of the Security page's navigation badge, as the
-// server weighs what needs attention; quiet when nothing does.
+
 const wellTone = computed(() =>
   overview.value ? iconWellToneOf(attentionTone.value) : "muted",
 );
@@ -34,13 +32,12 @@ const facts = computed(() => {
     { count: data.activeSessions },
     data.activeSessions,
   );
-  // An off two-factor is already the attention line: not said twice.
+
   if (!data.twoFactor.methods.length) return `${sessions}.`;
   const twoFactor = t("page.settings.profile.security_two_factor_on");
   return t("page.settings.profile.security_facts", { twoFactor, sessions });
 });
 
-// The skeleton's shape: the all-set sentence with two sessions.
 const placeholder = computed(
   () =>
     `${t("page.settings.profile.security_all_good")} — ${t(

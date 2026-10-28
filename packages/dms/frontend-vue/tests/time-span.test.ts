@@ -45,8 +45,6 @@ describe("time spans", () => {
     expect(formatDuration(-90 * MINUTE, "en")).toBe("-1 h 30 min");
   });
 
-  // A cell rounds what a field keeps exact: the field's text reads back to
-  // the value it holds, the cell's to another.
   it("rounds only when asked, and only the exact text reads back", () => {
     const ms = 2149;
     const exact = formatDuration(ms, "en");
@@ -62,8 +60,6 @@ describe("time spans", () => {
     );
   });
 
-  // Every value the field shows is the value it holds: focusing the field
-  // and leaving it rewrites nothing, whatever the locale.
   it("reads back exactly what it writes", () => {
     const durations = [
       0,

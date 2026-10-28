@@ -76,10 +76,6 @@ const slots = defineSlots<KeyValueListSlots>();
 const EMPTY_VALUE = "—";
 const MAX_COLUMNS = 3;
 
-// v2 .c-dl: label left, value right, rows split by a muted hairline. Each
-// column's first row drops its line, at every breakpoint. The columns follow
-// the list's own width (a drawer, a card), not the window's: each keeps its
-// 120px label and room for a value.
 const COLUMN_CLASSES: Record<number, string> = {
   1: "[&>div:first-child]:border-t-0",
   2: "gap-x-8 @min-[560px]:grid-cols-2 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0",
@@ -94,8 +90,7 @@ const columnClass = computed(
       Math.min(MAX_COLUMNS, Math.max(1, Math.round(props.columns)))
     ],
 );
-// The row wraps: a value too long to sit beside its label (a phone, a narrow
-// column) drops under it, still right-aligned, instead of being cut.
+
 const rowClass = computed(() => [
   "border-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t",
   props.dense ? "min-h-8 py-1" : "min-h-[38px] py-1.5",
@@ -119,7 +114,6 @@ function formatMoney(item: KeyValueItem, value: string | number): string {
       currency: item.currency ?? props.currency,
     }).format(value);
   } catch {
-    // An unknown currency code: the amount is still worth showing.
     return formatNumber(item, value);
   }
 }
@@ -137,7 +131,6 @@ const FORMATTERS: Partial<Record<KeyValueType, ValueFormatter>> = {
   date: formatDate,
 };
 
-// Text styles per type; the tone colours every type but a link.
 const TYPE_CLASSES: Partial<Record<KeyValueType, string>> = {
   link: "text-primary font-[550]",
   mono: "font-mono text-[12.5px] tabular-nums",
@@ -160,12 +153,10 @@ function valueClass(item: KeyValueItem): string[] {
       : item.tone
         ? DMS_TONE_TEXT[item.tone]
         : "text-highlighted";
-  // A value longer than the whole row (an id, a long name) wraps rather than
-  // hiding its end: there is no hover on a phone to reveal it.
+
   return ["wrap-anywhere", color, TYPE_CLASSES[type] ?? ""];
 }
 
-// An empty value shows a dash, which is not worth copying.
 function copyTextOf(item: KeyValueItem): string | undefined {
   if (item.copyValue) return item.copyValue;
   if (!item.copy) return undefined;

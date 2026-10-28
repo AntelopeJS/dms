@@ -44,7 +44,6 @@ export function toasterClearance(
 
 type BarElement = () => HTMLElement | null | undefined;
 
-// Only mounted, shown bars count, so a server render never adds to it.
 const shownBars = new Map<symbol, BarElement>();
 let frame = 0;
 
@@ -59,9 +58,6 @@ function applyClearance(): void {
   else style.removeProperty(TOASTER_CLEARANCE_VAR);
 }
 
-// A bar moves with the scroll (a sticky bar reaches the edge, a form's end
-// leaves it), the viewport, its own show transition and a drawer's opening
-// animation: one measure a frame.
 function scheduleClearance(): void {
   if (frame) return;
   frame = requestAnimationFrame(applyClearance);

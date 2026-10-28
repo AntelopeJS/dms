@@ -114,7 +114,7 @@ describe("DMS form after a save", () => {
     expect(form.state.value).toMatchObject(STORED);
     expect(form.initialValues.value).toMatchObject(STORED);
     expect(form.submitSucceeded.value).toBe(true);
-    // Saved once accepted, then again with what the route stored.
+
     expect(onSaved).toHaveBeenCalledTimes(2);
   });
 

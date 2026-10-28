@@ -10,7 +10,6 @@ import {
   pageQueryValues,
 } from "../../utils/pageQuery";
 
-// One frame: the events of one burst (a bulk delete) read the record once.
 const BURST_WINDOW_MS = 16;
 
 /** How the server read the record a page shows (`DefaultLayout({ record })`). */
@@ -77,7 +76,6 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
       );
       return optionsOf(layout)?.recordStatus;
     } catch {
-      // Unknown: the record is not taken for deleted on a failed read.
       return undefined;
     }
   }
@@ -112,8 +110,6 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   const declaresRecord = () =>
     optionsOf(source.pageLayout())?.recordStatus !== undefined;
 
-  // What the page was served with stands for its URL when it was served for
-  // it; another record of the same page is read once to know where it stands.
   function follow(): void {
     if (known?.key === recordKey()) return;
     latestRead++;
@@ -131,7 +127,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  // Presence snapshots ride the same topics: they carry no `type`.
+
   const onEvent: RealtimeTopicHandler = (event) => {
     if (!("type" in event) || !declaresRecord()) return;
     clearTimeout(timer);

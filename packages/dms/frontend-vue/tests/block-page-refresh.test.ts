@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Once an action changes the record a page shows, its data blocks read their
  * data again in place: `refreshPageBlocks()` (or the `REFRESH_PAGE` watch
@@ -55,7 +55,6 @@ const { registerBlockFunctions } = await import(
   "../layers/dms-ui/app/build/composables/blocks/registerBlockFunctions"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -157,8 +156,7 @@ it("resolves once every block read the new answer", async () => {
 
   answer = 2;
   await refreshPageBlocks();
-  // No wait of its own: what the caller (a form that saved) reads next is
-  // the new answer of every block.
+
   expect(facts.probe.data?.value).toEqual({ value: 2 });
   expect(counts.probe.data?.value).toEqual({ value: 2 });
 });

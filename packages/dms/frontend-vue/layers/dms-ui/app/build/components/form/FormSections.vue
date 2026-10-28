@@ -19,14 +19,10 @@ interface FormSectionsProps {
 
 const props = defineProps<FormSectionsProps>();
 
-// A section is current once its top passes this line, a third of the way
-// down the visible area: the one being read, not the one merely peeking in
-// at the bottom.
 const READING_LINE_RATIO = 0.35;
-// A scroll this close to the end is at the end (subpixel rounding).
+
 const END_TOLERANCE_PX = 2;
-// A picked section stays current until the scroll it started has settled:
-// on its way, the smooth scroll passes the sections in between.
+
 const SCROLL_SETTLE_MS = 150;
 
 const activeId = ref(props.layout.sections[0]?.id);
@@ -61,8 +57,6 @@ interface SpyViewport {
   isAtEnd: boolean;
 }
 
-// Scrolled at all, and to the end: a form that fits never scrolls, and its
-// first section stays current.
 function isScrolledToEnd(
   scrollTop: number,
   height: number,
@@ -113,9 +107,6 @@ function updateActiveSection(): void {
 
 let frame: number | undefined;
 
-// Captured on the document: whichever container scrolls the form (the page
-// body, a drawer, the window) reports here, even one that only became
-// scrollable once the form loaded.
 function onScroll(): void {
   if (isPicked) {
     holdPicked();

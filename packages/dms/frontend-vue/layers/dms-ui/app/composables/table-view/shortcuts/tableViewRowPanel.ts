@@ -1,7 +1,3 @@
-// The keys of a row opened from the table (see `listenRowSteps` and
-// `listenRowPanelClose`): listed in the shortcuts help, handled by the panel,
-// drawer or modal while it is open.
-
 const ROW_OPEN_CONDITION = {
   descriptionKey: "$dms.shortcuts.tableview.row_open.condition",
 };

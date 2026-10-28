@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `string_time` value reads as a duration in the reader's locale, wherever
  * a formatter shows it (a cell, a field's "before" note): the formatter's

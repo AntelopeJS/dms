@@ -1,8 +1,3 @@
-// The geocoder answers the whole world in its own order, and the same place
-// several times (one entry per OSM object: a square, its bus stop, its
-// parking). The list a user picks from holds each place once, the ones in
-// the address's country first.
-
 /** How many results are asked for per suggestion shown, to rank from. */
 export const SUGGESTION_POOL_FACTOR = 4;
 /** The most results asked for at once. */

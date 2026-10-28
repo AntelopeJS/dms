@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * An ActivityFeed that must not hide what its entries say: `wrap` lets each
  * entry take the lines it needs instead of an ellipsis, and `visibleItems`

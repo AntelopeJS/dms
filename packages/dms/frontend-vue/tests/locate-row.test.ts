@@ -13,7 +13,6 @@ import {
 const rowsOf = (count: number) =>
   Array.from({ length: count }, (_, index) => ({ _id: `r${index}` }));
 
-// A paginated route over `rows`; `limit: 0` reads every row.
 function pagedList(rows: Data[]) {
   return vi.fn(async (offset: number, limit: number) => ({
     results: limit === 0 ? rows : rows.slice(offset, offset + limit),
@@ -51,7 +50,7 @@ describe("locating a row in the table's result", () => {
     const rows = rowsOf(LOCATE_WINDOW * 2);
     const list = pagedList(rows);
     const locate = rowLocator({ list, rowIdKey: "_id" });
-    // The last row the first window reads: its next is in the second.
+
     const edge = LOCATE_WINDOW;
     expect(await locate(`r${edge}`)).toMatchObject({
       index: edge,

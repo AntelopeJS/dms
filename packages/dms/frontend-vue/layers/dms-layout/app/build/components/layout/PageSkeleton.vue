@@ -1,8 +1,4 @@
 <script setup lang="ts">
-// Neutral stand-in for a page whose chunk is still loading after a client
-// navigation: one content card, so the switch to the page's own skeletons
-// changes little. It only fades in once the wait passes the delay set by
-// `.dms-page-skeleton` (main.css): a fast navigation shows nothing at all.
 interface PageSkeletonProps {
   /** Draws the page title too (when the layout shows no page header). */
   withTitle?: boolean;

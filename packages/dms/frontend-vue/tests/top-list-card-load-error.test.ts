@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";

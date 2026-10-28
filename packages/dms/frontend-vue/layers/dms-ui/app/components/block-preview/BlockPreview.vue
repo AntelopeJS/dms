@@ -120,8 +120,7 @@ watch(resolved, reportIssues);
 onMounted(async () => {
   if (isStateInvalid) embed?.reportError(t("dms.block_preview.invalid_state"));
   reportIssues(resolved.value);
-  // The page always hands the allowlist; fetching it is for a signed-in
-  // dashboard, and a public visitor would only be sent to the login page.
+
   if (props.blockTypes || props.embed) return;
   const { $authFetch } = useAuthFetch();
   try {

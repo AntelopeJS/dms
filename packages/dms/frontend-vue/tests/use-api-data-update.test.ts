@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Updating what `useApiData` read, through the runtime's real async data:
  * `useDmsData(key)` puts a write's answer in place (and back when the write
@@ -83,7 +83,6 @@ describe("useDmsData on a useApiData read", () => {
     await nextTick();
     expect(element.textContent).toBe("Write,Review|Write,Review");
 
-    // The write failed: what was there comes back.
     tasks!.data.value = previous;
     await nextTick();
     expect(element.textContent).toBe("Write|Write");
@@ -93,7 +92,6 @@ describe("useDmsData on a useApiData read", () => {
   it("applies a realtime change to a read another component shows", async () => {
     const Archive = defineComponent({
       setup() {
-        // In place changes need a deep read: reads are shallow by default.
         const { data } = useApiData<Task[]>(
           "task-archive",
           ({ $authFetch, signal }) =>
@@ -105,7 +103,6 @@ describe("useDmsData on a useApiData read", () => {
     });
     let archive: ReturnType<typeof engine.useDmsData<Task[]>> | undefined;
     const element = mount(() => {
-      // A realtime listener of the page, which reads nothing itself.
       archive = engine.useDmsData<Task[]>("task-archive");
       return () => h("div", [h(Archive)]);
     });
@@ -113,7 +110,6 @@ describe("useDmsData on a useApiData read", () => {
     await settle();
     expect(element.textContent).toBe("Old");
 
-    // The event names the task it renamed.
     archive!.data.value = archive!.data.value!.map((task) =>
       task.id === "9" ? { ...task, title: "Renamed" } : task,
     );

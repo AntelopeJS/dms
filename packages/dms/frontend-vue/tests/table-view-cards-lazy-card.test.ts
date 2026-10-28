@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A cards display whose custom card loads lazily keeps its skeleton until the
  * card's code is there, and the code of the components the card draws: an
@@ -29,8 +29,6 @@ let resolveCard: (component: typeof SiteCard) => void = () => {};
 let lazyCard: ReturnType<typeof defineAsyncComponent>;
 let resolveRecordCard: ((component: typeof SiteCard) => void) | undefined;
 
-// A custom card drawn through a component that loads lazily in turn (the
-// DMS record card).
 let lazyRecord: ReturnType<typeof defineAsyncComponent>;
 const RecordSiteCard = {
   props: { rowId: String },
@@ -117,7 +115,7 @@ it("draws the cards at once when the card's code is already there", async () => 
 it("keeps the skeleton while a component the card draws loads", async () => {
   mount();
   resolveCard(RecordSiteCard as typeof SiteCard);
-  // The card is in and draws its record card, still on its way.
+
   await vi.waitFor(() => expect(resolveRecordCard).toBeDefined());
   await nextTick();
   expect(skeletons().length).toBeGreaterThan(0);

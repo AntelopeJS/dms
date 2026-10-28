@@ -43,8 +43,6 @@ function isGroupVisible(group: FieldGroup): boolean {
   return group.fields.some((field) => !context.isFieldHidden(field));
 }
 
-// A description tells how to fill the field ("Left empty, the default rate
-// applies"): a form where nothing can be changed shows only the values.
 function descriptionOf(entry: FormFieldOrGroup): string | undefined {
   return context.isReadOnly.value ? undefined : entry.description;
 }

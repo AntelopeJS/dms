@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import "./helpers/table-runtime";
 import {
   computed,
@@ -29,7 +29,6 @@ const rows: Row[] = [
   { _id: "t2", name: "VPN down" },
 ];
 
-// Stands for the grid's actions column: the cell useTableColumns draws.
 const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
   id: "actions",
   cell: ({ row }) =>

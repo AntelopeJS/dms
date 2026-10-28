@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// v2 .cs-editor head, shared by the role editor and the owner panel: the
-// icon well, the role's name as the panel's heading, then a mono detail.
-
 interface RolePanelHeadProps {
   icon: string;
   /** Id of the heading, named by the panel's `aria-labelledby`. */

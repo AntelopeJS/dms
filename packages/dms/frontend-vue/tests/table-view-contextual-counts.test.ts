@@ -96,8 +96,6 @@ describe("contextual table counters", () => {
   });
 
   it("asks for a tab the very query the table lists once that tab is open", () => {
-    // The same query as the list's, so a combination listing no row (the
-    // view and the tab pinning one column to two values) counts 0 too.
     const queries = buildTableCountQueries(
       input({
         scopeFilters: [customerUrl],

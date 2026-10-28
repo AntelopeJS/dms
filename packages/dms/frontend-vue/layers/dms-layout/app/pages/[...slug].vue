@@ -10,19 +10,12 @@ import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
 
 defineOptions({ inheritAttrs: false });
 
-// Dev-only: created behind the flag so the key never reaches a production
-// SSR payload.
 const devReloading = import.meta.env.DEV ? useDevReloading() : ref(false);
 
 function normalizePath(path: string): string {
   return withoutTrailingSlash(path) || "/";
 }
 
-// A user whose role cannot access the configured homepage would otherwise hit
-// a dead-end 403 right after login; send them to the first page they can
-// access instead. Runs after `await siteLayout.refresh()`, so it must not call
-// context-dependent composables — it reads the already-captured `homepage` and
-// `siteLayout` refs and resolves the target with the pure `firstAccessiblePagePath`.
 async function redirectDeniedHomepage(): Promise<boolean> {
   if (normalizePath(route.path) !== normalizePath(homepage)) {
     return false;
@@ -39,9 +32,6 @@ async function checkPageMetadata(
   metadata: PageInfo | undefined,
 ): Promise<void> {
   if (!metadata) {
-    // A hot reload unregisters the page for a moment. The dev-reload plugin is
-    // already polling for it to come back, so flashing a 404 in the meantime
-    // reports an error that is about to fix itself.
     if (import.meta.env.DEV && devReloading.value) {
       return;
     }
@@ -128,8 +118,6 @@ function isPageValid(
   return isQueryValid && isCustomValid;
 }
 
-// Set while a page failing its validation leaves for its `redirectTo`: its
-// blocks are not drawn, so none of them requests a URL missing its context.
 const isLeavingPage = ref(false);
 
 async function enforcePageValidation(): Promise<void> {
@@ -156,13 +144,11 @@ defineDmsPageMeta({
   auth: true,
 });
 
-// Before the first await: the blocks below may put actions in the page
-// header, which waits for them until they have rendered.
 const PageContentRendered = holdPageHeaderActions();
 
 const route = useDmsRoute();
 const siteLayout = useSiteLayout();
-// Captured synchronously so `redirectDeniedHomepage` can use it after an await.
+
 const homepage = useHomepage();
 const { loggedIn, reconcileSession, redirectToAuth } = useSessionRecovery();
 
@@ -185,9 +171,6 @@ if (siteLayout.loadingError && siteLayout.loadingError.value) {
 await enforcePageValidation();
 await checkPageMetadata(pagelayoutMetadata.value);
 
-// Same reason as the guard inside `checkPageMetadata`: while a dev reload is in
-// flight the page is unregistered for a moment, and the plugin is already
-// waiting for it to come back.
 if (!pagelayoutMetadata.value && !(import.meta.env.DEV && devReloading.value)) {
   throw createDmsError({
     statusCode: HTTP_NOT_FOUND,
@@ -196,17 +179,8 @@ if (!pagelayoutMetadata.value && !(import.meta.env.DEV && devReloading.value)) {
 }
 
 if (import.meta.env.DEV) {
-  // A page held back by the guard above has to be judged again once the reload
-  // ends, or a URL that genuinely does not exist stays blank instead of
-  // reporting a 404.
-  //
-  // Registered here, before any further await: setup suspends on the
-  // `useAsyncData` below, and a reload that settles in the meantime would flip
-  // the flag back with nobody watching.
   watch(devReloading, (reloading) => {
     if (!reloading && !pagelayoutMetadata.value) {
-      // `showDmsError` commits the error itself; throwing on top of it would only
-      // add a second report of the same thing.
       showDmsError({
         statusCode: HTTP_NOT_FOUND,
         statusMessage: "Page not found",
@@ -217,8 +191,6 @@ if (import.meta.env.DEV) {
 
 const { pageLayout } = await usePageLayout();
 
-// A client navigation shows the page once its blocks' code is there: a lazy
-// block draws nothing until its chunk lands, then pushes the page down.
 await preloadPageLayoutComponents(pageLayout.value);
 watch(pageLayout, (layout) => void preloadPageLayoutComponents(layout));
 
@@ -242,7 +214,7 @@ const { permissions: userPermissions } = usePermissions();
 const realtimePageId = computed(() => pagelayoutMetadata.value?.fullId ?? "");
 const realtime = usePageRealtime(realtimePageId);
 providePageRealtime(realtime);
-// Before the blocks set up: their refetches go through the page's live gate.
+
 usePageLiveHost(
   () => ({
     pageId: pagelayoutMetadata.value?.fullId,
@@ -250,9 +222,9 @@ usePageLiveHost(
   }),
   { isStreamConnected: () => !!realtime.sessionId.value },
 );
-// The page's `useApiData` reads follow its refreshes and its realtime events.
+
 usePageDataRefresh(realtime);
-// A detail page leaves for its list once its record is deleted.
+
 usePageRecordDeletion({
   pageLayout: () => pageLayout.value,
   pageTopics: realtime.pageTopics,
@@ -332,10 +304,11 @@ function tearDownPageSetup() {
     pageSetupReturned = undefined;
   }
   for (const unsubscribe of pageSetupCleanups.splice(0)) {
+    // prettier-ignore
     try {
       unsubscribe();
     } catch {
-      /* noop */
+      // eslint-disable-line no-empty -- One failed cleanup does not prevent the remaining cleanups.
     }
   }
 }
@@ -371,8 +344,6 @@ const components = computed(() =>
   }),
 );
 
-// A page filling the panel (`DefaultLayout({ fillHeight })`) gives the height
-// left under its header to its last component; the ones above it keep theirs.
 const fillHeight = usePageFillHeight();
 const fillColumnClass = PAGE_FILL_HEIGHT_CLASSES.column;
 const stackClass = computed(() =>
@@ -382,19 +353,11 @@ const fillingComponentId = computed(() =>
   fillHeight.value ? components.value.at(-1)?.id : undefined,
 );
 
-// The server leaves out the blocks the viewer may not see, and says when that
-// left nothing of a page that declares some. Never while the layout loads.
 const { t } = useI18n();
 const hidesEveryBlock = computed(
   () => pageLayout.value?.allComponentsHidden === true,
 );
 
-// --- Live-edit highlight ---------------------------------------------------
-// When the active page's layout changes in place (DMS dev hot-reload, same
-// route), animate the components that changed. Added/removed components are
-// handled by <TransitionGroup> via their keys; here we only flag in-place
-// modifications so they can pulse. Navigating to another route swaps the
-// snapshot silently — no animation. Dev-only.
 const MODIFIED_HIGHLIGHT_MS = 900;
 const freshComponentIds = ref<Set<string>>(new Set());
 const animateLayout = ref(false);
@@ -421,8 +384,6 @@ if (import.meta.env.DEV) {
       const path = route.path;
       const prints = fingerprintComponents(next);
 
-      // Page has no layout anymore (e.g. it was just deleted): don't animate;
-      // the disappearance watcher below redirects or 404s.
       if (!next) {
         animateLayout.value = false;
         freshComponentIds.value = new Set();
@@ -431,8 +392,6 @@ if (import.meta.env.DEV) {
         return;
       }
 
-      // A different route owns this layout (navigation / first load): swap the
-      // snapshot silently, no animation.
       if (path !== snapshotPath) {
         animateLayout.value = false;
         freshComponentIds.value = new Set();
@@ -441,8 +400,6 @@ if (import.meta.env.DEV) {
         return;
       }
 
-      // Same route, layout changed in place: flag the components whose
-      // definition changed (added/removed are animated by <TransitionGroup>).
       const modified = new Set<string>();
       for (const [id, print] of prints) {
         const previous = snapshotPrints.get(id);
@@ -463,7 +420,6 @@ if (import.meta.env.DEV) {
     },
   );
 
-  // Track the current page's id so we can follow it if its URL changes.
   let lastKnownPageId = pagelayoutMetadata.value?.fullId;
   watch(
     () => pagelayoutMetadata.value?.fullId,
@@ -472,14 +428,12 @@ if (import.meta.env.DEV) {
     },
   );
 
-  // After a resync, if the current route no longer matches any page, the page
-  // was removed or its URL changed. Follow it by id if it moved, else 404.
   watch(
     () => siteLayout.siteLayout.value,
     () => {
       const layout = siteLayout.siteLayout.value;
       if (!layout) return;
-      if (pagelayoutMetadata.value) return; // still exists at this route
+      if (pagelayoutMetadata.value) return;
       const moved = lastKnownPageId
         ? Object.entries(layout.pages).find(
             ([, meta]) => meta.fullId === lastKnownPageId,

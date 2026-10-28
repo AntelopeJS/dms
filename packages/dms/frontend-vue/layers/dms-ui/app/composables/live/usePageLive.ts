@@ -93,8 +93,6 @@ export interface PageLiveState {
  * `realtimeTopic` are.
  */
 export function usePageLive(): PageLiveState {
-  // An async block hydrates after the page has installed its controller and
-  // read its data: until mounted, it draws the state the server drew.
   const isHydrating = shallowRef(isDmsHydrating());
   if (isHydrating.value) onMounted(() => (isHydrating.value = false));
   const shown = () => (isHydrating.value ? null : currentPageLive());
@@ -124,8 +122,6 @@ interface PageLiveHold {
   release: () => void;
 }
 
-// One hold per call of usePageLive, released with the component's scope: a
-// component leaving the page never leaves it paused.
 function usePageLiveHold(): PageLiveHold {
   const owner = Symbol("page-live-hold");
   let holder: PageLiveController | null = null;

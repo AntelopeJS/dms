@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `maxDays` caps the custom range a PeriodSelector lets the user pick: the
  * calendar disables the days past it once a start day is picked, and a range

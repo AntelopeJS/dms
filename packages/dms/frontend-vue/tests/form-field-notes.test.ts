@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * "Module default · Use default" is for a setting whose `defaultValue` is the
  * module's default: a field shows it only when it offers it. A record form —

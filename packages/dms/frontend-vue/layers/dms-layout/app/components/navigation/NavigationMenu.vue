@@ -26,9 +26,6 @@ const emit = defineEmits<{
   "update:modelValue": [value: string[]];
 }>();
 
-// When no v-model is bound, leave each AccordionRoot fully uncontrolled —
-// Reka's own defaultOpen handling takes over and we skip the sync component
-// entirely.
 const controlled = computed(() => Array.isArray(props.modelValue));
 
 const isArrayOfArrays = (
@@ -37,8 +34,6 @@ const isArrayOfArrays = (
   return Array.isArray(items[0]);
 };
 
-// Semantic fields declared on a page or by a dynamic menu provider are turned
-// into Nuxt UI item props here, so the registration side never ships classes.
 interface MenuVariantClasses {
   link?: string;
   leadingIcon?: string;
@@ -114,8 +109,6 @@ function buildItemUi(
     : undefined;
 }
 
-// A plain badge value (a page's `badge`) gets the v2 look in its tone; a
-// badge already given as props is the caller's own choice.
 function resolveMenuBadge(
   badge: DmsMenuItem["badge"],
   tone: MenuItemBadgeTone | undefined,
@@ -130,13 +123,6 @@ function resolveMenuBadge(
   return badge;
 }
 
-// "Preview as role": an entry the previewed role could not open stays in the
-// menu, hatched red and locked, so the preview shows what the role loses
-// instead of a shorter menu; one it opens without all of it (a block or an
-// action of its page, or one of its entries) is hatched orange with the same
-// lock. Labels and parents are drawn too; a parent keeps its trailing slot
-// for the chevron and shows the lock in place of its icon. Outside a preview
-// `entryState` is always null: nothing is ever drawn.
 const preview = usePermissionPreview();
 const { t } = useI18n();
 const PREVIEW_ENTRY_LINK_CLASSES: Record<PreviewEntryState, string> = {
@@ -181,8 +167,6 @@ function drawPreviewEntry(
   };
 }
 
-// The count a table view published for the page (`navBadge`) is fresher than
-// the one the server counted when the menu loaded; `""` stands for none.
 const { badges: navBadges } = useNavBadges();
 
 function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
@@ -204,8 +188,7 @@ function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
 
   return {
     ...item,
-    // Inertia prefetches the page on hover, the way a `DmsLink` does: the
-    // visit then shows it without a request, and its components load early.
+
     ...(item.to ? { prefetch: true } : {}),
     ...(variant.link ? { class: [item.class, variant.link] } : {}),
     ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
@@ -215,9 +198,6 @@ function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   };
 }
 
-// Normalized to groups for both renderings: UNavigationMenu wraps a flat list
-// in a single group itself, so one shape serves the expanded and the collapsed
-// branch.
 const groupedItems = computed((): NavigationMenuItem[][] => {
   if (!props.items || props.items.length === 0) {
     return [];

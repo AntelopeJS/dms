@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -176,8 +176,7 @@ beforeEach(() => {
   notifications = {
     unreadCount: ref(0),
     unreadTone: ref(undefined),
-    // Not read with the page (signed in since the app started): the bell
-    // reads them once mounted.
+
     areCountsLoaded: ref(false),
     notifications: ref([]),
     fetchBellCounts: vi.fn(),
@@ -214,7 +213,6 @@ it("shows the same count and tone as the Notifications entry", async () => {
   expect(menuBadge()).toEqual({ label: String(UNREAD_COUNT), tone: "warning" });
   expect(badge()!.className).toContain("bg-(--ui-color-warning-400)");
 
-  // A new unread error turns both red.
   notifications.unreadCount.value = UNREAD_COUNT + 1;
   notifications.unreadTone.value = "error";
   await nextTick();

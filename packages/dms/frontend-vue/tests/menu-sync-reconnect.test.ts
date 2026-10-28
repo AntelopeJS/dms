@@ -6,10 +6,6 @@ const { watchRealtimeReconnects } = await import(
   "../layers/dms-layout/app/plugins/dms-menu-sync.client"
 );
 
-// A realtime stream that drops and opens again missed the menu events sent
-// meanwhile: the menu resyncs once it is back, but not on the first opening,
-// which follows the page load that brought the current menu.
-
 describe("the menu resync on a realtime reconnect", () => {
   it("leaves the first opening alone and resyncs on each reopening", async () => {
     const sessionId = ref<string | undefined>(undefined);

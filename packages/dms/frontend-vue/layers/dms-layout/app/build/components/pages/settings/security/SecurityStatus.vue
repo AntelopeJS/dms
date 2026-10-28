@@ -139,8 +139,6 @@ const items = computed<StatGroupItem[]>(() => {
   ];
 });
 
-// The summary feeds every block of the page: its failure is said once, here,
-// with the retry that reloads them all.
 const hasLoadError = computed(() => !overview.value && isUnavailable.value);
 const retryActions = computed(() => [
   {

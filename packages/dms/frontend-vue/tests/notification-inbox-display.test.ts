@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import NotificationInboxDisplay from "../layers/dms-layout/app/entries/components/pages/settings/notification/NotificationInboxDisplay";

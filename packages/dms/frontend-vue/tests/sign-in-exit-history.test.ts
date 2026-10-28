@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -19,11 +19,6 @@ import {
   installAuthSettingsRuntime,
   PinInput,
 } from "./helpers/auth-settings-runtime";
-
-// The pages that end a sign-in by spending a one-time token in their URL: the
-// OAuth completion and the second factor (code or backup code). Each leaves
-// for the destination in its own place in the history, so Back never lands on
-// a spent token, or on a completion page that sends the user forward again.
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"

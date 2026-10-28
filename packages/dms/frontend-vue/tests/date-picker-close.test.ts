@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The date picker closes once the day is picked, as a select closes on its
  * pick; a range closes on its end, a multiple picker stays open for more.
@@ -25,7 +25,6 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-// The popover shows whether it is open; the calendar hands out its picks.
 const Popover = defineComponent({
   props: { open: Boolean },
   emits: ["update:open"],

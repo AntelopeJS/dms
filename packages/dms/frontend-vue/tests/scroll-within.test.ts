@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A form's section link or a refused field scrolls the form's own scroll
  * container only: `scrollIntoView` also scrolled the layout's

@@ -108,7 +108,6 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       usePostLoginRedirect(redirectUrl || homepage),
     );
   } catch (error: unknown) {
-    // Wrong credentials name no field: they stay above the form.
     await showError(error, "page.auth.error_title", {
       fields: ["email", "password"],
       form,

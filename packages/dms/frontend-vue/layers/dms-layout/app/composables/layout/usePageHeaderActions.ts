@@ -64,9 +64,6 @@ const PAGE_HEADER_ACTIONS_KEY: InjectionKey<PageHeaderActionsHost> = Symbol(
   "dms:page-header-actions",
 );
 
-// A server render must never hang on a page that announced actions and then
-// failed in a way no error hook saw: past this delay the header renders
-// without them.
 const SERVER_READY_TIMEOUT_MS = 5000;
 
 /**
@@ -91,7 +88,7 @@ export const providePageHeaderActions = (): PageHeaderActionsHost => {
     if (slotRendered && pending === 0) markReady();
   };
   if (import.meta.env.SSR) setTimeout(markReady, SERVER_READY_TIMEOUT_MS);
-  // A page whose setup throws never sets its actions: stop waiting for it.
+
   onErrorCaptured(() => {
     pending = 0;
     settle();
@@ -176,10 +173,7 @@ export const usePageHeaderActions = (
     host.actions.value = render;
     release();
   };
-  // Both hooks on both sides: each only ever fires on its own side, and a
-  // server prefetch hook marks the component as an async boundary, which
-  // `useId` counts. Registered on one side only, every id rendered after
-  // the page would differ between the server and the browser.
+
   onServerPrefetch(show);
   onBeforeMount(show);
   onBeforeUnmount(() => {

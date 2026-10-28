@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view opens the tab its URL names (`?<tableId>.tab=`, or `?tab=` on
  * a page with a single table view), on arrival and afterwards: a link or a
@@ -138,7 +138,7 @@ describe("the tab the user opens", () => {
     activeTabId.value = "archived";
     await nextTick();
     expect(window.location.search).toBe("?tab=archived");
-    // A reload reads the tab the user opened, not the link's.
+
     const reloaded = Object.fromEntries(
       new URLSearchParams(window.location.search),
     );
@@ -169,7 +169,7 @@ describe("the tab the user opens", () => {
     activeTabId.value = "archived";
     await nextTick();
     expect(window.location.search).toBe("?runs.tab=archived");
-    // The route still holds the arrival's tab: only the visit tells.
+
     await visit("/runs?runs.tab=active");
     expect(route.query["runs.tab"]).toBe("active");
     expect(activeTabId.value).toBe("active");

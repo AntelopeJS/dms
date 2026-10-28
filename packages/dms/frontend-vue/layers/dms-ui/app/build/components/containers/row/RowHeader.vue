@@ -45,7 +45,6 @@ const DEFAULT_POSITION_KEY = "side_panel.position";
 const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
 
-// "26 120", not "26120": the figures take the locale's grouping.
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
 
 const position = computed(() => {
@@ -59,7 +58,6 @@ const position = computed(() => {
     : t(DEFAULT_POSITION_KEY, params);
 });
 
-// Each segment but the last keeps the separator that follows it.
 const headingSegments = computed(() => {
   const separator = props.headingBreakAfter;
   if (!props.heading || !separator) return undefined;

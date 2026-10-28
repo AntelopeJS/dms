@@ -4,8 +4,6 @@ import type { PageLiveOptions } from "#dms-ui/app/types/live";
 import type { ModuleSourceKind } from "./module-store";
 
 export type MenuItemType = "label" | "link";
-// MenuItemVariant / MenuItemStatus / MenuItemQuery live in dms-core, the layer
-// that renders them: this one only consumes them.
 
 export interface PageValidation {
   requiredQueryParams?: string[];
@@ -51,9 +49,12 @@ export interface CategoryInfo extends Omit<MenuOptions, "category"> {
   urlTransparent?: boolean;
 }
 
-// Mirror of ModuleInfo and MODULE_URL_PREFIX from @antelopejs/interface-dms/page.
-// The frontend module cannot import backend types directly, so any change to the
-// backend definitions must be reflected here (and vice versa).
+/**
+ * Serialized projection of `ModuleInfo` from `@antelopejs/interface-dms/page`.
+ * Keep its data fields in sync with that contract. The backend's callable
+ * `status` and `readout` hooks are omitted here; `ModuleCatalogEntry` carries
+ * their resolved values instead.
+ */
 export interface ModuleInfo {
   id: string;
   title: string;
@@ -72,9 +73,11 @@ export interface ModuleInfo {
 
 export type ModuleWithAccess = ModuleInfo & { hasAccess: boolean };
 
-// Mirror of ModuleStatus / ModuleReadoutLine from @antelopejs/interface-dms/page.
+/** Keep in sync with `ModuleStatus` from `@antelopejs/interface-dms/page`. */
 export type ModuleStatus = "live" | "beta" | "update" | "attention";
+/** Keep in sync with `ModuleReadoutTone` from `@antelopejs/interface-dms/page`. */
 export type ModuleReadoutTone = "success" | "info" | "warning" | "error";
+/** Keep in sync with `ModuleReadoutLine` from `@antelopejs/interface-dms/page`. */
 export interface ModuleReadoutLine {
   text: string;
   tone?: ModuleReadoutTone;
@@ -96,6 +99,7 @@ export type ModuleCatalogEntry = ModuleWithAccess & {
   source?: ModuleSourceKind;
 };
 
+/** Keep in sync with `MODULE_URL_PREFIX` from `@antelopejs/interface-dms/page`. */
 export const MODULE_URL_PREFIX = "/modules";
 
 export interface PageInfo extends Omit<CategoryInfo, "category"> {
@@ -112,10 +116,11 @@ export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   /** The tone of a `badge` the server counted (`navBadge`); neutral when absent. */
   badgeTone?: MenuItemBadgeTone;
 };
-// Mirror of LayoutBannerVariant from @antelopejs/interface-dms/layout-banners.
+
+/** Keep in sync with `LayoutBannerVariant` from `@antelopejs/interface-dms/layout-banners`. */
 export type LayoutBannerVariant = "info" | "warning" | "error";
 
-// Mirror of LayoutBannerScope from @antelopejs/interface-dms/layout-banners.
+/** Keep in sync with `LayoutBannerScope` from `@antelopejs/interface-dms/layout-banners`. */
 export type LayoutBannerScope = "app" | "modules" | "everywhere";
 
 /**

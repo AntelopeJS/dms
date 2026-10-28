@@ -1,9 +1,3 @@
-// Accessibility preferences of the Appearance settings page. Like the theme
-// and the density they belong to the device: one cookie, read by the server,
-// so the classes they put on `<html>` are in the first paint. The page CSS
-// (dms-layout main.css) keys on those classes; JavaScript-driven motion
-// (charts) asks `isReducedMotionActive()`.
-
 /**
  * `auto` follows the operating system's `prefers-reduced-motion`; `on` and
  * `off` pin the choice whatever the system says.

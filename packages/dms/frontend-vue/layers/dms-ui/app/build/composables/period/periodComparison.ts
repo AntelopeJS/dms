@@ -4,7 +4,7 @@ import type { PeriodComparison } from "#dms-core/app/composables/period/types";
 
 const COMPARE_LABEL_KEY_PREFIX = "dms.period.compare_labels";
 const COMPARE_LEGEND_KEY_PREFIX = "dms.period.compare_options";
-// A custom window has no name of its own: its legend keeps the generic one.
+
 const NAMED_LEGEND_COMPARISONS: PeriodComparison[] = [
   "previous-period",
   "previous-year",

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The stored files of the file and image fields and of their table previews,
  * through the runtime's real async data: a server render reads their

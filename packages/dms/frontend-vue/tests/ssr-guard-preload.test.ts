@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A server render of a protected page waits on two requests made by its
  * middlewares, one after the other: the onboarding status (`onboarding`),
@@ -81,7 +81,7 @@ interface PendingRequest {
 
 const pending: PendingRequest[] = [];
 const asked: string[] = [];
-// Each request waits for the test to answer it.
+
 const $authFetch = vi.fn(
   (url: string) =>
     new Promise((resolve) => {
@@ -131,7 +131,7 @@ function serverRender(path: string): { app: App; html: Promise<string> } {
   runtime.route.fullPath = path;
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime as DmsFrontendRuntime);
-  // The plugins run before the page renders, as `installDmsPlugins` does.
+
   for (const plugin of [onboardingPreload, permissionsPreload])
     app.runWithContext(() => plugin(context));
   return { app, html: renderToString(app) };

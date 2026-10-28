@@ -115,7 +115,7 @@ describe("permission preview", () => {
       expect(resolveActivePreviewBlock(true, RESULT, "table")).toEqual({
         state: "hidden",
       });
-      // A normal session, even holding a stale result, veils nothing.
+
       expect(resolveActivePreviewBlock(false, RESULT, "table")).toBeUndefined();
     });
 
@@ -140,8 +140,7 @@ describe("permission preview", () => {
         ...(entry.locked ? [entry.label] : []),
         ...lockedLabels(entry.children ?? []),
       ]);
-    // A label group, a category with a nested category and a dynamic entry,
-    // and the sidebar footer.
+
     const MENU: Entry[] = [
       { label: "Sales", type: "label", fullId: "pages.sales" },
       {

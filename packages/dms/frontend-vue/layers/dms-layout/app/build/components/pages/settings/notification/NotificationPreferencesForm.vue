@@ -40,9 +40,6 @@ const visibleCategories = computed(() =>
 const enabledCountOf = (category: NotificationCategory) =>
   subjectsOf(category.id).filter(isEnabled).length;
 
-// The master switch reads only the subjects it can change: a locked subject
-// stays on whatever the user picks, so counting it would flip the switch
-// straight back on after turning the category off.
 const isCategoryOn = (category: NotificationCategory) => {
   const toggleable = toggleableSubjectsOf(category);
   return toggleable.length > 0
@@ -50,8 +47,6 @@ const isCategoryOn = (category: NotificationCategory) => {
     : enabledCountOf(category) > 0;
 };
 
-// Each switch saves on its own: the page header carries the shared
-// "Saved instantly" pill, which flashes while a row saves.
 useInstantSaveHeader(() => saveState.value);
 
 /** Names the direction the failed switch went back to, as v2 words it. */

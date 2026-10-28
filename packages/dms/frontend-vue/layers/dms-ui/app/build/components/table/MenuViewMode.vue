@@ -41,9 +41,6 @@ const setActiveDisplay = (id: string) => {
   tableSharedData.value.activeDisplayState.value = id;
 };
 
-// Displays offered by this table view (already filtered by availability in
-// TableView). Labels are i18n keys or literals; `t()` returns the key verbatim
-// when no translation exists, so literals pass through unchanged.
 const displayItems = computed(() => tableSharedData.value?.displays ?? []);
 
 /** The group-by a display lets the user pick, and the model it edits. */

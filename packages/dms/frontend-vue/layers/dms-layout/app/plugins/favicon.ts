@@ -11,8 +11,6 @@ const FILE_EXTENSION = /\.([a-z0-9]+)(?:[?#]|$)/i;
 const LIGHT_SCHEME_MEDIA = "(prefers-color-scheme: light)";
 const DARK_SCHEME_MEDIA = "(prefers-color-scheme: dark)";
 
-// A type rather than an interface: unhead's link type carries an index
-// signature (`data-*`), which only a type alias satisfies implicitly.
 type IconLink = {
   rel: "icon";
   href: string;

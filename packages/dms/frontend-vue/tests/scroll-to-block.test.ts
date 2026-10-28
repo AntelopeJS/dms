@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A page's block is brought into view by its anchor, the key path it is
  * declared under (`summary`, `tabs.statistics`): `scrollToBlock` scrolls its
@@ -33,14 +33,11 @@ const Section = defineComponent({
       h("section", { class: "section" }, slots.default?.()),
 });
 
-// A block rendering several roots: its anchor is its first element.
 const Pair = defineComponent({
   setup: () => () =>
     h(Fragment, [h("h3", { class: "pair-head" }), h("p", "body")]),
 });
 
-// A list beside the item it selects, like a split layout: one child in a
-// named slot, the other in the default one.
 const Split = defineComponent({
   setup:
     (_, { slots }) =>

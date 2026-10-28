@@ -35,7 +35,7 @@ describe("TableView bulk actions", () => {
     const url = withQuery("/api/task/archive", bulkActionQuery("ids", IDS));
     expect(url).toBe("/api/task/archive?ids=17&ids=21&ids=23");
     expect(getQuery(url).ids).toEqual(IDS);
-    // A single selected row still goes as a list.
+
     expect(withQuery("/api/task/delete", bulkActionQuery("id", ["17"]))).toBe(
       "/api/task/delete?id=17",
     );
@@ -50,8 +50,7 @@ describe("TableView bulk actions", () => {
       processed: 2,
       skipped: 1,
     });
-    // Delete answers with the number of deleted rows, or `{ deleted: 0 }`
-    // when a row rule refused every id.
+
     expect(bulkActionOutcome(1, 3)).toEqual({ processed: 1, skipped: 2 });
     expect(bulkActionOutcome({ deleted: 0 }, 3)).toEqual({
       processed: 0,
@@ -75,7 +74,7 @@ describe("TableView bulk actions", () => {
       processed: 2,
       skipped: 0,
     });
-    // A count above the request never reports negative skips.
+
     expect(bulkActionOutcome(5, 3)).toEqual({ processed: 3, skipped: 0 });
   });
 });

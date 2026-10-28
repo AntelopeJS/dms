@@ -123,7 +123,6 @@ export const createReconnector = (): Reconnector => {
   return {
     isCancelled: () => isCancelled,
     schedule: (open) => {
-      // A pending reconnect absorbs concurrent triggers: one attempt at a time.
       if (isCancelled || timer) return;
       timer = setTimeout(() => {
         timer = undefined;
@@ -275,7 +274,7 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   const endSessionsOf = (otherTabId: string) => {
     const sessionIds = sessionsByTab.get(otherTabId) ?? new Set<string>();
     sessionsByTab.delete(otherTabId);
-    // The sessions of a connection that went ended with it.
+
     if (!connectionId) return;
     for (const sessionId of sessionIds) {
       closeSession(options.sessionCloseUrl, connectionId, sessionId);
@@ -283,7 +282,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   };
 
   const watchSession = (message: SessionMessage) => {
-    // This tab's own sessions end with the stream it holds.
     if (message.tabId === tabId || message.connectionId !== connectionId) {
       return;
     }
@@ -311,7 +309,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
     }
   });
 
-  // The tabs may still hold the connection of a leader that went: they drop it.
   publish(null);
   const stream = connectWithBackoff(options.streamUrl, {
     onEvent: (eventName, data) => {
@@ -363,8 +360,7 @@ export function joinSharedRealtimeConnection(
   const environment = options.environment ?? browserCrossTabEnvironment();
   const tabId = createTabId();
   const bus = openTabBus(options.name, environment);
-  // Held before any session is announced: the leader waits on it to learn
-  // that this tab went.
+
   const tabLock = holdLock(tabLockName(options.name, tabId), environment);
   let connectionId: string | undefined;
 

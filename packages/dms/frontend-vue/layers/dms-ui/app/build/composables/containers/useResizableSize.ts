@@ -67,7 +67,6 @@ type SizeStep = (size: number, bounds: ResizeBounds) => number;
 const grow: SizeStep = (size) => size + RESIZE_KEYBOARD_STEP_PX;
 const shrink: SizeStep = (size) => size - RESIZE_KEYBOARD_STEP_PX;
 
-// The arrow pointing away from the sheet's edge grows it.
 const KEYBOARD_STEPS: Record<ResizeSide, Record<string, SizeStep>> = {
   right: { ArrowLeft: grow, ArrowRight: shrink },
   left: { ArrowRight: grow, ArrowLeft: shrink },

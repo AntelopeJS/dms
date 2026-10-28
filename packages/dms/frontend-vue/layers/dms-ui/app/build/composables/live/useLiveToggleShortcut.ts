@@ -1,7 +1,5 @@
 import { onBeforeUnmount, onMounted } from "vue";
 
-// The toggles mounted on the page, in mount order: the first one owns the L
-// key, so a page showing two toggles still switches once per press.
 const claims: symbol[] = [];
 
 /**

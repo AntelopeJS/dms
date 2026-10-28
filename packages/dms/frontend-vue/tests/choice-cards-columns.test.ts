@@ -31,7 +31,6 @@ async function render(props: Record<string, unknown>): Promise<string> {
   return renderToString(app);
 }
 
-// A Nuxt auto-import, which ChoiceCards.vue uses unimported.
 beforeEach(() => vi.stubGlobal("computed", computed));
 afterEach(() => vi.unstubAllGlobals());
 

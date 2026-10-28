@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The color-mode plugin in the browser, in boot order: the server-rendered
  * pre-paint script runs while `<head>` parses, Nuxt UI's `useDark()` runs when
@@ -143,7 +143,7 @@ afterEach(() => {
 describe("pre-paint script", () => {
   it("hands vueuse the cookie's mode, so Nuxt UI boots agreeing", () => {
     localStorage.setItem(VUEUSE_STORAGE_KEY, "light");
-    // What the renderer's own pre-paint script may still have added.
+
     document.documentElement.classList.add("light");
 
     loadDocument("%22dark%22");

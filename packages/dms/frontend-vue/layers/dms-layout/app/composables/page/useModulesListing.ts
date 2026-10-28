@@ -39,7 +39,7 @@ export const useModulesListing = () => {
   const loadingError = computed<ModulesListingError | null>(() =>
     listing.error.value ? toListingError(listing.error.value) : null,
   );
-  // A failed read replaces the modules with the error.
+
   const modules = computed<ModuleCatalogEntry[] | undefined>(() =>
     loadingError.value ? undefined : (listing.data.value ?? undefined),
   );

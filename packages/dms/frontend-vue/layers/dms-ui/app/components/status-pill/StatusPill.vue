@@ -59,7 +59,6 @@ defineSlots<StatusPillSlots>();
 
 const CUSTOM_TINT_PERCENT = 12;
 
-// v2 .status: mono label on a tint of its tone, led by a 6px dot.
 const theme = tv({
   slots: {
     root: "inline-flex items-center font-semibold whitespace-nowrap",
@@ -70,14 +69,12 @@ const theme = tv({
   },
   variants: {
     variant: {
-      // A pill wider than its cell keeps its shape: the label gives way
-      // with an ellipsis instead of the pill being cut at the cell's edge.
       soft: { root: "max-w-full rounded-full", label: "min-w-0 truncate" },
       outline: {
         root: "max-w-full rounded-full border bg-transparent",
         label: "min-w-0 truncate",
       },
-      // A state line may run long: it wraps like text instead of a pill.
+
       text: { root: "whitespace-normal" },
     },
     size: {
@@ -126,7 +123,6 @@ const toneClass = computed(() => {
     : color;
 });
 
-// A backend-configured color outside the semantic set: tint it inline.
 const customStyle = computed(() => {
   if (isKnownTone.value) return undefined;
   const color = `var(--ui-${props.tone})`;

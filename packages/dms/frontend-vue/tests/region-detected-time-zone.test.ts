@@ -5,7 +5,6 @@ import {
   setReaderTimeZoneSource,
 } from "../layers/dms-core/app/utils/regional";
 
-// A zone the test process does not run in, as a browser elsewhere sends it.
 const READER_ZONE =
   browserTimeZone() === "Pacific/Auckland"
     ? "America/New_York"

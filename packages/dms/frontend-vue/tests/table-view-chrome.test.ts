@@ -107,7 +107,7 @@ describe("TableView quick filters", () => {
       searchUrl: "/api/roles/select",
       keyMapping: { label: "title" },
     });
-    // The value key is not mapped: the route's `value`, as the picker reads.
+
     expect(
       relationQuickFilterItems(
         [{ value: "r1", title: "Admin", _id: "x" }, { title: "no id" }],
@@ -143,7 +143,6 @@ describe("TableView quick filters", () => {
   });
 
   it("matches inside a tags column's list and offers its suggested tags", () => {
-    // A list is told by the type's own default mode, not by its id.
     const tags = column(
       "tags",
       { suggestions: ["battery", "solar"] },
@@ -158,7 +157,7 @@ describe("TableView quick filters", () => {
       { value: "battery", label: "battery" },
       { value: "solar", label: "solar" },
     ]);
-    // A column that declares no value offers none (as a relation before its read).
+
     expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
   });
 

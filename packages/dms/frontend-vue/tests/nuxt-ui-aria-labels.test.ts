@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import coreEn from "../layers/dms-core/i18n/locales/core-en-GB.json";
 import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 
-// Nuxt UI hard-codes these labels in English, and its locales do not carry
-// them: each use has to bind its own, translated.
 const LABELLED_TAGS = {
   UBreadcrumb: "dms.a11y.breadcrumb",
   USkeleton: "dms.a11y.loading",

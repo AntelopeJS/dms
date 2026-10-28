@@ -18,8 +18,7 @@ const emits = defineEmits<InputEmits>();
 defineSlots<InputSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
-// The value goes out through `updateValue`: the password input types its
-// model as possibly `undefined`, which UInput never emits (cleared is "").
+
 const passwordBindings = computed(() => {
   const { "onUpdate:modelValue": _onUpdate, ...rest } = forwarded.value;
   return rest;

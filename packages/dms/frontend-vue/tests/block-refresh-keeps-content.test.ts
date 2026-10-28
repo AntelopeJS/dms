@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data block refreshed (a page refresh, a realtime event, a period change,
  * live resuming) keeps what it shows until the new answer lands: it draws its
@@ -116,7 +116,6 @@ const BLOCKS: BlockCase[] = [
     shows: ITEMS_TEXT,
   },
   {
-    // Draws nothing, not a skeleton, before its first answer.
     name: "Banner",
     component: BannerBlock,
     answer: { title: ITEMS_TEXT },

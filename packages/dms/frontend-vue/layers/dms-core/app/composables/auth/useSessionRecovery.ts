@@ -6,15 +6,9 @@ const IN_FLIGHT_REFRESH_KEY = "__dmsAuthInFlightRefresh";
 export const useSessionRecovery = () => {
   const dmsApp = useDmsApp();
   const { loggedIn, fetch: fetchSession } = useDmsUserSession();
-  // useDmsRoute() must not be called here: this composable runs inside route
-  // middleware (via useAuthFetch), where the DMS runtime warns that useDmsRoute is
-  // misleading. Resolve the route lazily from the router instead.
+
   const router = useDmsRouter();
 
-  // Refresh the user session at most once concurrently (see runDeduped): the
-  // realtime stream, $authFetch and route middleware can all hit a 401 at the
-  // same time, and parallel /api/auth/refresh calls with the same rotating
-  // refresh token would invalidate the session and log the user out.
   function refreshSession(): Promise<boolean> {
     return runDeduped(
       dmsApp as unknown as Record<PropertyKey, unknown>,

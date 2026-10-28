@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -115,7 +115,6 @@ async function setVisibility(state: DocumentVisibilityState): Promise<void> {
   await nextTick();
 }
 
-// MutationObserver callbacks run as microtasks, before the re-render.
 async function flushObserver(): Promise<void> {
   await Promise.resolve();
   await nextTick();
@@ -284,7 +283,6 @@ describe("GithubStarPrompt", () => {
     expect(prompt()).toBeNull();
   });
 
-  // The time and the choices then last as long as the page.
   it("does not crash when storage throws", async () => {
     vi.stubGlobal("localStorage", throwingStorage);
     await mount();
@@ -329,14 +327,13 @@ describe("GithubStarPrompt", () => {
         ],
       }),
     );
-    // Nothing to save: the bar keeps its place, hidden.
+
     expect(prompt()).not.toBeNull();
 
     dirty.value = true;
     await nextTick();
     expect(prompt()).toBeNull();
 
-    // A form card's footer band is not the bar sticking to the bottom.
     variant.value = "band";
     await nextTick();
     expect(prompt()).not.toBeNull();
@@ -350,7 +347,6 @@ describe("GithubStarPrompt", () => {
     expect(prompt()).not.toBeNull();
   });
 
-  // The phone drawer's account menu trigger sits at the bottom of the screen.
   it("steps aside while the phone sidebar is open", async () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     await mount(DefaultLayout);
@@ -390,7 +386,6 @@ describe("GithubStarPrompt", () => {
     expect(prompt()).not.toBeNull();
   });
 
-  // Drawers and modals are teleported to the body, opened by any module.
   it("steps aside while a drawer or a modal is open", async () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     const drawer = document.createElement("div");

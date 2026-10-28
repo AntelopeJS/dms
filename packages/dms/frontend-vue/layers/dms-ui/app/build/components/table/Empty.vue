@@ -16,10 +16,6 @@ import { buttonLinkProps } from "../../utils/link";
 import { interpolateLiteral } from "../../utils/literalText";
 import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 
-// The table's empty body: the generic v2 empty state (hatched, 44px well),
-// worded and equipped for why the table is empty — load error, filters
-// matching nothing, archive view, or no rows yet.
-
 interface TableEmptyProps {
   canAddRow?: boolean;
   /**
@@ -45,15 +41,12 @@ const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
-// A search, a filter chip, a quick filter or a hidden filter narrows the rows.
 const isFiltered = computed(() => !!tableSharedData.value?.isFiltered?.value);
-// What the clear action would clear; nothing (only default filters left at
-// their value) offers no action.
+
 const clearable = computed(
   () => tableSharedData.value?.clearableFilters?.value,
 );
 
-// Why the body is empty; the archive view keeps its own words.
 const kind = computed<TableViewEmptyStateKind | undefined>(() => {
   if (props.loadError) return "error";
   if (isFiltered.value) return "filtered";
@@ -80,8 +73,7 @@ const customComponent = computed(() => {
   return name ? resolveDmsComponent(name) || name : undefined;
 });
 const refresh = () => tableSharedData.value?.emits("refresh");
-// A custom state clears what narrows the rows as the built-in one does; each
-// is unset while there is nothing of it to clear.
+
 const clearSearch = computed(() =>
   clearable.value?.search
     ? () => tableSharedData.value?.clearSearch()
@@ -102,9 +94,6 @@ interface EmptyStateContent {
 
 const builtInContent = computed<EmptyStateContent>(() => {
   if (props.loadError) {
-    // Only a resolvable key is rendered: `t()` echoes an unknown key verbatim,
-    // and an error body is not necessarily a key. Error entries carry a
-    // `{ title, description }` pair, so the description is tried first.
     return {
       title: t("dms.table.load_error_title"),
       description: te(`${props.loadError}.description`)

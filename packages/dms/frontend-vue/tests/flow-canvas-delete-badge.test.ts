@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, h, nextTick, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FlowCanvas from "../layers/dms-ui/app/components/flow-canvas/FlowCanvas.vue";

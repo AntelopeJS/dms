@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -32,7 +32,7 @@ const TRANSLATIONS: Record<string, string> = {
   "error.not_found": "Not found",
   "page.settings.invites.error.expired": "This invitation has expired",
 };
-// vue-i18n echoes the key back when it has no translation.
+
 const translate = (key: string) => TRANSLATIONS[key] ?? key;
 
 describe("resolveActionError", () => {
@@ -221,9 +221,9 @@ describe("ConfirmModal failures", () => {
     expect(closed).not.toHaveBeenCalled();
     expect(alert()?.dataset.alert).toBe("error");
     expect(alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
-    // Never the raw ofetch line.
+
     expect(host.textContent).not.toContain("[DELETE]");
-    // The confirm button is ready again: retry, or cancel.
+
     expect(button("Delete")!.dataset.loading).toBeUndefined();
     expect(button("Delete")!.disabled).toBe(false);
     expect(button("dms.confirm.cancel")!.disabled).toBe(false);
@@ -337,7 +337,7 @@ describe("ConfirmModal failures", () => {
     expect(alert()?.querySelector("strong")?.textContent).toBe(
       "2 of 5 items couldn’t be archived.",
     );
-    // What went through is done: nothing left to confirm.
+
     expect(button("Archive")).toBeUndefined();
     button("dms.confirm.close")!.click();
     expect(closed).toHaveBeenCalledWith(true);

@@ -7,8 +7,7 @@ interface FilterColumn {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// `{{now}}`, `{{now-7d}}`, `{{now+14d}}`: the tokens the server resolves in a
-// filter value (`filter-tokens.ts`), read here with the same rule.
+
 const NOW_TOKEN = /\{\{\s*now(?:\s*([+-])\s*(\d+)d)?\s*\}\}/g;
 const BETWEEN_MODE = "is_between";
 const BETWEEN_SEPARATOR = ",";
@@ -49,9 +48,6 @@ export function formatFilterValue(
   const formatter =
     dataType.formatter[filter.mode] || dataType.formatter.default;
 
-  // A filter's value need not have the column's shape (a tag typed against
-  // a tags column, whose formatter draws a list): a formatter that writes
-  // nothing for it leaves the value as typed.
   try {
     const result = formatter(readableValue(filter), locale);
     return typeof result === "string" && result !== ""

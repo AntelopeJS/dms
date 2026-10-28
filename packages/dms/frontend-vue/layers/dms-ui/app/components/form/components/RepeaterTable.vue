@@ -37,8 +37,7 @@ const props = defineProps<RepeaterTableProps>();
 const { renderValue } = useColumnValueRenderer();
 const { getDataType } = useDataTypes();
 const { readRelationRows } = useRelationRows();
-// Each column of each list reads its own ids: a key shared by two columns or
-// two lists naming the same route would hand one of them the other's rows.
+
 const instanceId = useId();
 
 /**
@@ -58,7 +57,7 @@ function useColumnRelationRows(columnId: string, source: RelationLabelSource) {
       const readIds = ids.value;
       return { readIds, rows: await readRelationRows(source, readIds) };
     },
-    // Names for the cells, not the page's data.
+
     { lazy: true, refreshOnPageRefresh: false, watch: [ids] },
   );
   return computed<RelationColumnRows>(() => ({
@@ -74,7 +73,6 @@ function useColumnRelationRows(columnId: string, source: RelationLabelSource) {
 
 const NO_LABELS: ReadonlySet<string> = new Set();
 
-// The columns are the field's own and do not change while it is shown.
 const relationRows = new Map(
   props.columns.flatMap((column) => {
     const source = relationLabelSource(column, getDataType(column.type ?? ""));
@@ -89,8 +87,6 @@ const relationRows = new Map(
   }),
 );
 
-// Two fields (a key and its value) fit any width as a table; more stack
-// below the container's `@md` width.
 const TABLE_FITS_COLUMNS = 2;
 const stacksWhenNarrow = computed(
   () => props.columns.length > TABLE_FITS_COLUMNS,
@@ -113,8 +109,6 @@ function cellValue(column: RepeaterTableColumn, row: Record<string, unknown>) {
   );
 }
 
-// A cell renders a VNode tree; a functional wrapper keeps it in the
-// template's flow.
 interface CellProps {
   index: number;
   rowIndex: number;
@@ -129,7 +123,7 @@ const Cell = ({ index, rowIndex }: CellProps): VNodeChild => {
     "detail",
   );
 };
-// Declared, so `row-index` reaches it camelized, as a component's props do.
+
 Cell.props = ["index", "rowIndex"];
 </script>
 

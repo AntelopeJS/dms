@@ -105,7 +105,6 @@ export function useActionConfirm() {
   return { confirmAction };
 }
 
-// A text the dialog leaves out keeps the action's own (its fallback).
 function withoutUndefined<T extends object>(value: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined),

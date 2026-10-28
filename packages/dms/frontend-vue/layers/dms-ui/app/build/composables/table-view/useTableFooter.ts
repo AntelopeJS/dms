@@ -27,7 +27,6 @@ interface LegendItemOption {
   iconColor?: string;
 }
 
-// Sorting changes no figure: it stays out of the summary request.
 const UNSORTED_KEYS = new Set(["sortKey", "sortDirection"]);
 
 /**
@@ -60,7 +59,7 @@ export function useTableFooter(options: TableFooterOptions) {
             query: summaryQuery.value,
             signal,
           }),
-    // Read again with the table's rows, on the table's own triggers.
+
     { lazy: true, watch: [summaryQuery], refreshOnPageRefresh: false },
   );
 

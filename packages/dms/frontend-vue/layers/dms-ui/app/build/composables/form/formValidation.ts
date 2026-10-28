@@ -207,6 +207,6 @@ export async function validateFormState(
   );
   const rank = (issue: FormValidationIssue) =>
     order.get(String(issueField(issue))) ?? order.size;
-  // A stable sort: issues of one field keep the schema's order.
+
   return { issues: [...issues].sort((a, b) => rank(a) - rank(b)) };
 }

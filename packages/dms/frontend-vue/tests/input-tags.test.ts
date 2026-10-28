@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -30,8 +30,6 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-// Renders each tag through the component's `item-text` slot, and hands the
-// test the way the tags input reports a change.
 const InputTagsStub = defineComponent({
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ["update:modelValue"],

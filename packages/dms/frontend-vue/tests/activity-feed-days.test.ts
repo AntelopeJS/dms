@@ -8,7 +8,6 @@ import {
   relativeDayBucket,
 } from "../layers/dms-ui/app/build/components/activity-feed/activityFeedDays";
 
-// Tuesday Sep 29, 2026, mid-morning, local time.
 const NOW = new Date(2026, 8, 29, 10, 0);
 const LABELS = { today: "Today", yesterday: "Yesterday" };
 

@@ -16,8 +16,6 @@ import * as colors from "../layers/dms-core/app/types/color";
 
 type Row = Record<string, unknown>;
 
-// An invitation is pending (Revoke) or expired (Remove), never both: two
-// labelled actions sharing a row only through their rules.
 const PENDING = { field: "status", equals: true };
 const EXPIRED = { field: "status", equals: false };
 
@@ -79,14 +77,11 @@ function actionsColumnSize(rows: Row[]): number | undefined {
 it("sizes an empty list's actions as a row with no values, through the rules", () => {
   const empty = actionsColumnSize([]);
   const pending = actionsColumnSize([{ _id: "1", status: true }]);
-  // Resend alone shows on a row without a status; a pending row adds Revoke.
+
   expect(empty).toBeLessThan(pending!);
   expect(empty).toBe(actionsColumnSize([{ _id: "1" }]));
 });
 
-// A table opened by client-side navigation (the members page's Invitations
-// tab) is set up before its first page arrives: the actions column must grow
-// to the rows' buttons once they are listed, not keep the empty list's width.
 it("resizes the table's actions column once the rows arrive", async () => {
   const tableProps = reactive({
     data: [] as Row[],

@@ -29,7 +29,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// The block's anchor is its layout path: `scrollToBlock(key)` finds it there.
 let anchored: ComponentPublicInstance | null = null;
 function anchorBlock(instance: unknown): void {
   const block = (instance as ComponentPublicInstance | null) ?? null;
@@ -74,9 +73,7 @@ function getColSpanStyle(
 ): Record<string, string> | undefined {
   const colSpan = Number(child.colSpan);
   if (!colSpan || colSpan <= 1) return undefined;
-  // Never more tracks than the grid has left at its current width (a phone
-  // keeps one): a wider span would add implicit columns past the screen.
-  // `--dms-grid-tracks` comes from the enclosing Grid / GridRow.
+
   return {
     gridColumn: `span min(${colSpan}, var(--dms-grid-tracks, ${colSpan}))`,
   };
@@ -86,8 +83,6 @@ const columnCount = computed(() =>
   calculateColumnCount(props.component.children),
 );
 
-// A Grid drawn here lines its rows up on the widest of them: declared from
-// the layout, so it is known before any row sets up (see GridDeclaredColumns).
 provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
   componentId: props.componentId,
   columns: computed(() =>

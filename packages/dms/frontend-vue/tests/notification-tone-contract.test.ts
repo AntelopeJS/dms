@@ -9,9 +9,6 @@ import type {
   UserNotification,
 } from "../layers/dms-layout/app/composables/notification/useNotifications";
 
-// The server weighs the unread badge (the bell, the Notifications entry) with
-// the tone the inbox draws each notification in: the two never disagree.
-
 const STORED_TONES: Array<NotificationTone | null> = [
   null,
   "neutral",

@@ -118,7 +118,6 @@ describe("collectSubmitData with onlyChanged", () => {
   });
 
   it("leaves out a relation still referencing the rows it loaded", () => {
-    // The server sends the joined row, the picker holds its id.
     const assignees = {
       id: "assignees",
       type: "relation",
@@ -163,8 +162,6 @@ describe("collectSubmitData with onlyChanged", () => {
 });
 
 describe("DMS form submitting a loaded record", () => {
-  // Sending the whole form wrote the stale status back over a colleague's
-  // change made since the form loaded.
   it("sends only what the user changed when it updates the record", async () => {
     await editNotes(setupForm());
     expect(sentBody()).toEqual({ notes: "Second call" });

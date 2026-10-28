@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A detail page whose record is deleted leaves for its list, in every tab:
  * on an event of one of its topics it asks its layout again, and a record the
@@ -113,8 +113,6 @@ describe("a detail page whose record is deleted", () => {
     expect(toastAdd).not.toHaveBeenCalled();
   });
 
-  // A page opened on a record that was never there shows its not-found
-  // blocks: it was not deleted under the reader.
   it("stays on a record it never found", async () => {
     start(layoutWith("missing"));
     authFetch.mockResolvedValue(layoutWith("missing"));

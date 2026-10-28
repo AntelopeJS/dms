@@ -92,7 +92,7 @@ const EMPTY_ICON = "i-ph-chart-line-up";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
-  // Declared like the server schema: Vue casts a missing boolean to false.
+
   showGrid: true,
   roundedCorners: true,
   showTooltip: true,
@@ -121,9 +121,6 @@ const themeRevision = useThemeRevision();
 
 const isCircular = computed(() => CIRCULAR_CHART_TYPES.includes(props.type));
 
-// A bare chart's own series and slices are translated like a card's: the
-// `$` keys of a name, a category or a label reach Apex in the reader's
-// language. A nested chart receives its card's series already translated.
 function localized(series: ChartSeries[]): ChartSeries[] {
   return series.map((entry) => localizeSeries(entry, processI18n));
 }
@@ -171,8 +168,6 @@ const finalSeries = computed<ChartSeries[]>(() => {
   return staticSeries.value;
 });
 
-// A donut plots the first series only; a nested one plots its card's, like
-// every other nested chart type.
 const finalDonutData = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   const source = nestedContext ? nestedContext.cardSeries : fetchSeries.value;
@@ -299,8 +294,7 @@ const apex = useApexChart(() => ({
 }));
 
 const heightInPx = computed(() => props.height);
-// Every state (placeholder, drawn chart, empty state) takes the box the drawn
-// chart occupies, so nothing moves when the data or the chart arrives.
+
 const frameHeight = computed(() =>
   chartFrameHeight(props.height, isCircular.value),
 );
@@ -308,16 +302,13 @@ const frameHeight = computed(() =>
 const hasData = computed(
   () => finalSeries.value.length > 0 || finalDonutData.value.length > 0,
 );
-// A nested chart plots its card's data, so it waits on the card's request.
+
 const isAwaitingData = computed(() =>
   nestedContext ? nestedContext.isLoading : isLoading.value,
 );
-// New inputs (a period applied) are on their way: the chart on screen still
-// shows the previous ones, so it dims like the KPI values do.
+
 const isRefreshing = computed(() => hasData.value && isAwaitingData.value);
 
-// The host (a lazy chunk) and Apex (another one) take a moment to draw: the
-// frame keeps the chart's box and its skeleton until the host says it drew.
 const isDrawn = ref(false);
 watch(hasData, (present) => {
   if (!present) isDrawn.value = false;

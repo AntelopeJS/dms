@@ -60,11 +60,11 @@ it("filling its cell, scrolls the entries in a focusable region sized to nothing
   expect(area).toBeDefined();
   expect(area).toContain('tabindex="0"');
   expect(area).toContain('aria-label="Recent account activity"');
-  // Sized to nothing, it leaves the row's height to the cards beside it…
+
   expect(area).toMatch(/\bcontain-size\b/);
   expect(area).toMatch(/\boverflow-y-auto\b/);
   expect(area).toMatch(/\bh-full\b/);
-  // …and once the grid stacks its cells, takes its own height, capped.
+
   expect(area).toContain(
     "[@container_style(--dms-grid-tracks:1)]:max-h-[24rem]",
   );

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -18,7 +18,6 @@ import {
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
 
-// The field UFormField would provide: its error drives the control's state.
 const fieldError = ref<string | undefined>();
 const formEvents: Array<{ type: string; name: string }> = [];
 
@@ -29,7 +28,6 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-// Renders its props as attributes, so the test reads what the control passed.
 const passThrough = (tag: string) =>
   defineComponent({
     inheritAttrs: false,

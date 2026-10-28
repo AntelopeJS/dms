@@ -78,7 +78,7 @@ export function useTableViews(options: TableViewsOptions) {
   const route = useDmsRoute();
 
   const userId = computed(() => user.value?._id as string | undefined);
-  // Kept in the browser: none on the server, restored once mounted.
+
   const storedUserViews = ref<UserTableView[]>([]);
   preferences.restore("userViews", storedUserViews, Array.isArray);
   const ownUserViews = computed(() =>
@@ -181,11 +181,6 @@ export function useTableViews(options: TableViewsOptions) {
     state.pagination.value = { ...state.pagination.value, pageIndex: 0 };
   };
 
-  // Read once, on arrival: a view named by the URL wins over the state kept
-  // from the last visit; a view the caller may not open falls back to the
-  // default one, with a word (on the client, once mounted). The user's views
-  // are kept in the browser, so a view that is not the module's is resolved
-  // once mounted. An empty one (`?view=`) names no view.
   const urlView = readTableUrlKey(route.query, urlScope, VIEW_URL_KEY);
   const persistedViewId = preferences.get<string | undefined>(
     "activeView",
@@ -208,8 +203,6 @@ export function useTableViews(options: TableViewsOptions) {
     restoreKeptView(persistedViewId);
   }
 
-  // The browser-only state (order, density) is restored over the view opened
-  // in setup: the view's own wins, as it did when everything was read there.
   const reapplyBrowserState = () => {
     const snapshot = viewSnapshot(activeView.value, defaults);
     state.columnOrder.value = snapshot.order;

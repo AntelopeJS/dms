@@ -32,12 +32,7 @@ const readToggleLabel = computed(() =>
     ? t("page.settings.notifications.mark_read")
     : t("page.settings.notifications.mark_unread"),
 );
-// Row actions stay quiet until the row is hovered or holds focus, then
-// show their labels (v2 C07). The labels only fade in: they keep their room
-// laid out, so the buttons never move under the pointer on the way to one
-// (a label appearing used to slide Delete under a Mark read click). Phones
-// show the icons alone: a tap focuses the row, and the labels would squeeze
-// the text there.
+
 const actionLabelUi = {
   label:
     "hidden sm:inline sm:opacity-0 sm:transition-opacity sm:duration-150 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",

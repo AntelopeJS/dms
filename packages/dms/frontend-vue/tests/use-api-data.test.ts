@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `useApiData` through the runtime's real async data and the real
  * `$authFetch`: a server render reads, renders and hands over the data, the
@@ -27,7 +27,7 @@ vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({
   public: { dms: { baseURL: "" } },
 }));
-// The app's language, which a test may switch.
+
 const appLocale = ref("fr");
 vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: appLocale } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);

@@ -31,7 +31,6 @@ export function isPausedByUrl(): boolean {
   );
 }
 
-// Resumed, the page no longer opens paused: a reload keeps it live.
 function dropUrlPause(): void {
   if (!isPausedByUrl()) return;
   const url = new URL(window.location.href);
@@ -90,8 +89,7 @@ export function usePageLiveHost(
   }
   let controller: PageLiveController | null = null;
   let unbind: (() => void) | null = null;
-  // The server renders every page live: the remembered pause applies once
-  // mounted, so the hydrating render draws the same rows.
+
   let isMounted = false;
   onMounted(() => {
     isMounted = true;
@@ -126,8 +124,6 @@ export function usePageLiveHost(
     { immediate: true },
   );
 
-  // The page's blocks read as it is shown: the server's render, or the
-  // browser's on a client navigation.
   watch(() => source().pageId, markPageRead, { immediate: true });
 
   onScopeDispose(() => install(null));

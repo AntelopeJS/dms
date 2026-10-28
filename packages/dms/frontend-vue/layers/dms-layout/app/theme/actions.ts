@@ -34,8 +34,7 @@ const SOLID_FILL_COMPOUNDS = [
     class:
       "bg-(--ui-color-warning-400) text-(--ui-color-warning-950) hover:bg-(--ui-color-warning-300) active:bg-(--ui-color-warning-300) disabled:bg-(--ui-color-warning-400) aria-disabled:bg-(--ui-color-warning-400)",
   },
-  // White ink on the 500 step in both themes; Nuxt UI would put dark ink on
-  // the lighter dark-theme step.
+
   {
     color: "error",
     variant: "solid",
@@ -82,10 +81,6 @@ const BUTTON_SQUARE_COMPOUNDS = [
 
 const buttonTheme = {
   slots: {
-    // Tactile press + full transition (design .btn active:scale(.98)).
-    // Nuxt UI only fades a disabled button to 75%, which still reads as
-    // enabled on a filled primary: fade it further and drop the press and
-    // the inset highlight so every variant looks inert.
     base: [
       "font-[550] transition active:scale-[0.98]",
       "disabled:opacity-50 aria-disabled:opacity-50",
@@ -94,7 +89,6 @@ const buttonTheme = {
     ].join(" "),
   },
   variants: {
-    // v2 control heights 24/28/32/36/40 px, shared with inputs and tabs.
     size: {
       xs: {
         base: "h-6 px-2 py-0 text-xs gap-1 rounded-[6px]",
@@ -124,9 +118,6 @@ const buttonTheme = {
     },
   },
   compoundVariants: [
-    // v2 solid accent: the bright fill with dark ink in both themes, the
-    // text accent (--ui-primary) being too deep for a fill in light, plus
-    // the inset top highlight.
     {
       color: "primary",
       variant: "solid",
@@ -134,8 +125,7 @@ const buttonTheme = {
         "bg-(--dms-accent-fill) text-(--dms-accent-on-fill) hover:bg-(--dms-accent-fill-hover) active:bg-(--dms-accent-fill-hover) disabled:bg-(--dms-accent-fill) aria-disabled:bg-(--dms-accent-fill) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]",
     },
     ...SOLID_FILL_COMPOUNDS,
-    // The dashboard's workhorse "secondary" button (design .btn--secondary):
-    // card surface, accented border, ink text and the xs drop shadow.
+
     {
       color: "neutral",
       variant: "outline",
@@ -148,7 +138,7 @@ const buttonTheme = {
       class:
         "text-highlighted hover:bg-accented active:bg-accented data-[state=open]:bg-accented",
     },
-    // Menu and popover triggers keep their hover tint while open.
+
     {
       color: "neutral",
       variant: "ghost",
@@ -156,7 +146,7 @@ const buttonTheme = {
         "hover:text-highlighted data-[state=open]:bg-elevated data-[state=open]:text-highlighted",
     },
     ...BUTTON_SQUARE_COMPOUNDS,
-    // v2 .btn--link: no box at all, the underline fades in on hover.
+
     {
       variant: "link",
       class:
@@ -222,15 +212,13 @@ const badgeTheme = {
     ...SOLID_FILL_COMPOUNDS,
     ...BADGE_SQUARE_COMPOUNDS,
   ],
-  // The v2 badge is the flat 10% tint; subtle adds the tinted border.
+
   defaultVariants: {
     variant: "soft",
   },
 };
 
 const kbdTheme = {
-  // <UKbd> is a single-element component (no slots): base/variants live at
-  // the root of its theme.
   base: "font-mono font-[550] tracking-[0.02em] rounded-[5px]",
   variants: {
     size: {
@@ -240,7 +228,6 @@ const kbdTheme = {
     },
   },
   compoundVariants: [
-    // The keycap: a card-surface key with a 2px bottom edge.
     {
       color: "neutral",
       variant: "outline",
@@ -275,9 +262,6 @@ const TABS_SIZES = {
   },
 };
 
-// Nuxt UI paints the active trigger through an "in-[list without
-// indicator]" selector until the indicator exists (server render); the
-// overrides repeat it verbatim so tailwind-merge replaces the default fill.
 const TABS_PILL_COMPOUNDS = [
   {
     color: "neutral",
@@ -317,7 +301,7 @@ const TABS_LINK_COMPOUNDS = [
   { variant: "link", size: ["xs", "sm"], class: { trigger: "h-8" } },
   { variant: "link", size: "md", class: { trigger: "h-[38px]" } },
   { variant: "link", size: ["lg", "xl"], class: { trigger: "h-11" } },
-  // Every colour keeps the ink label; only the underline takes the colour.
+
   {
     color: ["primary", "secondary", "success", "info", "warning", "error"],
     variant: "link",
@@ -328,7 +312,7 @@ const TABS_LINK_COMPOUNDS = [
 const tabsTheme = {
   slots: {
     trigger: "data-[state=active]:font-semibold",
-    // Counts as mono chips, tinted with the accent on the active tab.
+
     trailingBadge:
       "font-mono text-[10.5px] h-4 px-[5px] rounded-(--dms-radius-tab-badge) ring-0 bg-elevated text-dimmed group-data-[state=active]:bg-(--dms-accent-tint) group-data-[state=active]:text-primary",
   },
@@ -341,7 +325,7 @@ const tabsTheme = {
         trigger: "rounded-(--dms-radius-tab) before:rounded-(--dms-radius-tab)",
       },
     },
-    // A vertical list sits at the top of its panel, not centred beside it.
+
     orientation: {
       vertical: { root: "items-start" },
     },
@@ -353,8 +337,7 @@ const tabsTheme = {
       variant: "pill",
       class: { indicator: "inset-y-[3px]" },
     },
-    // A row of tabs wider than its column (a phone, a narrow card) scrolls
-    // sideways instead of cutting every label to an ellipsis.
+
     {
       orientation: "horizontal",
       class: {
@@ -362,8 +345,7 @@ const tabsTheme = {
         trigger: "shrink-0",
       },
     },
-    // The scrolling list clips its border box, so the hairline is drawn
-    // inside it (an inset shadow) for the underline to cover it as before.
+
     {
       orientation: "horizontal",
       variant: "link",

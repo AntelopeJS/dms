@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   type App,
   type Component,
@@ -112,7 +112,7 @@ beforeEach(() => {
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
-  // Outside a UFormField: no error, no aria attributes.
+
   vi.stubGlobal("useFormField", () => ({
     emitFormChange: vi.fn(),
     color: ref(undefined),

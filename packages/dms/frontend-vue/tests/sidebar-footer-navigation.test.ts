@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -133,7 +133,7 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     modules.forEach((link) =>
       expect(link.getAttribute("data-exact")).toBe("true"),
     );
-    // The settings are reached from the account menu only.
+
     expect(host.querySelector('a[href^="/settings"]')).toBeNull();
     expect(host.querySelector('nav [data-active="true"]')).toBeNull();
   },

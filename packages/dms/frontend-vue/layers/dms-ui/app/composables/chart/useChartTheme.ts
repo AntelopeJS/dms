@@ -64,7 +64,7 @@ function toApexColor(color: string, fallback: string): string {
   if (!color || color === "transparent" || color === "rgba(0, 0, 0, 0)")
     return fallback;
   if (color.startsWith("rgb")) return color;
-  // Computed styles preserve OKLCH in modern browsers; Apex expects sRGB.
+
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 1;
   const context = canvas.getContext("2d");
@@ -73,8 +73,7 @@ function toApexColor(color: string, fallback: string): string {
   context.fillRect(0, 0, 1, 1);
   const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
   if (!alpha) return fallback;
-  // Apex reads the alpha of an rgba() series colour as its fill opacity,
-  // overriding fill.opacity and gradient stops, so opaque colours stay rgb().
+
   if (alpha === COLOR_CHANNEL_MAX) return `rgb(${red}, ${green}, ${blue})`;
   return `rgba(${red}, ${green}, ${blue}, ${alpha / COLOR_CHANNEL_MAX})`;
 }
@@ -94,7 +93,7 @@ function probeCssColor(varName: string, fallback: string): string {
   const cached = colorProbeCache.get(cacheKey);
   if (cached) return cached;
   const probe = document.createElement("div");
-  // Background does not inherit body text when a token is missing or invalid.
+
   probe.style.backgroundColor = `var(${varName}, ${fallback})`;
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";

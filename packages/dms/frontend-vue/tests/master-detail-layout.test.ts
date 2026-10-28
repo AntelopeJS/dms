@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { type App, createApp, h, nextTick } from "vue";
 
@@ -6,7 +6,7 @@ const ITEMS = [
   { value: "a", label: "Alpha" },
   { value: "b", label: "Beta" },
 ];
-// The former `lg` viewport breakpoint, now read off the component's own width.
+
 const SIDE_BY_SIDE_COLUMNS = "@5xl:grid-cols-[380px_minmax(0,1fr)]";
 const VIEWPORT_VARIANT = /(?:^|\s)(?:sm|md|lg|xl|2xl):/;
 

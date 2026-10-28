@@ -13,9 +13,7 @@ interface DisplayProps {
 }
 
 const props = defineProps<DisplayProps>();
-// The field's options, spread on the display as on its input: the
-// formatter reads them as a table cell does (a status' labels and tones,
-// a select's items).
+
 const options = useAttrs();
 
 const { getDataType } = useDataTypes();
@@ -45,8 +43,7 @@ const formattedValue = computed(() => {
 });
 
 const isVNodeValue = computed(() => isVNode(formattedValue.value));
-// Amounts read in tabular figures, so a read-only list's amounts and the
-// totals under it line up in one font.
+
 const isNumeric = computed(() => NUMERIC_TYPE_IDS.has(props.type ?? ""));
 </script>
 

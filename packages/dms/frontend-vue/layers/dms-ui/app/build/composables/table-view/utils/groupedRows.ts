@@ -22,7 +22,7 @@ export const NO_GROUP_KEY = "";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAYS_PER_WEEK = 7;
-// 1970-01-01, day 0, was a Thursday.
+
 const EPOCH_WEEKDAY = 4;
 const DAY_KEY_LENGTH = 10;
 

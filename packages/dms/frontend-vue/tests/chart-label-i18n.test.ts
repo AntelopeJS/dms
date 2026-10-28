@@ -125,7 +125,7 @@ describe("chart texts a route sends as $ keys", () => {
     expect(html).toContain('"name":"«shop.plans.series»"');
     expect(html).toContain('"x":"«shop.plans.starter»"');
     expect(html).toContain('"label":"«shop.plans.pro»"');
-    // Plain text and dates are drawn as sent.
+
     expect(html).toContain('"x":"Pro"');
     expect(html).toContain('"x":"2026-10-01"');
   });

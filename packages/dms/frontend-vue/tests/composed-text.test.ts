@@ -48,7 +48,6 @@ function makeI18n(locale: "en" | "fr" = "en") {
   });
 }
 
-// Intl separates a French amount from its symbol with a no-break space.
 const plainSpaces = (text: string) => text.replace(/[\u00a0\u202f]/g, " ");
 
 function write(

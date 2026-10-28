@@ -13,8 +13,6 @@ export type FieldRowLayout = "inline" | "form" | "stack";
  */
 export type FieldRowSpacing = "row" | "dense" | "list";
 
-// The renderer's props are optional: DmsFieldRow is both the backend
-// `FieldRow` block (`dms-field-row-block`) and a template component.
 interface FieldRowProps extends Partial<DefaultComponentProps> {
   /** Row label (i18n key with `$` or literal). */
   label?: string;
@@ -67,10 +65,6 @@ const props = withDefaults(defineProps<FieldRowProps>(), {
 });
 const slots = defineSlots<FieldRowSlots>();
 
-// v2 .st-row: 16px/18px padding, hairline between rows of the same card.
-// The root is a size container: the layout follows the row's own width (a
-// settings column is ~450px at 1024), not the viewport. The form layout is
-// also every DMS form's row: one breakpoint for both.
 const theme = tv({
   slots: {
     root: "@container",
@@ -84,17 +78,12 @@ const theme = tv({
   },
   variants: {
     layout: {
-      // A wrapping flex row: a switch or a short control stays at the end of
-      // the label on a phone; a control too wide to leave the label 11rem
-      // drops under it, end-aligned.
       inline: {
         body: "flex flex-wrap items-center",
         text: "min-w-0 flex-[1_1_11rem]",
         control: "ms-auto flex flex-wrap items-center justify-end gap-2",
       },
-      // The 240px label column needs a 560px row; narrower, the label sits
-      // above the control. Beside it, the label lines up with the control's
-      // text.
+
       form: {
         body: "items-start @min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)]",
         text: "@min-[560px]:pt-1.5",
@@ -110,7 +99,7 @@ const theme = tv({
     },
     spacing: {
       row: { root: "border-t border-muted first:border-t-0", body: "py-4" },
-      // 12px above and below a 32px control, 6px from a label set above it.
+
       dense: {
         root: "border-t border-muted first:border-t-0",
         body: "py-3 gap-y-1.5",
@@ -120,8 +109,7 @@ const theme = tv({
     disabled: {
       true: { root: "opacity-55" },
     },
-    // Flex columns down to the control, which grows: their minimum stays
-    // their content's (the control's floor), the parent scrolling below it.
+
     fill: {
       true: {
         root: "flex flex-1 flex-col",
@@ -129,8 +117,7 @@ const theme = tv({
         control: "flex flex-1 flex-col",
       },
     },
-    // Without a label cell, the control is the grid's only child: it spans
-    // both columns instead of falling into the form's 240px label column.
+
     labeled: {
       false: { control: "col-span-full" },
     },

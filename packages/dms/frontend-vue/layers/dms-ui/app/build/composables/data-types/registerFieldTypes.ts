@@ -2,9 +2,6 @@ import { h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
-// How the field types made of several values read in a table cell or a
-// read-only form: a count, a masked secret, the first line of the code,
-// the tags as pills.
 const SECRET_TAIL = 4;
 const SECRET_MASK = "••••";
 const TAG_CLASS =

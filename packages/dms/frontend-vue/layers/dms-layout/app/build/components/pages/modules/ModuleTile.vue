@@ -4,11 +4,6 @@ import { DmsLink } from "#dms/frontend-module";
 import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
 
-// v2 .mc-tile, the frame of the Modules page's tiles: an installed module's
-// card (a link into it) or a store module's dashed placeholder. Both read
-// the same: icon and status, name and description, optional content, and a
-// bottom-aligned mono footer band.
-
 /** The status pill of the tile's head. */
 export interface ModuleTileStatus {
   tone: Tone;
@@ -63,8 +58,7 @@ const theme = tv({
         root: "group dms-card dms-card--interactive text-inherit",
         footer: "bg-(--dms-bg-muted) py-[9px]",
       },
-      // A dashed, transparent tile with a quiet icon: the module does not
-      // run here.
+
       true: {
         root: "rounded-(--dms-radius-card) border border-dashed border-(--ui-border-accented)",
         footer: "py-[7px]",

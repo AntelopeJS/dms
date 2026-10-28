@@ -11,12 +11,6 @@ import type {
   CodeToken,
 } from "../../build/utils/codeHighlight";
 
-// Read-only code in the editor's look: a head with the title, the language
-// and a copy button, then the code highlighted by the editor's languages.
-// Without a title or a language there is no head: the copy button floats in
-// the code's corner. Until its language's grammar loads (and on the server)
-// the code shows as is.
-
 /**
  * How long lines break: `false` scrolls them sideways, `true` wraps them
  * between words, `"anywhere"` also breaks a word too long for the line (a
@@ -57,7 +51,7 @@ const props = withDefaults(defineProps<CodeSnippetProps>(), {
 });
 
 const LINE_HEIGHT_PX = 19;
-// The code's top and bottom padding (`py-2`), around its lines.
+
 const CODE_PADDING_PX = 16;
 
 const WRAP_CLASSES: Record<"false" | "true" | "anywhere", string> = {
@@ -69,8 +63,7 @@ const WRAP_CLASSES: Record<"false" | "true" | "anywhere", string> = {
 const highlight = shallowRef<CodeHighlighter | null>(null);
 
 const language = computed(() => resolveCodeLanguage(props.language));
-// A language given, even `text`, is named in a head; without a title either,
-// a head would only hold the copy button.
+
 const isHeadless = computed(() => !props.title && props.language === undefined);
 const hasHead = computed(
   () =>
@@ -92,8 +85,6 @@ const sizeStyle = computed(() => {
   return props.maxHeight ? { maxHeight: props.maxHeight } : undefined;
 });
 
-// Only the grammar of the language shown loads. A language changed while
-// one loads drops it: the code stays plain until its own grammar is in.
 async function loadHighlighter(): Promise<void> {
   const requested = language.value;
   highlight.value = null;

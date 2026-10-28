@@ -1,5 +1,5 @@
 const MODULE_HISTORY_COOKIE = "dms-module-history";
-// Kept for a year and bounded, so the cookie stays small on every request.
+
 const MODULE_HISTORY_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MODULE_HISTORY_MAX_ENTRIES = 12;
 const MODULE_HISTORY_MAX_PATH_LENGTH = 300;
@@ -61,10 +61,7 @@ export const useModuleHistory = (): ModuleHistoryApi => {
     if (!moduleId || !path || path.length > MODULE_HISTORY_MAX_PATH_LENGTH) {
       return;
     }
-    // Re-insert the key so a revisited module moves to the end: a plain
-    // spread would keep its first-visit position and break the
-    // oldest-to-newest ordering `entries` guarantees. The oldest visits
-    // fall off once the history is full.
+
     const { [moduleId]: _previous, ...others } = history.value;
     const kept = Object.entries(others).slice(
       -(MODULE_HISTORY_MAX_ENTRIES - 1),

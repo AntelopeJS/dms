@@ -61,7 +61,6 @@ export function useSidePanelWidth(panel: SidePanel): SidePanelWidth {
   });
 
   return {
-    // The panel always has a default width: its size is never natural.
     width: computed(() => resizable.size.value ?? bounds.defaultWidth),
     bounds,
     isDragging: resizable.isDragging,

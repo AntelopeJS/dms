@@ -65,8 +65,6 @@ export function openTabBus(
     : undefined;
   if (channel) channel.onmessage = (event) => deliver(event.data);
   return {
-    // A BroadcastChannel never echoes to its sender: this tab's own
-    // listeners hear the message directly.
     post: (message) => {
       channel?.postMessage(message);
       deliver(message);
@@ -100,7 +98,6 @@ export function electLeader(
   let stepDown: (() => void) | undefined;
   environment
     .locks!.request(name, { signal: abort.signal }, () => {
-      // Granted while the resignation was on its way.
       if (isResigned) return;
       return new Promise<void>((resolve) => {
         const stop = lead();

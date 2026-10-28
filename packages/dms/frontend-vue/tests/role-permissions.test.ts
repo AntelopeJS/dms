@@ -90,7 +90,7 @@ const TREE: RolePermissionNode[] = [
       },
     ],
   },
-  // Registered under an unregistered `media`: lifted to the top of the tree.
+
   {
     id: "media.upload",
     label: "Upload",
@@ -229,8 +229,7 @@ describe("role permissions", () => {
     const { levels, parents } = buildPermissionLevels(
       buildPermissionAreas(TREE, identity),
     );
-    // Sections (`pages`, `settings`, `media.upload`) are headings, and rows
-    // without children (`media.upload.form`, `examples`) never open.
+
     expect(levels).toEqual([
       ["pages.sales", "settings.user"],
       ["pages.sales.orders", "settings.user.roles", "settings.user.profile"],
@@ -289,7 +288,7 @@ describe("role permissions", () => {
 
   it("leaves the unregistered id a lifted permission sits under to the server", () => {
     const grant = grantPermission(index, new Set(), "media.upload", anyone);
-    // `media` is no node of the tree: the server adds it when the role is saved.
+
     expect(sorted(grant.selection)).toEqual([
       "media.upload",
       "media.upload.form",
@@ -351,8 +350,7 @@ describe("role permissions", () => {
       ]),
       "settings.user.roles.table.list",
     );
-    // Only `settings.user.roles.table` is judged emptied: the ancestors above
-    // it still saw it selected, so they stay.
+
     expect(sorted(next)).toEqual([
       "settings",
       "settings.user",
@@ -378,7 +376,7 @@ describe("role permissions", () => {
 
   it("shows a checkbox state by the original form's rule", () => {
     const selection = new Set(["pages.sales.orders"]);
-    // The page alone, without its components: checked, so a click revokes.
+
     expect(checkboxState(index, "pages.sales.orders", selection)).toBe(true);
     expect(
       checkboxState(
@@ -387,7 +385,7 @@ describe("role permissions", () => {
         new Set(["pages.sales.orders", "pages.sales.orders.read"]),
       ),
     ).toBe("indeterminate");
-    // Every component but not the page: unchecked, so a click grants it.
+
     expect(
       checkboxState(
         index,
@@ -398,13 +396,10 @@ describe("role permissions", () => {
   });
 
   it("stores what the original form stored for the same clicks", () => {
-    // The original form knew no dependencies: the editor matches it on a
-    // tree that declares none.
     const plain = buildPermissionIndex(withoutDependencies(TREE));
     const random = seeded(20261001);
     const ids = plain.allIds;
     for (let run = 0; run < 200; run++) {
-      // Start from arbitrary saved roles, legacy and unknown ids included.
       const start = ids.filter(() => random() < 0.3);
       if (random() < 0.3) start.push("legacy.permission");
       let before = [...start];
@@ -416,8 +411,7 @@ describe("role permissions", () => {
         expect(checkboxState(plain, id, after)).toBe(originalState);
         before = original.check(before, node, clickedValue(originalState));
         after = editorClick(plain, after, id);
-        // Bar the unregistered ids the original form added above a lifted
-        // node (`media`), which the server now adds when the role is saved.
+
         const known = before.filter(
           (kept) => plain.nodes.has(kept) || start.includes(kept),
         );
@@ -546,7 +540,7 @@ describe("table actions depending on the list", () => {
       expect(revoked.has(`${INVOICES}.${action}`), action).toBe(false);
     }
     expect(revoked.has(`${INVOICES}.select`)).toBe(true);
-    // The table only requires its list: the preview shows it hidden.
+
     expect(revoked.has(INVOICES)).toBe(true);
   });
 
@@ -609,7 +603,7 @@ describe("permission tree levels", () => {
       ],
     ]);
     expect(openDepth(levels, expanded)).toBe(3);
-    // Fully open: expanding again changes nothing.
+
     expect(expandOneLevel(levels, expanded)).toBe(expanded);
   });
 
@@ -628,7 +622,6 @@ describe("permission tree levels", () => {
   });
 
   it("fills the shallowest incomplete depth of a tree opened by hand", () => {
-    // One area and one of its rows opened by hand, the other area closed.
     let expanded = open("settings.user", "settings.user.roles");
     expect(openDepth(levels, expanded)).toBe(0);
     expect(nextExpandDepth(levels, expanded)).toBe(1);
@@ -639,7 +632,7 @@ describe("permission tree levels", () => {
       "settings.user.roles",
     ]);
     expect(nextExpandDepth(levels, expanded)).toBe(2);
-    // Depth 3 is opened by hand, but depth 2 is still incomplete: it comes first.
+
     expanded = open(
       "pages.sales",
       "settings.user",
@@ -651,16 +644,15 @@ describe("permission tree levels", () => {
   });
 
   it("collapses the deepest depth shown open, not a hidden open row", () => {
-    // `settings.user.roles.table` is open but hidden under a closed area.
     const expanded = open(
       "pages.sales",
       "settings.user.roles",
       "settings.user.roles.table",
     );
     expect(nextCollapseDepth(levels, expanded)).toBe(1);
-    // The hidden open rows below that depth close with it.
+
     expect(sorted(collapseOneLevel(levels, expanded))).toEqual([]);
-    // A deeper row shown open is collapsed first.
+
     const deeper = open("pages.sales", "pages.sales.orders", "settings.user");
     expect(nextCollapseDepth(levels, deeper)).toBe(2);
     expect(sorted(collapseOneLevel(levels, deeper))).toEqual([

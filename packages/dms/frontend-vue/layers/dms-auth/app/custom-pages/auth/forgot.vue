@@ -49,7 +49,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       }),
     );
   } catch (error: unknown) {
-    // A refused address shows under its field; anything else above the form.
     await showError(error, "page.forgot.error_title", {
       fields: ["email"],
       form,

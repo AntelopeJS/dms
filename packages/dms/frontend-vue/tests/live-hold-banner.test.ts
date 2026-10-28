@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The strip of a held table: "N new · Show", Show reading the rows again,
  * led by why the table holds by itself ("Table on hold · search active").

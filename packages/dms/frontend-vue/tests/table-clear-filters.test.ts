@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -48,7 +48,6 @@ interface Harness extends TableNarrowingState {
   pagination: Ref<PaginationState>;
 }
 
-// What a quick filter writes: the column's own filter.
 const quickPriority = (value: string): TableFilter => ({
   accessorKey: "priority",
   mode: "is",
@@ -78,7 +77,6 @@ describe("clearTableFilters", () => {
 
     clearTableFilters(state);
 
-    // The default filter goes back to its value, the added chip is dropped.
     expect(state.columnFilters.value).toEqual([pinnedStatus("open")]);
     expect(state.globalFilter.value).toBe("");
     expect(state.pagination.value).toEqual({ pageIndex: 0, pageSize: 25 });
@@ -102,7 +100,7 @@ describe("clearTableFilters", () => {
       filters: false,
       search: false,
     });
-    // A default filter at its own value is nothing to clear.
+
     expect(
       clearableTableFilters(
         createState({ columnFilters: [pinnedStatus("open")] }),
@@ -137,7 +135,7 @@ describe("clearTableFilters", () => {
 
   it("tells when the rows are narrowed", () => {
     expect(isTableNarrowed(createState())).toBe(false);
-    // An empty chip narrows nothing.
+
     expect(
       isTableNarrowed(
         createState({ columnFilters: [{ ...dueDate, value: undefined }] }),
@@ -155,7 +153,7 @@ describe("clearTableFilters", () => {
   it("counts the hidden filters of the page URL as filters", () => {
     const state = { ...createState(), hiddenFiltersApply: ref(true) };
     expect(isTableNarrowed(state)).toBe(true);
-    // Nothing the user could clear: no clear action is offered.
+
     expect(clearableTableFilters(state)).toEqual({
       filters: false,
       search: false,
@@ -277,7 +275,7 @@ describe("table empty state", () => {
     expect(state.globalFilter.value).toBe("");
     expect(state.columnFilters.value).toEqual([]);
     expect(state.pagination.value.pageIndex).toBe(0);
-    // Nothing narrows the rows any more: the plain empty state is back.
+
     expect(container.textContent).toContain("dms.table.empty_title");
     expect(container.querySelector("button")).toBeNull();
   });

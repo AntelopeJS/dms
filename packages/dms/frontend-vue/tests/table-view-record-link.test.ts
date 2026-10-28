@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table with a `deepLink` action opens the row `?record=` names on arrival
  * and on each visit that keeps the page mounted, including a link to a row
@@ -71,7 +71,7 @@ function mountTable(url: string) {
             const row = ROWS.find((candidate) => candidate.id === id);
             return row ? { row, isMissing: false } : { isMissing: true };
           },
-          // The drawer writes the row it opens, as the action's targets do.
+
           open: (row) => {
             opened.push(row.id);
             writeRecordId(SCOPE, row.id);
@@ -86,7 +86,7 @@ function mountTable(url: string) {
   );
   app.mount(document.createElement("div"));
   mounted.push(app);
-  // Closing the drawer removes the row from the URL in place.
+
   const close = () => {
     writeRecordId(SCOPE);
     link?.shown(undefined);
@@ -103,7 +103,7 @@ describe("a record link on a mounted table", () => {
   it("opens the row a link names on arrival, once", async () => {
     const { route, opened } = mountTable("/sends?record=r1");
     await flush();
-    // The visit that mounted the table is announced after it mounted.
+
     document.dispatchEvent(
       new CustomEvent("inertia:navigate", {
         detail: { page: { url: "/sends?record=r1" } },
@@ -125,7 +125,7 @@ describe("a record link on a mounted table", () => {
   it("opens the same row again after its drawer closed", async () => {
     const { route, opened, close } = mountTable("/sends?record=r1");
     await flush();
-    // A link to the row shown opens nothing more.
+
     await visit(route, "/sends?record=r1");
     expect(opened).toEqual(["r1"]);
 
@@ -142,7 +142,6 @@ describe("a record link on a mounted table", () => {
     expect(notify).toHaveBeenCalledWith("notify");
     expect(window.location.search).toBe("?tab=all");
 
-    // Following the same link again tells it again.
     await visit(route, "/sends?tab=all&record=gone");
     expect(notify).toHaveBeenCalledTimes(2);
   });
@@ -168,7 +167,7 @@ describe("the URL a closed drawer leaves", () => {
 
   it("rebuilds a removed filter's visit from the URL the browser shows", () => {
     window.history.replaceState({}, "", "/sends?email=a%40b.test&tab=all");
-    // The route still holds the row of the drawer closed in place.
+
     const routeQuery = { email: "a@b.test", tab: "all", record: "r1" };
     expect(withoutQueryParam(currentQuery(routeQuery), "email")).toEqual({
       tab: "all",

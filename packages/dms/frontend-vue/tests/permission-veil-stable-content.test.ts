@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   createApp,
   defineComponent,
@@ -12,13 +12,6 @@ import {
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import PermissionVeil from "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue";
-
-// A role preview veils the blocks of the page it previews, and the veils move
-// as the preview answers for each page. A block's content (a table view) has
-// an async setup: remounting it while the page's Suspense waits for the next
-// page left Vue mounting it under a detached placeholder ("can't access
-// property insertBefore, parent is null"). The veil must keep its content in
-// place whatever its state.
 
 type VeilState = "hidden" | "readonly" | "limited" | null;
 
@@ -134,7 +127,6 @@ it("survives veil changes on the old page while the next page loads", async () =
   const setups = { count: 0 };
   const pending: Array<ReturnType<typeof deferred>> = [];
   const Block = asyncBlock(setups, () => {
-    // The first mount resolves at once; later ones wait for the test.
     if (setups.count === 1) return Promise.resolve();
     const next = deferred();
     pending.push(next);
@@ -171,8 +163,6 @@ it("survives veil changes on the old page while the next page loads", async () =
   });
   await vi.waitFor(() => expect(host.querySelector(".block")).not.toBeNull());
 
-  // Navigation: the Suspense keeps the old page while the next one loads, and
-  // the preview's answer for the next page moves the old page's veils.
   page.value = NextPage;
   pageKey.value = "next";
   await flush();

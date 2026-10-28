@@ -123,8 +123,6 @@ export const useSidebarWidgets = (): UseSidebarWidgetsReturn => {
   const widgets = useDmsState<SidebarWidget[]>("dms-sidebar-widgets", () => []);
 
   function register(widget: SidebarWidget): void {
-    // Re-registering upserts in place, so a widget swapping its component
-    // keeps its rank among the widgets sharing its order.
     const known = widgets.value.findIndex((entry) => entry.id === widget.id);
     const next = [...widgets.value];
     if (known === -1) {

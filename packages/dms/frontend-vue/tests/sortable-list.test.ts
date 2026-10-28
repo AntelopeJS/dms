@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The sortable list of the column menu and the kanban: SortableJS moves the
  * dragged element in the DOM, the list puts it back and changes its array, and
@@ -126,7 +126,7 @@ describe("a sortable list", () => {
 
     call(source!, "onStart", { item: source!.el.children[1], oldIndex: 1 });
     const item = moveElement(source!.el, 1, target!.el, 0);
-    // SortableJS reports the add to the list it lands in first.
+
     call(target!, "onAdd", {
       from: source!.el,
       item,

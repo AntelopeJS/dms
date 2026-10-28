@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `useOpenDialog` follows the dialogs the closing-layers watch tracks: a
  * drawer, a modal or a slideover open on the page, whoever rendered it, and
@@ -28,7 +28,6 @@ function mountWatcher(): Ref<boolean> {
   return isOpen;
 }
 
-// What reka renders for a dialog's content.
 function dialogLayer(state: "open" | "closed"): HTMLElement {
   const layer = document.createElement("div");
   layer.setAttribute("role", "dialog");
@@ -37,7 +36,6 @@ function dialogLayer(state: "open" | "closed"): HTMLElement {
   return layer;
 }
 
-// MutationObserver callbacks run as microtasks.
 const flush = async () => {
   await Promise.resolve();
   await nextTick();

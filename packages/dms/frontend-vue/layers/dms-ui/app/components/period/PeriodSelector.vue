@@ -65,7 +65,7 @@ const CUSTOM_PRESET: PeriodPreset = "custom";
 const NO_COMPARISON: PeriodComparison = "none";
 const SEGMENTED_VARIANT: NonNullable<Props["variant"]> = "segmented";
 const RELATIVE_RANGE_LABEL: NonNullable<Props["rangeLabel"]> = "relative";
-// Two months side by side from this width; one below (design @container 760px).
+
 const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
 type PeriodSelectorSize = NonNullable<Props["size"]>;
@@ -85,8 +85,6 @@ const ALIGN_CLASSES: Record<NonNullable<Props["align"]>, string> = {
   right: "justify-end",
 };
 
-// The window beside the controls, at each size of a toolbar holding the
-// selector; outside one it keeps its size whatever the controls'.
 const RANGE_LABEL_SIZE_CLASSES: Record<PeriodSelectorSize, string> = {
   xs: "text-[11px]",
   sm: "text-[11.5px]",
@@ -118,7 +116,6 @@ useWatch(props.watchActions || [], props.componentId);
 
 const { t, locale } = useI18n();
 
-// In a toolbar, the selector takes its size, and its window scales with it.
 const toolbar = usePageToolbar();
 const size = computed<PeriodSelectorSize>(
   () => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE,
@@ -126,13 +123,11 @@ const size = computed<PeriodSelectorSize>(
 const rangeLabelSizeClass = computed(
   () => RANGE_LABEL_SIZE_CLASSES[toolbar ? size.value : DEFAULT_SIZE],
 );
-// In a toolbar, its buttons stand as tall as the segments and the live pill.
+
 const controlHeightClass = computed(() =>
   toolbar ? toolbarControlHeightClass(size.value) : "",
 );
 
-// A paused live page keeps its period where it was: a relative preset
-// sliding every minute would refetch every block reading it.
 const { isPaused: isPagePaused } = usePageLive();
 const comparisonSetup = resolveComparisonControl(props);
 const period = usePeriod({
@@ -142,11 +137,9 @@ const period = usePeriod({
   comparisons: comparisonSetup.comparisons,
   holdClock: () => isPagePaused.value,
 });
-// A page declaring `live.slowRateAfter` slows down over a long period.
+
 useLivePeriodSpan(() => period.state.value.range);
 
-// Before the scope registers, so the cards' first request already carries
-// the period of the URL (or of the user's last choice), never the default.
 usePeriodLocation(period, {
   id: props.id,
   pageId: props.pageId,
@@ -162,13 +155,10 @@ usePeriodLocation(period, {
 const cleanup = registerPeriodScope(props.id, period.state);
 onBeforeUnmount(cleanup);
 
-// Every change in the popover is staged here; charts follow `period.state`,
-// which only moves on Apply.
 const draft = usePeriodDraft(period);
 
 const alignClass = computed(() => ALIGN_CLASSES[props.align]);
-// Right-aligned (page header) selectors end on the trigger, the popover
-// anchored under it; elsewhere the trigger leads.
+
 const isTrailing = computed(() => props.align === "right");
 const triggerOrder = computed(() => (isTrailing.value ? "order-3" : "order-1"));
 const rangeLabelOrder = computed(() =>
@@ -178,8 +168,7 @@ const POPOVER_ALIGN: Record<
   NonNullable<Props["align"]>,
   "start" | "center" | "end"
 > = { left: "start", center: "center", right: "end" };
-// Never wider than the screen, and never taller than the room left beside
-// the trigger (a short phone, a landscape tablet): the popover scrolls.
+
 const POPOVER_CONTENT_CLASS =
   "w-auto max-w-[calc(100vw-2rem)] max-h-(--reka-popover-content-available-height) overflow-x-hidden overflow-y-auto overscroll-contain p-0";
 
@@ -248,7 +237,6 @@ function presetItemClass(preset: PeriodPreset): string[] {
 const isSegmented = computed(() => props.variant === SEGMENTED_VARIANT);
 const isCustomActive = computed(() => period.preset.value === CUSTOM_PRESET);
 
-// ── Popover ────────────────────────────────────────────────────────────
 const isOpen = ref(false);
 const isWide = useMediaQuery(TWO_MONTHS_QUERY);
 const pendingStart = ref<CalendarDate | null>(null);
@@ -259,8 +247,6 @@ function setOpen(open: boolean) {
   isOpen.value = open;
 }
 
-// A custom range starts from the days on screen, which a long preset can
-// stretch past `maxDays`: it keeps its most recent days.
 function selectDraftPreset(preset: PeriodPreset) {
   draft.selectPreset(preset);
   const custom = draft.customRange.value;
@@ -350,16 +336,11 @@ const draftCompareLabel = computed(() => {
   return compare ? formatPeriodRange(compare, locale.value) : null;
 });
 
-// ── Trigger, comparison chip, range label ──────────────────────────────
 const committedRangeLabel = computed(() => {
   const { range } = period.state.value;
   return range ? formatPeriodRange(range, locale.value) : null;
 });
 
-// Only a window reaching now reads "since …"; one that has ended keeps its
-// bounds. "Now" is the instant the period was resolved from: it holds still
-// with the period while the page is paused, and is the server's while the
-// browser hydrates its render.
 const relativeRangeLabel = computed<string | null>(() => {
   const { range } = period.state.value;
   if (props.rangeLabel !== RELATIVE_RANGE_LABEL || !range) return null;
@@ -397,7 +378,6 @@ const triggerAppearance = computed<ButtonAppearance>(() =>
   isCustomActive.value ? CUSTOM_TRIGGER : PRESET_TRIGGER,
 );
 
-// Open trigger: accent border and a 3px accent halo (design .ps__trigger.is-open).
 const OPEN_TRIGGER_CLASS =
   "ring-primary shadow-[0_0_0_3px_var(--dms-accent-tint-strong)]";
 
@@ -412,7 +392,7 @@ const toggledComparison = comparisonSetup.toggled;
 const canChooseComparison = computed(
   () => canCompare.value && comparisonSetup.control !== "hidden",
 );
-// Every period has no bounds, so nothing to compare it with.
+
 const isComparisonDisabled = computed(() => !period.state.value.range);
 
 function toggleComparison() {
@@ -429,7 +409,6 @@ const comparisonItems = computed(() => [
 
 const hasComparison = computed(() => period.comparison.value !== NO_COMPARISON);
 
-// The comparison key mirrors the dashed violet comparison series of charts.
 const COMPARISON_KEY_ACTIVE =
   "bg-[repeating-linear-gradient(90deg,var(--dms-chart-2)_0_4px,transparent_4px_7px)]";
 const COMPARISON_KEY_NONE = "bg-(--ui-border-accented)";
@@ -438,8 +417,6 @@ function comparisonKeyClass(active: boolean): string {
   return active ? COMPARISON_KEY_ACTIVE : COMPARISON_KEY_NONE;
 }
 
-// The year of a comparison range is noise when it is the main one's, in the
-// reader's calendar, on the server as in the browser.
 function isSameYear(compare: PeriodRange, main: PeriodRange): boolean {
   const clock = readerClock();
   return clock.wall(compare.to).year === clock.wall(main.to).year;
@@ -454,9 +431,6 @@ const compareRangeLabel = computed(() => {
   return compareRange && range ? compareRangeText(compareRange, range) : null;
 });
 
-// A menu names the compared window itself ("vs 16 – 17 Oct"), so the range
-// label beside it keeps the current window only: said twice, the comparison
-// wrapped the toolbar. The option's name moves to its tooltip and its menu.
 const rangeLabelCompare = computed(() =>
   isComparisonMenu.value ? null : compareRangeLabel.value,
 );
@@ -485,7 +459,6 @@ const comparisonMenuAria = computed(() => {
   return days ? `${name}, ${days}` : name;
 });
 
-// ── Segmented variant ──────────────────────────────────────────────────
 function segmentLabel(preset: PeriodPreset): string {
   return (
     props.presetLabels?.[preset] ??
@@ -508,9 +481,6 @@ function customRangeText(): string | null {
     : null;
 }
 
-// In a toolbar the custom segment is its calendar icon alone, like the short
-// codes beside it: the window beside them writes the range once chosen.
-// Named in full either way.
 function customSegment(): SegmentItem {
   const range = customRangeText();
   const name = presetLabel(CUSTOM_PRESET);
@@ -538,14 +508,12 @@ const segmentedPreset = computed<string | number | undefined>({
   set: (value) => {
     const preset = period.presets.value.find((entry) => entry === value);
     if (!preset) return;
-    // Custom opens the popover; the range applies from there.
+
     if (preset === CUSTOM_PRESET) openCustom();
     else period.setPreset(preset);
   },
 });
 
-// A click on the custom segment while it is already active changes no value,
-// so it reopens the popover from here.
 function onSegmentedClick(event: MouseEvent) {
   if (!isCustomActive.value) return;
   const segment = (event.target as HTMLElement | null)?.closest(

@@ -52,8 +52,7 @@ const PRIMARY_STROKE_WIDTH = 2.5;
 const COMPARISON_STROKE_WIDTH = 1.75;
 const AREA_PRIMARY_FROM = 0.26;
 const AREA_PRIMARY_TO = 0;
-// The comparison line of an area chart takes its stroke opacity from the
-// fill (it is a line series, see asComparisonLines): v2 draws it at 70%.
+
 const AREA_COMPARISON_OPACITY = 0.7;
 const AREA_GRADIENT_STOPS = [0, 100];
 const RADAR_FILL_DEFAULT = 0.4;
@@ -364,9 +363,7 @@ function buildXAxis(
     labels: {
       style: axisLabelStyle(theme.dimmed, theme),
       datetimeUTC: false,
-      // Labels that no longer fit (a phone, a narrow card) are thinned out
-      // instead of being rotated into an unreadable pile; an explicit
-      // setting still wins.
+
       rotate: settings?.rotate ?? 0,
       hideOverlappingLabels: settings?.hideOverlappingLabels ?? true,
       ...(input.xaxisType === "datetime" &&
@@ -479,9 +476,7 @@ function buildChartConfig(
     toolbar: { show: false },
     zoom: { enabled: false },
     stacked: input.stacked ?? false,
-    // Reduced motion (Appearance setting or system) draws the chart at once.
-    // A change of the setting toggles an <html> class, which bumps the theme
-    // revision and so rebuilds these options.
+
     animations: {
       enabled: !isReducedMotionActive(),
       speed: ANIMATION_SPEED_MS,

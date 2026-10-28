@@ -26,8 +26,6 @@ const { t, te } = useI18n();
 const { getRegistry } = useShortcutRegistry();
 const shortcuts: Ref<ComponentShortcuts[]> = getRegistry();
 
-// The layout the dashboard detected (the one every other hint uses); the
-// header switch previews the other one on this page only.
 const { platform: detectedPlatform, isMac } = useKeyboardPlatform();
 const platform = ref<KeyboardPlatform>(detectedPlatform.value);
 watch(detectedPlatform, (next) => {

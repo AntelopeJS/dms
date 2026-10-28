@@ -1,5 +1,3 @@
-// The page URL's query as the server reads it for header-button availability.
-
 /** The page query as the server reads it: one value per name, the last one. */
 export function pageQueryValues(
   query: Record<string, unknown> | undefined,
@@ -12,9 +10,6 @@ export function pageQueryValues(
   );
 }
 
-// Query keys the DMS writes for the view itself, never for the record a page
-// acts on: the row open in a side panel, the paused live mode, and a period
-// selector's range (`<id>.period`, `<id>.compare`, `<id>.from`…).
 const VIEW_STATE_KEYS = new Set(["record", "live"]);
 const PERIOD_KEY = /\.(?:period|compare|from|to|compareFrom|compareTo)$/;
 

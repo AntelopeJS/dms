@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `TableView.fromSource` table with a `periodScope` follows its
  * PeriodSelector like a chart: its route is sent the period, it lists again
@@ -124,9 +124,6 @@ describe("a source table bound to a period scope", () => {
     expect(listed!.value).toBeNull();
   });
 
-  // The server never registers a scope: an empty object there drew the tabs
-  // with no skeleton, where the browser (its key carrying the period) drew
-  // one, and hydration mismatched.
   it("keeps its tab counters' skeleton too until the scope registers", async () => {
     mountTable();
     await settle();
@@ -145,7 +142,7 @@ describe("a source table bound to a period scope", () => {
     const period = registerSelector();
     mountTable();
     await settle();
-    // The list and the counter of its tab without filter: one request.
+
     expect(requests).toHaveLength(1);
     expect(listed!.value).toMatchObject({ total: 1 });
     const range = period.state.value.range!;

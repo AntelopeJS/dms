@@ -7,9 +7,6 @@ import {
 import type { Tone } from "../../../types/tone";
 import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 
-// What the cell data types share: reading a sibling field off the row, and
-// the text tones a cell takes.
-
 export type Row = Record<string, unknown> | undefined;
 
 export const readRowField = (row: Row, field: string | undefined): unknown =>
@@ -49,7 +46,6 @@ export const isSet = (value: unknown): boolean => {
   return Boolean(value);
 };
 
-// Text tones a cell data type can take, as literal classes for Tailwind.
 const CELL_TONES: Record<string, string> = {
   default: "text-toned",
   toned: "text-toned",

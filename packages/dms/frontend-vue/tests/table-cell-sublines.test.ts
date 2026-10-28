@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The secondary lines of the table cells — under a status pill, under an
  * identity's name, under a `two_line` primary — draw a composed text from the
@@ -70,7 +70,7 @@ const register = (dataType: DataType) =>
   formatters.set(dataType.id, dataType.formatter);
 registerMetricCellTypes(register);
 registerTwoLineCellType(register);
-// The column types a two-line primary is written by.
+
 register({
   id: "price",
   formatter: {
@@ -133,7 +133,7 @@ beforeEach(() => {
     processI18n: (value: string) =>
       value.startsWith("$") ? i18n.global.t(value.slice(1)) : value,
   }));
-  // The formatters read the application's composer, not `useI18n()`.
+
   vi.stubGlobal("useDmsApp", () => ({ $i18n: i18n.global }));
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: (id: string) => ({ id, formatter: formatters.get(id) }),
@@ -386,7 +386,7 @@ describe("IdentityCell", () => {
 describe("identity sub-line", () => {
   const identityFormatter = async () => {
     const registered = new Map<string, DataType["formatter"]>();
-    // Auto-imports of the layer the other default types are registered with.
+
     vi.stubGlobal("h", h);
     for (const name of [
       "formatNumber",

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -10,10 +10,6 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationInboxItem from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxItem.vue";
-
-// A row's action labels show on hover; were they laid out only then, the
-// buttons would widen in their end-aligned group and slide Delete under a
-// pointer aimed at Mark read.
 
 interface ButtonUi {
   label?: string;
@@ -87,7 +83,7 @@ describe("notification inbox row actions", () => {
     for (const { ui } of buttons) {
       const classes = (ui?.label ?? "").split(/\s+/);
       expect(classes).toContain("sm:inline");
-      // Only paint changes on hover or focus, never the display.
+
       const revealed = classes.filter((name) =>
         /group-(hover|focus-within):/.test(name),
       );

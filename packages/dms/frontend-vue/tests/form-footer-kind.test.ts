@@ -109,7 +109,6 @@ describe("saveBarState of an action form", () => {
   });
 
   it("shows its submit alone, ready, on a page while untouched", () => {
-    // A pre-filled form sends its defaults as they are.
     expect(action({})).toEqual({
       showsStatus: false,
       showsSubmit: true,

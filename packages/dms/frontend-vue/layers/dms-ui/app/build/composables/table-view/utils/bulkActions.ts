@@ -88,10 +88,6 @@ export interface BulkActionOutcome {
   skipped: number;
 }
 
-// The count each bulk route answers with: delete sends the number of deleted
-// rows (or `{ deleted }` when a row rule filtered out every id), archive and
-// restore send `{ archivedCount }` / `{ restoredCount }`, and a custom bulk
-// route `{ count }`.
 const COUNT_KEYS = [
   "count",
   "deleted",

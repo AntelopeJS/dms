@@ -132,7 +132,6 @@ describe("leave guard", () => {
     );
     registerUnsavedChanges({ isDirty: () => true }, prompt);
 
-    // A drawer closing while the page navigates: one dialog for both.
     const closing = confirmLeave({ containerId: "drawer-1" });
     const navigating = confirmLeave();
     answer(true);
@@ -140,7 +139,6 @@ describe("leave guard", () => {
     expect(await navigating).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
 
-    // Released: the drawer closing after the navigation asks nothing more.
     expect(await confirmLeave({ containerId: "drawer-1" })).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
   });
@@ -163,7 +161,7 @@ describe("leave guard", () => {
       true,
     );
     expect(prompt).toHaveBeenCalledTimes(1);
-    // The modal's form was outside the panel: still guarded.
+
     expect(hasUnsavedChanges({ containerId: "modal-1" })).toBe(true);
   });
 

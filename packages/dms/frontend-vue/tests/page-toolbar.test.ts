@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The PageToolbar block: its LiveToggle on a live page, at the toolbar's
  * size; "updated N s ago" and a refresh button where there is no toggle to
@@ -51,7 +51,7 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
   ] = await Promise.all([
     import("../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue"),
     import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"),
-    // A module's leading chip, sized by usePageToolbarSize().
+
     import("../../playground/frontend-vue/app/components/ToolbarScopeChip.vue"),
   ]);
   const ids = (componentId: string) =>
@@ -83,7 +83,6 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
   await nextTick();
 }
 
-// The refresh resolves through a few promise hops; the ticker must not move.
 async function flushPromises(): Promise<void> {
   for (let hop = 0; hop < PROMISE_HOPS; hop += 1) await Promise.resolve();
   await nextTick();
@@ -249,7 +248,7 @@ describe("one height per size", () => {
     await mountToolbar({ toolbar: { size } });
     const pill = host.querySelector('[role="group"]');
     expect(heightOf(pill)).toBe(EXPECTED[size]);
-    // Its buttons fill it: no padding of their own sets the height.
+
     const direct = host.querySelector('button[data-value="direct"]');
     expect(direct?.className).toContain("h-full");
     expect(direct?.className).not.toMatch(/\bpy-/);
@@ -272,7 +271,6 @@ describe("one height per size", () => {
     },
   );
 
-  // The period's presets are the same segmented track, at the same size.
   it.each(SIZES)("matches the segmented track at %s", async (size) => {
     installLive();
     await mountToolbar({ toolbar: { size }, toggle: { variant: "segmented" } });

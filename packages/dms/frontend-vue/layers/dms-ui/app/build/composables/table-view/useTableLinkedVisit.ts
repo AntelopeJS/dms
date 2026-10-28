@@ -30,10 +30,9 @@ export interface TableLinkedVisitOptions {
  * another page is left alone: the table is about to unmount.
  */
 export function useTableLinkedVisit(options: TableLinkedVisitOptions): void {
-  // The page the table is shown on, as the visit that mounted it reached it.
   const pathname = options.route.path;
   let previousQuery: Record<string, unknown> = { ...options.route.query };
-  // A pushed visit announces itself twice when it changes the URL.
+
   let followedVisitId: string | undefined;
   const stops: Array<() => void> = [];
 

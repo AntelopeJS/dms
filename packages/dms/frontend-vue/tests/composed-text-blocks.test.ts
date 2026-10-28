@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * StatGroup, KeyValueList and Banner draw a composed text wherever they draw
  * a text — from their options or from the JSON their route answers — in the
@@ -59,8 +59,6 @@ const mounted: Array<{ unmount: () => void }> = [];
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-// Under a Suspense, as the page renders its blocks: a Banner's setup waits
-// for its first answer.
 function render(component: Component, props: Record<string, unknown>) {
   const root = document.createElement("div");
   const app = createApp(() =>

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * ActivityFeed, Meter, TopListCard and NavCardGrid draw a composed text
  * wherever they draw a text — from their options or from the JSON their

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A number field writes its unit inside the box, before the stepper ("30
  * days"), so it is as wide as the fields around it; a text field
@@ -19,7 +19,6 @@ import { characterCountText } from "../layers/dms-ui/app/build/utils/characterCo
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The `ui` each control was handed, last render last.
 let ui: Array<{ base?: unknown } | undefined> = [];
 
 const Control = (tag: string) =>

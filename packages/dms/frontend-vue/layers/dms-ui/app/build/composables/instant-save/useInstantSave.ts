@@ -171,7 +171,6 @@ class InstantSaveQueue<V extends object> {
 
   private onRefused(error: unknown, changes: Partial<V>): void {
     for (const key of Object.keys(changes) as InstantSaveKey<V>[]) {
-      // A newer value picked meanwhile stays on screen: its own save follows.
       const isShown =
         !this.pending.has(key) &&
         sameFormValue(this.source.read(key), changes[key]);
@@ -239,7 +238,6 @@ export function useInstantSave<V extends object>(
     if (changes) changeMany(changes);
   };
 
-  // A text still waiting for typing to pause is saved when the page goes.
   onScopeDispose(() => {
     saves.dispose();
     void saves.flush();

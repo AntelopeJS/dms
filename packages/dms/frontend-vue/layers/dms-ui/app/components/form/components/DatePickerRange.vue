@@ -41,10 +41,7 @@ function emitRange(start: string | undefined, end: string | undefined) {
 
 const { t } = useI18n();
 
-// Both pickers show the field's error.
 const { color: fieldColor } = useFormField(
-  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
-  // `color` and `disabled` from these.
   props as Parameters<typeof useFormField>[0],
 );
 const pickerColor = computed(() =>

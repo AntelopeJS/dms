@@ -153,7 +153,6 @@ export function useAccountData() {
         { label: t(`${I18N}.delete_password`), error: error.value },
         {
           default: () =>
-            // Generic in its value type, which `h` cannot infer.
             h(UInput as Component, {
               ref: input,
               modelValue: password.value,

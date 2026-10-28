@@ -140,8 +140,6 @@ const decodeSorting = (stored: unknown): SortEntry[] => {
 const isSameValue = (left: unknown, right: unknown): boolean =>
   JSON.stringify(left) === JSON.stringify(right);
 
-// A pinned filter still on its initial value comes back from the module's
-// own declaration: only the user's own filters and changed values are kept.
 const encodeFilters = (value: unknown): unknown =>
   ((Array.isArray(value) ? value : []) as FilterEntry[])
     .filter(
@@ -166,7 +164,6 @@ const decodeFilters = (stored: unknown): FilterEntry[] => {
 const visibilityOf = (value: unknown): Record<string, boolean> =>
   isBranch(value) ? (value as Record<string, boolean>) : {};
 
-// A column missing from a visibility state is shown.
 const encodeVisibility = (value: unknown, defaultValue: unknown): unknown => {
   const defaults = visibilityOf(defaultValue);
   return Object.entries(visibilityOf(value))
@@ -306,12 +303,13 @@ export const writeLocalTableEntry = (
   id: string,
   entry: Record<string, unknown>,
 ): void => {
+  // prettier-ignore
   try {
     const storage = browserStorage();
     if (Object.keys(entry).length === 0) storage?.removeItem(localKey(id));
     else storage?.setItem(localKey(id), JSON.stringify(entry));
   } catch {
-    // The state is lost on the next visit, not the current one.
+    // eslint-disable-line no-empty -- Unavailable storage leaves the current in-memory state usable.
   }
 };
 

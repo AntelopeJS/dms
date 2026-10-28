@@ -218,13 +218,11 @@ const connectTab = (
   const retries = createReconnector();
   const sessionCloseUrl = `${baseUrl}${REALTIME_SESSION_CLOSE_PATH}`;
   let connectionId: string | undefined;
-  // Each opening attempt supersedes the previous one, which a renewal may
-  // leave in flight on the same connection.
+
   let attempt = 0;
-  // The session's first frames may come before the answer that names it.
+
   let buffered: BufferedFrame[] | undefined;
 
-  // The backend ends only a session of the connection the request names.
   const closeStraySession = (forConnection: string, sessionId: string) => {
     void fetch(sessionCloseUrl, {
       method: "POST",
@@ -264,7 +262,7 @@ const connectTab = (
     try {
       response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
         method: "POST",
-        // The dashboard's backend proxy relays this header by name.
+
         headers: { [CONNECTION_HEADER]: forConnection },
         credentials: "include",
       });
@@ -288,9 +286,7 @@ const connectTab = (
       retry();
       return;
     }
-    // The backend does not know the connection: it went, or this request
-    // reached an instance that does not hold it. The leader opens a new one,
-    // which this tab opens its session on; the backoff spaces the attempts.
+
     if (typeof sessionId !== "string") {
       buffered = undefined;
       retries.schedule(() => {
@@ -301,8 +297,6 @@ const connectTab = (
     adopt(forConnection, greeting!);
   };
 
-  // A new session on the connection the tab keeps: the backend ended the
-  // current one alone, or the tab's account or workspace changed.
   const renewSession = () => {
     if (retries.isCancelled() || !connectionId) return;
     const sessionId = state.sessionId.value;
@@ -325,7 +319,6 @@ const connectTab = (
       if (next) void openSession(next);
     },
     onFrame: (sessionId, eventName, data) => {
-      // The connection's own frames reach a tab once it has a session on it.
       if (sessionId === undefined) {
         if (state.sessionId.value) dispatch(eventName, data);
         return;
@@ -402,8 +395,7 @@ const applyDesiredPage = async (
   if (state.appliedPageId.value === desired) return;
   if (!sessionId) return;
   const topics = await callPageEndpoint(state, desired, baseUrl);
-  // A reconnect during the call replaced the session: the page is applied to
-  // the dead one, and the new one still needs it.
+
   if (state.sessionId.value !== sessionId) return;
   state.appliedPageId.value = desired;
   state.pageTopics.value = topics;
@@ -470,8 +462,6 @@ const buildApi = (): UserRealtimeApi => {
   const baseUrl = config.public.dms.baseURL as string;
 
   if (!import.meta.env.SSR) {
-    // One connection per user: the tabs of another user (an account
-    // switched in one tab) share theirs, and never read this one's events.
     watch(
       () => (loggedIn.value ? String(user.value?._id ?? "") : undefined),
       (userKey) => {
@@ -491,8 +481,7 @@ const buildApi = (): UserRealtimeApi => {
       },
       { immediate: true },
     );
-    // A switch of account or workspace within the same user: the tab's session
-    // is renewed on the connection it already shares.
+
     watch(
       () => sessionScopeOf(session?.value),
       () => state.connection?.renewSession(),

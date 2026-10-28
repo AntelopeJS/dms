@@ -11,7 +11,6 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-// The compact stat card both components draw through DmsStatCell.
 const STAT_CARD = 'class="dms-card flex items-center gap-3.5 px-4 py-3.5';
 const STAT_VALUE =
   "text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums";

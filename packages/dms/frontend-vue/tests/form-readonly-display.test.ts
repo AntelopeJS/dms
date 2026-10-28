@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { defineComponent, h } from "vue";
 import { host, mountForm, unmountForm } from "./helpers/form-runtime";

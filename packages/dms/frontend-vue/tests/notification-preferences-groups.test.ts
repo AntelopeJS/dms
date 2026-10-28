@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -72,7 +72,7 @@ function createFormApp(create: typeof createApp): App {
     DmsIconWell: defineComponent({ render: () => h("span") }),
     UBadge: defineComponent({ render: () => h("span") }),
     UIcon: defineComponent({ render: () => h("span") }),
-    // Attributes (aria-*) fall through to the native button.
+
     UButton: defineComponent({
       props: { label: String, icon: String },
       emits: ["click"],
@@ -102,7 +102,7 @@ function createFormApp(create: typeof createApp): App {
             onClick: () => emit("update:modelValue", !props.modelValue),
           }),
     }),
-    // Shows its content while open, as Reka's collapsible does.
+
     UCollapsible: defineComponent({
       props: { open: Boolean },
       setup:
@@ -259,7 +259,7 @@ describe("notification preferences groups", () => {
     document.body.innerHTML = "";
 
     const second = await mount();
-    // Read once mounted, as the server render cannot see it.
+
     await nextTick();
     expect(chevronOf(second, "security").getAttribute("aria-expanded")).toBe(
       "true",
@@ -275,7 +275,7 @@ describe("notification preferences groups", () => {
       vi.spyOn(console, "warn").mockImplementation(() => undefined),
       vi.spyOn(console, "error").mockImplementation(() => undefined),
     ];
-    // The server cannot read the browser's storage: only the client has it.
+
     const container = await hydrate(() =>
       localStorage.setItem(
         `${NOTIFICATION_GROUP_STORAGE_PREFIX}system`,

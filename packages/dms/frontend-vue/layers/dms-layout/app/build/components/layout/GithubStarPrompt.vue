@@ -16,18 +16,10 @@ const { open: isSidebarOpen } = useSidebarState();
 const { panel: sidePanel } = useActiveSidePanel();
 const isDialogOpen = useOpenDialog();
 
-// Developers only: a production build, a client's dashboard included, never
-// counts, stores or shows anything. The same flag gates the dev reload.
 const { isDue, snooze, star, dismiss } = useGithubStarPrompt(
   import.meta.env.DEV,
 );
 
-// The toaster stacks in the same corner, a floating save bar sticks to the
-// bottom of the panel, and the phone sidebar keeps its account menu trigger
-// at the bottom of the screen: the prompt steps aside while any is up rather
-// than cover it. The sidebar only opens as a drawer, below `lg`. It waits
-// as well while a drawer, a modal or a side panel is open, whose footer or
-// content it would float over, and comes back once they close.
 const isShown = computed(
   () =>
     isDue.value &&

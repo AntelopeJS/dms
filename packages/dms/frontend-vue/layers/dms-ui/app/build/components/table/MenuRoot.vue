@@ -41,8 +41,6 @@ const { exportConfig } = useTableConfigClipboard<T>();
 const navItems = computed((): NavItem[] => {
   const capabilities = tableSharedData?.value?.activeCapabilities.value;
   const base: NavItem[] = [
-    // Column visibility/pin/size/order are grid-only; hidden for displays that
-    // don't manage columns (cards, kanban, ...).
     ...(capabilities?.columnManagement
       ? [
           {
@@ -60,7 +58,7 @@ const navItems = computed((): NavItem[] => {
       hasSubMenu: true,
       onSelect: () => emits("navigate", "page"),
     },
-    // Row height is the grid's: other displays draw no rows.
+
     ...(capabilities?.columnManagement
       ? [
           {

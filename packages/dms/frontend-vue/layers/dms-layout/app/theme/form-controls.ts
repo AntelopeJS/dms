@@ -43,7 +43,6 @@ const FIELD_VARIANTS = {
   ghost: FIELD_GHOST,
 };
 
-// Nuxt UI fades a disabled control to 75%, which still reads as enabled.
 const FIELD_DISABLED = "disabled:opacity-50";
 
 /**
@@ -62,7 +61,7 @@ const FIELD_STATE_COMPOUNDS = [
     variant: ["outline", "subtle", "soft", "ghost"],
     class: "outline-(--dms-error-tint)",
   },
-  // Soft and ghost fields draw their focus border in the field colour.
+
   {
     color: "primary",
     variant: ["soft", "ghost"],
@@ -188,7 +187,7 @@ const inputNumberTheme = {
     { orientation: "vertical", increment: true, size: "sm", class: "pe-8" },
     { orientation: "vertical", increment: true, size: "md", class: "pe-8.5" },
     { orientation: "vertical", increment: true, size: "lg", class: "pe-9" },
-    // Borderless fields drop the stepper hairlines too.
+
     {
       variant: ["soft", "ghost"],
       orientation: "vertical",
@@ -314,7 +313,7 @@ const radioGroupTheme = {
     { orientation: "horizontal", class: { fieldset: "gap-x-4.5 gap-y-2" } },
     { orientation: "vertical", class: { fieldset: "gap-y-2" } },
     ...CHOICE_CARD_COMPOUNDS("item"),
-    // Card tiles flow in a grid of 180px minimum columns (.check-cards).
+
     {
       orientation: "horizontal",
       variant: "card",
@@ -395,7 +394,7 @@ const switchTheme = {
       },
     },
     disabled: { true: { root: "opacity-45" } },
-    // The knob turns into a spinner ring; a busy switch is not faded.
+
     loading: {
       true: {
         thumb: "bg-transparent shadow-none data-[state=checked]:bg-transparent",
@@ -420,7 +419,7 @@ const switchTheme = {
       },
     },
     { loading: true, class: { root: "opacity-100", base: "cursor-progress" } },
-    // Invalid (UFormField error): error hairline plus the error halo.
+
     {
       color: "error",
       highlight: true,

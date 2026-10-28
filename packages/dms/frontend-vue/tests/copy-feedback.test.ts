@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { effectScope } from "vue";
 import { useCopyFeedback } from "../layers/dms-ui/app/build/composables/clipboard/useCopyFeedback";

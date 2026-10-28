@@ -28,10 +28,6 @@ import {
   toModuleStoreEntry,
 } from "../build/utils/module-store-catalog";
 
-// The module store, its own view under the Modules page: the official
-// AntelopeJS modules, to discover and install. An installed one links to its
-// tile among the installed modules, the one place a module is managed.
-
 const SKELETON_PLACEHOLDER_COUNT = 6;
 const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 
@@ -41,7 +37,6 @@ const isOwner = useIsOwner();
 const siteLayout = useSiteLayout();
 const moduleStore = useModuleStore();
 
-// Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
   if (!isOwner.value) return null;
   const listing = moduleStore.listing.value;
@@ -79,8 +74,6 @@ if (!siteLayout.siteLayout.value) {
   await siteLayout.loadSiteLayout();
 }
 
-// Like the Modules page, the store is for platform owners only: anyone else
-// gets the standard 403 page.
 if (!isOwner.value) {
   throw showDmsError({
     statusCode: HTTP_FORBIDDEN,
@@ -88,8 +81,6 @@ if (!isOwner.value) {
   });
 }
 
-// Read with the page, like the Modules page (`useApiData`): the server
-// renders the tiles and hands the listing over; nothing awaits it here.
 onMounted(() => moduleStore.start());
 onBeforeUnmount(() => moduleStore.stop());
 
@@ -136,7 +127,6 @@ const storeCategoryOptions = computed(() => [
   ...moduleCategoryOptions(scopedStoreModules.value, processI18n),
 ]);
 
-// A category that disappeared on refresh must not leave the grid empty.
 watch(storeCategoryOptions, (options) => {
   if (!options.some((option) => option.value === storeCategory.value)) {
     storeCategory.value = MODULE_CATEGORY_ALL;

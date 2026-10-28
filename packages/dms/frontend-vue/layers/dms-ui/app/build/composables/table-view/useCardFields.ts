@@ -20,7 +20,7 @@ export function useCardFields() {
       return rendered;
     }
     const value = get(item, column.accessorKey);
-    // The fallback of a missing value reads dimmed, as an empty cell does.
+
     const isMissing = value === null || value === undefined;
     return h(
       "span",

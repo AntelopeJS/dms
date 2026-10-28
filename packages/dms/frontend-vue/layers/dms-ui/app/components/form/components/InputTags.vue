@@ -34,7 +34,6 @@ const { report } = useControlError();
 const formField = inject(formFieldInjectionKey, undefined);
 const formErrors = inject(formErrorsInjectionKey, undefined);
 
-// Commas, semicolons and whitespace end an item, typed or pasted.
 const DELIMITER = /[\s,;]+/;
 
 const tags = computed(() => model.value ?? []);
@@ -46,7 +45,7 @@ const suggestionsId = computed(() => `${props.id ?? "tags"}-suggestions`);
 const invalid = computed(
   () => new Set(invalidTags(tags.value, props.itemType)),
 );
-// Items a server refused (an address already a member): its error names them.
+
 const refused = computed(() => {
   const name = formField?.value?.name;
   const error = (formErrors?.value as ItemsError[] | undefined)?.find(

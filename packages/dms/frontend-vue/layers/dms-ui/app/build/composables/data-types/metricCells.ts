@@ -43,7 +43,6 @@ interface StatusPillOptions {
   typeOptions?: { items?: SelectItemOption[] };
 }
 
-// A row field that holds no known tone gives way to the column's map.
 function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
   return readRowTone(row, opts.toneField) ?? opts.tones?.[key] ?? "neutral";
 }
@@ -182,7 +181,6 @@ function renderSparkline(options: unknown, row: Row) {
 const MS_PER_SECOND = 1000;
 const DURATION_UNIT_MS: Record<string, number> = { ms: 1, s: MS_PER_SECOND };
 
-// SI symbols read the same in every language; the figure follows the locale.
 const withSymbol = (
   locale: string,
   value: number,
@@ -233,7 +231,6 @@ interface DurationOptions {
 
 type DurationWriter = (ms: number, locale: string) => string;
 
-// A cell is read at a glance: the readable duration is rounded there.
 const DURATION_FORMATS: Record<string, DurationWriter> = {
   readable: (ms, locale) =>
     formatDuration(ms, locale, { precision: "rounded" }),

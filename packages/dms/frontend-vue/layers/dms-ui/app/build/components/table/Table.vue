@@ -475,48 +475,30 @@ import { groupRows } from "../../composables/table-view/utils/groupedRows";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { isRowClickTrigger } from "../../utils/rowClickTrigger";
 
-// Same color as the surrounding card frame (.dms-card) so sticky
-// rail/pinned cells blend in instead of showing a contrasting block.
 const PANEL_MATCH_BG = "bg-(--dms-surface-card)";
 
 const HEADER_PLACEMENT = "header";
 
-// Header cells sit on the v2 band color; sticky header cells need the same
-// opaque background as the non-sticky ones.
 const HEADER_MATCH_BG = "bg-(--dms-bg-muted)";
 
-// Sticky cells paint their own opaque background over the row's, so they have
-// to repeat the hover tint under the exact same condition as the row itself;
-// otherwise only the pinned column lights up.
 const ROW_HOVER_BG = "hover:bg-elevated";
 const ROW_HOVER_CELL_BG = "group-hover:bg-elevated";
 
-// A selected row is tinted with the accent; sticky cells need an opaque mix of
-// the same tint so scrolled content never shows through them.
 const ROW_SELECTED_BG = "data-[selected=true]:bg-primary/10";
 const ROW_SELECTED_CELL_BG =
   "group-data-[selected=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
 
-// The row a side panel has open: the accent tint of a selected row and a 2px
-// accent bar on its leading edge, the "current item" of the design system
-// (a list row, a settings role). The bar is drawn by the first cell: a
-// table row's own box shadow is not painted under its cells' backgrounds.
 const ROW_OPEN_BG =
   "data-[open=true]:bg-primary/10 data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]";
 const ROW_OPEN_CELL_BG =
   "group-data-[open=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
 
-// An expanded row keeps the hover tint and hands its bottom rule to the detail
-// band below it.
 const ROW_EXPANDED_BG = "data-[expanded=true]:bg-elevated";
 const ROW_EXPANDED_CELL_BG = "group-data-[expanded=true]:bg-elevated";
 
-// Sticky header: the band gains a soft shadow once the body scrolls under it.
 const HEADER_SCROLL_SHADOW =
   "shadow-[0_8px_10px_-8px_color-mix(in_srgb,var(--ui-border-accented)_90%,transparent)]";
 
-// The v2 bands start 18px from the card edge. The first data cell carries that
-// gutter; after the 2px presence rail (an empty first cell) it takes the rest.
 const FIRST_HEAD_CELL_GUTTER = "first:ps-[18px] [th:empty:first-child+&]:ps-4";
 const FIRST_ROW_CELL_GUTTER = "first:ps-[18px] [td:empty:first-child+&]:ps-4";
 
@@ -532,15 +514,13 @@ const theme = tv({
     captionCountPlaceholder: "h-3 w-6 rounded-[4px]",
 
     scrollFrame: "relative",
-    // An inset shadow, whatever the card's background, on the side the
-    // table still hides columns.
+
     scrollFade: "pointer-events-none absolute inset-y-0 z-30 w-3",
     tableRoot: "relative overflow-x-auto whitespace-nowrap",
     tableBase: "inline-block min-w-full align-middle",
     table: "text-default w-full min-w-full table-fixed text-left text-[13px]/5",
     tableCaption: "sr-only",
 
-    // 2px indeterminate bar riding the bottom edge of the header band.
     loadingBar:
       "pointer-events-none absolute inset-x-0 top-9 z-40 h-0.5 overflow-hidden",
     loadingBarIndicator:
@@ -548,7 +528,6 @@ const theme = tv({
     skeletonRow: "pointer-events-none",
     skeletonCell: "block h-2.5 rounded-md",
 
-    // Archive mode: an amber strip under the chrome while archived rows show.
     archiveStrip:
       "flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-(--dms-warning-line) bg-(--dms-warning-tint) py-[9px] ps-[18px] pe-3.5 text-[13px] text-highlighted",
     archiveStripIcon: "size-[17px] shrink-0 text-warning",
@@ -557,17 +536,12 @@ const theme = tv({
     archiveStripDescription: "text-[12.5px] text-muted",
     archiveStripAction: "ms-auto",
 
-    // Detail band of an expanded row, on the muted surface and indented to
-    // the content column.
     expandedCell:
       "border-b border-default bg-(--dms-bg-muted) p-0 whitespace-normal in-[tr:last-child]:border-b-0",
-    // The band sticks to the visible part of a horizontally scrolled table
-    // (its width is the scroll area's, --dms-table-viewport), so the detail
-    // never hides past the card edge. Phones drop the content-column indent.
+
     expandedBody:
       "sticky start-0 w-[var(--dms-table-viewport,auto)] pt-4 pb-[18px] pe-[18px] ps-[18px] sm:ps-[68px]",
-    // The empty body centres on the visible part of a table wider than its
-    // card, not on the whole scroll width.
+
     emptyBody: "sticky start-0 w-[var(--dms-table-viewport,auto)]",
 
     headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 ${EYEBROW_CLASS} last:pe-2.5`,
@@ -582,9 +556,6 @@ const theme = tv({
     rowContainer: "relative",
     rowSpan: "line-clamp-1 text-ellipsis",
 
-    // The row checkbox and the row actions (the … menu and every other icon
-    // of the last column) stay visible but faded, and come to full strength
-    // when the row is hovered, selected, focused or one of its menus is open.
     rowSelection:
       "opacity-40 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
     rowAction:
@@ -592,8 +563,6 @@ const theme = tv({
 
     columnActiveSortIcon: "size-3 shrink-0 text-primary",
 
-    // Group header of the grouped display, on the band color, kept in view
-    // over a horizontally scrolled table like a detail band.
     groupCell: `${HEADER_MATCH_BG} border-b border-default p-0`,
     groupHeader:
       "sticky start-0 flex h-9 w-[var(--dms-table-viewport,auto)] items-center gap-2 ps-[18px] pe-3.5 text-[12.5px] text-muted",
@@ -602,31 +571,25 @@ const theme = tv({
     groupCount:
       "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
 
-    // The move handle of a hand-ordered table, in a narrow first column.
     handleHeadCell: `${HEADER_MATCH_BG} border-b-default w-8 border-b p-0`,
     handleCell:
       "border-b-muted w-8 border-b ps-2 pe-0 in-[tr:last-child]:border-b-0",
     handle: REORDER_HANDLE_CLASS,
   },
   variants: {
-    // A wrapped cell grows its row past the 44px band: it keeps the band's
-    // breathing room above and below its lines instead of touching the
-    // hairlines (one line still fits the band, so its row keeps its height).
     cellWrap: {
       true: {
         rowCell: "py-2.5",
         rowSpan: "line-clamp-none whitespace-normal [overflow-wrap:anywhere]",
       },
     },
-    // The header sits straight on the column band when no tabs row follows
-    // it, and then carries the rule itself.
+
     headerDivided: {
       true: {
         header: "border-b border-default",
       },
     },
-    // Tabs up in the header band (no caption): they take its full height and
-    // their underline lands on its bottom rule.
+
     tabsInline: {
       true: {
         header: "min-h-11 py-0",
@@ -642,7 +605,7 @@ const theme = tv({
         rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
       },
     },
-    // Dense lists: 36px rows under a 32px header band.
+
     density: {
       default: "",
       compact: {
@@ -651,7 +614,7 @@ const theme = tv({
         loadingBar: "top-8",
       },
     },
-    // The header band sticks to the top of a height-capped scroll area.
+
     scrollArea: {
       true: {
         tableRoot: "overflow-y-auto overscroll-contain",
@@ -670,16 +633,14 @@ const theme = tv({
         scrollFade: "shadow-[inset_-12px_0_10px_-10px_rgb(0_0_0/0.28)]",
       },
     },
-    // Rows listed while viewing the archive read as set aside.
-    // Restore stays on show there, it is the only thing to do with them.
+
     archived: {
       true: {
         rowCell: "text-muted",
         rowAction: "opacity-100",
       },
     },
-    // A re-fetch keeps the rows on show, faded once it lasts (the delay
-    // spares quick ones a flicker), under the header band's loading bar.
+
     loading: {
       true: {
         row: "cursor-wait hover:bg-transparent",
@@ -699,7 +660,7 @@ const theme = tv({
         rowSelection: "opacity-100",
       },
     },
-    // Labelled inline actions are the row's actions on show: never faded.
+
     prominent: {
       true: {
         rowAction: "opacity-100",
@@ -744,14 +705,10 @@ const theme = tv({
   ],
 });
 
-// Grid-like default for standalone use; TableView always passes the active
-// display's resolved capabilities.
 const DEFAULT_CAPABILITIES = resolveDisplayCapabilities({
   columnManagement: true,
 });
 
-// Undefined, not the `false` an absent boolean prop casts to: the table then
-// judges the first load by itself.
 const props = withDefaults(defineProps<TableProps<T>>(), {
   firstPageLoading: undefined,
 });
@@ -807,38 +764,32 @@ const showArchivedState = defineModel<boolean>("showArchived", {
 const densityState = defineModel<TableDensity>("density", {
   default: "default",
 });
-// "Select all N matching": a bulk action covers every row the filters match.
+
 const allMatchingState = defineModel<boolean>("allMatching", {
   default: false,
 });
 
 const slots = useSlots();
-// A detail renderer turns the expander column on.
+
 const isExpandable = !!slots.expanded;
-// The caret button names the detail row it opens (aria-controls).
+
 const tableDomId = `dms-table-${useId()}`;
 const expandedRowDomId = (rowId: string): string =>
   `${tableDomId}-detail-${rowId.replace(/\s+/g, "_")}`;
 
-// Rows are archived ones only while the toggle is on.
 const isShowingArchived = computed(
   () => !!props.archiveToggle && showArchivedState.value,
 );
 
-// As many placeholder rows as the page will list, fading out: the footer
-// (count, page size, pages) and what follows the table already stand where a
-// full page puts them, and do not move when the rows land.
 const SKELETON_MAX_ROW_COUNT = MAX_PAGE_SIZE;
 const SKELETON_TOTAL_FADE = 0.7;
 const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
   SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
 
-// The scroll shadow under a sticky header only shows once rows went under it.
 const hasScrollArea = computed(() => !!props.maxHeight);
 const isScrolled = ref(false);
-// Columns beyond the card's edge fade out on that side: the scrollbar sits
-// under the last row, out of view on a long list.
+
 const scrollEdges = ref<ScrollEdges>({ start: false, end: false });
 const syncScrollEdges = () => {
   const area = tableRootRef.value;
@@ -849,16 +800,13 @@ const onTableScroll = (event: Event) => {
   if (!hasScrollArea.value) return;
   isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
 };
-// Expanded detail bands, group headers and the empty body are as wide as
-// the visible scroll area.
+
 const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
 const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
 const { width: tableContentWidth } = useElementSize(tableBaseRef);
 watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
-// The column header band's height, for what the table view lays over the
-// first rows (the live hold's pill) to land under it, sticky or not; unset
-// while a custom display draws no header.
+
 const tableHeadRef = useTemplateRef<HTMLElement>("tableHead");
 const { height: tableHeadHeight } = useElementSize(tableHeadRef, undefined, {
   box: "border-box",
@@ -873,7 +821,6 @@ const tableRootStyle = computed(() => ({
     tableViewportWidth.value > 0 ? `${tableViewportWidth.value}px` : undefined,
 }));
 
-// A clipped cell value reads in full in a native tooltip.
 const syncClippedTitle = (event: MouseEvent) => {
   const cell = event.currentTarget as HTMLElement;
   if (cell.scrollWidth > cell.clientWidth) {
@@ -889,8 +836,6 @@ const paginationState = defineModel<PaginationState>("pagination", {
   }),
 });
 
-// The first page is on its way: skeleton rows (and placeholders for the
-// counts) hold the list's place instead of its empty state.
 const isFirstPageLoading = computed(
   () => props.firstPageLoading ?? (!!props.loading && !props.data?.length),
 );
@@ -912,13 +857,12 @@ const onResize = (
 
 const PRESENCE_RAIL_WIDTH = 2;
 const PRESENCE_RAIL_WIDTH_PX = `${PRESENCE_RAIL_WIDTH}px`;
-// Someone else editing the row is the violet (AI/collaboration) accent; a row
-// selected here is the cyan one.
+
 const PRESENCE_RAIL_ACTIVE_BG = "bg-secondary";
 const SELECTION_RAIL_BG = "bg-primary";
 
 const hasPresenceRail = computed(() => props.presenceByRow !== undefined);
-// Cells drawn in front of the columns: the presence rail, the move handle.
+
 const leadingCellCount = computed(
   () => (hasPresenceRail.value ? 1 : 0) + (props.reorder ? 1 : 0),
 );
@@ -928,9 +872,6 @@ const reorderHandles = useReorderHandles({
   count: () => table.getRowModel().rows.length,
 });
 
-// Pinned columns stick only while they cover at most 60% of the visible scroll
-// area: on a phone, labelled row actions or a wide pinned set would otherwise
-// hide every column scrolling under them. The wider side lets go first.
 const PINNED_MAX_VIEWPORT_SHARE = 0.6;
 const stickyPinnedSides = computed(() => {
   const budget = tableViewportWidth.value * PINNED_MAX_VIEWPORT_SHARE;
@@ -942,7 +883,6 @@ const stickyPinnedSides = computed(() => {
   return { left: keepLeft, right: keepRight };
 });
 
-// The fades sit inside the columns pinned on their side, which never scroll.
 const scrollFadeInsets = computed(() => {
   const sides = stickyPinnedSides.value;
   return {
@@ -980,9 +920,6 @@ const getPinnedRightOffset = (column: {
 
 const getPinnedVariant = getStickyPin;
 
-// A scrolling column is never wider than the room the sticky columns leave
-// (a 300px identity column on a phone): its content truncates in view
-// instead of running under the pinned actions.
 const MIN_SCROLLING_COLUMN_WIDTH = 120;
 const scrollingColumnMaxWidth = computed(() => {
   const viewport = tableViewportWidth.value;
@@ -1001,8 +938,6 @@ const getHeaderWidth = (header: Header<T, unknown>): string => {
   return `${Math.min(size, scrollingColumnMaxWidth.value)}px`;
 };
 
-// Only a header the list can be sorted on states its order to assistive
-// technologies; the others carry no `aria-sort` at all.
 const headerAriaSort = (
   column: Header<T, unknown>["column"],
 ): "ascending" | "descending" | "none" | undefined => {
@@ -1115,8 +1050,6 @@ const bodyEntries = computed<BodyEntry[]>(() => {
   return entries;
 });
 
-// Rows added above the ones the reader scrolled to (a live list's new rows)
-// do not push them down.
 useRowScrollAnchor(tableRootRef, () =>
   bodyEntries.value
     .filter((entry) => entry.kind === "row")
@@ -1151,12 +1084,11 @@ const hasViewsInHeader = computed(
 const resolvedChrome = computed<ResolvedTableChrome>(
   () => props.chrome ?? FULL_TABLE_CHROME,
 );
-// Without a caption, the tabs move up into the header band.
+
 const tabsInline = computed(
   () => hasTabs.value && !resolvedChrome.value.caption,
 );
-// A button placed in the page header is drawn there, not in the toolbar; it
-// stays pressable by id (header button, quick action).
+
 const toolbarButtons = computed(() =>
   (props.customButtons ?? []).filter(
     (button) => button.placement !== HEADER_PLACEMENT,
@@ -1166,7 +1098,7 @@ const canAddFromToolbar = computed(() => {
   const add = normalizeActionConfig(props.rowActions?.add);
   return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
 });
-// Drawn on the toolbar and empty-state buttons, as the header one draws them.
+
 const addLabel = computed(
   () => normalizeActionConfig(props.rowActions?.add).label,
 );
@@ -1174,7 +1106,6 @@ const addIcon = computed(
   () => normalizeActionConfig(props.rowActions?.add).icon,
 );
 
-// The bulk bar shows whenever selected rows have something to go to.
 const hasBulkActions = computed(
   () =>
     normalizeActionConfig(props.rowActions?.delete).isEnabled ||
@@ -1184,14 +1115,10 @@ const hasBulkActions = computed(
     (props.bulkActions?.length ?? 0) > 0,
 );
 
-// Defined once (stable ref identity) so consumers that capture tableSharedData
-// by value (e.g. Actions.vue via useTableContext) still react when the active
-// display — and thus its capabilities — changes.
 const resolvedCapabilities = computed<Required<TableViewDisplayCapabilities>>(
   () => props.activeCapabilities ?? DEFAULT_CAPABILITIES,
 );
 
-// The single "clear all" of the table: every clear action goes through it.
 const narrowingState: TableNarrowingState = {
   columnFilters: columnFiltersState,
   globalFilter: globalFilterState,
@@ -1204,8 +1131,7 @@ const resetFilters = () => {
   clearTableFilters(narrowingState);
   void filtersCleared.trigger();
 };
-// Clearing the search folds the toolbar's field, as a full clear does; the
-// filters alone leave it as it is.
+
 const clearSearch = () => {
   clearTableSearch(narrowingState);
   void filtersCleared.trigger();
@@ -1214,7 +1140,6 @@ const clearFilters = () => clearTableColumnFilters(narrowingState);
 const clearableFilters = computed(() => clearableTableFilters(narrowingState));
 const isFiltered = computed(() => isTableNarrowed(narrowingState));
 
-// A partial order (a view's) names some columns: the others follow.
 watch(columnOrderState, (order) => {
   const merged = mergeColumnOrder(order, declaredColumnOrder);
   if (!isSameColumnList(merged, order)) columnOrderState.value = merged;
@@ -1353,8 +1278,6 @@ const presenceTooltipText = (actors: TableRowPresenceActor[]): string =>
 const rowClickAction = (row: T): RowClickAction | undefined =>
   resolveRowClickAction(props.rowActions, row as Record<string, unknown>);
 
-// The hover tint and the double-click read the same resolution, so a row that
-// lights up always opens something.
 const isRowClickable = (row: T): boolean => rowClickAction(row) !== undefined;
 
 const runRowClickAction = (row: T) => {
@@ -1367,7 +1290,6 @@ const runRowClickAction = (row: T) => {
   props.onCustomRowAction?.(action, row);
 };
 
-// Both events reach the row: `rowClick` tells which one runs its action.
 const handleRowPointer = (event: MouseEvent, row: T) => {
   if (!isRowClickTrigger(props.rowClick, event)) return;
   runRowClickAction(row);

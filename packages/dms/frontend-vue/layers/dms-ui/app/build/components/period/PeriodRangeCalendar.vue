@@ -25,9 +25,6 @@ import {
   isBeyondMaxDays,
 } from "../../composables/period/periodDisplay";
 
-// Two-month range calendar of the period selector (design .cal): a
-// continuous accent strip for the selected range with filled endpoints, and
-// the comparison range painted under it as a violet strip with ringed ends.
 interface Props {
   modelValue: CalendarRange | null;
   compareRange?: CalendarRange | null;
@@ -63,13 +60,8 @@ const WEEKDAY_LABEL_LENGTH = 2;
 
 const todayDate = today(getLocalTimeZone());
 
-// Day being picked: the first click of a new range, until the second lands.
-// shallowRef: a deep ref would unwrap the date classes (losing their private
-// fields) and break their types.
 const pendingStart = shallowRef<CalendarDate | null>(null);
 
-// The range's last month sits on the right, the month before it on its
-// left: a trailing range reads against what came just before.
 function firstVisibleMonth(range: CalendarRange | null): CalendarDate {
   const anchor = (range?.end ?? todayDate).set({ day: 1 });
   return anchor.subtract({ months: props.numberOfMonths - 1 });
@@ -77,8 +69,6 @@ function firstVisibleMonth(range: CalendarRange | null): CalendarDate {
 
 const placeholder = shallowRef<DateValue>(firstVisibleMonth(props.modelValue));
 
-// The view follows the range when it changes from outside (a preset, the
-// date fields), not while the reader pages through months.
 watch(
   () => props.modelValue,
   (range) => {
@@ -123,8 +113,6 @@ function isDateDisabled(date: DateValue): boolean {
 }
 
 function onPlaceholder(value: DateValue) {
-  // Picking a start day re-anchors reka's view on it; with two months on
-  // screen that would shift the grid under the pointer.
   if (pendingStart.value && isSameMonth(value, pendingStart.value)) return;
   placeholder.value = value;
 }
@@ -160,8 +148,6 @@ const selection = computed<CalendarRange | null>(() =>
 const STRIP_RADIUS_START = "rounded-s-lg";
 const STRIP_RADIUS_END = "rounded-e-lg";
 
-// The strip lives on the cell: accent for the range, violet for the
-// comparison, rounded where it starts or breaks (row ends, month ends).
 function cellClass(
   date: DateValue,
   month: DateValue,

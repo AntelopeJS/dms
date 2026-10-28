@@ -19,9 +19,6 @@ import { useComposedText } from "../../../../dms-core/app/composables/translatio
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 
-// `NavCardGrid` block (interface-dms `base/nav-card-grid`): a responsive grid
-// of navigation cards (v2 settings overview, a module's home), static or from
-// `fetchUrl` (`{ items }`) so each card can carry its target's live state.
 interface NavCardGridItem {
   id?: string;
   title: BlockText;
@@ -80,8 +77,7 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
 });
 
 const MAX_COLUMNS = 4;
-// Narrowest card before the grid drops a column, and the `gap-3` between
-// cards the column width leaves room for.
+
 const MIN_CARD_WIDTH = "16rem";
 const CARD_GAP = "0.75rem";
 
@@ -113,9 +109,6 @@ const columnCount = computed(() =>
 );
 const placeholders = computed(() => props.skeletonCount ?? columnCount.value);
 
-// As many cards per row as the grid's own width holds, never more than
-// `columns`: viewport breakpoints squeezed three cards into a column next to
-// a navigation (the settings pages) and truncated their titles.
 const gridStyle = computed(() => ({
   gridTemplateColumns: gridColumnsTemplate(
     columnCount.value,
@@ -139,12 +132,9 @@ const cards = computed(() =>
     readout: item.readout?.map((line) => processText(line)),
   })),
 );
-// v2 .sx-grid: cards closing on a state line run a tighter rhythm, the whole
-// grid at once so the rows stay aligned.
+
 const hasStates = computed(() => cards.value.some((card) => !!card.state));
-// A category the viewer opens no page of is left out, title included, as the
-// navigation leaves out an empty group: the settings overview of a member
-// without a role shows no Workspace section. `empty` shows a message instead.
+
 const isLeftOut = computed(
   () => !!props.categoryId && !props.empty && cards.value.length === 0,
 );

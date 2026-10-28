@@ -65,9 +65,6 @@ export interface RowSidePanelContent {
   onClose?: () => void;
 }
 
-// Written on the client only (a click, a table mounting on a deep link), never
-// while the server renders a request, so a module-level ref is safe here. It
-// holds a component and callbacks, which no shared state may serialize.
 const content = shallowRef<RowSidePanelContent | null>(null);
 
 /**

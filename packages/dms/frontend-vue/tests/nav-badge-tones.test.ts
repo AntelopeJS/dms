@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -23,10 +23,6 @@ import {
   type NavBadge,
   useNavBadges,
 } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
-
-// A navigation badge is drawn in the tone the server counted it with (the
-// status pills' soft tints), neutral grey without one, and hidden at zero;
-// the count a page publishes live keeps its tone too.
 
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
@@ -121,7 +117,6 @@ describe("the counts a page visit carries", () => {
 });
 
 describe("NavigationMenu badges", () => {
-  // Renders each entry's badge the way UNavigationMenu hands it over.
   const MenuStub = defineComponent({
     props: {
       items: {

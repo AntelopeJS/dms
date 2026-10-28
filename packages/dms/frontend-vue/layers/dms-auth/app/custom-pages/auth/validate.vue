@@ -27,7 +27,7 @@ if (!route.query.id) {
 }
 
 const PIN_LENGTH = 6;
-// Refusals of the typed code: shown under the cells, not above the form.
+
 const CODE_ERRORS = {
   "error.invalid_token": "token",
   "error.token_expired": "token",
@@ -44,7 +44,6 @@ interface CodeState {
 }
 const state = reactive<CodeState>({});
 
-// Typing a new code clears the refusal of the previous one.
 watch(
   () => state.pin,
   (digits) => {
@@ -59,7 +58,6 @@ onMounted(() => {
 });
 
 async function onSubmit(event: FormSubmitEvent<CodeState>) {
-  // An empty or partial code is flagged under the cells, not sent.
   const missing = codeEntryError(event.data.pin, PIN_LENGTH);
   if (missing) {
     codeError.value = processApiMessage(missing);
@@ -91,7 +89,7 @@ async function onSubmit(event: FormSubmitEvent<CodeState>) {
   } finally {
     isLoading.value = false;
   }
-  // The cells are disabled while the request runs: focus them once enabled.
+
   if (codeError.value) {
     await nextTick();
     codeInput.value?.focus();

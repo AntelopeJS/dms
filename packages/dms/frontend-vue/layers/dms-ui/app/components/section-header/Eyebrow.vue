@@ -35,7 +35,6 @@ const props = withDefaults(defineProps<EyebrowProps>(), {
 });
 defineSlots<EyebrowSlots>();
 
-// v2 .eyebrow: the signature label, mono, uppercase and tracked.
 const theme = tv({
   base: "font-mono font-semibold tracking-[0.12em] uppercase",
   variants: {
@@ -46,8 +45,6 @@ const theme = tv({
       error: "text-error",
     },
     size: {
-      // The line height follows the size: tailwind-merge drops a `leading-*`
-      // that precedes a `text-*` size.
       xs: "text-[9.5px] leading-[1.2]",
       sm: "text-[10.5px] leading-[1.2]",
     },

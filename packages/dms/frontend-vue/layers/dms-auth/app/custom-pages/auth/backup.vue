@@ -37,7 +37,6 @@ const backToLoginTarget = computed(() => ({
 
 const isLoading = ref(false);
 
-// Codes are issued in uppercase and compared by hash: normalise what was typed.
 const fields = z.object({
   code: z
     .string()
@@ -63,11 +62,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       },
     });
 
-    // The sign-in token in this page's URL is spent: the destination takes
-    // its place in the history.
     await usePostLoginRedirect(undefined, { replace: true });
   } catch (error: unknown) {
-    // A wrong code shows under the field; an expired sign-in above the form.
     await showError(error, "page.backup.error_title", {
       fields: ["code"],
       codes: { "error.invalid_backup_code": "code" },

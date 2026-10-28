@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A relation filter holds the related rows' ids: its chip names the rows
  * ("Acme"), read once from the relation's `select` route as its picker does,
@@ -112,7 +112,7 @@ beforeEach(() => {
   vi.stubGlobal("useDmsAppConfig", () => ({
     ui: { icons: { close: "i-close", plus: "i-plus" } },
   }));
-  // The relation data type says where its rows live; no component name.
+
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: (id: string) =>
       id === "relation"

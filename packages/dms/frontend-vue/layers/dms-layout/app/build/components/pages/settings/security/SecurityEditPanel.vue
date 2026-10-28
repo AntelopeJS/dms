@@ -68,8 +68,6 @@ function open(): void {
   isOpen.value = true;
 }
 
-// The collapsible mounts its content a few ticks after opening: the first
-// field takes the focus as soon as the form exists.
 watch(
   form,
   (element) => {
@@ -89,8 +87,6 @@ async function cancel(): Promise<void> {
   isOpen.value = false;
 }
 
-// Closing (Cancel, Escape or a successful save) from inside the panel hands
-// the focus back to the trigger instead of dropping it on the page.
 watch(isOpen, async (value, previous) => {
   if (value || !previous) return;
   const active =

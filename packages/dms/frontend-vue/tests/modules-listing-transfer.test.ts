@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The modules catalog through the runtime's real async data: a server render
  * reads it for a platform owner and hands it to the browser, which does not

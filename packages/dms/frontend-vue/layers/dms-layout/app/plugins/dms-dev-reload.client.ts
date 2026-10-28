@@ -25,8 +25,7 @@ export default defineDmsPlugin(() => {
 
   const endpoint = `${backendBase}${RELOAD_ENDPOINT_PATH}`;
   const { coordinator } = useDevReloadHolder();
-  // Carried by the user's realtime stream while it is open, by a stream of
-  // its own otherwise (the sign-in page).
+
   const stream = followDevReload(
     {
       endpoint,
