@@ -25,10 +25,6 @@ function addPermissionToTree(permission: Permission): void {
   }
 }
 
-// Deleting the node outright would take every descendant with it, including
-// permissions still registered under it — a category unregistering would strip
-// the pages beneath it. Drop what this id owns, and let the node go only once
-// nothing lives under it.
 function removePermissionFromTree(id: string): void {
   const parts = id.split(".");
   const levels: Array<Record<string, PermissionTree>> = [permissionTree];

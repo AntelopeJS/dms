@@ -37,10 +37,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     const hasUsers = users.length > 0;
 
     if (hasUsers) {
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings object's enumerable fields with the updated onboarding flag, not its class prototype.
       await this.model.updateConfig({ ...settings, has_onboarded: true });
     }
 
@@ -98,11 +95,8 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     assert(settings, 428, "error.settings_not_found");
     assert(!settings.has_onboarded, 412, "error.onboarding_already_completed");
 
-    // The spread row is an AntelopeJS table class: `Table` declares one
-    // field and a static, no instance methods, and the value is
-    // serialised to JSON on the way out. No prototype to lose.
     await this.model.updateConfig({
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the settings object's enumerable fields while replacing onboarding details, not its class prototype.
       ...settings,
       has_onboarded: true,
       platform_name: details.platformName ?? settings.platform_name,

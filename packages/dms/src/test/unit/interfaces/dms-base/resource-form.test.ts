@@ -89,7 +89,7 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
 
     expect(created.submitUrl).to.equal(`${LOCATION}/new`);
     expect(created.submitUrlMethod).to.equal(HttpMethod.post);
-    // Declared a create form: the client never guesses it from the method.
+
     expect(created.kind).to.equal("create");
     const opened = table.formComponents.new?.options as FormPropsSerialized;
     expect(opened.kind).to.equal("create");
@@ -175,8 +175,6 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     const built = meta.resourceFormBuilders.length;
     TableView(TicketAPI);
 
-    // A page-mode TableView mounts these as the components of its form
-    // sub-pages, which stage files under their own component ids.
     expect(
       meta.resourceFormBuilders
         .slice(built)

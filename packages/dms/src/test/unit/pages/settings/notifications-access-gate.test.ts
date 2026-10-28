@@ -80,8 +80,6 @@ describe("[unit] pages/settings/users/notifications — tenant access gate", () 
     expect(user._id).to.equal(MEMBER_ID);
   });
 
-  // A member removed from the tenant still reads the notification telling
-  // them so: their notifications are theirs, not the tenant's.
   it("serves a user who is not a member of the tenant their own notifications", async () => {
     const user = (await resolveControllerUser(outsiderToken)) as User;
     expect(user._id).to.equal(OUTSIDER_ID);

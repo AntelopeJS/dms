@@ -37,7 +37,6 @@ function withModel<T extends object>(prototype: T, model: SystemStateModel): T {
   return controller;
 }
 
-// An empty name, not undefined: an update leaves an undefined field as it was.
 const NO_PLATFORM_NAME = "";
 
 function stateWith(base: SystemState, overrides: StateOverrides): SystemState {

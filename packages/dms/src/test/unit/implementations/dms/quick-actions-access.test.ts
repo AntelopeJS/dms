@@ -162,7 +162,6 @@ describe("[unit] implementations/dms/quick-actions — access follows the page",
       DENIED_TENANT,
     );
 
-    // The public page's action survives, so the category has to stay too.
     expect(payload.quickActions.categories).to.have.property(CATEGORY_ID);
     expect(Object.keys(payload.quickActions.actions)).to.deep.equal([
       `${CATEGORY_ID}:qa-open`,

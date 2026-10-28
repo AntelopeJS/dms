@@ -29,7 +29,6 @@ interface RecordedUpdate {
   context: InviteExtensionContext;
 }
 
-// Plain data: the payload reaches the extension as a per-context view.
 function plain(value: unknown): unknown {
   return JSON.parse(JSON.stringify(value));
 }

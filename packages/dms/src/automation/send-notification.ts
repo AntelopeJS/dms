@@ -120,9 +120,6 @@ function toSendOptions(
   };
 }
 
-// Built from its data rather than through the builder: every optional field is
-// set or not depending on the input, which the builder's chained types do not
-// express.
 function buildNotification(
   input: SendNotificationInput,
   ctx: ExecutionCtx,
@@ -164,8 +161,7 @@ function prepareSend(
     userIds,
     roleIds,
     options: toSendOptions(input.idempotencyKey, ctx),
-    // Role ids belong to a tenant: an empty input means the default one, as
-    // for every tenant-scoped node.
+
     tenantId: input.tenantId?.trim() || DEFAULT_TENANT_ID,
   };
 }
@@ -222,7 +218,7 @@ export const sendNotificationAction: ActionType<
     type: "object",
     properties: titledProperties({ ok: { type: "boolean" } }),
   },
-  // A test run checks the input as a send would and notifies nobody.
+
   async dryRun(input, ctx) {
     prepareSend(input, ctx);
     ctx.log("info", "test run: notification not sent");

@@ -26,7 +26,6 @@ function hasLiveResetCode(
   );
 }
 
-// Codes are generated in capitals: one typed in lowercase is the same code.
 function normalizeResetCode(code: string): string {
   return code.trim().toUpperCase();
 }
@@ -64,8 +63,6 @@ export async function assertResetCode(
     tries <= MAX_RESET_CODE_ATTEMPTS &&
     normalizeResetCode(code) === user.forgotPasswordToken;
   if (!isMatch && tries >= MAX_RESET_CODE_ATTEMPTS) {
-    // Saved whole, like every write of an account: a partial update rewrites
-    // the hashed fields' stored state and loses the password.
     const account: User = user;
     account.forgotPasswordToken = null;
     await userModel.update(account);

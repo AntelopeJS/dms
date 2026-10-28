@@ -1,11 +1,3 @@
-// The operations the profile controller chains together: avatar promotion and
-// rollback, TOTP secret, backup codes and session formatting.
-//
-// The class stays in profile.ts: its @RegisterPage is what registers the page,
-// and that only runs if the framework loads that file.
-//
-// Split out of profile.ts.
-
 import crypto from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";

@@ -256,9 +256,6 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   });
 
   describe("RelationType filterOnly", () => {
-    // A bare class with no @RegisterTable/@Model: reading its DataAPIMeta
-    // yields an empty meta with no table, so the Foreign join can only
-    // succeed (or, here, fail loudly) when the join path is actually reached.
     class UnregisteredController {}
 
     it("keeps the relation compare modes whether or not filterOnly is set", () => {
@@ -267,7 +264,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         keyMapping: { label: "name", value: "_id" },
         filterOnly: true,
       });
-      // The funnel still offers the relation filter operators.
+
       expect(filtering.compareModes).to.include(DefaultDataCompareTypes.Is);
       expect(filtering.compareModes).to.include(DefaultDataCompareTypes.IsNot);
       expect(filtering.defaultCompareMode).to.equal(DefaultDataCompareTypes.Is);
@@ -304,14 +301,10 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         filterOnly: true,
       });
 
-      // decorateField returns before touching the related controller metadata
-      // or the Foreign decorator, so it never throws despite the unregistered
-      // controller...
       expect(() =>
         rel.decorateField(Target.prototype, "procedureId", {}),
       ).to.not.throw();
 
-      // ...and registers no foreign reference: the column stays a raw scalar.
       const meta = GetMetadata(Target, DataAPIMeta);
       expect(meta.fields.procedureId?.foreign).to.equal(undefined);
     });
@@ -323,10 +316,6 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         keyMapping: { label: "name", value: "_id" },
       });
 
-      // The default path reads the related controller metadata and runs the
-      // Foreign decorator, which throws here because the controller declares
-      // no table/schema — proving the join machinery is reached (the very
-      // machinery filterOnly bypasses).
       expect(() =>
         rel.decorateField(Target.prototype, "procedureId", {}),
       ).to.throw();

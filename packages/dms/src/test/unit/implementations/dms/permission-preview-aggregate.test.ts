@@ -14,9 +14,6 @@ function group(fullId: string, children: PreviewMenuNode[]): PreviewMenuNode {
   return { fullId, opensPage: false, children };
 }
 
-// pages › sales (group) › orders, invoices; pages › crm (group) › contacts
-// (group) › list; settings (a page holding groups) › users (group) › members,
-// roles.
 const MENU: PreviewMenuNode[] = [
   group("pages", [
     group("pages.sales", [
@@ -174,7 +171,7 @@ describe("[unit] implementations/dms/permission-preview — loss cache", () => {
     const cache = new PreviewScopeCache<boolean>(1000, 2, () => 0);
     cache.pagesFor("a").set("p", Promise.resolve(true));
     cache.pagesFor("b").set("p", Promise.resolve(true));
-    // Reading `a` again makes `b` the oldest.
+
     cache.pagesFor("a");
     cache.pagesFor("c");
     expect(cache.pagesFor("a").has("p")).to.equal(true);

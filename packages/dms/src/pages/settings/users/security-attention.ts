@@ -34,7 +34,7 @@ const ATTENTION_RULES: AttentionRule[] = [
     tone: "warning",
     applies: (twoFactor) => !isTwoFactorOn(twoFactor),
   },
-  // Running out of codes can lock the user out at the next lost device.
+
   {
     id: "backup_codes_low",
     tone: "error",

@@ -1,5 +1,3 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
@@ -17,8 +15,7 @@ import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { ChartArea } from "@antelopejs/interface-dms/base/chart";
 import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
-// From the leaf, not the `realtime` barrel: the barrel constructs brokers at
-// import time, which a Map lookup does not need.
+
 import { getPageTopics } from "../../../../realtime/registry";
 
 const PAGE_ID = "ncc-dashboard";
@@ -29,8 +26,6 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-// The shape the playground dashboards use: the chart that carries the realtime
-// topic sits three levels below the page's own component.
 class DashboardPage extends PageController(PAGE_ID, {
   displayName: "Nested chart dashboard",
   category: pagesCategory,

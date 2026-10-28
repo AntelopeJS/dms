@@ -342,7 +342,7 @@ function applyDevManifestOverrides<T extends ManifestModuleEntry>(
   const config = getConfig();
   const clientOrigin = resolveClientOrigin(clientUrl);
   const apiOrigin = resolveRequestOrigin(requestContext.rawRequest);
-  // Only a trusted dev server moves the origins every module builds links on.
+
   if (outcome === "authenticated") {
     if (clientOrigin) setDevClientBaseUrl(clientOrigin);
     if (apiOrigin) setDevApiBaseUrl(apiOrigin);
@@ -366,8 +366,7 @@ export async function buildFrontendManifest(
   bootstrapHeader: string | undefined,
 ): Promise<FrontendManifest<ServedModule>> {
   const outcome = resolveBootstrapOutcome(bootstrapHeader);
-  // Refused before the selection is read: an anonymous caller learns nothing
-  // of the renderers served.
+
   enforceLayerAccess(outcome, "GET /dms/frontend", () =>
     listDroppedBackendProxies(
       selectedModules(resolveFrontendSelection(renderer, rendererVersion)),

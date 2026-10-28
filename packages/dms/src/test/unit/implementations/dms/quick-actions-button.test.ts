@@ -226,7 +226,6 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
     });
   });
 
-  // The action declares no permission: the button's own decides.
   it("is left out for a caller who reaches the page but may not press the button", async () => {
     const actions = await actionsFor(["pages.qb-gated"]);
 
@@ -234,7 +233,6 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
   });
 
   it("is left out for a caller who cannot reach the page, whatever the button allows", async () => {
-    // A role saved before the role routes completed it: the button's id alone.
     const actions = await actionsServedTo(
       stubExactPermissionModels(["pages.qb-gated.table.add"]),
     );

@@ -91,7 +91,7 @@ export function fromRegionFormValues(body: unknown): unknown {
   for (const key of REGIONAL_KEYS) {
     if (values[key] === AUTOMATIC_PREFERENCE) values[key] = null;
   }
-  // A select carries its values as text: the week starts on a day number.
+
   if (typeof values.weekStart === "string") {
     values.weekStart = Number(values.weekStart);
   }

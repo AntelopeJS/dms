@@ -130,8 +130,6 @@ describe("[integration] auth/validate-invite-token", () => {
     expect(await refusalOf(TOKEN, EMAIL)).to.equal("error.invite_used");
   });
 
-  // The reason belongs to whoever holds both halves of the link: a token
-  // paired with another address reads exactly like one that never existed.
   it("tells nothing about a retired invitation to another address", async () => {
     const invite = await seedInvite(new Date(Date.now() + FUTURE_MS));
     await retire(invite, "cancelled");

@@ -12,10 +12,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A locked (mandatory) subject cannot be muted: not through the legacy PUT that
-// replaces the whole map, and not by a `false` stored before the lock — the
-// send ignores it.
-
 const PREFERENCES = pageRoutePath(
   "/settings/user/notifications",
   "/preferences",

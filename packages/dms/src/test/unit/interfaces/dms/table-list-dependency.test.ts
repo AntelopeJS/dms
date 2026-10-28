@@ -5,8 +5,6 @@ import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/perm
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { HasPermission } from "@antelopejs/interface-dms/permissions";
 
-// The actions a table's rows lead to depend on its `list`.
-
 const CATEGORY = "tld-sales";
 const PAGE = `${CATEGORY}.invoices`;
 const TABLE = `${PAGE}.table`;
@@ -31,7 +29,7 @@ const REGISTERED = [
   { id: DELETE, title: "Delete", dependencies: [LIST] },
   { id: VIEW_ARCHIVED, title: "View archived", dependencies: [LIST] },
   { id: RESTORE, title: "Restore", dependencies: [VIEW_ARCHIVED] },
-  // An edit form opening as its own page: reached by URL, not from the rows.
+
   { id: PAGE_EDIT, title: "Edit (page)" },
 ];
 

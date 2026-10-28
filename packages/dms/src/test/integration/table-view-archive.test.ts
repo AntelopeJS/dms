@@ -3,13 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// Archive mode over the test host's notes (src/test/attachment-host/archive.ts):
-// a note created without its archive field is active — the list filters with
-// `ne true`, which the adapter matches on a missing field — and archive and
-// restore move it between the two lists. Each list is asked the way the
-// client asks it, `showArchived` set: a caller who may view archived rows and
-// leaves it out is served both.
-
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
 
@@ -59,7 +52,7 @@ describe("[integration] table view archive mode", () => {
     expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
     expect(await titles(ACTIVE)).to.deep.equal(["Plan"]);
     expect(await titles(ARCHIVED)).to.deep.equal(["Draft"]);
-    // The rows carry the archive field, which the archive rules read.
+
     const [archivedNote] = await list("&showArchived=true");
     expect(archivedNote?.isArchived).to.equal(true);
 

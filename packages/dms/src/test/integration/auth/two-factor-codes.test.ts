@@ -22,11 +22,6 @@ import {
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The codes of a second factor: a sign-in challenge takes a handful of them
-// and opens one session, an account a few more across its challenges, an
-// emailed code is stored hashed, an authenticator code works once, and email
-// codes turn on only once one of them came back.
-
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -37,11 +32,9 @@ const TWO_FACTOR_EMAIL_TEMPLATE = "EmailTwoFactor";
 const ATTEMPTS_PER_CHALLENGE = 5;
 const WRONG_BACKUP_CODE = "WRONG000";
 const TOTP_STEP_MS = 30 * 1000;
-// A code computed this close to the end of its window may reach the server
-// in the next one: wait for the next window instead.
+
 const TOTP_SAFE_MARGIN_MS = 3 * 1000;
-// A timer can fire a millisecond before `Date.now()` reaches its deadline, and
-// a code computed then is still the previous window's: overshoot the boundary.
+
 const TOTP_BOUNDARY_OVERSHOOT_MS = 50;
 const RATE_LIMIT_MS = 60 * 1000;
 const ATTEMPTS_PER_ACCOUNT = 10;
@@ -113,7 +106,6 @@ async function tryWrongCodes(token: string, count: number): Promise<void> {
   }
 }
 
-// The lockout notification is sent in the background of the request.
 async function lockoutNotifications(userId: string): Promise<number> {
   const deadline = Date.now() + NOTIFICATION_WAIT_MS;
   for (;;) {
@@ -138,7 +130,6 @@ const emailedCodeCount = (): number =>
   renderedEmails.filter((email) => email.template === TWO_FACTOR_EMAIL_TEMPLATE)
     .length;
 
-// Runs `request` while no email can go out.
 async function duringEmailOutage<T>(request: () => Promise<T>): Promise<T> {
   emailOutage.isOn = true;
   try {
@@ -148,8 +139,6 @@ async function duringEmailOutage<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-// Ages the last emailed code past the resend limit, so a test can ask for
-// another one at once.
 async function allowNextEmailCode(userId: string): Promise<void> {
   const user = await storedUser(userId);
   user.twoFactorEmailCodeRequestedAt = new Date(Date.now() - RATE_LIMIT_MS);
@@ -334,8 +323,7 @@ describe("[integration] auth/two-factor codes", function () {
       expect(await accept(laterCode, later)).to.equal(true);
       expect(await accept(laterCode, later)).to.equal(false);
       expect(await accept(earlierCode, earlier)).to.equal(false);
-      // The step is written alone, not through the whole row: the rest of
-      // the account, its password included, is left as it was.
+
       expect(await signIn(user)).to.be.a("string");
     });
 

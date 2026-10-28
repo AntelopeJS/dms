@@ -230,9 +230,6 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
     );
   });
 
-  // The layout route is the third surface the flag has to reach, and the only
-  // one no other test exercises: `Register()` derives the guard options from the
-  // page, and a refactor that rebuilds that call site silently drops them.
   it("hands the page's gate bypass to its layout route guard", async () => {
     const flagged = PageController("gate-guarded", {
       displayName: "Guarded recovery",

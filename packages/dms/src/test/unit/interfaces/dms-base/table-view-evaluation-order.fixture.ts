@@ -1,12 +1,3 @@
-// Run as a plain Node process by table-view-evaluation-order.test.ts: only a
-// fresh module graph lets a test choose what evaluates first.
-//
-// A consumer enters the interface package through the table-view subpath, and
-// the DMS's realtime modules evaluate before that subpath has finished: its
-// exports are still empty. The DMS used to install a table-view bridge from
-// those modules, which is why the install had been deferred to `start()`.
-// Nothing there may reach into table-view any more: implementing the interface
-// in `construct()` is all the table view needs to reach the DMS.
 import Module from "node:module";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import type * as TableViewInterface from "@antelopejs/interface-dms/base/table-view";
@@ -73,10 +64,8 @@ async function run(): Promise<EvaluationOrderResult> {
   const realtime = require(DMS_REALTIME) as typeof DmsRealtime;
   const rowTopic = tableView.tableViewRowTopic(LOCATION);
 
-  // A page registers its topics before the DMS implements the interface.
   realtimeInterface.RegisterPageTopic(PAGE_ID, rowTopic);
 
-  // What the DMS's `construct()` does, once every module has evaluated.
   ImplementInterface(
     realtimeInterface,
     require(DMS_REALTIME_IMPLEMENTATION) as typeof DmsRealtimeImplementation,

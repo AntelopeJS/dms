@@ -54,7 +54,7 @@ function buildUser(password: string | null): User {
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
-    // Mirrors HashModifier: the stored hash is compared, never exposed.
+
     testHash: (_field: string, candidate: string) =>
       candidate === CURRENT_PASSWORD,
   } as unknown as User;

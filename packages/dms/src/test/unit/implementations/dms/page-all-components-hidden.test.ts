@@ -50,8 +50,6 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-// Through `RegisterPage`, which collects the static components:
-// `registerTestPage` alone would register the page without its blocks.
 function registerPage(page: ControllerClass): () => void {
   RegisterPage()(page);
   return () => {
@@ -73,8 +71,6 @@ async function servedLayout(slug: string, permissions: string[]) {
   return payload.layout;
 }
 
-// A role granting a page but none of its blocks was served an empty layout the
-// browser drew as a blank page, exactly like a page declaring no block at all.
 describe("[unit] interface-dms/page — a layout whose every component is hidden", () => {
   const cleanups: Array<() => void> = [];
 

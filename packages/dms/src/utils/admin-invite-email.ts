@@ -14,8 +14,6 @@ interface AdminInviteSubjectCopy {
   workspaceOnPlatform: (workspace: string, platform: string) => string;
 }
 
-// The subject is set here rather than in the template, which only renders the
-// body; its wording follows the template's `emails.admin_invite` keys.
 const SUBJECT_COPY: Record<string, AdminInviteSubjectCopy> = {
   en: {
     generic: "You're Invited to Join",

@@ -63,7 +63,7 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(childOf(serialized, "live")?.options).to.deep.equal(
       PAGE_TOOLBAR_LIVE_DEFAULTS,
     );
-    // The selector's default comparisons: more than one choice, a menu.
+
     expect(childOf(serialized, "period")?.options).to.deep.equal({
       ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
       rangeLabel: "relative",
@@ -123,7 +123,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       }),
     ).to.deep.include({ defaultComparison: "previous-year" });
 
-    // A single comparison stays on without a control; none, nothing to draw.
     const single = periodOf({ comparisons: ["previous-period"] });
     expect(single).to.deep.include({ comparisonControl: "hidden" });
     expect(single).to.not.have.property("defaultComparison");
@@ -131,7 +130,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       comparisonControl: "hidden",
     });
 
-    // The page's own control wins.
     expect(
       periodOf({
         comparisons: ["previous-period", "none"],
@@ -157,7 +155,7 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       "toggle",
       PAGE_TOOLBAR_PERIOD_CHILD_ID,
     ]);
-    // `childId` and `meta` place the child: they are not the control's options.
+
     const live = childOf(serialized, "toggle")?.options as Record<
       string,
       unknown
@@ -184,7 +182,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
   });
 
   it("runs a child's transformOptions each time the page registers, over the defaults", async () => {
-    // A module's setting, known only once it is configured.
     let comparisons: Array<"previous-period" | "previous-year" | "none"> = [
       "previous-period",
       "none",
@@ -216,7 +213,6 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       variant: "pill",
     });
 
-    // A second registration reads the setting again.
     comparisons = ["none"];
     const second = await toolbar.serialize();
     expect(childOf(second, "period")?.options).to.deep.include({

@@ -1,6 +1,3 @@
-// Sign-in credentials and sessions of the signed-in user, for the Security
-// page and the password reset.
-
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type {
   SessionModel,
@@ -165,9 +162,6 @@ async function deleteOtherSessions(
   return others.length;
 }
 
-// The handoff takes the session's refresh slot: the refresh token the device
-// holds was signed with the old key and is dead anyway, and redeeming the
-// handoff rotates it out, so it serves once.
 async function handOffCurrentSession(
   user: User,
   { sessionModel, authorization }: SessionContext,

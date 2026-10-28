@@ -100,9 +100,6 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
         if (failAccept) throw new Error("accept effect acknowledgement lost");
       },
       onCleanup: (payload, context) => {
-        // Field by field, not `deepEqual`: the payload reaches the extension as
-        // a per-context view of the stored slice, which carries the same values
-        // without being the same object.
         assert.equal(
           (payload as InviteExtensionSlice | undefined)?.value,
           "snapshot",

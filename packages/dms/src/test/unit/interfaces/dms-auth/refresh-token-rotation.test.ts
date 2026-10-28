@@ -179,8 +179,6 @@ describe("refresh token rotation", () => {
   });
 
   it("keeps no refresh token in plaintext once rotated", async () => {
-    // Long enough that the random sealed text cannot contain it by chance,
-    // as it did with a two-character token about once in a hundred runs.
     const rotated = "rotated-refresh-token-in-plaintext";
     const model = createModel();
     model.currentSession = createSession("T0");
@@ -210,7 +208,7 @@ describe("refresh token rotation", () => {
     const model = createModel();
     model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
-    // Forge the predecessor check so only the seal stands in the way.
+
     (model.currentSession as Session).previousRefreshTokenHash =
       sha256("forged");
 

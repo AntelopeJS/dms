@@ -127,10 +127,8 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     if (existing) {
       const defaultPreferences = buildDefaultPreferences();
       await this.updatePreferences(userId, defaultPreferences);
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+
+      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the row's enumerable fields, not its class prototype, before replacing preferences.
       return { ...existing, preferences: defaultPreferences };
     }
 

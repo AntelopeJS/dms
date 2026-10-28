@@ -17,8 +17,6 @@ function leaf(id: string, title = id): PermissionTree {
   return { data: { id, title }, children: {} };
 }
 
-// sales.orders (page) › table (component with actions) and kpis (grid with a
-// `revenue` child component); `sales` itself is not registered.
 const TREE: Record<string, PermissionTree> = {
   sales: {
     children: {

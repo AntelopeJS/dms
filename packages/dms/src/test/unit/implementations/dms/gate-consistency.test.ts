@@ -76,8 +76,6 @@ describe("[unit] dms — the access paths agree under a denying gate", () => {
     }
   });
 
-  // The menu and realtime page access read the same rule; a surface visible in
-  // one and refused by the other is the divergence this suite exists to catch.
   for (const surface of SURFACES) {
     const expected = gateAllowsSurface(surface.options, true);
 

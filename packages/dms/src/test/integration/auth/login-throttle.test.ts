@@ -6,11 +6,6 @@ import { registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 
-// Wrong passwords are throttled per typed address and per client address, and
-// the burst check reads a bounded number of attempts however many are stored.
-// Each case signs in from a client address of its own (one trusted proxy), so
-// none spends the budget of the address the other suites sign in from.
-
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_TOO_MANY_REQUESTS = 429;
@@ -133,7 +128,7 @@ describe("[integration] auth/login throttle", () => {
       const response = await createClient().post(
         "/api/auth/login",
         { email, password },
-        // A forged x-forwarded-for: only the platform header counts.
+
         { headers: { "x-client-ip": ip, "x-forwarded-for": "198.51.100.1" } },
       );
       return response.status;

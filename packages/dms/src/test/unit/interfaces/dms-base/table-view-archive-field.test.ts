@@ -15,10 +15,6 @@ import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { ArchiveField } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
 
-// The archive field of a table view is read into its rows, which the client
-// evaluates the archive rules on: @ArchiveField makes it readable, unless the
-// field declares an access of its own.
-
 @RegisterTable("archive-field-test", CORE_SCHEMA_NAME)
 class ArchiveFieldRow extends Table {
   @Field("boolean") declare isArchived?: boolean;

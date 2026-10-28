@@ -13,10 +13,6 @@ import {
   isRejectedBearerToken,
 } from "../../implementations/dms-auth";
 
-// An access token issued for a session dies with that session: deleting the
-// row (signing the device out, logging out) refuses the token on the next
-// request instead of at its expiry.
-
 const TENANT_ID = "session-revocation-tenant";
 const HTTP_UNAUTHORIZED = 401;
 

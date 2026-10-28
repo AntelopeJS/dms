@@ -1,14 +1,3 @@
-// The tones of the DMS notifications whose colour depends on the event, not
-// only on its kind. Pure: the senders (account-notifications.ts,
-// workspace-notifications.ts) read them.
-//
-// The grid every DMS notification follows:
-// - error: an immediate risk, to act on now;
-// - warning: a "Not you?" security change, or a loss of access;
-// - success: protection added, or good news;
-// - primary: a useful action is available, nothing urgent;
-// - neutral: plain information.
-
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 
 /**

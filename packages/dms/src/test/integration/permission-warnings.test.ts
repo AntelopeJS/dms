@@ -9,10 +9,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// Managing members, invitations or roles lets the holder make themselves an
-// owner. That is intended, so the roles editor and the role pickers warn
-// about it, from the warnings the pages declare on those permissions.
-
 const EDITOR_TREE = pageRoutePath("/settings/workspace/roles", "/editor-tree");
 const MEMBER_ROLE_OPTIONS = pageRoutePath(
   "/settings/workspace/members",

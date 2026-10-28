@@ -95,9 +95,6 @@ export function resolveClientOrigin(
 
 type OriginRewriter = (value: string) => string;
 
-// Origin boundary: the configured URL is only substituted when it ends the
-// string or is followed by a path / query / fragment separator. This keeps
-// `http://h:5010` from matching inside `http://h:50100` (port prefix).
 const URL_BOUNDARY = "(?=[/?#]|$)";
 
 function escapeRegExp(value: string): string {
@@ -113,7 +110,6 @@ function buildOriginRewriter(
   );
   if (replacements.size === 0) return undefined;
 
-  // Longest-first so a URL that is a prefix of another wins the match.
   const alternation = [...replacements.keys()]
     .sort((a, b) => b.length - a.length)
     .map(escapeRegExp)
@@ -191,9 +187,7 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
   const shaped = { ...module };
   if (!keep.privateOptions) delete shaped.privateOptions;
   if (!keep.path) delete shaped.path;
-  // The routing declarations go together: an anonymous build gets none of
-  // them, and its frontend server then opens no session, no public route and
-  // no module prefix.
+
   if (!keep.authEstablishEndpoints) {
     delete shaped.authEstablishEndpoints;
     delete shaped.publicEndpoints;

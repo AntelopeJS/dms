@@ -165,10 +165,6 @@ export async function signup(
     authSchema.signup.parse(v),
   );
 
-  // The invitation is settled first so that a caller holding no invitation
-  // learns nothing: taking the account first answers an anonymous prober,
-  // whose bogus token then draws one refusal for a known address and another
-  // for an unknown one.
   const resolvedInvite = await resolveValidInvite(token, email);
   const { invite: existingInvite, tenantId } = resolvedInvite;
 

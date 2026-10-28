@@ -21,8 +21,7 @@ const CONTEXT = { tenantId: "tenant", user: undefined };
 const CATEGORY = "fwp-forms";
 const PAGE = `${CATEGORY}.watch-actions`;
 const FORM = `${PAGE}.form`;
-// What the gated watch requires: the form of another page, as the Watch
-// Actions demo requires the grouped form's.
+
 const GROUPED_PAGE = `${CATEGORY}.form-grouped`;
 const GROUPED_FORM = `${GROUPED_PAGE}.form`;
 
@@ -35,8 +34,6 @@ const REGISTERED = [
   { id: `${PAGE}.host`, title: "Host" },
 ];
 
-// The form of the Watch Actions demo: one watch for everyone, one gated by
-// `requirePermission`.
 const form = Form({
   title: "Demo Form",
   fields: [
@@ -77,8 +74,6 @@ const watchTargets = (options: unknown) =>
     (watch) => watch.params?.targetField,
   );
 
-// A host that opens the form in a drawer embeds it in its own options, as a
-// table view embeds its generated forms: not a node of the page's tree.
 const HOST = `${PAGE}.host`;
 const host = new ComponentBuilder<{ drawer: { content: unknown } }>(
   "DemoDrawerHost",

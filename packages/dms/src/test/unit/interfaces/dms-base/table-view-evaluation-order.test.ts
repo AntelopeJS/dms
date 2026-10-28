@@ -7,7 +7,7 @@ import type { EvaluationOrderResult } from "./table-view-evaluation-order.fixtur
 const FIXTURE = resolve(__dirname, "table-view-evaluation-order.fixture.js");
 const LOCATION = "/api/evaluation-order";
 const ROW = "evaluation-order-row";
-// A fresh Node process loads the interface and the DMS's realtime modules.
+
 const PROCESS_TIMEOUT_MS = 30_000;
 
 const runProcess = promisify(execFile);

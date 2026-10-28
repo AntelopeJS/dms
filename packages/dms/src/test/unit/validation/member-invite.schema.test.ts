@@ -34,8 +34,6 @@ describe("[unit] validation/member-invite.schema", () => {
     expect(result.success).to.equal(true);
   });
 
-  // An invite signup always validates the address: a caller still sending the
-  // retired switch gets neither the names nor the single address it imposed.
   it("ignores a retired skipEmailValidation flag", () => {
     const result = memberInviteSchema.safeParse({
       ...basePayload,

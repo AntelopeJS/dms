@@ -16,8 +16,7 @@ interface PageTopicBinding {
 }
 
 const messageSubscriptions = new Map<string, Unsubscribe>();
-// The core hands `unregister` nothing but the registration id, and each id
-// names one topic of one page.
+
 const pageTopicBindings = new Map<string, PageTopicBinding>();
 
 export namespace internal {
@@ -40,11 +39,6 @@ export namespace internal {
       topic: string,
       handler: RealtimeMessageHandler,
     ): void => {
-      // Re-registering an id replaces its subscription: dropping the handle
-      // without detaching would strand the previous one in the tracked set,
-      // where it is replayed onto every later broker with nothing left to
-      // remove it — a module reload would keep delivering to the handler of
-      // the torn-down instance.
       messageSubscriptions.get(id)?.();
       messageSubscriptions.set(id, subscribeRealtime(topic, handler));
     },

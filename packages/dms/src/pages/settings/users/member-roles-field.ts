@@ -1,8 +1,3 @@
-// The roles field of the members table's edit form ("Change roles"), drawn as
-// the role picker of the invite form. The data controller declares a plain
-// roles relation; the page swaps in its picker through the form's slot, so
-// the interface names no route or component of the DMS.
-
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import type {
   FormFieldOrGroupSerialized,

@@ -209,9 +209,6 @@ export async function resolveOAuthUser(
     ? undefined
     : await userModel.getByEmail(email);
 
-  // A seat in any workspace, hence CROSS_INSTANCE, is what keeps a provisioned
-  // account from being reclaimed as if it were an abandoned draft. The lookup
-  // stays out here so decideOAuthResolution remains a pure, DB-free rule.
   const belongsToWorkspace =
     !!sameEmailUser &&
     (await GetModel(TenantMemberModel, CROSS_INSTANCE).existsByUser(

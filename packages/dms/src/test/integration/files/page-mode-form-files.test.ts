@@ -14,9 +14,7 @@ const METADATA = "/api/files/metadata";
 const PRESIGN_URL = "/api/files/presign";
 const LOCATION = "/api/native-attachments";
 const FILE_FIELD = `${LOCATION}#file`;
-// A TableView with no formContainer opens its forms in page mode: each one is
-// the component of a hidden sub-page, not embedded in the table's options.
-// A sub-page's layout is served under its route pattern (`…/:id/edit`).
+
 const TABLE_SLUG = "/nativefiles";
 const PROFILE_SLUG = "/settings/user/profile";
 

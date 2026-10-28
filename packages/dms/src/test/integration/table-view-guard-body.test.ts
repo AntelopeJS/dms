@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// The `new` and `edit` guards of a table view amend the body their route
-// writes (src/test/attachment-host/computed.ts): `new` fills a field the
-// request left out, `edit` trims the title it sends.
-
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
 

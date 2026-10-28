@@ -1,6 +1,3 @@
-// What "Your data" on the profile page exports and what it checks before an
-// account is deleted. Pure: the store (account-data-store.ts) reads the rows.
-
 import {
   normalizeEmail,
   type Session,

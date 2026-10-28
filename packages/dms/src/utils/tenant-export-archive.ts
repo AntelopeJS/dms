@@ -67,12 +67,9 @@ class ExportArchiveWriter {
     private readonly signal: AbortSignal,
   ) {
     this.output = fs.createWriteStream(localPath);
-    // The consumer must be attached before the first entry: archiver's zip
-    // stream has a bounded internal buffer and stalls forever once it fills
-    // with nobody reading.
+
     this.archive.pipe(this.output);
-    // A permanent listener keeps a late archive error from reaching Node as an
-    // unhandled 'error' event; it is replayed on the next write instead.
+
     this.archive.on("error", (error: unknown) => {
       this.failure ??= error;
     });
@@ -117,8 +114,6 @@ class ExportArchiveWriter {
   }
 
   async appendFile(name: string, localPath: string): Promise<void> {
-    // An unreadable path only surfaces as an archiver warning, which would
-    // leave the awaited entry pending forever.
     await fs.promises.stat(localPath);
     await this.append(name, () => {
       this.archive.file(localPath, { name });
@@ -127,8 +122,7 @@ class ExportArchiveWriter {
 
   async finalize(): Promise<void> {
     const closed = finished(this.output);
-    // A failing finalize destroys the output before `closed` is awaited, which
-    // would otherwise surface as an unhandled rejection.
+
     closed.catch(() => undefined);
     await this.archive.finalize();
     await closed;
@@ -249,8 +243,7 @@ function resolveModuleIds(contributors: TenantExportContributor[]): string[] {
 async function writeContribution(
   writer: ExportArchiveWriter,
   moduleId: string,
-  // Mirrors the hook result, which stays `void` so a contributor may return
-  // nothing.
+
   contribution: TenantDataExportContribution | void,
 ): Promise<string | undefined> {
   if (!contribution) return undefined;
@@ -269,8 +262,6 @@ async function collectContribution(
   try {
     return await contributor.handler(options.tenantId, scoped, options.signal);
   } finally {
-    // Writes are refused past the handler's return: a late one would land in
-    // the stream position of whichever contributor runs next.
     scoped.close();
   }
 }
@@ -300,8 +291,6 @@ async function runContributor(
       failed: false,
     };
   } catch (error) {
-    // An abort or a broken archive cancels the whole export; only a genuine
-    // contributor failure degrades it to a partial archive.
     writer.throwIfAborted();
     writer.assertUsable();
     Logging.Error(

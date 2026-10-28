@@ -138,8 +138,6 @@ interface StoreOptions {
   dedupe: boolean;
 }
 
-// A keyed delivery is stored once per key already; any other is kept from
-// repeating itself within the duplicate window, unless the sender opted out.
 async function store(
   userId: string,
   data: NotificationData,
@@ -220,9 +218,6 @@ export namespace internal {
     return `${categoryId}:${subjectId}`;
   };
 
-  // A locked subject is delivered whatever the stored preference says: one
-  // saved before the lock, or through a route that did not check it, must
-  // not mute a mandatory notice.
   async function canSendNotification(
     userId: string,
     categoryId: string,
@@ -321,8 +316,6 @@ export namespace internal {
     );
   }
 
-  // The members of `tenantId` holding any of the roles, or of every tenant
-  // when it is not given.
   async function collectUserIdsWithRoles(
     roleIds: string[],
     tenantId: string | undefined,

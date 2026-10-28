@@ -113,8 +113,6 @@ describe("[unit] pages/settings/users members page", () => {
       expect(issuePaths(invitePayload)).to.deep.equal([]);
     });
 
-    // An invite signup always validates the address: the retired switch no
-    // longer limits the invitation to one named person.
     it("ignores a retired skipEmailValidation flag sent with several addresses", () => {
       const result = memberInviteSchema.safeParse({
         ...invitePayload,

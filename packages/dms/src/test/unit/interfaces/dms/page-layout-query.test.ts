@@ -387,8 +387,6 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     }
   });
 
-  // The page leaves a record that went missing under it: a loader that
-  // failed must not read as one that found none.
   it("says whether it found the record, found none, or failed to read it", async () => {
     expect((await served("s1")).recordStatus).to.equal("found");
     expect((await served("missing")).recordStatus).to.equal("missing");

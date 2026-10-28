@@ -350,7 +350,7 @@ async function prepareContext(
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );
-  // Installing next to a working copy would load the package a second time.
+
   if (!declaration) {
     const runtime = await listRuntimeModules();
     assert(

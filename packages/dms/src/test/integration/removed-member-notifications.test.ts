@@ -10,10 +10,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A member removed from their only workspace stays signed in. Their
-// notifications belong to them, not to the workspace: they still read them,
-// the one telling them they were removed included, and nothing else.
-
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
 const MEMBERS_API = "/api/tables/members";

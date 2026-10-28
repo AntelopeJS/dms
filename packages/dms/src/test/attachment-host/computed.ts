@@ -34,10 +34,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// Tasks with fields the database computes: `remaining` declares no access of
-// its own (`@Computed` makes it read-only), `shout` does. Neither is filtered
-// nor sorted by default, so the list must compute them for its page.
-
 const TABLE = "computed-tasks";
 const PROJECT_TABLE = "computed-projects";
 
@@ -134,7 +130,6 @@ export class ComputedTaskController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare projectId: string;
 
-  // A sub-query on the table: the tasks of the same project.
   @Listable()
   @Column({ name: "Siblings", type: new DefaultDataTypes.NumberType() })
   @Computed(
@@ -158,7 +153,7 @@ export class ComputedTasksPage extends RootPageController("computed-tasks", {
   static content = TableView(ComputedTaskController, {
     realtime: false,
     rowActions: { add: true, edit: true },
-    // Guards amending the body their route writes.
+
     guards: {
       new: (_ctx, { body }) => {
         body.spent ??= 0;

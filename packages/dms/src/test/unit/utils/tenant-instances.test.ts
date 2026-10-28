@@ -82,9 +82,6 @@ describe("[unit] utils/tenant-instances", () => {
     expect(listedByHandler).to.include(PROVISIONED_TENANT);
   });
 
-  // The harness booted the DMS on an empty database, so that start created
-  // the default tenant: the reload-host module saw it provisioned, once,
-  // without an owner, and only after its DATABASE_INITIALIZED handler ran.
   it("provisions the default tenant once, after DATABASE_INITIALIZED", () => {
     const defaults = reloadHostProvisionedTenants().filter(
       (call) => call.tenantId === DEFAULT_TENANT_ID,

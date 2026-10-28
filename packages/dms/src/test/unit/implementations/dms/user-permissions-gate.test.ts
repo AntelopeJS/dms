@@ -192,7 +192,7 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
       [RECOVERY_FULL_ID, PRODUCT_FULL_ID],
       ALLOWED_TENANT,
     );
-    // Whole as the role stores it, the category both pages sit under included.
+
     expect(granted.sort()).to.deep.equal(
       withPermissionAncestors([RECOVERY_FULL_ID, PRODUCT_FULL_ID]).sort(),
     );

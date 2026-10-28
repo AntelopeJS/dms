@@ -1,6 +1,3 @@
-// Which sign-ins are worth a "new device" alert. Pure: the store
-// (sign-in-monitor.ts) reads the history and sends the notification.
-
 import type { ParsedUserAgent } from "@antelopejs/interface-dms/auth/internal/user-agent";
 
 const FINGERPRINT_SEPARATOR = "|";
@@ -70,9 +67,6 @@ function splitFingerprint(fingerprint: string): FingerprintParts {
   };
 }
 
-// A sign-in whose country is unknown is matched on its device alone, as before
-// countries were read. One with a country needs that device seen from that
-// same country: an entry without one cannot vouch for it.
 function vouchesFor(entry: string, signIn: FingerprintParts): boolean {
   const known = splitFingerprint(entry);
   return (

@@ -48,8 +48,6 @@ function invitePermission(): string {
   return permissionId;
 }
 
-// The role as the roles editor stores it: completed with what each grant
-// depends on (the invite button sits on the members table, so its `list`).
 async function actionsFor(
   grantedPermissions: string[],
 ): Promise<Record<string, unknown>> {

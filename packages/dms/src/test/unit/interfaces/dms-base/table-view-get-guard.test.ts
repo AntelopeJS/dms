@@ -118,7 +118,7 @@ async function expectStatus(promise: Promise<unknown>, status: number) {
 describe("[unit] TableView Get guard", () => {
   let invoiceId: string;
   let quoteId: string;
-  // The row is read once: one query, its joined fields merged.
+
   const originalJoined = Query.Joined;
   before(async () => {
     void ImplementInterface(tenantAccess, tenantAccessImpl);

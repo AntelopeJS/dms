@@ -27,8 +27,6 @@ const REGULAR_PAGE_FULL_ID = "pages.ucap-normal";
 
 describe("[unit] implementations/dms/page — userCanAccessPage module gating", () => {
   before(async () => {
-    // Wire the mocha-loaded interface proxies to the mocha-loaded
-    // implementation so registered pages land in its page registry.
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
@@ -98,10 +96,6 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
   });
 
   it("unmarks a module page permission when the page unregisters (hot reload)", async () => {
-    // Default ids stay covered by the still-marked module root prefix, so
-    // the stale-deny scenario is only observable for a custom permission id
-    // living outside the modules.* namespace — exactly what unregister must
-    // release.
     const customPermissionId = "ucap-custom-perm";
     const reloadedPage = PageController("ucap-reloaded", {
       displayName: "Reloaded module page",

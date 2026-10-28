@@ -8,10 +8,6 @@ import {
 import { resetDatabase } from "../../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// Signing one device out, from the Security page or by logging out, cuts that
-// device off on its next request, not when its access token expires, and
-// leaves the account's other devices signed in.
-
 const SESSIONS_URL = pageRoutePath("/settings/user/security", "/sessions");
 const LOGOUT_URL = "/api/auth/logout";
 const ME_URL = "/api/auth/me";

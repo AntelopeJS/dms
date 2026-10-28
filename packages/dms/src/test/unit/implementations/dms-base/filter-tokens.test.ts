@@ -8,8 +8,6 @@ import {
 const NOW = new Date("2026-10-05T09:30:00.000Z");
 const CONTEXT = { userId: "user-42", now: NOW };
 
-// A request's filters as the list route parses them: `filter_<field>` gives
-// the value and the compare mode as written, which the type does not know.
 const asFilters = (
   filters: Record<string, [string, string] | [string, string][]>,
 ) => filters as unknown as Parameters.ListParameters["filters"];

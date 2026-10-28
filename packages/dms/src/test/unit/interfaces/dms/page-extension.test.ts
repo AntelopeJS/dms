@@ -1,5 +1,3 @@
-// A page extension is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
@@ -33,8 +31,6 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { captureErrors, captureWarnings } from "../../../helpers/logging";
 
-// Page registration and extension syncing are promise-chained but do no I/O:
-// one macrotask hop is enough for every pending microtask to settle.
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
@@ -267,7 +263,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
         .after("table");
     }
 
-    // Page A: the "Zulu module" starts first. Page B: the "Alpha module" does.
     RegisterPageExtension("pages.pe-race-a")(ZuluExtension);
     RegisterPageExtension("pages.pe-race-a")(AlphaExtension);
     RegisterPageExtension("pages.pe-race-b")(AlphaExtensionB);
@@ -324,8 +319,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
         .meta({ name: "Early" })
         .before("table");
     }
-    // The extending module starts first: the target page has not run its
-    // @RegisterPage yet, so the injection is held until it does.
+
     RegisterPageExtension("pages.pe-deferred")(Extension);
     await settle();
     expect(GetPageLayoutBySlug("/pe-deferred")).to.equal(undefined);
@@ -351,10 +345,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
         .before("table");
     }
 
-    // No settle() in between: the extending module registers while the page is
-    // still serializing its own components, so "table" is not yet a key the
-    // page declares. The graft waits for the page to finish before resolving
-    // anything, so the anchor still lands where it belongs and nothing warns.
     const captured = captureWarnings();
     try {
       RegisterPage()(Target);
@@ -375,8 +365,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     ]);
   });
 
-  // The failure lands after the page is published and before it serializes
-  // anything — the window in which extensions are already held back.
   it("settles the syncs of a page whose registration fails before serializing", async () => {
     const brokenCategory: CategoryInfo = {
       ...pagesCategory,
@@ -407,9 +395,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     }
     expect(failed).to.equal(true);
 
-    // Everything on this page queues behind the gate, the teardown of its
-    // extensions included, so a registration that throws on its way must still
-    // release it.
     const outcome = await Promise.race([
       meta.SyncExtensions().then(() => "settled"),
       new Promise((resolve) => setTimeout(() => resolve("stuck"), 100)),
@@ -462,8 +447,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     RegisterPageExtension("pages.pe-gated")(Extension);
     await settle();
 
-    // Granted the page's own component but not the injected one: the block is
-    // gated on its own node, exactly like a component the page declares.
     expect(
       await layoutKeys("/pe-gated", grantedTo(["pages.pe-gated.table"])),
     ).to.deep.equal(["table"]);
@@ -611,7 +594,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
       permissionsImpl.GetPermission("pages.pe-rollback.badBlock"),
     ).to.equal(undefined);
 
-    // The failure must not be replayed on the next sync of that page.
     pageInternal.RegisterPageExtension.register({
       extensionName: "ZuluRollbackExtension",
       targetFullId: "pages.pe-rollback",
@@ -654,8 +636,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     });
     await settle();
 
-    // The other registration order: the failure must not break the page's own
-    // registration either — it is consumed before Register() awaits the sync.
     await registerPage(Target);
 
     expect(await layoutKeys("/pe-deferred-failure")).to.deep.equal([
@@ -684,9 +664,6 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     RegisterPageExtension("pages.pe-hot-reload")(Extension);
     await settle();
 
-    // A dev hot reload: the page unregisters and comes straight back under a
-    // new class. The old metadata's teardown must not strip the replacement's
-    // permissions, which are derived from the same page id.
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
     pageImpl.internal.RegisterPage.unregister(
       pageInfo as NonNullable<typeof pageInfo>,

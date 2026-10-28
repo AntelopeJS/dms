@@ -31,9 +31,6 @@ export const TWO_FACTOR_ATTEMPTS_PER_ACCOUNT = 10;
  */
 export const TWO_FACTOR_WINDOW_MS = 60 * MS_PER_MINUTE;
 
-// The token is the challenge: each password sign-in issues a new one, with an
-// id of its own, so a new sign-in starts a fresh count. Only its hash is
-// stored.
 function challengeKey(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -42,8 +39,6 @@ function windowStart(now: Date): Date {
   return new Date(now.getTime() - TWO_FACTOR_WINDOW_MS);
 }
 
-// Whether `tries` leaves room for `pending` more codes: one before a try is
-// recorded, none once it counts itself.
 function assertTriesLeft(tries: TwoFactorTries, pending: number): void {
   assert(
     tries.accountTries + pending <= TWO_FACTOR_ATTEMPTS_PER_ACCOUNT,
@@ -71,9 +66,6 @@ async function assertChallengeOpen(
   assertTriesLeft(tries, 1);
 }
 
-// Counted before the code is checked, so concurrent tries on several
-// instances share one budget. A refused code is not counted: the window
-// passes for a user who keeps trying.
 async function claimAttempt(
   userId: string,
   challenge: string,
@@ -95,10 +87,6 @@ async function claimAttempt(
   return tries;
 }
 
-// Forgetting the account's tries follows the login throttle, which clears an
-// address once its password is given: only the holder of the second factor
-// gets here, so an attacker cannot reset the count with it, and the right
-// code just counted never weighs as a wrong one.
 async function closeChallenge(
   userId: string,
   challenge: string,
@@ -114,8 +102,6 @@ async function closeChallenge(
   await attempts.clearTwoFactorAttempts(userId);
 }
 
-// Keyed on the oldest try of the window: the instances that see the same
-// burst reach the limit send one notification between them.
 async function warnOfLockout(userId: string, now: Date): Promise<void> {
   const oldest = await GetModel(SignInAttemptsModel).oldestTwoFactorAttempt(
     userId,

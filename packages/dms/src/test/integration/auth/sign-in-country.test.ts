@@ -7,10 +7,6 @@ import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The "New sign-in" check reads a sign-in's country through the proxy header
-// the deployment names: the same browser and system from another country is
-// a new sign-in, and its notice names the country, not the address.
-
 const COUNTRY_HEADER = "CF-IPCountry";
 const CHROME_ON_WINDOWS =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
@@ -57,7 +53,6 @@ describe("[integration] auth/sign-in country", () => {
     );
   };
 
-  // The notice is sent in the background of the sign-in.
   const waitForNotices = async (count: number) => {
     for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
       const notices = await newSignInNotices();

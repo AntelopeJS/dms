@@ -2,7 +2,6 @@ import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import { compileRowRule } from "../../../../implementations/dms-base/footer-summary";
 
-// A condition built by hand: each operator records itself as text.
 interface Expression {
   text: string;
   and: (other: Expression) => Expression;

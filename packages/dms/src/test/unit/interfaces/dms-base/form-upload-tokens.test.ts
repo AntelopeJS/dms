@@ -96,9 +96,6 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     expect(fieldOptions(field).uploadToken).to.equal(undefined);
   });
 
-  // An embedded form — a relation field's inline add form, a table view's
-  // new form — serializes synchronously inside its host's options: the host's
-  // transform is what reaches it.
   it("stamps the fields of a form embedded in another component's options", async () => {
     const hostOptions = {
       addForm: {
@@ -133,7 +130,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
       field: "documents#attachment",
       visibility: "public",
     });
-    // The declaration is untouched: serialization can run again on hot reload.
+
     expect(
       (
         hostOptions.addForm.options.fields[0].component.options as Record<
@@ -144,10 +141,6 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     ).to.equal(undefined);
   });
 
-  // What matters is that nothing was cloned. Reference equality cannot say so
-  // across the interface boundary — the caller gets a per-context view of the
-  // input back, never the input itself — so the input is mutated afterwards
-  // and the returned value has to show it. A clone would not.
   it("returns options without upload fields untouched", async () => {
     const options = { title: "no uploads here", fields: [] as unknown[] };
 
@@ -158,8 +151,6 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     expect(returned.title).to.equal(options.title);
   });
 
-  // Serialization runs again on a hot reload: each pass must start from the
-  // untransformed declaration, never re-stamp a stamped state.
   it("does not mutate the declared fields across serializations", async () => {
     const form = Form({
       fields: [

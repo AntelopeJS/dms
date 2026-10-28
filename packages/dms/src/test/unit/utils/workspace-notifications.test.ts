@@ -20,8 +20,6 @@ describe("[unit] utils/workspace-notifications", () => {
       );
     });
 
-    // The roles editor fires it after answering: a rejection would be
-    // unhandled, and the runtime exits the process on one.
     it("settles without rejecting when the database fails", async () => {
       let ownersRequested = false;
       TenantMemberModel.prototype.listOwners = () => {

@@ -52,9 +52,6 @@ async function failureStatus(path: string): Promise<unknown> {
   return undefined;
 }
 
-// A module's own address has no page. Its page request is answered with the
-// module's landing page, so the page render runs the module routing middleware
-// (which redirects there) instead of the server failing the visit with a 404.
 describe("[unit] implementations/dms/page — a module's own address", () => {
   const cleanups: Array<() => void> = [];
 

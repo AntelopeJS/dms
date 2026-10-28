@@ -21,7 +21,7 @@ const AUDIT = {
   label: "Audit",
   target: { type: "page" as const, url: "/audit" },
 };
-// A table view's button placed in the header, served with the table.
+
 const INVITE = {
   id: "table:invite",
   label: "Invite",

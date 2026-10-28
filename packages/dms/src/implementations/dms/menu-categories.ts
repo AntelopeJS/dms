@@ -1,8 +1,3 @@
-// The site layout lists every category once, keyed by full id, and each page,
-// category and tree entry names its category by id (`categoryId`) instead of
-// carrying a copy of it, and of its parents in turn: the layout is the bulk of
-// every page object a browser receives, and the copies made most of it.
-
 /** An entry as the site layout serves it: its category named by full id. */
 export type WithCategoryRef<T> = Omit<T, "category"> & { categoryId?: string };
 

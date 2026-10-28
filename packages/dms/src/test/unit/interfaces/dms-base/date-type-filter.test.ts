@@ -5,7 +5,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import type { DataCompareMode } from "@antelopejs/interface-dms/base/data-types/core";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
 
-// The expression a filter builds, recorded instead of querying a database.
 class Expression {
   constructor(
     readonly op: string,

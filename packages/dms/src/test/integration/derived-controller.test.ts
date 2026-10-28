@@ -8,10 +8,6 @@ import { findUploadToken, uploadAttachment } from "../helpers/attachments";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// `DerivedNoteController extends DataController(Note, {},
-// Controller("/api/derived-controller/derived-notes", BaseNoteController))`:
-// the same notes behind a second writing screen (src/test/attachment-host).
-
 const BASE = "/api/derived-controller/base-notes";
 const DERIVED = "/api/derived-controller/derived-notes";
 const BASE_SLUG = "/base-notes";

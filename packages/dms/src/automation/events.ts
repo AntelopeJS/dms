@@ -80,10 +80,10 @@ export function emitAutomationEvent<E extends AutomationEventName>(
   payload: AutomationEventPayloads[E],
 ): void {
   for (const listener of listenersFor(event)) {
+    // oxfmt-ignore
     try {
       listener(payload);
     } catch {
-      // a failing procedure must never break the emitting business flow
     }
   }
 }

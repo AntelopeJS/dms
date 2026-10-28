@@ -1,8 +1,4 @@
-// The two model doubles below implement only `getByUser` and `getBy`, the pair
-// every page-access case calls. Neither structurally satisfies its model type,
-// so the chain is how a partial double reaches it; building full instances
-// would test the instance.
-/* oxlint-disable anti-slop/no-chained-type-assertions */
+/* oxlint-disable anti-slop/no-chained-type-assertions -- Permission fixtures implement only getByUser and getBy, not the full member and role model classes. */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type {

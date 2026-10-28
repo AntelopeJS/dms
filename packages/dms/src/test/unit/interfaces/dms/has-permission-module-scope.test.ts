@@ -10,8 +10,6 @@ const REGULAR_PERMISSION = "hpms-regular.page";
 
 describe("[unit] interfaces/dms/permissions — HasPermission module scoping", () => {
   before(async () => {
-    // The mocha-loaded copy of the module has no runtime wiring; connect the
-    // permission registry so the non-module path (GetPermission) resolves.
     ImplementInterface(permissionsInterface, permissionsImpl);
     permissionsInterface.MarkModuleScopedPermission(MODULE_PAGE_PERMISSION);
     permissionsInterface.RegisterPermission(REGULAR_PERMISSION, {

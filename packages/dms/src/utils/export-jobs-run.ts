@@ -1,8 +1,3 @@
-// Running an export job: generation context, ownership, access and delivery of
-// the produced file.
-//
-// Split out of export-jobs.ts.
-
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { Readable } from "node:stream";
@@ -37,8 +32,6 @@ import {
 } from "./export-jobs";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
-// The contract declares the vocabulary; re-exported so a caller inside the
-// module reaches the whole export surface from one place.
 export type {
   ExportJobAccessOptions,
   ExportJobGenerateContext,
@@ -70,10 +63,7 @@ function assertOwnership<TContext>(
   }
   const context = record.json_context
     ? (JSON.parse(record.json_context) as TContext)
-    : // The stored context is absent for jobs that carry none, and TContext has
-      // no null in it. Widening the generic ripples through every caller of the
-      // export-job helpers; left for that pass.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    : // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Jobs without stored context pass null through the existing generic context contract.
       (null as unknown as TContext);
   if (access?.isOwnedBy) {
     assert(
@@ -103,8 +93,6 @@ async function deliverExportJob(
   try {
     await getDeliverer(record.delivery).deliver(record, resourceKey);
   } catch (error) {
-    // Delivery only notifies: the artifact is stored and stays reachable from
-    // the job itself, so a failed e-mail must not fail a completed export.
     Logging.Error(`Export job ${jobId} delivery failed:`, error);
   }
 }
@@ -116,8 +104,7 @@ async function processExportJob<TContext>(
   generate: RunExportJobOptions<TContext>["generate"],
 ): Promise<void> {
   const localPath = getExportLocalScratchPath(job.jobId, job.extension);
-  // Set between a successful upload and the completion write, the window where
-  // a stored object exists that no record points at yet.
+
   let uploadedResourceKey: string | undefined;
   const abortController = new AbortController();
   const timeoutHandle = setTimeout(() => {
@@ -171,15 +158,14 @@ async function processExportJob<TContext>(
     uploadedResourceKey = resourceKey;
     throwIfAborted();
     await model.markAsCompleted(job.jobId, resourceKey, result ?? undefined);
-    // The record now points at the object: the sweep owns its lifetime.
+
     uploadedResourceKey = undefined;
     await deliverExportJob(model, job.jobId, resourceKey);
   } catch (error: unknown) {
     fs.rmSync(localPath, { force: true });
-    // Mark first: a storage delete that hangs must not leave the job stuck in
-    // `generating` — the record is what the requester polls.
+
     await model.markAsFailed(job.jobId, error, uploadedResourceKey);
-    // The failed record retains the uploaded path if immediate cleanup fails.
+
     if (uploadedResourceKey) {
       await deleteExportFromStorage(uploadedResourceKey);
     }
@@ -343,10 +329,7 @@ export async function downloadExportJob<TContext = unknown>(
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
   const nodeReadable = Readable.fromWeb(
-    // Node's web-stream types and the DOM BodyInit / AsyncIterable do not
-    // overlap, so neither can be a single assertion; the runtime accepts
-    // the stream.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The response body is passed to Node's web-stream adapter through its declared stream parameter type.
     body as unknown as Parameters<typeof Readable.fromWeb>[0],
   );
 
@@ -366,8 +349,6 @@ export async function downloadExportJob<TContext = unknown>(
     );
   };
 
-  // A retained job stays downloadable until the sweep expires it: its history
-  // row and any delivered link both outlive this first download.
   if (!record.retainUntilExpiry) {
     writeStream.once("close", cleanup);
   }

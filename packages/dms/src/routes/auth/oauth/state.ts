@@ -65,10 +65,7 @@ function isSameState(state: string, cookieState: string): boolean {
 
 function decodeState(state: string): OAuthStateClaims | undefined {
   try {
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- verify checks the signature, not OAuthStateClaims; this cast asserts the decoded shape without runtime validation.
     return verify(state, getStateSecret()) as unknown as OAuthStateClaims;
   } catch {
     return undefined;

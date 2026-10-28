@@ -12,18 +12,18 @@ export const FEED_SEARCH_MAX_KEYS = 200;
 export const FEED_SEARCH_MAX_KEY_LENGTH = 200;
 
 const READ_STATES = ["unread", "read"] as const;
-// The unfiltered tab, which older clients may name.
+
 const ALL_READ_STATES = "all";
 const KEY_LIST_SEPARATOR = ",";
-// What a stored title or description starts with when it is a message key.
+
 const MESSAGE_KEY_MARKER = "$";
-// A message key without its `$` marker, as `dms.notifications.messages.x.title`.
+
 const MESSAGE_KEY_PATTERN = /^[\w.-]+$/;
-// Category and subject ids.
+
 const ID_PATTERN = /^[\w.:-]{1,100}$/;
 const REGEX_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\/-]/g;
 const WHITESPACE_RUN = /\s+/g;
-// A UUID's first groups, or a whole number of ten digits or more.
+
 const MACHINE_VALUE = String.raw`[0-9a-f]{8}-[0-9a-f]{4}-|\d{10,}$`;
 
 export type NotificationReadState = (typeof READ_STATES)[number];
@@ -173,10 +173,7 @@ function paramsContain(
     .default({})
     .cast<ParamValues>()
     .values()
-    .filter((value) =>
-      // `downcase` turns a number into its digits, which `match` needs.
-      value.cast<string>().downcase().match(pattern),
-    )
+    .filter((value) => value.cast<string>().downcase().match(pattern))
     .isempty()
     .not();
 }

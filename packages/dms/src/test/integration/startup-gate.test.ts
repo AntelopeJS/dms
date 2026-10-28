@@ -2,11 +2,6 @@ import { expect } from "chai";
 import { StartModule, StopModule } from "@antelopejs/interface-core/modules";
 import { createClient } from "../helpers/http";
 
-// The api module serves its port before the DMS `start()` has bound its
-// schemas. Until the core announces that every module has started, every
-// route must answer 503 with Retry-After rather than reach a tenant-scoped
-// model and fail with "Role is not bound to a schema" (500).
-
 const HTTP_SERVICE_UNAVAILABLE = 503;
 const DMS_MODULE = "local";
 const GATED_PATHS = ["/dms/store/listing", "/api/system-state"];

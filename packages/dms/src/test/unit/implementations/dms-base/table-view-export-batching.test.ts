@@ -33,8 +33,6 @@ const ctx = {
   url: new URL("http://localhost/export"),
 } as RequestContext;
 
-// Two full pages plus a partial one: the third iteration is where the
-// (start, end) misreading of slice() overlaps the widest.
 const ROW_COUNT = EXPORT_BATCH_SIZE * 2 + Math.floor(EXPORT_BATCH_SIZE / 2);
 const ID_FIELD = "_id";
 
@@ -63,7 +61,6 @@ class InvoiceAPI extends DataController(
   @Access(AccessMode.ReadOnly)
   declare position: number;
 
-  // Computed in the database, and neither sorted nor filtered on.
   @Exported()
   @Computed((row) => (row.key("position") as ValueProxy<number>).add(1))
   declare rank: number;
@@ -142,8 +139,6 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
     );
   });
 
-  // The id-scoped export (a selection larger than one page) paginates through
-  // the same loop from a different query builder.
   it("exports a multi-batch id selection exactly once", async () => {
     const writer = await exportAll(sourceIds);
     const exportedIds = idsOf(writer);

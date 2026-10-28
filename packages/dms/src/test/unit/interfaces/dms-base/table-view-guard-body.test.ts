@@ -7,11 +7,6 @@ import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
 
-// A `new` guard amends the body the route writes: a generated number filled
-// in, a field dropped. The data API route parses the raw body it is handed, so
-// what it writes is what the guard left. The edit guard, which reads the row
-// it edits, is covered over HTTP (integration/table-view-guard-body.test.ts).
-
 const ctx = {} as RequestContext;
 
 class AmendingController {}

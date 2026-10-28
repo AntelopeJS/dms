@@ -222,8 +222,7 @@ describe("[unit] interfaces/dms-base/table-view-relation-payload — relation co
   it("weighs what the forms carry, not five copies per column", () => {
     const options = tableOptions();
     const { formComponents } = options;
-    // Measured on this fixture: 29.9 KB in all, 11.6 KB of column types and
-    // 15 add forms when every copy carried one; 12.1 KB, 1.8 KB and 4 since.
+
     console.log(
       `      payload: total ${sizeOf(options)} B, columns ${sizeOf(options.columns)} B, ` +
         `new ${sizeOf(formComponents.new)} B, edit ${sizeOf(formComponents.edit)} B, ` +

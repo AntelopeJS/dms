@@ -79,7 +79,7 @@ import { declarePermissionWarning } from "./permission-warnings";
 import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// Between Members (1) and Roles (3) in the workspace settings.
+
 const INVITES_PAGE_ORDER = 2;
 const HTTP_NOT_FOUND = 404;
 const HTTP_GONE = 410;
@@ -100,7 +100,7 @@ export class inviteSettingDataAPI extends DataController(
   UserInvite,
   {
     list: TableViewRoutes.List,
-    // The tab counters of the members page's lists.
+
     countBatch: TableViewRoutes.CountBatch,
     get: inviteGetRoute,
     edit: inviteEditRoute,
@@ -125,8 +125,7 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
-    // Email, roles and sent date truncate: they give the status pill and the
-    // French row actions their room on a 1440px screen.
+
     size: 160,
     display: new DefaultDisplays.IdentityDisplay({
       icon: "i-ph-envelope-simple",
@@ -168,8 +167,7 @@ export class inviteSettingDataAPI extends DataController(
         value: "_id",
       },
     }),
-    // The pills of the members' "Change roles" form, not a relation picker:
-    // its "add" entry would create a role outside the roles editor.
+
     inputComponent: editRolePicker({
       rolesUrl: INVITE_ROLE_OPTIONS_URL,
       ownerField: "asTenantOwner",
@@ -193,7 +191,7 @@ export class inviteSettingDataAPI extends DataController(
   @Column({
     name: "$page.settings.invites.column.owner",
     type: new DefaultDataTypes.BooleanType(),
-    // Drawn as the crown pill of the roles cell.
+
     isVisible: false,
   })
   @Access(AccessMode.ReadWrite)
@@ -242,7 +240,7 @@ export class inviteSettingDataAPI extends DataController(
       new: ReadonlyBehaviorType.hidden,
     },
     size: 90,
-    // "In 5 days", amber within a day, the bare date once expired.
+
     display: new DefaultDisplays.RelativeDateDisplay({
       soonWithinMs: DAY_MS,
       pastStyle: "day",
@@ -271,8 +269,7 @@ export class inviteSettingDataAPI extends DataController(
       onlineColor: "warning",
       offlineColor: "neutral",
     }),
-    // Room for the longest pill, the French "En attente" (98px), beside the
-    // cell's 28px of gutters.
+
     size: 128,
   })
   @Access(AccessMode.ReadOnly)
@@ -281,20 +278,12 @@ export class inviteSettingDataAPI extends DataController(
   }
 }
 
-// Reached from the members page rather than the settings menu: nested under
-// it, so its URL and breadcrumb go through Members. The permission keeps the
-// id it had as a user-category page, so the roles that already grant it are
-// unchanged.
 const inviteApiTarget = (action: string) =>
   pageRoutePath(INVITES_PAGE_PATH, `/{{row._id}}/${action}`);
 
-// Pending invitations only: an expired one can be resent or removed.
 const PENDING = { field: "status", equals: true } as const;
 const EXPIRED = { field: "status", equals: false } as const;
 
-// Next to Members rather than under it, like its permission: a role holding
-// the invitations alone reaches them without crossing a Members page it
-// cannot see. The settings navigation lists it right after Members.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$page.settings.shell.member_invitations",
@@ -307,8 +296,7 @@ export class InvitesSettingsController extends PageController("invites", {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
-    // "Edit invitation" opens over the list, like the members' "Change
-    // roles": the address in the title, the roles as the invite form's pills.
+
     formContainer: {
       type: "modal",
       size: "md",
@@ -337,8 +325,7 @@ export class InvitesSettingsController extends PageController("invites", {
         navBadge: true,
       },
     ],
-    // Modules edit the data they attached through `RegisterInviteExtension`
-    // here, until the invitee accepts.
+
     formSlots: { edit: INVITE_EDIT_FORM_SLOT_ID },
     customButtons: [
       {
@@ -393,9 +380,7 @@ export class InvitesSettingsController extends PageController("invites", {
             confirmLabel: "$page.settings.invites.action.resend",
           },
         },
-        // An icon (named, with its tooltip) rather than a label: with Resend
-        // and Revoke labelled, the five columns fit the settings column of a
-        // 1440px screen beside the actions, none hidden under them.
+
         {
           label: "$page.settings.invites.action.copy_link",
           icon: "i-ph-link",
@@ -521,8 +506,7 @@ const invitesTableEditAction =
 if (!invitesTableEditAction) {
   throw new Error("Invites table is expected to register an 'edit' action");
 }
-// Editing a pending invitation can give it any role or make the invitee an
-// owner, like inviting (see the members table's add action).
+
 declarePermissionWarning(
   invitesTableEditAction,
   "$page.settings.roles.warning.invites",

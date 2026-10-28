@@ -4,8 +4,6 @@ import type { JwtPayload } from "jsonwebtoken";
 import { applyConfig, getHtmlRenderConfig } from "../../../../config";
 import { generateServiceToken } from "../../../../implementations/dms-html-render/service-jwt";
 
-// Mirrors `claimsValid` in the frontend render server
-// (@antelopejs/dms-frontend templates/vue/server/render-token.mjs).
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
 const RENDER_TOKEN_MIN_JTI_LENGTH = 16;
 const DEFAULT_SERVICE_TOKEN_LIFETIME = 5 * 60 * 1000;

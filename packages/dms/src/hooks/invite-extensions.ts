@@ -42,8 +42,6 @@ async function onMemberRemoved(
   payload: MemberRemovedHookPayload,
 ): Promise<undefined> {
   for (const userId of payload.userIds) {
-    // No payload to hand over: it left with the invitation the member accepted.
-    // A contributor keys its own data off the member instead.
     await CleanupInviteExtensions(undefined, {
       reason: "member-removed",
       tenantId: payload.tenantId,

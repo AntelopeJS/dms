@@ -35,10 +35,6 @@ const gateInfo = denyingTenantGate(
   SUSPENDED_CODE,
 );
 
-// The by-slug entry (`GET /dms/pagelayout`) only requires a session, so the
-// resolver is what applies the gate there. The page's own route is guarded by
-// its auth decorators instead — and `authOnly` pages never receive the
-// tenant-scoped models at all, which is why they must stay exempt.
 const models = stubPageAccessModels(["*"]);
 
 async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
@@ -123,9 +119,6 @@ describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant g
     );
   });
 
-  // The three exemptions: a recovery surface opts out explicitly, and
-  // authOnly/publicAccess pages are the screens a denied tenant must still
-  // reach — the auth pages and the suspended-workspace screen.
   it("serves a page flagged bypassTenantAccessGate", async () => {
     expect(await loadLayout(slugs.recovery, DENIED_TENANT)).to.not.equal(
       undefined,

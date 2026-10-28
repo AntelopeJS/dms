@@ -13,7 +13,7 @@ export interface FilterTokenContext {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// `{{user.id}}`, `{{now}}`, `{{now-7d}}`, `{{now+14d}}`.
+
 const TOKEN = /\{\{\s*(user\.id|now)(?:\s*([+-])\s*(\d+)d)?\s*\}\}/g;
 
 function resolveToken(

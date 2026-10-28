@@ -83,8 +83,6 @@ function mapPermissionTreeNode<TNode extends PermissionNodeShape<TNode>>(
   return [createNode(node.data, undefined)];
 }
 
-// Below a node every member holds, keeps only the menu entries: the rest is
-// its own components and actions.
 function liftFiledEntries<TNode extends PermissionNodeShape<TNode>>(
   branch: Record<string, PermissionTree>,
   createNode: PermissionNodeFactory<TNode>,
@@ -97,8 +95,6 @@ function liftFiledEntries<TNode extends PermissionNodeShape<TNode>>(
   });
 }
 
-// Called once nothing below the node is left to render: when it had
-// permissions below it, all of them were hidden.
 function isHeadingOverNothing(
   id: string,
   node: PermissionTree,

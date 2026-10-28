@@ -113,7 +113,6 @@ describe("[unit] store/runtime sources", () => {
 });
 
 describe("[unit] store/production", () => {
-  // The harness runs the module outside development mode, as production does.
   it("refuses to change a module outside development", async () => {
     const refusal = await startStoreOperation(
       "install",

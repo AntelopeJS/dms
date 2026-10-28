@@ -57,8 +57,7 @@ export class RegionSettingsController extends PageController("region", {
     const input = assertValidation(fromRegionFormValues(body), (value) =>
       regionalPreferencesSchema.parse(value),
     );
-    // The whole stored row is written back: a partial update would drop the
-    // fields it does not name, the password hash among them.
+
     const stored = await userModel.get(this.user._id);
     assert(stored, HTTP_NOT_FOUND, "error.user_not_found");
     applyRegionalPreferences(stored, input);

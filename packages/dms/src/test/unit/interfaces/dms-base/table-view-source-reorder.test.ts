@@ -90,7 +90,6 @@ interface SourceColumnSerialized {
   enableColumnFilter: boolean;
 }
 
-// A source table carries the column metadata a controller would give it.
 type SourceTableSerialized = TableViewOptionsSerialized & {
   columns: SourceColumnSerialized[];
 };
@@ -346,7 +345,6 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     const reached: FeatureModel[] = [];
     const guards: FeatureOptions["guards"] = {
       delete: function () {
-        // Compiles only while `this` is typed as the controller.
         reached.push(this.model);
       },
     };

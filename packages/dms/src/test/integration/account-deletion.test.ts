@@ -15,9 +15,6 @@ import { uploadExportToStorage } from "../../utils/export-jobs";
 import { authorizedClient, loginUser, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// An account deletion takes the exports the user started with it, their files
-// included, and checks what stands in its way itself, whatever its caller did.
-
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
 const EXPORT_EXTENSION = "csv";
