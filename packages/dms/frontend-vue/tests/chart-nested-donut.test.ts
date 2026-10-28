@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const CARD_SERIES = [
   {
@@ -14,13 +15,6 @@ const CARD_SERIES = [
     ],
   },
 ];
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: { fetchUrl?: string }) => ({
-    data: ref(options.fetchUrl ? { value: 8, series: CARD_SERIES } : null),
-    isLoading: ref(false),
-  }),
-}));
 
 interface CircularOptions {
   labels?: string[];
@@ -70,14 +64,13 @@ async function renderNested(type: ChartType) {
   });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app, { value: 8, series: CARD_SERIES });
+  await renderToString(app);
   return renderToString(app);
 }
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

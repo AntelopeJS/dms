@@ -13,6 +13,11 @@ import {
 } from "vue";
 import GithubStarPrompt from "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue";
 import EmptyLayout from "../layers/dms-layout/app/custom-layouts/EmptyLayout.vue";
+import DefaultLayout from "../layers/dms-layout/app/custom-layouts/DefaultLayout.vue";
+import {
+  installShellRuntime,
+  registerShellUi,
+} from "./helpers/live-shell-runtime";
 import SaveBar from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
 import {
   GITHUB_STAR_PROMPT_DELAY_MS,
@@ -21,26 +26,8 @@ import {
   GITHUB_STAR_PROMPT_TICK_MS,
 } from "../layers/dms-layout/app/build/composables/general/useGithubStarPrompt";
 import { GITHUB_REPOSITORY_URL } from "../layers/dms-layout/app/build/utils/github-repository";
-
-vi.mock("../layers/dms-layout/app/build/components/layout/Footer.vue", () => ({
-  default: { render: () => null },
-}));
-
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/sidebarState",
-  () => ({
-    useSidebarState: () => ({ open: isSidebarOpen, collapsed: ref(false) }),
-  }),
-);
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/layout/sidePanelState",
-  () => ({
-    useActiveSidePanel: () => ({
-      panel: computed(() => (isSidePanelOpen.value ? { id: "panel" } : null)),
-    }),
-  }),
-);
+import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
+import { registerSidePanel } from "../layers/dms-layout/app/composables/useAppSidePanels";
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -48,7 +35,7 @@ const HOUR_MS = 60 * MINUTE_MS;
 let storage: Map<string, string>;
 let user: Ref<object | null>;
 let toasts: Ref<object[]>;
-let isSidebarOpen: Ref<boolean>;
+let disposeRuntime: () => void;
 let isSidePanelOpen: Ref<boolean>;
 let visibility: DocumentVisibilityState;
 let app: App | undefined;
@@ -92,6 +79,14 @@ async function mount(component: Component = GithubStarPrompt): Promise<void> {
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(component);
+  registerShellUi(app);
+  app.component("UDashboardGroup", (_, { slots }) =>
+    h("div", slots.default?.()),
+  );
+  app.component("UDashboardPanel", (_, { slots }) =>
+    h("main", [slots.header?.(), slots.body?.(), slots.footer?.()]),
+  );
+  app.component("UContainer", (_, { slots }) => h("div", slots.default?.()));
   app.component("UButton", ButtonStub);
   app.component("UIcon", { render: () => null });
   app.component("DmsIconWell", { render: () => null });
@@ -130,14 +125,13 @@ function seedActiveTime(ms: number): void {
   storage.set(GITHUB_STAR_PROMPT_KEYS.activeMs, String(ms));
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  disposeRuntime = await installShellRuntime();
   vi.useFakeTimers();
   vi.stubEnv("DEV", true);
   storage = new Map();
   user = ref({ email: "user@example.com" });
   toasts = ref([]);
-  isSidebarOpen = ref(false);
-  isSidePanelOpen = ref(false);
   visibility = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(
     () => visibility,
@@ -147,6 +141,36 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useCurrentUser", () => ({ user }));
+  const state = new Map<string, Ref>();
+  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+    if (!state.has(key)) state.set(key, ref(initial()));
+    return state.get(key);
+  });
+  vi.stubGlobal(
+    "useDmsCookie",
+    (key: string, options: { default: () => unknown }) => {
+      if (!state.has(key)) state.set(key, ref(options.default()));
+      return state.get(key);
+    },
+  );
+  vi.stubGlobal("useDmsUserSession", () => ({
+    loggedIn: computed(() => !!user.value),
+  }));
+  vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
+  vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
+  vi.stubGlobal("useFooterLinks", () => ({ links: ref([]) }));
+  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
+  vi.stubGlobal("useDmsAppConfig", () => ({
+    branding: { footer: { localeSwitcher: false } },
+    ui: { icons: {} },
+  }));
+  registerSidePanel({ id: "panel", component: "ExamplePanel" });
+  const panel = useSidePanel("panel");
+  panel.close();
+  isSidePanelOpen = computed({
+    get: () => panel.isOpen.value,
+    set: (open) => (open ? panel.open() : panel.close()),
+  });
   vi.stubGlobal("useToast", () => ({ toasts }));
   vi.stubGlobal("useColorModePreference", () => ref("system"));
   vi.stubGlobal("open", vi.fn());
@@ -155,6 +179,7 @@ beforeEach(() => {
 afterEach(() => {
   app?.unmount();
   app = undefined;
+  disposeRuntime();
   host?.remove();
   document.body.replaceChildren();
   vi.useRealTimers();
@@ -328,15 +353,28 @@ describe("GithubStarPrompt", () => {
   // The phone drawer's account menu trigger sits at the bottom of the screen.
   it("steps aside while the phone sidebar is open", async () => {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
-    isSidebarOpen.value = true;
-    await mount();
+    await mount(DefaultLayout);
+    expect(prompt()).not.toBeNull();
+    host
+      .querySelector<HTMLButtonElement>('[aria-label="header.open_sidebar"]')!
+      .click();
+    await nextTick();
     expect(prompt()).toBeNull();
 
-    isSidebarOpen.value = false;
+    app!.unmount();
+    host.remove();
+    await mount(DefaultLayout);
+    expect(prompt()).toBeNull();
+
+    host
+      .querySelector<HTMLButtonElement>('[aria-label="header.close_sidebar"]')!
+      .click();
     await nextTick();
     expect(prompt()).not.toBeNull();
 
-    isSidebarOpen.value = true;
+    host
+      .querySelector<HTMLButtonElement>('[aria-label="header.open_sidebar"]')!
+      .click();
     await nextTick();
     expect(prompt()).toBeNull();
   });

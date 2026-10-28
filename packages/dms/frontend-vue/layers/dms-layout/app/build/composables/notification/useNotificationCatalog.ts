@@ -59,8 +59,7 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   const loadFailed = computed(() => !isLoaded.value && hasFailed(catalog));
 
   /** Reads the catalog again (a retry). */
-  const loadCatalog = (): Promise<void> =>
-    catalog.refresh({ dedupe: "defer" });
+  const loadCatalog = (): Promise<void> => catalog.refresh({ dedupe: "defer" });
 
   const subjectsOf = (categoryId: string) =>
     subjects.value.filter((subject) => subject.category.id === categoryId);

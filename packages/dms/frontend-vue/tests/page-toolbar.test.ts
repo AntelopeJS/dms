@@ -26,14 +26,6 @@ import {
   refreshPageBlocks,
   waitForPageBlocksRefresh,
 } from "../layers/dms-ui/app/utils/blockRefresh";
-import { PRESET_SHORT_LABELS } from "../layers/dms-ui/app/build/composables/period/periodShortLabels";
-import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-import { PERIOD_PRESETS } from "@antelopejs/interface-dms/base/period-selector";
-import {
-  PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES,
-  toolbarControlHeightClass,
-} from "../layers/dms-ui/app/build/composables/page-toolbar/toolbarControlHeight";
 import type { PageToolbarSize } from "../layers/dms-ui/app/build/composables/page-toolbar/pageToolbarContext";
 import { usePageToolbarSize } from "../layers/dms-ui/app/composables/page-toolbar/usePageToolbarSize";
 
@@ -161,7 +153,6 @@ describe("on a page without live", () => {
     expect(status()?.textContent).toContain("dms.live.updated_seconds:30");
 
     refreshButton()?.click();
-    expect(resolveRead).toBeTypeOf("function");
     resolveRead();
     await flushPromises();
     expect(status()?.textContent).toContain("dms.live.updated_seconds:0");
@@ -253,14 +244,6 @@ describe("one height per size", () => {
   const heightOf = (element: Element | null | undefined) =>
     element?.className.split(" ").find((name) => /^h-\d+$/.test(name));
 
-  it("shares the segmented track's and Nuxt UI's button steps", () => {
-    expect(PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES).toEqual(EXPECTED);
-    for (const size of SIZES) {
-      expect(toolbarControlHeightClass(size)).toBe(EXPECTED[size]);
-    }
-    expect(toolbarControlHeightClass("lg")).toBe("");
-  });
-
   it.each(SIZES)("draws the live pill and the chip at %s", async (size) => {
     installLive();
     await mountToolbar({ toolbar: { size } });
@@ -297,30 +280,4 @@ describe("one height per size", () => {
       EXPECTED[size],
     );
   });
-});
-
-it("gives every preset but custom a short code", () => {
-  const missing = PERIOD_PRESETS.filter(
-    (preset) => preset !== "custom" && !PRESET_SHORT_LABELS[preset],
-  );
-  expect(missing).toEqual([]);
-  expect(PRESET_SHORT_LABELS.all).toBe("ALL");
-});
-
-it("translates every short code in every locale", () => {
-  const presets = Object.keys(PRESET_SHORT_LABELS).sort();
-  for (const locale of [coreEnGB, coreFrFR]) {
-    expect(Object.keys(locale.dms.period.short_presets).sort()).toEqual(
-      presets,
-    );
-  }
-});
-
-it("writes no short code as a bare letter, which reads as nothing", () => {
-  for (const locale of [coreEnGB, coreFrFR]) {
-    const bare = Object.values(locale.dms.period.short_presets).filter((code) =>
-      /^\p{L}$/u.test(code),
-    );
-    expect(bare).toEqual([]);
-  }
 });

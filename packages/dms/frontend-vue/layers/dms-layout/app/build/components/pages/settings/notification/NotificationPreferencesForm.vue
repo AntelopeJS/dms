@@ -64,7 +64,6 @@ const failureMessage = computed(() => {
     ? t("page.settings.notifications.save_failed_off")
     : t("page.settings.notifications.save_failed_on");
 });
-
 </script>
 
 <template>

@@ -6,11 +6,13 @@
  * screen — never drawn, or unmounted since — answers false.
  */
 import {
+  computed,
   createApp,
   defineComponent,
   Fragment,
   h,
   nextTick,
+  provide,
   ref,
   type App,
   type ComponentPublicInstance,
@@ -18,14 +20,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerBlockAnchor } from "../layers/dms-ui/app/build/composables/page/blockAnchors";
 import { scrollToBlock } from "../layers/dms-ui/app/utils/scrollToBlock";
-
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    blockFor: () => undefined,
-    isActive: ref(false),
-    session: ref(null),
-  }),
-}));
+import { useRealDataEngine } from "./fixtures/dataEngine";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -95,14 +90,11 @@ async function mountPage(showSecond = ref(true)) {
 }
 
 beforeEach(() => {
+  useRealDataEngine();
   vi.stubGlobal("useI18n", () => ({ t: String }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("computed", (getter: () => unknown) => ({
-    get value() {
-      return getter();
-    },
-  }));
-  vi.stubGlobal("provide", () => {});
+  vi.stubGlobal("computed", computed);
+  vi.stubGlobal("provide", provide);
   host = document.createElement("div");
   document.body.append(host);
   scrolled.length = 0;

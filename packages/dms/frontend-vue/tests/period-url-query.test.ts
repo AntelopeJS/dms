@@ -43,7 +43,7 @@ const endOfDay = (year: number, month: number, date: number) =>
 
 describe("the keys of a selector", () => {
   it("prefixes every key with the selector id", () => {
-    expect(PAGE).toEqual({
+    expect(periodQueryKeys("page")).toEqual({
       period: "page.period",
       compare: "page.compare",
       from: "page.from",
@@ -54,7 +54,7 @@ describe("the keys of a selector", () => {
   });
 
   it("keeps the bare keys without an id", () => {
-    expect(STORED.period).toBe("period");
+    expect(periodQueryKeys().period).toBe("period");
   });
 });
 

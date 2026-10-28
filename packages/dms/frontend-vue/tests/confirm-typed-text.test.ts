@@ -11,17 +11,7 @@ import {
 } from "vue";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
 
-// The modal's title and description need a reka DialogRoot: plain text here.
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -87,7 +77,10 @@ async function flush(): Promise<void> {
 }
 
 function mount(props: Record<string, unknown>): void {
-  app = createApp(ConfirmModal, { onClose: closed, ...props });
+  app = createApp({
+    render: () =>
+      h(DialogRoot, null, () => h(ConfirmModal, { onClose: closed, ...props })),
+  });
   app.config.globalProperties.$t = (key: string) => key;
   app.component("UModal", Slots);
   app.component("UButton", Button);

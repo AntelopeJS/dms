@@ -44,11 +44,11 @@ export const useNotificationPreferences = (
     () => stored.status.value === "success" || stored.data.value != null,
   );
   const loadFailed = computed(
-    () => (!isStoredRead.value && hasFailed(stored)) || catalog.loadFailed.value,
+    () =>
+      (!isStoredRead.value && hasFailed(stored)) || catalog.loadFailed.value,
   );
   const isLoading = computed(
-    () =>
-      !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
+    () => !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
   );
 
   const instant = useInstantSave<PreferenceMap>({

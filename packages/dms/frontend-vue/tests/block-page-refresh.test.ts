@@ -144,7 +144,6 @@ it("runs from the REFRESH_PAGE watch function", async () => {
   const refresh = useDefinedFunctions().getFunction(
     BlockFunctions.REFRESH_PAGE,
   );
-  expect(refresh).toBeTypeOf("function");
   refresh?.();
   await settle();
   expect(requests).toEqual(["/api/ws/ws-1/facts", "/api/ws/ws-1/facts"]);

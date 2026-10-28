@@ -208,10 +208,7 @@ describe("a source table's requests", () => {
     const listing = new AbortController();
     const counting = new AbortController();
     const list = rows.list({}, listing.signal);
-    const counts = rows.countBatch(
-      [{ id: "all", query: {} }],
-      counting.signal,
-    );
+    const counts = rows.countBatch([{ id: "all", query: {} }], counting.signal);
     listing.abort();
     answer();
 
@@ -232,10 +229,7 @@ describe("a source table's requests", () => {
     const listing = new AbortController();
     const counting = new AbortController();
     const list = rows.list({}, listing.signal);
-    const counts = rows.countBatch(
-      [{ id: "all", query: {} }],
-      counting.signal,
-    );
+    const counts = rows.countBatch([{ id: "all", query: {} }], counting.signal);
     listing.abort();
     expect(calls[0]!.signal?.aborted).toBe(false);
     counting.abort();

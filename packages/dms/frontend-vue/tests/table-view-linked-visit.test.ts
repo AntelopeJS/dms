@@ -6,39 +6,24 @@
  * a page control rebuilding the query replaces it and is no link.
  */
 import { createApp, defineComponent, h } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 interface VisitDetail {
   page: { url: string };
   visitId: string;
   replace?: boolean;
 }
-type Listener = (event: { detail: VisitDetail }) => void;
-const listeners = new Map<string, Set<Listener>>();
-
-vi.mock("@inertiajs/vue3", () => ({
-  router: {
-    on: (type: string, listener: Listener) => {
-      const set = listeners.get(type) ?? new Set<Listener>();
-      listeners.set(type, set);
-      set.add(listener);
-      return () => set.delete(listener);
-    },
-  },
-}));
-
 const { useTableLinkedVisit } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableLinkedVisit"
 );
 
 const emit = (type: string, detail: VisitDetail) =>
-  listeners.get(type)?.forEach((listener) => listener({ detail }));
+  document.dispatchEvent(new CustomEvent(`inertia:${type}`, { detail }));
 
 const mounted: Array<{ unmount: () => void }> = [];
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
-  listeners.clear();
 });
 
 function mountTable(url: string, shown: { view?: string; tab: string }) {

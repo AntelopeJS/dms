@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
@@ -10,10 +10,6 @@ import { useEventedAction } from "../layers/dms-core/app/composables/useEventedA
 import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import layout from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
-
-vi.mock("../layers/dms-ui/app/components/form/Form.vue", () => ({
-  default: { name: "DmsForm" },
-}));
 
 type Messages = Record<string, unknown>;
 const merge = (target: Messages, source: Messages): Messages => {
@@ -86,6 +82,7 @@ async function invitesRowActions() {
 beforeEach(() => {
   const globals: Record<string, unknown> = {
     ref,
+    shallowRef,
     Color,
     HttpMethod,
     normalizeActionConfig,

@@ -15,64 +15,36 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationPreferencesForm from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationPreferencesForm.vue";
 import { NOTIFICATION_GROUP_STORAGE_PREFIX } from "../layers/dms-layout/app/build/composables/notification/useNotificationGroupsOpen";
+import {
+  browserRuntime,
+  engine,
+  stubApiData,
+} from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
-const preferences = vi.hoisted(() => ({
-  toggleCategory: vi.fn(),
-  toggleSubject: vi.fn(),
-}));
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences",
-  async () => {
-    const vue = await import("vue");
-    const system = { id: "system", labelKey: "System", icon: "i-ph-gear" };
-    const security = {
-      id: "security",
-      labelKey: "Security",
-      icon: "i-ph-shield",
-    };
-    const subjects = {
-      system: [
-        { id: "general", category: system, labelKey: "General" },
-        { id: "account", category: system, labelKey: "Account" },
-      ],
-      security: [
-        { id: "alerts", category: security, labelKey: "Security alerts" },
-      ],
-    } as Record<string, { id: string; labelKey: string }[]>;
-    return {
-      useNotificationPreferences: () => ({
-        ...preferences,
-        categories: vue.ref([system, security]),
-        subjectsOf: (id: string) => subjects[id] ?? [],
-        failedChanges: vue.ref(undefined),
-        saveState: vue.ref("idle"),
-        isLoading: vue.ref(false),
-        loadFailed: vue.ref(false),
-        isEnabled: () => true,
-        rowState: () => "idle",
-        toggleableSubjectsOf: (category: { id: string }) =>
-          subjects[category.id] ?? [],
-        retry: vi.fn(),
-        load: vi.fn(),
-      }),
-    };
-  },
+const categories = [
+  { id: "system", labelKey: "System", icon: "i-ph-gear" },
+  { id: "security", labelKey: "Security", icon: "i-ph-shield" },
+];
+const authFetch = vi.fn(async (url: string) =>
+  url.endsWith("/categories")
+    ? {
+        categories,
+        subjects: [
+          { id: "general", category: { id: "system" }, labelKey: "General" },
+          { id: "account", category: { id: "system" }, labelKey: "Account" },
+          {
+            id: "alerts",
+            category: { id: "security" },
+            labelKey: "Security alerts",
+          },
+        ],
+      }
+    : {},
 );
-
-vi.mock(
-  "../layers/dms-layout/app/composables/layout/useInstantSaveHeader",
-  () => ({
-    useInstantSaveHeader: vi.fn(),
-  }),
-);
-
-vi.mock("#dms-ui/app/build/components/skeleton/RowSkeleton.vue", async () => {
-  const vue = await import("vue");
-  return { default: vue.defineComponent({ render: () => vue.h("span") }) };
-});
 
 let app: App | undefined;
+let runtime: ReturnType<typeof engine.createDmsFrontendRuntime>;
 
 function createFormApp(create: typeof createApp): App {
   const formApp = create(
@@ -80,6 +52,14 @@ function createFormApp(create: typeof createApp): App {
       setup: () => () => h(NotificationPreferencesForm as Component),
     }),
   );
+  if (create === createSSRApp) {
+    runtime = engine.createDmsFrontendRuntime(
+      undefined,
+      {},
+      import.meta.env.SSR,
+    );
+    engine.provideDmsFrontendRuntime(formApp, runtime);
+  } else runtime = browserRuntime(formApp);
   const passThrough = defineComponent({
     setup:
       (_props, { slots }) =>
@@ -136,11 +116,12 @@ function createFormApp(create: typeof createApp): App {
   return formApp;
 }
 
-function mount() {
+async function mount() {
   app = createFormApp(createApp);
   const container = document.createElement("div");
   document.body.append(container);
   app.mount(container);
+  await vi.waitFor(() => expect(chevronOf(container, "system")).toBeTruthy());
   return container;
 }
 
@@ -150,10 +131,14 @@ function mount() {
  */
 async function hydrate(runOnClient: () => void) {
   const container = document.createElement("div");
+  vi.stubEnv("SSR", true);
   container.innerHTML = await renderToString(createFormApp(createSSRApp));
+  const payload = structuredClone(engine.serializeDmsPayload(runtime));
+  vi.stubEnv("SSR", false);
   document.body.append(container);
   runOnClient();
   app = createFormApp(createSSRApp);
+  engine.restoreDmsPayload(runtime, payload);
   app.mount(container);
   return container;
 }
@@ -172,6 +157,8 @@ const rowOf = (container: HTMLElement, categoryId: string) =>
   chevronOf(container, categoryId).closest<HTMLElement>('[role="row"]')!;
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
+  stubApiData(authFetch);
   localStorage.clear();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
@@ -187,12 +174,13 @@ afterEach(() => {
   app = undefined;
   document.body.innerHTML = "";
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 
 describe("notification preferences groups", () => {
-  it("starts every group folded, with its count on the group row", () => {
-    const container = mount();
+  it("starts every group folded, with its count on the group row", async () => {
+    const container = await mount();
 
     expect(subjectNames(container)).toEqual([]);
     const chevron = chevronOf(container, "system");
@@ -207,7 +195,7 @@ describe("notification preferences groups", () => {
   });
 
   it("unfolds and folds a group's subjects from its chevron", async () => {
-    const container = mount();
+    const container = await mount();
     const chevron = chevronOf(container, "system");
 
     chevron.click();
@@ -228,7 +216,7 @@ describe("notification preferences groups", () => {
   });
 
   it("unfolds a group from its title area too", async () => {
-    const container = mount();
+    const container = await mount();
 
     rowOf(container, "security")
       .querySelector<HTMLElement>("[data-category-title]")!
@@ -238,16 +226,21 @@ describe("notification preferences groups", () => {
   });
 
   it("keeps the master switch working on a folded group without unfolding it", async () => {
-    const container = mount();
+    const container = await mount();
 
     rowOf(container, "system")
       .querySelector<HTMLButtonElement>('[role="switch"]')!
       .click();
     await nextTick();
 
-    expect(preferences.toggleCategory).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "system" }),
-      false,
+    await vi.waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith(
+        "/dms/pages/settings/user/notifications/preferences",
+        {
+          method: "PATCH",
+          body: { "system:general": false, "system:account": false },
+        },
+      ),
     );
     expect(chevronOf(container, "system").getAttribute("aria-expanded")).toBe(
       "false",
@@ -256,7 +249,7 @@ describe("notification preferences groups", () => {
   });
 
   it("remembers the open groups in the browser", async () => {
-    const first = mount();
+    const first = await mount();
     chevronOf(first, "security").click();
     await nextTick();
     expect(
@@ -265,7 +258,7 @@ describe("notification preferences groups", () => {
     app?.unmount();
     document.body.innerHTML = "";
 
-    const second = mount();
+    const second = await mount();
     // Read once mounted, as the server render cannot see it.
     await nextTick();
     expect(chevronOf(second, "security").getAttribute("aria-expanded")).toBe(
@@ -311,7 +304,7 @@ describe("notification preferences groups", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    const container = mount();
+    const container = await mount();
     expect(subjectNames(container)).toEqual([]);
 
     chevronOf(container, "system").click();

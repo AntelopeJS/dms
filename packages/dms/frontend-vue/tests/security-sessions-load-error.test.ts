@@ -12,31 +12,9 @@ import {
   type App,
 } from "vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
-const overview = ref({ activeSessions: 1 });
 const authFetch = vi.fn();
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
-  () => ({
-    SECURITY_ENDPOINT: "/settings/user/security",
-    useSecurityOverview: () => ({ overview, refresh: async () => {} }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityFormat",
-  () => ({
-    useSecurityFormat: () => ({
-      formatDate: () => "",
-      formatRelative: () => "",
-      errorMessage: (_error: unknown, fallback: string) => fallback,
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/security/useSessionHandoff",
-  () => ({ useSessionHandoff: () => async () => {} }),
-);
 
 const Passthrough = defineComponent({
   setup:
@@ -89,11 +67,16 @@ async function mount(): Promise<void> {
 }
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("onMounted", onMounted);
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+    te: () => false,
+  }));
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
   stubApiData(authFetch);
   authFetch.mockReset();
@@ -108,7 +91,10 @@ afterEach(() => {
 });
 
 it("shows a failed load as an error with a retry, not as no sessions", async () => {
-  authFetch.mockRejectedValueOnce(new Error("network"));
+  authFetch.mockImplementation(async (url: string) => {
+    if (url.endsWith("/sessions")) throw new Error("network");
+    return { activeSessions: 1 };
+  });
   await mount();
   expect(host.textContent).toContain("dms.table.load_error_title");
   expect(host.textContent).not.toContain("page.settings.sessions.empty");

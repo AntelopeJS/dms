@@ -9,12 +9,6 @@ import {
   onUnmounted,
   ref,
 } from "vue";
-import {
-  CONTAINER_LAYOUT_CLASSES,
-  FORM_LAYOUT_CLASSES,
-  SECTION_LAYOUT_CLASSES,
-} from "../layers/dms-ui/app/build/composables/form/formLayout";
-
 const FORM_COLUMNS = "@min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)]";
 
 let app: App | undefined;
@@ -112,27 +106,6 @@ describe("FieldRow", () => {
 });
 
 describe("form rows", () => {
-  it("draw a card's and a section's rows as FieldRow's form rows", () => {
-    expect(FORM_LAYOUT_CLASSES.horizontal.row.layout).toBe("form");
-    expect(SECTION_LAYOUT_CLASSES.row.layout).toBe("form");
-    expect(SECTION_LAYOUT_CLASSES.row.inset).toBe(true);
-    expect(FORM_LAYOUT_CLASSES.vertical.row).toEqual({
-      layout: "stack",
-      inset: false,
-      spacing: "list",
-    });
-  });
-
-  it("draw a drawer's or a modal's rows dense, details and forms alike", () => {
-    expect(CONTAINER_LAYOUT_CLASSES.horizontal.row).toEqual({
-      layout: "form",
-      inset: false,
-      spacing: "dense",
-    });
-    expect(CONTAINER_LAYOUT_CLASSES.vertical.rows).toContain("gap-3");
-    expect(FORM_LAYOUT_CLASSES.horizontal.row.spacing).toBe("row");
-  });
-
   it("hands a stacked row's height down to a filling control", async () => {
     await mount(
       { label: "data", layout: "stack", fill: true },

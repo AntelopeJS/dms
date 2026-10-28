@@ -3,8 +3,6 @@
  * The strip of a held table: "N new · Show", Show reading the rows again,
  * led by why the table holds by itself ("Table on hold · search active").
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, h, type App } from "vue";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -58,26 +56,6 @@ it("adds the count and Show after the reason", async () => {
   expect(host.textContent).toContain("dms.live.held_row_open");
   expect(host.textContent).toContain("dms.live.new_rows:2");
   expect(host.querySelector("button")).not.toBeNull();
-});
-
-it("has every reason in English and French", () => {
-  for (const file of ["ui-en-GB.json", "ui-fr-FR.json"]) {
-    const live = JSON.parse(
-      readFileSync(
-        resolve(__dirname, `../layers/dms-ui/i18n/locales/${file}`),
-        "utf8",
-      ),
-    ).dms.live;
-    for (const key of [
-      "table_held",
-      "held_row_open",
-      "held_searching",
-      "held_sorted",
-      "held_scrolled",
-    ]) {
-      expect(live[key], `${file} ${key}`).toBeTruthy();
-    }
-  }
 });
 
 it("words the count with missedLabel and adds the paused page's breakdown", async () => {

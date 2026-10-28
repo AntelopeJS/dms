@@ -22,13 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
 import { browserTimeZone } from "../layers/dms-core/app/utils/regional";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ items: [{ id: "pro", title: "Pro", value: 12 }] }),
-    isLoading: ref(false),
-  }),
-}));
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
 const engine = await import("#dms/frontend-module");
 const { usePeriod } = await import(
@@ -145,16 +139,11 @@ function badge(html: string): string {
   return html.includes(SKELETON) ? SKELETON : "none";
 }
 
-beforeEach(() => {
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
+beforeEach(async () => {
+  await stubBlockRuntime(async () => ({
+    items: [{ id: "pro", title: "Pro", value: 12 }],
   }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
-  vi.stubGlobal("useDmsState", engine.useDmsState);
-  vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
-  vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
+  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
 });
 
 afterEach(() => {

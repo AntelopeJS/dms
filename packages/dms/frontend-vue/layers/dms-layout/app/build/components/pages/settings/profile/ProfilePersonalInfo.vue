@@ -175,7 +175,6 @@ async function save(): Promise<void> {
     isSaving.value = false;
   }
 }
-
 </script>
 
 <template>

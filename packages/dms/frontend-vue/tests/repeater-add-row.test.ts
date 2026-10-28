@@ -14,10 +14,15 @@ import {
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
 import Repeater from "../layers/dms-ui/app/components/form/components/Repeater.vue";
+import { registerDmsComponent } from "#dms/frontend-module";
 
-vi.mock("../layers/dms-ui/app/composables/resolveDmsComponent", () => ({
-  resolveDmsComponent: () => "input",
-}));
+registerDmsComponent(
+  "dms-input-text",
+  defineComponent({
+    props: { modelValue: String },
+    setup: (props) => () => h("input", { value: props.modelValue }),
+  }),
+);
 
 let app: App | undefined;
 

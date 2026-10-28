@@ -15,16 +15,7 @@ import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/con
 import { secondaryTargetRunner } from "../layers/dms-ui/app/build/composables/confirm/secondaryTarget";
 import { downloadFilename } from "../layers/dms-ui/app/build/utils/fileDownload";
 
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 const i18n = createI18n({
   legacy: false,
@@ -185,7 +176,12 @@ describe("ConfirmModal secondary action", () => {
   }
 
   function mount(props: Record<string, unknown>): void {
-    app = createApp(ConfirmModal, { onClose: closed, ...props });
+    app = createApp({
+      render: () =>
+        h(DialogRoot, null, () =>
+          h(ConfirmModal, { onClose: closed, ...props }),
+        ),
+    });
     app.config.globalProperties.$t = (key: string) => key;
     app.component("UModal", Slots);
     app.component("UButton", Button);

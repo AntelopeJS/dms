@@ -55,7 +55,9 @@ function resolvePadding(input: UseApexChartInput): number {
 }
 
 function padOutward(bound: number, padding: number, direction: number): number {
-  return bound + direction * (Math.abs(bound) || ZERO_BOUND_MAGNITUDE) * padding;
+  return (
+    bound + direction * (Math.abs(bound) || ZERO_BOUND_MAGNITUDE) * padding
+  );
 }
 
 /** The smallest 1, 2 or 5 times a power of ten that covers `span`. */
@@ -103,7 +105,8 @@ export function buildAutoYRange(input: UseApexChartInput): AutoYBounds {
   );
   const bound = (native: number, direction: number, round: Rounding) => {
     const extent = [native, ...annotations];
-    const raw = direction === DOWNWARD ? Math.min(...extent) : Math.max(...extent);
+    const raw =
+      direction === DOWNWARD ? Math.min(...extent) : Math.max(...extent);
     const padded = padOutward(raw, padding, direction);
     return snapToStep(padded, stepForBound(padded, knownStep), round);
   };
@@ -119,5 +122,7 @@ export function buildAutoYRange(input: UseApexChartInput): AutoYBounds {
  * once one price carries float noise.
  */
 export function formatPlainAxisValue(value: number): string {
-  return isFiniteNumber(value) ? String(withoutFloatNoise(value)) : String(value);
+  return isFiniteNumber(value)
+    ? String(withoutFloatNoise(value))
+    : String(value);
 }

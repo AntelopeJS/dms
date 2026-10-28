@@ -13,14 +13,7 @@ import { useFormDirty } from "../layers/dms-ui/app/composables/unsaved-changes/u
 // The form read the new key as a change ("Changed · was ••••619e", the save
 // bar up) and "Discard" put the old one — no longer valid — back on screen.
 
-vi.mock("../layers/dms-ui/app/composables/confirm/useConfirm", () => ({
-  useConfirm: () => ({
-    confirm: async (options: { onConfirm: () => Promise<void> }) => {
-      await options.onConfirm();
-      return true;
-    },
-  }),
-}));
+// Confirmation is presented by the real composable through its overlay boundary.
 
 const OLD_KEY = "sk_live_old0000619e";
 const NEW_KEY = "sk_live_new00004b2d";
@@ -119,6 +112,17 @@ describe("DmsInputSecret", () => {
     vi.stubGlobal("inject", inject);
     vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
     vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+    vi.stubGlobal("useOverlay", () => ({
+      create: (
+        _component: unknown,
+        { props }: { props: { onConfirm: () => Promise<void> } },
+      ) => ({
+        open: async () => {
+          await props.onConfirm();
+          return true;
+        },
+      }),
+    }));
     vi.stubGlobal("useAuthFetch", () => ({
       $authFetch: vi.fn(async () => ({ value: NEW_KEY })),
     }));

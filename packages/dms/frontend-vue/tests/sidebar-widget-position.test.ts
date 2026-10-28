@@ -76,9 +76,12 @@ describe("useSidebarWidgets registration order", () => {
   beforeEach(() => {
     // The composable reads its store through the DMS app's injected `useDmsState`;
     // a fresh array per call keeps each spec isolated.
-    vi.stubGlobal("useDmsState", (_key: string, init: () => SidebarWidget[]) => ({
-      value: init(),
-    }));
+    vi.stubGlobal(
+      "useDmsState",
+      (_key: string, init: () => SidebarWidget[]) => ({
+        value: init(),
+      }),
+    );
   });
 
   // The config sets no `unstubGlobals`, and file isolation is the pool's

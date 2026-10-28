@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
@@ -11,13 +12,6 @@ import type {
 // The built-in cards draw their fields through each column's display, like
 // grid cells. (Their header, read from the label column's identity display,
 // is #344's.)
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
 
 type Row = Record<string, unknown>;
 

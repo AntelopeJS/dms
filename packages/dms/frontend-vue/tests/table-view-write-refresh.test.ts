@@ -6,32 +6,18 @@
  * again, itself among them, instead of reloading its own rows alone; its
  * refresh button still reloads only the table.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: () => {},
-}));
 
 const { useRefreshTriggers } = await import(
   "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
 );
 
-const tableView = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/TableView.vue",
-  ),
-  "utf8",
-);
-
 const mounted: Array<{ unmount: () => void }> = [];
 
-function mountBlock() {
-  const onRefresh = vi.fn(() => Promise.resolve());
+function mountBlock(read: () => Promise<void> = () => Promise.resolve()) {
+  const onRefresh = vi.fn(read);
   const Block = defineComponent({
     setup() {
       useRefreshTriggers(undefined, onRefresh);
@@ -49,20 +35,34 @@ afterEach(() => {
 });
 
 describe("a write through a table view", () => {
-  it("refreshes the page's blocks, not only the table", () => {
-    expect(tableView).toMatch(
-      /const refreshAfterWrite = \(\) => refreshPageBlocks\(\);/,
-    );
-    expect(tableView).toMatch(/refreshCallback: refreshAfterWrite,/);
-    // The refresh button and ⌘R reload the table alone.
-    expect(tableView).toMatch(/@refresh="refreshByUser"/);
-  });
-
   it("reaches the table and a KPI of the same page, and waits for both", async () => {
-    const table = mountBlock();
-    const kpi = mountBlock();
-    await refreshPageBlocks();
+    let finishTable = () => {};
+    let finishKpi = () => {};
+    const table = mountBlock(
+      () =>
+        new Promise<void>((resolve) => {
+          finishTable = resolve;
+        }),
+    );
+    const kpi = mountBlock(
+      () =>
+        new Promise<void>((resolve) => {
+          finishKpi = resolve;
+        }),
+    );
+    let settled = false;
+    const refreshed = refreshPageBlocks().then(() => {
+      settled = true;
+    });
     expect(table).toHaveBeenCalledTimes(1);
     expect(kpi).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    finishTable();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    finishKpi();
+    await refreshed;
+    expect(settled).toBe(true);
   });
 });

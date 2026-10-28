@@ -9,7 +9,11 @@
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import {
+  startTableRealtime,
+  stopTableRealtime,
+  publishTableEvent,
+} from "./helpers/table-runtime";
 import {
   createPageLiveController,
   type PageLiveController,
@@ -26,14 +30,6 @@ import type {
 } from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
 
-const topicHandlers = new Map<string, RealtimeTopicHandler>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, handler);
-  },
-}));
-
 const { useRefreshTriggers } = await import(
   "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
 );
@@ -46,8 +42,7 @@ const TOPIC = "api:requests";
 let apps: App[] = [];
 let live: PageLiveController;
 
-const publish = () =>
-  topicHandlers.get(TOPIC)?.({ topic: TOPIC, type: "request", ts: 1 });
+const publish = () => publishTableEvent(TOPIC);
 
 interface MountedTableOptions {
   liveHold: boolean | TableViewLiveHoldOptions;
@@ -79,20 +74,21 @@ function mountTable(options: MountedTableOptions) {
   return { refresh, hold: hold! };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
-  topicHandlers.clear();
+  await startTableRealtime();
   window.localStorage.clear();
   live = createPageLiveController("api.logs", {});
   setCurrentPageLive(live);
 });
 
-afterEach(() => {
+afterEach(async () => {
   apps.forEach((app) => app.unmount());
   apps = [];
   live.dispose();
   setCurrentPageLive(null);
+  await stopTableRealtime();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -104,8 +100,8 @@ it("holds the rows while paused and counts what came in", async () => {
 
   live.pause();
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
 
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.isHolding.value).toBe(true);
@@ -141,7 +137,7 @@ it("shows what is new once, staying paused, and holds from then", async () => {
   const { refresh, hold } = mountTable({ liveHold: true });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
 
   vi.setSystemTime(new Date("2026-10-11T08:02:00.000Z"));
   hold.showNew();
@@ -162,7 +158,7 @@ it("shows no banner count without liveHold, though it still pauses", async () =>
   const { refresh, hold } = mountTable({ liveHold: false });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.newCount.value).toBe(0);
   expect(hold.heldQuery()).toEqual({});
@@ -185,7 +181,7 @@ it("reads on a user's refresh while held, and holds from then", async () => {
   const { refresh, hold } = mountTable({ liveHold: true });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
 
   vi.setSystemTime(new Date("2026-10-11T08:03:00.000Z"));
   refreshPageBlocks();
@@ -207,8 +203,8 @@ it("holds the table alone while a row is open, the page staying live", async () 
 
   isRowOpen.value = true;
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(live.isPaused.value).toBe(false);
   expect(live.missedCount.value).toBe(0);
   expect(refresh).not.toHaveBeenCalled();
@@ -220,7 +216,7 @@ it("holds the table alone while a row is open, the page staying live", async () 
   await nextTick();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.isHolding.value).toBe(false);
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(2);
 });
 
@@ -229,7 +225,7 @@ it("keeps today's hold when liveHold is true: an open row changes nothing", asyn
     liveHold: true,
     signals: { isRowOpen: () => true },
   });
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.isHolding.value).toBe(false);
 });
@@ -266,8 +262,8 @@ it("holds the rows on screen still, the page staying live, without a reason", as
     signals: { tableElement: () => element },
   });
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   expect(live.isPaused.value).toBe(false);
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.isHolding.value).toBe(true);
@@ -278,7 +274,7 @@ it("holds the rows on screen still, the page staying live, without a reason", as
   // reads what it missed and follows the feed again.
   await scroll(1200, 1280);
   expect(refresh).toHaveBeenCalledTimes(1);
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(2);
   element.remove();
 });
@@ -290,12 +286,12 @@ it("names the scroll as its reason while its first row is out of view", async ()
     signals: { tableElement: () => element },
   });
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.reason.value).toBe(null);
 
   await scroll(-400, -200);
-  publish();
+  await publish();
   expect(hold.reason.value).toBe("scrolled");
   expect(hold.newCount.value).toBe(2);
   expect(refresh).not.toHaveBeenCalled();
@@ -318,7 +314,7 @@ it("holds the table alone while searching or sorted, saying why", async () => {
 
   isSorted.value = true;
   await nextTick();
-  publish();
+  await publish();
   expect(refresh).not.toHaveBeenCalled();
   expect(hold.reason.value).toBe("sorted");
 
@@ -342,7 +338,7 @@ it("holds for no search nor sort the options leave off", async () => {
     liveHold: { whileRowOpen: true },
     signals: { isSearching: () => true, isSorted: () => true },
   });
-  publish();
+  await publish();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(hold.reason.value).toBe(null);
 });
@@ -359,13 +355,13 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   // Held by an open row, the page live: the page has no breakdown to give.
   isRowOpen.value = true;
   await nextTick();
-  publish();
+  await publish();
   live.setMissedDetail(detail);
   expect(hold.missedDetail.value).toBe(null);
 
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   live.setMissedDetail(detail);
   expect(hold.missedDetail.value).toEqual(detail);
 
@@ -387,9 +383,9 @@ it("counts the new rows the table would list, not every event", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
-  publish();
-  publish();
+  await publish();
+  await publish();
+  await publish();
   await nextTick();
   expect(hold.newCount.value).toBe(0);
 
@@ -404,7 +400,7 @@ it("shows no pill when no new event matches the table's query", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(0);
 });
@@ -415,7 +411,7 @@ it("counts again when the held list changes, and forgets on Show", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(2);
 
@@ -436,8 +432,8 @@ it("falls back to the events when the count fails", async () => {
   const { hold } = mountTable({ liveHold: true, newRows });
   live.pause();
   await nextTick();
-  publish();
-  publish();
+  await publish();
+  await publish();
   await vi.advanceTimersByTimeAsync(500);
   expect(hold.newCount.value).toBe(2);
 });

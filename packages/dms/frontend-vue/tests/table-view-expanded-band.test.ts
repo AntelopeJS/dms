@@ -9,25 +9,6 @@ import type {
 } from "../layers/dms-ui/app/composables/table-view/types";
 import type { ExpandedRowLoadState } from "../layers/dms-ui/app/build/composables/table-view/useExpandedRowDetails";
 
-vi.mock(
-  "../layers/dms-ui/app/components/key-value-list/KeyValueList.vue",
-  async () => {
-    const { defineComponent: define, h: render } = await import("vue");
-    return {
-      default: define({
-        props: { items: Array },
-        setup: (props) => () =>
-          render(
-            "dl",
-            (props.items as Array<{ label: string }>).map((item) =>
-              render("dt", item.label),
-            ),
-          ),
-      }),
-    };
-  },
-);
-
 const OrderLines = defineComponent({
   props: { row: Object, rowId: String, refresh: Function, open: Function },
   setup: (props) => () =>

@@ -9,26 +9,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 
-const named = (name: string) => ({
-  default: defineComponent({
-    inheritAttrs: false,
-    props: { src: String, to: String, alt: String },
-    setup: (props) => () =>
-      h("span", {
-        "data-stub": name,
-        "data-src": props.src ?? props.to,
-        "data-alt": props.alt,
-      }),
-  }),
-});
-vi.mock("@nuxt/ui/components/Avatar.vue", () => named("avatar"));
-vi.mock("@nuxt/ui/components/Badge.vue", () => named("badge"));
-vi.mock("@nuxt/ui/components/Link.vue", () => named("link"));
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => named("icon"));
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
 type Formatter = (
   value: unknown,
   locale: string,
@@ -93,16 +73,14 @@ afterEach(() => {
 
 describe("a URL shown read-only", () => {
   it("is a link by default", () => {
-    const link = renderUrl(PHOTO).querySelector("[data-stub=link]");
-    expect(link?.getAttribute("data-src")).toBe(PHOTO);
+    const link = renderUrl(PHOTO).querySelector("a");
+    expect(link?.getAttribute("href")).toBe(PHOTO);
   });
 
   it("is a round thumbnail with `preview: avatar`", () => {
     const cell = renderUrl(PHOTO, { preview: "avatar" });
-    expect(
-      cell.querySelector("[data-stub=avatar]")?.getAttribute("data-src"),
-    ).toBe(PHOTO);
-    expect(cell.querySelector("[data-stub=link]")).toBeNull();
+    expect(cell.querySelector("img")?.getAttribute("src")).toBe(PHOTO);
+    expect(cell.querySelector("a")).toBeNull();
   });
 
   it("is a framed image with `preview: image`", () => {
@@ -115,8 +93,8 @@ describe("a URL shown read-only", () => {
       PHOTO,
       { preview: "avatar", fieldLabel: "Photo" },
       { name: "Jane Doe" },
-    ).querySelector("[data-stub=avatar]");
-    expect(avatar?.getAttribute("data-alt")).toBe("Jane Doe");
+    ).querySelector("img");
+    expect(avatar?.getAttribute("alt")).toBe("Jane Doe");
     const image = renderUrl(
       PHOTO,
       { preview: "image" },

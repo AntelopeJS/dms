@@ -5,8 +5,6 @@
  * them, the browser hydrates with them without asking again and without a
  * mismatch, and a client navigation does not wait for them.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   computed,
   createSSRApp,
@@ -178,18 +176,5 @@ describe("a table view's data in a server render", () => {
     expect(mismatches).toEqual([]);
     expect(requests).toEqual([]);
     expect(container.textContent).toBe("rows:1 counts:2 sum:42");
-  });
-
-  it("is not awaited by TableView, so the three start together", () => {
-    const tableView = readFileSync(
-      resolve(
-        __dirname,
-        "../layers/dms-ui/app/components/table-view/TableView.vue",
-      ),
-      "utf8",
-    );
-    expect(tableView).not.toMatch(
-      /await\s+(useTableListData|useTableCountsData|useTableFooter)\b/,
-    );
   });
 });

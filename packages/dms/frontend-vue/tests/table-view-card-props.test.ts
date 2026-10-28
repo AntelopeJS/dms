@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
@@ -14,19 +15,6 @@ import type {
   TableViewCardProps,
   TableViewDisplayContext,
 } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({
-    getUrl: (key: string) => `/files/${key}`,
-    resolve: async () => {},
-  }),
-}));
 
 const rows = [
   { _id: "t1", name: "Write the docs" },
@@ -109,8 +97,6 @@ describe("cards display with a custom card", () => {
       locale: ref("en"),
       t: (key: string) => key,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TaskCard" ? TaskCard : undefined,
     );
@@ -145,8 +131,6 @@ describe("the default cards", () => {
       locale: ref("en"),
       t: (key: string) => key,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   });
 
   afterEach(() => {
@@ -176,7 +160,7 @@ describe("the default cards", () => {
     expect(opened).toEqual([rows[1]]);
   });
 
-  it("show the title column's subtitle and avatar, never the database id", () => {
+  it("show the title column's subtitle and avatar, never the database id", async () => {
     const { context } = createContext();
     context.options = {};
     app = createApp({ render: () => h(CardsDisplay, { context }) });
@@ -219,6 +203,7 @@ describe("the default cards", () => {
     );
     const next = document.createElement("div");
     app.mount(next);
+    await new Promise((resolve) => setTimeout(resolve));
     const [first, second] = [...next.querySelectorAll("article")];
     expect(first!.textContent).toContain("ann@example.com");
     expect(first!.querySelector("img")?.getAttribute("src")).toBe(

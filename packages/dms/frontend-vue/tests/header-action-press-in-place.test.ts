@@ -14,18 +14,9 @@ import {
   registerQuickActionTarget,
   runMountedQuickAction,
 } from "../layers/dms-ui/app/build/utils/quickActionTargets";
+import { stubMiscActions } from "./helpers/misc-runtime";
 
-const handleCustomButton = vi.fn();
-vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
-  useActionTargets: () => ({ handleCustomButton }),
-}));
-
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    isHeaderActionHidden: () => false,
-    session: ref(null),
-  }),
-}));
+const authFetch = vi.fn(async () => ({}));
 
 const MEMBERS_PATH = "/settings/workspace/members";
 const TABLE_ID = "table";
@@ -60,12 +51,14 @@ let host: HTMLDivElement;
 const routerReplace = vi.fn(() => Promise.resolve());
 
 beforeEach(() => {
+  stubMiscActions();
   routerReplace.mockClear();
-  handleCustomButton.mockClear();
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
+  authFetch.mockClear();
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
+    processApiMessage: (value: string) => value,
   }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsRoute", () =>
@@ -182,7 +175,9 @@ describe("header buttons", () => {
     };
     const button = await mountHeaderBar([purge]);
     button.click();
-    expect(handleCustomButton).toHaveBeenCalledWith(purge);
+    await vi.waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/purge", { method: "POST" }),
+    );
   });
 
   it("draws a page target as a link", async () => {

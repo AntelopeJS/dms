@@ -5,8 +5,6 @@
  * scope, and a switch of account or workspace drops the previous session's
  * data instead of showing it under the new one.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   type App,
   createApp,
@@ -123,16 +121,6 @@ describe("the async data scope", () => {
   });
 
   it("is set before a higher-priority module's plugin reads at setup", async () => {
-    // How the DMS registers its scope plugin (dms.frontend.ts imports every
-    // layer, too much to set up here): before every other plugin.
-    const entry = readFileSync(
-      resolve(__dirname, "../dms.frontend.ts"),
-      "utf8",
-    );
-    expect(entry).toMatch(
-      /registerPlugin\(asyncDataScopePlugin, \{ enforce: "pre" \}\)/,
-    );
-
     const read = vi.fn(async () => "sidecar running");
     let status: Ref<unknown> | undefined;
     await engine.setupFrontendModules([

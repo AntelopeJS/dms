@@ -6,17 +6,10 @@
 import { computed, createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import { chartRuntime } from "./helpers/charts-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import type { PeriodState } from "../layers/dms-core/app/composables/period/types";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ items: [{ id: "pro", title: "Pro", value: 12 }] }),
-    isLoading: ref(false),
-  }),
-}));
 
 const Tagged = (tag: string) =>
   defineComponent({
@@ -36,6 +29,7 @@ async function render(beforeCard?: () => void): Promise<string> {
           componentId: "plans",
           pageId: "dashboard",
           periodScope: "dashboard-period",
+          staticItems: [{ id: "pro", title: "Pro", value: 12 }],
         });
     },
   });
@@ -44,17 +38,12 @@ async function render(beforeCard?: () => void): Promise<string> {
   app.component("USkeleton", Tagged("skeleton"));
   app.component("UIcon", Tagged("icon"));
   app.component("DmsTopListRow", Tagged("row"));
+  await chartRuntime(app);
   return renderToString(app);
 }
 
 beforeEach(() => {
-  useRealDataEngine();
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

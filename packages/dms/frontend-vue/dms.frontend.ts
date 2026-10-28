@@ -164,8 +164,9 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
     sdk.registerPlugin(async (context) => {
-      const plugin =
-        await import("./layers/dms-layout/app/plugins/dms-dev-reload.client");
+      const plugin = await import(
+        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
+      );
       await plugin.default(context);
     }, clientOnly);
     // Browser only: the server already logs a render that fails, with its

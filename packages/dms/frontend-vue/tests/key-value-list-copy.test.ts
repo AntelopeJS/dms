@@ -4,10 +4,11 @@
  * static items as from the items a `fetchUrl` answers; `copyValue` copies
  * another text than the one shown.
  */
-import { createApp, defineComponent, h, reactive, ref } from "vue";
+import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
 const i18n = createI18n({
   legacy: false,
@@ -19,31 +20,7 @@ const i18n = createI18n({
 
 const copied: string[] = [];
 
-// jsdom has no clipboard: the button's copy lands in `copied` instead.
-vi.mock("@vueuse/core", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@vueuse/core")>()),
-  useClipboard: () => ({
-    copy: async (text: string) => {
-      copied.push(text);
-    },
-    copied: ref(false),
-  }),
-}));
-
 let fetchedItems: unknown[] = [];
-
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async () => ({ items: fetchedItems }),
-}));
-vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
 
 const KeyValueListBlock = (
   await import("../layers/dms-ui/app/components/blocks/KeyValueListBlock.vue")
@@ -69,7 +46,21 @@ function copyButtons(root: HTMLElement): HTMLButtonElement[] {
 
 beforeEach(() => useRealDataEngine());
 
-beforeEach(() => {
+beforeEach(async () => {
+  await stubBlockRuntime(async () => ({ items: fetchedItems }));
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {},
+  });
+  Object.defineProperty(document, "execCommand", {
+    configurable: true,
+    value: (command: string) => {
+      const selection =
+        document.querySelector<HTMLTextAreaElement>("textarea[readonly]");
+      if (command === "copy" && selection) copied.push(selection.value);
+      return true;
+    },
+  });
   fetchedItems = [];
   copied.splice(0);
   vi.stubGlobal("useI18n", () => ({
@@ -80,6 +71,9 @@ beforeEach(() => {
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
+  vi.unstubAllGlobals();
+  Reflect.deleteProperty(navigator, "clipboard");
+  Reflect.deleteProperty(document, "execCommand");
 });
 
 describe("KeyValueList copy button", () => {

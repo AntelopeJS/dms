@@ -18,11 +18,6 @@ import {
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
 
-vi.mock(
-  "../layers/dms-core/app/composables/user/useUserRegionalPreferences",
-  () => ({ useUserRegionalPreferences: () => ({ weekStartsOn: ref(1) }) }),
-);
-
 // The field UFormField would provide: its error drives the control's state.
 const fieldError = ref<string | undefined>();
 const formEvents: Array<{ type: string; name: string }> = [];
@@ -85,6 +80,7 @@ async function mountInField(
 }
 
 beforeEach(() => {
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);

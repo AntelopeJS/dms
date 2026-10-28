@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "./helpers/table-runtime";
 import {
   computed,
   createApp,
@@ -18,13 +19,6 @@ import type {
   TableViewCardReorder,
   TableViewDisplayContext,
 } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
 
 type Row = { _id: string; name: string };
 type Api = Parameters<typeof useTableReorder>[0]["api"];
@@ -119,8 +113,6 @@ describe("the cards display of a hand-ordered table", () => {
       locale: ref("en"),
       t: (text: string) => text,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TaskCard" ? TaskCard : undefined,
     );
@@ -213,7 +205,6 @@ describe("the cards display of a hand-ordered table", () => {
 });
 
 describe("which displays move rows", () => {
-
   it("draws no handle on a display that does not draw the rows in their order", () => {
     vi.stubGlobal("computed", computed);
     const { reorderState } = useTableReorder({

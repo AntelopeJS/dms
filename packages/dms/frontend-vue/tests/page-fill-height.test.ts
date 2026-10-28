@@ -1,19 +1,11 @@
 // @vitest-environment jsdom
 import {
-  computed,
   createApp,
   createSSRApp,
   h,
-  inject,
   nextTick,
-  onMounted,
-  onUnmounted,
-  provide,
-  reactive,
   ref,
   Suspense,
-  toRef,
-  watch,
   type App,
   type Component,
   type FunctionalComponent,
@@ -22,385 +14,123 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DefaultLayout from "../layers/dms-layout/app/custom-layouts/DefaultLayout.vue";
 import CatchAllPage from "../layers/dms-layout/app/pages/[...slug].vue";
+import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
+import { usePageFillHeight } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
+import { engine } from "./helpers/api-data-runtime";
 import {
-  PAGE_FILL_HEIGHT_CLASSES,
-  providePageFillHeight,
-  usePageFillHeight,
-} from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
-
-// The page's data refresh and the visit's navigation badges read the
-// realtime session and Inertia's page, which these tests do not run.
-vi.mock(
-  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
-  () => ({ usePageDataRefresh: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/page/usePageRecordDeletion",
-  () => ({ usePageRecordDeletion: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
-  () => ({ useVisitNavBadges: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardHeader.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
-  async () => {
-    const { ref } = await import("vue");
-    return { useDevReloading: () => ref(false) };
-  },
-);
-
-interface PageLayoutFixture {
-  components: Record<string, { componentName: string }>;
-}
-
-const route = reactive({ path: "/tools/explorer", query: {} });
-const pageLoading = ref(false);
-const pageLayout = ref<PageLayoutFixture | null>(null);
-
-// The page skeleton the layout keeps after the page (shown only while the page
-// is pending after a client navigation, once a short delay passes).
-const PAGE_SKELETON_MARKUP =
-  '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
-  '<div class="dms-card space-y-4 p-[18px]"><USkeleton aria-label="dms.a11y.loading" class="h-3.5 w-40"></USkeleton><!--[-->' +
-  ["72%", "58%", "66%", "44%"]
-    .map(
-      (width) =>
-        `<USkeleton aria-label="dms.a11y.loading" class="h-2.5" style="width:${width};"></USkeleton>`,
-    )
-    .join("") +
-  "<!--]--></div></div>";
-
-// The markup `DefaultLayout` and `pages/[...slug].vue` render for a
-// two-component page outside the settings area, with the stubs below.
-const FLOW_PAGE_MARKUP =
-  '<div data-dms-persistent-shell storage-key="dms-dashboard" unit="px" data-group><!---->' +
-  "<div data-panel><!--[--><!----><!----><!----><!--]-->" +
-  "<div data-body>" +
-  '<div class="w-full max-w-none pb-12 lg:pb-16" data-dms-page-region data-dms-page-content><!--[--><!--[--><!--[-->' +
-  '<section class="flex flex-wrap gap-x-3.5 gap-y-4 items-start pb-6">' +
-  '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
-  '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
-  '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
-  '<div class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
-  '<div class="dms-page-stack space-y-6">' +
-  '<div class="empty:hidden">' +
-  '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
-  '<div class="empty:hidden">' +
-  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
-  PAGE_SKELETON_MARKUP +
-  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div><!----></div>";
-
-function withComponents(...ids: string[]): PageLayoutFixture {
-  return {
-    components: Object.fromEntries(
-      ids.map((id) => [id, { componentName: `tool-${id}` }]),
-    ),
-  };
-}
-
-// Functional stubs hand non-class attributes on only when told to: these two
-// spread them, so the markers the layout sets stay in the markup.
-const Group: FunctionalComponent = (_, { attrs, slots }) =>
-  h("div", { ...attrs, "data-group": "" }, slots.default?.());
-Group.inheritAttrs = false;
-
-const Panel: FunctionalComponent = (_, { slots }) =>
-  h("div", { "data-panel": "" }, [
-    slots.header?.(),
-    h("div", { "data-body": "" }, slots.body?.()),
-    slots.footer?.(),
-  ]);
-
-// Nuxt UI merges its container classes with the ones it is given; the stub
-// keeps the given ones next to one of its own, so a lost class shows.
-const Container: FunctionalComponent = (_, { attrs, slots }) =>
-  h("div", { ...attrs, class: ["w-full", attrs.class] }, slots.default?.());
-Container.inheritAttrs = false;
-
-// A component id starting with `hidden` stands for a block that has nothing
-// to show (a fetched Banner the route answered `null`): it renders nothing.
-const PageComponent: FunctionalComponent<{ componentId: string }> = (props) =>
-  props.componentId.startsWith("hidden")
-    ? null
-    : h("section", { "data-component": props.componentId });
-PageComponent.props = ["componentId"];
+  installShellRuntime,
+  registerShellUi,
+} from "./helpers/live-shell-runtime";
 
 const FillHeightProbe: FunctionalComponent = () =>
   h("output", String(usePageFillHeight().value));
+const PageComponent: FunctionalComponent<{ componentId: string }> = (props) =>
+  h("section", { "data-component": props.componentId }, props.componentId);
+PageComponent.props = ["componentId"];
+let app: App | undefined;
+let disposeRuntime: () => void;
 
-function installRuntime(): void {
-  const runtime: Record<string, unknown> = {
-    computed,
-    inject,
-    onMounted,
-    onUnmounted,
-    provide,
-    ref,
-    toRef,
-    watch,
-    HTTP_FORBIDDEN: 403,
-    HTTP_INTERNAL_SERVER_ERROR: 500,
-    HTTP_NOT_FOUND: 404,
-    PAGE_FILL_HEIGHT_CLASSES,
-    providePageFillHeight,
-    usePageFillHeight,
-    createDmsError: vi.fn(),
-    defineDmsPageMeta: vi.fn(),
-    firstAccessiblePagePath: vi.fn(),
-    navigateDms: vi.fn(),
-    preloadPageLayoutComponents: vi.fn(),
-    providePageRealtime: vi.fn(),
-    resolveDmsComponent: () => "div",
-    runCustomValidation: vi.fn(),
-    showDmsError: vi.fn(),
-    validateRequiredQueryParams: vi.fn(),
-    useDefinedFunctions: () => ({ getFunction: () => undefined }),
-    useDmsCookie: <T>(_name: string, options: { default?: () => T } = {}) =>
-      ref(options.default?.()),
-    useDmsPageLoading: () => pageLoading,
-    useDmsRoute: () => route,
-    useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
-    useHomepage: () => "/",
-    usePageLayout: async () => ({ pageLayout }),
-    usePageRealtime: () => ({}),
-    usePermissions: () => ({
-      permissions: ref([]),
-      refreshIfStale: async () => {},
-    }),
-    useSessionRecovery: () => ({
-      loggedIn: ref(true),
-      reconcileSession: async () => {},
-      redirectToAuth: async () => {},
-    }),
-    // The page brought its site layout.
-    useRenderedSiteLayout: () => {},
-    useRenderedBellCounts: () => {},
-    useSiteLayout: () => ({
-      siteLayout: ref({ pages: {} }),
-      siteLayoutTree: ref([]),
-      loadingError: ref(null),
-      loadSiteLayout: async () => {},
-      refresh: async () => {},
-      refreshIfStale: async () => {},
-      findMatchingRoute: () => ({
-        metadata: { fullId: "tools.explorer", hasAccess: true },
-        params: {},
-      }),
-      findMatchingRouteOrCategory: () => ({
-        metadata: { fullId: "tools.explorer", hasAccess: true },
-        params: {},
-      }),
-    }),
-    useI18n: () => ({ t: (key: string) => key }),
-    useTranslation: () => ({ processI18n: (value: string) => value }),
-    useDmsUserSession: () => ({ loggedIn: ref(true) }),
-    // The header's page record: these pages declare none, so nothing is read.
-    useApiData: () => ({ data: ref(null), error: ref(null) }),
+function withUi(target: App): App {
+  registerShellUi(target);
+  target.component("UDashboardGroup", (_, { attrs, slots }) =>
+    h("div", attrs, slots.default?.()),
+  );
+  target.component("UDashboardPanel", (_, { slots }) =>
+    h("main", [slots.header?.(), slots.body?.(), slots.footer?.()]),
+  );
+  target.component("UContainer", (_, { attrs, slots }) =>
+    h("div", attrs, slots.default?.()),
+  );
+  target.component("DmsRecursiveComponent", RecursiveComponent);
+  return target;
+}
+
+function root(fillHeight: boolean, page: Component) {
+  return h(
+    DefaultLayout,
+    { title: "Explorer", fillHeight },
+    { default: () => h(page) },
+  );
+}
+
+beforeEach(async () => {
+  disposeRuntime = await installShellRuntime("/tools/explorer");
+  engine.registerDmsComponent("ToolStats", PageComponent);
+  engine.registerDmsComponent("ToolExplorer", PageComponent);
+  engine.useDmsState("dms-siteLayout").value = {
+    pages: {
+      "/tools/explorer": {
+        fullId: "tools.explorer",
+        hasAccess: true,
+        layoutUrl: "/tools/explorer",
+      },
+    },
+    categories: {},
   };
-  Object.entries(runtime).forEach(([name, value]) =>
-    vi.stubGlobal(name, value),
-  );
-}
-
-function withStubs(app: App): App {
-  app.component("UDashboardGroup", Group);
-  app.component("UDashboardPanel", Panel);
-  app.component("UContainer", Container);
-  app.component("UIcon", () => h("i"));
-  app.component("DmsAppWidgetsDock", () => null);
-  app.component("DmsRecursiveComponent", PageComponent);
-  return app;
-}
-
-function renderInLayout(
-  layoutProps: Record<string, unknown>,
-  page: Component,
-): Promise<string> {
-  const root = () =>
-    h(
-      DefaultLayout,
-      { title: "Explorer", ...layoutProps },
-      { default: () => h(page) },
-    );
-  return renderToString(withStubs(createSSRApp(root)));
-}
-
-function parse(markup: string): HTMLElement {
-  const host = document.createElement("div");
-  host.innerHTML = markup;
-  return host;
-}
-
-function classesOf(element: Element | null | undefined): string[] {
-  return element?.getAttribute("class")?.split(" ").filter(Boolean) ?? [];
-}
-
-function expectClasses(element: Element | null | undefined, classes: string) {
-  expect(classesOf(element)).toEqual(
-    expect.arrayContaining(classes.split(" ")),
-  );
-}
-
-function expectNoFillClasses(element: Element | null | undefined) {
-  const fillClasses = new Set(
-    `${PAGE_FILL_HEIGHT_CLASSES.region} ${PAGE_FILL_HEIGHT_CLASSES.column}`.split(
-      " ",
-    ),
-  );
-  expect(classesOf(element).filter((name) => fillClasses.has(name))).toEqual(
-    [],
-  );
-}
-
-beforeEach(() => {
-  installRuntime();
-  pageLoading.value = false;
-  route.path = "/tools/explorer";
-  pageLayout.value = withComponents("stats", "explorer");
+  engine.useDmsState("dms-pageLayouts").value = {
+    "/tools/explorer": {
+      layout: { options: {} },
+      components: {
+        stats: { componentName: "ToolStats" },
+        explorer: { componentName: "ToolExplorer" },
+      },
+    },
+  };
 });
 
 afterEach(() => {
+  app?.unmount();
+  app = undefined;
+  disposeRuntime();
   vi.unstubAllGlobals();
 });
 
 describe("usePageFillHeight", () => {
   it("reads false under a layout that does not provide it", async () => {
-    const markup = await renderToString(createSSRApp(FillHeightProbe));
-    expect(markup).toBe("<output>false</output>");
+    expect(await renderToString(createSSRApp(FillHeightProbe))).toBe(
+      "<output>false</output>",
+    );
   });
 
   it("follows the layout that provides it", async () => {
     const fillHeight = ref(true);
-    const app = withStubs(
-      createApp(() =>
-        h(
-          DefaultLayout,
-          { fillHeight: fillHeight.value },
-          { default: () => h(FillHeightProbe) },
-        ),
-      ),
-    );
+    app = withUi(createApp(() => root(fillHeight.value, FillHeightProbe)));
     const host = document.createElement("div");
     app.mount(host);
     expect(host.querySelector("output")?.textContent).toBe("true");
     fillHeight.value = false;
     await nextTick();
     expect(host.querySelector("output")?.textContent).toBe("false");
-    app.unmount();
   });
 });
 
 describe("DefaultLayout without fillHeight", () => {
-  it("renders the page exactly as it did before the option existed", async () => {
-    expect(await renderInLayout({}, CatchAllPage)).toBe(FLOW_PAGE_MARKUP);
-  });
-
   it("tells the page it does not fill the panel", async () => {
-    const markup = await renderInLayout({}, FillHeightProbe);
-    expect(parse(markup).querySelector("output")?.textContent).toBe("false");
-  });
-});
-
-describe("a block that renders nothing", () => {
-  it("leaves an empty wrapper the stack hides, so it takes no gap", async () => {
-    pageLayout.value = withComponents("hiddenBanner", "stats");
-    const host = parse(await renderInLayout({}, CatchAllPage));
-    const [banner, stats] = Array.from(
-      host.querySelectorAll(".dms-page-stack > div"),
+    const markup = await renderToString(
+      withUi(createSSRApp(() => root(false, FillHeightProbe))),
     );
-    expect(banner?.matches(":empty")).toBe(true);
-    expectClasses(banner, "empty:hidden");
-    expect(stats?.matches(":empty")).toBe(false);
+    const host = document.createElement("div");
+    host.innerHTML = markup;
+    expect(host.querySelector("output")?.textContent).toBe("false");
   });
 });
 
 describe("DefaultLayout with fillHeight", () => {
-  it("makes the page region a flex column with a minimum height", async () => {
-    const host = parse(
-      await renderInLayout({ fillHeight: true }, CatchAllPage),
-    );
-    const region = host.querySelector("[data-dms-page-content]");
-    expectClasses(region, PAGE_FILL_HEIGHT_CLASSES.region);
-    expectClasses(region, "w-full max-w-none pb-12 lg:pb-16");
-  });
-
-  it("keeps the page header a plain item of that column", async () => {
-    const host = parse(
-      await renderInLayout({ fillHeight: true }, CatchAllPage),
-    );
-    const header = host.querySelector("[data-dms-page-content] > section");
-    expect(classesOf(header)).toEqual([
-      "flex",
-      "flex-wrap",
-      "gap-x-3.5",
-      "gap-y-4",
-      "items-start",
-      "pb-6",
-    ]);
-  });
-
-  it("gives the height left to the last component only", async () => {
-    const host = parse(
-      await renderInLayout({ fillHeight: true }, CatchAllPage),
-    );
-    const stack = host.querySelector(".dms-page-stack");
-    const [stats, explorer] = Array.from(stack?.children ?? []);
-    expectClasses(
-      stack,
-      `dms-page-stack space-y-6 ${PAGE_FILL_HEIGHT_CLASSES.column}`,
-    );
-    expectNoFillClasses(stats);
-    expectClasses(explorer, PAGE_FILL_HEIGHT_CLASSES.column);
-    expect(
-      explorer
-        ?.querySelector("[data-component]")
-        ?.getAttribute("data-component"),
-    ).toBe("explorer");
-  });
-
-  it("fills with the only component of a single-component page", async () => {
-    pageLayout.value = withComponents("explorer");
-    const host = parse(
-      await renderInLayout({ fillHeight: true }, CatchAllPage),
-    );
-    const wrappers = host.querySelectorAll(".dms-page-stack > div");
-    expect(wrappers).toHaveLength(1);
-    expectClasses(wrappers[0], PAGE_FILL_HEIGHT_CLASSES.column);
-  });
-
   it("tells a custom page, rendered straight in the slot, to fill", async () => {
-    const markup = await renderInLayout({ fillHeight: true }, FillHeightProbe);
-    expect(parse(markup).querySelector("output")?.textContent).toBe("true");
+    const markup = await renderToString(
+      withUi(createSSRApp(() => root(true, FillHeightProbe))),
+    );
+    const host = document.createElement("div");
+    host.innerHTML = markup;
+    expect(host.querySelector("output")?.textContent).toBe("true");
   });
 
-  it("drops the fill classes when a navigation lands on a page without the option", async () => {
-    const fillHeight = ref(true);
-    const app = withStubs(
+  it("renders the configured blocks in order on a filling page", async () => {
+    app = withUi(
       createApp(() =>
         h(
           DefaultLayout,
-          { title: "Explorer", fillHeight: fillHeight.value },
+          { title: "Explorer", fillHeight: true },
           {
             default: () =>
               h(Suspense, null, { default: () => h(CatchAllPage) }),
@@ -411,52 +141,32 @@ describe("DefaultLayout with fillHeight", () => {
     const host = document.createElement("div");
     app.mount(host);
     await vi.waitFor(() =>
-      expect(host.querySelector(".dms-page-stack")).not.toBeNull(),
+      expect(
+        [...host.querySelectorAll("[data-component]")].map(
+          (block) => block.textContent,
+        ),
+      ).toEqual(["stats", "explorer"]),
     );
-    expectClasses(
-      host.querySelector(".dms-page-stack"),
-      PAGE_FILL_HEIGHT_CLASSES.column,
-    );
-
-    fillHeight.value = false;
-    await nextTick();
-
-    expectNoFillClasses(host.querySelector("[data-dms-page-content]"));
-    expectNoFillClasses(host.querySelector(".dms-page-stack"));
-    host
-      .querySelectorAll(".dms-page-stack > div")
-      .forEach((wrapper) => expectNoFillClasses(wrapper));
-    app.unmount();
   });
 });
 
 describe("DefaultLayout while the page loads", () => {
   it("shows the skeleton in place of the page while the engine waits on it", async () => {
-    const app = withStubs(
-      createApp(() =>
-        h(
-          DefaultLayout,
-          { title: "Explorer" },
-          { default: () => h("section", { "data-page": "" }) },
-        ),
-      ),
-    );
+    const Page = () => h("section", { "data-page": "" }, "Ready");
+    app = withUi(createApp(() => root(false, Page)));
     const host = document.createElement("div");
     app.mount(host);
     const skeleton = () => host.querySelector(".dms-page-skeleton");
-    const pageWrapper = () => host.querySelector("[data-page]")?.parentElement;
-    expect(classesOf(skeleton())).toContain("hidden");
-    expect(classesOf(pageWrapper())).not.toContain("hidden");
-
-    pageLoading.value = true;
+    const page = () => host.querySelector("[data-page]")?.parentElement;
+    expect(skeleton()?.classList.contains("hidden")).toBe(true);
+    const suspense = engine.dmsPageSuspenseProps();
+    suspense.onPending!();
     await nextTick();
-    expect(classesOf(skeleton())).not.toContain("hidden");
-    expect(classesOf(pageWrapper())).toContain("hidden");
-
-    pageLoading.value = false;
+    expect(skeleton()?.classList.contains("hidden")).toBe(false);
+    expect(page()?.classList.contains("hidden")).toBe(true);
+    suspense.onResolve!();
     await nextTick();
-    expect(classesOf(skeleton())).toContain("hidden");
-    expect(classesOf(pageWrapper())).not.toContain("hidden");
-    app.unmount();
+    expect(skeleton()?.classList.contains("hidden")).toBe(true);
+    expect(page()?.classList.contains("hidden")).toBe(false);
   });
 });

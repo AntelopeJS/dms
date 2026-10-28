@@ -12,11 +12,11 @@ import {
   defineComponent,
   h,
   nextTick,
-  reactive,
   ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 import { readFetchNotFound } from "../layers/dms-ui/app/build/utils/fetchNotFound";
 
 interface FetchFailure extends Error {
@@ -24,7 +24,7 @@ interface FetchFailure extends Error {
   data?: unknown;
 }
 
-const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
+let route: ReturnType<typeof useRealDataEngine>["route"];
 const answers = new Map<string, unknown>();
 
 function failure(statusCode: number, data?: unknown): FetchFailure {
@@ -35,22 +35,11 @@ function failure(statusCode: number, data?: unknown): FetchFailure {
   });
 }
 
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
-    const answer = answers.get(url);
-    if (answer instanceof Error) throw answer;
-    return answer;
-  },
-}));
-vi.stubGlobal("useDmsRoute", () => route);
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
+async function authFetch(url: string) {
+  const answer = answers.get(url);
+  if (answer instanceof Error) throw answer;
+  return answer;
+}
 
 const { useChartFetch } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
@@ -93,9 +82,12 @@ function mount(component: Component): HTMLElement {
   return host;
 }
 
-beforeEach(() => useRealDataEngine());
-
 beforeEach(() => {
+  route = useRealDataEngine().route;
+});
+
+beforeEach(async () => {
+  await stubBlockRuntime(authFetch);
   answers.clear();
   route.query = { workspace: "web" };
   answers.set("/api/kpis?workspace=web", { items: [{ label: "web" }] });
@@ -109,13 +101,11 @@ beforeEach(() => {
     t: (key: string) => `t(${key})`,
     locale: ref("en"),
   }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
-  }));
 });
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
+  vi.unstubAllGlobals();
 });
 
 async function switchWorkspace(workspace: string) {
@@ -227,8 +217,8 @@ describe("BlockStatus not-found", () => {
         description: "$lang.unknown_hint",
       },
     });
-    expect(text).toContain("t($lang.unknown_title)");
-    expect(text).toContain("t($lang.unknown_hint)");
+    expect(text).toContain("t(lang.unknown_title)");
+    expect(text).toContain("t(lang.unknown_hint)");
     expect(text).not.toContain("No such workspace");
   });
 });

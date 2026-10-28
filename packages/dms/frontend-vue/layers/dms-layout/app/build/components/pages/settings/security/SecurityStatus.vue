@@ -151,7 +151,6 @@ const retryActions = computed(() => [
     onClick: () => void refresh(),
   },
 ]);
-
 </script>
 
 <template>

@@ -20,30 +20,10 @@ import {
   providePageFillHeight,
   usePageFillHeight,
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
-
-// The page's data refresh and the visit's navigation badges read the
-// realtime session and Inertia's page, which these tests do not run.
-vi.mock(
-  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
-  () => ({ usePageDataRefresh: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/page/usePageRecordDeletion",
-  () => ({ usePageRecordDeletion: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
-  () => ({ useVisitNavBadges: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
-  async () => {
-    const { ref } = await import("vue");
-    return { useDevReloading: () => ref(false) };
-  },
-);
+import { useRealDataEngine } from "./fixtures/dataEngine";
 
 interface PageLayoutFixture {
+  layout: { options: Record<string, never> };
   components: Record<string, { componentName: string }>;
   allComponentsHidden?: boolean;
 }
@@ -101,8 +81,13 @@ function installRuntime(): void {
     useDmsRoute: () => ({ path: "/examples/overview", query: {} }),
     useHomepage: () => "/",
     useI18n: () => ({ t: (key: string) => key }),
+    useToast: () => ({ add: vi.fn() }),
     usePageLayout: async () => ({ pageLayout }),
-    usePageRealtime: () => ({}),
+    usePageRealtime: () => ({
+      sessionId: ref(undefined),
+      pageTopics: ref([]),
+      subscribe: () => () => {},
+    }),
     usePermissions: () => ({
       permissions: ref([]),
       refreshIfStale: async () => {},
@@ -128,14 +113,20 @@ function installRuntime(): void {
 
 async function renderPage(): Promise<HTMLElement> {
   const app = createSSRApp(() => h(CatchAllPage));
+  const errors: Array<
+    Parameters<NonNullable<typeof app.config.errorHandler>>[0]
+  > = [];
+  app.config.errorHandler = (error) => errors.push(error);
   app.component("DmsEmptyState", EmptyState);
   app.component("DmsRecursiveComponent", PageComponent);
   const host = document.createElement("div");
   host.innerHTML = await renderToString(app);
+  if (errors.length) throw errors[0];
   return host;
 }
 
 beforeEach(() => {
+  useRealDataEngine();
   siteLayoutTree.value = undefined;
   navigateDms.mockClear();
   installRuntime();
@@ -176,7 +167,11 @@ afterEach(() => {
 
 describe("a page served without any of its blocks", () => {
   it("says there is nothing to show and who to ask", async () => {
-    pageLayout.value = { components: {}, allComponentsHidden: true };
+    pageLayout.value = {
+      layout: { options: {} },
+      components: {},
+      allComponentsHidden: true,
+    };
     const host = await renderPage();
     const empty = host.querySelector("aside");
     expect(empty?.getAttribute("data-variant")).toBe("no-access");
@@ -186,7 +181,11 @@ describe("a page served without any of its blocks", () => {
   });
 
   it("stays put, even with a page nested under it the viewer can open", async () => {
-    pageLayout.value = { components: {}, allComponentsHidden: true };
+    pageLayout.value = {
+      layout: { options: {} },
+      components: {},
+      allComponentsHidden: true,
+    };
     siteLayoutTree.value = treeWithNestedPage(true);
     const host = await renderPage();
     expect(navigateDms).not.toHaveBeenCalled();
@@ -195,6 +194,7 @@ describe("a page served without any of its blocks", () => {
 
   it("draws the blocks it was served instead", async () => {
     pageLayout.value = {
+      layout: { options: {} },
       components: { stats: { componentName: "StatGroup" } },
     };
     const host = await renderPage();
@@ -203,7 +203,7 @@ describe("a page served without any of its blocks", () => {
   });
 
   it("leaves a page that declares no block as it is", async () => {
-    pageLayout.value = { components: {} };
+    pageLayout.value = { layout: { options: {} }, components: {} };
     const host = await renderPage();
     expect(host.querySelector("aside")).toBeNull();
   });

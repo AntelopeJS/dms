@@ -1,19 +1,10 @@
-import { computed, createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const items = ref<Array<Record<string, unknown>>>([]);
-
-vi.mock("../layers/dms-ui/app/build/composables/blocks/useBlockItems", () => ({
-  useBlockItems: () => ({
-    items: computed(() => items.value),
-    count: computed(() => undefined),
-    isPending: computed(() => false),
-    hasError: computed(() => false),
-    refresh: async () => {},
-  }),
-}));
 
 const Slot = defineComponent({
   props: { title: { type: String, default: undefined } },
@@ -44,6 +35,7 @@ async function render(props: Record<string, unknown>): Promise<string> {
   ]) {
     app.component(name, Slot);
   }
+  await chartRuntime(app, { items: items.value });
   return renderToString(app);
 }
 
@@ -59,7 +51,6 @@ beforeEach(() => {
     date: new Date(Date.UTC(2026, 9, 9, 23 - index)).toISOString(),
   }));
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

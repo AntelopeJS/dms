@@ -18,17 +18,7 @@ import {
 } from "../layers/dms-ui/app/build/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
-// The modal's title and description need a reka DialogRoot: plain text here.
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 /** An ofetch `FetchError` as a refused (or unreachable) request throws it. */
 function fetchError(status: number | undefined, data?: unknown) {
@@ -168,7 +158,12 @@ describe("ConfirmModal failures", () => {
   }
 
   function mount(props: Record<string, unknown>): void {
-    app = createApp(ConfirmModal, { onClose: closed, ...props });
+    app = createApp({
+      render: () =>
+        h(DialogRoot, null, () =>
+          h(ConfirmModal, { onClose: closed, ...props }),
+        ),
+    });
     app.config.globalProperties.$t = (key: string) => key;
     app.component("UModal", Slots);
     app.component("UButton", Button);

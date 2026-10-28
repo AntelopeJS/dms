@@ -10,28 +10,10 @@ import {
   ref,
   type App,
 } from "vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
-const overview = ref<unknown>(null);
-const isUnavailable = ref(false);
-const refresh = vi.fn(async () => {});
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
-  () => ({
-    useSecurityOverview: () => ({
-      overview,
-      attention: computed(() => []),
-      isUnavailable,
-      refresh,
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/security/useSecurityFormat",
-  () => ({
-    useSecurityFormat: () => ({ formatDate: () => "", daysSince: () => 0 }),
-  }),
-);
+const authFetch = vi.fn();
 
 const StatGroup = defineComponent({
   props: { loading: Boolean },
@@ -63,6 +45,7 @@ async function mount(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/security/SecurityStatus.vue"
   );
   app = createApp(SecurityStatus);
+  browserRuntime(app);
   app.component("DmsStatGroup", StatGroup);
   app.component("DmsEmptyState", EmptyState);
   app.mount(host);
@@ -70,12 +53,16 @@ async function mount(): Promise<void> {
 }
 
 beforeEach(() => {
-  overview.value = null;
-  isUnavailable.value = false;
-  refresh.mockClear();
+  installAuthSettingsRuntime();
+  stubApiData(authFetch);
+  authFetch.mockReset();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("onMounted", onMounted);
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+    te: () => false,
+  }));
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -87,6 +74,7 @@ afterEach(() => {
 });
 
 it("loads while the security summary is on its way", async () => {
+  authFetch.mockReturnValue(new Promise(() => {}));
   await mount();
   expect(host.querySelector("[data-group]")?.getAttribute("data-group")).toBe(
     "loading",
@@ -95,12 +83,20 @@ it("loads while the security summary is on its way", async () => {
 });
 
 it("says a failed summary failed, with a retry, instead of loading forever", async () => {
-  isUnavailable.value = true;
+  authFetch.mockRejectedValue(new Error("network"));
   await mount();
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain("dms.table.load_error_title"),
+  );
   expect(host.querySelector("[data-group]")).toBeNull();
   expect(host.textContent).toContain("dms.table.load_error_title");
 
-  refresh.mockClear();
+  authFetch.mockClear();
   host.querySelector("button")!.click();
-  expect(refresh).toHaveBeenCalledOnce();
+  await vi.waitFor(() =>
+    expect(authFetch).toHaveBeenCalledExactlyOnceWith(
+      "/dms/pages/settings/user/security",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    ),
+  );
 });

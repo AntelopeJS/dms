@@ -17,7 +17,7 @@
     "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
     "test": "vitest run",
     "format": "prettier --write .",
-    "lint": "eslint .",
+    "lint": "node scripts/check-invariants.mjs && eslint .",
     "lint:fix": "eslint . --fix",
     "frontend:build": "ajs dms build -b http://127.0.0.1:5010",
     "frontend:start": "ajs dms start -p 3001"

@@ -2,7 +2,6 @@ import { getQuery, withQuery } from "ufo";
 import { describe, expect, it } from "vitest";
 import { createI18n } from "vue-i18n";
 import {
-  BULK_CONFIRM_TONES,
   bulkActionConfirm,
   bulkActionOutcome,
   bulkActionQuery,
@@ -83,11 +82,6 @@ describe("TableView bulk actions", () => {
 
 describe("TableView bulk action confirmations", () => {
   it("warns before archiving and alarms before deleting", () => {
-    expect(BULK_CONFIRM_TONES).toEqual({
-      archive: "warning",
-      delete: "error",
-      deletePermanently: "error",
-    });
     const t = translator("en");
     expect(bulkActionConfirm("archive", 2, t)).toMatchObject({
       color: "warning",

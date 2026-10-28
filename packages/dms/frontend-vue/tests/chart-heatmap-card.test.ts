@@ -4,20 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const HEATMAP_SERIES = [
   { name: "Mon", data: [{ x: "09:00", y: 1200 }] },
   { name: "Tue", data: [{ x: "09:00", y: 3400 }] },
 ];
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: { fetchUrl?: string }) => ({
-    data: ref(
-      options.fetchUrl ? { value: 4600, series: HEATMAP_SERIES } : null,
-    ),
-    isLoading: ref(false),
-  }),
-}));
 
 type Formatter = (value: unknown) => string;
 
@@ -74,14 +66,13 @@ async function renderCard(type: ChartType) {
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app, { value: 4600, series: HEATMAP_SERIES });
+  await renderToString(app);
   return renderToString(app);
 }
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

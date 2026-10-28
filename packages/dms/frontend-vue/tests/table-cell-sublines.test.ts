@@ -21,17 +21,6 @@ import { readSubline } from "../layers/dms-ui/app/build/composables/data-types/c
 import { registerMetricCellTypes } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
 import { registerTwoLineCellType } from "../layers/dms-ui/app/build/composables/data-types/twoLineCell";
 
-// The renderers registerDefaults imports beside the identity's.
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
 const IdentityCell = (
   await import(
     "../layers/dms-ui/app/build/components/table-view/IdentityCell.vue"

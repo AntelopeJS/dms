@@ -14,10 +14,6 @@ import { AxeOrientation } from "../layers/dms-core/app/types/orientation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { Size } from "../layers/dms-core/app/types/size";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: vue.ref(null) }),
-}));
-
 const ITEMS = [
   { label: "Statistics", slot: "statistics" },
   { label: "Documentation", slot: "documentation" },

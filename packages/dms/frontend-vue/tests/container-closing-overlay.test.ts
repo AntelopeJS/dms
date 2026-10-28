@@ -33,19 +33,7 @@ import {
 } from "vitest";
 import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/build/components/containers/constants";
 
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  return {
-    DialogTitle: passThrough,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot } from "reka-ui";
 
 const require = createRequire(import.meta.url);
 let overlayCss = "";
@@ -67,10 +55,12 @@ const ContainerStub = defineComponent({
           class: (props.ui as Record<string, string> | undefined)?.overlay,
           style: { pointerEvents: "auto" },
         }),
-        h("div", { "data-slot": "content" }, [
-          slots.header?.(),
-          slots.body?.(),
-        ]),
+        h(DialogRoot, null, () =>
+          h("div", { "data-slot": "content" }, [
+            slots.header?.(),
+            slots.body?.(),
+          ]),
+        ),
       ]);
   },
 });
@@ -110,7 +100,9 @@ async function mountContainer(
 }
 
 async function closeContainer(): Promise<void> {
-  host.querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!.click();
+  host
+    .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
+    .click();
   await vi.waitFor(() => expect(overlay().dataset.state).toBe("closed"));
 }
 

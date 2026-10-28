@@ -8,7 +8,7 @@
  */
 import { createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { liveShellRuntime } from "./helpers/live-shell-runtime";
 import {
   createPageLiveController,
   type PageLiveController,
@@ -26,13 +26,7 @@ import { MissedTally } from "../layers/dms-ui/app/build/composables/live/missedT
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import { currentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
-const topicHandlers = new Map<string, RealtimeTopicHandler[]>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, [...(topicHandlers.get(topic) ?? []), handler]);
-  },
-}));
+const realtime = liveShellRuntime();
 
 const { useRefreshTriggers } = await import(
   "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
@@ -46,8 +40,7 @@ const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
 
 function publish(payload?: Record<string, unknown>, topic = TOPIC) {
-  const event = { topic, type: "requests", ts: Date.now(), payload };
-  for (const handler of topicHandlers.get(topic) ?? []) handler(event);
+  return realtime.publish(topic, payload);
 }
 
 function mountBlock(topic: string = TOPIC) {
@@ -84,19 +77,20 @@ function setVisibility(state: "visible" | "hidden") {
   document.dispatchEvent(new Event("visibilitychange"));
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.stubGlobal("isDmsHydrating", () => false);
   vi.useFakeTimers();
-  topicHandlers.clear();
+  await realtime.start();
   window.localStorage.clear();
   window.history.replaceState(null, "", "/");
   setVisibility("visible");
 });
 
-afterEach(() => {
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
   controllers.splice(0).forEach((controller) => controller.dispose());
   setCurrentPageLive(null);
+  await realtime.stop();
   vi.useRealTimers();
 });
 
@@ -104,27 +98,27 @@ describe("the pause counter", () => {
   // The dms-api regression: the capture publishes one message per 1.5 s with
   // the number of requests it stands for; 40 requests over two messages read
   // "2 new" before.
-  it("counts the requests a batch announces, not the messages", () => {
+  it("counts the requests a batch announces, not the messages", async () => {
     const live = install({ maxRate: 5 });
     const table = mountBlock();
     mountBlock();
     live.pause();
 
-    publish({ count: 25, server5xx: 2, tester: 0 });
-    publish({ count: 15, server5xx: 0, tester: 1 });
+    await publish({ count: 25, server5xx: 2, tester: 0 });
+    await publish({ count: 15, server5xx: 0, tester: 1 });
 
     expect(live.missedCount.value).toBe(40);
     live.resume();
     expect(table).toHaveBeenCalledTimes(1);
   });
 
-  it("counts each published row once, across messages", () => {
+  it("counts each published row once, across messages", async () => {
     const live = install();
     mountBlock(ROW_TOPIC);
     live.pause();
 
-    publish({ ids: ["a", "b", "c"] }, ROW_TOPIC);
-    publish({ ids: ["b", "d"] }, ROW_TOPIC);
+    await publish({ ids: ["a", "b", "c"] }, ROW_TOPIC);
+    await publish({ ids: ["b", "d"] }, ROW_TOPIC);
 
     expect(live.missedCount.value).toBe(4);
   });
@@ -140,19 +134,19 @@ describe("the pause counter", () => {
     expect(tally.total.value).toBe(0);
   });
 
-  it("counts every event a pause cut short, not only the first", () => {
+  it("counts every event a pause cut short, not only the first", async () => {
     const live = install({ maxRate: 5 });
     mountBlock();
-    publish({ count: 1 });
-    publish({ count: 3 });
-    publish({ count: 4 });
+    await publish({ count: 1 });
+    await publish({ count: 3 });
+    await publish({ count: 4 });
     live.pause();
     expect(live.missedCount.value).toBe(7);
   });
 });
 
 describe("holds", () => {
-  it("pauses with a reason while a component holds, and resumes on release", () => {
+  it("pauses with a reason while a component holds, and resumes on release", async () => {
     const live = install();
     const block = mountBlock();
     const tester = usePageLive();
@@ -162,7 +156,7 @@ describe("holds", () => {
     expect(live.pauseReason.value).toEqual({
       text: "$api.live.typing_in_tester",
     });
-    publish({ count: 2 });
+    await publish({ count: 2 });
     expect(block).not.toHaveBeenCalled();
 
     tester.release();
@@ -227,7 +221,7 @@ describe("holds", () => {
 });
 
 describe("the browser around the page", () => {
-  it("pauses while the tab is hidden and resumes on return", () => {
+  it("pauses while the tab is hidden and resumes on return", async () => {
     const live = install();
     const block = mountBlock();
     const unbind = bindPageLiveEnvironment(live, {});
@@ -235,7 +229,7 @@ describe("the browser around the page", () => {
     setVisibility("hidden");
     expect(live.isPaused.value).toBe(true);
     expect(live.pauseReason.value?.text).toBe("$dms.live.reason_hidden");
-    publish();
+    await publish();
 
     setVisibility("visible");
     expect(live.isPaused.value).toBe(false);
@@ -353,7 +347,7 @@ describe("the cadence", () => {
     expect(poll).toHaveBeenCalledTimes(1);
   });
 
-  it("gates a block at the slower cadence over a long period", () => {
+  it("gates a block at the slower cadence over a long period", async () => {
     const live = install({
       maxRate: 5,
       slowRateAfter: { period: "7d", maxRate: 60 },
@@ -361,8 +355,8 @@ describe("the cadence", () => {
     const block = mountBlock();
     const span = ref(7 * DAY_MS);
     live.reportPeriodSpan(Symbol("period"), span.value);
-    publish();
-    publish();
+    await publish();
+    await publish();
     vi.advanceTimersByTime(5000);
     expect(block).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(55_000);

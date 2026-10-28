@@ -5,6 +5,7 @@
  * empty grid would lift the pagination footer for a beat, then drop it when
  * the cards land.
  */
+import "./helpers/table-runtime";
 import {
   computed,
   createApp,
@@ -18,13 +19,6 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
 
 const SiteCard = {
   props: { rowId: String },
@@ -84,8 +78,6 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("h", h);
   vi.stubGlobal("useI18n", () => ({ locale: ref("en"), t: (t: string) => t }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("resolveDmsComponent", (name: string) =>
     name === "SiteCard" ? lazyCard : undefined,
   );

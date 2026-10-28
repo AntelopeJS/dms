@@ -6,7 +6,7 @@
  * holds the same value and only the visit tells the link was followed again.
  */
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type { DeepLinkedRow } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import {
@@ -17,19 +17,6 @@ import {
   currentQuery,
   withoutQueryParam,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/urlFilters";
-
-type NavigateListener = (event: { detail: { page: { url: string } } }) => void;
-const navigateListeners = new Set<NavigateListener>();
-
-vi.mock("@inertiajs/vue3", () => ({
-  router: {
-    on: (type: string, listener: NavigateListener) => {
-      if (type !== "navigate") return () => {};
-      navigateListeners.add(listener);
-      return () => navigateListeners.delete(listener);
-    },
-  },
-}));
 
 const { useTableRecordLink } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableRecordLink"
@@ -56,8 +43,8 @@ async function visit(route: { query: Record<string, unknown> }, url: string) {
   window.history.pushState({}, "", url);
   route.query = Object.fromEntries(new URL(url, "http://x").searchParams);
   await nextTick();
-  navigateListeners.forEach((listener) =>
-    listener({ detail: { page: { url } } }),
+  document.dispatchEvent(
+    new CustomEvent("inertia:navigate", { detail: { page: { url } } }),
   );
   await flush();
 }
@@ -107,8 +94,6 @@ function mountTable(url: string) {
   return { route, opened, notify, close };
 }
 
-beforeEach(() => navigateListeners.clear());
-
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
   window.history.replaceState({}, "", "/");
@@ -119,8 +104,10 @@ describe("a record link on a mounted table", () => {
     const { route, opened } = mountTable("/sends?record=r1");
     await flush();
     // The visit that mounted the table is announced after it mounted.
-    navigateListeners.forEach((listener) =>
-      listener({ detail: { page: { url: "/sends?record=r1" } } }),
+    document.dispatchEvent(
+      new CustomEvent("inertia:navigate", {
+        detail: { page: { url: "/sends?record=r1" } },
+      }),
     );
     await flush();
     expect(opened).toEqual(["r1"]);

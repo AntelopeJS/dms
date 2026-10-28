@@ -16,14 +16,6 @@ import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js
 import TableActions from "../layers/dms-ui/app/build/components/table/Actions.vue";
 import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
 
-vi.mock("../layers/dms-ui/app/build/components/table/Menu.vue", () => ({
-  default: { render: () => null },
-}));
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: { render: () => null },
-}));
-
 const PassThrough = defineComponent({
   setup:
     (_, { slots }) =>

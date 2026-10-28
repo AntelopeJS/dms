@@ -21,21 +21,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 import { useFileReadUrls } from "../layers/dms-ui/app/composables/useFileReadUrls";
-
-vi.mock("#dms-core/app/composables/useFieldErrors", () => ({
-  useFieldErrors: () => ({
-    errors: {},
-    aria: () => ({}),
-    errorId: (field: string) => `${field}-error`,
-    clear: () => {},
-    setError: async () => {},
-    handleApiError: async () => {},
-  }),
-  fieldErrorId: (id: string) => `${id}-error`,
-}));
-vi.mock("#dms-ui/app/composables/unsaved-changes/useUnsavedChanges", () => ({
-  useUnsavedChanges: () => {},
-}));
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
 const ENDPOINT = "/settings/user/profile";
 const PROFILE = {
@@ -57,8 +43,8 @@ const Input = defineComponent({
   setup: (props) => () => h("input", { id: props.id, value: props.modelValue }),
 });
 const Avatar = defineComponent({
-  props: { src: String, name: String },
-  setup: (props) => () => h("img", { src: props.src ?? "", alt: props.name }),
+  props: { src: String, alt: String },
+  setup: (props) => () => h("img", { src: props.src ?? "", alt: props.alt }),
 });
 const Badge = defineComponent({
   props: { label: String },
@@ -77,10 +63,12 @@ function register(app: App): void {
   for (const name of ["UButton", "UIcon", "USkeleton", "DmsFieldError"])
     app.component(name, () => null);
   app.component("UInput", Input);
+  app.component("UAvatar", Avatar);
   app.component("UBadge", Badge);
 }
 
 beforeEach(async () => {
+  installAuthSettingsRuntime();
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
@@ -112,10 +100,6 @@ afterEach(() => {
 });
 
 it("renders the saved profile and its picture on the server, and the browser does not read them again", async () => {
-  vi.doMock(
-    "../layers/dms-layout/app/build/components/pages/settings/profile/ProfileAvatar.vue",
-    () => ({ default: Avatar }),
-  );
   const { default: ProfilePersonalInfo } = await import(
     "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePersonalInfo.vue"
   );

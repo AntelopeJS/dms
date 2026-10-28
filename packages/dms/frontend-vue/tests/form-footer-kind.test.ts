@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   formSaveMode,
@@ -137,17 +136,5 @@ describe("saveBarState of an action form", () => {
       isSubmitHeld: false,
       isHidden: false,
     });
-  });
-});
-
-describe("Form.vue's Cancel", () => {
-  const source = readFileSync(
-    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
-    "utf8",
-  );
-
-  it("drops the changes before it leaves, so leaving asks nothing", () => {
-    const body = /function cancelForm\(\): void \{\s*([^\r\n]*)/.exec(source);
-    expect(body?.[1]).toBe("if (isDirty.value) discardChanges();");
   });
 });

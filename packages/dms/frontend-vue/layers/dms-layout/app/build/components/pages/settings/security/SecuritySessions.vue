@@ -67,9 +67,7 @@ const readAt = computed(() => list.data.value?.readAt);
 // failed reload keeps the list on screen.
 const hasLoadError = computed(
   () =>
-    !list.data.value &&
-    !!list.error.value &&
-    list.status.value !== "pending",
+    !list.data.value && !!list.error.value && list.status.value !== "pending",
 );
 const isLoading = computed(() => !list.data.value && !hasLoadError.value);
 const revokingId = ref<string | null>(null);
@@ -165,7 +163,6 @@ const retryActions = computed(() => [
     onClick: () => void fetchSessions(),
   },
 ]);
-
 </script>
 
 <template>

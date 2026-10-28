@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_KEYBOARD_PLATFORM,
   detectKeyboardPlatform,
   formatKeyboardShortcut,
   keyboardKeyLabel,
@@ -45,8 +44,7 @@ describe("detectKeyboardPlatform", () => {
   });
 
   it("falls back to the server default without a navigator", () => {
-    expect(detectKeyboardPlatform(undefined)).toBe(DEFAULT_KEYBOARD_PLATFORM);
-    expect(DEFAULT_KEYBOARD_PLATFORM).toBe("other");
+    expect(detectKeyboardPlatform(undefined)).toBe("other");
   });
 });
 

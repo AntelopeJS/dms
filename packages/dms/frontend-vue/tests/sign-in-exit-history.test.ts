@@ -15,47 +15,15 @@ import {
   type Component,
 } from "vue";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
+import {
+  installAuthSettingsRuntime,
+  PinInput,
+} from "./helpers/auth-settings-runtime";
 
 // The pages that end a sign-in by spending a one-time token in their URL: the
 // OAuth completion and the second factor (code or backup code). Each leaves
 // for the destination in its own place in the history, so Back never lands on
 // a spent token, or on a completion page that sends the user forward again.
-
-vi.mock("#dms-ui/app/build/components/form/OtpInput.vue", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  return {
-    default: define({
-      props: { modelValue: Array },
-      emits: ["update:modelValue"],
-      setup: (_, { emit, expose }) => {
-        expose({ focus: () => undefined });
-        return () =>
-          render("input", {
-            "data-testid": "code",
-            onInput: (event: Event) =>
-              emit(
-                "update:modelValue",
-                (event.target as HTMLInputElement).value.split(""),
-              ),
-          });
-      },
-    }),
-  };
-});
-const stub = vi.hoisted(() => async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  return {
-    default: define({
-      setup:
-        (_: unknown, { slots }: { slots: Record<string, () => unknown> }) =>
-        () =>
-          render("section", slots.default?.() as never),
-    }),
-  };
-});
-vi.mock("../layers/dms-layout/app/build/components/layout/StageCard.vue", stub);
-vi.mock("../layers/dms-auth/app/build/components/AuthBackLink.vue", stub);
-vi.mock("../layers/dms-auth/app/build/components/AuthFormAlert.vue", stub);
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -100,6 +68,7 @@ const Passthrough = defineComponent({
 });
 
 function installRuntime() {
+  installAuthSettingsRuntime();
   Object.entries({
     computed,
     ref,
@@ -137,6 +106,7 @@ function mountPage(page: Component) {
   for (const name of ["UButton", "UFormField", "UInput", "UIcon", "DmsLink"])
     app.component(name, Passthrough);
   app.component("UForm", Form);
+  app.component("UPinInput", PinInput);
   app.mount(host);
 }
 

@@ -4,10 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import type { ChartClickPayload } from "../layers/dms-ui/app/composables/chart/events";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: ref(null), isLoading: ref(false) }),
-}));
+import { chartRuntime } from "./helpers/charts-runtime";
 
 type LabelFormatter = (
   value: string,
@@ -81,6 +78,7 @@ async function draw(
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app);
   await renderToString(app);
   return probed!;
 }
@@ -94,9 +92,6 @@ function axisLabels(chart: Probed): string[] {
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -152,6 +147,7 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
   });
 
   it("names the route's point when a column after a gap is clicked", async () => {
+    vi.stubGlobal("window", new EventTarget());
     const clicks: ChartClickPayload[] = [];
     const chart = await draw(["2026-06-01", "2026-07-01", "2026-09-01"], {
       onPointClick: (payload: ChartClickPayload) => clicks.push(payload),

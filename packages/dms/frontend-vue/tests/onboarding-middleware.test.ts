@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Middleware = (to: { path: string }) => Promise<unknown>;
@@ -84,20 +83,5 @@ describe("onboarding middleware", () => {
     await middleware({ path: "/onboarding" });
 
     expect(navigateDms).not.toHaveBeenCalled();
-  });
-});
-
-describe("onboarding page", () => {
-  // Global middleware runs on a direct load only for a page declaring its
-  // meta: without it, a finished wizard would render instead of redirecting.
-  it("declares its meta so the onboarding middleware runs on a direct load", () => {
-    const page = readFileSync(
-      new URL(
-        "../layers/dms-onboarding/app/custom-pages/onboarding.vue",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-    expect(page).toMatch(/defineDmsPageMeta\(/);
   });
 });

@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   type App,
   type Component,
   computed,
   createApp,
   defineComponent,
-  type FunctionalComponent,
   h,
   nextTick,
   ref,
 } from "vue";
 import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
 // The tree components lean on Nuxt auto-imports; provide what they read.
 Object.assign(globalThis, {
@@ -115,6 +115,7 @@ let helpers: typeof import("../layers/dms-layout/app/build/components/pages/sett
 let app: App | undefined;
 
 beforeAll(async () => {
+  installAuthSettingsRuntime();
   helpers = await import(
     "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions"
   );
@@ -268,22 +269,6 @@ const InputStub = defineComponent({
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       }),
 });
-
-interface SearchInputStubProps {
-  modelValue?: string;
-  placeholder?: string;
-}
-
-// DmsSearchInput: an input named by its placeholder.
-const SearchInputStub: FunctionalComponent<SearchInputStubProps> = (
-  props,
-  { attrs },
-) => h(InputStub, { ...attrs, ...props, "aria-label": props.placeholder });
-SearchInputStub.props = ["modelValue", "placeholder"];
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: SearchInputStub,
-}));
 
 const slotStub = defineComponent({
   setup:

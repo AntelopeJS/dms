@@ -15,10 +15,7 @@ import {
 } from "./confirmDialogTexts";
 import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
-import {
-  namesPageValue,
-  resolveLinkVariables,
-} from "../../utils/urlVariables";
+import { namesPageValue, resolveLinkVariables } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 
 /** What an action asks its confirmation with. */

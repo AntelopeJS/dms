@@ -4,15 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ value: 12 }),
-    isLoading: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  }),
-}));
-
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -50,6 +41,7 @@ describe("the compact stat card", () => {
       variant: "stat",
       componentId: "kpi",
       pageId: "page",
+      staticValue: 12,
     });
     const group = await render(StatGroup, {
       layout: "cards",

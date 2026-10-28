@@ -6,7 +6,15 @@
  * without reading it again. The URL form names its key with `key`.
  */
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 interface Task {
   id: string;
