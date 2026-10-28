@@ -1,6 +1,6 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { ComponentInfo } from "../../component";
+import { Action, type ComponentInfo } from "../../component";
 import {
   MarkModuleScopedPermission,
   type Permission,
@@ -26,6 +26,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "../types";
+import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
 // oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
@@ -236,16 +237,21 @@ export function createCategoryFunction(
     icon: categoryInfo.icon,
     defaultGranted:
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread -- Preserves the legacy permission spread, including Action instances; Action normalization is unresolved.
-    ...categoryInfo.permission,
+    ...ownPermission(categoryInfo.permission),
   };
   if (isInsideModule(categoryInfo)) {
-    MarkModuleScopedPermission(categoryPermission.id);
-  } else {
+    MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
+  } else if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
   return categoryInfo;
+}
+
+function ownPermission(
+  permission: CategoryInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */

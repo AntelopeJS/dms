@@ -18,6 +18,7 @@ import {
   type PageExtensionInfo,
 } from "@antelopejs/interface-dms/page";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { categoryOwnPermissionId } from "@antelopejs/interface-dms/page/internal/category-permission";
 import { UnmarkModuleScopedPermission } from "@antelopejs/interface-dms/permissions";
 import {
   clearPageMetadata,
@@ -321,9 +322,7 @@ export namespace internal {
       }
 
       if (isInsideModule(categoryInfo)) {
-        UnmarkModuleScopedPermission(
-          resolvePagePermissionId(categoryInfo.permission, categoryInfo.fullId),
-        );
+        UnmarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
       }
     },
   };
