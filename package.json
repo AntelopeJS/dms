@@ -18,7 +18,7 @@
     "frontend:dev": "pnpm --dir packages/dms frontend:dev",
     "build": "pnpm --filter @antelopejs/dms build",
     "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/dms typecheck",
-    "lint": "oxlint && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint && pnpm --dir packages/dms exec antelopejs-check-interface-ranges",
+    "lint": "oxlint && node packages/dms/playground/checks/raw-sources.cjs && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint && pnpm --dir packages/dms exec antelopejs-check-interface-ranges",
     "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
     "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
     "knip": "pnpm --dir packages/interface-dms knip && pnpm --dir packages/dms knip",

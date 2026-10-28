@@ -16,7 +16,6 @@ import {
   PROFILE_ATTACHMENT_FIELDS,
 } from "./profile-attachments";
 import {
-  type DateRange,
   Gender,
   MaritalStatus,
   type Profile,
@@ -42,7 +41,7 @@ function createDefaultProfile(): Partial<Profile> {
     email: "john.doe@example.com",
     phone: "+1-555-123-4567",
     birthDate: new Date("1990-05-15"),
-    vacationDates: { start: "2025-07-01", end: "2025-07-15" } as DateRange,
+    vacationDates: { start: "2025-07-01", end: "2025-07-15" },
     gender: Gender.male,
     maritalStatus: MaritalStatus.single,
     country: "us",
@@ -148,9 +147,8 @@ export class ProfileAPIController extends Controller("/api/profile") {
     };
   }
 
-  private formatProfileResponse(profile: Profile) {
+  private formatProfileResponse(profile: Pick<Profile, keyof Profile>) {
     return {
-      // oxlint-disable-next-line typescript/no-misused-spread -- Profile and Table have no instance methods; this response copies their data fields for JSON.
       ...profile,
     };
   }

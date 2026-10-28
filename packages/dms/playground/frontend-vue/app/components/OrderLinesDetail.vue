@@ -20,9 +20,14 @@ interface OrderEvent {
   at: string;
 }
 
+interface OrderRow {
+  lines?: OrderLine[];
+  events?: OrderEvent[];
+}
+
 interface OrderLinesDetailProps {
   /** The order, as `get` answered it when the row opened. */
-  row: Record<string, unknown>;
+  row: OrderRow;
   /** Id of the row. */
   rowId: string;
 }
@@ -31,12 +36,8 @@ const props = defineProps<OrderLinesDetailProps>();
 
 const { locale, dateTimeFormat } = useRegionalFormat();
 
-const lines = computed(
-  () => (props.row.lines as OrderLine[] | undefined) ?? [],
-);
-const events = computed(
-  () => (props.row.events as OrderEvent[] | undefined) ?? [],
-);
+const lines = computed(() => props.row.lines ?? []);
+const events = computed(() => props.row.events ?? []);
 
 const money = computed(
   () =>

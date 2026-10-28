@@ -56,8 +56,8 @@ watch(
   { immediate: true },
 );
 
-function isLowered(): boolean {
-  return model.value != null && saved !== null && model.value < saved;
+function isLowered(value: typeof model.value): value is number {
+  return value != null && saved !== null && value < saved;
 }
 
 async function askThenSubmit(days: number): Promise<void> {
@@ -70,11 +70,11 @@ async function askThenSubmit(days: number): Promise<void> {
 }
 
 form?.addValidator(() => {
-  if (!isLowered() || confirmedValue === model.value) {
+  if (!isLowered(model.value) || confirmedValue === model.value) {
     saved = model.value ?? saved;
     return true;
   }
-  void askThenSubmit(model.value as number);
+  void askThenSubmit(model.value);
   return false;
 });
 

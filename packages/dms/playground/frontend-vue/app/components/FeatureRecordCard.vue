@@ -34,6 +34,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- FeatureRow.area is an open string; unknown areas intentionally use the template's default icon.
 const AREA_ICONS: Record<string, string> = {
   Tables: "i-ph-table",
   Forms: "i-ph-textbox",

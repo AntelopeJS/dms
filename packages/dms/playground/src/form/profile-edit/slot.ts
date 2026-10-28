@@ -11,11 +11,9 @@ import {
 export const PROFILE_SOCIAL_SLOT_ID = "playground:profile-social";
 
 type FormSchemaJson = NonNullable<FormPropsSerialized["schema"]>;
+type ObjectSchemaJson = Extract<FormSchemaJson, { properties: object }>;
 
-interface ObjectSchemaJson {
-  properties?: Record<string, unknown>;
-}
-
+// SAFETY: Form sets its serialized options with fields and a schema before returning the builder.
 const contributed = Form({
   fields: [
     {
@@ -29,16 +27,21 @@ const contributed = Form({
   ],
 }).serializeSync().options as FormPropsSerialized;
 
-function withContributedProperties(schema: unknown): FormSchemaJson {
+function withContributedProperties(
+  schema: SlotOptions["schema"],
+): FormSchemaJson {
+  // SAFETY: The profile-social slot is declared only on a Form, whose fields produce an object schema.
   const base = schema as ObjectSchemaJson;
+  // SAFETY: The contributed Form builds an object schema from its mastodonUrl field.
   const extra = contributed.schema as ObjectSchemaJson;
   return {
     ...base,
     properties: { ...base.properties, ...extra.properties },
-  } as FormSchemaJson;
+  };
 }
 
 function withContributedFields(options: SlotOptions): SlotOptions {
+  // SAFETY: The profile-social slot belongs to a Form, so its fields have Form's serialized field contract.
   const fields = (options.fields as FormPropsSerialized["fields"]) ?? [];
   return {
     ...options,

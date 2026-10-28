@@ -32,7 +32,7 @@ interface ItemsResponse {
   items: KeyValueListItem[];
 }
 
-function renderError(error: unknown): string {
+function renderError(error: PromiseRejectedResult["reason"]): string {
   const message = error instanceof Error ? error.message : String(error);
   return `<!-- GenerateHtml failed: ${message} -->\n<!-- The email bundle is built by the frontend server: start it with pnpm --dir packages/dms frontend:dev. -->`;
 }

@@ -50,10 +50,6 @@ interface CachedStars {
   fetchedAt: number;
 }
 
-interface RepositoryResponse {
-  stargazers_count?: unknown;
-}
-
 const stars = ref<number | null>(null);
 const formattedStars = computed(() =>
   stars.value === null
@@ -66,7 +62,7 @@ const formattedStars = computed(() =>
 function readCachedStars(): CachedStars | null {
   try {
     const raw = sessionStorage.getItem(STARS_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as CachedStars) : null;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
@@ -86,8 +82,8 @@ async function fetchStars(): Promise<number | null> {
       headers: { Accept: "application/vnd.github+json" },
     });
     if (!response.ok) return null;
-    const { stargazers_count: count } =
-      (await response.json()) as RepositoryResponse;
+    const { stargazers_count: count } = await response.json();
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The GitHub response is unvalidated; preserve the existing number-only acceptance behavior.
     return typeof count === "number" ? count : null;
   } catch {
     return null;

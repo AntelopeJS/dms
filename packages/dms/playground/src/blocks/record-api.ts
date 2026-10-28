@@ -76,6 +76,7 @@ const ORDERS: DemoOrder[] = [
   },
 ];
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Order status strings index ActivityFeedItem-owned tones with the existing fallback.
 const ORDER_TONES: Record<string, ActivityFeedItem["tone"]> = {
   paid: "success",
   open: "warning",

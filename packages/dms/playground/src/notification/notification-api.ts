@@ -37,7 +37,10 @@ const customNotificationSchema = z.object({
   linkTo: z.string().trim().nullish(),
 });
 
-function parseBody<T>(schema: z.ZodType<T>, rawBody: unknown): T {
+function parseBody<T>(
+  schema: z.ZodType<T>,
+  rawBody: Parameters<z.ZodType<T>["safeParse"]>[0],
+): T {
   const parsed = schema.safeParse(rawBody ?? {});
   if (parsed.success) return parsed.data;
   throw new HTTPResult(
@@ -166,7 +169,9 @@ export class NotificationAPIController extends Controller("/api/notification") {
   async sendNotification(
     @Context() ctx: RequestContext,
     @AuthRawUser() user: User,
-    @JSONBody() rawBody: unknown,
+    @JSONBody() rawBody: Parameters<
+      typeof customNotificationSchema.safeParse
+    >[0],
   ) {
     const body = parseBody(customNotificationSchema, rawBody);
     const notification = Notification()
@@ -188,7 +193,7 @@ export class NotificationAPIController extends Controller("/api/notification") {
   async sendPreset(
     @Context() ctx: RequestContext,
     @AuthRawUser() user: User,
-    @JSONBody() rawBody: unknown,
+    @JSONBody() rawBody: Parameters<typeof presetSchema.safeParse>[0],
   ) {
     const { preset } = parseBody(presetSchema, rawBody);
     await PRESET_SENDERS[preset](user, ctx);

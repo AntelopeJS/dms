@@ -112,9 +112,11 @@ export class RequestLogController extends Controller(
   @Post("batch/background")
   importBatchInBackground() {
     setTimeout(() => {
-      appendBatchAndPublish().catch((error: unknown) => {
-        console.warn("[playground] request log batch failed", error);
-      });
+      appendBatchAndPublish().catch(
+        (error: PromiseRejectedResult["reason"]) => {
+          console.warn("[playground] request log batch failed", error);
+        },
+      );
     }, BACKGROUND_BATCH_DELAY_MS);
     return { ok: true };
   }

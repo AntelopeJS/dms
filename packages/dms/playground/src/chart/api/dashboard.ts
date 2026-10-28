@@ -206,6 +206,7 @@ const SAMPLE_LABELS = [
   "Dec",
 ];
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Preset query strings are arbitrary; the lookup must retain its string index signature and fallback.
 const PRESET_SEED_OFFSETS: Record<string, number> = {
   "this-month": 0,
   "last-month": 100,
@@ -411,7 +412,7 @@ const COMPARISON_SEED_OFFSET = 11;
  * The daily figures the period-bound cards read: a KpiCard and a ChartCard
  * naming the same metric total the same days, so they show the same figure.
  */
-const DAILY_METRICS: Record<string, DailyMetric> = {
+const DAILY_METRICS = {
   revenue: {
     seedOffset: 0,
     range: { min: 5500, max: 9500 },
@@ -432,7 +433,7 @@ const DAILY_METRICS: Record<string, DailyMetric> = {
     range: { min: 1800, max: 3200 },
     comparisonRange: { min: 1600, max: 3400 },
   },
-};
+} satisfies Record<string, DailyMetric>;
 
 function dailyFigures(
   metric: DailyMetric,
@@ -495,6 +496,7 @@ function latencyKpi(period: PeriodRequest): KpiCardPayload {
 
 type KpiBuilder = (period: PeriodRequest) => KpiCardPayload;
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Metric route parameters are arbitrary strings; builders include dynamically generated daily metrics and a fallback.
 const KPI_BUILDERS: Record<string, KpiBuilder> = {
   latency: latencyKpi,
   ...Object.fromEntries(
@@ -603,14 +605,14 @@ export class DashboardApiController extends Controller("/api/dashboard") {
           name: "p50 – p95",
           data: points.map((point) => ({
             x: point.label,
-            y: [point.p50, point.p95] as RangeTuple,
+            y: [point.p50, point.p95] satisfies RangeTuple,
           })),
         },
         {
           name: "p95 – p99",
           data: points.map((point) => ({
             x: point.label,
-            y: [point.p95, point.p99] as RangeTuple,
+            y: [point.p95, point.p99] satisfies RangeTuple,
           })),
         },
       ],
@@ -626,7 +628,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
           name: "p50 – p99",
           data: points.map((point) => ({
             x: point.label,
-            y: [point.p50, point.p99] as RangeTuple,
+            y: [point.p50, point.p99] satisfies RangeTuple,
           })),
         },
         {
@@ -710,7 +712,12 @@ export class DashboardApiController extends Controller("/api/dashboard") {
       const low = Math.min(open, close) - deterministicRandom(23, index) * 10;
       return {
         x: label,
-        y: [open, high, low, close].map(toCents) as OhlcTuple,
+        y: [
+          toCents(open),
+          toCents(high),
+          toCents(low),
+          toCents(close),
+        ] satisfies OhlcTuple,
       };
     });
     return { series: [{ name: "OHLC", data }] };

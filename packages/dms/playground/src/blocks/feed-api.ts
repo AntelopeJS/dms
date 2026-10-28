@@ -24,11 +24,13 @@ const QUOTA_STEP = 5_000;
 const QUOTA_MAX = 100_000;
 const DEFAULT_PERIOD = "this-month";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
 const QUOTA_BY_PERIOD: Record<string, number> = {
   "this-month": 61_400,
   "last-month": 97_800,
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
 const ATTENTION_COUNT_BY_PERIOD: Record<string, number> = {
   "last-24h": 9,
   "last-7-days": 31,
@@ -192,6 +194,7 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   updateWorkspace(@JSONBody() update: Partial<WorkspaceSettings>) {
     for (const key of WORKSPACE_KEYS) {
       const value = update?.[key];
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JSONBody accepts unchecked request values; preserve the endpoint's existing policy of ignoring non-string fields.
       if (typeof value === "string") workspace[key] = value;
     }
     return { ...workspace };

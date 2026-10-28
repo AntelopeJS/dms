@@ -1,16 +1,16 @@
 {
   "rules": {
-    "antelopejs/no-comments": 845,
+    "antelopejs/no-comments": 827,
     "anti-slop/no-chained-type-assertions": 1,
     "anti-slop/no-conditional-empty-object-spread": 1,
-    "anti-slop/no-known-value-widening": 59,
+    "anti-slop/no-known-value-widening": 29,
     "anti-slop/no-object-parameters": 1,
-    "anti-slop/no-runtime-typeof": 108,
-    "anti-slop/no-shape-in-symbol-names": 65,
-    "anti-slop/no-unknown-parameters": 96,
-    "anti-slop/no-unknown-returns": 22,
-    "anti-slop/no-unsafe-dictionary-type": 161,
-    "anti-slop/require-safety-comment-for-type-assertion": 289,
+    "anti-slop/no-runtime-typeof": 102,
+    "anti-slop/no-shape-in-symbol-names": 63,
+    "anti-slop/no-unknown-parameters": 79,
+    "anti-slop/no-unknown-returns": 21,
+    "anti-slop/no-unsafe-dictionary-type": 133,
+    "anti-slop/require-safety-comment-for-type-assertion": 262,
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
