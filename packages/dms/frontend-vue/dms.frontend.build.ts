@@ -1,4 +1,5 @@
 import { defineDmsFrontendBuild } from "#dms/frontend-build";
+import { backendBoundary } from "./build/backend-boundary";
 
 export default defineDmsFrontendBuild((build) => {
   build.registerAutoImports([
@@ -6,4 +7,5 @@ export default defineDmsFrontendBuild((build) => {
     "layers/*/app/utils",
     "layers/*/app/types",
   ]);
+  build.registerVitePlugins(() => [backendBoundary()]);
 });
