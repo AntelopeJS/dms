@@ -1,12 +1,13 @@
-import { ComponentBuilder, type ComponentInfoSerialized } from "../component";
-import { StampUploadFieldTokens } from "../uploads";
+import type { ComponentInfoSerialized } from "../component";
+import "../component";
+import "../uploads";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
 import type { FormContainerPageTexts } from "./table-view/options";
 import type { AxeOrientation, EnumOption } from "./types";
-import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
+import "./internal/form-block-schema";
 import {
   FormBuilder,
   FormField,
@@ -15,15 +16,21 @@ import {
   FormFunctions,
   FormProps,
   FormPropsSerialized,
-  FormSection,
-  FormSectionSerialized,
-  isFieldGroup,
   type SetFieldValueParams,
 } from "./form-types";
-import { serializeFormField } from "./internal/form-schema";
+import {
+  createForm,
+  formComponent,
+  serializeFormEntry,
+} from "./internal/form-schema-components";
+import {
+  buildSchema,
+  isFormBuilder,
+  isFormProps,
+  withFallbackLocale,
+} from "./internal/form-schema-validation";
 
 export * from "./form-block-schema";
-const REQUIRED_MESSAGE = "$dms.field_errors.required";
 
 /** Options of {@link adaptFieldValidationSchema}. */
 export interface FieldValidationOptions {
@@ -34,26 +41,6 @@ export interface FieldValidationOptions {
    * language must hold this one, reported on `[fallbackLocale]`.
    */
   fallbackLocale?: string;
-}
-
-function isFilledText(value: z.output<z.ZodTypeAny>): boolean {
-  return typeof value === "string" ? value.trim() !== "" : value != null;
-}
-
-/** A localized value with some language filled must fill `fallbackLocale`. */
-function withFallbackLocale(
-  schema: z.ZodTypeAny,
-  fallbackLocale: string,
-): z.ZodTypeAny {
-  return schema.superRefine((value, context) => {
-    const isAnyFilled = Object.values(value).some(isFilledText);
-    if (!isAnyFilled || isFilledText(value[fallbackLocale])) return;
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: REQUIRED_MESSAGE,
-      path: [fallbackLocale],
-    });
-  });
 }
 
 /**
@@ -93,53 +80,10 @@ export function isAcceptanceField(field: FormField): boolean {
   return ACCEPTANCE_COMPONENTS.has(component.componentName);
 }
 
-function addFieldToSchema(
-  properties: Record<string, z.ZodTypeAny>,
-  field: FormField,
-): void {
-  const baseSchema =
-    field.required && isAcceptanceField(field)
-      ? z.literal(true)
-      : field.type.getValidation();
-  properties[field.id] = adaptFieldValidationSchema(baseSchema, {
-    localized: field.localized,
-    required: field.required,
-    fallbackLocale: field.fallbackLocale,
-  });
-}
-
 export function buildFormSchema(
   fields: FormFieldOrGroup[],
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  const properties: Record<string, z.ZodTypeAny> = {};
-
-  for (const item of fields) {
-    if (isFieldGroup(item)) {
-      for (const field of item.fields) {
-        addFieldToSchema(properties, field);
-      }
-    } else {
-      addFieldToSchema(properties, item);
-    }
-  }
-
-  return z.object(properties);
-}
-
-const FIELDS_KEY = "fields";
-
-function isFormBuilder(source: FormSchemaSource): source is FormBuilder {
-  return source instanceof ComponentBuilder && FIELDS_KEY in source;
-}
-
-const SECTIONS_KEY = "sections";
-
-function isFormProps(source: FormSchemaSource): source is FormProps {
-  if (typeof source !== "object" || source === null) return false;
-  return (
-    (FIELDS_KEY in source && Array.isArray(source.fields)) ||
-    (SECTIONS_KEY in source && Array.isArray(source.sections))
-  );
+  return buildSchema(fields, adaptFieldValidationSchema, isAcceptanceField);
 }
 
 /** Every entry of a form: its own fields and groups, then each section's. */
@@ -150,23 +94,6 @@ export function formEntries(
     ...(options.fields ?? []),
     ...(options.sections ?? []).flatMap((section) => section.fields),
   ];
-}
-
-function withoutSections(
-  options: FormProps | undefined,
-): Omit<FormProps, "sections"> | undefined {
-  if (!options) return undefined;
-  const { sections: _sections, ...rest } = options;
-  return rest;
-}
-
-function serializeFormSections(
-  sections: FormSection[] | undefined,
-): FormSectionSerialized[] | undefined {
-  return sections?.map(({ fields, ...section }) => ({
-    ...section,
-    fieldIds: fields.map((item) => item.id),
-  }));
 }
 
 export type FormSchemaSource = FormFieldOrGroup[] | FormProps | FormBuilder;
@@ -183,19 +110,7 @@ export function formSchema(
 export function serializeFormFields(
   fields: FormFieldOrGroup[],
 ): FormFieldOrGroupSerialized[] {
-  return fields.map((item) => {
-    if (isFieldGroup(item)) {
-      return {
-        id: item.id,
-        label: item.label,
-        description: item.description,
-        fields: item.fields.map(serializeFormField),
-        orientation: item.orientation,
-        order: item.order,
-      };
-    }
-    return serializeFormField(item);
-  });
+  return fields.map(serializeFormEntry);
 }
 
 /**
@@ -209,22 +124,7 @@ export const Form = (options?: FormProps): FormBuilder => {
   const schema = buildFormSchema(fields);
   const serializedFields = serializeFormFields(fields);
 
-  const builder = new ComponentBuilder<FormPropsSerialized>(FORM_COMPONENT_NAME)
-    .options({
-      ...withoutSections(options),
-      fields: serializedFields,
-      ...(options?.sections && {
-        sections: serializeFormSections(options.sections),
-      }),
-      schema: zodToJsonSchema(schema),
-    })
-    .transformOptions(StampUploadFieldTokens)
-    .meta({
-      name: options?.title || "Form",
-      icon: "i-ph-note-pencil",
-    });
-
-  return Object.assign(builder, { fields });
+  return createForm(options, fields, schema, serializedFields);
 };
 
 export namespace FormComponents {
@@ -568,265 +468,201 @@ export namespace FormComponents {
   export function InputCheckbox(
     options?: BooleanControlOptions,
   ): ComponentInfoSerialized<BooleanControlOptions> {
-    return new ComponentBuilder<BooleanControlOptions>("dms-checkbox")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-checkbox", options);
   }
 
   /** A boolean as a bordered card: an icon, a title and a switch. */
   export function InputBooleanCard(
     options?: BooleanCardOptions,
   ): ComponentInfoSerialized<BooleanCardOptions> {
-    return new ComponentBuilder<BooleanCardOptions>("dms-boolean-card")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-boolean-card", options);
   }
 
   /** The options of a select as cards, one picked or several. */
   export function InputChoiceCards(
     options: ChoiceCardsOptions,
   ): ComponentInfoSerialized<ChoiceCardsOptions> {
-    return new ComponentBuilder<ChoiceCardsOptions>("dms-choice-cards")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-choice-cards", options);
   }
 
   /** The options of a select as segments of one control. */
   export function InputSegmentedSelect(
     options: SegmentedSelectOptions,
   ): ComponentInfoSerialized<SegmentedSelectOptions> {
-    return new ComponentBuilder<SegmentedSelectOptions>("dms-segmented-select")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-segmented-select", options);
   }
 
   /** Rows of fields, added, removed and reordered (`ArrayType`). */
   export function InputRepeater(
     options: RepeaterOptions,
   ): ComponentInfoSerialized<RepeaterOptions> {
-    return new ComponentBuilder<RepeaterOptions>("dms-repeater")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-repeater", options);
   }
 
   /** Pairs of a name and a value (`KeyValueType`). */
   export function InputKeyValue(
     options: KeyValueOptions,
   ): ComponentInfoSerialized<KeyValueOptions> {
-    return new ComponentBuilder<KeyValueOptions>("dms-key-value")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-key-value", options);
   }
 
   /** A secret, masked until shown (`SecretType`). */
   export function InputSecret(
     options?: SecretOptions,
   ): ComponentInfoSerialized<SecretOptions> {
-    return new ComponentBuilder<SecretOptions>("dms-input-secret")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-secret", options);
   }
 
   /** A read-only value with a copy button (`StringType({ copyable })`). */
   export function InputCopyableText(
     options?: CopyableTextOptions,
   ): ComponentInfoSerialized<CopyableTextOptions> {
-    return new ComponentBuilder<CopyableTextOptions>("dms-copyable-text")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-copyable-text", options);
   }
 
   /** A code editor (`CodeType`). */
   export function InputCode(
     options: CodeOptions,
   ): ComponentInfoSerialized<CodeOptions> {
-    return new ComponentBuilder<CodeOptions>("dms-input-code")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-code", options);
   }
 
   /** A list of short texts typed as tags (`TagsType`). */
   export function InputTags(
     options?: TagsOptions,
   ): ComponentInfoSerialized<TagsOptions> {
-    return new ComponentBuilder<TagsOptions>("dms-input-tags")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-tags", options);
   }
 
   export function InputEmail(
     options?: InputEmailOptions,
   ): ComponentInfoSerialized<InputEmailOptions> {
-    return new ComponentBuilder<InputEmailOptions>("dms-input-email")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-email", options);
   }
 
   export function InputColor(
     options?: InputColorOptions,
   ): ComponentInfoSerialized<InputColorOptions> {
-    return new ComponentBuilder<InputColorOptions>("dms-input-color")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-color", options);
   }
 
   export function InputPassword(
     options?: InputPasswordOptions,
   ): ComponentInfoSerialized<InputPasswordOptions> {
-    return new ComponentBuilder<InputPasswordOptions>("dms-input-password")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-password", options);
   }
 
   export function InputNumber(
     options?: InputNumberOptions,
   ): ComponentInfoSerialized<InputNumberOptions> {
-    return new ComponentBuilder<InputNumberOptions>("dms-input-number")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-number", options);
   }
   export function InputPercentage(
     options?: InputNumberOptions,
   ): ComponentInfoSerialized<InputNumberOptions> {
-    return new ComponentBuilder<InputNumberOptions>("dms-input-percentage")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-percentage", options);
   }
 
   export function InputTime(
     options?: InputTimeOptions,
   ): ComponentInfoSerialized<InputTimeOptions> {
-    return new ComponentBuilder<InputTimeOptions>("dms-input-time")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-time", options);
   }
 
   export function InputText(
     options?: InputTextOptions,
   ): ComponentInfoSerialized<InputTextOptions> {
-    return new ComponentBuilder<InputTextOptions>("dms-input-text")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-text", options);
   }
 
   export function InputPhone(
     options?: InputPhoneOptions,
   ): ComponentInfoSerialized<InputPhoneOptions> {
-    return new ComponentBuilder<InputPhoneOptions>("dms-input-phone")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-phone", options);
   }
 
   export function InputRadioGroup<T extends RadioGroupOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-radio-group")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-radio-group", options);
   }
 
   export function InputSelect<T extends SelectOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-select")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-select", options);
   }
 
   export function InputRelation<T extends RelationOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-relation")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-relation", options);
   }
 
   export function InputCascader<T extends CascaderRelationOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-cascader")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-cascader", options);
   }
 
   export function InputSlider(
     options?: SliderOptions,
   ): ComponentInfoSerialized<SliderOptions> {
-    return new ComponentBuilder<SliderOptions>("dms-slider")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-slider", options);
   }
 
   export function InputSwitch(
     options?: BooleanControlOptions,
   ): ComponentInfoSerialized<BooleanControlOptions> {
-    return new ComponentBuilder<BooleanControlOptions>("dms-switch")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-switch", options);
   }
 
   export function InputTextarea(
     options?: TextareaOptions,
   ): ComponentInfoSerialized<TextareaOptions> {
-    return new ComponentBuilder<TextareaOptions>("dms-textarea")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-textarea", options);
   }
 
   export function Calendar(
     options?: CalendarOptions,
   ): ComponentInfoSerialized<CalendarOptions> {
-    return new ComponentBuilder<CalendarOptions>("dms-calendar")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-calendar", options);
   }
 
   export function DatePicker(
     options?: CalendarOptions,
   ): ComponentInfoSerialized<CalendarOptions> {
-    return new ComponentBuilder<CalendarOptions>("dms-date-picker")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-date-picker", options);
   }
 
   export function DatePickerRange(
     options?: DatePickerRangeOptions,
   ): ComponentInfoSerialized<DatePickerRangeOptions> {
-    return new ComponentBuilder<DatePickerRangeOptions>("dms-date-picker-range")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-date-picker-range", options);
   }
 
   export function InputAddress<T extends AddressOptions>(
     options?: T,
   ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-input-address")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-input-address", options);
   }
 
   export function RichText(
     options?: RichTextOptions,
   ): ComponentInfoSerialized<RichTextOptions> {
-    return new ComponentBuilder<RichTextOptions>("dms-rich-text")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-rich-text", options);
   }
 
   export function File(
     options?: FileOptions,
   ): ComponentInfoSerialized<FileOptions> {
-    return new ComponentBuilder<FileOptions>("dms-file")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-file", options);
   }
 
   export function Image(
     options?: ImageOptions,
   ): ComponentInfoSerialized<ImageOptions> {
-    return new ComponentBuilder<ImageOptions>("dms-image")
-      .options(options)
-      .serializeSync();
+    return formComponent("dms-image", options);
   }
 }
 

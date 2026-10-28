@@ -2,15 +2,43 @@ import type {
   ControllerClass,
   RequestContext,
 } from "@antelopejs/interface-api";
-import { Logging } from "@antelopejs/interface-core/logging";
 import type { User } from "./auth/db";
 import type {
   WatchAction,
   WatchActionCondition,
   WatchFunctionParams,
 } from "./base/types/watch";
-import { ComponentId } from "./base/types/watch";
 import type { Tone } from "./base/types/tone";
+import {
+  appendChild,
+  builderInfo,
+  initialInfo,
+  mergeBuilderOptions,
+  setButton,
+  warnUnknownChild,
+} from "./internal/component-builder";
+import {
+  actionComponents,
+  actionPermissionId,
+  componentPermissionId,
+  resolveButtonPermissionId as resolvePermissionId,
+  toActionPermission,
+} from "./internal/component-permissions";
+import {
+  normalizeComponentAnchor,
+  serializeChild,
+  serializeInfoSync,
+  serializedInfo,
+} from "./internal/component-serialization";
+import {
+  appendChildWatch,
+  buildWatchAction,
+  createFilterChain,
+  mergeWatchesIntoOptions,
+  readWatchActions,
+  spliceChildWatches,
+  stripWatchActions,
+} from "./internal/component-watches";
 import type { PageMetadata } from "./page";
 import type { Permission } from "./permissions";
 import type { MaybePromise } from "./types";
@@ -28,8 +56,6 @@ export interface ActionDefinition {
   defaultGranted?: boolean;
 }
 
-const actionComponents = new WeakMap<Action, Component>();
-
 export class Action {
   constructor(
     public readonly id: string,
@@ -40,32 +66,15 @@ export class Action {
   }
 
   private get componentPermissionId(): string | undefined {
-    const component = actionComponents.get(this);
-    if (!component) return undefined;
-    return getPermissionIdRef.get(component);
+    return componentPermissionId(this, getPermissionIdRef);
   }
 
   get permissionId(): string | undefined {
-    const componentPermissionId = this.componentPermissionId;
-    if (!componentPermissionId) {
-      return undefined;
-    }
-    return `${componentPermissionId}.${this.id}`;
+    return actionPermissionId(this, this.componentPermissionId);
   }
 
   toPermission(): Permission | undefined {
-    const componentPermissionId = this.componentPermissionId;
-    if (!componentPermissionId) return undefined;
-    return {
-      id: `${componentPermissionId}.${this.id}`,
-      title: this.definition.title,
-      icon: this.definition.icon,
-      description: this.definition.description,
-      dependencies: this.definition.dependencies?.map(
-        (actionId) => `${componentPermissionId}.${actionId}`,
-      ),
-      defaultGranted: this.definition.defaultGranted,
-    };
+    return toActionPermission(this, this.componentPermissionId);
   }
 }
 
@@ -134,10 +143,7 @@ export function resolveButtonPermissionId(
   permission: ButtonPermission,
   componentPermissionId: string | undefined,
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String or Action.
-  if (typeof permission !== "string") return permission.permissionId;
-  if (!componentPermissionId) return undefined;
-  return `${componentPermissionId}.${permission}`;
+  return resolvePermissionId(permission, componentPermissionId);
 }
 
 /**
@@ -170,6 +176,7 @@ export interface ComponentFilterContext {
    * request (`DefaultLayout({ record })`). Set while the layout of a page
    * declaring one is served; undefined when it found none, and anywhere else.
    */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The page's consumer-defined record schema remains open in the published filter context.
   record?: Readonly<Record<string, unknown>>;
 }
 
@@ -193,6 +200,7 @@ export interface ComponentChild<T = unknown, C = Component<T>> {
   id: string;
   component: C;
   slot?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published component children carry consumer-defined metadata in addition to their identity and component.
   [key: string]: unknown;
 }
 
@@ -206,6 +214,7 @@ export interface ComponentInfo<
   children?: ChildType[];
 }
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Serialized children preserve consumer metadata keys in the published contract.
 export type ChildSerialized = {
   id: string;
   component: ComponentInfoSerialized;
@@ -217,6 +226,7 @@ export type ComponentInfoSerialized<T = unknown> = Omit<
   ComponentInfo<T>,
   "children"
 > & {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Serialized child metadata remains open to consumer-defined keys.
   children?: ChildSerialized[];
 };
 
@@ -224,28 +234,8 @@ export interface BaseComponentChild {
   id: string;
   component: Component;
   slot?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The base child contract preserves arbitrary metadata forwarded by child serialization.
   [key: string]: unknown;
-}
-
-function buildWatchAction<F extends string>(
-  event: string,
-  functionId: F,
-  opts: WatchOptions<F> | undefined,
-): WatchAction {
-  const watch: WatchAction = {
-    component: ComponentId.SELF,
-    event,
-    functionId,
-  };
-  if (opts?.params !== undefined) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked.
-    watch.params = opts.params as WatchAction["params"];
-  }
-  if (opts?.onParam !== undefined) watch.onParam = opts.onParam;
-  if (opts?.requirePermission !== undefined) {
-    watch.requirePermission = opts.requirePermission;
-  }
-  return watch;
 }
 
 /** A component position below one of a page's static root components. */
@@ -283,15 +273,6 @@ export type PlacementSide = "before" | "after" | "end";
  * child declared as `tasks` under its `content` field.
  */
 export type ComponentAnchor = string | readonly string[];
-
-const ANCHOR_SEPARATOR = ".";
-
-function normalizeComponentAnchor(anchor: ComponentAnchor): readonly string[] {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String or path array.
-  return typeof anchor === "string"
-    ? anchor.split(ANCHOR_SEPARATOR)
-    : [...anchor];
-}
 
 /**
  * Placement of a component injected into another page by
@@ -435,56 +416,14 @@ export class Component<T = unknown> {
   async serialize(): Promise<ComponentInfoSerialized<T>> {
     const componentInfo = await this.componentInfo;
     const options = await this.applyOptionTransforms(componentInfo.options);
-
-    if (componentInfo.children) {
-      const serializedChildren = await Promise.all(
-        componentInfo.children.map(async (child) => {
-          const { id, component, ...additionalProps } = child;
-          return {
-            id,
-            component: await component.serialize(),
-            ...additionalProps,
-          };
-        }),
-      );
-
-      return {
-        ...componentInfo,
-        options,
-        children: serializedChildren,
-      };
-    }
-
-    return {
-      ...componentInfo,
-      options,
-      children: [],
-    };
+    const children = componentInfo.children
+      ? await Promise.all(componentInfo.children.map(serializeChild))
+      : undefined;
+    return serializedInfo(componentInfo, options, children);
   }
 
   serializeSync(): ComponentInfoSerialized<T> {
-    const componentInfo = this.componentInfo as ComponentInfo<T>;
-
-    if (componentInfo.children) {
-      const serializedChildren = componentInfo.children.map((child) => {
-        const { id, component, ...additionalProps } = child;
-        return {
-          id,
-          component: component.serializeSync(),
-          ...additionalProps,
-        };
-      });
-
-      return {
-        ...componentInfo,
-        children: serializedChildren,
-      };
-    }
-
-    return {
-      ...componentInfo,
-      children: [],
-    };
+    return serializeInfoSync(this.componentInfo);
   }
 }
 
@@ -508,26 +447,16 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   private _userOnFilter?: ComponentFilter<T>;
 
   constructor(componentName: string) {
-    const placeholderInfo: ComponentInfo<
-      T,
-      Component<T>,
-      BaseComponentChild
-    > = {
-      componentName,
-      options: undefined,
-      children: undefined,
-    };
-    super(placeholderInfo, { name: componentName });
+    super(initialInfo<T>(componentName), { name: componentName });
     this._componentName = componentName;
   }
 
   override get componentInfo(): ComponentInfoPromise<T> {
-    const base: ComponentInfo<T, Component<T>, BaseComponentChild> = {
-      componentName: this._componentName,
-      options: this.mergeWatchesIntoOptions(this._options, this._watches),
-      children: this._children.length > 0 ? this._children : undefined,
-    };
-    return base;
+    return builderInfo(
+      this._componentName,
+      this.mergeWatchesIntoOptions(this._options, this._watches),
+      () => this._children,
+    );
   }
 
   /**
@@ -541,24 +470,18 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   }
 
   mergeOptions(opts: Partial<T>): this {
-    if (!this._options) {
-      Logging.Warn("Could not merge options, component has no options");
-      return this;
-    }
-    this._options = {
-      ...this._options,
-      ...this.stripWatchActions(opts),
-    };
+    mergeBuilderOptions(
+      () => this._options,
+      (value) => {
+        this._options = value;
+      },
+      () => this.stripWatchActions(opts),
+    );
     return this;
   }
 
   private stripWatchActions<O>(opts: O): O {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Generic options.
-    if (!opts || typeof opts !== "object" || !("watchActions" in opts)) {
-      return opts;
-    }
-    const { watchActions: _ignored, ...rest } = opts;
-    return rest as O;
+    return stripWatchActions(opts);
   }
 
   /**
@@ -569,15 +492,18 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   child<C>(
     id: string,
     component: Component<C>,
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published child metadata accepts arbitrary keys which are forwarded during serialization.
     metadata?: { slot?: string; [key: string]: unknown },
   ): this {
-    if (this._children.some((child) => child.id === id)) {
-      Logging.Warn(
-        `Duplicate child id "${id}" in component "${this._metadata.name}"`,
-      );
-    }
-    const { slot, ...additionalProps } = metadata || {};
-    this._children.push({ id, component, slot, ...additionalProps });
+    appendChild(
+      () => this._children,
+      () => this._metadata.name,
+      {
+        id,
+        component,
+        metadata,
+      },
+    );
     return this;
   }
 
@@ -631,15 +557,12 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     functionId: F,
     opts?: WatchOptions<F>,
   ): this {
-    if (!this._children.some((child) => child.id === childId)) {
-      Logging.Warn(
-        `watchOn: unknown child id "${childId}" on component "${this._metadata.name}". Did you call .child() first?`,
-      );
-    }
-    const watch = buildWatchAction(event, functionId, opts);
-    const existing = this._childWatches.get(childId) ?? [];
-    existing.push(watch);
-    this._childWatches.set(childId, existing);
+    warnUnknownChild(this._children, childId, () => this._metadata.name);
+    appendChildWatch(
+      () => this._childWatches,
+      childId,
+      buildWatchAction(event, functionId, opts),
+    );
     return this;
   }
 
@@ -656,19 +579,12 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   }
 
   private installFilterChain(): void {
-    this._onFilter = async (permissions, options, permissionId, context) => {
-      let next: T = options;
-      if (this._userOnFilter) {
-        next = await this._userOnFilter(
-          permissions,
-          next,
-          permissionId,
-          context,
-        );
-      }
-      next = await this.applyWatchFilters(permissions, next, permissionId);
-      return next;
-    };
+    this._onFilter = createFilterChain(
+      this,
+      () => this._userOnFilter,
+      (permissions, options, permissionId) =>
+        this.applyWatchFilters(permissions, options, permissionId),
+    );
   }
 
   private async applyWatchFilters<O>(
@@ -679,8 +595,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     if (!options || !this._watchFilter) {
       return options;
     }
-    const watchOptions: { watchActions?: WatchAction[] } = options;
-    const watches = watchOptions.watchActions ?? [];
+    const watches = readWatchActions(options);
     if (watches.length === 0) {
       return options;
     }
@@ -698,12 +613,12 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   }
 
   button(id: string, info: Omit<ComponentButton, "id">): this {
-    if (this._buttons[id]) {
-      Logging.Warn(
-        `Duplicate button id "${id}" in component "${this._metadata.name}"`,
-      );
-    }
-    this._buttons[id] = { id, ...info };
+    setButton(
+      () => this._buttons,
+      () => this._metadata.name,
+      id,
+      info,
+    );
     return this;
   }
 
@@ -733,46 +648,13 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     options: T | undefined,
     watches: WatchAction[],
   ): T | undefined {
-    if (watches.length === 0) {
-      return options;
-    }
-    const optionsObj: {
-      watchActions?: WatchAction[];
-    } = options ?? {};
-    const existing = optionsObj.watchActions ?? [];
-    const merged = [...existing, ...watches];
-    return { ...optionsObj, watchActions: merged } as T;
+    return mergeWatchesIntoOptions(options, watches);
   }
 
   private spliceChildWatches(
     result: ComponentInfoSerialized<T>,
   ): ComponentInfoSerialized<T> {
-    if (this._childWatches.size === 0 || !result.children) {
-      return result;
-    }
-    return {
-      ...result,
-      children: result.children.map((child) => {
-        const watches = this._childWatches.get(child.id);
-        if (!watches || watches.length === 0) {
-          return child;
-        }
-        const childOptions: {
-          watchActions?: WatchAction[];
-        } = child.component.options ?? {};
-        const existing = childOptions.watchActions ?? [];
-        return {
-          ...child,
-          component: {
-            ...child.component,
-            options: {
-              ...childOptions,
-              watchActions: [...existing, ...watches],
-            },
-          },
-        };
-      }),
-    };
+    return spliceChildWatches(result, () => this._childWatches);
   }
 
   override async serialize(): Promise<ComponentInfoSerialized<T>> {

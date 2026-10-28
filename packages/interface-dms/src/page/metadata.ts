@@ -1,47 +1,28 @@
-import {
-  type ControllerClass,
-  ControllerMeta,
-  RegisterRoute,
-  UnregisterRoute,
-} from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
+import { type ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { UploadConstraints } from "@antelopejs/interface-file-storage";
-import { AuthOwnerOnly, AuthUser } from "../auth";
 import { DefaultLayout } from "../base/layouts";
 import {
-  Action,
   type Component,
   type ComponentFilterContext,
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import { ResolveComponentSlots } from "../internal/component-slots";
 import type { SlotOptions } from "../component-slots";
-import { RoleModel, TenantMemberModel } from "../db";
-import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
-import {
-  GetEffectiveUserPermissions,
-  HasPermission,
-  MarkModuleScopedPermission,
-  type Permission,
-  RegisterPermission,
-  UnregisterPermission,
-} from "../permissions";
-import { TenantScopedModel } from "../tenant-scoped-model";
-import { AssertTenantAccess } from "../tenant-access";
+import { type TenantGuardOptions } from "../guards";
+import { GetEffectiveUserPermissions, HasPermission } from "../permissions";
+import { ResolveComponentSlots } from "../internal/component-slots";
 import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
+import { AssertTenantAccess } from "../tenant-access";
 import { SignUploadToken, internal as uploadInternal } from "../uploads";
-// oxlint-disable import/no-cycle -- Category reads are deferred.
-import { internal, isInsideModule } from "./categories";
+// oxlint-disable import/no-cycle -- Category cycles resolve in function bodies.
 import {
   resolveCategoryInfo,
   resolveInheritedLayout,
 } from "./internal/categories";
+import { mergeMetadata as merge, publish } from "./internal/metadata-publish";
 // oxlint-enable import/no-cycle
 import type { ComponentTreeNode } from "./component-tree";
-import { collectComponentTree } from "./internal/component-tree";
 import {
   assembleLayoutComponents,
   type PageExtensionEntry,
@@ -55,18 +36,12 @@ import {
   withComponentHeaderButtons,
 } from "./internal/layout-filter";
 import { readPageRecord } from "./internal/page-record";
-import {
-  inheritedMemberAccess,
-  opensToMembers,
-} from "./internal/member-access";
 import { withTableViewPlacements } from "./internal/table-view-ids";
+import { inheritedMemberAccess } from "./internal/member-access";
 import {
   pageExtensions,
-  pageLayoutHandlers,
   pageMetadataByFullId,
-  stampPageRegistration,
   isPageExtensionRegistered,
-  permissionMap,
   runAsPageExtensionOwner,
   syncTargetExtensions,
 } from "./internal/registry";
@@ -76,84 +51,36 @@ import {
   type PageExtensionInfo,
   type PageInfo,
   type PageLayout,
-  type PageLayoutHandler,
   type PageLayoutRequest,
 } from "./types";
+import { PageRegistration } from "./internal/page-registration";
 import {
-  PageRegistration,
-  type RouteCallbackContext,
-} from "./internal/page-registration";
+  hiddenComponentsFlag,
+  registerLayoutRoute,
+} from "./internal/metadata-layout";
 import {
-  isPageInsideModule,
-  logModuleRouteGated,
-  RequestQueryProperty,
-  RequestRouteParametersProperty,
-  RequestTenantIdProperty,
-} from "./internal/metadata-helpers";
-
-const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
-
-interface UploadFieldNode {
-  type: string;
-  disabled?: boolean;
-  component: { options?: SlotOptions };
-}
-
-function isNativeUploadField(
-  value: SlotOptions[string],
-): value is UploadFieldNode {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized input.
-  if (!value || typeof value !== "object") return false;
-  const node: Partial<Pick<SlotOptions, keyof UploadFieldNode>> = value;
-  return (
-    typeof node.type === "string" &&
-    NATIVE_UPLOAD_FIELD_TYPES.has(node.type) &&
-    !!node.component &&
-    typeof node.component === "object"
-  );
-}
-
-function readUploadConstraints(
-  options: SlotOptions,
-): UploadConstraints | undefined {
-  const raw = options.constraints;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized input.
-  if (!raw || typeof raw !== "object") return undefined;
-  const declared: UploadConstraints = raw;
-  const constraints: UploadConstraints = {};
-  if (typeof declared.maxSize === "number")
-    constraints.maxSize = declared.maxSize;
-  if (Array.isArray(declared.allowedMimetypes))
-    constraints.allowedMimetypes = declared.allowedMimetypes.filter(
-      (mimetype) => typeof mimetype === "string",
-    );
-  return constraints;
-}
-
-function resolveWritePermission(
-  componentName: string,
-  component: Component,
-  path: readonly string[],
-): string | undefined {
-  if (componentName !== "dms-table-view")
-    return component.getAction("submit")?.permissionId;
-  const match = Object.entries({ new: "add", edit: "edit" }).find(([mode]) =>
-    path.includes(mode),
-  );
-  return (
-    (match && component.getAction(match[1])?.permissionId) ??
-    "__native_upload_disabled__"
-  );
-}
-
-function hiddenComponentsFlag(
-  declared: Record<string, ComponentInfoSerialized>,
-  served: Record<string, ComponentInfoSerialized>,
-): Pick<PageLayout, "allComponentsHidden"> {
-  const hidesAll =
-    Object.keys(declared).length > 0 && Object.keys(served).length === 0;
-  return hidesAll ? { allComponentsHidden: true } : {};
-}
+  isNativeUploadField,
+  readUploadConstraints,
+  resolveWritePermission,
+  type UploadFieldNode,
+} from "./internal/metadata-uploads";
+import {
+  applyAuthDecorators,
+  ownRouteProperties,
+  registerPagePermission,
+} from "./internal/metadata-registration";
+import {
+  extensionComponentPath,
+  takenComponentKeys,
+} from "./internal/metadata-extensions";
+import {
+  actionPermissions,
+  notifyPageCreated,
+  prepareComponent,
+  registerComponentNode,
+  unregisterComponent,
+  unregisterComponentNode,
+} from "./internal/metadata-components";
 
 export class PageMetadata {
   public static key = Symbol();
@@ -207,17 +134,6 @@ export class PageMetadata {
   constructor(public readonly target: ControllerClass) {}
 
   inherit(parent: PageMetadata) {
-    const merge = <T extends object>(src?: T, dst?: T): T | undefined => {
-      if (src) {
-        if (dst) {
-          return { ...dst, ...src };
-        } else {
-          return { ...src };
-        }
-      } else {
-        return dst;
-      }
-    };
     this.pageInfo = merge(parent.pageInfo, this.pageInfo);
     this.layout = merge(parent.layout, this.layout);
     this.components = merge(parent.components, this.components) ?? {};
@@ -319,42 +235,25 @@ export class PageMetadata {
    * later extensions would graft themselves onto.
    */
   private publish(pageInfo: PageInfo): void {
-    const previous = pageMetadataByFullId.get(pageInfo.fullId);
-    pageMetadataByFullId.set(pageInfo.fullId, this);
-    this.registration.track(() => {
-      if (pageMetadataByFullId.get(pageInfo.fullId) === this) {
-        pageMetadataByFullId.delete(pageInfo.fullId);
-      }
-    });
-    if (previous && previous !== this) {
-      previous.Dispose();
-    }
-
-    stampPageRegistration(pageInfo);
-    internal.RegisterPage.register(pageInfo);
-    this.registration.track(() => {
-      internal.RegisterPage.unregister(pageInfo);
-    });
-
-    this.moduleScoped = isInsideModule(pageInfo);
-    this.skipComponentPermissions =
-      pageInfo.noComponentPermissions === true || pageInfo.authOnly === true;
-    this.pagePermissionId = this.registerPagePermission(pageInfo);
-    permissionMap.set(this.target, this.pagePermissionId);
-    this.registration.track(() => {
-      if (!this.ownsPagePermissions()) return;
-      permissionMap.delete(this.target);
-      if (this.registeredPagePermission && this.pagePermissionId) {
-        UnregisterPermission(this.pagePermissionId);
+    publish(this, pageInfo, {
+      registration: () => this.registration,
+      configure: (moduleScoped, skip) => {
+        this.moduleScoped = moduleScoped;
+        this.skipComponentPermissions = skip();
+      },
+      registerPermission: (info) => {
+        this.pagePermissionId = this.registerPagePermission(info);
+      },
+      permissionId: () => this.pagePermissionId,
+      registeredPermission: () => this.registeredPagePermission,
+      clearRegisteredPermission: () => {
         this.registeredPagePermission = false;
-      }
+      },
+      ownsPermissions: () => this.ownsPagePermissions(),
+      ownProperties: () => this.ownRouteProperties(),
+      auth: (info) => this.applyAuthDecorators(info),
+      route: (info) => this.registerLayoutRoute(info),
     });
-
-    this.ownRouteProperties();
-    this.applyAuthDecorators(pageInfo);
-    RequestQueryProperty()(this.target.prototype, "pageQuery");
-    RequestRouteParametersProperty()(this.target.prototype, "pageParams");
-    this.registerLayoutRoute(pageInfo);
   }
 
   /**
@@ -367,7 +266,7 @@ export class PageMetadata {
   public Dispose(): void {
     this.detached = true;
     this.releaseOwnComponentsGate();
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot before deletion.
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
     for (const info of [...this.extensionEntries.keys()]) {
       this.dropExtension(info);
     }
@@ -455,7 +354,7 @@ export class PageMetadata {
       ? []
       : (pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
     const desired = new Set(infos);
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot before deletion.
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
     for (const info of [...this.extensionEntries.keys()]) {
       if (!desired.has(info)) {
         this.dropExtension(info);
@@ -469,65 +368,24 @@ export class PageMetadata {
     this.rebuildLayoutComponents();
   }
 
-  private registerPagePermission(pageInfo: PageInfo): string {
-    const fromAction =
-      pageInfo.permission instanceof Action
-        ? pageInfo.permission.toPermission()
-        : undefined;
-
-    const pagePermission = fromAction ?? {
-      id: pageInfo.fullId,
-      title: pageInfo.displayName,
-      icon: pageInfo.icon,
-      defaultGranted:
-        pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
-      ...(pageInfo.permission as Partial<Permission> | undefined),
-    };
-
-    this.registeredPagePermission = false;
-    if (this.moduleScoped) {
-      MarkModuleScopedPermission(pagePermission.id);
-    } else if (!fromAction && pageInfo.authOnly !== true) {
-      RegisterPermission(pagePermission.id, pagePermission);
-      this.registeredPagePermission = true;
-    }
-
-    return pagePermission.id;
+  private registerPagePermission(pageInfo: PageInfo) {
+    return registerPagePermission(
+      pageInfo,
+      () => this.moduleScoped,
+      (registered) => {
+        this.registeredPagePermission = registered;
+      },
+    );
   }
 
-  private registerLayoutRoute(pageInfo: PageInfo): void {
-    const apimeta = GetMetadata(this.target, ControllerMeta);
-    const resolvePageLayout = (request: PageLayoutRequest) =>
-      this.resolvePageLayout(request);
-    const handler: PageLayoutHandler = (request) =>
-      this.resolvePageLayout(request, { enforceTenantAccessGate: true });
-    pageLayoutHandlers.set(pageInfo.fullSlug, handler);
-
-    const routeId = RegisterRoute({
-      location: pageInfo.layoutUrl,
-      callback: async function (this: RouteCallbackContext) {
-        return resolvePageLayout({
-          user: this.user,
-          memberModel: this.memberModel,
-          roleModel: this.roleModel,
-          tenantId: this.tenantId,
-          query: this.pageQuery,
-          params: this.pageParams,
-        });
-      },
-      method: "GET",
-      mode: "handler",
-      parameters: [],
-      properties: apimeta.computed_props,
-      proto: this.target.prototype,
-    });
-
-    this.registration.track(() => {
-      if (pageLayoutHandlers.get(pageInfo.fullSlug) === handler) {
-        pageLayoutHandlers.delete(pageInfo.fullSlug);
-      }
-      UnregisterRoute(routeId);
-    });
+  private registerLayoutRoute(pageInfo: PageInfo) {
+    registerLayoutRoute(
+      () => this.target,
+      pageInfo,
+      () => this.registration,
+      (request) => this.resolvePageLayout(request),
+      (request, options) => this.resolvePageLayout(request, options),
+    );
   }
 
   private async resolvePageLayout(
@@ -546,7 +404,6 @@ export class PageMetadata {
     if (!layout) {
       throw new Error("PageMetadata not properly initialized");
     }
-
     if (
       enforceTenantAccessGate &&
       user &&
@@ -555,9 +412,7 @@ export class PageMetadata {
     ) {
       await AssertTenantAccess(user._id, tenantId);
     }
-
     const components = await ResolveComponentSlots(layout.components);
-
     const loadPermissions = async (): Promise<Set<string>> => {
       if (!user) return new Set<string>();
       const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
@@ -569,7 +424,6 @@ export class PageMetadata {
         resolverContext,
       );
     };
-
     const context: ComponentFilterContext = { tenantId, user, query, params };
     const read = await readPageRecord(layout.layout, context);
     context.record = read?.record;
@@ -589,7 +443,6 @@ export class PageMetadata {
         components: withTableViewPlacements(components),
       };
     }
-
     const permissions = await loadPermissions();
     const servedComponents = await filterComponents(
       components,
@@ -598,7 +451,6 @@ export class PageMetadata {
       this.componentMap,
       context,
     );
-
     return {
       ...layout,
       layout: withComponentHeaderButtons(
@@ -624,14 +476,8 @@ export class PageMetadata {
     return `${this.pagePermissionId}.${componentKey}`;
   }
 
-  private actionPermissions(component: Component): Permission[] {
-    const grantsMembers = opensToMembers(this.pageInfo?.memberAccess);
-    return Object.values(component.actions)
-      .map((action) => action.toPermission())
-      .filter((permission): permission is Permission => !!permission)
-      .map((permission) =>
-        grantsMembers ? { ...permission, defaultGranted: true } : permission,
-      );
+  private actionPermissions(component: Component) {
+    return actionPermissions(component, this.pageInfo);
   }
 
   /**
@@ -648,34 +494,20 @@ export class PageMetadata {
    * of its position: they take part in per-request filtering under that id, so
    * a child that never claimed it would have its `onFilter` skipped.
    */
-  private prepareComponent(
-    component: Component,
-    componentKey: string,
-  ): () => Promise<{ key: string; serialized: ComponentInfoSerialized }> {
-    const nodes = collectComponentTree(
-      component,
-      this.componentPermissionId(componentKey),
-    );
-    this.componentTrees.set(componentKey, nodes);
-
-    this.registration.track(() => {
-      this.unregisterComponent(component, componentKey);
+  private prepareComponent(component: Component, componentKey: string) {
+    return prepareComponent(component, componentKey, {
+      permissionId: (key) => this.componentPermissionId(key),
+      trees: () => this.componentTrees,
+      registration: () => this.registration,
+      unregister: (component, key) => this.unregisterComponent(component, key),
+      register: (node) => this.registerComponentNode(node),
+      detached: () => this.detached,
+      bind: (serialized, key) =>
+        this.bindNativeUploadFields(
+          serialized,
+          this.componentPermissionId(key),
+        ),
     });
-
-    for (const node of nodes) {
-      this.registerComponentNode(node);
-    }
-
-    return async () => {
-      const serialized = await component.serialize();
-      if (this.detached || this.componentTrees.get(componentKey) !== nodes)
-        return { key: componentKey, serialized };
-      await this.bindNativeUploadFields(
-        serialized,
-        this.componentPermissionId(componentKey),
-      );
-      return { key: componentKey, serialized };
-    };
   }
 
   private async bindNativeUploadFields(
@@ -706,6 +538,7 @@ export class PageMetadata {
     componentId: string,
     path: string[],
   ): Promise<void> {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursive discovery walks arbitrary serialized options and descends only into object containers, preserving each component's own option schema.
     if (!value || typeof value !== "object") return;
     if (isNativeUploadField(value)) {
       await this.registerNativeUploadField(
@@ -737,9 +570,12 @@ export class PageMetadata {
       pageId: this.pageInfo?.fullId ?? "",
       componentId,
       storage:
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string storage names from erased contributor options.
         typeof options.storage === "string" ? options.storage : undefined,
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string paths from erased contributor options.
       path: typeof options.path === "string" ? options.path : undefined,
       field:
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The serialized attachment field overrides the discovered path only when it is a string.
         typeof options.attachmentField === "string"
           ? options.attachmentField
           : path.join("/"),
@@ -767,33 +603,14 @@ export class PageMetadata {
     this.nativeUploadFields.set(componentId, fields);
   }
 
-  private registerComponentNode(node: ComponentTreeNode): void {
-    const { component, permissionId } = node;
-    this.componentMap.set(permissionId, node);
-
-    if (node.access === "withheld") return;
-
-    if (node.access === "own" && !permissionMap.has(component)) {
-      permissionMap.set(component, permissionId);
-    }
-
-    if (this.registersComponentPermissions() && node.access === "own") {
-      RegisterPermission(permissionId, {
-        id: permissionId,
-        title: component.metadata.name,
-        icon: component.metadata.icon,
-        description: component.metadata.description,
-        defaultGranted: opensToMembers(this.pageInfo?.memberAccess),
-      });
-    }
-
-    this.notifyPageCreated(node);
-
-    if (this.registersComponentPermissions()) {
-      for (const actionPermission of this.actionPermissions(component)) {
-        RegisterPermission(actionPermission.id, actionPermission);
-      }
-    }
+  private registerComponentNode(node: ComponentTreeNode) {
+    registerComponentNode(node, {
+      componentMap: () => this.componentMap,
+      pageInfo: () => this.pageInfo,
+      registersComponentPermissions: () => this.registersComponentPermissions(),
+      actionPermissions: (component) => this.actionPermissions(component),
+      notify: (node) => this.notifyPageCreated(node),
+    });
   }
 
   /**
@@ -808,23 +625,8 @@ export class PageMetadata {
    * screen that no longer serves. The page's own components keep aborting it —
    * a half-registered page is worse than none.
    */
-  private notifyPageCreated(node: ComponentTreeNode): void {
-    if (!node.component.onPageCreated) return;
-    if (this.notifiedComponents.has(node.component)) return;
-    this.notifiedComponents.add(node.component);
-
-    if (node.depth === 0) {
-      node.component.onPageCreated(this);
-      return;
-    }
-    try {
-      node.component.onPageCreated(this);
-    } catch (error) {
-      if (error instanceof PageDeclarationConflictError) throw error;
-      Logging.Error(
-        `[dms] component "${node.permissionId}" failed its onCreated hook on page "${this.pageInfo?.fullId}": ${String(error)}`,
-      );
-    }
+  private notifyPageCreated(node: ComponentTreeNode) {
+    notifyPageCreated(this, node, () => this.notifiedComponents);
   }
 
   /**
@@ -839,41 +641,22 @@ export class PageMetadata {
   }
 
   private unregisterComponent(_component: Component, componentKey: string) {
-    const nodes = this.componentTrees.get(componentKey);
-    if (!nodes) return;
-    this.componentTrees.delete(componentKey);
-
-    for (const node of nodes) {
-      for (const field of this.nativeUploadFields.get(node.permissionId) ??
-        []) {
-        uploadInternal.RegisterNativeUploadField.unregister(field);
-      }
-      this.nativeUploadFields.delete(node.permissionId);
-      this.componentMap.delete(node.permissionId);
-      this.notifiedComponents.delete(node.component);
-    }
-
-    if (!this.ownsPagePermissions()) return;
-
-    for (const node of nodes) {
-      this.unregisterComponentNode(node);
-    }
+    unregisterComponent(componentKey, {
+      trees: () => this.componentTrees,
+      uploads: () => this.nativeUploadFields,
+      nodes: () => this.componentMap,
+      notified: () => this.notifiedComponents,
+      ownsPermissions: () => this.ownsPagePermissions(),
+      unregister: (node) => this.unregisterComponentNode(node),
+    });
   }
 
-  private unregisterComponentNode(node: ComponentTreeNode): void {
-    if (node.access === "withheld") return;
-    if (this.registersComponentPermissions()) {
-      for (const actionPermission of this.actionPermissions(node.component)) {
-        UnregisterPermission(actionPermission.id);
-      }
-    }
-    if (node.access !== "own") return;
-    if (this.registersComponentPermissions()) {
-      UnregisterPermission(node.permissionId);
-    }
-    if (permissionMap.get(node.component) === node.permissionId) {
-      permissionMap.delete(node.component);
-    }
+  private unregisterComponentNode(node: ComponentTreeNode) {
+    unregisterComponentNode(
+      node,
+      () => this.registersComponentPermissions(),
+      (node) => this.actionPermissions(node.component),
+    );
   }
 
   private async addExtension(info: PageExtensionInfo): Promise<void> {
@@ -889,7 +672,6 @@ export class PageMetadata {
       }
       return;
     }
-
     for (const [declarationIndex, contribution] of info.components.entries()) {
       if (!isPageExtensionRegistered(info)) break;
       entries.push({
@@ -916,7 +698,6 @@ export class PageMetadata {
         );
       }
     }
-
     if (this.detached) {
       this.dropExtension(info);
     }
@@ -927,17 +708,12 @@ export class PageMetadata {
    * own fields, the extension that injected it otherwise. One namespace,
    * because a page's components share one permission subtree.
    */
-  private takenComponentKeys(): Map<string, string> {
-    const owner = this.pageInfo?.fullId ?? "";
-    const taken = new Map<string, string>(
-      Object.keys(this.ownComponents).map((key) => [key, owner]),
+  private takenComponentKeys() {
+    return takenComponentKeys(
+      this.pageInfo?.fullId ?? "",
+      this.ownComponents,
+      () => this.extensionEntries,
     );
-    for (const [info, entries] of this.extensionEntries) {
-      for (const entry of entries) {
-        taken.set(entry.key, info.extensionName);
-      }
-    }
-    return taken;
   }
 
   private dropExtension(info: PageExtensionInfo): void {
@@ -950,10 +726,8 @@ export class PageMetadata {
     this.extensionEntries.delete(info);
   }
 
-  private extensionComponentPath(component: PageExtensionComponent): string {
-    const anchorPath = component.anchorPath ?? [];
-    if (anchorPath.length <= 1) return component.key;
-    return [...anchorPath.slice(0, -1), component.key].join(".");
+  private extensionComponentPath(component: PageExtensionComponent) {
+    return extensionComponentPath(component);
   }
 
   private rebuildLayoutComponents(): void {
@@ -975,38 +749,11 @@ export class PageMetadata {
    * too, so the page's `/pagelayout` route ended up asking for the permission
    * of its last form (`<table>.view`), and a form page for the one after it.
    */
-  private ownRouteProperties(): void {
-    const properties = GetMetadata(this.target, ControllerMeta).computed_props;
-    for (const [key, property] of Object.entries(properties)) {
-      properties[key] = { ...property, modifiers: [...property.modifiers] };
-    }
+  private ownRouteProperties() {
+    ownRouteProperties(this.target);
   }
 
-  private applyAuthDecorators(pageInfo: PageInfo): void {
-    if (pageInfo.publicAccess === true) return;
-
-    const authOnly = pageInfo.authOnly === true;
-    const isModulePage = isPageInsideModule(pageInfo);
-    this.guardOptions = {
-      bypassTenantAccessGate: pageInfo.bypassTenantAccessGate,
-    };
-    const authDecorator = authOnly
-      ? AuthUser()
-      : isModulePage
-        ? AuthOwnerOnly()
-        : AuthUserWithPermission(this.target, this.guardOptions);
-
-    authDecorator(this.target.prototype, "user");
-
-    if (isModulePage && !authOnly) {
-      logModuleRouteGated(pageInfo.fullSlug);
-    }
-
-    if (authOnly) return;
-
-    TenantScopedModel(RoleModel)(this.target.prototype, "roleModel");
-    TenantScopedModel(TenantMemberModel)(this.target.prototype, "memberModel");
-
-    RequestTenantIdProperty()(this.target.prototype, "tenantId");
+  private applyAuthDecorators(pageInfo: PageInfo) {
+    applyAuthDecorators(this, pageInfo);
   }
 }

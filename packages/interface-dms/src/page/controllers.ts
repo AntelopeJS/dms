@@ -8,6 +8,10 @@ import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
 import {
+  assertHasCategoryOrModule,
+  assertValidLiveOptions,
+} from "./internal/controller-options";
+import {
   applyModuleResolution,
   calculateFullSlug,
   createCategoryFunction,
@@ -25,7 +29,6 @@ import type {
   MenuOptions,
   PageExtensionComponent,
   PageExtensionInfo,
-  PageLiveOptions,
 } from "./types";
 import { fireAndForget } from "../utils/fire-and-forget";
 
@@ -54,6 +57,7 @@ function collectStaticComponents(cl: object): StaticComponentField[] {
 }
 
 export const RegisterPage = MakeClassDecorator((cl) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts any class and trusts callers to apply it to a page controller; checking inheritance would change the published decorator's behavior.
   const meta = GetMetadata(cl as ControllerClass, PageMetadata);
 
   for (const { key, component } of collectStaticComponents(cl)) {
@@ -149,50 +153,6 @@ export const RegisterPageExtension = MakeClassDecorator(
     internal.RegisterPageExtension.register(info);
   },
 );
-
-function assertHasCategoryOrModule(
-  id: string,
-  options: MenuOptions,
-  kind: "Page" | "Category",
-): void {
-  if (!options.category && !options.module) {
-    throw new Error(
-      `${kind} "${id}" must declare either "category" or "module" in its options.`,
-    );
-  }
-}
-
-const LIVE_PERIOD_PATTERN = /^[1-9]\d*[mhd]$/;
-
-function assertPositiveRate(id: string, name: string, rate: number): void {
-  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) return;
-  throw new Error(
-    `Page "${id}" declares ${name} ${String(rate)}: it must be a positive number of seconds.`,
-  );
-}
-
-function assertValidSlowRate(id: string, live: PageLiveOptions): void {
-  const slow = live.slowRateAfter;
-  if (slow === undefined) return;
-  assertPositiveRate(id, "live.slowRateAfter.maxRate", slow.maxRate);
-  if (!LIVE_PERIOD_PATTERN.test(String(slow.period))) {
-    throw new Error(
-      `Page "${id}" declares live.slowRateAfter.period "${String(slow.period)}": it must read like "30m", "24h" or "7d".`,
-    );
-  }
-}
-
-function assertValidLiveOptions(id: string, options: MenuOptions): void {
-  const live = options.live;
-  if (!live) return;
-  if (live.maxRate !== undefined) {
-    assertPositiveRate(id, "live.maxRate", live.maxRate);
-  }
-  assertValidSlowRate(id, live);
-  if (live.rememberKey !== undefined && live.rememberKey.trim() === "") {
-    throw new Error(`Page "${id}" declares an empty live.rememberKey.`);
-  }
-}
 
 export function Category(id: string, options: MenuOptions): CategoryInfo {
   assertHasCategoryOrModule(id, options, "Category");
