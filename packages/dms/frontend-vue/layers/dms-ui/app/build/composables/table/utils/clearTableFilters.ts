@@ -3,13 +3,6 @@ import type { PaginationState } from "@tanstack/vue-table";
 import type { TableFilter } from "../../../components/table/Table.vue";
 import { isFilterEffective } from "../../table-view/utils/tableQuery";
 
-// Everything that narrows a table's rows — filter chips (quick filters write
-// theirs) and the toolbar search — cleared in one go. The "clear all" actions
-// (empty state, filters row, filters popover) all go through
-// `clearTableFilters`.
-// Sort, page size, tab, display, group-by and the archive toggle are not
-// filters: they stay as they are.
-
 export interface TableNarrowingState {
   columnFilters: Ref<TableFilter[]>;
   /** The toolbar search text. */
@@ -36,7 +29,7 @@ export interface ClearableTableFilters {
   search: boolean;
 }
 
-const sameValue = (a: unknown, b: unknown): boolean =>
+const sameValue = (a: TableFilter["value"], b: TableFilter["value"]): boolean =>
   JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**

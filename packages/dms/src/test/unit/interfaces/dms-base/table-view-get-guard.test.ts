@@ -37,8 +37,9 @@ const SCHEMA = "get-guard-test";
 const TABLE = "documents";
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization consumes only this id; the fixture deliberately omits other persisted user columns.
 const USER = { _id: "get-guard-user" } as User;
-const ctx = { url: new URL("http://localhost/get") } as RequestContext;
+const ctx = { url: new URL("http://localhost/get") };
 const events: string[] = [];
 let denied = false;
 const gate: tenantAccess.TenantAccessGateInfo = {
@@ -78,7 +79,7 @@ class DocumentAPI extends DataController(
 const controller = new DocumentAPI();
 const meta = GetMetadata(DocumentAPI, TableViewMeta);
 async function guard(
-  this: unknown,
+  this: DocumentAPI,
   context: RequestContext,
   args: GetGuardArgs,
 ) {
@@ -107,9 +108,9 @@ function get(id: string) {
 async function expectStatus(promise: Promise<unknown>, status: number) {
   try {
     await promise;
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(status);
+    expect(error.getStatus()).to.equal(status);
     return;
   }
   throw new Error("Expected a rejected request");
@@ -118,7 +119,7 @@ async function expectStatus(promise: Promise<unknown>, status: number) {
 describe("[unit] TableView Get guard", () => {
   let invoiceId: string;
   let quoteId: string;
-  // The row is read once: one query, its joined fields merged.
+
   const originalJoined = Query.Joined;
   before(async () => {
     void ImplementInterface(tenantAccess, tenantAccessImpl);
@@ -149,6 +150,7 @@ describe("[unit] TableView Get guard", () => {
     events.length = 0;
     denied = false;
     meta.setControllerGuards({ get: guard });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Parameters erases the query function's generic correlation; this wrapper forwards every argument and returns the original result unchanged.
     Query.Joined = ((...args: Parameters<typeof originalJoined>) => {
       events.push("load");
       return originalJoined(...args);

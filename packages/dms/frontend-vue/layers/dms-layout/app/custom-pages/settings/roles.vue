@@ -16,15 +16,15 @@ import {
   useRoleEditor,
 } from "../../build/components/pages/settings/roles/useRoleEditor";
 import { useRolesApi } from "../../build/components/pages/settings/roles/useRolesApi";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import {
   type PermissionPreviewInput,
   usePermissionPreview,
-} from "#dms-core/app/build/composables/auth/usePermissionPreview";
+} from "#dms-core/app/entries/composables/auth/usePermissionPreview";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
-import { useActionConfirm } from "#dms-ui/app/build/composables/confirm/useActionConfirm";
+import { useActionConfirm } from "#dms-ui/app/entries/composables/confirm/useActionConfirm";
 
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
@@ -40,8 +40,6 @@ const toast = useToast();
 const { confirmAction } = useActionConfirm();
 const { processApiMessage } = useTranslation();
 
-// Before the first await: the header renders it in the server pass. The
-// render runs once the setup is done, so it may read what is declared below.
 usePageHeaderActions(() =>
   h(UButton, {
     label: t("page.settings.roles.editor.new_role"),
@@ -68,13 +66,13 @@ const { data, refresh } = await useDmsAsyncData<RolesPageData | null>(
 const editor = useRoleEditor(data);
 const isSaving = ref(false);
 const roleEditor = useTemplateRef<RoleEditorHandle>("roleEditor");
-// A refused name or description shows under its field, never as a toast.
+
 const fieldErrors = useFieldErrors<RoleEditorField>({
   fields: {
     name: () => roleEditor.value?.inputOf("name"),
     description: () => roleEditor.value?.inputOf("description"),
   },
-  // An empty name reads like every other required field.
+
   codes: {
     [NAME_REQUIRED]: { field: "name", message: REQUIRED_MESSAGE },
     [NAME_TAKEN]: "name",
@@ -99,15 +97,11 @@ const isReadonly = computed(() =>
 
 editor.selectDefault();
 
-// "Preview as role" opens a tab on the dashboard that browses it as the role
-// would, edits included; while that tab is open it follows the editor's draft.
-// Previewing is reading the dashboard through a role, so it asks for the same
-// right as editing one.
 const preview = usePermissionPreview();
 const homepage = useHomepage();
 const route = useDmsRoute();
 const previewId = ref<string | null>(null);
-// Not from inside a preview: that tab is already looking through a role.
+
 const canPreview = computed(
   () => (capabilities.value?.canEdit ?? false) && !preview.isActive.value,
 );
@@ -126,8 +120,7 @@ function openPreview(): void {
 watch(previewInput, (input) => {
   if (previewId.value) preview.update(previewId.value, input);
 });
-// Another role in the editor is another preview: the open tab keeps the last
-// state of the role it was opened for. Its errors went with the old draft.
+
 watch(
   () => editor.selectedId.value,
   () => {
@@ -136,8 +129,6 @@ watch(
   },
 );
 
-// The draft of a role holds unsaved changes: leaving the page, or picking
-// another role, asks first (the dashboard's one warning dialog).
 const { confirmLeave: confirmDiscard } = useUnsavedChanges({
   dirty: () => editor.isDirty.value && !isReadonly.value,
 });
@@ -228,8 +219,6 @@ async function deleteRole(
   });
 }
 
-// The server words the dialog: who still holds the role, and the role to
-// move them to. A refused target role shows under its field.
 async function requestDelete(): Promise<void> {
   const role = editor.selectedRole.value;
   if (!role) return;
@@ -238,6 +227,7 @@ async function requestDelete(): Promise<void> {
     {
       urlParams: { id: encodeURIComponent(role._id) },
       run: (values) =>
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Confirmation fields are arbitrary backend-defined values; the assertion preserves existing unchecked forwarding rather than filtering malformed reassignment values.
         deleteRole(role, (values.reassignTo as string | null) ?? null),
     },
   );

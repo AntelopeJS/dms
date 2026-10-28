@@ -23,7 +23,7 @@ interface SendEmailInput {
   subject: string;
   html?: string;
   template?: string;
-  props?: Record<string, unknown>;
+  props?: Parameters<typeof GenerateHtml>[1];
   language?: string;
 }
 
@@ -49,6 +49,7 @@ async function bodyTemplate(
 ): Promise<string | undefined> {
   const template = input.template?.trim();
   if (!template) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal HTML is accepted only when the wired input is a string; preserve the missing-template error for other values.
     if (typeof input.html === "string") return undefined;
     throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
   }
@@ -107,7 +108,7 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
       error: { type: "string" },
     }),
   },
-  // A test run checks the body as a send would, renders and sends nothing.
+
   async dryRun(input, ctx) {
     await bodyTemplate(input);
     ctx.log("info", `test run: email to "${input.to}" not sent`);
@@ -156,8 +157,6 @@ type InvitationDetails = Pick<
   "language" | "firstname" | "lastname" | "inviterName"
 >;
 
-// Each detail is passed only when given, so an empty port keeps the defaults
-// of inviteUserToTenant (an English invitation, without names).
 function invitationDetails(input: InviteUserInput): InvitationDetails {
   const details: InvitationDetails = {};
   const language = input.language?.trim();
@@ -226,8 +225,7 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       inviteId: { type: "string" },
     }),
   },
-  // A test run reads who the address belongs to and reports what an invite
-  // would do: nothing is created and no email is sent.
+
   async dryRun(input, ctx) {
     const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
     const existing = await existingMembership(input.email, tenantId);
@@ -243,8 +241,7 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
   },
   async execute(input, ctx) {
     const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;
-    // Same pre-check as the members invite route: never let a duplicate
-    // invite silently overwrite an existing member's roles or ownership.
+
     const existing = await existingMembership(input.email, tenantId);
     if (existing.member) {
       ctx.log(

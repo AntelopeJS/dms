@@ -43,8 +43,6 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
   const { t } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
-  // Each save's toast has an id of its own: Nuxt UI drops every toast of an
-  // id a moment after `remove(id)`, a new one of that id included.
   let undoToastId: string | number | null = null;
 
   function offerUndo(changes: MatrixChange[]): void {
@@ -134,8 +132,6 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
 
   useUnsavedChanges({ dirty: () => engine.hasUnsaved.value });
 
-  // Ctrl / ⌘ S saves this grid's staged edits, the cell being typed in
-  // first, when the shortcut is the grid's (see `ownsShortcut`).
   useEventListener(
     typeof window === "undefined" ? undefined : window,
     "keydown",
@@ -146,7 +142,6 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
       const block = saving.root.value?.closest(BLOCK_SELECTOR);
       if (!ownsShortcut(block)) return;
       const hadEditor = saving.commitEditor();
-      // Nothing to save here: the browser's own Ctrl+S is left alone.
       if (!hadEditor && !engine.count.value) return;
       event.preventDefault();
       void requestSave();

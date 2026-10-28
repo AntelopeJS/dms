@@ -162,6 +162,7 @@ export interface LayoutBannerComponentInfo extends LayoutBannerStaticBase {
    */
   component: string;
   /** Props passed to the component. Must be serializable. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The named frontend component owns its prop schema; this published contract carries arbitrary props.
   props?: Record<string, unknown>;
   text?: never;
   actions?: never;

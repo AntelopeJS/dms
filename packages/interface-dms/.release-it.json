@@ -10,8 +10,8 @@
   },
   "hooks": {
     "before:init": [
-      "pnpm --dir ../.. run lint",
       "pnpm run build",
+      "pnpm --dir ../.. run lint",
       "pnpm run check:exports"
     ],
     "after:bump": "git add CHANGELOG.md"

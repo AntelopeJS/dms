@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -15,34 +15,25 @@ import {
   ACTION_ERROR_GENERIC_KEY,
   ACTION_ERROR_NETWORK_KEY,
   resolveActionError,
-} from "../layers/dms-ui/app/build/composables/confirm/actionError";
+} from "../layers/dms-ui/app/entries/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
-// The modal's title and description need a reka DialogRoot: plain text here.
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 /** An ofetch `FetchError` as a refused (or unreachable) request throws it. */
-function fetchError(status: number | undefined, data?: unknown) {
+function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
   return Object.assign(
     new Error(`[DELETE] "/api/task/delete": ${status ?? "<no response>"}`),
     { name: "FetchError", statusCode: status, data },
   );
 }
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Translation is indexed by arbitrary server keys and preserves the existing missing-key fallback. Inference removes that index signature and I18nTranslate owns a callable, not a finite message dictionary.
 const TRANSLATIONS: Record<string, string> = {
   "error.not_found": "Not found",
   "page.settings.invites.error.expired": "This invitation has expired",
 };
-// vue-i18n echoes the key back when it has no translation.
+
 const translate = (key: string) => TRANSLATIONS[key] ?? key;
 
 describe("resolveActionError", () => {
@@ -65,7 +56,12 @@ describe("resolveActionError", () => {
   });
 
   it("names the fields the data API refused by their labels", () => {
-    const named = (key: string, params: Record<string, unknown>) =>
+    const named = (
+      key: string,
+      params: Parameters<
+        import("../layers/dms-core/app/composables/translation/useTranslation").I18nTranslate
+      >[1],
+    ) =>
       key === "dms.field_errors.named_required"
         ? `${String(params.field)} is required.`
         : key;
@@ -124,6 +120,12 @@ describe("resolveActionError", () => {
 });
 
 describe("ConfirmModal failures", () => {
+  const fixture = createConfirmActionErrorsFixture();
+  registerConfirmationRetryTests(fixture);
+  registerConfirmationOutcomeTests(fixture);
+});
+
+function createConfirmActionErrorsFixture() {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
@@ -167,8 +169,15 @@ describe("ConfirmModal failures", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
-    app = createApp(ConfirmModal, { onClose: closed, ...props });
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
+    app = createApp({
+      render: () =>
+        h(DialogRoot, null, () =>
+          h(ConfirmModal, { onClose: closed, ...props }),
+        ),
+    });
     app.config.globalProperties.$t = (key: string) => key;
     app.component("UModal", Slots);
     app.component("UButton", Button);
@@ -205,7 +214,21 @@ describe("ConfirmModal failures", () => {
     host.remove();
     vi.unstubAllGlobals();
   });
+  return {
+    mount,
+    flush,
+    button,
+    closed,
+    alert,
+    get host() {
+      return host;
+    },
+  };
+}
 
+function registerConfirmationRetryTests(
+  fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
+) {
   it("stays open on a refusal, shows why, and lets the user retry", async () => {
     const onConfirm = vi
       .fn()
@@ -213,37 +236,41 @@ describe("ConfirmModal failures", () => {
         fetchError(403, "Forbidden: missing permission tasks.delete"),
       )
       .mockResolvedValueOnce(undefined);
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "Gone",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
+    await fixture.flush();
 
-    button("Delete")!.click();
-    await flush();
-    expect(closed).not.toHaveBeenCalled();
-    expect(alert()?.dataset.alert).toBe("error");
-    expect(alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
-    // Never the raw ofetch line.
-    expect(host.textContent).not.toContain("[DELETE]");
-    // The confirm button is ready again: retry, or cancel.
-    expect(button("Delete")!.dataset.loading).toBeUndefined();
-    expect(button("Delete")!.disabled).toBe(false);
-    expect(button("dms.confirm.cancel")!.disabled).toBe(false);
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    expect(fixture.closed).not.toHaveBeenCalled();
+    expect(fixture.alert()?.dataset.alert).toBe("error");
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
 
-    button("Delete")!.click();
-    await flush();
+    expect(fixture.host.textContent).not.toContain("[DELETE]");
+
+    expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
+    expect(fixture.button("Delete")!.disabled).toBe(false);
+    expect(fixture.button("dms.confirm.cancel")!.disabled).toBe(false);
+
+    fixture.button("Delete")!.click();
+    await fixture.flush();
     expect(onConfirm).toHaveBeenCalledTimes(2);
-    expect(closed).toHaveBeenCalledWith(true);
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("names one button Cancel: the corner one closes", async () => {
-    mount({ title: "Delete?", description: "Gone", confirmLabel: "Delete" });
-    await flush();
+    fixture.mount({
+      title: "Delete?",
+      description: "Gone",
+      confirmLabel: "Delete",
+    });
+    await fixture.flush();
     const named = (label: string) =>
-      [...host.querySelectorAll("button")].filter(
+      [...fixture.host.querySelectorAll("button")].filter(
         (candidate) =>
           (candidate.getAttribute("aria-label") ?? candidate.textContent) ===
           label,
@@ -253,49 +280,53 @@ describe("ConfirmModal failures", () => {
   });
 
   it("clears the error when the user retries", async () => {
-    let settle: (value?: unknown) => void = () => undefined;
+    let settle: () => void = () => undefined;
     const onConfirm = vi
       .fn()
       .mockRejectedValueOnce(fetchError(undefined))
       .mockImplementationOnce(
-        () => new Promise((resolve) => (settle = resolve)),
+        () => new Promise<void>((resolve) => (settle = resolve)),
       );
-    mount({
+    fixture.mount({
       title: "Archive?",
       description: "",
       confirmLabel: "Archive",
       onConfirm,
     });
-    await flush();
+    await fixture.flush();
 
-    button("Archive")!.click();
-    await flush();
-    expect(alert()?.textContent).toBe(ACTION_ERROR_NETWORK_KEY);
+    fixture.button("Archive")!.click();
+    await fixture.flush();
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_NETWORK_KEY);
 
-    button("Archive")!.click();
-    await flush();
-    expect(alert()).toBeNull();
-    expect(button("Archive")!.dataset.loading).toBe("true");
+    fixture.button("Archive")!.click();
+    await fixture.flush();
+    expect(fixture.alert()).toBeNull();
+    expect(fixture.button("Archive")!.dataset.loading).toBe("true");
     settle();
-    await flush();
-    expect(closed).toHaveBeenCalledWith(true);
+    await fixture.flush();
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("cancelling after a failure resolves false", async () => {
     const onConfirm = vi.fn().mockRejectedValue(fetchError(500));
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
-    button("Delete")!.click();
-    await flush();
-    button("dms.confirm.cancel")!.click();
-    expect(closed).toHaveBeenCalledWith(false);
+    await fixture.flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    fixture.button("dms.confirm.cancel")!.click();
+    expect(fixture.closed).toHaveBeenCalledWith(false);
   });
+}
 
+function registerConfirmationOutcomeTests(
+  fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
+) {
   it("shows a message already worded by the action, with its reason", async () => {
     const onConfirm = vi.fn().mockRejectedValue(
       new ConfirmActionError({
@@ -303,19 +334,19 @@ describe("ConfirmModal failures", () => {
         description: "Their rules don’t allow this action.",
       }),
     );
-    mount({
+    fixture.mount({
       title: "Delete?",
       description: "",
       confirmLabel: "Delete",
       onConfirm,
     });
-    await flush();
-    button("Delete")!.click();
-    await flush();
-    expect(alert()?.querySelector("strong")?.textContent).toBe(
+    await fixture.flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
       "These 2 items couldn’t be deleted.",
     );
-    expect(alert()?.querySelector("p")?.textContent).toBe(
+    expect(fixture.alert()?.querySelector("p")?.textContent).toBe(
       "Their rules don’t allow this action.",
     );
   });
@@ -327,24 +358,24 @@ describe("ConfirmModal failures", () => {
         description: "Their rules don’t allow this action.",
       },
     });
-    mount({
+    fixture.mount({
       title: "Archive?",
       description: "",
       confirmLabel: "Archive",
       onConfirm,
     });
-    await flush();
-    button("Archive")!.click();
-    await flush();
+    await fixture.flush();
+    fixture.button("Archive")!.click();
+    await fixture.flush();
 
-    expect(closed).not.toHaveBeenCalled();
-    expect(alert()?.dataset.alert).toBe("warning");
-    expect(alert()?.querySelector("strong")?.textContent).toBe(
+    expect(fixture.closed).not.toHaveBeenCalled();
+    expect(fixture.alert()?.dataset.alert).toBe("warning");
+    expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
       "2 of 5 items couldn’t be archived.",
     );
-    // What went through is done: nothing left to confirm.
-    expect(button("Archive")).toBeUndefined();
-    button("dms.confirm.close")!.click();
-    expect(closed).toHaveBeenCalledWith(true);
+
+    expect(fixture.button("Archive")).toBeUndefined();
+    fixture.button("dms.confirm.close")!.click();
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
-});
+}

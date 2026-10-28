@@ -12,25 +12,29 @@ import type {
   ReadScope,
   RoleSendOptions,
 } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
 import {
+  UserNotificationPreferencesModel,
   type UserNotificationCounts,
   UserNotificationsModel,
   buildNewUserNotification,
-} from "../../db/models/userNotifications.model";
-import type { UserNotification } from "../../db/tables/userNotifications.table";
-import { getRealtimeBroker } from "../../realtime/current";
-import { buildUserNotificationTopic } from "../../realtime/registry";
-import { runInBatches } from "../../utils/run-in-batches";
+} from "../../db/models";
+import type { UserNotification } from "../../db/tables";
+import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
+import type { RealtimeEvent } from "../../realtime";
+import { runInBatches } from "../../utils/run-in-batches/index";
+import {
+  categoryRegistry,
+  isSubjectLocked,
+  subjectRegistry,
+} from "../../utils/notification-registry/index";
 import {
   DUPLICATE_WINDOW_MS,
   duplicateIds,
   isWithinDuplicateWindow,
 } from "./delivery-dedupe";
 import { hasNotificationTitle } from "./delivery-guard";
-import { categoryRegistry, isSubjectLocked, subjectRegistry } from "./registry";
 
-export * from "./registry";
+export * from "../../utils/notification-registry/index";
 
 const NOTIFICATION_NEW_EVENT = "notification:new";
 const NOTIFICATION_READ_EVENT = "notification:read";
@@ -49,7 +53,7 @@ function buildGroupId(readScope: ReadScope, key?: string): string | undefined {
 async function publishNotificationEvent(
   userId: string,
   type: string,
-  payload?: Record<string, unknown>,
+  payload?: RealtimeEvent["payload"],
 ): Promise<void> {
   try {
     await getRealtimeBroker().publish({
@@ -138,8 +142,6 @@ interface StoreOptions {
   dedupe: boolean;
 }
 
-// A keyed delivery is stored once per key already; any other is kept from
-// repeating itself within the duplicate window, unless the sender opted out.
 async function store(
   userId: string,
   data: NotificationData,
@@ -220,9 +222,6 @@ export namespace internal {
     return `${categoryId}:${subjectId}`;
   };
 
-  // A locked subject is delivered whatever the stored preference says: one
-  // saved before the lock, or through a route that did not check it, must
-  // not mute a mandatory notice.
   async function canSendNotification(
     userId: string,
     categoryId: string,
@@ -321,8 +320,6 @@ export namespace internal {
     );
   }
 
-  // The members of `tenantId` holding any of the roles, or of every tenant
-  // when it is not given.
   async function collectUserIdsWithRoles(
     roleIds: string[],
     tenantId: string | undefined,

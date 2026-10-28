@@ -77,8 +77,6 @@ for (const block of CHART_BLOCKS) {
     type: block.type,
     componentName: CHART_COMPONENT_NAME,
     schema: block.schema,
-    // `dms-chart` draws whichever chart `type` names; the factory injects it,
-    // so a consumer rendering from the descriptor has to merge it back in.
     fixedOptions: { type: block.chartType },
     meta: {
       name: meta.name,

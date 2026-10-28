@@ -68,13 +68,11 @@ const EDITORS: Record<MatrixCellKind, FieldEditor> = {
       min: column.min,
       max: column.max,
       step: column.step ?? (column.integer ? 1 : undefined),
-      // Out of range stays as typed: the grid says why it refuses it.
       clamp: false,
     }),
   },
   boolean: { component: "dms-switch", options: () => ({}) },
   date: { component: "dms-date-picker", options: () => ({}) },
-  // No DMS input takes a date and a time: the browser's own, in local time.
   datetime: {
     component: "dms-input-text",
     options: () => ({ type: "datetime-local" }),

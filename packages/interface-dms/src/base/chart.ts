@@ -325,17 +325,15 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
     options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
-    const merged = { ...(options as object), type } as TProps;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public chart builders permit omitted options while pages are being authored; TProps may require fields not present yet.
+    const merged = { ...options, type } as TProps;
     const builder = new ComponentBuilder<TProps>(CHART_COMPONENT_NAME)
       .options(merged)
       .meta({
-        name: (merged as BaseChartProps).title || meta.name,
+        name: merged.title || meta.name,
         icon: meta.icon,
       });
-    return attachRealtimeTopicsHook(
-      builder,
-      (merged as BaseChartProps).realtimeTopic,
-    );
+    return attachRealtimeTopicsHook(builder, merged.realtimeTopic);
   };
 }
 

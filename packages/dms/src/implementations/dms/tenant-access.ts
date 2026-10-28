@@ -40,7 +40,7 @@ export async function EvaluateTenantAccess(
   tenantId: string,
 ): Promise<TenantAccessDenial[]> {
   const denials: TenantAccessDenial[] = [];
-  // Unregistration during an awaited gate must not shift an unevaluated entry.
+
   const registeredGates = gates.slice();
   for (const { id, gate } of registeredGates) {
     const result = await gate(userId, tenantId);

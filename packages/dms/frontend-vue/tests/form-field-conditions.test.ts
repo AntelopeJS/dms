@@ -4,9 +4,6 @@ import {
   withConditionFields,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
-// A column's `visibleWhen` / `disabledWhen` hold from the values a form opens
-// with, without a watch, and add to the fields its watches hide or disable.
-
 const lostReason = {
   id: "lostReason",
   required: true,
@@ -61,7 +58,7 @@ describe("withConditionFields", () => {
     );
     expect([...result.hidden].sort()).to.deep.equal(["lostReason", "position"]);
     expect([...result.disabled].sort()).to.deep.equal(["owner", "probability"]);
-    // The watch's own sets are left as they were.
+
     expect([...watched.hidden]).to.deep.equal(["position"]);
   });
 

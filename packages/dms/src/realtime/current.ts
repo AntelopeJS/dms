@@ -3,10 +3,6 @@ import { InMemoryBroker } from "./broker";
 import { instanceId } from "./instance";
 import { PresenceTracker } from "./presence";
 
-// The live broker and its presence tracker live here rather than in index.ts,
-// so that their readers outside the barrel (the table-view publisher, the
-// notifications implementation) reach them without evaluating all of it.
-
 let currentBroker: RealtimeBroker = new InMemoryBroker();
 let currentPresence: PresenceTracker = new PresenceTracker(
   currentBroker,

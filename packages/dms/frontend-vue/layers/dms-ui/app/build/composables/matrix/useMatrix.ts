@@ -135,8 +135,6 @@ function useSaveRequest(
   routeParams: () => Record<string, string> | undefined,
   listQuery: () => Record<string, string>,
 ) {
-  // The block's mode goes with every save: a generic route reads it to know
-  // whether to check each change's `previous`.
   const conflicts = options.conflicts ?? "overwrite";
   const { $authFetch } = useAuthFetch();
   const route = useDmsRoute();
@@ -194,7 +192,6 @@ export function useMatrix(
   const targets = computed(() =>
     mergeMatrixTargets(options.targets, source.data.value?.targets),
   );
-  // Read lazily: the engine is built before the totals that read its edits.
   let isBlockedNow = () => false;
   const engine = createMatrixSaveEngine({
     mode: () => options.saveMode ?? "immediate",
@@ -226,8 +223,6 @@ export function useMatrix(
     groupOf: (row) => fieldGroupOf(row),
     stateKey: `dms-matrix-folds:${props.pageId}:${props.componentId}`,
     keepEditedRows: () => options.keepEditedRows === true,
-    // What lists the rows: a row edited under other filters stays on screen,
-    // a row of another page under the same filters does not.
     view: () => ({
       filterKey: JSON.stringify(matrixFilterParams(query.state.value)),
       pageKey:
@@ -240,9 +235,6 @@ export function useMatrix(
   const valueOf = (row: MatrixRow, columnId: string) =>
     engine.valueOf(row.id, columnId, row.values[columnId]);
 
-  // A row naming no group joins the one of its stored value in
-  // `groupByField`, its header that value as its column reads it: an edit
-  // does not move the row before it is read again.
   function fieldGroupOf(row: MatrixRow): MatrixRowGroup | null {
     const field = options.grouping?.groupByField;
     if (!field) return null;
@@ -275,7 +267,6 @@ export function useMatrix(
       ? text(targets.value.message)
       : t("dms.matrix.target_missed");
   });
-  // Immediate edits held by a missed target go as soon as every one is met.
   watch(isBlocked, (blocked) => {
     if (!blocked && engine.heldCount.value > 0) void engine.flush();
   });
@@ -302,14 +293,12 @@ export function useMatrix(
       { label: text(action.label), icon: action.icon, target: action.target },
       { ...row.values, id: row.id },
     );
-  // An empty cell has nothing to act on: it is not clickable.
   const hasCellAction = (row: MatrixRow, column: MatrixColumn) =>
     Boolean(options.cellAction) &&
     !cellState(row, column.id).disabled &&
     !isEmptyValue(valueOf(row, column.id));
   const runCellAction = (row: MatrixRow, column: MatrixColumn) => {
     if (!options.cellAction) return;
-    // `{{row.X}}` reads the row's values, plus its id, the column and the value.
     handleCustomRowAction(
       { label: text(column.label), target: options.cellAction },
       {
@@ -336,7 +325,6 @@ export function useMatrix(
     columnIds: columns.visible.value.map((column) => column.id),
   });
 
-  // Filled once the context exists: the drawers hand it to their bodies.
   let context: MatrixContext | null = null;
   const drawers = useMatrixDrawers({
     context: () => context,
@@ -357,8 +345,6 @@ export function useMatrix(
     },
   });
 
-  // `rowPanel.deepLink`: the open row is in the URL, and opened again once
-  // the rows are there.
   const isRowDeepLinked =
     typeof options.rowPanel === "object" && options.rowPanel.deepLink === true;
   let linkedRow = isRowDeepLinked
@@ -367,11 +353,8 @@ export function useMatrix(
         props.componentId,
       )
     : undefined;
-  // A row the first read does not list (gone, or filtered out) is dropped
-  // from the URL rather than waited for.
   onMounted(() => {
     if (!linkedRow) return;
-    // Settled once: the row opened, or dropped; later reads leave it alone.
     watch(
       [() => rows.rowById.value, () => source.isLoading.value],
       ([byId, isLoading]) => {
@@ -392,8 +375,6 @@ export function useMatrix(
     );
   });
 
-  // A column filter the URL named on a column the response then lacks, or
-  // that takes no filter, is let go once the columns are known.
   watch(
     () => columns.columnById.value,
     (byId) => {
@@ -444,8 +425,6 @@ export function useMatrix(
     context: () => context as MatrixContext,
   });
   const selection = useMatrixSelection(() => rows.shown.value);
-  // Only rows still shown stay checked: a fill never receives a row the
-  // user no longer sees (another page, a filter, a search).
   watch(
     () => rows.shown.value.map((row) => row.id),
     (ids) => selection.keepOnly(ids),
@@ -471,8 +450,6 @@ export function useMatrix(
     labelOfValue: (column, value) => optionLabel(column, value, text),
   });
 
-  // Raw: a drawer's options are made deeply reactive, which would unwrap the
-  // context's refs for the bodies it is handed to.
   context = markRaw({
     options,
     componentId: props.componentId,

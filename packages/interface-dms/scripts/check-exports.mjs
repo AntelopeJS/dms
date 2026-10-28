@@ -1,7 +1,3 @@
-// Node does not fall back to a directory index inside an `exports` map, and a
-// `./*` pattern only matches files. Every directory index therefore needs its
-// own entry, and forgetting one is invisible until a consumer imports it. This
-// asserts the map covers the built output, and that each entry resolves.
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";

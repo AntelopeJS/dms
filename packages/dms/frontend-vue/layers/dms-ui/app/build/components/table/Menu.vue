@@ -9,7 +9,6 @@ import TableMenuImport from "./MenuImport.vue";
 import TableMenuViewMode from "./MenuViewMode.vue";
 import TableMenuDensity from "./MenuDensity.vue";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 const theme = tv({
   slots: {
@@ -32,7 +31,8 @@ const props = withDefaults(defineProps<TableMenuProps>(), {
 
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenu: Partial<typeof theme> };
 };
 
@@ -92,7 +92,7 @@ const canGoBack = computed(
 
 const uiTableMenuVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenu || {}),
+  ...appConfig.ui?.tableMenu,
 });
 const uiTableMenu = computed(() => uiTableMenuVariant());
 </script>

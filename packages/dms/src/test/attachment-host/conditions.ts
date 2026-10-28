@@ -29,10 +29,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// Deals whose columns depend on the stage: the loss reason shows, and is
-// mandatory, on a lost deal only; the probability is locked once the deal is
-// won or lost.
-
 const TABLE = "condition-deals";
 const CUSTOMER_TABLE = "condition-customers";
 
@@ -100,9 +96,6 @@ export class ConditionDealsPage extends RootPageController("condition-deals", {
     rowActions: { add: true, edit: true },
   });
 }
-
-// Customers whose VAT number is a business's only: turned household, the
-// customer loses the number it stored.
 
 @RegisterTable(CUSTOMER_TABLE, CORE_SCHEMA_NAME)
 export class ConditionCustomer extends Table {

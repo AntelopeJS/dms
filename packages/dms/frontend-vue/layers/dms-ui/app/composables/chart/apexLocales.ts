@@ -1,10 +1,17 @@
+import type { ApexOptions } from "apexcharts";
+
 interface ApexGlobal {
-  Apex?: {
-    chart?: { locales?: unknown[]; defaultLocale?: string };
-  };
+  Apex?: Pick<ApexOptions, "chart">;
 }
 
-const APEX_LOCALE_LOADERS: Record<string, () => Promise<unknown>> = {
+type LocaleData = typeof import("apexcharts/dist/locales/en.json");
+type LocaleModule = LocaleData & { default?: LocaleData };
+type LocaleLoader = () => Promise<LocaleModule>;
+
+const APEX_LOCALE_LOADERS: Record<
+  ReturnType<typeof resolveLocaleKey>,
+  LocaleLoader
+> = {
   en: () => import("apexcharts/dist/locales/en.json"),
   fr: () => import("apexcharts/dist/locales/fr.json"),
 };
@@ -21,7 +28,7 @@ function resolveLocaleKey(locale: string): string {
 export async function ensureApexLocale(locale: string): Promise<void> {
   if (typeof window === "undefined") return;
   const key = resolveLocaleKey(locale);
-  const apexGlobal = window as unknown as ApexGlobal;
+  const apexGlobal: Window & ApexGlobal = window;
   apexGlobal.Apex = apexGlobal.Apex || {};
   apexGlobal.Apex.chart = apexGlobal.Apex.chart || {};
 
@@ -29,7 +36,7 @@ export async function ensureApexLocale(locale: string): Promise<void> {
     try {
       const mod = await APEX_LOCALE_LOADERS[key]!();
       const locales = apexGlobal.Apex.chart.locales || [];
-      const localeData = (mod as { default?: unknown }).default ?? mod;
+      const localeData = mod.default ?? mod;
       apexGlobal.Apex.chart.locales = [...locales, localeData];
       loadedLocales.add(key);
     } catch (err) {

@@ -23,8 +23,7 @@ const stepperTheme = {
     trigger:
       "border border-accented bg-default font-mono font-[650] text-muted transition-[background-color,border-color,box-shadow,color] duration-150",
     icon: "shrink-0",
-    // Steps the linear stepper cannot reach yet stay crisp: the upcoming
-    // look already reads as inactive.
+
     separator: "rounded-none group-data-[disabled]:opacity-100",
     title:
       "font-normal text-dimmed group-data-[state=completed]:text-muted group-data-[state=active]:font-semibold group-data-[state=active]:text-highlighted",
@@ -34,7 +33,7 @@ const stepperTheme = {
     orientation: {
       horizontal: {
         root: "gap-5",
-        // A row too long for a phone wraps its steps instead of overflowing.
+
         header: "flex-wrap items-center gap-x-2.5 gap-y-3",
         item: "flex w-auto items-center gap-2 text-start whitespace-nowrap",
         container: "contents",
@@ -96,8 +95,6 @@ const stepperTheme = {
     },
   },
   compoundVariants: [
-    // The current step glows in the row (.au-steps); the setup list keeps
-    // the flat tinted dot with its accent hairline (.cs-step__num).
     {
       orientation: "horizontal",
       color: "primary",
@@ -126,7 +123,7 @@ const stepperTheme = {
     { orientation: "horizontal", size: "md", class: { wrapper: "mt-0" } },
     { orientation: "horizontal", size: "lg", class: { wrapper: "mt-0" } },
     { orientation: "horizontal", size: "xl", class: { wrapper: "mt-0" } },
-    // Title centred on the dot, description under it, line between dots.
+
     {
       orientation: "vertical",
       size: "xs",
@@ -170,10 +167,9 @@ const PAGER_EDGE =
 
 const paginationTheme = {
   slots: {
-    // A long pager (edges + siblings) wraps on a phone instead of overflowing.
     list: "flex-wrap gap-1",
     item: "font-mono font-medium tabular-nums not-data-[selected=true]:text-toned data-[selected=true]:font-[650] disabled:opacity-40",
-    // Mono numbers run a step under the button text (12.5px at md).
+
     label: "min-w-5 text-[0.96em]",
     ellipsis:
       "w-5! min-w-5 px-0! justify-center text-dimmed! hover:bg-transparent!",
@@ -255,7 +251,7 @@ export const NAVIGATION_MENU_HORIZONTAL_COMPOUNDS = [
       list: "gap-[18px]",
       item: "py-0",
       link: "h-10 px-0.5 before:hidden",
-      // Counts as mono chips (`.tab__count`).
+
       linkTrailingBadge:
         "h-4 rounded-[4px] bg-elevated px-[5px] font-mono text-[10.5px] text-dimmed ring-0",
     },

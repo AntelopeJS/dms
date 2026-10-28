@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -10,7 +10,7 @@ import {
   ref,
   type App,
 } from "vue";
-import type { DmsFooterConfig } from "../layers/dms-core/shared/types/app-config";
+import type { DmsFooterConfig } from "../layers/dms-core/app/entries/shared/types/app-config";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -32,7 +32,7 @@ const SelectStub = defineComponent({
 
 async function mountFooter(): Promise<void> {
   const { default: Footer } = await import(
-    "../layers/dms-layout/app/build/components/layout/Footer.vue"
+    "../layers/dms-layout/app/entries/components/layout/Footer"
   );
   host = document.createElement("div");
   document.body.append(host);
@@ -161,8 +161,6 @@ describe("footer", () => {
     expect(setLocale).not.toHaveBeenCalled();
   });
 
-  // The footer used to show a GitHub "Star" button with the DMS repository's
-  // live star count, read from api.github.com in every visitor's browser.
   it("shows no GitHub star and asks nothing of GitHub", async () => {
     await mountFooter();
     await nextTick();

@@ -51,10 +51,7 @@ const emit = defineEmits<{
 }>();
 
 const FOCUSABLE = "input, textarea, [contenteditable='true'], button";
-// Past this delay, a lazily loaded input still missing does not take the
-// keyboard when it arrives.
 const FOCUS_WAIT_MS = 3_000;
-// Overlays an input opens (a select's list, a calendar) are not "elsewhere".
 const OVERLAYS = [
   "[data-reka-popper-content-wrapper]",
   "[role='listbox']",
@@ -67,8 +64,6 @@ const PICKED_KINDS = new Set(["select", "date"]);
 
 const wrapper = useTemplateRef<HTMLElement>("wrapper");
 const kind = computed(() => kindOf(props.column));
-// A number started by typing keeps the characters as typed ("-", ".", ","):
-// a number input would drop them. It is read as a number on commit.
 const isTypedNumber = props.hasDraft && kindOf(props.column) === "number";
 const model = ref<unknown>(
   isTypedNumber
@@ -86,8 +81,6 @@ const invalidMessage = computed(() =>
 
 function commit(move: MatrixCommitMove): boolean {
   if (isDone.value) return true;
-  // Left as it opened, the cell keeps its stored value (a date and time its
-  // seconds, which the input does not show).
   if (isUnchangedModel(props.column, model.value, props.value)) {
     isDone.value = true;
     emit("commit", props.value, move);
@@ -154,8 +147,6 @@ onClickOutside(
   { ignore: OVERLAYS },
 );
 
-// The input is a lazily loaded component: it is focused once it is there,
-// the caret after a typed character, the whole value selected otherwise.
 async function focusInput(): Promise<void> {
   if (!wrapper.value) return;
   const element = await whenFocusable(wrapper.value, FOCUSABLE, FOCUS_WAIT_MS);
@@ -180,7 +171,6 @@ function placeCaret(element: HTMLInputElement | HTMLTextAreaElement): void {
 
 onMounted(() => void focusInput());
 
-// Ctrl+S saves the grid with the cell being typed in.
 const unregister = useMatrixContext().interaction.registerEditor(() => {
   if (!commit("stay")) cancel();
 });

@@ -6,9 +6,6 @@ export enum Size {
   huge = "xl",
 }
 
-// Spelled out rather than derived from `Size`: a string-enum member is not
-// assignable to a string literal, so `Object.values(Size)` would not give
-// z.enum() the literal tuple it needs.
 /** The size tokens a component option accepts. */
 export const SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
 

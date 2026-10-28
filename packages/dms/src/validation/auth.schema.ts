@@ -7,8 +7,6 @@ const MAX_LANGUAGE_TAG_LENGTH = 35;
 const MAX_INVITE_TOKEN_LENGTH = 256;
 const INVALID_2FA_TOKEN = "error.invalid_2fa_token";
 
-// The sign-in step answers with message keys (see firstIssueMessage): the
-// two-factor page translates them, and shows a refused code under its cells.
 const twoFactorToken = z
   .string({ message: INVALID_2FA_TOKEN })
   .min(1, INVALID_2FA_TOKEN);

@@ -1,11 +1,6 @@
 import { expect } from "chai";
-import type {
-  Session,
-  User,
-  UserExternalIdentity,
-} from "@antelopejs/interface-dms/auth/db";
-import type { TenantMember, UserInvite } from "@antelopejs/interface-dms/db";
-import type { UserNotification } from "../../../../db";
+import type { Session, User } from "@antelopejs/interface-dms/auth/db";
+import type { UserInvite } from "@antelopejs/interface-dms/db";
 import {
   ACCOUNT_EXPORT_FORMAT,
   type AccountMembershipSource,
@@ -13,8 +8,8 @@ import {
   buildAccountExport,
   findDeletionBlockers,
   isDeletionConfirmed,
-} from "../../../../pages/settings/users/account-data";
-import { selfDeletionPayload } from "../../../../pages/settings/users/account-data-store";
+  selfDeletionPayload,
+} from "../../../../pages/account";
 
 const USER_ID = "account-data-user";
 const PASSWORD_HASH = "$2b$10$secret-password-hash";
@@ -47,6 +42,7 @@ const SECRETS = [
 ];
 
 function storedUser(): User {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The export fixture contains persisted user fields, not database instance methods.
   return {
     _id: USER_ID,
     createdAt: new Date("2025-03-12T09:00:00Z"),
@@ -77,7 +73,7 @@ function storedUser(): User {
     twoFactorBackupCodesSavedAt: null,
     twoFactorEmailCode: EMAIL_CODE,
     twoFactorEmailCodeRequestedAt: null,
-  } as unknown as User;
+  } as User;
 }
 
 function membership(
@@ -96,7 +92,7 @@ function membership(
       isTenantOwner: overrides.isTenantOwner ?? false,
       joinedAt: new Date("2025-03-12T09:00:00Z"),
       invitedBy: "someone",
-    } as TenantMember,
+    },
   };
 }
 
@@ -121,9 +117,10 @@ function exportOf(user: User) {
         groupId: null,
         createdAt: EXPORTED_AT,
         updatedAt: EXPORTED_AT,
-      } as UserNotification,
+      },
     ],
     sessions: [
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The secret-leak fixture deliberately retains the legacy refreshToken field absent from the current Session contract.
       {
         _id: "s1",
         userId: USER_ID,
@@ -150,12 +147,13 @@ function exportOf(user: User) {
         email: "camille@gmail.com",
         createdAt: EXPORTED_AT,
         lastLoginAt: EXPORTED_AT,
-      } as UserExternalIdentity,
+      },
     ],
     invitesSent: [
       {
         tenantId: "acme",
         roleNames: ["Viewer"],
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The invite fixture omits required language and extensions fields outside the exported snapshot.
         invite: {
           _id: "inv1",
           email: "new@acme.dev",
@@ -166,7 +164,7 @@ function exportOf(user: User) {
           asTenantOwner: false,
           createdAt: EXPORTED_AT,
           expiresAt: new Date("2026-10-08T12:00:00Z"),
-        } as unknown as UserInvite,
+        } as UserInvite,
       },
     ],
     exportedAt: EXPORTED_AT,
@@ -271,6 +269,7 @@ describe("[unit] account data — deletion guards", () => {
 
 describe("[unit] account data — deletion hook", () => {
   it("names the user, their e-mail, the workspaces they left and why", () => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deletion payload fixture supplies only the user identifier and email that the hook reads.
     const user = { _id: USER_ID, email: "ada@example.com" } as User;
 
     expect(

@@ -146,7 +146,6 @@ export function useMatrixRows(options: MatrixRowsOptions): MatrixRowsControls {
     folded: [],
     seen: [],
   }));
-  // Each group takes its initial state once, when it first shows.
   watch(
     sections,
     (next) => {
@@ -158,7 +157,6 @@ export function useMatrixRows(options: MatrixRowsOptions): MatrixRowsControls {
       const toFold = initiallyCollapsed(
         fresh,
         options.grouping(),
-        // The rows the query matches, past the ones read so far.
         options.data.value?.total ?? rows.value.length,
       );
       folds.value = {

@@ -2,8 +2,8 @@
 import { usePage } from "@inertiajs/vue3";
 import { useDark } from "@vueuse/core";
 import AppLogo from "../../../../layers/dms-layout/app/components/layout/AppLogo.vue";
-import type defaults from "../base/app/app.config";
-const config = usePage().props.config as typeof defaults;
+import type { ThemePageProps } from "../runtime";
+const config = usePage<ThemePageProps>().props.config;
 const isDark = useDark();
 const enabled = ref(true);
 const isReady = ref(false);

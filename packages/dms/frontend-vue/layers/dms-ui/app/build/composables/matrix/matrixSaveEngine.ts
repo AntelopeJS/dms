@@ -233,7 +233,6 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     }
     options.onResponse?.(response);
     const isWritten = settle(batch, request.changes, indexAnswer(response));
-    // A value committed during the write goes now, from the value written.
     if (options.mode() === "immediate") void flush();
     return isWritten;
   }
@@ -338,7 +337,6 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     takeQueued(edit);
     edit.status = "failed";
     edit.message = failure.message;
-    // The edit keeps the value it started from; the stored one is apart.
     edit.conflict = failure.conflict ?? edit.conflict;
   }
 
@@ -380,7 +378,6 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
       if (existing) edits.delete(key);
       return;
     }
-    // Edited again, a conflicting cell stays one until Overwrite or Discard.
     const conflict = existing?.conflict;
     edits.set(key, {
       rowId: change.rowId,
@@ -419,7 +416,6 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
     const key = matrixCellKey(rowId, columnId);
     const edit = edits.get(key);
     if (!edit) return;
-    // A write in flight cannot be called back; what was committed after it can.
     if (edit.status === "saving") {
       edit.queued = undefined;
       return;
@@ -442,7 +438,6 @@ export function createMatrixSaveEngine(options: MatrixSaveEngineOptions) {
    */
   async function undo(changes: MatrixChange[]): Promise<boolean> {
     if (!changes.length) return true;
-    // Written after any write of the same cells still running, never under it.
     await settledCells(changes);
     const request: MatrixSaveRequest = {
       changes: changes.map((change) => ({

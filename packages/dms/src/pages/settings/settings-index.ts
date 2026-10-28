@@ -36,8 +36,7 @@ const SETTINGS_PATH = "/settings";
 const ACCOUNT_SUMMARY_URL = pageRoutePath(SETTINGS_PATH, "/account-summary");
 const ACTIVITY_URL = pageRoutePath(SETTINGS_PATH, "/activity");
 const PROFILE_PATH = "/settings/user/profile";
-// Wide enough for a label and its value side by side: below two of them,
-// the cards stack.
+
 const SUMMARY_COLUMN_WIDTH = "20rem";
 
 /**
@@ -72,8 +71,7 @@ export class SettingsIndexPage extends settingsCategory {
             title: `${TEXTS}.activity.title`,
             fetchUrl: ACTIVITY_URL,
             maxItems: ACCOUNT_ACTIVITY_LIMIT,
-            // The account card beside it sets the row's height; the entries
-            // scroll inside.
+
             fillHeight: true,
             empty: {
               title: `${TEXTS}.activity.empty_title`,

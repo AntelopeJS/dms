@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
@@ -8,10 +8,6 @@ import DmsBlockActions, {
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// `Card` block (interface-dms `base/card`): a titled v2 card holding other
-// blocks. Children without a slot stack in the body; a child in the
-// `actions` slot joins the head's link actions, one in the `footer` slot
-// fills the muted foot band. Texts follow the `$` i18n-key convention.
 interface CardBlockProps extends Partial<DefaultComponentProps> {
   /** Eyebrow title of the card head. */
   title?: string;
@@ -30,9 +26,9 @@ interface CardBlockProps extends Partial<DefaultComponentProps> {
 }
 
 interface CardBlockSlots {
-  default?: () => unknown;
-  actions?: () => unknown;
-  footer?: () => unknown;
+  default?: () => ReturnType<Slot>;
+  actions?: () => ReturnType<Slot>;
+  footer?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<CardBlockProps>(), {

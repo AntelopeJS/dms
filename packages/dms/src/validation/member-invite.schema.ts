@@ -18,11 +18,6 @@ export const INVITE_EMAILS_MAX = 50;
 
 const NAME_SEPARATOR = /\s+/;
 
-// Trimmed and bounded: whitespace alone would pass for a name while
-// `inviteeDisplayName` drops it, so the invitation would go out nameless; and
-// the value is persisted, then carried in the signup link's `name` query
-// parameter. An empty string means "not provided" (the client sends "" when
-// the field is touched then cleared).
 const inviteNamePart = z.string().trim().max(INVITE_NAME_MAX_LENGTH);
 
 const memberInviteObjectSchema = z.object({

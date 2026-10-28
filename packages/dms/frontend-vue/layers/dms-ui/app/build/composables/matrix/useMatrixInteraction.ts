@@ -198,8 +198,6 @@ export function useMatrixInteraction(source: MatrixInteractionOptions) {
     if (cell) source.commitValue(cell.row, cell.column, value);
     const target = COMMIT_MOVES[move](current) ?? current;
     focusCell(target);
-    // Tab keeps editing, from cell to cell, as a form moves between fields:
-    // in place only, a switch is not toggled nor a drawer opened by passing.
     if ((move === "next" || move === "previous") && target !== current)
       continueEditing(target);
   }

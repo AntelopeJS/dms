@@ -19,7 +19,6 @@ const currentPasswordSchema = z
  */
 export const securitySchema = {
   changePassword: z.object({
-    // Optional only for an account that has no password yet (single sign-on).
     currentPassword: currentPasswordSchema.optional(),
     password: passwordSchema,
   }),
@@ -30,7 +29,7 @@ export const securitySchema = {
   confirmEmailChange: z.object({
     code: z.string().regex(EMAIL_CHANGE_CODE_PATTERN),
   }),
-  // Optional only for an account that has no password (single sign-on).
+
   addTwoFactorMethod: z.object({
     currentPassword: currentPasswordSchema.optional(),
   }),

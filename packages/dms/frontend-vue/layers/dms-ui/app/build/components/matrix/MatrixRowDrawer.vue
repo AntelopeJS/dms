@@ -56,8 +56,6 @@ const errors = reactive<Record<string, string>>({});
 
 const storedOf = (column: MatrixColumn) =>
   row.value ? matrix.valueOf(row.value, column.id) : undefined;
-// An object found in a text column is edited as JSON, decided by the value
-// the field first shows (the drawer mounts anew for each row).
 const editingColumns = new Map<string, MatrixColumn>();
 function editingOf(column: MatrixColumn): MatrixColumn {
   let editing = editingColumns.get(column.id);
@@ -146,7 +144,6 @@ function commitAll(): void {
   for (const column of columns.value) commit(column);
 }
 
-// Stepping to another row (J / K) or closing keeps what was typed.
 onBeforeUnmount(commitAll);
 
 const json = computed(() => {

@@ -1,74 +1,66 @@
 import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { chartRuntime } from "./helpers/charts-runtime";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 import TopListRow from "../layers/dms-ui/app/components/top-list/internal/TopListRow.vue";
-import { resolveI18nKey } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { CHART_EVENT_NAMES } from "../layers/dms-ui/app/composables/chart/events";
 import type { ChartClickPayload } from "../layers/dms-ui/app/composables/chart/events";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 
-const MESSAGES: Record<string, string> = {
-  "my_module.sends": "Sends",
-  "my_module.sends_before": "Sends, previous period",
-  "my_module.domain": "Top domain",
-  "my_module.domain_sends": "Sends to this domain",
-};
+const MESSAGES = new Map<string, string>(
+  Object.entries({
+    "my_module.sends": "Sends",
+    "my_module.sends_before": "Sends, previous period",
+    "my_module.domain": "Top domain",
+    "my_module.domain_sends": "Sends to this domain",
+  }),
+);
 
 const LITERAL_TITLE = "example.test";
 const CHART_ID = "plot";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({
+const response = {
+  value: 1,
+  series: [{ name: "$my_module.sends", data: [1] }],
+  comparisonSeries: [{ name: "$my_module.sends_before", data: [1] }],
+  items: [
+    {
+      id: "ranked",
+      title: "$my_module.domain",
+      description: "$my_module.domain_sends",
+      sparkline: [1, 2],
       value: 1,
-      series: [{ name: "$my_module.sends", data: [1] }],
-      comparisonSeries: [{ name: "$my_module.sends_before", data: [1] }],
-      items: [
-        {
-          id: "ranked",
-          title: "$my_module.domain",
-          description: "$my_module.domain_sends",
-          sparkline: [1, 2],
-          value: 1,
-          to: "/domains/ranked",
-        },
-        { id: "literal", title: "example.test", value: 0 },
-      ],
-    }),
-    isLoading: ref(false),
-  }),
-}));
+      to: "/domains/ranked",
+    },
+    { id: "literal", title: "example.test", value: 0 },
+  ],
+};
 
-const sendComponentEvent = vi.fn();
+const componentEvents: unknown[] = [];
 
 function stubNuxt() {
-  const translate = (key: string) => MESSAGES[key] ?? key;
+  const translate = (key: string) => MESSAGES.get(key) ?? key;
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: translate }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (key: string) => resolveI18nKey(translate, key),
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent }));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+  const window = new EventTarget();
+  window.addEventListener(CHART_EVENT_NAMES.pointClick, (event) => {
+    if (event instanceof CustomEvent) componentEvents.push(event.detail);
+  });
+  vi.stubGlobal("window", window);
 }
 
 interface ApexClickOptions {
   dataPointIndex: number;
   seriesIndex: number;
 }
-interface ApexProbeOptions {
-  chart: {
-    events?: { dataPointSelection?: (...args: unknown[]) => void };
-  };
-}
 
 /** Renders each series name and fires Apex's click hook so the payload is observable. */
 const SeriesProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ApexProbeOptions>, required: true },
+    options: { type: Object, required: true },
+    // SAFETY: Chart passes its resolved ChartSeries array to this Apex host replacement.
     series: { type: Array as PropType<ChartSeries[]>, required: true },
   },
   setup: (props) => () => {
@@ -103,13 +95,15 @@ const SLOT_COMPONENTS = [
   "DmsTrendBadge",
 ];
 
-function mountWidgets(widget: () => ReturnType<typeof h>) {
+async function mountWidgets(widget: () => ReturnType<typeof h>) {
   stubNuxt();
   const app = createSSRApp({ render: widget });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", SeriesProbe);
   app.component("DmsTopListRow", TopListRow);
   app.component("DmsLink", Link);
+  await chartRuntime(app, response);
+  await renderToString(app);
   return renderToString(app);
 }
 
@@ -120,6 +114,7 @@ function renderTopList() {
       componentId: "list",
       pageId: "i18n",
       showSparkline: true,
+      fetchUrl: "/widgets",
     }),
   );
 }
@@ -128,7 +123,12 @@ function renderChartCard(onPointClick: (payload: ChartClickPayload) => void) {
   return mountWidgets(() =>
     h(
       ChartCard,
-      { title: "$my_module.sends", componentId: "card", pageId: "i18n" },
+      {
+        title: "$my_module.sends",
+        componentId: "card",
+        pageId: "i18n",
+        fetchUrl: "/widgets",
+      },
       () =>
         h(Chart, {
           type: "line",
@@ -142,10 +142,8 @@ function renderChartCard(onPointClick: (payload: ChartClickPayload) => void) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  sendComponentEvent.mockClear();
+  componentEvents.length = 0;
 });
-
-beforeEach(() => useRealDataEngine());
 
 describe("module-supplied widget strings and the $ convention", () => {
   it("resolves top list row titles, descriptions and aria-labels", async () => {
@@ -173,10 +171,9 @@ describe("module-supplied widget strings and the $ convention", () => {
     });
 
     expect(clicked).toMatchObject({ seriesName: "Sends" });
-    expect(sendComponentEvent).toHaveBeenCalledWith(
-      CHART_EVENT_NAMES.pointClick,
-      CHART_ID,
-      expect.objectContaining({ seriesName: "Sends" }),
-    );
+    expect(componentEvents).toContainEqual({
+      component: CHART_ID,
+      data: expect.objectContaining({ seriesName: "Sends" }),
+    });
   });
 });

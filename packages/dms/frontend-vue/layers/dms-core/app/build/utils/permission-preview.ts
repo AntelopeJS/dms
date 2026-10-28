@@ -1,7 +1,5 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
-// "Preview as role" (roles editor): the shapes the preview endpoint answers
-// with, how a preview session travels from the editor tab to the preview tab,
-// and which requests a preview tab may still send. Pure: no Vue, no window.
+import { isNumber, isObject, isString } from "../../utils/type-check";
 
 /** What a preview does to one block (`packages/dms/src/pages/settings/users/role-preview.ts`). */
 export type PermissionPreviewBlock =
@@ -66,9 +64,7 @@ export const PERMISSION_PREVIEW_TTL_MS = 86_400_000;
 export const PERMISSION_PREVIEW_PENDING_ATTRIBUTE = "data-dms-role-preview";
 
 function isStringArray(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) && value.every((item) => typeof item === "string")
-  );
+  return Array.isArray(value) && value.every((item) => isString(item));
 }
 
 /** A stored preview session, or `null` when the value is not one. */
@@ -82,20 +78,20 @@ export function parsePreviewSession(
   } catch {
     return null;
   }
-  if (!value || typeof value !== "object") return null;
-  const session = value as Partial<PermissionPreviewSession>;
+  if (!value || !isObject(value)) return null;
+  const session = value;
   if (
-    typeof session.id !== "string" ||
-    typeof session.roleName !== "string" ||
+    !isString(session.id) ||
+    !isString(session.roleName) ||
     !isStringArray(session.permissions) ||
-    typeof session.returnTo !== "string" ||
-    typeof session.updatedAt !== "number"
+    !isString(session.returnTo) ||
+    !isNumber(session.updatedAt)
   ) {
     return null;
   }
   return {
     id: session.id,
-    roleId: typeof session.roleId === "string" ? session.roleId : null,
+    roleId: isString(session.roleId) ? session.roleId : null,
     roleName: session.roleName,
     permissions: session.permissions,
     unsaved: session.unsaved === true,
@@ -224,6 +220,7 @@ export function applyPreviewEntryStates<T extends PreviewLockableEntry>(
   return items.map((item) => {
     const children = item.children
       ? applyPreviewEntryStates(
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing recursive API assumes children share T, but its public object[] contract does not prove this. Strengthening that contract would be a separate breaking change.
           item.children as readonly T[],
           stateOf,
           decorate,

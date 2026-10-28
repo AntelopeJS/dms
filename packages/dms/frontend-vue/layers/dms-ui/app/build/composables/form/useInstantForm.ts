@@ -1,6 +1,7 @@
 import { type ComputedRef, type Ref, watch } from "vue";
 import type { FormField } from "../../../composables/form/types/field";
 import type { FormFieldValue } from "../../../composables/form/types/value";
+import type { validateFormState } from "./formValidation";
 import { cloneFormValue } from "../../../composables/form/useForm";
 import { sameFormValue } from "../unsaved-changes/formValue";
 import {
@@ -8,11 +9,8 @@ import {
   useInstantSave,
 } from "../instant-save/useInstantSave";
 
-type FormValues = Record<string, unknown>;
+type FormValues = Parameters<typeof validateFormState>[1];
 
-// Fields typed in rather than picked: they save once typing pauses, a pick
-// (a select, a switch, a date) at once. A field without a type is a text;
-// so is a field made of typed parts (an address, the rows of a repeater).
 const TYPED_FIELD_TYPES = new Set([
   "string",
   "address",
@@ -48,6 +46,7 @@ export interface InstantFormOptions {
   /** Sends the changed fields, alone (a partial submit). */
   submit: (changes: FormValues) => Promise<void>;
   /** Says why a save was refused, once its values are put back. */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript promises can reject with any value; the adapter forwards it without narrowing the public callback.
   onRefused: (error: unknown) => void;
 }
 
@@ -58,10 +57,11 @@ export interface InstantForm extends InstantSave<FormValues> {
    * A field the server stored on its own (a rotated secret): its value is the
    * confirmed one, not a change to save again.
    */
-  confirmField: (id: string, value: unknown) => void;
+  confirmField: (id: string, value: FormValues[string]) => void;
 }
 
-const clone = (value: unknown): unknown =>
+const clone = (value: FormValues[string]): FormValues[string] =>
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Form state accepts arbitrary compound values; preserve the unchecked clone adapter without claiming FormFieldValue validation.
   cloneFormValue(value as FormFieldValue | undefined);
 
 /**
@@ -71,10 +71,8 @@ const clone = (value: unknown): unknown =>
  * server last confirmed when refused.
  */
 export function useInstantForm(options: InstantFormOptions): InstantForm {
-  // The value each field shows as far as the save knows: a value put back
-  // after a refusal is not a change of the user's.
   const shown = new Map<string, unknown>();
-  // The latest check of each field: an older one ending late is dropped.
+
   const checks = new Map<string, number>();
 
   const instant = useInstantSave<FormValues>({
@@ -97,13 +95,16 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
     instant.confirm(values);
   }
 
-  function confirmField(id: string, value: unknown): void {
+  function confirmField(id: string, value: FormValues[string]): void {
     const confirmed = clone(value);
     shown.set(id, confirmed);
     instant.confirm({ [id]: confirmed });
   }
 
-  async function saveField(field: FormField, value: unknown): Promise<void> {
+  async function saveField(
+    field: FormField,
+    value: FormValues[string],
+  ): Promise<void> {
     const check = (checks.get(field.id) ?? 0) + 1;
     checks.set(field.id, check);
     const isValid = await options.isFieldValid(field);

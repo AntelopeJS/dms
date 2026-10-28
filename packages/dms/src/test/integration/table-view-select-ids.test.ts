@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// A relation field holding plain ids labels them through its target's
-// `select` route, asking for those rows alone (`?ids=a&ids=b`) — over the
-// test host's notes (src/test/attachment-host/archive.ts).
-
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
 const TITLES = ["Alpha", "Bravo", "Charlie"];
@@ -32,9 +28,11 @@ describe("[integration] table view select by ids", () => {
   });
 
   async function select(query: string): Promise<Note[]> {
-    const response = await client.get(`${LOCATION}/select?${query}`);
+    const response = await client.get<{ results: Note[] }>(
+      `${LOCATION}/select?${query}`,
+    );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.results as Note[];
+    return response.data.results;
   }
 
   const idOf = (title: string) =>

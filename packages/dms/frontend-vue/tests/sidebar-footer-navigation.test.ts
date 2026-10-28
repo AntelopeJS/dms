@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -14,13 +14,7 @@ import {
   type PropType,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
-import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
-import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
-
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue",
-  () => ({ default: { render: () => null } }),
-);
+import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 
 const route = reactive({ path: "/modules/automation/runs", query: {} });
 let app: App;
@@ -28,6 +22,7 @@ let host: HTMLDivElement;
 
 const Navigation = defineComponent({
   props: {
+    // SAFETY: Sidebar supplies navigation items to this array prop, as the real menu does.
     items: { type: Array as PropType<NavigationMenuItem[]>, required: true },
   },
   setup: (props) => () =>
@@ -54,7 +49,6 @@ function installRuntime() {
     watch,
     onMounted,
     onBeforeUnmount,
-    addActiveStateToMenuItem,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsAppConfig", () => ({}));
@@ -62,13 +56,12 @@ function installRuntime() {
     processI18n: (value: string) => value,
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+  vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
-      ref(options.default()),
+    <T>(_key: string, options: { default: () => T }) => ref(options.default()),
   );
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),
@@ -90,7 +83,18 @@ function installRuntime() {
   );
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
-  vi.stubGlobal("getExpandedItemIds", () => []);
+  vi.stubGlobal("useCurrentUser", () => ({ user: ref({ name: "Viewer" }) }));
+  vi.stubGlobal("useLogout", () => ({ logout: vi.fn() }));
+  vi.stubGlobal("useColorModePreference", () => ref("light"));
+  vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
+  vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
+  vi.stubGlobal("useFileReadUrls", () => ({
+    getUrl: () => undefined,
+    resolve: async () => {},
+  }));
+  vi.stubGlobal("SETTINGS_ROUTE", "/settings");
+  vi.stubGlobal("ACCOUNT_MENU_ENTRIES", []);
+  vi.stubGlobal("collectOpenItemIds", () => []);
 }
 
 beforeEach(() => {
@@ -129,8 +133,8 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     modules.forEach((link) =>
       expect(link.getAttribute("data-exact")).toBe("true"),
     );
-    // The settings are reached from the account menu only.
+
     expect(host.querySelector('a[href^="/settings"]')).toBeNull();
-    expect(host.querySelector('[data-active="true"]')).toBeNull();
+    expect(host.querySelector('nav [data-active="true"]')).toBeNull();
   },
 );

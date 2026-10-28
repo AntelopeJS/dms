@@ -3,7 +3,7 @@ import {
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
-} from "../../../utils/admin-invite-email";
+} from "../../../utils";
 
 describe("[unit] utils/admin-invite-email", () => {
   describe("resolveAdminInviteLanguage", () => {

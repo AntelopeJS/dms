@@ -1,6 +1,6 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
-import { useInstantSave } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
+import { useInstantSave } from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
 import {
   hasFailed,
   type NotificationCategory,
@@ -32,23 +32,23 @@ export const useNotificationPreferences = (
   const stored = useApiData<PreferenceMap>(() =>
     enabled() ? PREFERENCES_URL : null,
   );
-  // The switches edit the read's data in place.
+
   const preferences = computed<PreferenceMap>({
     get: () => stored.data.value ?? {},
     set: (value) => {
       stored.data.value = value;
     },
   });
-  // A user who never changed a switch has no stored preferences (null).
+
   const isStoredRead = computed(
     () => stored.status.value === "success" || stored.data.value != null,
   );
   const loadFailed = computed(
-    () => (!isStoredRead.value && hasFailed(stored)) || catalog.loadFailed.value,
+    () =>
+      (!isStoredRead.value && hasFailed(stored)) || catalog.loadFailed.value,
   );
   const isLoading = computed(
-    () =>
-      !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
+    () => !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
   );
 
   const instant = useInstantSave<PreferenceMap>({
@@ -88,7 +88,7 @@ export const useNotificationPreferences = (
       stored.refresh({ dedupe: "defer" }),
       catalog.loadCatalog(),
     ]);
-    // A failed save then puts back what the server holds now.
+
     if (stored.status.value === "success") instant.confirm(preferences.value);
   };
 

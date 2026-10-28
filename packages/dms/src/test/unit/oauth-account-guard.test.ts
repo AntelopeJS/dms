@@ -3,14 +3,12 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import type { OAuthPolicy } from "../../routes/auth/oauth/config";
-import { resolveOAuthUser } from "../../routes/auth/oauth/identity-resolution";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+import type { OAuthPolicy, ProviderIdentity } from "../../routes/oauth";
+import { resolveOAuthUser } from "../../routes/oauth";
 
 const HTTP_FORBIDDEN = 403;
 const ACCOUNT_NOT_VALIDATED = "error.oauth.account_not_validated";
-// Deliberately not a tenant the account was invited to: a seat in any workspace
-// makes an account real, which is what reading membership across instances buys.
+
 const WORKSPACE_ID = "oauth-guard-workspace";
 const PROVIDER = "google";
 const HOLDER_NAME = "Rightful Holder";
@@ -23,6 +21,7 @@ const CLOSED_POLICY: OAuthPolicy = {
 };
 
 function buildUnvalidatedAccount(id: string, email: string): User {
+  // SAFETY: The resolution paths under test read these account fields and rewrite credentials; they do not call persisted-row methods.
   return {
     _id: id,
     email,
@@ -31,7 +30,7 @@ function buildUnvalidatedAccount(id: string, email: string): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated: false,
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 function buildIdentity(email: string): ProviderIdentity {
@@ -55,7 +54,7 @@ async function joinWorkspace(userId: string): Promise<void> {
 }
 
 interface ResolveAttempt {
-  error: unknown;
+  error: PromiseRejectedResult["reason"];
   result: Awaited<ReturnType<typeof resolveOAuthUser>> | undefined;
   updatedUsers: User[];
 }
@@ -67,6 +66,7 @@ interface ResolveAttempt {
  */
 async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
   const updatedUsers: User[] = [];
+  // SAFETY: These resolution paths only perform the supplied lookups and writes; insert explicitly fails to detect unwanted account creation.
   const userModel = {
     getByEmail: async (lookup: string) =>
       lookup === existingUser.email ? existingUser : undefined,
@@ -88,15 +88,12 @@ async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
       language: "fr",
     });
     return { error: undefined, result, updatedUsers };
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     return { error, result: undefined, updatedUsers };
   }
 }
 
 describe("[unit] auth/oauth — claiming an existing account", () => {
-  // The takeover the password signup already refuses, reached through OAuth: a
-  // genuine invitation, sent to the address of an account a module provisioned,
-  // used to rewrite that account and hand back a session.
   it("refuses an unvalidated account that already belongs to a workspace", async () => {
     const provisioned = buildUnvalidatedAccount(
       "oauth-guard-provisioned",
@@ -107,7 +104,7 @@ describe("[unit] auth/oauth — claiming an existing account", () => {
     const attempt = await attemptResolve(provisioned);
 
     expect(attempt.error).to.be.instanceOf(HTTPResult);
-    const refusal = attempt.error as HTTPResult;
+    const refusal = attempt.error;
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(refusal.getBody()).to.equal(ACCOUNT_NOT_VALIDATED);
     expect(attempt.updatedUsers).to.deep.equal([]);

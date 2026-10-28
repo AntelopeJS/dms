@@ -1,27 +1,52 @@
-/**
- * A read-only array or key-value field (a record's details) shows its rows,
- * through its own control disabled, rather than the "2 rows" a table cell
- * reads; an empty one still reads "empty" through the display.
- */
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+/** @vitest-environment jsdom */
+import { expect, it, vi } from "vitest";
+import { defineComponent, h, type App } from "vue";
+import { host, mountForm, unmountForm } from "./helpers/form-runtime";
 
-const control = readFileSync(
-  new URL(
-    "../layers/dms-ui/app/build/components/form/FormFieldControl.vue",
-    import.meta.url,
-  ),
-  "utf8",
+it.each(["array", "key_value"])(
+  "rejects a %s field that collapses nonempty read-only rows to a count",
+  async (type) => {
+    const Control = defineComponent({
+      props: ["modelValue", "disabled"],
+      setup: (props) => () =>
+        h("textarea", {
+          disabled: props.disabled,
+          value: JSON.stringify(props.modelValue),
+        }),
+    });
+    vi.stubGlobal("resolveDmsComponent", () => Control);
+    const fields = (empty: boolean) => [
+      {
+        id: "rows",
+        type,
+        disabled: true,
+        component: { componentName: "Rows" },
+        defaultValue:
+          type === "array"
+            ? empty
+              ? []
+              : ["Ada", "Grace"]
+            : empty
+              ? {}
+              : { first: "Ada", second: "Grace" },
+      },
+    ];
+    const displayEmpty = (app: App) => {
+      app.component(
+        "DmsDisplay",
+        defineComponent({
+          setup: () => () => h("span", "Empty"),
+        }),
+      );
+    };
+    await mountForm({ fields: fields(false) }, undefined, displayEmpty);
+    expect(host.querySelector("textarea")?.disabled).toBe(true);
+    expect(host.querySelector("textarea")?.value).toContain("Ada");
+    expect(host.querySelector("textarea")?.value).toContain("Grace");
+    expect(host.textContent).not.toContain("Empty");
+    unmountForm();
+    await mountForm({ fields: fields(true) }, undefined, displayEmpty);
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.textContent).toContain("Empty");
+  },
 );
-
-describe("a read-only list field", () => {
-  it("reads through its own control", () => {
-    expect(control).toMatch(
-      /const READS_AS_CONTROL = new Set\(\["array", "key_value"\]\);/,
-    );
-    expect(control).toMatch(
-      /READS_AS_CONTROL\.has\(props\.field\.type\) &&\s*hasRows\(state\.value\[props\.field\.id\]\)/,
-    );
-    expect(control).toMatch(/v-if="showsDisplay"/);
-  });
-});

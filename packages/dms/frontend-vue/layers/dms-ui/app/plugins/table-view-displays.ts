@@ -16,10 +16,6 @@ const CardsDisplay = defineAsyncComponent(
   () => import("../build/components/table-view/CardsDisplay.vue"),
 );
 
-// Registers the presentation of the built-in displays on the server as well:
-// the switcher then renders in the server pass, so hydration finds it there
-// instead of inserting it (and shifting the toolbar) afterwards. Data
-// behaviour and chrome (selfManagedData/capabilities) stay config-driven.
 export default defineDmsPlugin(() => {
   storeTableViewDisplay({
     id: TABLE_DISPLAY_ID,
@@ -28,7 +24,6 @@ export default defineDmsPlugin(() => {
     order: 10,
   });
 
-  // The grid itself, its rows under group headers: no component of its own.
   storeTableViewDisplay({
     id: GROUPED_DISPLAY_ID,
     label: "dms.table.view_mode_grouped",

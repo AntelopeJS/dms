@@ -71,8 +71,7 @@ export function buildTableViewShortcuts<T extends Data>({
     shift_a: createTableViewShiftAShortcut(tableProps, data, rowSelect),
   };
   const escape = createTableViewEscapeShortcut(globalFilter, rowSelect);
-  // An unregistered key is left untouched by `defineShortcuts`, so Escape
-  // reaches overlays whenever the table has nothing to clear.
+
   return computed(() => ({
     ...shortcuts,
     escape: isTableViewEscapeActive(globalFilter, rowSelect, activeElement)

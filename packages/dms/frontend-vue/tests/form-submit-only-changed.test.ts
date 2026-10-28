@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import { formSubmitEvent } from "./helpers/form-submit-event";
 import {
   collectSubmitData,
   createFieldValueComparer,
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
-import { sameRelationValue } from "../layers/dms-ui/app/build/composables/data-types/relationValue";
+import { sameRelationValue } from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
 
 const authFetch = vi.fn();
 const RELATION_TYPE = {
@@ -26,7 +28,10 @@ const FIELDS = ["status", "notes", "owner"].map((id) => ({
 /** The row as it was loaded, before a colleague changed its status. */
 const LOADED_ROW = { status: "open", notes: "First call", owner: "ana" };
 
-function setupForm(submitUrlMethod?: HttpMethod, fields: unknown[] = FIELDS) {
+function setupForm(
+  submitUrlMethod?: HttpMethod,
+  fields: Parameters<typeof useForm>[0]["fields"] = FIELDS,
+) {
   return scope.run(() =>
     useForm({
       componentId: "form-1",
@@ -35,7 +40,7 @@ function setupForm(submitUrlMethod?: HttpMethod, fields: unknown[] = FIELDS) {
       fetchUrl: "/api/rows/get?id=row-1",
       submitUrl: "/api/rows/edit?id=row-1",
       submitUrlMethod,
-    } as never),
+    }),
   )!;
 }
 
@@ -44,10 +49,11 @@ async function editNotes(form: ReturnType<typeof setupForm>) {
   form.initialValues.value = { ...LOADED_ROW };
   const edited = { ...LOADED_ROW, notes: "Second call" };
   Object.assign(form.state.value, edited);
-  await form.onSubmit({ data: edited } as never);
+  await form.onSubmit(formSubmitEvent(edited));
 }
 
 /** What the save sent: the record is read back after it. */
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- This spy reads the raw submitted body before assertions check it. Inference would expose the untyped vi.fn call array as any, and the form's parsed output type cannot establish what the captured request actually sent.
 function sentBody(): unknown {
   return authFetch.mock.calls.findLast(
     ([url]) => url === "/api/rows/edit?id=row-1",
@@ -61,7 +67,7 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("HttpMethod", HttpMethod);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -75,11 +81,15 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRoute", () => ({ query: {}, params: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
   vi.stubGlobal("useEventedAction", () => ({
-    execute: (action: () => Promise<unknown>) => action(),
+    execute: <Result>(action: () => Promise<Result>) => action(),
   }));
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial }),
     }),
@@ -118,7 +128,6 @@ describe("collectSubmitData with onlyChanged", () => {
   });
 
   it("leaves out a relation still referencing the rows it loaded", () => {
-    // The server sends the joined row, the picker holds its id.
     const assignees = {
       id: "assignees",
       type: "relation",
@@ -163,8 +172,6 @@ describe("collectSubmitData with onlyChanged", () => {
 });
 
 describe("DMS form submitting a loaded record", () => {
-  // Sending the whole form wrote the stale status back over a colleague's
-  // change made since the form loaded.
   it("sends only what the user changed when it updates the record", async () => {
     await editNotes(setupForm());
     expect(sentBody()).toEqual({ notes: "Second call" });
@@ -187,7 +194,7 @@ describe("DMS form submitting a loaded record", () => {
     };
     const edited = { ...LOADED_ROW, notes: "Second call", assignees: "u-1" };
     Object.assign(form.state.value, edited);
-    await form.onSubmit({ data: edited } as never);
+    await form.onSubmit(formSubmitEvent(edited));
     expect(sentBody()).toEqual({ notes: "Second call" });
   });
 

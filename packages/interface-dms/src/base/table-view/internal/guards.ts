@@ -24,32 +24,35 @@ type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
  * archive or restore; unset when the request carried none.
  */
 const parseConfirmValues = (
-  raw: unknown,
-): Record<string, unknown> | undefined => {
+  raw: globalThis.Parameters<typeof parseGuardBody>[0],
+): ReturnType<typeof parseGuardBody> | undefined => {
   const isEmpty =
     raw === undefined ||
     raw === null ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- RawBody may supply bytes, a string, or decoded data; this detects empty transport bodies before decoding.
     ((Buffer.isBuffer(raw) || typeof raw === "string") && raw.length === 0);
   return isEmpty ? undefined : parseGuardBody(raw);
 };
 
 /** @internal */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- The published permissive body decoder accepts transport values and returns module-owned fields without a fixed schema; narrowing either side would change its contract.
 export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
   if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString());
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published decoder distinguishes the string transport representation from already decoded values.
   if (typeof raw === "string" && raw.length > 0) return JSON.parse(raw);
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The published decoder accepts any non-null object, including arrays, without proving an indexed row contract; preserve that unchecked compatibility behavior.
   if (raw && typeof raw === "object") return raw as Record<string, unknown>;
   return {};
 };
 
 interface GuardInvocationConfig {
-  // A published contract: the runtime calls this positionally and every
-  // implementing module declares the same shape, so an options object
-  // cannot be introduced from this side.
-  // oxlint-disable-next-line eslint/max-params
+  // oxlint-disable-next-line eslint/max-params -- Guard adapters share six positional inputs, including the edit adapter configured row-id field.
   invokeGuard: (
-    controller: unknown,
+    controller: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
+      constructor: ConstructorParameters<typeof TableViewMeta>[0];
+    },
     ctx: RequestContext,
-    params: unknown,
+    params: globalThis.Parameters<DataControllerCallback["func"]>[1],
     args: unknown[],
     guard: GuardFn<any>,
     idField: string,
@@ -58,27 +61,18 @@ interface GuardInvocationConfig {
 
 const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
   edit: {
-    // A published contract: the runtime calls this positionally and every
-    // implementing module declares the same shape, so an options object
-    // cannot be introduced from this side.
-    // oxlint-disable-next-line eslint/max-params
+    // oxlint-disable-next-line eslint/max-params -- The edit adapter consumes the six positional inputs declared by GuardInvocationConfig.
     invokeGuard: async (controller, ctx, params, args, guard, idField) => {
-      const id = String((params as Parameters.EditParameters).id);
+      const id = String(params.id);
       const body = parseGuardBody(args[0]);
-      const current = await fetchRowForGuard(
-        controller as DataControllerCallback,
-        id,
-        idField,
-      );
+      const current = await fetchRowForGuard(controller, id, idField);
       throwHttpAssert(current, 404, "Not Found");
       return guard.call(controller, ctx, { id, body, current });
     },
   },
   delete: {
     invokeGuard: async (controller, ctx, params, args, guard) => {
-      const ids = normalizeToArray(
-        (params as Parameters.DeleteParameters).id as string | string[],
-      );
+      const ids = normalizeToArray(params.id);
       return guard.call(controller, ctx, {
         ids,
         values: parseConfirmValues(args.at(-1)),
@@ -87,7 +81,7 @@ const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
   },
   archive: {
     invokeGuard: async (controller, ctx, params, args, guard) => {
-      const ids = normalizeToArray(params as string | string[]);
+      const ids = normalizeToArray(params);
       return guard.call(controller, ctx, {
         ids,
         values: parseConfirmValues(args.at(-1)),
@@ -96,7 +90,7 @@ const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
   },
   restore: {
     invokeGuard: async (controller, ctx, params, args, guard) => {
-      const ids = normalizeToArray(params as string | string[]);
+      const ids = normalizeToArray(params);
       return guard.call(controller, ctx, {
         ids,
         values: parseConfirmValues(args.at(-1)),
@@ -112,31 +106,32 @@ const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
 };
 
 const getGuardForAction = (
-  controller: unknown,
+  controller: ThisParameterType<DataControllerCallback["func"]>,
   actionName: GuardedActionName | "get",
 ): GuardFn<any> | undefined => {
   const meta = GetMetadata(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch is assumed to bind a registered controller constructor; the published unknown receiver does not prove it.
     (controller as { constructor: ControllerClass }).constructor,
     TableViewMeta,
   );
-  return meta.controllerGuards?.[actionName] as GuardFn<any> | undefined;
+  return meta.controllerGuards?.[actionName];
 };
 
 /** @internal */
-export const guardedGetRoute = DefaultRoutes.WithGetGuard(
-  async function (ctx, current, params) {
+export const guardedGetRoute: DataControllerCallback<Parameters.GetParameters> =
+  DefaultRoutes.WithGetGuard(async function (ctx, current, params) {
     await getGuardForAction(this, "get")?.call(this, ctx, {
       id: params.id,
       current,
     });
-  },
-);
+  });
 
-const getIdField = (controller: unknown): string => {
-  const meta = GetMetadata(
-    (controller as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+const getIdField = (
+  controller: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
+    constructor: ConstructorParameters<typeof TableViewMeta>[0];
+  },
+): string => {
+  const meta = GetMetadata(controller.constructor, TableViewMeta);
   return meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
 };
 
@@ -153,16 +148,12 @@ async function runAfterWrite(
   }
 }
 
-// Their routes read no body of their own: the guard is handed the one the
-// confirmation sends, read here and kept from the route.
 const CONFIRM_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "delete",
   "archive",
   "restore",
 ]);
 
-// Their route writes the body it reads: the guard is handed that body parsed,
-// and the route writes it as the guard left it.
 const WRITE_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "new",
   "edit",
@@ -177,9 +168,11 @@ export const createGuardedRoute = (
   const readsConfirmBody = CONFIRM_BODY_ACTIONS.has(actionName);
   return {
     func: async function (
-      this: unknown,
+      this: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
-      params: unknown,
+      params: globalThis.Parameters<DataControllerCallback["func"]>[1],
       ...routeArgs: unknown[]
     ) {
       const confirmBody = readsConfirmBody ? routeArgs.pop() : undefined;
@@ -203,7 +196,6 @@ export const createGuardedRoute = (
             getIdField(this),
           )
         : undefined;
-      // The data API writes a parsed body as it is handed.
       const writtenArgs = writtenBody
         ? [writtenBody, ...routeArgs.slice(1)]
         : routeArgs;

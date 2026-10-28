@@ -3,9 +3,9 @@ import {
   securityAttention,
   securityAttentionBadge,
   securityAttentionTones,
-} from "../../../../pages/settings/users/security-attention";
-import type { TwoFactorStatus } from "../../../../pages/settings/users/two-factor-operations";
-import { LOW_BACKUP_CODES } from "../../../../utils/notification-tones";
+} from "../../../../pages/account";
+import type { TwoFactorStatus } from "../../../../pages/account";
+import { LOW_BACKUP_CODES } from "../../../../utils";
 
 const BACKUP_CODES_TOTAL = 10;
 const GENERATED_AT = new Date("2026-10-01T10:00:00.000Z");

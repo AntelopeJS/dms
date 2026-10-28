@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import { markRaw, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
@@ -56,15 +57,14 @@ const root = useTemplateRef<HTMLElement>("root");
 
 const stateParam = route.query[STATE_QUERY];
 const initialState =
-  props.embed && typeof stateParam === "string"
+  props.embed && isString(stateParam)
     ? decodePreviewState(stateParam)
     : undefined;
 const isStateInvalid = props.embed && !!stateParam && !initialState;
 
 function switchLocale(code: string): void {
   const known = locales.value.some((entry) => entry.code === code);
-  if (known && code !== locale.value)
-    void setLocale(code as typeof locale.value);
+  if (known && code !== locale.value) void setLocale(code);
 }
 
 const embed = props.embed
@@ -96,7 +96,9 @@ function toPageComponent(node: PreviewResolvedNode): ResolvedComponentInfo {
     componentName: node.componentName,
     options: node.issue ? { issue: node.issue } : node.options,
     children: node.children.map(toPageComponent),
+    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Omit absent keys without replacing spread's own-property definition semantics with assignment.
     ...(node.slot ? { slot: node.slot } : {}),
+    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Preserve omission, property order, and getter evaluation for unvalidated preview nodes.
     ...(node.colSpan === undefined ? {} : { colSpan: node.colSpan }),
   };
 }
@@ -120,8 +122,7 @@ watch(resolved, reportIssues);
 onMounted(async () => {
   if (isStateInvalid) embed?.reportError(t("dms.block_preview.invalid_state"));
   reportIssues(resolved.value);
-  // The page always hands the allowlist; fetching it is for a signed-in
-  // dashboard, and a public visitor would only be sent to the login page.
+
   if (props.blockTypes || props.embed) return;
   const { $authFetch } = useAuthFetch();
   try {

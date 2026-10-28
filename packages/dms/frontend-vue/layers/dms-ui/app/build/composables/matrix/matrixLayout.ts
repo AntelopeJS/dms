@@ -24,7 +24,6 @@ export interface MatrixTotalSlot {
 export type MatrixGridSlot = MatrixColumnSlot | MatrixTotalSlot;
 
 const TOTAL_SLOT_KEY = "\u0000total";
-// The row header is column 1.
 const FIRST_COLUMN_INDEX = 2;
 
 /**

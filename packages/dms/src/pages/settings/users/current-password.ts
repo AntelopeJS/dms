@@ -1,21 +1,16 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { SignInAttemptsModel } from "../../../db/models/signInAttempts.model";
-import {
-  FAILURES_PER_ACCOUNT,
-  LOGIN_WINDOW_MS,
-} from "../../../routes/auth/login-throttle";
-import { ATTEMPT_RETENTION_MS } from "../../../utils/sign-in-monitor";
+import { SignInAttemptsModel } from "../../../db/models";
+import { FAILURES_PER_ACCOUNT, LOGIN_WINDOW_MS } from "../../../utils";
+import { ATTEMPT_RETENTION_MS } from "../../../hooks";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_TOO_MANY_REQUESTS = 429;
-// 400, not 401: the dashboard treats a 401 as an expired session and signs out.
+
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const TOO_MANY_ATTEMPTS = "error.too_many_current_password_attempts";
 
-// Whether `tries` leaves room for `pending` more: one before a try is
-// recorded, none once it counts itself.
 function assertTriesLeft(tries: number, pending: number): void {
   assert(
     tries + pending <= FAILURES_PER_ACCOUNT,
@@ -24,10 +19,6 @@ function assertTriesLeft(tries: number, pending: number): void {
   );
 }
 
-// The sign-in form's budget, so a borrowed session guesses the password no
-// faster than the sign-in form allows. Counted before the password is
-// compared, so concurrent tries on several instances share one budget. A
-// refused try is not counted: the window passes for a user who keeps trying.
 async function claimAttempt(userId: string, now: Date): Promise<void> {
   const attempts = GetModel(SignInAttemptsModel);
   const since = new Date(now.getTime() - LOGIN_WINDOW_MS);

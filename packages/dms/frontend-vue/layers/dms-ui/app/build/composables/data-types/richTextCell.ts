@@ -1,9 +1,6 @@
 import striptags from "striptags";
 import { DEFAULT_FALLBACK, DETAIL_FALLBACK } from "./useColumnValueRenderer";
 
-// A rich-text value is HTML: a cell reads its text, never its markup.
-
-// The end of a block or a line break: its text is kept apart from the next.
 const BLOCK_BREAK =
   /<\/(?:p|div|li|h[1-6]|blockquote|pre|tr|td|th)>|<br\s*\/?>/gi;
 const ENTITY = /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi;
@@ -14,7 +11,6 @@ const HEX_RADIX = 16;
 const DECIMAL_RADIX = 10;
 const MAX_CODE_POINT = 0x10ffff;
 
-// The named entities an editor writes; any other is left as written.
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&",
   lt: "<",

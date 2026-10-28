@@ -2,7 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
-import { getExporter } from "../../../utils/export-jobs";
+import { getExporter } from "../../../utils";
+import { readText } from "../../helpers/files";
 
 const BYTE_ORDER_MARK = "\uFEFF";
 
@@ -30,7 +31,7 @@ describe("[unit] utils/export-jobs — CSV writer", () => {
     });
     writer.close();
 
-    expect(fs.readFileSync(filePath, "utf8")).to.equal(
+    expect(readText(filePath)).to.equal(
       `${BYTE_ORDER_MARK}name,"city, country","say ""hi"""\n` +
         `Ada,"London, UK",hello\n`,
     );

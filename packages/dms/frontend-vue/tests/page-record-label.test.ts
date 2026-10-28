@@ -12,6 +12,7 @@ let sharedState: Map<string, Ref<unknown>>;
 vi.stubGlobal("useDmsRoute", () => route);
 vi.stubGlobal("useDmsState", <T>(key: string, init?: () => T): Ref<T> => {
   if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
+  // SAFETY: Each key is initialized once by the composable and reused with the same state type.
   return sharedState.get(key) as Ref<T>;
 });
 

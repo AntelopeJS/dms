@@ -27,7 +27,7 @@ export const isFilterEffective = (filter: TableFilter): boolean => {
   if (NO_VALUE_COMPARE_MODES.has(filter.mode)) return true;
   const value = filter.value;
   if (value === undefined || value === null) return false;
-  if (typeof value === "string" && value === "") return false;
+  if (value === "") return false;
   if (Array.isArray(value)) {
     if (value.length === 0) return false;
     if (value.some((v) => v === undefined || v === null || v === "")) {
@@ -38,13 +38,12 @@ export const isFilterEffective = (filter: TableFilter): boolean => {
 };
 
 const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
-  return filters.filter(isFilterEffective).reduce(
-    (acc, val) => {
+  return filters
+    .filter(isFilterEffective)
+    .reduce<Record<string, string>>((acc, val) => {
       acc[`filter_${val.accessorKey}`] = `${val.mode}:${val.value}`;
       return acc;
-    },
-    {} as Record<string, string>,
-  );
+    }, {});
 };
 
 /**
@@ -58,7 +57,7 @@ const combineFilters = (
   hidden: Record<string, string>,
   column: Record<string, string>,
 ): Record<string, string | string[]> => {
-  const combined: Record<string, string | string[]> = { ...hidden };
+  const combined: ReturnType<typeof combineFilters> = { ...hidden };
   for (const [key, value] of Object.entries(column)) {
     const hiddenValue = hidden[key];
     combined[key] =
@@ -66,6 +65,7 @@ const combineFilters = (
         ? value
         : [hiddenValue, value];
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The return owner permits collision arrays for arbitrary filter keys; returning the owner-typed accumulator preserves that contract and inherited-key lookups.
   return combined;
 };
 

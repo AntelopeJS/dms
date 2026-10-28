@@ -13,7 +13,7 @@ function feature(name: string, api: string): PlaygroundFeature {
 }
 
 /** The TableView inline edit's features, shown on its demo page. */
-export const TABLE_VIEW_INLINE_EDIT_FEATURES: PlaygroundFeature[] = [
+export const INLINE_EDIT: PlaygroundFeature[] = [
   feature(
     "Cells edited in the grid, each saved at once",
     "TableView({ inlineEdit: true | { columns } })",

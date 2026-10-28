@@ -1,6 +1,6 @@
 import type { PaginationState } from "@tanstack/vue-table";
 import { computed, ref, watch, type Ref } from "vue";
-import { hashText } from "#dms-core/app/build/composables/user/tablePreferences";
+import { hashText } from "#dms-core/app/entries/composables/user/tablePreferences";
 import type { TablePreferences } from "./useTablePreferences";
 
 const FIRST_PAGE_INDEX = 0;
@@ -13,6 +13,7 @@ export interface PersistedPaginationOptions {
    * What lists other rows without the user picking it: the hidden filters
    * the page URL sets. A change of value lists from the first page.
    */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The scope is an opaque value serialized for equality, not a query sent to an endpoint. No schema owns all scope values; narrowing would exclude existing serializable callers.
   scope: () => unknown;
 }
 
@@ -36,7 +37,7 @@ export function usePersistedPagination(
     hashText(JSON.stringify(options.scope() ?? null)),
   );
   const stored = preferences.get<PaginationState>("pagination", defaults);
-  // A page kept without its scope (the first one): kept as it is.
+
   const storedScope = preferences.get<string>(
     "paginationScope",
     scopeKey.value,
@@ -45,7 +46,6 @@ export function usePersistedPagination(
     storedScope === scopeKey.value ? stored : firstPage(stored),
   );
 
-  // Synchronous, so the list is queried once, with both changes.
   watch(
     scopeKey,
     () => {

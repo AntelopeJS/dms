@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../composables/settings/security/useCodeFieldError";
 import SecurityDialogFrame, {
@@ -44,9 +44,6 @@ const { flag } = useCodeFieldError(digits, error, codeField);
 
 const code = computed(() => digits.value.join(""));
 
-// The code submits once per entry: "complete" and the button can both fire
-// before "loading" reaches this component, and a second call would replace
-// what the first one produced (a new set of backup codes, for instance).
 const submittedCode = ref<string | null>(null);
 
 watch(isOpen, (open) => {
@@ -59,7 +56,7 @@ watch(code, () => {
 
 function confirm(): void {
   if (props.loading) return;
-  // An empty or partial code is flagged under the cells, not sent.
+
   const missing = codeEntryError(digits.value, CODE_LENGTH);
   if (missing) {
     flag(processApiMessage(missing));

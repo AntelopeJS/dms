@@ -1,8 +1,3 @@
-// The default data types register themselves through decorators, so they have
-// to evaluate for `serializeType`, `CreateDataType` and `DataType.filter` to
-// find anything. Before the data-types barrel was split, a value import of
-// `getDataTypeId` pulled them in as a side effect; the split made that
-// accident load-bearing, so the dependency is stated here instead.
 import "./data-types/default-types";
 import "./data-types/status-type";
 

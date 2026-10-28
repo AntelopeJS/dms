@@ -36,22 +36,25 @@ function readStorage(storage: Storage, key: string): string | null {
 }
 
 function writeStorage(storage: Storage, key: string, value: string): void {
+  // prettier-ignore
   try {
     storage.setItem(key, value);
   } catch {
-    /* storage unavailable (private mode, quota): the preview tab finds nothing */
+    // eslint-disable-line no-empty -- Failed storage writes lose preview session sharing or reload persistence, not the editor's state.
   }
 }
 
 function removeStorage(storage: Storage, key: string): void {
+  // prettier-ignore
   try {
     storage.removeItem(key);
   } catch {
-    /* noop */
+    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
   }
 }
 
 function removeSessions(isRemoved: (key: string) => boolean): void {
+  // prettier-ignore
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
@@ -59,11 +62,10 @@ function removeSessions(isRemoved: (key: string) => boolean): void {
       if (isRemoved(key)) removeStorage(localStorage, key);
     }
   } catch {
-    /* noop */
+    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
   }
 }
 
-// Sessions left behind by tabs closed without "Exit preview".
 function pruneStaleSessions(now: number): void {
   removeSessions((key) => {
     const session = parsePreviewSession(readStorage(localStorage, key));
@@ -77,7 +79,6 @@ function newPreviewId(): string {
     : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 }
 
-// Only the latest preview request may land: the route and the edits both move.
 let refreshGeneration = 0;
 
 function usePreviewState() {
@@ -96,6 +97,50 @@ function usePreviewState() {
     ),
     failed: useDmsState<boolean>("dms-permission-preview-failed", () => false),
   };
+}
+
+function createPreviewSharing() {
+  function share(id: string, input: PermissionPreviewInput): void {
+    const session: PermissionPreviewSession = {
+      ...input,
+      id,
+      updatedAt: Date.now(),
+    };
+    writeStorage(localStorage, storageKey(id), JSON.stringify(session));
+  }
+
+  /** Open a preview tab on `path`; returns the id to keep it in sync. */
+  function start(input: PermissionPreviewInput, path: string): string {
+    pruneStaleSessions(Date.now());
+    const id = newPreviewId();
+    share(id, input);
+    window.open(buildPreviewUrl(path, id), "_blank");
+    return id;
+  }
+
+  /** Push the editor's latest edits to an open preview tab. */
+  function update(id: string, input: PermissionPreviewInput): void {
+    if (readStorage(localStorage, storageKey(id)) === null) return;
+    share(id, input);
+  }
+
+  function readSession(id: string): PermissionPreviewSession | null {
+    const session = parsePreviewSession(
+      readStorage(localStorage, storageKey(id)),
+    );
+    return session && session.id === id ? session : null;
+  }
+
+  function takeIdFromLocation(): string | null {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get(PERMISSION_PREVIEW_QUERY_KEY);
+    if (!id) return null;
+    url.searchParams.delete(PERMISSION_PREVIEW_QUERY_KEY);
+    window.history.replaceState(window.history.state, "", url.href);
+    return id;
+  }
+
+  return { start, update, readSession, takeIdFromLocation };
 }
 
 /**
@@ -162,45 +207,8 @@ export function usePermissionPreview() {
     return isPreviewEntryLocked(isActive.value, hiddenQuickActions.value, key);
   }
 
-  function share(id: string, input: PermissionPreviewInput): void {
-    const session: PermissionPreviewSession = {
-      ...input,
-      id,
-      updatedAt: Date.now(),
-    };
-    writeStorage(localStorage, storageKey(id), JSON.stringify(session));
-  }
-
-  /** Open a preview tab on `path`; returns the id to keep it in sync. */
-  function start(input: PermissionPreviewInput, path: string): string {
-    pruneStaleSessions(Date.now());
-    const id = newPreviewId();
-    share(id, input);
-    window.open(buildPreviewUrl(path, id), "_blank");
-    return id;
-  }
-
-  /** Push the editor's latest edits to an open preview tab. */
-  function update(id: string, input: PermissionPreviewInput): void {
-    if (readStorage(localStorage, storageKey(id)) === null) return;
-    share(id, input);
-  }
-
-  function readSession(id: string): PermissionPreviewSession | null {
-    const session = parsePreviewSession(
-      readStorage(localStorage, storageKey(id)),
-    );
-    return session && session.id === id ? session : null;
-  }
-
-  function takeIdFromLocation(): string | null {
-    const url = new URL(window.location.href);
-    const id = url.searchParams.get(PERMISSION_PREVIEW_QUERY_KEY);
-    if (!id) return null;
-    url.searchParams.delete(PERMISSION_PREVIEW_QUERY_KEY);
-    window.history.replaceState(window.history.state, "", url.href);
-    return id;
-  }
+  const { start, update, readSession, takeIdFromLocation } =
+    createPreviewSharing();
 
   /**
    * Turn this tab into a preview when it was opened as one (or reloaded while
@@ -258,8 +266,7 @@ export function usePermissionPreview() {
     if (!session) return;
     removeStorage(localStorage, storageKey(session.id));
     window.close();
-    // Still open: the tab was not opened by the editor (a reload in a new
-    // window, a copied URL), so it cannot close itself.
+
     setTimeout(() => {
       void navigateDms(session.returnTo);
     }, CLOSE_FALLBACK_DELAY_MS);

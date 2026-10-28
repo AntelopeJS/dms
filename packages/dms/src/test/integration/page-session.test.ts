@@ -19,8 +19,6 @@ interface SiteLayoutResponse {
   siteLayout: { pages: Record<string, RouteEntry> };
 }
 
-// A token of the DMS's own shape, signed with a key the DMS does not hold:
-// what a browser still sends once its session was revoked or its key rotated.
 function rejectedToken(): string {
   return sign(
     { id: "missing-user", tenantId: "default", purpose: "access" },

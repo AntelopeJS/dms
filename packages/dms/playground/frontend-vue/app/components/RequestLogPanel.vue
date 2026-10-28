@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// The side panel of the "API request log" demo: the DMS draws its header
-// (title, position, previous / next, close), the component only the request.
-// "Previous request on this route" shows another row in place with `showRow`.
 
 interface ServedRequest {
   requestId?: string;

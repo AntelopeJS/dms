@@ -91,8 +91,6 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
     }
   }
 
-  // A change on a cell the user cannot edit is left out, and an answered
-  // `previous` ignored: the edit starts from the value on screen.
   function applyFill(changes: MatrixFillChange[]) {
     const commits: MatrixCommit[] = [];
     for (const { rowId, columnId, value } of changes) {

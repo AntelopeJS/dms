@@ -57,7 +57,6 @@ const custom = computed(() =>
 const renderColumn = computed(() =>
   matrixRenderColumn(props.column, processText),
 );
-// A display, or the DMS's own type for the kinds it draws as a table does.
 const displayed = computed<VNodeChild | null>(() =>
   props.column.display || kind.value === "date"
     ? renderValue(renderColumn.value, props.value, props.row.values, "cell")

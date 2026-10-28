@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildInitialColumnVisibility } from "../layers/dms-ui/app/build/composables/table-view/utils/columnVisibility";
+import { buildInitialColumnVisibility } from "../layers/dms-ui/app/entries/composables/table-view/utils/columnVisibility";
 
 describe("buildInitialColumnVisibility", () => {
   it("hides the columns declared isVisible: false", () => {

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every option naming a value with a token writes it `{{<scope>.<key>}}`, and
  * every URL or link option fills the page's `{{params.X}}` / `{{query.X}}`
@@ -7,7 +7,7 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import {
   interpolateRowText,
   interpolateUrl,
@@ -16,17 +16,17 @@ import { HttpMethod } from "../layers/dms-core/app/types/http";
 import {
   replaceUrlVariables,
   resolveLinkVariables,
-} from "../layers/dms-ui/app/build/utils/urlVariables";
+} from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   pageLink,
   pageRequestUrl,
-} from "../layers/dms-ui/app/build/composables/page/pageUrlValues";
-import { buttonLinkProps } from "../layers/dms-ui/app/build/utils/link";
-import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
+} from "../layers/dms-ui/app/entries/composables/page/pageUrlValues";
+import { buttonLinkProps } from "../layers/dms-ui/app/entries/utils/link";
+import { resolveConfirmDialog } from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/shop/stores/s1",
   query: {},
 });
@@ -40,7 +40,8 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: api as never,
+          // SAFETY: These target cases invoke only the callable API mock, never $fetch's raw/create/native members.
+          api: api as Parameters<typeof useActionTargets>[0]["api"],
           pageId: "store-page",
           componentId: "orders",
           handleApiError: vi.fn(),
@@ -129,9 +130,9 @@ describe("token syntax", () => {
   });
 
   it("leaves another scope's token whole when filling a row", () => {
-    expect(
-      interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" }),
-    ).toBe("/s/{{params.id}}/o/a");
+    expect(interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" })).toBe(
+      "/s/{{params.id}}/o/a",
+    );
   });
 });
 

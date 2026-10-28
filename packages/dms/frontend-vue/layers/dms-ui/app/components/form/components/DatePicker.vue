@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="R extends boolean, M extends boolean">
 import { formatDate } from "#dms-core/app/utils/formatter";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import type {
   CalendarProps,
@@ -21,7 +22,6 @@ import {
   FIELD_TRIGGER_UI,
 } from "../../../build/utils/fieldTrigger";
 
-// Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
   start: CalendarDate | undefined;
   end: CalendarDate | undefined;
@@ -77,8 +77,6 @@ defineSlots<CalendarSlots>();
 const { locale, t } = useI18n();
 const { weekStartsOn } = useUserRegionalPreferences();
 
-// The picker holds calendar days, read as UTC midnights (see
-// convertToCalendarDate): written in UTC, a day never shifts with the zone.
 const DATE_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
   year: "numeric",
   month: "long",
@@ -92,6 +90,12 @@ function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
 }
 
+function convertToCalendarDate(
+  value: string | Date | CalendarDate,
+): CalendarDate;
+function convertToCalendarDate(
+  value: string | Date | CalendarDate | undefined,
+): CalendarDate | undefined;
 function convertToCalendarDate(
   value: string | Date | CalendarDate | undefined,
 ): CalendarDate | undefined {
@@ -114,7 +118,7 @@ function convertDateRangeValue(
 }
 
 function isDateRangeValue(
-  value: unknown,
+  value: Parameters<typeof isObject>[0],
 ): value is StringDateRange | StrictDateRange | NativeDateRange {
   return (
     isObject(value) && value !== null && "start" in value && "end" in value
@@ -122,13 +126,12 @@ function isDateRangeValue(
 }
 
 function convertModelValue(value: DateValue): DateValue {
-  // A range may also arrive as `[start, end]`, the list shape the date type
-  // still accepts.
   if (props.range && Array.isArray(value)) {
-    return convertDateRangeValue({
-      start: value[0] as string | undefined,
-      end: value[1] as string | undefined,
-    });
+    const rangeValue = { start: value[0], end: value[1] };
+    return {
+      start: convertToCalendarDate(rangeValue.start),
+      end: convertToCalendarDate(rangeValue.end),
+    };
   }
   if (isString(value)) {
     return convertIsoStringToCalendarDate(value);
@@ -137,39 +140,31 @@ function convertModelValue(value: DateValue): DateValue {
     return convertDateRangeValue(value);
   }
   if (Array.isArray(value)) {
-    return value.map(convertToCalendarDate) as CalendarDate[];
+    return value.map((entry) => convertToCalendarDate(entry));
   }
   return value;
 }
 
-// The field state UFormField hands its control: the error border and aria
-// attributes go on the trigger, picks and closes re-validate the field.
 const {
   color: fieldColor,
   ariaAttrs,
   emitFormBlur,
   emitFormChange,
-} = useFormField(
-  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
-  // `color` and `disabled` from these.
-  props as Parameters<typeof useFormField>[0],
-);
+} = useFormField<DatePickerProps>(props);
 const invalid = computed(() => fieldColor.value === "error");
 
-// A range picked halfway (its start only) is no range, and the calendar
-// drops that start once it closes: the field says the end is missing, until
-// a whole range is picked or the field is cleared.
 const RANGE_INCOMPLETE = "$dms.field_errors.range_incomplete";
 const { report } = useControlError();
 let isHalfPicked = false;
 
 /** Follows a range being picked: its start alone, then both ends. */
-function trackRangePick(value: unknown): void {
+function trackRangePick(value: Parameters<typeof forwardEmit>[1]): void {
   if (value === null || value === undefined) {
     isHalfPicked = false;
     report(undefined);
     return;
   }
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep optional property reads on arbitrary non-null values rather than adding validation.
   const ends = value as Partial<StrictDateRange>;
   if (!ends.start) return;
   isHalfPicked = !ends.end;
@@ -182,9 +177,10 @@ const isPickerOpen = ref(false);
  * Whether a pick completes the field: a day, or a range's end. A multiple
  * picker stays open for the next day, a range for its end.
  */
-function isPickComplete(value: unknown): boolean {
+function isPickComplete(value: Parameters<typeof forwardEmit>[1]): boolean {
   if (!value || props.multiple) return false;
   if (!props.range) return true;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep its existing optional-property truthiness checks on arbitrary values.
   const ends = value as Partial<StrictDateRange>;
   return !!ends.start && !!ends.end;
 }
@@ -207,28 +203,26 @@ const convertedProps = computed(() => {
     maxDate: _maxDate,
     color,
     ...calendarProps
-  } = props as DatePickerProps;
+  } = props;
   return {
     ...calendarProps,
     color: color === "error" ? undefined : color,
-    modelValue: convertModelValue(modelValue.value as DateValue),
+    modelValue: convertModelValue(modelValue.value),
   };
 });
 
-// Bound on the calendar itself: forwarding only passes props this component
-// was given, and the bounds arrive as `minDate` / `maxDate`.
 const minValue = computed(() => props.minValue ?? toBoundDate(props.minDate));
 const maxValue = computed(() => props.maxValue ?? toBoundDate(props.maxDate));
 
 type EmitEvent = string;
-type EmitValue = unknown;
+type EmitValue = Parameters<typeof isObject>[0];
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   forwardEmit(event, value);
   if (event === "update:modelValue" && props.range) trackRangePick(value);
-  // After the update: the field re-validates its new value.
+
   if (event === "update:modelValue") emitFormChange();
-  // The day picked, the calendar closes, as it does when left.
+
   if (event === "update:modelValue" && isPickComplete(value)) {
     onPickerToggle(false);
   }
@@ -237,9 +231,7 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
 function forwardEmit(event: EmitEvent, value: EmitValue): void {
   if (event === "update:modelValue" && value) {
     if (Array.isArray(value)) {
-      const isoStrings = (value as CalendarDate[]).map((date) =>
-        date.toString(),
-      );
+      const isoStrings = value.map((date) => date.toString());
       emits("update:modelValue", isoStrings);
     } else if (
       isObject(value) &&
@@ -247,39 +239,37 @@ function forwardEmit(event: EmitEvent, value: EmitValue): void {
       "month" in value &&
       "day" in value
     ) {
-      const isoString = (value as unknown as CalendarDate).toString();
+      const isoString = value.toString();
       emits("update:modelValue", isoString);
     } else if (isObject(value) && "start" in value && "end" in value) {
-      const dateRange = value as unknown as StrictDateRange;
-      const startIso = dateRange.start?.toString();
-      const endIso = dateRange.end?.toString();
+      const startIso = value.start?.toString();
+      const endIso = value.end?.toString();
       emits("update:modelValue", { start: startIso, end: endIso });
     } else {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The declared model emit excludes this unchecked passthrough branch's arbitrary values; inference and the emit owner cannot establish a valid string here.
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {
+    // SAFETY: Vue emit forwards event names and payloads at runtime, including the placeholder and start-value events not serialized above.
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }
 }
 
-const forwarded = useForwardPropsEmits(
-  convertedProps as unknown as ComputedRef<CalendarProps<R, M>>,
-  wrappedEmits as typeof emits,
-);
+const forwarded = useForwardPropsEmits(convertedProps, wrappedEmits);
 const buttonProps = reactivePick(props, "disabled");
 
-function formatDateLabel(value: unknown): string | undefined {
+function formatDateLabel(
+  value: Parameters<typeof formatDate>[0],
+): string | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
-  // A CalendarDate stringifies to its ISO date.
+
   const date = value instanceof Date ? value : String(value);
   return formatDate(date, locale.value, DATE_LABEL_FORMAT) ?? undefined;
 }
 
-// Range mode holds a { start, end } object and multiple mode an array, which
-// formatDate cannot read as a single date.
 const label = computed(() => {
   const value: unknown = modelValue.value;
   if (props.range && Array.isArray(value)) {

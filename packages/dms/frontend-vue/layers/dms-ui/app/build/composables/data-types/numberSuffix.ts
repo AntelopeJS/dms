@@ -1,12 +1,14 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import type { formatNumber } from "#dms-core/app/utils/formatter";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 /** A formatter writing a number for a locale, with Intl's options. */
 type NumberFormatter = (
-  value: unknown,
+  value: Parameters<typeof formatNumber>[0],
   locale: string,
-  options?: Intl.NumberFormatOptions,
-) => unknown;
+  options?: Parameters<typeof formatNumber>[2],
+) => ReturnType<typeof formatNumber>;
 
 /** The options of a numeric field a cell reads besides Intl's. */
 interface NumberSuffixOptions {
@@ -14,7 +16,6 @@ interface NumberSuffixOptions {
   suffix?: string;
 }
 
-// Keeps the unit on the line of its number when a cell wraps.
 const UNIT_SEPARATOR = " ";
 
 /**
@@ -32,10 +33,12 @@ export function withNumberSuffix(format: NumberFormatter): DataTypeFormatter {
     const formatted = format(
       value,
       locale,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases plugin options; Intl still receives the original unvalidated object and controls malformed-input behavior.
       options as Intl.NumberFormatOptions | undefined,
     );
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The suffix option has no runtime schema; preserve its current unchecked read and translation behavior.
     const suffix = (options as NumberSuffixOptions | undefined)?.suffix;
-    if (!suffix || typeof value !== "number" || typeof formatted !== "string") {
+    if (!suffix || !isNumber(value) || !isString(formatted)) {
       return formatted;
     }
     const unit = getAppTranslation().processI18n(suffix);

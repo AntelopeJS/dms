@@ -4,15 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({ value: 12 }),
-    isLoading: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  }),
-}));
-
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -20,12 +11,15 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-// The compact stat card both components draw through DmsStatCell.
 const STAT_CARD = 'class="dms-card flex items-center gap-3.5 px-4 py-3.5';
 const STAT_VALUE =
   "text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums";
 
-async function render(component: Component, props: Record<string, unknown>) {
+type StatProps =
+  | InstanceType<typeof KpiCard>["$props"]
+  | InstanceType<typeof StatGroup>["$props"];
+
+async function render(component: Component, props: StatProps) {
   const app = createSSRApp({ render: () => h(component, props) });
   for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton"]) {
     app.component(name, Slot);
@@ -50,6 +44,7 @@ describe("the compact stat card", () => {
       variant: "stat",
       componentId: "kpi",
       pageId: "page",
+      staticValue: 12,
     });
     const group = await render(StatGroup, {
       layout: "cards",

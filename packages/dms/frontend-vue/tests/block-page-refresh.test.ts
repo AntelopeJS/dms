@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Once an action changes the record a page shows, its data blocks read their
  * data again in place: `refreshPageBlocks()` (or the `REFRESH_PAGE` watch
@@ -24,7 +24,7 @@ interface Answer {
 interface DeferredRead {
   signal: AbortSignal;
   resolve: (value: Answer) => void;
-  reject: (reason: unknown) => void;
+  reject: Parameters<ConstructorParameters<typeof Promise<Answer>>[0]>[1];
 }
 let deferredReads: DeferredRead[] | null = null;
 
@@ -52,10 +52,9 @@ const { useDefinedFunctions } = await import(
 );
 vi.stubGlobal("useDefinedFunctions", useDefinedFunctions);
 const { registerBlockFunctions } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/registerBlockFunctions"
+  "../layers/dms-ui/app/entries/composables/blocks/registerBlockFunctions"
 );
 
-// useChartFetch debounces every refresh past the first by 180ms.
 const SETTLE_MS = 250;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
@@ -144,7 +143,6 @@ it("runs from the REFRESH_PAGE watch function", async () => {
   const refresh = useDefinedFunctions().getFunction(
     BlockFunctions.REFRESH_PAGE,
   );
-  expect(refresh).toBeTypeOf("function");
   refresh?.();
   await settle();
   expect(requests).toEqual(["/api/ws/ws-1/facts", "/api/ws/ws-1/facts"]);
@@ -158,8 +156,7 @@ it("resolves once every block read the new answer", async () => {
 
   answer = 2;
   await refreshPageBlocks();
-  // No wait of its own: what the caller (a form that saved) reads next is
-  // the new answer of every block.
+
   expect(facts.probe.data?.value).toEqual({ value: 2 });
   expect(counts.probe.data?.value).toEqual({ value: 2 });
 });

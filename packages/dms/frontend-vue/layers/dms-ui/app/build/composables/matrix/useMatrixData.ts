@@ -214,7 +214,6 @@ function usePagedMatrixData(source: MatrixDataOptions): MatrixDataSource {
     method: options.fetchUrlMethod as UseApiDataOptions<MatrixData>["method"],
     query: () => buildMatrixQuery(query.value, pagination),
     lazy: true,
-    // Read again on its own triggers (realtime, page refresh) instead.
     refreshOnPageRefresh: false,
     watch: [source.watchKey],
   });
@@ -253,7 +252,6 @@ function loadedCount(pages: MatrixData[]): number {
 function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
   const { options, query } = source;
   const url = useResolvedUrl(options.fetchUrl, source.routeParams);
-  // Whatever filters the rows names the list: a new one reads from the start.
   const key = computed(() => {
     if (!url.value) return null;
     const params = new URLSearchParams(matrixFilterParams(query.value));
@@ -281,7 +279,6 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
   );
   const refresh = () => paged.refresh();
   useRefreshTriggers(options.realtimeTopic, refresh);
-  // Rows are rewritten in the page that holds them.
   const store: MatrixRowStore = {
     read: computed(() => mergePages(paged.pages.value)),
     writeRows: (rewrite) => {
@@ -319,7 +316,6 @@ function useStaticMatrixData(source: MatrixDataOptions): MatrixDataSource {
     },
   );
   const pagination = options.pagination ?? "none";
-  // An infinite grid of static rows draws them a page at a time.
   const revealed = ref(query.value.pageSize);
   watch(
     () => matrixFilterParams(query.value),
@@ -343,7 +339,6 @@ function useStaticMatrixData(source: MatrixDataOptions): MatrixDataSource {
       if (!value || pagination !== "infinite") return value;
       return { ...value, rows: value.rows.slice(0, revealed.value) };
     }),
-    // The static rows themselves: the query reads them again as they change.
     writeRows: refRowStore(local).writeRows,
   };
   return {

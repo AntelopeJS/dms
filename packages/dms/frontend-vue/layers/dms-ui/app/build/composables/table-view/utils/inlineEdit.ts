@@ -33,9 +33,6 @@ export interface InlineEditColumn extends InlineEditControl {
   field: FormField;
 }
 
-// The simple controls, by normalized component name (see
-// `normalizeControlName`). Anything else, a relation, rich text, code, files,
-// a list, keeps its display and is edited through the form.
 const INLINE_EDIT_CONTROLS: Record<string, InlineEditControl> = {
   inputtext: { commit: "type" },
   inputemail: { commit: "type" },
@@ -51,8 +48,6 @@ const INLINE_EDIT_CONTROLS: Record<string, InlineEditControl> = {
   checkbox: { commit: "toggle" },
 };
 
-// Options turning a simple control into a list or a range of values, which a
-// cell does not edit.
 const LIST_VALUE_OPTIONS = ["multiple", "range"];
 
 const DMS_COMPONENT_PREFIX = "dms";

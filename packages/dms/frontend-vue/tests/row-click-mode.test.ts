@@ -5,7 +5,7 @@
  * the row, whose `currentTarget` the guards read.
  */
 import { describe, expect, it } from "vitest";
-import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
+import { isRowClickTrigger } from "../layers/dms-ui/app/entries/utils/rowClickTrigger";
 
 describe("row click mode", () => {
   type Mode = "single" | "double" | undefined;

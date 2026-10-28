@@ -66,7 +66,6 @@ const stored = computed(() =>
 const gridColumn = computed(() =>
   matrix.columns.columnById.value.get(props.columnId),
 );
-// Read once: the value the drawer opens on picks how it is edited.
 const openedOn = stored.value;
 const column = computed(() =>
   gridColumn.value ? editingColumnOf(gridColumn.value, openedOn) : undefined,
@@ -161,7 +160,6 @@ function scheduleAutosave(): void {
   timer = setTimeout(applyModel, AUTOSAVE_DELAY_MS);
 }
 watch(model, scheduleAutosave);
-// A draft carried in (a typed character, the inline editor's) is saved too.
 onMounted(() => {
   if (props.hasDraft) scheduleAutosave();
   void focusInput();
@@ -172,7 +170,6 @@ async function focusInput(): Promise<void> {
   const element = await whenFocusable(field.value, FOCUSABLE, FOCUS_WAIT_MS);
   element?.focus();
 }
-// Closing never loses what was typed in the last moments before it.
 onBeforeUnmount(() => {
   clearTimeout(timer);
   if (isAutosaved.value) applyModel();

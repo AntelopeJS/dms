@@ -1,6 +1,7 @@
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { CustomRowAction } from "../../../types/row-action";
 import { namesRowField } from "#dms-core/app/utils/url-interpolation";
+import { isObject } from "#dms-core/app/utils/type-check";
 import { dropRowTokens } from "../../utils/urlVariables";
 
 /** Query flag of a bulk request covering every matching row. */
@@ -13,7 +14,7 @@ const IDS_QUERY_KEY = "ids";
  */
 export interface BulkSelection {
   ids?: string[];
-  matching?: Record<string, unknown>;
+  matching?: Data;
   /** How many rows that is. */
   count: number;
 }
@@ -21,11 +22,9 @@ export interface BulkSelection {
 type QueryValue = string | string[];
 
 /** The query a bulk request carries: `ids=a&ids=b`, or the filters. */
-export function bulkSelectionQuery(
-  selection: BulkSelection,
-): Record<string, QueryValue> {
+export function bulkSelectionQuery(selection: BulkSelection) {
   if (selection.ids) return { [IDS_QUERY_KEY]: [...selection.ids] };
-  const query: Record<string, QueryValue> = {
+  const query: Parameters<typeof withQuery>[1] = {
     [ALL_MATCHING_QUERY_KEY]: "true",
   };
   for (const [key, value] of Object.entries(selection.matching ?? {})) {
@@ -67,7 +66,7 @@ const URL_TARGET_TYPES = new Set([
   "exportJob",
 ]);
 
-type UrlTarget = ActionTarget & { url: string };
+type UrlTarget = Extract<ActionTarget, { url: string }>;
 
 export const isUrlTarget = (target: ActionTarget): target is UrlTarget =>
   URL_TARGET_TYPES.has(target.type);
@@ -83,7 +82,7 @@ export function targetWithSelection(
 ): ActionTarget {
   if (!isUrlTarget(target)) return target;
   const url = withQuery(dropRowTokens(target.url), query);
-  return { ...target, url } as ActionTarget;
+  return { ...target, url };
 }
 
 /**
@@ -96,7 +95,7 @@ export function targetForRow(
   query: Record<string, QueryValue>,
 ): ActionTarget {
   if (!isUrlTarget(target) || namesRowField(target.url)) return target;
-  return { ...target, url: withQuery(target.url, query) } as ActionTarget;
+  return { ...target, url: withQuery(target.url, query) };
 }
 
 /** Whether a custom action runs on the selection bar. */
@@ -104,4 +103,4 @@ export const isBulkAction = (action: CustomRowAction): boolean => !!action.bulk;
 
 /** Whether a custom action runs on every matching row too. */
 export const isAllMatchingAction = (action: CustomRowAction): boolean =>
-  typeof action.bulk === "object" && !!action.bulk.allMatching;
+  isObject(action.bulk) && !!action.bulk.allMatching;

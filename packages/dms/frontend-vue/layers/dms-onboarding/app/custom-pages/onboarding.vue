@@ -10,23 +10,17 @@ import {
   type OnboardingStep,
 } from "../build/composables/onboarding/steps";
 
-// A custom page runs the global middleware only once it declares its meta:
-// that is what lets the onboarding middleware send a visitor away from a
-// wizard that is already finished, on a direct load as on a navigation.
 defineDmsPageMeta({});
 
 const { t, locale } = useI18n();
 const { metaTitle } = useSystemState();
 
-// The steps live in this one page, so the middleware, which releases a
-// finished wizard, never runs between the account step and the Ready step.
 const step = ref<OnboardingStep>("platform");
 const platform = ref<OnboardingPlatform>({
   name: metaTitle.value,
   language: locale.value,
 });
 
-// The configured meta title only prefills the name, once it has loaded.
 watch(metaTitle, (title) => {
   if (!platform.value.name) platform.value.name = title;
 });

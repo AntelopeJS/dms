@@ -13,8 +13,6 @@ interface AppearanceOptionTileProps {
 const props = defineProps<AppearanceOptionTileProps>();
 const selected = defineModel<string>({ required: true });
 
-// v2 .cs-tile: a preview on a muted tile; the chosen one lifts onto the card
-// color with an accent border and halo.
 const theme = tv({
   slots: {
     root: "group flex cursor-pointer flex-col gap-3 rounded-[10px] border p-2.5 pb-3 transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/60",
@@ -23,8 +21,7 @@ const theme = tv({
     icon: "size-4 shrink-0 text-muted",
     text: "min-w-0 flex-1",
     label: "text-[13px] font-semibold text-highlighted",
-    // Wraps rather than truncates: three tiles in the narrow lg settings
-    // column cut every hint to a word.
+
     hint: "text-[12px] leading-snug text-pretty text-muted",
     radio:
       "grid size-4 shrink-0 place-items-center rounded-full ring-1 ring-inset ring-(--ui-border-accented)",

@@ -57,6 +57,5 @@ export function downloadTextFile(
   link.href = url;
   link.download = fileName;
   link.click();
-  // Revoked once the browser took the download over, not before.
   setTimeout(() => URL.revokeObjectURL(url));
 }

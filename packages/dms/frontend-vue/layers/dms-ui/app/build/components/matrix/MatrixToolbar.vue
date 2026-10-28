@@ -45,7 +45,6 @@ const hasFilters = computed(
     facets.value.length > 0,
 );
 
-// --- search, typed then applied once the typing pauses ---
 const searchDraft = ref(query.state.value.search);
 const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>(
   "searchInput",
@@ -63,7 +62,6 @@ watch(
 );
 onBeforeUnmount(() => clearTimeout(searchTimer));
 
-// Ctrl+/ (⌘ /) focuses the search of the grid the user is in, else the first.
 useEventListener(
   typeof window === "undefined" ? undefined : window,
   "keydown",
@@ -80,8 +78,6 @@ useEventListener(
   },
 );
 
-// A route listing its own "all" segment gets no second one; it reads as
-// picked while no status is.
 const ownsAll = computed(() =>
   statusFilters.value.some((filter) => filter.id === ALL_COUNT_KEY),
 );

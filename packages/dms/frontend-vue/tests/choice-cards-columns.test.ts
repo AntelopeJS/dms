@@ -9,11 +9,12 @@ import ChoiceCards from "../layers/dms-ui/app/components/form/components/ChoiceC
 
 const Group = defineComponent({
   props: { ui: { type: Object, default: undefined } },
-  setup: (props) => () =>
-    h("fieldset", { class: (props.ui as { fieldset?: string })?.fieldset }),
+  setup: (props) => () => h("fieldset", { class: props.ui?.fieldset }),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(
+  props: Partial<InstanceType<typeof ChoiceCards>["$props"]>,
+): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(ChoiceCards, {
@@ -31,7 +32,6 @@ async function render(props: Record<string, unknown>): Promise<string> {
   return renderToString(app);
 }
 
-// A Nuxt auto-import, which ChoiceCards.vue uses unimported.
 beforeEach(() => vi.stubGlobal("computed", computed));
 afterEach(() => vi.unstubAllGlobals());
 

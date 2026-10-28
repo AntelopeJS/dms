@@ -1,5 +1,3 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
@@ -76,7 +74,6 @@ class DocumentAPI extends DataController(
 
 const QUERY_FILTER = { status: { field: "status" } };
 
-// One controller per writing TableView, each derived from DocumentAPI.
 const documentAPI = (suffix: string) =>
   derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
 
@@ -151,12 +148,11 @@ async function formOptions(
 ): Promise<FormPropsSerialized | undefined> {
   const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
   if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
+  // SAFETY: These registered table-view form pages contain a Form builder named form; the registry erases individual component option types.
   return (await form.serialize()).options as FormPropsSerialized | undefined;
 }
 
-async function formRedirects(
-  formPageFullId: string,
-): Promise<Record<string, unknown>[]> {
+async function formRedirects(formPageFullId: string) {
   const options = await formOptions(formPageFullId);
   return (options?.watchActions ?? [])
     .filter(
@@ -167,9 +163,7 @@ async function formRedirects(
     .map((watch) => watch.params ?? {});
 }
 
-async function redirectOf(
-  formPageFullId: string,
-): Promise<Record<string, unknown>> {
+async function redirectOf(formPageFullId: string) {
   const redirects = await formRedirects(formPageFullId);
   expect(redirects).to.have.length(1);
   return redirects[0]!;
@@ -190,8 +184,6 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
     }
   });
 
-  // `/frd-detail/:id/rows/:id/edit`: the bare name is the row id, the page's
-  // is the first occurrence.
   it("numbers the page parameter on an edit route repeating its name", async () => {
     expect(await redirectOf("frd-detail.rows.edit")).to.deep.equal({
       url: "/frd-detail/{{params.id:1}}",
@@ -199,7 +191,6 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
     });
   });
 
-  // `/frd-detail/:id/rows/new` carries one `:id`, which has no numbered key.
   it("keeps the bare name on a new route carrying the name once", async () => {
     expect(await redirectOf("frd-detail.rows.new")).to.deep.equal({
       url: "/frd-detail/{{params.id}}",
@@ -250,8 +241,6 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
     });
   });
 
-  // Cancel leads to the list a submit returns to, its placeholders filled
-  // from the form route the same way.
   it("leads Cancel back to the list with the redirect's page tokens", async () => {
     const backTo = async (fullId: string) =>
       (await formOptions(fullId))?.backTo;

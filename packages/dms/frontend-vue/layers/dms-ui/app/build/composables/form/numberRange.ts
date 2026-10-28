@@ -1,3 +1,6 @@
+import type { InputNumberProps } from "@nuxt/ui/components/InputNumber.vue";
+import { isNumber } from "#dms-core/app/utils/type-check";
+
 /** The bounds a number field takes. */
 export interface NumberBounds {
   min?: number;
@@ -13,8 +16,8 @@ export interface NumberStepperState {
 export const BELOW_MIN_MESSAGE = "$dms.field_errors.too_small";
 export const ABOVE_MAX_MESSAGE = "$dms.field_errors.too_large";
 
-function isNumberValue(value: unknown): value is number {
-  return typeof value === "number" && !Number.isNaN(value);
+function isNumberValue(value: InputNumberProps["modelValue"]): value is number {
+  return isNumber(value) && !Number.isNaN(value);
 }
 
 /**
@@ -22,7 +25,7 @@ function isNumberValue(value: unknown): value is number {
  * typed instead of clamping it; `undefined` when it is in range or empty.
  */
 export function numberRangeError(
-  value: unknown,
+  value: InputNumberProps["modelValue"],
   bounds: NumberBounds,
 ): string | undefined {
   if (!isNumberValue(value)) return undefined;
@@ -36,7 +39,7 @@ export function numberRangeError(
  * stop at the bounds the input no longer knows of.
  */
 export function numberStepperState(
-  value: unknown,
+  value: InputNumberProps["modelValue"],
   bounds: NumberBounds,
 ): NumberStepperState {
   const current = isNumberValue(value) ? value : undefined;

@@ -17,8 +17,8 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import InlineEditCell from "../layers/dms-ui/app/build/components/table/InlineEditCell.vue";
-import { useTableInlineEdit } from "../layers/dms-ui/app/build/composables/table-view/useTableInlineEdit";
+import InlineEditCell from "../layers/dms-ui/app/entries/components/table/InlineEditCell";
+import { useTableInlineEdit } from "../layers/dms-ui/app/entries/composables/table-view/useTableInlineEdit";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 type Row = Record<string, unknown>;
@@ -38,7 +38,6 @@ const InputStub = defineComponent({
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       }),
 });
-// Resolved like a DMS control: its code arrives after the cell rendered.
 const LazyInput = defineAsyncComponent(
   () =>
     new Promise<typeof InputStub>((resolve) =>
@@ -106,7 +105,6 @@ function mountCell(
     getDataType: () => undefined,
     canEditRow: () => true,
     isEnabled: computed(() => true),
-    // The row cannot be read again: the value sent stands in for it.
     getRow: async () => undefined,
     onSaved: () => {},
     onError: () => {},
@@ -214,7 +212,6 @@ it("announces a save still running in a cell the user left", async () => {
   const input = await openCell(rowOf(host, 0));
   input.value = "Standing desk";
   input.dispatchEvent(new Event("input", { bubbles: true }));
-  // Going on to the second row saves the first one.
   displayOf(rowOf(host, 1)).click();
   await vi.waitFor(() => expect(api).toHaveBeenCalled());
   await nextTick();
@@ -226,7 +223,6 @@ it("announces a save still running in a cell the user left", async () => {
 });
 
 it("leaves the keyboard where the user went after a pick saves the cell", async () => {
-  // A select's pick saves: the cell closes once it is written.
   const { host, api } = mountCell(undefined, "dms-select");
   displayOf(rowOf(host, 0)).click();
   await vi.waitFor(() =>

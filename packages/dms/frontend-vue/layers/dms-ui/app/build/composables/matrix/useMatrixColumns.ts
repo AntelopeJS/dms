@@ -39,11 +39,16 @@ function readPreferences(key: string): MatrixColumnPreferences {
   }
 }
 
-function writePreferences(key: string, value: MatrixColumnPreferences): void {
+/** Whether the device stored the choices: a refused write keeps them for the visit. */
+function writePreferences(
+  key: string,
+  value: MatrixColumnPreferences,
+): boolean {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // Storage full or refused (a private window): the choice lasts the visit.
+    return false;
   }
 }
 

@@ -10,20 +10,21 @@ import {
 } from "#dms-ui/app/types/quick-actions";
 import type { CustomButton } from "#dms-ui/app/composables/table-view/types/custom-button";
 import type { ActionTarget } from "#dms-ui/app/composables/table-view/types/action-target";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
-import { runMountedQuickAction } from "#dms-ui/app/build/utils/quickActionTargets";
-import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
+import { runMountedQuickAction } from "#dms-ui/app/entries/utils/quickActionTargets";
+import { useActionTargets } from "#dms-ui/app/entries/composables/actions/useActionTargets";
 import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
 import {
   hasUrlVariables,
   resolveLinkVariables,
-} from "#dms-ui/app/build/utils/urlVariables";
+} from "#dms-ui/app/entries/utils/urlVariables";
 import {
   dispatchQuickActionTarget,
   findServedQuickAction,
-} from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
-import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "../../../composables/layout/usePageHeaderActions";
+} from "#dms-ui/app/entries/utils/dispatchQuickActionTarget";
+import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "#dms-ui/app/composables/layout/usePageHeaderActions";
+import { isString } from "#dms-core/app/utils/type-check";
 
 /**
  * A button of the page header as the server serves it (`DefaultLayout({
@@ -75,10 +76,6 @@ const route = useDmsRoute();
 const router = useDmsRouter();
 const { $authFetch } = useAuthFetch();
 
-// The page header runs a declared button's target as a table runs its
-// toolbar buttons: confirmation, drawer, modal, API call, export, link. A
-// button that changed something (an API call, a form it opened) changes the
-// record the page shows: its blocks read their data again.
 const { handleCustomButton } = useActionTargets({
   api: $authFetch,
   componentId: "page-header",
@@ -87,28 +84,20 @@ const { handleCustomButton } = useActionTargets({
   handleApiError: (error, title) => useApiError(error, { title }),
 });
 
-// Pressed in place by the component of this page, so what it opens shows on
-// the click. Only a component not mounted (yet) gets it the way a quick
-// action does: through query keys its watcher reads, at the cost of two
-// server visits.
 function pressComponentButton(componentId: string, buttonId?: string) {
   const intent: QuickActionIntent = buttonId
     ? { kind: "button", button: buttonId }
     : { kind: "add" };
   if (runMountedQuickAction(route.path, componentId, intent)) return;
-  void router.replace({
-    query: {
-      ...route.query,
-      [QUICK_ACTION_QUERY_KEY]: buttonId
-        ? QUICK_ACTION_BUTTON
-        : QUICK_ACTION_ADD,
-      [QUICK_ACTION_COMPONENT_KEY]: componentId,
-      ...(buttonId ? { [QUICK_ACTION_BUTTON_KEY]: buttonId } : {}),
-    },
-  });
+  const query: typeof route.query = {
+    ...route.query,
+    [QUICK_ACTION_QUERY_KEY]: buttonId ? QUICK_ACTION_BUTTON : QUICK_ACTION_ADD,
+    [QUICK_ACTION_COMPONENT_KEY]: componentId,
+  };
+  if (buttonId) query[QUICK_ACTION_BUTTON_KEY] = buttonId;
+  void router.replace({ query });
 }
 
-// A neutral action reads as the v2 outline button, any colored one is solid.
 const defaultVariant = (
   color: ButtonProps["color"] | undefined,
 ): ButtonProps["variant"] =>
@@ -117,9 +106,7 @@ const defaultVariant = (
 const orderOf = (action: LayoutHeaderAction): number =>
   action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
-// A served label's translation reads the page query as its parameters:
-// `"Download {locale}.json"` names the language of `?locale=`.
-function labelParams(): Record<string, unknown> {
+function labelParams() {
   const { routeParams, routeQuery } = pageUrlValues.value;
   return { ...routeParams, ...routeQuery };
 }
@@ -139,14 +126,12 @@ type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
 type UrlTarget = Extract<ActionTarget, { url: string }>;
 
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
-  typeof (target as Partial<UrlTarget>).url === "string";
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ActionTarget variants without url are still probed for it at runtime, including malformed variants. A discriminant-only guard would change that behavior.
+  isString((target as Partial<UrlTarget>).url);
 
-// The values of the page a target's URL may name: a button declared once on
-// the page leads to the record the page shows (`{{params.id}}`) or keeps its
-// scope (`?workspace={{query.workspace}}`), following the URL as it changes.
 const pageUrlValues = computed(() => ({
   routeParams: siteLayout.findMatchingRoute(route.path)?.params,
-  routeQuery: route.query as Record<string, unknown>,
+  routeQuery: route.query,
 }));
 
 function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
@@ -163,8 +148,6 @@ function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
   };
 }
 
-// A link target (without a confirmation) renders as a link: middle click and
-// "open in a new tab" keep working.
 const LINK_TARGETS: Partial<
   Record<ActionTarget["type"], (target: LinkTarget) => ButtonProps>
 > = {
@@ -182,6 +165,7 @@ const LINK_TARGETS: Partial<
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dispatch table correlates its page/external keys with LinkTarget, which indexed access cannot infer. A discriminant rewrite would alter the existing prototype-key lookup for malformed types.
   return LINK_TARGETS[target.type]?.(target as LinkTarget);
 }
 
@@ -190,7 +174,6 @@ function resolveQuickActionButton(
   base: ButtonProps,
   key: string,
 ): ResolvedHeaderAction | null {
-  // Quick actions are served per user: one missing here is not for them.
   const quickAction = findServedQuickAction(quickActions.value?.actions, key);
   if (!quickAction) return null;
   return {
@@ -202,7 +185,8 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? handleCustomButton(action as CustomButton)
+          ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- LayoutHeaderAction permits missing label and wider color/variant values than CustomButton. The existing action executor receives the original object; synthesizing a valid CustomButton would change malformed input behavior.
+            handleCustomButton(action as CustomButton)
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -239,6 +223,7 @@ function resolveAction(
     button: {
       ...base,
       ...(linkProps(action) ?? {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout action's optional label and ButtonProps styling do not satisfy CustomButton. This unchecked existing handoff preserves the original object instead of inventing defaults or narrowing the public prop.
         onClick: () => handleCustomButton(action as CustomButton),
       }),
     },
@@ -246,9 +231,6 @@ function resolveAction(
   };
 }
 
-// "Preview as role": a button the role would not be shown stays, hatched and
-// locked (the same look as the sidebar's locked entries). Outside a preview
-// nothing is locked: the server and the rules above already left it out.
 const preview = usePermissionPreview();
 const { t } = useI18n();
 const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
@@ -279,9 +261,6 @@ const resolved = computed(() =>
     .sort((first, second) => first.order - second.order),
 );
 
-// The slot (the page's own actions) goes after every served button of an
-// order up to its own: at an equal order the served ones lead, as they did
-// before `order` existed.
 const SLOT_KEY = "dms-page-header-slot";
 
 interface HeaderBarEntry {

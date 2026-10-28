@@ -37,7 +37,6 @@ function onPing(message: RealtimeMessage): void {
   );
 }
 
-// The read half of the message interface: every instance's pings land here.
 SubscribeMessage(PINGS_TOPIC, onPing);
 
 interface PingResult {

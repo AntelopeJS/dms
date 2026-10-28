@@ -7,8 +7,6 @@ import { REALTIME_DEMO_TOPIC } from "../api/realtime";
 import { pageCategory } from "../category";
 
 const SCOPE_ID = "demo-top-list";
-// Each row leads to the dashboard with this page's period: a query pair whose
-// token has no value is left out.
 const ROW_LINK = `/charts/chart-dashboard?main.period={{query.${SCOPE_ID}.period}}`;
 
 @RegisterPage()
@@ -85,7 +83,6 @@ export class PageChartTopList extends PageController(
       ),
   );
 
-  // Slower is worse: `invert` colours a rise red, and the sparkline follows.
   static routesRow = Grid({ gap: "1rem" }).child(
     "routesRow",
     GridRow()

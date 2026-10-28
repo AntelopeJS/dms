@@ -1,3 +1,4 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import type { Ref, VNode } from "vue";
 import ModuleStoreDependencyPicker from "../../build/components/pages/modules/ModuleStoreDependencyPicker.vue";
 import {
@@ -18,7 +19,7 @@ import {
 import type {
   StoreActionBody,
   StoreOperationKind,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import type { useModuleStore } from "./useModuleStore";
 
 /** What a refused store request carries: the server's error key, if any. */
@@ -35,6 +36,23 @@ export interface StoreFrontendNotice {
 
 type ModuleStore = ReturnType<typeof useModuleStore>;
 
+function renderDependencyPicker(
+  entry: ModuleStoreEntry,
+  drafts: Ref<DependencyDraft[]>,
+  showErrors: boolean,
+): VNode {
+  return h(ModuleStoreDependencyPicker, {
+    missing: entry.missingInterfaces,
+    drafts: drafts.value,
+    showErrors,
+    onUpdate: (index: number, patch: Partial<DependencyDraft>) => {
+      drafts.value = drafts.value.map((draft, position) =>
+        position === index ? { ...draft, ...patch } : draft,
+      );
+    },
+  });
+}
+
 /**
  * The store's actions as both Modules views run them: the confirmations,
  * the install dialog that picks the modules for missing interfaces, and a
@@ -50,9 +68,11 @@ export const useModuleStoreActions = (
   const toast = useToast();
   const { confirm } = useConfirm();
 
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Store requests can reject with arbitrary JavaScript values; the store's Promise contract has no rejection owner type.
   function resolveStoreError(error: unknown): string {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This existing unchecked optional-property view is not validation of a StoreRequestError; inference cannot establish that rejected values have this shape, and parsing would change malformed-error behavior.
     const details = error as StoreRequestError | undefined;
-    const key = typeof details?.data === "string" ? details.data : undefined;
+    const key = isString(details?.data) ? details.data : undefined;
     if (!key) return details?.message ?? "";
     return t(`modules.store.errors.${key.replace("error.", "")}`);
   }
@@ -80,23 +100,6 @@ export const useModuleStoreActions = (
 
   /** What the owner last picked in a module's install dialog, for a retry. */
   const lastDependencyDrafts = new Map<string, DependencyDraft[]>();
-
-  function renderDependencyPicker(
-    entry: ModuleStoreEntry,
-    drafts: Ref<DependencyDraft[]>,
-    showErrors: boolean,
-  ): VNode {
-    return h(ModuleStoreDependencyPicker, {
-      missing: entry.missingInterfaces,
-      drafts: drafts.value,
-      showErrors,
-      onUpdate: (index: number, patch: Partial<DependencyDraft>) => {
-        drafts.value = drafts.value.map((draft, position) =>
-          position === index ? { ...draft, ...patch } : draft,
-        );
-      },
-    });
-  }
 
   /**
    * Asks which modules implement the interfaces the release misses, then

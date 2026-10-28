@@ -33,10 +33,11 @@ export function readStoredPause(key: string): boolean {
 export function storePause(key: string, isPaused: boolean): void {
   const storage = liveStorage();
   if (!storage) return;
+  // prettier-ignore
   try {
     if (isPaused) storage.setItem(key, PAUSED_VALUE);
     else storage.removeItem(key);
   } catch {
-    // A full or locked storage only loses the memory of the choice.
+    // eslint-disable-line no-empty -- Unavailable storage loses only the persisted pause choice.
   }
 }

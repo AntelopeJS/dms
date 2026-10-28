@@ -16,8 +16,6 @@ import { TASK_DEFAULT_SORT } from "../status";
 
 const PAGE_PATH = "/table-view/table-view-query-filters";
 
-// A controller of its own: `realtime: false` is read off the controller's
-// table view, so it must not turn the shared tasks' realtime off.
 @RegisterDataController()
 class queryFiltersTaskDataAPI extends DataController(
   Task,

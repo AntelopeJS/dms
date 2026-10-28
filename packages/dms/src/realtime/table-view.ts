@@ -7,8 +7,6 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { getPresenceTracker, getRealtimeBroker } from "./current";
 
-// A writer that changed or removed a row is done with it: the presence it held
-// there goes with the write.
 const PRESENCE_RELEASING_EVENTS: ReadonlySet<RealtimeMutationEventType> =
   new Set(["updated", "deleted"]);
 

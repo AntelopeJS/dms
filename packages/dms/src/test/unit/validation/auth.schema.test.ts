@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { authSchema } from "../../../validation/auth.schema";
+import { authSchema } from "../../../validation";
 
 describe("[unit] validation/auth.schema", () => {
   describe("login", () => {

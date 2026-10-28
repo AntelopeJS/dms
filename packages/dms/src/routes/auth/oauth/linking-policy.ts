@@ -95,14 +95,7 @@ export function decideOAuthResolution(
         HTTP_FORBIDDEN,
         ACCOUNT_NOT_VALIDATED_MESSAGE,
       );
-      // A seat in any workspace marks a real, inhabited account, not the
-      // abandoned draft a claim is meant for: reclaiming it would wipe its
-      // credentials and hand a live session to whoever holds an invitation for
-      // the address. `isValidated` cannot tell the two apart, because a module
-      // can provision a real account without ever running e-mail validation —
-      // the same guard the password signup applies in resolveOverwritableAccount.
-      // The refusal reuses the not-validated message so it never discloses that
-      // the address is a provisioned account.
+
       assert(
         !match.belongsToWorkspace,
         HTTP_FORBIDDEN,

@@ -110,8 +110,6 @@ export function mapRoleEditorTree(
  */
 export const SETTINGS_ROOT_PERMISSION_ID = "settings";
 
-// Every member holds the root itself, so the editor lists the entries under
-// it at its level (see `mapPermissionTree`).
 function isUnderSettingsRoot(node: RoleEditorPermissionNode): boolean {
   return (
     node.id === SETTINGS_ROOT_PERMISSION_ID ||

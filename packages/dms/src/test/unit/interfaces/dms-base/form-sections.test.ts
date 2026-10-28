@@ -3,7 +3,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   Form,
   FormComponents,
-  type FormPropsSerialized,
   formSchema,
 } from "@antelopejs/interface-dms/base/form";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
@@ -37,7 +36,7 @@ const sectionedForm = () =>
   });
 
 const optionsOf = (form: ReturnType<typeof Form>) =>
-  form.serializeSync().options as FormPropsSerialized;
+  form.serializeSync().options!;
 
 /**
  * A form's sections are titled cards of one form: their fields are the form's

@@ -1,4 +1,4 @@
-import { runInBatches } from "../utils/run-in-batches";
+import { runInBatches } from "../utils/run-in-batches/index";
 import {
   isEventForTenant,
   type KvStore,
@@ -75,9 +75,10 @@ const presenceEvent = (
   ts: Date.now(),
 });
 
+/* oxlint-disable anti-slop/no-runtime-typeof -- Persisted presence records are checked for routing and actor identifiers; keep the existing partial validation and rejection behavior. */
 const parsePresenceEntry = (value: string): PresenceEntry | undefined => {
   try {
-    const parsed = JSON.parse(value) as PresenceEntry;
+    const parsed: PresenceEntry = JSON.parse(value);
     if (
       typeof parsed.topic === "string" &&
       typeof parsed.rowId === "string" &&
@@ -91,6 +92,7 @@ const parsePresenceEntry = (value: string): PresenceEntry | undefined => {
   } catch {}
   return undefined;
 };
+/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export class PresenceTracker {
   private readonly entries = new Map<string, PresenceEntry>();

@@ -1,10 +1,7 @@
-// Mirror of the Matrix block contract of @antelopejs/interface-dms/base/matrix.
-// The frontend layer never imports the interface package: keep both in step.
-
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type { ActionTarget } from "../composables/table-view/types/action-target";
 import type { ColumnDisplay } from "../build/composables/data-types/useColumnValueRenderer";
-import type { Tone } from "./tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** What a cell holds, which picks the input that edits it and how it is drawn. */
 export type MatrixCellKind =

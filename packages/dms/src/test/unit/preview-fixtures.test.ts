@@ -3,7 +3,7 @@ import {
   getRegisteredRoutes,
   UnregisterRoute,
 } from "@antelopejs/interface-api";
-import { registerPreviewFixtures } from "../../pages/public/preview/fixtures";
+import { registerPreviewFixtures } from "../../pages/preview";
 import { createClient } from "../helpers/http";
 
 const BASE = "/api/block-preview/fixtures";
@@ -52,8 +52,6 @@ describe("[unit] public preview fixtures", () => {
   const routeIds: number[] = [];
 
   before(async () => {
-    // The normal test runtime is non-dev, with no preview opt-in. Importing
-    // the fixture module above must not expose any endpoint by itself.
     expect(
       getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
     ).to.deep.equal([]);
@@ -143,7 +141,7 @@ describe("[unit] public preview fixtures", () => {
     );
     expect((await requests("?filter_method=is_empty")).total).to.equal(0);
     expect((await requests("?filter_method=is_not_empty")).total).to.equal(12);
-    // Sorting a response must not change the next request's default ordering.
+
     expect((await requests()).results[0].requestId).to.equal("req-001");
   });
 

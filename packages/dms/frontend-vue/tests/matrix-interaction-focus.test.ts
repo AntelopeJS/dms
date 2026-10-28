@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
-import { useMatrixInteraction } from "../layers/dms-ui/app/build/composables/matrix/useMatrixInteraction";
+import { useMatrixInteraction } from "../layers/dms-ui/app/entries/composables/matrix/useMatrixInteraction";
 import type {
   MatrixColumn,
   MatrixRow,

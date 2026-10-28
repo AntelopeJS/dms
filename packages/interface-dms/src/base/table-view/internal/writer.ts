@@ -30,6 +30,7 @@ interface WritingTableViewClaim {
 
 const isEnabled = (config: boolean | RowActionConfig | undefined): boolean =>
   config === undefined ||
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- RowActionConfig explicitly shares this option with a boolean shorthand; this branch distinguishes declared variants rather than parsing external data.
   (typeof config === "boolean" ? config : config.isEnabled !== false);
 
 /**

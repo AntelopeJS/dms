@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
 import {
   BANNER_TONE_ICONS,
   type BannerTone,
 } from "../../utils/bannerToneIcons";
 
-// DMS-styled notice banner (design .banner): a left-to-right tinted wash over
-// the card surface with a boxed leading icon, used for module beta / info
-// notices. Wraps UAlert so we keep its a11y + slots while pinning the exact
-// reference look. The `cli` slot hosts the optional inset command box
-// (compose with DmsCopyButton), `actions` the right-aligned buttons.
 type BannerSize = "sm" | "md";
 
 interface BannerProps {
@@ -32,11 +27,11 @@ interface BannerEmits {
 
 interface BannerSlots {
   /** Rich description body (overrides the `description` prop). */
-  description?: () => unknown;
+  description?: () => ReturnType<Slot>;
   /** Optional inset command/CLI box rendered under the description. */
-  cli?: () => unknown;
+  cli?: () => ReturnType<Slot>;
   /** Right-aligned actions, vertically centred. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<BannerProps>(), {
@@ -51,8 +46,6 @@ const props = withDefaults(defineProps<BannerProps>(), {
 const emit = defineEmits<BannerEmits>();
 const slots = defineSlots<BannerSlots>();
 
-// Literal class maps (Tailwind needs the full class string to extract them —
-// no dynamic `bg-${color}` interpolation).
 const SURFACE: Record<BannerTone, string> = {
   warning: "border-warning/40 from-warning/10",
   info: "border-info/40 from-info/10",
@@ -71,7 +64,6 @@ const SIZE_WELL: Record<BannerSize, IconWellSize> = {
   sm: "2xs",
 };
 
-// Compact banners run the description on the title line.
 const SIZE_WRAPPER: Record<BannerSize, string> = {
   md: "min-w-0",
   sm: "min-w-0 flex-row flex-wrap items-baseline gap-x-2",
@@ -88,13 +80,7 @@ const DISMISS_BUTTON = {
   variant: "ghost",
 } as const;
 
-// color="neutral" on UAlert below → no semantic bg/text injected; we own the
-// whole surface here: the card background under a 100deg tint that fades out
-// at 70%, like the reference.
 const alertUi = computed(() => ({
-  // On a phone the actions wrap under the text instead of squeezing it. Nuxt
-  // UI renders the dismiss button inside the actions box: a banner with no
-  // actions keeps that box (the lone dismiss) on the text line.
   root: `items-center border ring-0 bg-default bg-linear-100 to-transparent to-70% max-sm:flex-wrap ${SIZE_ROOT[props.size]} ${SURFACE[props.tone]}`,
   wrapper: SIZE_WRAPPER[props.size],
   title: "text-highlighted text-sm font-[650]",

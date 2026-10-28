@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMatrixSaveEngine,
   type MatrixSaveEngineOptions,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixSaveEngine";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixSaveEngine";
 import type {
   MatrixSaveMode,
   MatrixSaveRequest,
@@ -350,7 +350,6 @@ describe("fix round 1", () => {
     });
     answer({ conflicts: [{ rowId: "k", columnId: "fr", current: "Z" }] });
     await engine.saveAll();
-    // The edit keeps the value it started from; the stored one is apart.
     expect(engine.editOf("k", "fr")).toMatchObject({
       before: "A",
       conflict: { current: "Z" },

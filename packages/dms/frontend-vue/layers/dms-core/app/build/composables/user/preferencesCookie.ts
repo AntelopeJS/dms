@@ -1,6 +1,8 @@
+import { isObject } from "../../../utils/type-check";
+
 /** @internal */
 export interface PreferencesTree {
-  [key: string]: unknown;
+  [key: string]: ReturnType<typeof useDmsCookie>["value"];
 }
 
 /** @internal */
@@ -19,7 +21,7 @@ const BASE64_BLOCK = 4;
 
 /** @internal */
 export const isBranch = (value: unknown): value is PreferencesTree =>
-  !!value && typeof value === "object" && !Array.isArray(value);
+  !!value && isObject(value) && !Array.isArray(value);
 
 const toBase64Url = (text: string): string => {
   const binary = Array.from(new TextEncoder().encode(text), (byte) =>
@@ -71,7 +73,9 @@ export const decodePreferencesTree = (value: string): PreferencesTree => {
  * What the cookie weighs in a request header, name included: the cookie ref
  * writes the JSON of its value, URI-encoded.
  */
-export const preferencesCookieBytes = (value: unknown): number =>
+export const preferencesCookieBytes = (
+  value: ReturnType<typeof useDmsCookie>["value"],
+): number =>
   `${PREFERENCES_COOKIE_NAME}=${encodeURIComponent(JSON.stringify(value))}`
     .length;
 
@@ -125,25 +129,29 @@ export const fitPreferencesBudget = (
 export const writeAt = (
   tree: PreferencesTree,
   keys: string[],
-  value: unknown,
+  value: PreferencesTree[string],
 ): void => {
   const lastKey = keys.at(-1)!;
   let current = tree;
   for (const key of keys.slice(0, -1)) {
     if (!isBranch(current[key])) current[key] = {};
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The branch check and assignment precede a separate property read. An accessor can return another value; preserve that unchecked second lookup instead of caching or validating it.
     current = current[key] as PreferencesTree;
   }
   current[lastKey] = value;
 };
 
 /** @internal Reads the value at `keys`, `undefined` when a branch is missing. */
-export const readAt = (tree: PreferencesTree, keys: string[]): unknown => {
+export const readAt = (
+  tree: PreferencesTree,
+  keys: string[],
+): PreferencesTree[string] => {
   let current: unknown = tree;
   for (const key of keys) {
-    if (!current || typeof current !== "object" || !(key in current)) {
+    if (!current || !isObject(current) || !(key in current)) {
       return undefined;
     }
-    current = (current as PreferencesTree)[key];
+    current = current[key];
   }
   return current;
 };

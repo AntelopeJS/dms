@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderFormEntries } from "../layers/dms-ui/app/build/composables/form/formEntryOrder";
+import { orderFormEntries } from "../layers/dms-ui/app/entries/composables/form/formEntryOrder";
 import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
 
 const field = (id: string) => ({

@@ -25,7 +25,7 @@ import {
   internal as realtimeInterface,
 } from "@antelopejs/interface-dms/realtime";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { getPageTopics } from "../../../../realtime/registry";
+import { getPageTopics } from "../../../../realtime";
 
 const PAGE_ID = "teardown-full";
 const PAGE_FULL_ID = `pages.${PAGE_ID}`;
@@ -93,7 +93,6 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     if (!meta.pageInfo) throw new Error("pageInfo not initialized");
     RegisterPageTopic(PAGE_FULL_ID, TOPIC);
 
-    // Registered: registry, layout handler, HTTP route, permissions, topics.
     expect(GetPageLayoutBySlug(PAGE_SLUG)).to.not.equal(undefined);
     expect(routeCount(meta.pageInfo.layoutUrl)).to.equal(1);
     expect(await GetPermission(PAGE_FULL_ID)).to.not.equal(undefined);
@@ -102,7 +101,7 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     pageInterfaceInternal.RegisterPage.unregister(meta.pageInfo);
 
     expect(GetPageLayoutBySlug(PAGE_SLUG)).to.equal(undefined);
-    // The route used to outlive its page for as long as the module stayed up.
+
     expect(routeCount(meta.pageInfo.layoutUrl)).to.equal(0);
     expect(await GetPermission(PAGE_FULL_ID)).to.equal(undefined);
     expect(await GetPermission(`${PAGE_FULL_ID}.${COMPONENT_KEY}`)).to.equal(
@@ -130,7 +129,6 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     }
   });
 
-  // A hot reload registers the replacement before the old one unregisters.
   it("does not let a replaced registration tear down the live one", async () => {
     const first = await registerPage(buildPage("teardown-reload"));
     const firstInfo = first.pageInfo;
@@ -139,7 +137,6 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     const second = await registerPage(buildPage("teardown-reload"));
     if (!second.pageInfo) throw new Error("pageInfo not initialized");
 
-    // The departing registration unwinds after its replacement took over.
     pageInterfaceInternal.RegisterPage.unregister(firstInfo);
 
     try {
@@ -153,7 +150,6 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     }
   });
 
-  // Unregistering a category used to delete its whole subtree.
   it("keeps the pages of a category that unregisters", async () => {
     const category = Category("teardown-parent", {
       displayName: "Parent",
@@ -177,7 +173,6 @@ describe("[unit] interfaces/dms/page — a page releases everything it registere
     try {
       pageInterfaceInternal.RegisterCategory.unregister(category);
 
-      // The child belongs to another registration: it stays reachable.
       expect(GetPageLayoutBySlug(child.pageInfo.fullSlug)).to.not.equal(
         undefined,
       );
@@ -196,8 +191,6 @@ describe("[unit] interfaces/dms/page — a failed registration leaves nothing be
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
   });
 
-  // `onPageCreated` is consumer code: it can throw between the component's
-  // permission being registered and the end of the preparation.
   it("unwinds a component that throws while being prepared", async () => {
     class ThrowingPage extends PageController("teardown-throwing", {
       displayName: "Throwing",
@@ -209,7 +202,7 @@ describe("[unit] interfaces/dms/page — a failed registration leaves nothing be
     }
     const meta = GetMetadata(ThrowingPage, PageMetadata);
     meta.SetComponent(COMPONENT_KEY, ThrowingPage.panel);
-    // The hook is exposed through a getter, so it is shadowed on the instance.
+
     Object.defineProperty(ThrowingPage.panel, "onPageCreated", {
       configurable: true,
       get: () => () => {
@@ -254,15 +247,12 @@ describe("[unit] interfaces/dms/page — a failed registration leaves nothing be
     }
 
     expect(failed).to.equal(true);
-    // A half-registered page used to stay in the registry, routed, with no
-    // layout to serve.
+
     expect(GetPageLayoutBySlug("/teardown-broken")).to.equal(undefined);
     expect(await GetPermission("pages.teardown-broken")).to.equal(undefined);
   });
 });
 
-// Kept out of the suites above: it only exists to prove the decorator path
-// still registers, since it is the one every real page takes.
 describe("[unit] interfaces/dms/page — the decorator path still registers", () => {
   it("registers through @RegisterPage", async () => {
     @RegisterPage()

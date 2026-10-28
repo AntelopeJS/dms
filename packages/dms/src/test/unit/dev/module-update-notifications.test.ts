@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  formatModuleList,
-  isUpToDate,
-} from "../../../dev/module-update-notifications";
+import { formatModuleList, isUpToDate } from "../../../dev";
 
 describe("[unit] dev/module-update-notifications", () => {
   describe("isUpToDate", () => {

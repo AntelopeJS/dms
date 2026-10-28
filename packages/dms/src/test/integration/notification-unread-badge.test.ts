@@ -11,11 +11,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The unread badge: the header bell (`/counts`) and the Notifications entry
-// of the menu (`navBadges`, which each page visit carries, never the cached
-// site layout) count the unread notifications, in the tone of the most
-// important one, and opening the bell changes neither.
-
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const NOTIFICATIONS_PAGE_ID = "settings.user.notifications";
 const HTTP_OK = 200;
@@ -58,23 +53,19 @@ describe("[integration] notifications unread badge", () => {
   let userId: string;
 
   const counts = async (): Promise<FeedCounts> => {
-    const response = await client.get(`${LOCATION}/counts`);
+    const response = await client.get<FeedCounts>(`${LOCATION}/counts`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data as FeedCounts;
+    return response.data;
   };
 
   const menuEntry = async (): Promise<MenuEntry | undefined> => {
-    // Any page visit carries them, with or without the site layout.
-    const response = await client.get("/dms/page", {
+    const response = await client.get<{
+      navBadges: Record<string, { badge: string; tone?: string }>;
+    }>("/dms/page", {
       params: { path: "/settings", shared: "false" },
     });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const served = (
-      response.data.navBadges as Record<
-        string,
-        { badge: string; tone?: string }
-      >
-    )[NOTIFICATIONS_PAGE_ID];
+    const served = response.data.navBadges[NOTIFICATIONS_PAGE_ID];
     return served && { badge: served.badge, badgeTone: served.tone };
   };
 
@@ -82,12 +73,10 @@ describe("[integration] notifications unread badge", () => {
     new SendableNotification({ ...data, title, tone }).toUser(userId);
 
   const idOf = async (title: string): Promise<string> => {
-    const response = await client.get(`${LOCATION}/list`, {
+    const response = await client.get<InboxRow[]>(`${LOCATION}/list`, {
       params: { limit: 100 },
     });
-    const row = (response.data as InboxRow[]).find(
-      (entry) => entry.title === title,
-    );
+    const row = response.data.find((entry) => entry.title === title);
     if (!row) throw new Error(`no notification titled ${title}`);
     return row._id;
   };
@@ -98,7 +87,7 @@ describe("[integration] notifications unread badge", () => {
     const unsubscribe = getRealtimeBroker().subscribe(
       buildUserNotificationTopic(userId),
       (event) => {
-        events.push(event as FeedEvent);
+        events.push(event);
       },
     );
     return { events, unsubscribe };
@@ -111,7 +100,7 @@ describe("[integration] notifications unread badge", () => {
     userId = owner.userId;
     internal.RegisterNotificationCategory.register(data.subject.category);
     internal.RegisterNotificationSubject.register(data.subject);
-    // What the signup sent is read, so the test's notifications are the only unread ones.
+
     await client.put(`${LOCATION}/mark-all-read`);
     await send("info", "neutral");
     await send("untoned");
@@ -148,7 +137,7 @@ describe("[integration] notifications unread badge", () => {
     expect(await menuEntry()).to.include({ badge: "3", badgeTone: "warning" });
 
     await client.put(`${LOCATION}/mark-read/${await idOf("not you?")}`);
-    // The untoned one stands out in primary while unread, as in the inbox.
+
     expect(await counts()).to.include({ unread: 2, unreadTone: "primary" });
   });
 

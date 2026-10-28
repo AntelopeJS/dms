@@ -157,42 +157,42 @@ function statusTone(status: number): MatrixCellState["tone"] {
   return undefined;
 }
 
-function cellStates(document: RequestDocument): CellStates {
+function cellStates(stored: RequestDocument): CellStates {
   const cells: CellStates = {};
-  const tone = statusTone(document.status);
+  const tone = statusTone(stored.status);
   if (tone) cells.status = { tone };
-  if (document.durationMs === null) {
+  if (stored.durationMs === null) {
     cells.durationMs = { tone: "error", placeholder: "timed out" };
-  } else if (document.durationMs > SLOW_MS) {
+  } else if (stored.durationMs > SLOW_MS) {
     cells.durationMs = { tone: "warning" };
   }
   return cells;
 }
 
-function toRow(document: RequestDocument): MatrixRow {
+function toRow(stored: RequestDocument): MatrixRow {
   return {
-    id: document._id,
-    label: document.ref,
-    values: { ...document },
-    cells: cellStates(document),
+    id: stored._id,
+    label: stored.ref,
+    values: { ...stored },
+    cells: cellStates(stored),
   };
 }
 
 function readField(
-  document: RequestDocument,
+  stored: RequestDocument,
   columnId: string,
 ): MatrixCellValue | undefined {
-  return isDocumentKey(columnId) ? document[columnId] : undefined;
+  return isDocumentKey(columnId) ? stored[columnId] : undefined;
 }
 
 function searchDocuments(query: MatrixQuery): RequestDocument[] {
-  return REQUEST_DOCUMENTS.filter((document) =>
+  return REQUEST_DOCUMENTS.filter((stored) =>
     matchesSearch(query.search, [
-      document.ref,
-      document._id,
-      document.path,
-      document.client,
-      document.notes,
+      stored.ref,
+      stored._id,
+      stored.path,
+      stored.client,
+      stored.notes,
     ]),
   );
 }
@@ -222,7 +222,7 @@ function groupedFirst(
 }
 
 function findDocument(id: string): RequestDocument | undefined {
-  return REQUEST_DOCUMENTS.find((document) => document._id === id);
+  return REQUEST_DOCUMENTS.find((stored) => stored._id === id);
 }
 
 /** The outcome of one change: written, refused, or made on a moved value. */
@@ -232,7 +232,7 @@ interface ChangeOutcome {
 }
 
 function applyChange(
-  document: RequestDocument,
+  stored: RequestDocument,
   change: MatrixChange,
   request: SaveRequest,
 ): ChangeOutcome {
@@ -242,18 +242,18 @@ function applyChange(
   }
   const problem = FIELD_CHECKS[columnId](change.value);
   if (problem) return { error: cellError(change, problem) };
-  const conflict = conflictOf(request, change, document[columnId]);
+  const conflict = conflictOf(request, change, stored[columnId]);
   if (conflict) return { conflict };
-  Object.assign(document, { [columnId]: change.value });
+  Object.assign(stored, { [columnId]: change.value });
   return {};
 }
 
 function saveRow(rowId: string, request: SaveRequest): ChangeOutcome[] {
-  const document = findDocument(rowId);
-  if (!document) {
+  const stored = findDocument(rowId);
+  if (!stored) {
     return [{ error: rowError(rowId, "This document no longer exists.") }];
   }
-  if (document.ref === PURGED_REF) {
+  if (stored.ref === PURGED_REF) {
     return [
       {
         error: rowError(
@@ -265,7 +265,7 @@ function saveRow(rowId: string, request: SaveRequest): ChangeOutcome[] {
   }
   return request.changes
     .filter((change) => change.rowId === rowId)
-    .map((change) => applyChange(document, change, request));
+    .map((change) => applyChange(stored, change, request));
 }
 
 /**
@@ -284,12 +284,12 @@ export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
     const query = readMatrixQuery(ctx.url.searchParams);
     const searched = searchDocuments(query);
     const byMethod = searched.filter(
-      (document) =>
-        facetAllows(query, "method", document.method) &&
-        filtersAllow(query, document, readField),
+      (stored) =>
+        facetAllows(query, "method", stored.method) &&
+        filtersAllow(query, stored, readField),
     );
-    const matching = byMethod.filter((document) =>
-      facetAllows(query, "status", statusClass(document.status)),
+    const matching = byMethod.filter((stored) =>
+      facetAllows(query, "status", statusClass(stored.status)),
     );
     const sorted = groupedFirst(
       sortItems(matching, query, readField),
@@ -301,7 +301,7 @@ export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
       facets: {
         status: facetItems(
           byMethod,
-          (document) => statusClass(document.status),
+          (stored) => statusClass(stored.status),
           STATUS_CLASSES,
         ),
       },
@@ -315,8 +315,8 @@ export class MatrixRecordsController extends Controller(MATRIX_RECORDS_API) {
     const outcomes = rowIds.flatMap((rowId) => saveRow(rowId, request));
     const rows = rowIds
       .map(findDocument)
-      .filter((document): document is RequestDocument => !!document)
-      .filter((document) => document.ref !== PURGED_REF)
+      .filter((stored): stored is RequestDocument => !!stored)
+      .filter((stored) => stored.ref !== PURGED_REF)
       .map(toRow);
     return {
       rows,

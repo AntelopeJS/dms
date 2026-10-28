@@ -6,49 +6,59 @@ import type { ButtonColor, ButtonPlacement } from "./custom-button";
 import type { AnyFieldRule, FieldRule } from "./row-action-operators";
 
 export type FieldEqualsRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = FieldRule<T, "equals">;
 
 export type FieldNotEqualsRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = FieldRule<T, "notEquals">;
 
 export type FieldInRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = FieldRule<T, "in">;
 
 export type FieldNotInRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = FieldRule<T, "notIn">;
 
 export type AndRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = {
   and: RowActionRule<T>[];
 };
 
 export type OrRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = {
   or: RowActionRule<T>[];
 };
 
 export type NotRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = {
   not: RowActionRule<T>;
 };
 
 export type LogicalRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = AndRule<T> | OrRule<T> | NotRule<T>;
 
 export type RowActionRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = AnyFieldRule<T> | LogicalRule<T>;
 
 /** A built-in row action of a table view, configured. */
 export interface RowActionConfig<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   isEnabled?: boolean;
@@ -80,6 +90,7 @@ export interface RowActionConfigSerialized extends Omit<
 
 /** The built-in add action: where its button is drawn, besides the rest. */
 export interface AddRowActionConfig<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > extends RowActionConfig<T> {
   /**
@@ -94,6 +105,7 @@ export interface AddRowActionConfig<
  * rows too, and reports what it did.
  */
 export interface BulkRowActionConfig<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > extends RowActionConfig<T> {
   /**
@@ -120,6 +132,7 @@ export interface CustomRowActionBulkOptions {
 export type CustomRowActionBulk = true | CustomRowActionBulkOptions;
 
 export interface CustomRowAction<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   /**

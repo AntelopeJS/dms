@@ -121,8 +121,6 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
   const columnOf = (columnId: string) =>
     options.isEnabled.value ? editableColumns.get(columnId) : undefined;
 
-  // A field's `visibleWhen` / `disabledWhen` read on the listed row: the
-  // edit route strips a field they hide or lock, so its cell is not offered.
   const isLockedOnRow = (row: T, fieldId: string): boolean => {
     const { disabled, hidden } = withConditionFields(
       conditionFields,
@@ -139,8 +137,6 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
     return !isLockedOnRow(row, column.field.id);
   };
 
-  // The value as the edit form would hold it: its data type maps the row's
-  // value into the form's state first (a relation's row to its id).
   const stateValue = (row: T, column: InlineEditColumn): unknown => {
     const value = get(row as never, column.field.id);
     const type = column.field.type;
@@ -170,8 +166,6 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
   const isSaving = (row: T, columnId: string): boolean =>
     !!pendingOf(row, columnId);
 
-  // A refusal holds while the row keeps the value it was to replace: once a
-  // realtime event or a refresh brings another, the refused value is moot.
   const refusalOf = (
     row: T,
     columnId: string,
@@ -211,11 +205,8 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
       return false;
     }
     if (isActiveCell(rowId, columnId)) return true;
-    // One cell at a time: the one left saves first, as leaving it does.
     if (active.value) void commitCell(active.value);
     const initial = stateValue(row, column);
-    // A cell whose value was refused opens on that value again, unless the
-    // row has changed since.
     const refused = refusalOf(row, columnId);
     if (!refused) forget(failed, cellKey(rowId, columnId));
     const draft = refused ? refused.draft : initial;
@@ -234,8 +225,6 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
     active.value = null;
   };
 
-  // The body the edit form would send for this field alone: nothing when the
-  // value did not change, a cleared value as the form clears it.
   const changeBody = (
     column: InlineEditColumn,
     value: unknown,
@@ -261,14 +250,11 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
     };
   };
 
-  // The row as the server stored it; the value sent if it cannot be read.
   const settleRow = async (rowId: string, body: Record<string, unknown>) => {
     const fresh = await options.getRow(rowId).catch(() => undefined);
     replaceRow(rowId, (row) => fresh ?? ({ ...row, ...body } as T));
   };
 
-  // The cell keeps showing the value sent until the row it lands in is on
-  // screen: no flash of the old value, nor of the value as typed.
   const write = async (
     rowId: string,
     columnId: string,
@@ -290,8 +276,6 @@ export function useTableInlineEdit<T>(options: TableInlineEditOptions<T>) {
     void options.onSaved();
   };
 
-  // A refusal naming other fields of the row only (a mandatory field the
-  // row lacks): this value cannot fix it, the cell does not hold it.
   const isRefusedElsewhere = (error: unknown, fieldId: string): boolean => {
     const { fields } = resolveFieldErrors(error, { fields: formFieldIds });
     return (

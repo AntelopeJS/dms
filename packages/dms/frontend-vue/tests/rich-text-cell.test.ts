@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   richTextFormatter,
   richTextToPlainText,
-} from "../layers/dms-ui/app/build/composables/data-types/richTextCell";
-
-// A listed rich-text column reads as the text of its document, never as its
-// markup: "<p>Sold by packs of four.</p>" was drawn as is.
+} from "../layers/dms-ui/app/entries/composables/data-types/richTextCell";
 
 describe("richTextToPlainText", () => {
   it("strips the tags, keeping blocks and line breaks apart", () => {

@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { accessibilityHtmlClasses } from "#dms-ui/app/build/utils/accessibilityPreferences";
+import { accessibilityHtmlClasses } from "#dms-ui/app/entries/utils/accessibilityPreferences";
 import { useAccessibilityPreferences } from "../composables/general/useAccessibilityPreferences";
 
 /**
@@ -12,7 +12,6 @@ import { useAccessibilityPreferences } from "../composables/general/useAccessibi
 export default defineDmsPlugin(() => {
   const { preferences } = useAccessibilityPreferences();
 
-  // No `class` key at all for the defaults, rather than an empty `class=""`.
   useHead(
     computed(() => {
       const classes = accessibilityHtmlClasses(preferences.value);

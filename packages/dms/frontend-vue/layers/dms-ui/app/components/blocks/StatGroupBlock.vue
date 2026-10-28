@@ -13,10 +13,6 @@ import { useComposedText } from "../../../../dms-core/app/composables/translatio
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 
-// `StatGroup` block (interface-dms `base/stat-group`): the generic StatGroup
-// fed from the block options or from `fetchUrl` (`{ items }`). Texts follow
-// the `$` i18n-key convention or are composed texts; numeric values are
-// formatted for the locale.
 interface StatGroupBlockItem
   extends Omit<StatGroupItem, "eyebrow" | "value" | "detail"> {
   eyebrow: BlockText;

@@ -58,7 +58,8 @@ export class RegistrationIdentity<T extends object> {
   constructor(private readonly kind: string) {}
 
   private tokenOf(value: T): string | undefined {
-    return (value as Stamped<T>)[REGISTRATION_TOKEN];
+    const stamped: Stamped<T> = value;
+    return stamped[REGISTRATION_TOKEN];
   }
 
   /** Give a registration a fresh identity, replacing any it already carried. */

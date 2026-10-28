@@ -1,11 +1,7 @@
-import type {
-  ControllerClass,
-  RequestContext,
-} from "@antelopejs/interface-api";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { RowActionRule } from "../../types/row-action";
 import { validateRowsAgainstRule } from "../data-functions";
 import { TableViewMeta } from "../meta";
@@ -20,10 +16,15 @@ enum EmptyResultBehavior {
 }
 
 interface ActionValidationConfig {
-  extractIds: (params: unknown) => string[];
+  extractIds: (
+    params: Parameters<DataControllerCallback["func"]>[1],
+  ) => string[];
   emptyResultBehavior: EmptyResultBehavior;
   emptyResult?: unknown;
-  transformParams?: (params: unknown, eligibleIds: string[]) => unknown;
+  transformParams?: (
+    params: Parameters<DataControllerCallback["func"]>[1],
+    eligibleIds: string[],
+  ) => Parameters<DataControllerCallback["func"]>[1];
 }
 
 /** @internal */
@@ -35,29 +36,26 @@ const ACTION_VALIDATION_CONFIGS: Record<
   ActionValidationConfig
 > = {
   delete: {
-    extractIds: (params) =>
-      normalizeToArray((params as Parameters.DeleteParameters).id),
+    extractIds: (params) => normalizeToArray(params.id),
     emptyResultBehavior: EmptyResultBehavior.Graceful,
     emptyResult: { deleted: 0 },
     transformParams: (params, eligibleIds) => ({
-      ...(params as object),
+      ...params,
       id: eligibleIds,
     }),
   },
   edit: {
-    extractIds: (params) => [(params as Parameters.EditParameters).id],
+    extractIds: (params) => [params.id],
     emptyResultBehavior: EmptyResultBehavior.Strict,
   },
-  // A bulk route's first argument after the context is the id list itself:
-  // the rows a rule rejects are dropped from it before the operation runs.
   archive: {
-    extractIds: (ids) => normalizeToArray(ids as string | string[]),
+    extractIds: (ids) => normalizeToArray(ids),
     emptyResultBehavior: EmptyResultBehavior.Graceful,
     emptyResult: { success: true, archivedCount: 0 },
     transformParams: (_ids, eligibleIds) => eligibleIds,
   },
   restore: {
-    extractIds: (ids) => normalizeToArray(ids as string | string[]),
+    extractIds: (ids) => normalizeToArray(ids),
     emptyResultBehavior: EmptyResultBehavior.Graceful,
     emptyResult: { success: true, restoredCount: 0 },
     transformParams: (_ids, eligibleIds) => eligibleIds,
@@ -70,16 +68,13 @@ interface ValidationContext {
   idField: string;
 }
 
-// The writing TableView's rules and options are the controller's: it is the
-// only one the write routes serve.
 const getValidationContext = (
-  controller: unknown,
+  controller: Parameters<typeof validateRowsAgainstRule>[0] & {
+    constructor: ConstructorParameters<typeof TableViewMeta>[0];
+  },
   actionName: ValidatedActionName,
 ): ValidationContext => {
-  const meta = GetMetadata(
-    (controller as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+  const meta = GetMetadata(controller.constructor, TableViewMeta);
   return {
     rule: extractRuleFromConfig(meta.controllerRowActionRules, actionName),
     strictMode: meta.options.strictRuleValidation ?? false,
@@ -93,6 +88,7 @@ export const extractRuleFromConfig = (
   actionName: ValidatedActionName,
 ): RowActionRule | undefined => {
   const actionConfig = controllerRules?.[actionName];
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The action option explicitly permits boolean shorthand or an object rule configuration.
   if (typeof actionConfig === "object" && actionConfig !== null) {
     return actionConfig.rule;
   }
@@ -102,7 +98,7 @@ export const extractRuleFromConfig = (
 const handleNoEligibleIds = (
   config: ActionValidationConfig,
   actionName: ValidatedActionName,
-): unknown => {
+): ActionValidationConfig["emptyResult"] => {
   if (config.emptyResultBehavior === EmptyResultBehavior.Strict) {
     throwHttpAssert(
       false,
@@ -122,9 +118,11 @@ export const createValidatedRoute = (
 
   return {
     func: async function (
-      this: unknown,
+      this: Parameters<typeof validateRowsAgainstRule>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
-      params: unknown,
+      params: Parameters<DataControllerCallback["func"]>[1],
       ...args: unknown[]
     ) {
       const validationCtx = getValidationContext(this, actionName);
@@ -136,7 +134,7 @@ export const createValidatedRoute = (
 
       const ids = config.extractIds(params);
       const { eligibleIds } = await validateRowsAgainstRule(
-        this as DataControllerCallback,
+        this,
         ids,
         rule,
         validationCtx.strictMode,

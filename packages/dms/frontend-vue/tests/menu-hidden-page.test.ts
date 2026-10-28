@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/build/types/tree";
-
-// A page the viewer may open but whose every block is hidden from them is
-// served out of the menu (`hasAccess: false`, name kept): an Invitations-only
-// role got a Members entry that opened on "nothing to show for you". The
-// pages nested under it keep their own entries, and opening it leads to the
-// first of them.
+import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/entries/types/tree";
 
 type TreeNode = NonNullable<
   Parameters<typeof convertSiteLayoutTreeToTreeItems>[0]
@@ -28,7 +22,7 @@ function node({ children = [], ...fixture }: NodeFixture): TreeNode {
       children.map((child) => [child.id, node(child)]),
     ),
     childrenOrders: children.map((child) => child.id),
-  } as unknown as TreeNode;
+  };
 }
 
 const page = (
@@ -59,10 +53,12 @@ function tree(members: NodeFixture, extra: NodeFixture[] = []): TreeNode {
 }
 
 function sidebarIds(root: TreeNode): string[] {
-  const ids = (items: Array<{ fullId?: unknown; children?: unknown }>) =>
+  const ids = (
+    items: ReturnType<typeof convertSiteLayoutTreeToTreeItems>[number],
+  ) =>
     items.flatMap((item): string[] => [
       String(item.fullId),
-      ...ids((item.children as typeof items | undefined) ?? []),
+      ...ids(item.children ?? []),
     ]);
   return ids(convertSiteLayoutTreeToTreeItems(root).flat());
 }

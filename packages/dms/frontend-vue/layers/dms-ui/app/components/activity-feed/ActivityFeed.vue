@@ -24,8 +24,6 @@ import DmsBlockStatus, {
   type BlockEmptyText,
 } from "../../build/components/blocks/BlockStatus.vue";
 
-// The renderer's props are optional: DmsActivityFeed is both the backend
-// `ActivityFeed` block (`dms-activity-feed-block`) and a template component.
 interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Eyebrow title of the card head ("Activity"). */
   title?: string;
@@ -102,7 +100,7 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
 });
 
 const SKELETON_ROWS = 3;
-// A day separator every few placeholder rows, the rhythm of a recent feed.
+
 const SKELETON_ROWS_PER_DAY = 3;
 const SKELETON_TITLE_WIDTHS = ["w-3/5", "w-1/2", "w-2/5"];
 
@@ -132,8 +130,6 @@ const entries = computed<ActivityFeedItem[]>(() =>
   props.maxItems ? list.value.slice(0, props.maxItems) : list.value,
 );
 
-// Folded, the feed shows its first `visibleItems` entries; the button under
-// them unfolds the rest and folds them back.
 const isUnfolded = ref(false);
 const foldedCount = computed(() =>
   props.visibleItems
@@ -193,9 +189,6 @@ const metaOf = (item: ActivityFeedItem): string | undefined =>
 
 const isFirstLoad = isPending;
 
-// The placeholder takes the feed's loaded shape: as many rows as it will show
-// (`skeletonCount`, else `visibleItems` or `maxItems`; never more than
-// those), under day separators when the entries are grouped by day.
 const skeletonDays = computed<number[][]>(() => {
   const shown = props.visibleItems ?? props.maxItems;
   const wanted = props.skeletonCount ?? shown ?? SKELETON_ROWS;
@@ -213,13 +206,6 @@ const skeletonDays = computed<number[][]>(() => {
   return days;
 });
 
-// Filling its cell, the body is the scroll area: sized to nothing
-// (`contain: size`), it leaves the row's height to the cards beside it and
-// stretches to it. Once the grid stacks its cells (`--dms-grid-tracks: 1`,
-// see grid/columns.ts) no neighbour sets that height: the list takes its own,
-// capped like a top-list card's (24rem, about six entries under their day
-// separators). Focusable, so the keyboard scrolls it too; its ring is drawn
-// inside, where the card's clipped edge cannot hide it.
 const scrollArea = computed(() =>
   props.fillHeight
     ? {
@@ -233,12 +219,11 @@ const scrollArea = computed(() =>
       }
     : {},
 );
-// Inside the scroll area, a day's separator stays on top of its entries.
+
 const dayHeadClass = computed(
   () => props.fillHeight && "sticky top-0 z-[1] bg-(--dms-surface-card)",
 );
-// …and the "Show N more" button at its foot, where entries taller than the
-// row would otherwise push it out of sight.
+
 const foldClass = computed(
   () => props.fillHeight && "sticky bottom-0 z-[1] bg-(--dms-surface-card)",
 );

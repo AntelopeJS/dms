@@ -1,10 +1,10 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { satisfies, valid, validRange } from "semver";
-import { frontendModuleNamesUnder } from "../implementations/dms/frontend-modules";
+import { frontendModuleNamesUnder } from "./internal/frontend/frontend-modules";
 import {
   type FrontendAcknowledgement,
   getFrontendAcknowledgement,
-} from "../implementations/dms/frontend-ready";
+} from "./internal/frontend/frontend-ready";
 import { loadStoreCatalog } from "./catalog";
 import { installedInterfaceVersion, isCompatible } from "./compatibility";
 import { listCatalogDeclarations } from "./declarations";
@@ -212,7 +212,7 @@ function buildEntry(
     description: `${CATALOG_I18N_PREFIX}.${id}.description`,
     state: resolveState(sources),
     installedVersion: runtimeModule(sources)?.version ?? declaration?.range,
-    // A declaration is an npm one: the store reads no other.
+
     source: sources.workingCopy?.sourceKind ?? "npm",
     isWorkingCopy: sources.workingCopy ? true : undefined,
     declaredRange: declaration?.range,

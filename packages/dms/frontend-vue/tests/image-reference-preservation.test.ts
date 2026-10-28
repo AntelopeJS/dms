@@ -1,30 +1,24 @@
-import { readFileSync } from "node:fs";
-import { transpileModule } from "typescript";
+/** @vitest-environment jsdom */
 import {
   computed,
-  createApp,
   defineComponent,
-  effectScope,
-  getCurrentInstance,
   h,
+  inject,
   nextTick,
-  onScopeDispose,
-  reactive,
+  onBeforeUnmount,
   ref,
-  shallowReactive,
-  watch,
   useId,
+  watch,
   type App,
-  type EffectScope,
-  type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
-import { useKeyboardPlatform } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
-import { fieldErrorId } from "../layers/dms-core/app/composables/useFieldErrors";
-import { useFileMetadata } from "../layers/dms-ui/app/build/composables/files/useFileMetadata";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../layers/dms-ui/app/composables/form/types/content-language";
-import { engine, serverRender, stubApiData } from "./helpers/api-data-runtime";
+import {
+  mountInBrowser,
+  serverRender,
+  stubApiData,
+} from "./helpers/api-data-runtime";
 
 interface ImageValue {
   key: string;
@@ -32,29 +26,10 @@ interface ImageValue {
   principal?: boolean;
 }
 
-interface GalleryEntry {
-  id: string;
-  key: string | null;
-  status: string;
-  alt: string;
-  url: string;
-  expiresAt?: number;
-}
-
-interface ImageHarness {
-  items: Ref<GalleryEntry[]>;
-  emitValue: () => void;
-  removeItem: (id: string) => void;
-  addFiles: (files: File[]) => void;
-}
-
 const emit = vi.fn();
 const authFetch = vi.fn();
 const upload = vi.fn();
-let scope: EffectScope;
-// The application the script runs in: its DMS runtime reads the metadata.
-let app: App;
-const props = reactive({ modelValue: [] as ImageValue[], multiple: true });
+const mounted: App[] = [];
 const original: ImageValue = {
   key: "legacy/private.png",
   alt: "Original",
@@ -62,138 +37,169 @@ const original: ImageValue = {
 };
 const sibling: ImageValue = { key: "visible/sibling.png", alt: "Sibling" };
 
-function loadImage(): ImageHarness {
-  const component = readFileSync(
-    new URL(
-      "../layers/dms-ui/app/components/form/components/Image.vue",
-      import.meta.url,
-    ),
-    "utf8",
+function registerUi(app: App) {
+  app.component(
+    "UButton",
+    defineComponent({
+      props: ["label", "icon"],
+      setup: (props) => () =>
+        h("button", { "aria-label": props.label || props.icon }, props.label),
+    }),
   );
-  const script = component
-    .split('<script setup lang="ts">')[1]!
-    .split("</script>")[0]!;
-  const source = script
-    .replace(/^import[\s\S]*?from "[^"]+";\r?\n/gm, "")
-    .replaceAll("import.meta.env.SSR", "false")
-    .replace(/^export type /gm, "type ");
-  const { outputText } = transpileModule(source, {});
-  return app.runWithContext(() =>
-    scope.run(() =>
-      new Function(
-        `${outputText}; return { items, emitValue, removeItem, addFiles };`,
-      )(),
-    ),
-  )!;
+  app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
+  app.component(
+    "UTooltip",
+    defineComponent({
+      props: ["text"],
+      setup:
+        (_, { slots }) =>
+        () =>
+          slots.default?.(),
+    }),
+  );
+  app.component("UInput", defineComponent({ setup: () => () => h("input") }));
+  app.component(
+    "UTextarea",
+    defineComponent({ setup: () => () => h("textarea") }),
+  );
+  app.component("UModal", defineComponent({ setup: () => () => null }));
 }
 
-/** Lets the metadata reads answer. */
+function mountImage(values = [original, sibling]) {
+  const model = ref(values);
+  const { app, container } = mountInBrowser(
+    {
+      render: () =>
+        h(Image, {
+          modelValue: model.value,
+          multiple: true,
+          "onUpdate:modelValue": emit,
+        }),
+    },
+    (app) => {
+      registerUi(app);
+      app.provide(FORM_CONTENT_LANGUAGE_KEY, "*");
+    },
+  );
+  mounted.push(app);
+  return { container, model };
+}
+
+function button(container: HTMLElement, label: string): HTMLButtonElement {
+  const result = Array.from(container.querySelectorAll("button")).find(
+    (element) => element.getAttribute("aria-label") === label,
+  );
+  if (!result) throw new Error(`Missing button ${label}`);
+  return result;
+}
+
 const settle = async () => {
   for (let tick = 0; tick < 5; tick++) await nextTick();
   await new Promise((done) => setTimeout(done, 0));
 };
 
 beforeEach(() => {
-  scope = effectScope();
-  app = createApp({});
-  engine.provideDmsFrontendRuntime(app, engine.createDmsFrontendRuntime());
   vi.stubEnv("SSR", false);
-  props.modelValue = [original, sibling];
   authFetch.mockImplementation((_url, options) =>
     options.query?.resourceKey === original.key
-      ? Promise.reject(new Error("403"))
+      ? Promise.reject(
+          Object.assign(new Error("Forbidden"), { statusCode: 403 }),
+        )
       : Promise.resolve({
           url: "https://example.test/sibling.png",
           filename: "Sibling",
           size: 10,
         }),
   );
-  vi.stubGlobal("defineProps", () => props);
-  vi.stubGlobal("useFileMetadata", useFileMetadata);
-  vi.stubGlobal("shallowReactive", shallowReactive);
-  vi.stubGlobal("defineEmits", () => emit);
-  vi.stubGlobal("ref", ref);
-  vi.stubGlobal("computed", computed);
-  vi.stubGlobal("watch", watch);
-  vi.stubGlobal("inject", () => null);
-  vi.stubGlobal("useId", () => (getCurrentInstance() ? useId() : "image"));
-  vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
+  for (const [name, value] of Object.entries({
+    computed,
+    inject,
+    onBeforeUnmount,
+    ref,
+    useId,
+    watch,
+  })) {
+    vi.stubGlobal(name, value);
+  }
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  vi.stubGlobal("onBeforeUnmount", onScopeDispose);
   stubApiData(authFetch);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: upload,
   }));
-  // Outside a UFormField: no error, no aria attributes.
   vi.stubGlobal("useFormField", () => ({
     emitFormChange: vi.fn(),
     color: ref(undefined),
-    highlight: ref(undefined),
     ariaAttrs: ref(undefined),
   }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
+    <Value>(_key: string, options: { default: () => Value }) =>
       ref(options.default()),
   );
-  // The script runs without its imports: hand it the paste-hint composable.
-  vi.stubGlobal("useKeyboardPlatform", useKeyboardPlatform);
-  vi.stubGlobal("fieldErrorId", fieldErrorId);
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:new-image");
+  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
-  scope.stop();
+  mounted.splice(0).forEach((app) => app.unmount());
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.resetAllMocks();
 });
 
 it("preserves a denied image when another image is removed", async () => {
-  const image = loadImage();
+  const { container } = mountImage();
   await settle();
-  expect(image.items.value[0]!.status).toBe("unavailable");
-  image.removeItem(image.items.value[1]!.id);
-  expect(emit).toHaveBeenLastCalledWith("update:modelValue", [original]);
+  expect(container.textContent).toContain("dms.form.image.file_unavailable");
+  button(container, "i-lucide-trash-2").click();
+  expect(emit).toHaveBeenLastCalledWith([original]);
 });
 
-it("preserves a denied image on value echo without reinitializing its identity", async () => {
-  const image = loadImage();
+it("preserves a denied image on value echo without replacing its rendered tile", async () => {
+  const { container, model } = mountImage();
   await settle();
-  const id = image.items.value[0]!.id;
-  props.modelValue = [{ ...original }, { ...sibling }];
+  const tile = container.querySelector('[draggable="true"]');
+  model.value = [{ ...original }, { ...sibling }];
   await nextTick();
-  expect(image.items.value[0]!.id).toBe(id);
-  image.emitValue();
-  expect(emit).toHaveBeenLastCalledWith("update:modelValue", [
-    original,
-    sibling,
-  ]);
-});
-
-it("removes a denied reference only when explicitly removed", async () => {
-  const image = loadImage();
-  await settle();
-  image.removeItem(image.items.value[0]!.id);
-  expect(emit).toHaveBeenLastCalledWith("update:modelValue", [
+  expect(container.querySelector('[draggable="true"]')).toBe(tile);
+  expect(container.textContent).toContain("dms.form.image.file_unavailable");
+  button(container, "i-lucide-star").click();
+  expect(emit).toHaveBeenLastCalledWith([
+    { ...original, principal: undefined },
     { ...sibling, principal: true },
   ]);
 });
 
+it("removes a denied reference only when explicitly removed", async () => {
+  const { container } = mountImage();
+  await settle();
+  button(container, "dms.form.image.delete").click();
+  expect(emit).toHaveBeenLastCalledWith([{ ...sibling, principal: true }]);
+});
+
 it("excludes a failed new upload while retaining existing references", async () => {
-  const image = loadImage();
+  const { container } = mountImage();
   await settle();
   authFetch.mockRejectedValueOnce(new Error("Upload failed"));
-  image.addFiles([new File(["bytes"], "new.png", { type: "image/png" })]);
-  await vi.waitFor(() =>
-    expect(image.items.value.at(-1)!.status).toBe("error"),
-  );
-  expect(image.items.value.at(-1)!.key).toBeNull();
-  image.emitValue();
-  expect(emit).toHaveBeenLastCalledWith("update:modelValue", [
-    original,
-    sibling,
+  const input = container.querySelector('input[type="file"]');
+  if (!(input instanceof HTMLInputElement))
+    throw new Error("Missing file input");
+  Object.defineProperty(input, "files", {
+    value: [new File(["bytes"], "new.png", { type: "image/png" })],
+  });
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  await settle();
+  expect(container.textContent).toContain("dms.form.image.upload_failed");
+  expect(container.textContent).toContain("new.png");
+  expect(upload).not.toHaveBeenCalled();
+  button(container, "i-lucide-star").click();
+  expect(emit).toHaveBeenLastCalledWith([
+    { ...original, principal: undefined },
+    { ...sibling, principal: true },
   ]);
 });
 
@@ -201,30 +207,17 @@ it("keeps the denied image and its explicit deletion control in rendered markup"
   authFetch.mockRejectedValue(
     Object.assign(new Error("Forbidden"), { statusCode: 403 }),
   );
-  const register = (app: App) => {
-    app.component(
-      "UButton",
-      defineComponent({
-        props: ["label"],
-        setup: (buttonProps) => () => h("button", buttonProps.label),
-      }),
-    );
-    app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
-    app.component(
-      "UTooltip",
-      defineComponent({
-        setup:
-          (_, { slots }) =>
-          () =>
-            slots.default?.(),
-      }),
-    );
-    app.component("UModal", defineComponent({ setup: () => () => null }));
-  };
   vi.stubEnv("SSR", true);
   const { html } = await serverRender(
-    { render: () => h(Image, { modelValue: [original], multiple: true }) },
-    register,
+    {
+      render: () =>
+        h(Image, {
+          modelValue: [original],
+          multiple: true,
+          "onUpdate:modelValue": emit,
+        }),
+    },
+    registerUi,
   );
   expect(html).toContain("dms.form.image.file_unavailable");
   expect(html).not.toContain("dms.form.image.upload_failed");
@@ -235,8 +228,6 @@ it("keeps the denied image and its explicit deletion control in rendered markup"
 it("refreshes an expiring image preview and retries a transient failure", async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-14T12:00:00Z"));
-  app.provide(FORM_CONTENT_LANGUAGE_KEY, "*");
-  props.modelValue = [original];
   authFetch
     .mockReset()
     .mockResolvedValueOnce({
@@ -252,15 +243,17 @@ it("refreshes an expiring image preview and retries a transient failure", async 
       size: 10,
       expiresAt: Date.now() + 60000,
     });
-
-  const image = loadImage();
+  const { container } = mountImage([original]);
   await vi.advanceTimersByTimeAsync(0);
   await vi.advanceTimersByTimeAsync(55000);
-  expect(image.items.value[0]!.url).toBe("https://example.test/first.png");
+  expect(container.querySelector("img")?.getAttribute("src")).toBe(
+    "https://example.test/first.png",
+  );
   await vi.advanceTimersByTimeAsync(1000);
-  expect(image.items.value[0]!.url).toBe("https://example.test/refreshed.png");
+  expect(container.querySelector("img")?.getAttribute("src")).toBe(
+    "https://example.test/refreshed.png",
+  );
   expect(authFetch.mock.calls[0]![1].headers).toEqual({
     "x-content-language": "*",
   });
-  vi.useRealTimers();
 });

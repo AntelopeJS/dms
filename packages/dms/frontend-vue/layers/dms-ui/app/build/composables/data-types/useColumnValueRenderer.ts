@@ -1,5 +1,7 @@
 import { h, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 
 /**
  * A data type a column borrows for its cells only: the column keeps its own
@@ -8,7 +10,12 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
  */
 export interface ColumnDisplay {
   type: string;
-  options?: Record<string, unknown>;
+  options?: NonNullable<Parameters<DataTypeFormatter>[3]>;
+}
+
+interface ResolvedColumnRenderer {
+  typeId: string | undefined;
+  options: ColumnDisplay["options"];
 }
 
 /** What a column must carry for its values to be rendered. */
@@ -19,10 +26,6 @@ export interface RenderableColumn {
   display?: ColumnDisplay;
 }
 
-// v2 cell anatomy: amounts are right-aligned mono figures in the ink color,
-// dates 12px muted mono. Where a record is read (the detail surface), amounts
-// keep the form's own font with tabular figures, as its read-only values do. A data type can give cells a shorter rendering
-// through a `cell` formatter (the date type does); others use `default`.
 export const NUMERIC_TYPE_IDS = new Set(["number", "price", "percentage"]);
 const DATE_TYPE_IDS = new Set(["date"]);
 const NUMERIC_CELL_CLASS =
@@ -38,6 +41,20 @@ export const DETAIL_FALLBACK = "—";
 /** Where a value is drawn: a grid cell gets the `cell` formatter first. */
 export type ColumnValueSurface = "cell" | "detail";
 
+function renderEmptyFallback(
+  options: ResolvedColumnRenderer["options"],
+  surface: ColumnValueSurface,
+  isNumeric: boolean,
+): VNodeChild {
+  const fallback =
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin options have no fallback schema; this preserves the unchecked value rather than coercing or rejecting malformed inputs.
+    (options?.fallback as string) ??
+    (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
+  return isNumeric
+    ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
+    : fallback;
+}
+
 /**
  * Renders a row's value for a column through the formatter of its data type
  * (or of its `display` data type), the way the grid draws its cells. The row
@@ -48,15 +65,10 @@ export function useColumnValueRenderer() {
   const { getDataType } = useDataTypes();
   const { locale } = useI18n();
 
-  // A display also reads the column's own type options (`typeOptions`): a
-  // select's items name the values it draws; and the column's own type id
-  // (`columnType`), so it can write the value as the column would (an amount
-  // under `two_line`). A display declared without options reads the type
-  // options at the top level, as it always did.
-  const resolveRenderer = (column: RenderableColumn) => {
-    const typeOptions = column.type?.inputComponent?.options as
-      | Record<string, unknown>
-      | undefined;
+  const resolveRenderer = (
+    column: RenderableColumn,
+  ): ResolvedColumnRenderer => {
+    const typeOptions = column.type?.inputComponent?.options;
     if (!column.display)
       return { typeId: column.type?.id, options: typeOptions };
     const displayOptions = column.display.options ?? typeOptions;
@@ -74,8 +86,8 @@ export function useColumnValueRenderer() {
 
   const renderValue = (
     column: RenderableColumn,
-    value: unknown,
-    row: Record<string, unknown> | undefined,
+    value: Parameters<DataTypeFormatter>[0],
+    row: Parameters<DataTypeFormatter>[3],
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const { typeId, options } = resolveRenderer(column);
@@ -83,16 +95,11 @@ export function useColumnValueRenderer() {
     const formatter = typeId ? getDataType(typeId)?.formatter : undefined;
 
     if (value === null || value === undefined) {
-      // A data type may draw the absence itself ("Never signed in").
       if (formatter?.empty) {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown for plugin extensions; the existing render boundary forwards it without VNodeChild validation.
         return formatter.empty(value, locale.value, options, row) as VNodeChild;
       }
-      const fallback =
-        (options?.fallback as string) ??
-        (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
-      return isNumeric
-        ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
-        : fallback;
+      return renderEmptyFallback(options, surface, isNumeric);
     }
 
     const format =
@@ -101,7 +108,8 @@ export function useColumnValueRenderer() {
       ? format(value, locale.value, options, row)
       : value;
 
-    if (typeof formatted !== "string" && typeof formatted !== "number") {
+    if (!isString(formatted) && !isNumber(formatted)) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Excluding strings and numbers does not validate a VNodeChild; preserve the existing unchecked plugin result handoff.
       return formatted as VNodeChild;
     }
     if (isNumeric) {
@@ -118,7 +126,7 @@ export function useColumnValueRenderer() {
   /** Renders the column's value read off `row`. */
   const renderColumnValue = (
     column: RenderableColumn,
-    row: Record<string, unknown>,
+    row: NonNullable<Parameters<DataTypeFormatter>[3]>,
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const key = column.accessorKey ?? column.id;

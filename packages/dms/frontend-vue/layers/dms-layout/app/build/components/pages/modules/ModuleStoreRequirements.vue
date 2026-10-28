@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DmsCopyButton from "#dms-ui/app/components/copy/CopyButton.vue";
-import type { StoreListingEntry } from "../../../../types/module-store";
+import type { StoreListingEntry } from "#dms-core/app/types/module-store";
 
 interface ModuleStoreRequirementsProps {
   /** The store module whose requirements the tile spells out. */
@@ -18,7 +18,7 @@ const missingInterfaces = computed(() =>
     .map((missing) => missing.interfacePackage)
     .join(LIST_SEPARATOR),
 );
-// A working copy offers no action, so who uses it changes nothing there.
+
 const dependents = computed(() =>
   props.entry.isWorkingCopy ? "" : props.entry.dependents.join(LIST_SEPARATOR),
 );

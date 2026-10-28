@@ -14,10 +14,8 @@ import {
   previewResizeMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
-  type PreviewRenderMessage,
   type PreviewState,
   type PreviewTheme,
-  type PreviewThemeMessage,
   type PreviewTree,
 } from "../../utils/blockPreview";
 
@@ -40,8 +38,7 @@ interface EmbedOptions {
 
 function postToParent(message: PreviewOutboundMessage): void {
   if (window.parent === window) return;
-  // The preview is meant to be embedded by any docs site, and what it posts
-  // (a height, a ready flag, an error text) is not worth keeping from one.
+
   window.parent.postMessage(message, "*");
 }
 
@@ -82,15 +79,16 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     (message: PreviewInboundMessage) => void
   > = {
     render: (message) => {
-      const render = message as PreviewRenderMessage;
-      tree.value = render.tree;
-      theme.value = render.theme ?? theme.value;
-      locale.value = render.locale ?? locale.value;
-      transparent.value = render.transparent ?? transparent.value;
+      if (message.type !== "render") return;
+      tree.value = message.tree;
+      theme.value = message.theme ?? theme.value;
+      locale.value = message.locale ?? locale.value;
+      transparent.value = message.transparent ?? transparent.value;
       revision.value += 1;
     },
     theme: (message) => {
-      theme.value = (message as PreviewThemeMessage).theme;
+      if (message.type !== "theme") return;
+      theme.value = message.theme;
     },
   };
 

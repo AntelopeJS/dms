@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A page header's buttons follow the page URL: a target URL takes the
  * `{{params.X}}` / `{{query.X}}` tokens of a block's `fetchUrl`, and a
@@ -17,38 +17,36 @@ import {
   ref,
   type App,
   type FunctionalComponent,
+  type VNode,
 } from "vue";
-import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
+import { resolveLinkVariables } from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   isSamePageQuery,
   fillRouteParams,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../layers/dms-layout/app/utils/pageQuery";
+} from "../layers/dms-core/app/utils/pageQuery";
 import {
   providePageHeaderActions,
   usePageHeaderActions,
   type PageHeaderActionsOptions,
-} from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+} from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
-
-const handleCustomButton = vi.fn();
-vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
-  useActionTargets: () => ({ handleCustomButton }),
-}));
-vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({
-    isHeaderActionHidden: () => false,
-    session: ref(null),
-  }),
-}));
+import { stubMiscActions } from "./helpers/misc-runtime";
+import type { LocationQuery } from "#dms/frontend-module";
+import type { NamedValue } from "vue-i18n";
 
 const LAYOUT_URL = "/modules/lang/queue/pagelayout";
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: LocationQuery }>({
   path: "/modules/lang/queue/de",
   query: {},
 });
-const authFetch = vi.fn();
+const rawFetch = vi.fn(async () => ({
+  headers: new Headers(),
+  _data: new Blob(["report"]),
+}));
+const authFetch = Object.assign(vi.fn(), { raw: rawFetch });
+const downloads: string[] = [];
 
 const ButtonStub = defineComponent({
   props: { label: String, disabled: Boolean, onClick: Function, to: String },
@@ -69,13 +67,30 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
+  stubMiscActions();
   route.query = { workspace: "web" };
-  handleCustomButton.mockClear();
   authFetch.mockReset();
+  rawFetch.mockClear();
+  downloads.length = 0;
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+    function () {
+      downloads.push(this.download);
+    },
+  );
+  vi.stubGlobal(
+    "URL",
+    class extends URL {
+      static createObjectURL() {
+        return "blob:report";
+      }
+      static revokeObjectURL() {}
+    },
+  );
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (value: string, params?: Record<string, unknown>) =>
+    processApiMessage: (value: string) => value,
+    processI18n: (value: string, params?: NamedValue) =>
       value.replace(/\{(\w+)\}/g, (_, name: string) =>
         String(params?.[name] ?? `{${name}}`),
       ),
@@ -98,11 +113,28 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   host.remove();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-async function mount(path: string, props: Record<string, unknown>) {
-  const { default: component } = await import(path);
+const loaders = {
+  "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue":
+    () =>
+      import(
+        "../layers/dms-layout/app/entries/components/layout/PageHeaderActionBar"
+      ),
+  "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue":
+    () =>
+      import(
+        "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet"
+      ),
+};
+
+async function mount(
+  path: keyof typeof loaders,
+  props: NonNullable<VNode["props"]>,
+) {
+  const { default: component } = await loaders[path]();
   app = createApp({ render: () => h(component, props) });
   app.component("UButton", ButtonStub);
   app.component("UTooltip", SlotStub);
@@ -249,11 +281,9 @@ describe("a header button's target URL", () => {
       },
     ]);
     buttons()[0]?.click();
-    expect(handleCustomButton).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({
-          url: "/api/lang/export?workspace=web",
-        }),
+    await vi.waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/lang/export?workspace=web", {
+        method: "POST",
       }),
     );
   });
@@ -271,15 +301,13 @@ describe("a header button's target URL", () => {
     ]);
     expect(buttons()[0]?.dataset.to).toBeUndefined();
     buttons()[0]?.click();
-    expect(handleCustomButton).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: {
-          type: "download",
-          url: "/api/lang/translations/export?workspace=web&locale=de",
-          filename: "{{params.locale}}.json",
-        },
-      }),
+    await vi.waitFor(() =>
+      expect(rawFetch).toHaveBeenCalledWith(
+        "/api/lang/translations/export?workspace=web&locale=de",
+        { responseType: "blob" },
+      ),
     );
+    expect(downloads).toEqual(["de.json"]);
   });
 });
 
@@ -403,8 +431,6 @@ describe("a header button's availability", () => {
     route.path = "/modules/lang/queue/de";
   });
 
-  // A write may change what the buttons were served for: the record they
-  // read, what their availability checks.
   it("is asked again once a write refreshed the page", async () => {
     authFetch.mockResolvedValue({
       components: {},
@@ -436,14 +462,12 @@ describe("the order of the header's buttons", () => {
     order,
   });
 
-  // A layout's page body: the outlet, then the page calling
-  // usePageHeaderActions, then the marker saying the page has rendered.
   async function mountPage(
     actions: unknown[],
     options?: PageHeaderActionsOptions,
   ) {
     const { default: Outlet } = await import(
-      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue"
+      "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet"
     );
     const Page = defineComponent({
       setup() {

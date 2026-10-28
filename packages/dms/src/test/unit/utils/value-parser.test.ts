@@ -112,6 +112,7 @@ describe("[unit] utils/value-parser", () => {
     it("parses an ISO date string into a Date", () => {
       const parsed = parseValue(ISO_DATE_STRING);
       expect(parsed).to.be.instanceOf(Date);
+      // SAFETY: The preceding assertion fails for a non-Date result; Chai does not express that runtime narrowing in its types.
       expect((parsed as Date).toISOString().startsWith("2024-01-01")).to.equal(
         true,
       );

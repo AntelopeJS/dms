@@ -74,7 +74,6 @@ export interface MatrixTargetMisses {
   isMissed: boolean;
 }
 
-// Sums of decimals drift (0.1 + 0.2): a total within this of its target meets it.
 const TARGET_EPSILON = 1e-9;
 
 const differs = (actual: number | undefined, expected: number): boolean =>

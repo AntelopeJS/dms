@@ -10,6 +10,7 @@ import { randomBytes } from "node:crypto";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import type { DemoRecord } from "./demo-record-api";
 import { PageFormFieldTypes } from "./field-types/page";
 
 const HTTP_BAD_REQUEST = 400;
@@ -17,7 +18,7 @@ const JSON_TYPE = "application/json";
 const SECRET_BYTES = 16;
 
 /** The demo's values, kept in memory: a restart puts them back. */
-const values: Record<string, unknown> = {
+const values = {
   plan: "pro",
   addons: ["enterprise"],
   thinking: "medium",
@@ -80,7 +81,7 @@ export class FormFieldTypesAPIController extends Controller(
   }
 
   @Put("save")
-  async save(@JSONBody() body: Record<string, unknown>) {
+  async save(@JSONBody() body: DemoRecord) {
     const parsed = await formSchema(PageFormFieldTypes.form)
       .partial()
       .safeParseAsync(body);

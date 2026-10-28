@@ -9,11 +9,11 @@
  */
 import { describe, expect, it } from "vitest";
 import { ref } from "vue";
-import { useMatrixSelection } from "../layers/dms-ui/app/build/composables/matrix/useMatrixSelection";
+import { useMatrixSelection } from "../layers/dms-ui/app/entries/composables/matrix/useMatrixSelection";
 import {
   acceptsColumnFilter,
   isFilterableColumn,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixColumns";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixColumns";
 import {
   datetimeInputOf,
   editingColumnOf,
@@ -24,34 +24,34 @@ import {
   parseTextDraft,
   shownValueText,
   valueFromEditorModel,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixValues";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixValues";
 import {
   applyStaticQuery,
   buildMatrixQuery,
   emptyMatrixQuery,
   parseColumnFilter,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixQuery";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixQuery";
 import {
   matrixUrlEntries,
   readMatrixUrlRow,
   readMatrixUrlState,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixUrlState";
-import { matrixGridSlots } from "../layers/dms-ui/app/build/composables/matrix/matrixLayout";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixUrlState";
+import { matrixGridSlots } from "../layers/dms-ui/app/entries/composables/matrix/matrixLayout";
 import {
   computeMatrixTotals,
   totalColumnIndex,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixTotals";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixTotals";
 import {
   buildMatrixSections,
   initiallyCollapsed,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixSections";
-import { keptRowIds } from "../layers/dms-ui/app/build/composables/matrix/useMatrixRows";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixSections";
+import { keptRowIds } from "../layers/dms-ui/app/entries/composables/matrix/useMatrixRows";
 import {
   answerOverridesOf,
   mergePages,
   withAnswerOverrides,
-} from "../layers/dms-ui/app/build/composables/matrix/useMatrixData";
-import { matrixRenderColumn } from "../layers/dms-ui/app/build/composables/matrix/matrixRender";
+} from "../layers/dms-ui/app/entries/composables/matrix/useMatrixData";
+import { matrixRenderColumn } from "../layers/dms-ui/app/entries/composables/matrix/matrixRender";
 import type {
   MatrixColumn,
   MatrixRow,
@@ -84,7 +84,6 @@ describe("values", () => {
       value: "\\null",
     });
     expect(parseTextDraft("null", true)).toBeNull();
-    // Opened on the text "null" and left as it was, nothing changes.
     expect(
       valueFromEditorModel(nullable, editorModelOf(nullable, "null")),
     ).toEqual({ ok: true, value: "null" });
@@ -250,11 +249,8 @@ describe("groups, kept rows, answers", () => {
       filterKey,
       pageKey,
     });
-    // A save moved it out of "missing": same filters, same page.
     expect(keptRowIds(kept, new Set(), view(missing, "2"))).toEqual(["r9"]);
-    // Another page under the same filters: not this row's place.
     expect(keptRowIds(kept, new Set(), view(missing, "3"))).toEqual([]);
-    // A filter change goes back to the first page: the row stays shown.
     expect(keptRowIds(kept, new Set(), view("{}", "0"))).toEqual(["r9"]);
     expect(keptRowIds(kept, new Set(["r9"]), view(missing, "2"))).toEqual([]);
   });

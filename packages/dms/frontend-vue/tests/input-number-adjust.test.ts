@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A number field keeps a typed value within its bounds when it is left or on
  * Enter, and on its steps only when asked to (`stepSnapping`): by default the
@@ -7,28 +7,18 @@
  * shows "1020 → 1,000" without remounting the field.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type App,
-  type Component,
-  createApp,
-  defineComponent,
-  h,
-  nextTick,
-  ref,
-} from "vue";
+import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import {
   numberAdjustment,
   parseTypedNumber,
-} from "../layers/dms-ui/app/build/utils/numberAdjustment";
+} from "../layers/dms-ui/app/entries/utils/numberAdjustment";
 import type { InputNumberAdjustment } from "../layers/dms-ui/app/types/input-number";
+import type InputNumber from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import { NumberFieldInput, NumberFieldRoot } from "reka-ui";
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The Nuxt UI field as far as the wrapper sees it: it applies the typed text
-// on blur or Enter, kept within `min` / `max`, and on `step` when it snaps
-// (reka's `stepSnapping`), then emits blur.
 const NumberField = defineComponent({
   inheritAttrs: false,
   props: {
@@ -40,6 +30,7 @@ const NumberField = defineComponent({
   },
   emits: ["update:modelValue", "blur"],
   setup(props, { emit }) {
+    const input = ref<HTMLInputElement>();
     const apply = (input: HTMLInputElement) => {
       const typed = Number(input.value.replace(/,/g, ""));
       const bounded = Math.min(
@@ -55,25 +46,26 @@ const NumberField = defineComponent({
     };
     return () =>
       h("input", {
+        ref: input,
         onBlur: (event: FocusEvent) => {
-          apply(event.target as HTMLInputElement);
+          apply(input.value!);
           emit("blur", event);
         },
         onKeydown: (event: KeyboardEvent) => {
-          if (event.key === "Enter") apply(event.target as HTMLInputElement);
+          if (event.key === "Enter") apply(input.value!);
         },
       });
   },
 });
 
-async function mount(props: Record<string, unknown>) {
-  const value = ref<number | undefined>(props.modelValue as number);
+async function mount(
+  props: Partial<InstanceType<typeof InputNumber>["$props"]>,
+) {
+  const value = ref(props.modelValue);
   const adjustments: InputNumberAdjustment[] = [];
-  const field = (
-    await import(
-      "../layers/dms-ui/app/components/form/components/InputNumber.vue"
-    )
-  ).default as Component;
+  const { default: field } = await import(
+    "../layers/dms-ui/app/components/form/components/InputNumber.vue"
+  );
   app = createApp({
     render: () =>
       h(field, {
@@ -91,12 +83,6 @@ async function mount(props: Record<string, unknown>) {
   return { value, adjustments, input: host.querySelector("input")! };
 }
 
-// Vue ignores an event that reaches one of its listeners in the millisecond
-// that listener was attached (runtime-dom's `_vts` check, against events
-// fired while the patch that attached it runs). Enter bubbles from the field's
-// own listener to the wrapper's, so an Enter fired in the millisecond of the
-// mount never settled the field: about one run in two. A person never types
-// that fast, so the field is used once the clock has moved on.
 async function untilListenersAttached() {
   const attached = Date.now();
   while (Date.now() <= attached) {
@@ -134,8 +120,7 @@ describe("parseTypedNumber", () => {
     expect(parseTypedNumber("1,020", "en")).toBe(1020);
     expect(parseTypedNumber(" -100 ", "en")).toBe(-100);
     expect(parseTypedNumber("1 020,5", "fr")).toBe(1020.5);
-    // The field draws French groups with a narrow space, the cells with a
-    // no-break one, and the keyboard types a plain one: each reads.
+
     for (const space of [" ", "\u202F", "\u00A0"]) {
       expect(parseTypedNumber(`1${space}234${space}567,5`, "fr-FR")).toBe(
         1234567.5,
@@ -224,8 +209,6 @@ describe("DmsInputNumber adjust", () => {
   });
 });
 
-// The field itself is Nuxt UI's, over reka's number field, which writes and
-// reads the number with `Intl` on its own.
 describe("the number field Nuxt UI draws", () => {
   it("reads a typed number grouped by any space", async () => {
     for (const space of [" ", "\u202F", "\u00A0"]) {

@@ -9,6 +9,7 @@ import { UI_HINTS } from "./internal/ui";
  */
 export function narrowString<T extends string>(): ZodType<T, ZodTypeDef, T> {
   const schema: ZodType<string, ZodTypeDef, string> = z.string();
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published helper intentionally accepts every string at runtime; T is a caller-supplied compile-time restriction, not validated membership.
   return schema as ZodType<T, ZodTypeDef, T>;
 }
 
@@ -18,7 +19,7 @@ export function narrowString<T extends string>(): ZodType<T, ZodTypeDef, T> {
  * `json` or `block` widget so the UI knows how to present it.
  */
 export function opaqueOption<T>(): ZodType<T, ZodTypeDef, T> {
-  return z.any() as ZodType<T, ZodTypeDef, T>;
+  return z.any();
 }
 
 /**

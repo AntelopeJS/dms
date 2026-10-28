@@ -24,7 +24,6 @@ export type UserDateFormat = "numeric" | "text";
 
 @RegisterTable(USERS_TABLE_NAME, CORE_SCHEMA_NAME)
 export class User extends Table.with(HashModifier) {
-  /* 📅 Meta */
   @Field("string")
   declare _id: string;
 
@@ -38,7 +37,6 @@ export class User extends Table.with(HashModifier) {
   @Field("date")
   declare updatedAt: Date;
 
-  /* 🎭 Personal informations */
   @Index()
   @Field("string")
   declare email: string;
@@ -60,8 +58,6 @@ export class User extends Table.with(HashModifier) {
   @Field("string")
   declare language: string;
 
-  /* 🌍 Regional preferences — unset or null follows the browser and the language */
-
   /** IANA time zone dates and times are shown in (`Europe/Brussels`). */
   @Field("string")
   declare timeZone?: string | null;
@@ -78,7 +74,6 @@ export class User extends Table.with(HashModifier) {
   @Field("string")
   declare dateFormat?: UserDateFormat | null;
 
-  /* 🔑 Authentication data */
   @Hashed()
   @Field("string")
   declare password: string | null;
@@ -89,8 +84,6 @@ export class User extends Table.with(HashModifier) {
    */
   @Field("date")
   declare passwordChangedAt: Date | null;
-
-  /* ⚙️ Extra Meta */
 
   /**
    * Authentication key used for JWT secret generation

@@ -57,8 +57,6 @@ const isFocused = computed(() =>
 const isEditing = computed(() =>
   interaction.isEditing(props.row.id, props.column.id),
 );
-// The keyboard enters the grid here while no cell has the focus. Read in
-// the cell: a focus move then redraws the cells it concerns, not the grid.
 const isEntry = computed(() => {
   if (interaction.focus.value) return false;
   const entry = matrix.entryCell.value;
@@ -88,7 +86,6 @@ const isHovered = computed(
     interaction.hover.value.columnId === props.column.id,
 );
 
-// Its save's state first, then what the server says of the cell, then the row's.
 const tint = computed(() => {
   if (saveState.value === "error" || saveState.value === "conflict")
     return MATRIX_TONE_TINTS.error;
@@ -97,8 +94,6 @@ const tint = computed(() => {
   return props.row.tone ? MATRIX_TONE_TINTS[props.row.tone] : undefined;
 });
 
-// The value before the edit, or the one the server says was there: struck
-// through, unless there was none (an empty cell has nothing to strike).
 const struck = computed(() => {
   if (edit.value && !edit.value.conflict) return edit.value.before;
   return state.value.previous;
@@ -116,7 +111,6 @@ const issues = computed(() =>
 const failureMessage = computed(() => {
   const current = edit.value;
   if (!current) return "";
-  // A failed Overwrite says why (the network, a refusal) before the conflict.
   if (current.message) return matrix.text(current.message);
   if (current.conflict)
     return t("dms.matrix.conflict", {
@@ -130,8 +124,6 @@ const title = computed(() => {
   return undefined;
 });
 
-// A click edits: hovered, the cell draws the frame of the input it opens.
-// A switch is toggled, not typed into: it keeps its own look.
 const isFramed = computed(
   () => isEditable.value && !state.value.disabled && kind.value !== "boolean",
 );

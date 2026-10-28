@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import type { FrontendModuleRegistration } from "@antelopejs/interface-dms/page";
 import { applyConfig } from "../../config";
 import { AddFrontendModule } from "../../implementations/dms/page";
 import { createClient } from "../helpers/http";
@@ -23,7 +24,7 @@ interface FrontendManifestModule {
   name: string;
   renderer: FrontendRenderer;
   path?: string;
-  privateOptions?: Record<string, unknown>;
+  privateOptions?: FrontendModuleRegistration["privateOptions"];
   authEstablishEndpoints?: string[];
 }
 
@@ -76,8 +77,6 @@ describe("[integration] dms frontend endpoints", () => {
       expect(response.data).to.equal(BOOTSTRAP_REQUIRED);
     });
 
-    // The regression this suite exists for: `warn` is the shipped default, and
-    // it used to serve the manifest to anyone.
     describe("and requireBootstrap left on its warn default", () => {
       before(() => applyConfig({ frontend: { requireBootstrap: "warn" } }));
 

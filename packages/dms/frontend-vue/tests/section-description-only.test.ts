@@ -2,18 +2,18 @@ import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import DmsSection from "../layers/dms-ui/app/components/section/Section.vue";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({}),
-}));
-
-beforeEach(() => {
+beforeEach(async () => {
+  await stubBlockRuntime(vi.fn());
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
 
-function render(props: Record<string, unknown>): Promise<string> {
+function render(
+  props: InstanceType<typeof DmsSection>["$props"],
+): Promise<string> {
   return renderToString(
     createSSRApp({
       render: () => h(DmsSection, props, { default: () => "Rows" }),

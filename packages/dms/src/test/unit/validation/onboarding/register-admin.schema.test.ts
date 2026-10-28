@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { onboardingRegisterAdminSchema } from "../../../../validation/onboarding/register-admin.schema";
+import { onboardingRegisterAdminSchema } from "../../../../validation";
 
 const validPayload = {
   email: "admin@test.local",

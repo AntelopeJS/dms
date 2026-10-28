@@ -37,7 +37,6 @@ const SCROLL_MARGIN = "400px";
 /** Rows drawn at a time in a grid listing every row at once. */
 const REVEAL_BATCH = 200;
 const ROW_HEIGHTS = { compact: "36px", comfortable: "44px" } as const;
-// The header row is row 1.
 const FIRST_BODY_ROW_INDEX = 2;
 
 const scroller = useTemplateRef<HTMLElement>("scroller");
@@ -116,8 +115,6 @@ const answeredIndex = computed(
     ),
 );
 
-// Thousands of rows listed at once are drawn a batch at a time, the next one
-// as the sentinel comes into view, so the grid stays fluid.
 const isBatched = computed(
   () => (matrix.options.pagination ?? "none") === "none",
 );
@@ -128,7 +125,6 @@ watch(
     revealed.value = REVEAL_BATCH;
   },
 );
-// A row the keyboard or a jump moves to is drawn first.
 watch(matrix.interaction.focus, (focus) => {
   if (!focus || !isBatched.value) return;
   const index = matrix.rows.shown.value.findIndex(
@@ -180,8 +176,6 @@ const hasMore = computed(
 const groupHeaderCount = computed(
   () => matrix.rows.sections.value.filter((section) => section.group).length,
 );
-// Every row of the grid: the header, the rows the query matches, the group
-// headers, and the Total row.
 const rowCount = computed(
   () =>
     1 +
@@ -231,7 +225,6 @@ const observer = useIntersectionObserver(
     rootMargin: SCROLL_MARGIN,
   },
 );
-// A sentinel still in view after rows landed asks for the next ones.
 watch(
   () => items.value.length,
   () => {

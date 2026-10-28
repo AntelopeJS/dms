@@ -24,7 +24,7 @@ function getConfig(
   action: (typeof DEFAULT_MANAGED_ACTIONS)[number],
 ): RowActionConfig | undefined {
   const value = result?.[action];
-  if (typeof value === "object" && value !== null) {
+  if (value && value !== true) {
     return value;
   }
   return undefined;
@@ -46,7 +46,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
       const result = applyArchiveModeDefaultRules(undefined, ARCHIVE_FIELD);
 
       for (const action of ACTIONS_NOT_EQUALS_TRUE) {
-        const rule = getConfig(result, action)?.rule as RowActionRule;
+        const rule = getConfig(result, action)?.rule;
         expect(rule).to.deep.equal({
           field: ARCHIVE_FIELD,
           notEquals: true,
@@ -58,7 +58,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
       const result = applyArchiveModeDefaultRules(undefined, ARCHIVE_FIELD);
 
       for (const action of ACTIONS_EQUALS_TRUE) {
-        const rule = getConfig(result, action)?.rule as RowActionRule;
+        const rule = getConfig(result, action)?.rule;
         expect(rule).to.deep.equal({
           field: ARCHIVE_FIELD,
           equals: true,
@@ -81,7 +81,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
       };
       const result = applyArchiveModeDefaultRules(input, ARCHIVE_FIELD);
 
-      expect((result?.edit as RowActionConfig)?.isEnabled).to.equal(false);
+      expect(getConfig(result, "edit")?.isEnabled).to.equal(false);
     });
 
     it("applies default rule when user passes true", () => {
@@ -109,7 +109,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
         label: "Change",
         rule: { and: [{ field: ARCHIVE_FIELD, notEquals: true }, customRule] },
       });
-      expect((result?.delete as RowActionConfig)?.rule).to.deep.equal({
+      expect(getConfig(result, "delete")?.rule).to.deep.equal({
         and: [{ field: ARCHIVE_FIELD, equals: true }, customRule],
       });
     });
@@ -154,7 +154,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
       const altField = "deleted";
       const result = applyArchiveModeDefaultRules(undefined, altField);
 
-      const rule = getConfig(result, "edit")?.rule as RowActionRule;
+      const rule = getConfig(result, "edit")?.rule;
       expect(rule).to.deep.equal({ field: altField, notEquals: true });
     });
   });

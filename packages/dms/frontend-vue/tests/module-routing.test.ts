@@ -10,7 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
-import { MODULE_URL_PREFIX } from "../layers/dms-layout/app/types/page";
+import { MODULE_URL_PREFIX } from "../layers/dms-core/app/types/page";
 
 interface TreeNode {
   id: string;
@@ -27,7 +27,10 @@ interface GuardedRoute {
   fullPath: string;
 }
 
-type Middleware = (to: GuardedRoute, from?: GuardedRoute) => Promise<unknown>;
+type Middleware = (
+  to: GuardedRoute,
+  from?: GuardedRoute,
+) => Promise<string | false | void>;
 
 const navigateDms = vi.fn();
 
@@ -81,10 +84,11 @@ function stubSiteLayout(moduleRoot: TreeNode, landingPage?: string) {
   }));
 }
 
-async function enter(fullPath: string, drawnThere = false): Promise<unknown> {
+async function enter(fullPath: string, drawnThere = false) {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The identity defineDmsMiddleware stub exposes the handler with only the path fields this middleware reads, not complete router records.
   const middleware = (
     await import("../layers/dms-layout/app/middleware/module-routing.global")
-  ).default as unknown as Middleware;
+  ).default as Middleware;
   const path = fullPath.replace(/[?#].*$/, "");
   const to = { path, fullPath };
   return middleware(to, drawnThere ? to : { path: "/home", fullPath: "/home" });
@@ -97,7 +101,7 @@ beforeEach(() => {
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useHomepage", () => "/dashboard");
   vi.stubGlobal("useModuleHistory", () => ({ record: vi.fn() }));
-  vi.stubGlobal("createDmsError", (error: unknown) => error);
+  vi.stubGlobal("createDmsError", <ErrorInput>(error: ErrorInput) => error);
 });
 
 afterEach(() => {

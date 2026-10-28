@@ -41,8 +41,6 @@ export async function start() {
     renderer: { name: "vue", version: "3" },
     priority: 100,
     options: { dmsI18nAppLayer: true },
-    // A provider's webhook, reachable through the frontend server without a
-    // session or a same-site Origin (see hooks/webhooks.ts).
     publicEndpoints: [
       {
         path: `${WEBHOOKS_API}/*`,

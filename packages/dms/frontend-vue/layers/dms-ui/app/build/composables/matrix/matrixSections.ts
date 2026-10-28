@@ -24,7 +24,6 @@ export interface MatrixRowGroup {
 export type MatrixRowGroupOf = (row: MatrixRow) => MatrixRowGroup | null;
 
 const UNGROUPED_KEY = "\u0000ungrouped";
-// A group built from a column's value never takes the id of a server group.
 const FIELD_GROUP_PREFIX = "\u0000field:";
 
 /** The section key of a group built from `groupByField`. */

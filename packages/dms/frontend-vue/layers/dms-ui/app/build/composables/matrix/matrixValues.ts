@@ -10,9 +10,6 @@ const DEFAULT_KIND: MatrixCellKind = "text";
 const LINE_BREAK = "\n";
 /** Typed in a nullable text cell, it empties the cell. */
 export const NULL_DRAFT = "null";
-// In a nullable text cell the text "null" itself is typed escaped, `\null`
-// (and `\\null` for `\null`): an editor opens such a text with one more
-// backslash, and reading a draft takes one away.
 const NULL_LIKE_TEXT = /^\\*null$/;
 const ESCAPED_NULL = /^\\+null$/;
 const NO_INDENT = 0;

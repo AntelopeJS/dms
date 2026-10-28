@@ -47,8 +47,6 @@ export class AttemptLimiter {
     return undefined;
   }
 
-  // A Map iterates in insertion order, so the first keys hold the oldest
-  // windows.
   private evictBeyondCapacity(): void {
     for (const key of this.windows.keys()) {
       if (this.windows.size <= this.maxKeys) return;

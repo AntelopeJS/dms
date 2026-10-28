@@ -4,35 +4,12 @@
  * column with their counts and subtotals, the totals both ways with a missed
  * target, and the legend.
  */
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
-import MatrixBlock from "../layers/dms-ui/app/components/blocks/MatrixBlock.vue";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 import type { MatrixData } from "../layers/dms-ui/app/types/matrix";
-
-vi.mock(
-  "../layers/dms-ui/app/build/composables/actions/useActionTargets",
-  () => ({ useActionTargets: () => ({ handleCustomRowAction: vi.fn() }) }),
-);
-vi.mock(
-  "../layers/dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
-  () => ({ useUnsavedChanges: vi.fn() }),
-);
-vi.mock("../layers/dms-ui/app/composables/confirm/useConfirm", () => ({
-  useConfirm: () => ({ confirm: vi.fn() }),
-}));
-vi.mock(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers",
-  () => ({ useRefreshTriggers: vi.fn() }),
-);
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: vi.fn() }),
-);
 
 const Slot = defineComponent({
   props: { label: { type: String, default: undefined } },
@@ -80,6 +57,9 @@ const STOCK: MatrixData = {
 };
 
 async function render(options: Record<string, unknown>): Promise<string> {
+  const { default: MatrixBlock } = await import(
+    "../layers/dms-ui/app/components/blocks/MatrixBlock.vue"
+  );
   const app = createSSRApp({
     render: () =>
       h(MatrixBlock, {
@@ -111,7 +91,9 @@ async function render(options: Record<string, unknown>): Promise<string> {
   return renderToString(app);
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.stubGlobal("shallowRef", shallowRef);
+  await stubBlockRuntime(vi.fn().mockResolvedValue(null));
   useRealDataEngine();
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en-GB"),
@@ -123,6 +105,13 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRoute", () => ({ query: {}, params: {} }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   vi.stubGlobal("useDrawer", () => ({ open: vi.fn() }));
+  vi.stubGlobal("useModal", () => ({ open: vi.fn() }));
+  vi.stubGlobal("useExportJob", () => ({ runJob: vi.fn() }));
+  vi.stubGlobal("useClipboard", () => ({ copy: vi.fn() }));
+  vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn(async () => true) }));
+  vi.stubGlobal("useOverlay", () => ({
+    create: () => ({ open: vi.fn(async () => true) }),
+  }));
   vi.stubGlobal("useApiError", vi.fn());
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
 });
@@ -160,7 +149,6 @@ it("groups the rows on a column, with counts and subtotals", async () => {
   expect(html).toContain("Namur");
   expect(html).toContain('aria-expanded="true"');
   expect(html).toContain("dms.matrix.group_collapse");
-  // Liège: 4 + 6 + 1 + 2 = 13; the whole grid: 16.
   expect(html).toContain(">13<");
   expect(html).toContain("Total réparti");
   expect(html).toContain(">16<");

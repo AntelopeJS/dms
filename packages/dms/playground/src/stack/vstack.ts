@@ -17,12 +17,8 @@ const COLUMN_DISTRIBUTIONS: StackDistribution[] = [
   "space-evenly",
 ];
 
-// The sibling stacks are full width and squeeze the ruler: its label stays
-// one short word.
 const RULER_WIDTH = "112px";
 
-// A VStack only has height to distribute when its row stretches it: the
-// 300 px placeholder beside the columns sets that height.
 function distributedColumn(distribution: StackDistribution) {
   return VStack({ distribution, alignment: "stretch", spacing: "8px" })
     .child("label", Placeholder({ label: distribution, height: ITEM_HEIGHT }))

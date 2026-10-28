@@ -18,12 +18,10 @@ interface KanbanDisplayOptions {
 }
 
 const options = computed(
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Backend display options are not validated here; preserve their current forwarding and fallback behavior.
   () => (props.context.options ?? {}) as KanbanDisplayOptions,
 );
 
-// Group-by + the rest of the kanban-specific inputs come from the bridge that
-// TableView provides (the generic context deliberately omits them). Falls back
-// to a local ref when used outside a TableView (defensive).
 const bridge = inject(KANBAN_DISPLAY_BRIDGE_KEY, undefined);
 const fallbackGroupBy = ref(options.value.groupByField ?? "");
 const groupByField = bridge?.groupByField ?? fallbackGroupBy;
@@ -35,7 +33,7 @@ const onCardClick = (item: T) => props.context.actions.open(item);
 
 const onCardDelete = (item: T) => {
   const id = rowId(item);
-  // The card is not among the grid's rows: hand it, its dialog names it.
+
   if (id) props.context.actions.delete([id], [item]);
 };
 
@@ -62,9 +60,9 @@ defineExpose({ refresh: () => kanbanBoardRef.value?.refresh() });
     :page-id="context.pageId"
     :edit-action="bridge?.editAction"
     :delete-action="bridge?.deleteAction"
-    @card-click="(item) => onCardClick(item as T)"
+    @card-click="(item) => onCardClick(item)"
     @card-delete="(item) => onCardDelete(item as T)"
     @moved="bridge?.onCardMoved?.()"
-    @rows-shown="(items) => context.setShownRows?.(items as T[])"
+    @rows-shown="(items) => context.setShownRows?.(items)"
   />
 </template>

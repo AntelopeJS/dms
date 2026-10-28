@@ -4,29 +4,28 @@
  * children; it keeps them while the route loads, after any other failure,
  * and once the value is set.
  */
-import { computed, createSSRApp, defineComponent, h, ref } from "vue";
+import {
+  computed,
+  createSSRApp,
+  defineComponent,
+  h,
+  onServerPrefetch,
+  ref,
+} from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Guard from "../layers/dms-ui/app/components/guard/Guard.vue";
 import {
   isEmptyValue,
   readFieldPath,
-} from "../layers/dms-ui/app/build/composables/blocks/useGuard";
+} from "../layers/dms-ui/app/entries/composables/blocks/useGuard";
+import { engine } from "./helpers/api-data-runtime";
+import { stubBlockRuntime } from "./helpers/block-runtime";
+import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
+import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
 
-const answer = ref<unknown>(null);
-const failure = ref<unknown>(null);
-const fetchOptions = vi.fn();
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: unknown) => {
-    fetchOptions(options);
-    return { data: answer, isLoading: ref(false), error: failure };
-  },
-}));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- The guard parses raw transport responses; the mock must admit all of the tested response shapes and null.
+const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
 
 const Slot = defineComponent({
   setup:
@@ -53,175 +52,69 @@ const GUARD = {
   },
 };
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(
+  props: Partial<InstanceType<typeof Guard>["$props"]>,
+  prepare?: () => void,
+): Promise<string> {
+  const runtime = engine.createDmsFrontendRuntime(
+    undefined,
+    {},
+    true,
+    "dms-time-zone=UTC",
+  );
+  runtime.route.fullPath = "/routes?route=r1";
+  let unregister = () => {};
   const app = createSSRApp({
-    render: () =>
-      h(
-        Guard,
-        { componentId: "statistics", pageId: "routes", ...props },
-        { default: () => h("section", { "data-children": "" }, "children") },
-      ),
+    setup() {
+      unregister = registerPeriodScope(
+        "api",
+        computed(() => ({
+          preset: "all",
+          comparison: "none",
+          range: null,
+          compareRange: null,
+          key: "all",
+        })),
+      );
+      prepare?.();
+      return () =>
+        h(
+          Guard,
+          {
+            componentId: "statistics",
+            pageId: "routes",
+            routeParams: { id: "r1" },
+            ...props,
+          },
+          { default: () => h("section", { "data-children": "" }, "children") },
+        );
+    },
   });
+  engine.provideDmsFrontendRuntime(app, runtime);
   for (const name of ["UIcon", "DmsLink"]) app.component(name, Slot);
   app.component("UButton", Button);
-  return renderToString(app);
+  try {
+    return await renderToString(app);
+  } finally {
+    unregister();
+    runtime.scope.stop();
+  }
 }
 
-beforeEach(() => {
-  answer.value = null;
-  failure.value = null;
-  fetchOptions.mockClear();
-  // Nuxt auto-imports, which the components use unimported.
-  vi.stubGlobal("ref", ref);
-  vi.stubGlobal("computed", computed);
+beforeEach(async () => {
+  authFetch.mockReset().mockResolvedValue(null);
+  await stubBlockRuntime(authFetch);
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en-US"),
     t: (key: string) => `t(${key})`,
-  }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
   }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Guard", () => {
-  it("reads the route like a block's data source", async () => {
-    await render({ ...GUARD });
-    expect(fetchOptions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fetchUrl: GUARD.fetchUrl,
-        periodScope: "api",
-        realtimeTopic: "requests",
-      }),
-    );
-  });
-
-  it("keeps its children until the route answers", async () => {
-    const html = await render({ ...GUARD });
-    expect(html).toContain("data-children");
-    expect(html).not.toContain("idle_title");
-  });
-
-  it("keeps its children while the value is set", async () => {
-    answer.value = { summary: { calls: 12 } };
-    const html = await render({ ...GUARD });
-    expect(html).toContain("data-children");
-    expect(html).not.toContain("idle_title");
-  });
-
-  it("keeps its children after a failure", async () => {
-    answer.value = { summary: { calls: 0 } };
-    failure.value = { statusCode: 500 };
-    const html = await render({ ...GUARD });
-    expect(html).toContain("data-children");
-  });
-
-  it("swaps its children for the fallback when the value is empty", async () => {
-    answer.value = { summary: { calls: 0 } };
-    const html = await render({ ...GUARD });
-    expect(html).not.toContain("data-children");
-    expect(html).toContain("t($api.routes.statistics.idle_title)");
-    expect(html).toMatch(
-      /<a data-button href="\/routes\?tab=2"[^>]*>Test this route</,
-    );
-  });
-
-  it("checks the whole answer without a field", async () => {
-    answer.value = [];
-    const html = await render({ ...GUARD, field: undefined });
-    expect(html).not.toContain("data-children");
-  });
-
-  it("lays the answer's own emptyState over the fallback", async () => {
-    answer.value = {
-      summary: { calls: 0 },
-      emptyState: {
-        description: "Last called Oct 10",
-        actions: [{ label: "Test this route", to: "/routes?route=r1&tab=2" }],
-      },
-    };
-    const html = await render({ ...GUARD });
-    expect(html).toContain("t($api.routes.statistics.idle_title)");
-    expect(html).toContain("Last called Oct 10");
-    expect(html).toMatch(
-      /<a data-button href="\/routes\?route=r1&amp;tab=2"[^>]*>/,
-    );
-  });
-
-  it("falls back on a translated title without a fallback", async () => {
-    answer.value = { summary: { calls: 0 } };
-    const html = await render({ ...GUARD, fallback: undefined });
-    expect(html).toContain("t(dms.blocks.empty)");
-  });
-
-  describe("when notFound", () => {
-    const NOT_FOUND = {
-      fetchUrl: "/api/routes/{{params.id}}",
-      when: "notFound",
-    };
-
-    it("swaps its children for Not found when the route answers 404", async () => {
-      failure.value = { statusCode: 404 };
-      const html = await render(NOT_FOUND);
-      expect(html).not.toContain("data-children");
-      expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("t(dms.blocks.not_found_hint)");
-    });
-
-    it("describes it with the 404's message, as a block does", async () => {
-      failure.value = {
-        statusCode: 404,
-        data: { message: "No such route" },
-      };
-      const html = await render(NOT_FOUND);
-      expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("No such route");
-      expect(html).not.toContain("t(dms.blocks.not_found_hint)");
-    });
-
-    it("reads the 404 body ofetch keeps on the response", async () => {
-      failure.value = {
-        response: {
-          status: 404,
-          _data: { emptyState: { title: "Workspace gone" } },
-        },
-      };
-      expect(await render(NOT_FOUND)).toContain("Workspace gone");
-    });
-
-    it("lets the fallback replace the 404's message", async () => {
-      failure.value = { statusCode: 404, data: { message: "No such route" } };
-      const html = await render({
-        ...NOT_FOUND,
-        fallback: { description: "This route was removed." },
-      });
-      expect(html).toContain("This route was removed.");
-      expect(html).not.toContain("No such route");
-    });
-
-    it("lays the 404 body's emptyState over the fallback", async () => {
-      failure.value = {
-        statusCode: 404,
-        data: { emptyState: { description: "Deleted on Oct 10" } },
-      };
-      const html = await render({
-        ...NOT_FOUND,
-        fallback: { title: "Route gone" },
-      });
-      expect(html).toContain("Route gone");
-      expect(html).toContain("Deleted on Oct 10");
-    });
-
-    it("keeps its children on an answer or another failure", async () => {
-      answer.value = null;
-      expect(await render(NOT_FOUND)).toContain("data-children");
-      answer.value = { id: "r1" };
-      expect(await render(NOT_FOUND)).toContain("data-children");
-      failure.value = { statusCode: 500 };
-      expect(await render(NOT_FOUND)).toContain("data-children");
-    });
-  });
+  registerGuardDataTests();
+  registerGuardNotFoundTests();
 });
 
 describe("Guard field", () => {
@@ -240,3 +133,154 @@ describe("Guard field", () => {
     }
   });
 });
+
+function registerGuardDataTests() {
+  it("reads the route like a block's data source", async () => {
+    await render({ ...GUARD });
+    expect(authFetch).toHaveBeenCalledWith(
+      "/api/routes/activity?route=r1&preset=all&comparison=none",
+      expect.any(Object),
+    );
+  });
+
+  it("keeps its children until the route answers", async () => {
+    const html = await render({ ...GUARD });
+    expect(html).toContain("data-children");
+    expect(html).not.toContain("idle_title");
+  });
+
+  it("keeps its children while the value is set", async () => {
+    authFetch.mockResolvedValue({ summary: { calls: 12 } });
+    const html = await render({ ...GUARD });
+    expect(html).toContain("data-children");
+    expect(html).not.toContain("idle_title");
+  });
+
+  it("keeps its children after a failure", async () => {
+    authFetch.mockResolvedValueOnce({ summary: { calls: 0 } });
+    authFetch.mockRejectedValue({ statusCode: 500 });
+    const html = await render({ ...GUARD }, () => {
+      const loaded = useApiData(
+        "/api/routes/activity?route=r1&preset=all&comparison=none",
+      );
+      onServerPrefetch(async () => {
+        await loaded;
+        await loaded.refresh();
+        expect(loaded.data.value).toEqual({ summary: { calls: 0 } });
+        expect(loaded.error.value).toMatchObject({ statusCode: 500 });
+      });
+    });
+    expect(html).toContain("data-children");
+  });
+
+  it("swaps its children for the fallback when the value is empty", async () => {
+    authFetch.mockResolvedValue({ summary: { calls: 0 } });
+    const html = await render({ ...GUARD });
+    expect(html).not.toContain("data-children");
+    expect(html).toContain("t(api.routes.statistics.idle_title)");
+    expect(html).toMatch(
+      /<a data-button href="\/routes\?tab=2"[^>]*>Test this route</,
+    );
+  });
+
+  it("checks the whole answer without a field", async () => {
+    authFetch.mockResolvedValue([]);
+    const html = await render({ ...GUARD, field: undefined });
+    expect(html).not.toContain("data-children");
+  });
+
+  it("lays the answer's own emptyState over the fallback", async () => {
+    authFetch.mockResolvedValue({
+      summary: { calls: 0 },
+      emptyState: {
+        description: "Last called Oct 10",
+        actions: [{ label: "Test this route", to: "/routes?route=r1&tab=2" }],
+      },
+    });
+    const html = await render({ ...GUARD });
+    expect(html).toContain("t(api.routes.statistics.idle_title)");
+    expect(html).toContain("Last called Oct 10");
+    expect(html).toMatch(
+      /<a data-button href="\/routes\?route=r1&amp;tab=2"[^>]*>/,
+    );
+  });
+
+  it("falls back on a translated title without a fallback", async () => {
+    authFetch.mockResolvedValue({ summary: { calls: 0 } });
+    const html = await render({ ...GUARD, fallback: undefined });
+    expect(html).toContain("t(dms.blocks.empty)");
+  });
+}
+
+function registerGuardNotFoundTests() {
+  describe("when notFound", () => {
+    const NOT_FOUND = {
+      fetchUrl: "/api/routes/{{params.id}}",
+      when: "notFound",
+    };
+
+    it("swaps its children for Not found when the route answers 404", async () => {
+      authFetch.mockRejectedValue({ statusCode: 404 });
+      const html = await render(NOT_FOUND);
+      expect(html).not.toContain("data-children");
+      expect(html).toContain("t(dms.blocks.not_found)");
+      expect(html).toContain("t(dms.blocks.not_found_hint)");
+    });
+
+    it("describes it with the 404's message, as a block does", async () => {
+      authFetch.mockRejectedValue({
+        statusCode: 404,
+        data: { message: "No such route" },
+      });
+      const html = await render(NOT_FOUND);
+      expect(html).toContain("t(dms.blocks.not_found)");
+      expect(html).toContain("No such route");
+      expect(html).not.toContain("t(dms.blocks.not_found_hint)");
+    });
+
+    it("reads the 404 body ofetch keeps on the response", async () => {
+      authFetch.mockRejectedValue({
+        response: {
+          status: 404,
+          _data: { emptyState: { title: "Workspace gone" } },
+        },
+      });
+      expect(await render(NOT_FOUND)).toContain("Workspace gone");
+    });
+
+    it("lets the fallback replace the 404's message", async () => {
+      authFetch.mockRejectedValue({
+        statusCode: 404,
+        data: { message: "No such route" },
+      });
+      const html = await render({
+        ...NOT_FOUND,
+        fallback: { description: "This route was removed." },
+      });
+      expect(html).toContain("This route was removed.");
+      expect(html).not.toContain("No such route");
+    });
+
+    it("lays the 404 body's emptyState over the fallback", async () => {
+      authFetch.mockRejectedValue({
+        statusCode: 404,
+        data: { emptyState: { description: "Deleted on Oct 10" } },
+      });
+      const html = await render({
+        ...NOT_FOUND,
+        fallback: { title: "Route gone" },
+      });
+      expect(html).toContain("Route gone");
+      expect(html).toContain("Deleted on Oct 10");
+    });
+
+    it("keeps its children on an answer or another failure", async () => {
+      authFetch.mockResolvedValue(null);
+      expect(await render(NOT_FOUND)).toContain("data-children");
+      authFetch.mockResolvedValue({ id: "r1" });
+      expect(await render(NOT_FOUND)).toContain("data-children");
+      authFetch.mockRejectedValue({ statusCode: 500 });
+      expect(await render(NOT_FOUND)).toContain("data-children");
+    });
+  });
+}

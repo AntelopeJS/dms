@@ -3,7 +3,8 @@ import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import EmailLayout from "../layers/dms-layout/app/emails/components/EmailLayout.vue";
 import { emailLogoUrl } from "../layers/dms-layout/app/emails/components/index";
-import type { DmsLogoSources } from "../layers/dms-core/shared/types/app-config";
+import type { DmsLogoSources } from "../layers/dms-core/app/entries/shared/types/app-config";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 /** `branding.logo` as an email reads it: a path stands for `default.light`. */
 interface EmailLogos {
@@ -13,7 +14,7 @@ interface EmailLogos {
 
 const PUBLIC_BASE = "https://admin.example.com";
 const DARK_SOURCE_MEDIA = 'media="(prefers-color-scheme: dark)"';
-const ELEMENTS: Record<string, string> = {
+const ELEMENTS = {
   EHtml: "html",
   EHead: "head",
   EBody: "body",
@@ -36,11 +37,11 @@ function element(tag: string) {
 }
 
 async function renderLayout(
-  props: Record<string, unknown>,
+  props: InstanceType<typeof EmailLayout>["$props"],
   logo: string | EmailLogos = "/images/logo.png",
   clientBaseUrl = PUBLIC_BASE,
 ): Promise<string> {
-  const logos = typeof logo === "string" ? { default: { light: logo } } : logo;
+  const logos = isString(logo) ? { default: { light: logo } } : logo;
   vi.stubGlobal("useDmsAppConfig", () => ({ branding: { logo: logos } }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { clientBaseUrl } },

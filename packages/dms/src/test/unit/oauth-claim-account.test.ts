@@ -5,8 +5,8 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
-import { claimUnvalidatedAccount } from "../../routes/auth/oauth/identity-resolution";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+import { claimUnvalidatedAccount } from "../../routes/oauth";
+import type { ProviderIdentity } from "../../routes/oauth";
 
 const IDENTITY: ProviderIdentity = {
   providerAccountId: "42",
@@ -16,6 +16,7 @@ const IDENTITY: ProviderIdentity = {
 };
 
 function buildUnvalidatedUser(): User {
+  // SAFETY: claimUnvalidatedAccount mutates credential and profile fields on this plain row; it never invokes persisted-user methods or reads omitted fields.
   return {
     _id: "user-1",
     email: "alex@acme.dev",
@@ -34,13 +35,14 @@ function buildUnvalidatedUser(): User {
     twoFactorBackupCodes: ["backup-1"],
     twoFactorEmailCode: "999999",
     twoFactorEmailCodeRequestedAt: new Date(0),
-  } as unknown as User;
+  } as User;
 }
 
 describe("[unit] oauth claim of an unvalidated account", () => {
   async function claim(): Promise<{ user: User; updated: boolean }> {
     const user = buildUnvalidatedUser();
     let updated = false;
+    // SAFETY: claimUnvalidatedAccount uses only update on this model; provider binding cleanup uses its separately resolved real model.
     const userModel = {
       update: async () => {
         updated = true;

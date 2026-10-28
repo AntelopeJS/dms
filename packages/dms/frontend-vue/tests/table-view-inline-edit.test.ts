@@ -1,7 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useTableInlineEdit } from "../layers/dms-ui/app/build/composables/table-view/useTableInlineEdit";
-import { resolveInlineEditColumns } from "../layers/dms-ui/app/build/composables/table-view/utils/inlineEdit";
+import { useTableInlineEdit } from "../layers/dms-ui/app/entries/composables/table-view/useTableInlineEdit";
+import { resolveInlineEditColumns } from "../layers/dms-ui/app/entries/composables/table-view/utils/inlineEdit";
 import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
 import type {
   TableViewColumn,
@@ -167,7 +167,6 @@ describe("a cell edited in place", () => {
     edit.start(row(0), "price");
     edit.setDraft(150);
     const saving = edit.commit(row(0), "price");
-    // The cell shows the value sent while it is saved.
     expect(edit.valueOf(row(0), "price")).toBe(150);
     expect(edit.isSaving(row(0), "price")).toBe(true);
     expect(await saving).toBe(true);
@@ -176,7 +175,6 @@ describe("a cell edited in place", () => {
       query: { id: "p1" },
       body: { price: 150 },
     });
-    // The row as the server answers it replaces the one listed.
     expect(getRow).toHaveBeenCalledWith("p1");
     expect(data.value?.results[0]?.price).toBe(151);
     expect(edit.isSaving(row(0), "price")).toBe(false);
@@ -228,7 +226,6 @@ describe("a cell edited in place", () => {
     expect(edit.isEditing(row(1), "price")).toBe(true);
     expect(edit.draft.value).toBe(40);
     expect(edit.isInvalid(row(0), "name")).toBe(true);
-    // Back on it, the cell opens on the value refused; Esc drops it.
     edit.cancel();
     edit.start(row(0), "name");
     expect(edit.draft.value).toBe("Desk!");
@@ -248,7 +245,6 @@ describe("a cell edited in place", () => {
     await edit.commit();
     edit.start(row(1), "price");
     expect(edit.isInvalid(row(0), "name")).toBe(true);
-    // A realtime update or a refresh: the server's row has another name.
     data.value = {
       ...data.value!,
       results: data.value!.results.map((entry, index) =>
@@ -310,7 +306,6 @@ describe("a cell edited in place", () => {
     const { edit, row } = setup();
     expect(edit.isCellEditable(row(2), "price")).toBe(false);
     expect(edit.start(row(2), "price")).toBe(false);
-    // `stock` is locked while the row is inactive.
     expect(edit.isCellEditable(row(0), "stock")).toBe(true);
     expect(edit.isCellEditable(row(1), "stock")).toBe(false);
     expect(edit.isCellEditable(row(0), "notes")).toBe(false);

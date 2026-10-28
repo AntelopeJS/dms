@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -9,11 +9,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NotificationInboxItem from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxItem.vue";
-
-// A row's action labels show on hover; were they laid out only then, the
-// buttons would widen in their end-aligned group and slide Delete under a
-// pointer aimed at Mark read.
+import NotificationInboxItem from "../layers/dms-layout/app/entries/components/pages/settings/notification/NotificationInboxItem";
 
 interface ButtonUi {
   label?: string;
@@ -22,17 +18,29 @@ interface ButtonUi {
 let app: App | undefined;
 const buttons: { label?: string; ui?: ButtonUi; emit: () => void }[] = [];
 
-function mount(component: Component, props: Record<string, unknown>) {
+function mount(
+  component: Component,
+  props: {
+    notification: Pick<
+      InstanceType<typeof NotificationInboxItem>["$props"]["notification"],
+      "_id" | "title" | "isRead" | "createdAt"
+    >;
+    time: string;
+  },
+) {
   app = createApp(defineComponent({ setup: () => () => h(component, props) }));
   app.component(
     "UButton",
     defineComponent({
-      props: { label: String, ui: Object },
+      props: {
+        label: String,
+        ui: Object,
+      },
       emits: ["click"],
       setup: (props, { emit }) => {
         buttons.push({
           label: props.label,
-          ui: props.ui as ButtonUi,
+          ui: props.ui,
           emit: () => emit("click"),
         });
         return () => h("button", props.label);
@@ -71,7 +79,7 @@ afterEach(() => {
 
 describe("notification inbox row actions", () => {
   it("keeps the labels laid out on hover, so no button moves under the pointer", () => {
-    mount(NotificationInboxItem as Component, {
+    mount(NotificationInboxItem, {
       notification: {
         _id: "n1",
         title: "Deploy",
@@ -87,7 +95,7 @@ describe("notification inbox row actions", () => {
     for (const { ui } of buttons) {
       const classes = (ui?.label ?? "").split(/\s+/);
       expect(classes).toContain("sm:inline");
-      // Only paint changes on hover or focus, never the display.
+
       const revealed = classes.filter((name) =>
         /group-(hover|focus-within):/.test(name),
       );

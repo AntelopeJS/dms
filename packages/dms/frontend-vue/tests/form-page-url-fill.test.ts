@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillFormPageUrl } from "../layers/dms-ui/app/build/composables/table-view/useTableViewConfig";
+import { fillFormPageUrl } from "../layers/dms-ui/app/entries/composables/table-view/useTableViewConfig";
 
 const ROW = "row-1";
 
@@ -22,16 +22,12 @@ describe("filling a serialized form page URL", () => {
     ).toBe("/modules/automation/builder?selected=row-1");
   });
 
-  // The page slug contributes its own `:id`, and the form slug appends another:
-  // the row takes the last, the route params fill the first.
   it("tells the row id apart from the id of the carrying page", () => {
     expect(
       fillFormPageUrl("/modules/workspaces/:id/:id/view", { id: "ws-1" }, ROW),
     ).toBe("/modules/workspaces/ws-1/row-1/view");
   });
 
-  // What a table view nested under a `:id` detail page now resolves to: the
-  // key segment sits between the two placeholders and changes nothing.
   it("tells the ids apart across the key segment of the table view", () => {
     expect(
       fillFormPageUrl(

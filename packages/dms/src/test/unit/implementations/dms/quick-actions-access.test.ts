@@ -53,12 +53,10 @@ class PageQaRecovery extends PageController("qa-recovery", {
   bypassTenantAccessGate: true,
 }) {}
 
-async function actionsFor(
-  grantedPermissions: string[],
-  tenantId: string,
-): Promise<Record<string, unknown>> {
+async function actionsFor(grantedPermissions: string[], tenantId: string) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
+    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
     { _id: "qa-member" } as User,
     memberModel,
     roleModel,
@@ -156,13 +154,13 @@ describe("[unit] implementations/dms/quick-actions — access follows the page",
   it("omits a category whose actions all dropped", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
     const payload = await buildSiteLayoutPayload(
+      // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
       { _id: "qa-member" } as User,
       memberModel,
       roleModel,
       DENIED_TENANT,
     );
 
-    // The public page's action survives, so the category has to stay too.
     expect(payload.quickActions.categories).to.have.property(CATEGORY_ID);
     expect(Object.keys(payload.quickActions.actions)).to.deep.equal([
       `${CATEGORY_ID}:qa-open`,

@@ -36,9 +36,8 @@ import type {
   ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
-import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
-import { memberInviteSchema } from "../../../validation/member-invite.schema";
-import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
+import { requestEmailVerification } from "../../../utils";
+import { memberInviteSchema, memberOwnershipSchema } from "../../../validation";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
 import { declarePermissionWarning } from "./permission-warnings";
 import {
@@ -68,14 +67,12 @@ import {
   announceMemberEdit,
   announceMemberRemovals,
 } from "./member-change-notifications";
-import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
+import { notifyOwnershipChanged } from "../../../hooks";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(memberSettingDataAPI);
 
-// Redirect targets for the invite form: an existing user is added straight to
-// the members list, a new email lands as a pending invite.
 export const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 export const INVITES_PAGE_PATH = "/settings/workspace/invites";
 /** Data API of the invitations list, whose total the Invitations tab shows. */
@@ -207,8 +204,7 @@ const memberApiTarget = (action: string) =>
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",
   labelKey: "name",
-  // "Change roles" opens over the list: the member's name in the title, the
-  // roles as the invite form's pills (see the `roleIds` column).
+
   formContainer: {
     type: "modal",
     size: "md",
@@ -250,8 +246,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       label: "$page.settings.members.action.change_roles",
       icon: "i-ph-key",
     },
-    // The server words the confirmation: what the member loses, or why the
-    // last owner cannot go.
+
     delete: {
       isEnabled: true,
       label: "$page.settings.members.action.remove",
@@ -345,7 +340,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       icon: "i-ph-user-plus",
       color: "primary",
       permission: "add",
-      // In the page header; the invite quick action presses it too.
+
       placement: "header",
       availability: ResolveInviteAvailability,
       target: {
@@ -359,12 +354,9 @@ export const membersTable = TableView(memberSettingDataAPI, {
   ],
   guards: {
     edit: async (ctx, { current, body }) => {
-      // The source and the target do not overlap, so this cannot be one
-      // assertion: the value reaches here through a decorator, a JWT
-      // payload or a filter tuple, none of which the type system sees.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- memberSettingDataAPI omits TenantMember.invitedBy; existing owner checks treat the database row as TenantMember without validating that field.
       const currentRow = current as unknown as TenantMember;
-      const { isTenantOwner } = body as { isTenantOwner?: boolean };
+      const { isTenantOwner }: { isTenantOwner?: boolean } = body;
       const tenantId = getRequestTenantId(ctx);
       await prepareOwnerChange(tenantId, currentRow, isTenantOwner);
       return announceMemberEdit(ctx, tenantId, currentRow);
@@ -386,8 +378,6 @@ export const membersTableAddAction = requireMembersTableAction("add");
 const membersTableEditAction = requireMembersTableAction("edit");
 const membersTableDeleteAction = requireMembersTableAction("delete");
 
-// Changing roles and ownership, or inviting with any role, lets the holder
-// make themselves an owner. Intended, so the roles editor says it instead.
 declarePermissionWarning(
   membersTableEditAction,
   "$page.settings.roles.warning.members",
@@ -401,8 +391,7 @@ function inviteRedirectPath(results: InviteEmailResult[]): string {
   const hasPendingInvite = results.some(
     (result) => result.outcome === "invited",
   );
-  // An existing user is added straight away (no pending invite), so send the
-  // admin to the members list rather than the invites list.
+
   return hasPendingInvite ? INVITES_PAGE_PATH : MEMBERS_PAGE_PATH;
 }
 
@@ -462,11 +451,10 @@ export class MembersSettingsController extends PageController("members", {
   async invite(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(membersTableAddAction) user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof memberInviteSchema.parse>[0],
   ): Promise<MemberInviteResponse> {
     const payload = assertValidation(body, (v) => memberInviteSchema.parse(v));
-    // Validated before any invite exists: a payload a module refuses must not
-    // leave a half-populated invitation behind.
+
     const extensions = CollectInviteExtensionPayloads(body);
     const results = await inviteMembers(
       payload,
@@ -510,7 +498,7 @@ export class MembersSettingsController extends PageController("members", {
     @Context() ctx: RequestContext,
     @Parameter("id", "param") memberId: string,
     @AuthUserWithPermission(membersTableEditAction) user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof memberOwnershipSchema.parse>[0],
   ): Promise<void> {
     const { isTenantOwner } = assertValidation(body, (v) =>
       memberOwnershipSchema.parse(v),
@@ -520,7 +508,7 @@ export class MembersSettingsController extends PageController("members", {
       memberId,
       isTenantOwner,
     );
-    // Ownership opens or closes every page of the workspace to the member.
+
     if (change !== null)
       notifyMenuAccessChanged(getRequestTenantId(ctx), [member.userId]);
     if (change !== null && member.userId !== user._id) {

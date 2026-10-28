@@ -80,8 +80,7 @@ const uploadTokenSchema = z.string().min(1).max(MAX_UPLOAD_TOKEN_LENGTH);
 export const presignBodySchema = z.object({
   filename: filenameSchema,
   size: z.number().int().nonnegative(),
-  // Browsers report an empty type for files with an unknown extension; keep
-  // accepting it (only bound the length) so those uploads are not rejected.
+
   mimetype: z.string().max(MAX_MIMETYPE_LENGTH),
   uploadToken: uploadTokenSchema,
 });

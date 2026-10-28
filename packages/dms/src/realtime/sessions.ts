@@ -1,6 +1,7 @@
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { Unsubscribe } from "./broker";
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Session transport serializes arbitrary event data; narrowing it would restrict the existing transport API.
 export type SessionSend = (eventName: string, data: unknown) => void;
 export type SessionClose = () => Promise<void>;
 

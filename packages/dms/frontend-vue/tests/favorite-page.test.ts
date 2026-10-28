@@ -19,6 +19,7 @@ const PROJECT_PAGE = {
   validation: { requiredQueryParams: ["project"] },
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The resolver accepts arbitrary paths; inference cannot index unknown paths and a Map or own-key guard would change inherited-key lookup.
 const ROUTES: Record<string, typeof SETTINGS_PAGE | typeof PROJECT_PAGE> = {
   "/settings": SETTINGS_PAGE,
   "/projects/project": PROJECT_PAGE,

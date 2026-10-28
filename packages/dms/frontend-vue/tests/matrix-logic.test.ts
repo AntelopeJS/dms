@@ -12,22 +12,22 @@ import {
   emptyMatrixQuery,
   nextMatrixSort,
   pagerItems,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixQuery";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixQuery";
 import {
   matrixUrlEntries,
   readMatrixUrlState,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixUrlState";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixUrlState";
 import {
   matrixColumnWidth,
   mergeMatrixColumns,
   moveColumnOrder,
   visibleMatrixColumns,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixColumns";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixColumns";
 import {
   computeMatrixTotals,
   matrixTargetMisses,
   mergeMatrixTargets,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixTotals";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixTotals";
 import {
   editorModelOf,
   editsInPanel,
@@ -35,23 +35,23 @@ import {
   parseTextDraft,
   structuredSizeTag,
   valueFromEditorModel,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixValues";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixValues";
 import {
   buildMatrixSections,
   initiallyCollapsed,
   isFoldable,
   shownRows,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixSections";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixSections";
 import {
   enterMoveTarget,
   findMatrixCell,
   moveMatrixFocus,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixNavigation";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixNavigation";
 import {
   csvCell,
   matrixCsv,
   matrixCsvFileName,
-} from "../layers/dms-ui/app/build/composables/matrix/matrixCsv";
+} from "../layers/dms-ui/app/entries/composables/matrix/matrixCsv";
 import type {
   MatrixColumn,
   MatrixRow,
@@ -250,7 +250,6 @@ describe("columns", () => {
     expect(
       matrixColumnWidth({ id: "a", label: "A" }, { widths: { a: 20 } }),
     ).toBe(80);
-    // A declared width is the column's own: only a drag is held in bounds.
     expect(matrixColumnWidth({ id: "a", label: "A", width: 64 }, {})).toBe(64);
     expect(
       matrixColumnWidth({ id: "a", label: "A" }, { widths: { a: 900 } }),

@@ -12,7 +12,6 @@ export const ROLES_TABLE_NAME = "roles";
 
 @RegisterTable(ROLES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class Role extends Table {
-  /* 📅 Meta */
   @Field("string")
   declare _id: string;
 
@@ -26,7 +25,6 @@ export class Role extends Table {
   @Field("date")
   declare updatedAt: Date;
 
-  /* 🎭 Role information */
   @Index()
   @Field("string")
   declare name: string;
@@ -35,7 +33,6 @@ export class Role extends Table {
   @Field("string")
   declare description?: string | null;
 
-  /* 🔐 Permissions */
   @Field(["string"])
   declare permissions: string[];
 }

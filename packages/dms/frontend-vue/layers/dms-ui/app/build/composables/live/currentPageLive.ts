@@ -15,10 +15,6 @@ import type {
 } from "./pageLiveController";
 import { markPageRead } from "./pageReadClock";
 
-// Client-only state: the page renderer sets it in the browser, where one app
-// shows one page at a time. The server renders no event and no refetch, so it
-// never needs one, and a module-level value there would be shared between
-// requests.
 const currentController = shallowRef<PageLiveController | null>(null);
 
 /**
@@ -41,9 +37,6 @@ export function setCurrentPageLive(controller: PageLiveController | null) {
   currentController.value = controller;
 }
 
-// Server only: whether the page being rendered declares `live`. The browser
-// installs the page's controller before its blocks set up, so they hydrate
-// as on a live page; the server has no controller, and tells them instead.
 const SERVER_PAGE_LIVE_KEY: InjectionKey<() => boolean> = Symbol(
   "dms-server-page-live",
 );
@@ -72,7 +65,7 @@ export function isServerPageLive(): boolean {
 /** @internal */
 export interface LiveGate {
   /** An event behind the block arrived: refetch, now or later, or count it. */
-  trigger(event?: object): void;
+  trigger(...args: Parameters<LiveSubscription["trigger"]>): void;
   /** Events the block missed while the page is paused. */
   missed: ComputedRef<number>;
   /** When the block last read through the gate (ms), 0 before or without `live`. */

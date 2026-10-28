@@ -11,7 +11,7 @@ import {
   jumpStepOf,
   useMatrixInteraction,
   type MatrixInteractionOptions,
-} from "../layers/dms-ui/app/build/composables/matrix/useMatrixInteraction";
+} from "../layers/dms-ui/app/entries/composables/matrix/useMatrixInteraction";
 import type {
   MatrixColumn,
   MatrixOptions,
@@ -172,7 +172,6 @@ describe("focus and editing", () => {
     const { interaction } = setup();
     interaction.startEdit(at("r1", "qty"));
     interaction.commitEdit(3, "next");
-    // `on` is a switch: Tab lands on it without toggling it.
     expect(interaction.focus.value).toEqual(at("r1", "on"));
     expect(interaction.editing.value).toBeNull();
     interaction.startEdit(at("r1", "name"));
@@ -252,13 +251,11 @@ describe("shortcuts", () => {
       draft: "n",
     });
     interaction.stopEditing();
-    // On a Mac, Alt+N types "˜": the jump reads the key's position.
     interaction.onKeydown(key("˜", { altKey: true, code: "KeyN" }));
     expect(interaction.focus.value).toEqual(at("r2", "name"));
     interaction.onKeydown(
       key("N", { altKey: true, shiftKey: true, code: "KeyN" }),
     );
-    // Back from the first row's empty cells, round to the last row's.
     expect(interaction.focus.value).toEqual(at("r3", "meta"));
   });
 

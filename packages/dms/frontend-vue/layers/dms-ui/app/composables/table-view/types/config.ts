@@ -4,11 +4,14 @@ import type {
 } from "../../../build/composables/table-view/useTableViewConfig";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewColumn } from "./column";
-import type { TableViewDisplayCapabilities } from "./display";
+import type {
+  TableViewDisplayCapabilities,
+  TableViewDisplayContext,
+} from "./display";
 import type { CustomButton } from "./custom-button";
 import type { FormProps } from "../../form/types";
 import type { TableProps, TableFilter } from "../../../types/table";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { BlockAction } from "../../../build/components/blocks/BlockActions.vue";
 
 export interface QueryParamFilter {
@@ -262,7 +265,7 @@ export interface TableViewDisplayConfig {
   /** Matches a registered display id (e.g. "table", "kanban", "cards"). */
   id: string;
   /** Per-instance options forwarded to the display via `context.options`. */
-  options?: Record<string, unknown>;
+  options?: TableViewDisplayContext["options"];
   /**
    * Optional component reference (resolved via `resolveDmsComponent`, SSR-safe).
    * When omitted, the registered display's component is used.

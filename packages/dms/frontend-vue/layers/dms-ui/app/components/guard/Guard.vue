@@ -10,11 +10,6 @@ import {
 } from "../../build/composables/blocks/useGuard";
 import { notFoundTexts } from "../../build/utils/fetchNotFound";
 
-// `Guard` block (interface-dms `base/guard`): renders its children unchanged
-// unless a route says there is nothing for them, then one EmptyState (the
-// `fallback`, with the answer's `emptyState` laid over it) in their place.
-// Several children stack with the room the page leaves between its blocks,
-// as in a tab: the page spaces the guard, not what it holds.
 interface GuardProps extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
@@ -43,8 +38,6 @@ const state = useGuard(
   () => props.routeParams,
 );
 
-// `notFound` draws what a block whose source answers 404 draws: the same
-// title, the 404's message (or the same hint) and the same icon.
 const DEFAULT_FALLBACKS: Record<
   GuardCondition,
   (state: GuardState) => GuardFallback

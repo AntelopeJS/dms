@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, reactive } from "vue";
-import { combineSaveStates } from "../layers/dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "../layers/dms-ui/app/composables/layout/useInstantSaveHeader";
 import {
   INSTANT_SAVE_DEBOUNCE_MS,
   INSTANT_SAVED_STATE_MS,
   useInstantSave,
-} from "../layers/dms-ui/app/build/composables/instant-save/useInstantSave";
+} from "../layers/dms-ui/app/entries/composables/instant-save/useInstantSave";
 
-interface Settings extends Record<string, unknown> {
+interface Settings {
   name: string;
   theme: string;
   digest: boolean;
@@ -18,7 +18,7 @@ function deferredServer() {
   const calls: Array<{
     changes: Partial<Settings>;
     resolve: () => void;
-    reject: (error: unknown) => void;
+    reject: Parameters<ConstructorParameters<typeof Promise<void>>[0]>[1];
   }> = [];
   const save = vi.fn(
     (changes: Partial<Settings>) =>
@@ -46,7 +46,7 @@ function setup(save: (changes: Partial<Settings>) => Promise<void>) {
     useInstantSave<Settings>({
       read: (key) => values[key],
       write: (key, value) => {
-        (values as Record<string, unknown>)[key] = value;
+        values[key] = value;
       },
       save,
       onError,
@@ -59,6 +59,11 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("useInstantSave", () => {
+  registerSaveLifecycleTests();
+  registerPendingSaveTests();
+});
+
+function registerSaveLifecycleTests() {
   it("saves a pick at once, alone, and shows saving then saved", async () => {
     const server = deferredServer();
     const { values, instant } = setup(server.save);
@@ -175,7 +180,9 @@ describe("useInstantSave", () => {
     vi.advanceTimersByTime(INSTANT_SAVE_DEBOUNCE_MS);
     expect(server.save).toHaveBeenLastCalledWith({ name: "Acme Inc" });
   });
+}
 
+function registerPendingSaveTests() {
   it("queues a value the source already shows, from the confirmed one", async () => {
     const server = deferredServer();
     const { values, instant } = setup(server.save);
@@ -214,4 +221,4 @@ describe("useInstantSave", () => {
     expect(combineSaveStates(["idle", "saved", undefined])).toBe("saved");
     expect(combineSaveStates([])).toBe("idle");
   });
-});
+}

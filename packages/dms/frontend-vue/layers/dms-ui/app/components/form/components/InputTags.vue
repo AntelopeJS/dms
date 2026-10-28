@@ -21,12 +21,6 @@ interface InputTagsProps {
   disabled?: boolean;
 }
 
-/** A form error naming some of the items (`values`), as the form keeps it. */
-interface ItemsError {
-  name?: string;
-  values?: unknown;
-}
-
 const props = defineProps<InputTagsProps>();
 const model = defineModel<string[] | null | undefined>();
 const { t } = useI18n();
@@ -34,7 +28,6 @@ const { report } = useControlError();
 const formField = inject(formFieldInjectionKey, undefined);
 const formErrors = inject(formErrorsInjectionKey, undefined);
 
-// Commas, semicolons and whitespace end an item, typed or pasted.
 const DELIMITER = /[\s,;]+/;
 
 const tags = computed(() => model.value ?? []);
@@ -46,14 +39,12 @@ const suggestionsId = computed(() => `${props.id ?? "tags"}-suggestions`);
 const invalid = computed(
   () => new Set(invalidTags(tags.value, props.itemType)),
 );
-// Items a server refused (an address already a member): its error names them.
+
 const refused = computed(() => {
   const name = formField?.value?.name;
-  const error = (formErrors?.value as ItemsError[] | undefined)?.find(
-    (entry) => entry.name === name,
-  );
+  const error = formErrors?.value.find((entry) => entry.name === name);
   return new Set(
-    Array.isArray(error?.values)
+    error && "values" in error && Array.isArray(error.values)
       ? error.values.map((value) => String(value).toLowerCase())
       : [],
   );

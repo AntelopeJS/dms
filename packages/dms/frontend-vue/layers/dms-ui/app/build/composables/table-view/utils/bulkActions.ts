@@ -2,6 +2,7 @@ import type {
   ConfirmColor,
   ConfirmNotice,
 } from "../../../../composables/confirm/types";
+import { isNumber, isObject } from "#dms-core/app/utils/type-check";
 
 /** A table's row selection, by row id (TanStack `RowSelectionState`). */
 export type RowSelectionMap = Record<string, boolean>;
@@ -15,10 +16,7 @@ export function selectedRowIds(selection: RowSelectionMap): string[] {
  * The query of a bulk request: the ids go as one repeated key
  * (`?ids=a&ids=b`), which the data routes read in full.
  */
-export function bulkActionQuery(
-  queryKey: string,
-  ids: string[],
-): Record<string, string | string[]> {
+export function bulkActionQuery(queryKey: string, ids: string[]) {
   return { [queryKey]: [...ids] };
 }
 
@@ -50,7 +48,7 @@ const BULK_CONFIRM_KEYS: Record<ConfirmedBulkAction, string> = {
 /** vue-i18n's `t(key, named, plural)`. */
 export type PluralTranslate = (
   key: string,
-  named: Record<string, unknown>,
+  named: { count: number } | { failed: number; total: number },
   plural: number,
 ) => string;
 
@@ -88,10 +86,6 @@ export interface BulkActionOutcome {
   skipped: number;
 }
 
-// The count each bulk route answers with: delete sends the number of deleted
-// rows (or `{ deleted }` when a row rule filtered out every id), archive and
-// restore send `{ archivedCount }` / `{ restoredCount }`, and a custom bulk
-// route `{ count }`.
 const COUNT_KEYS = [
   "count",
   "deleted",
@@ -103,12 +97,13 @@ const COUNT_KEYS = [
  * The number of rows a bulk route says it changed: a bare number or one of
  * its count keys, `undefined` when it does not say.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Bulk endpoints have heterogeneous response contracts and callers also pass malformed values. No single response owner can narrow this parser without excluding its undefined-result cases.
 export const readBulkCount = (response: unknown): number | undefined => {
-  if (typeof response === "number") return response;
-  if (!response || typeof response !== "object") return undefined;
+  if (isNumber(response)) return response;
+  if (!response || !isObject(response)) return undefined;
   for (const key of COUNT_KEYS) {
-    const value = (response as Record<string, unknown>)[key];
-    if (typeof value === "number") return value;
+    const value = response[key];
+    if (isNumber(value)) return value;
   }
   return undefined;
 };
@@ -119,7 +114,7 @@ export const readBulkCount = (response: unknown): number | undefined => {
  * skipped ones. A response without a count is taken as a full success.
  */
 export function bulkActionOutcome(
-  response: unknown,
+  response: Parameters<typeof readBulkCount>[0],
   requested: number,
 ): BulkActionOutcome {
   const count = readBulkCount(response);

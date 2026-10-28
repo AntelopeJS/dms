@@ -4,7 +4,7 @@ import {
   holdLock,
   shareAcrossTabs,
   whenReleased,
-} from "../layers/dms-core/app/build/utils/crossTab";
+} from "../layers/dms-core/app/entries/utils/crossTab";
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const NAME = "test-source";
@@ -99,8 +99,8 @@ describe("whenReleased", () => {
 describe("shareAcrossTabs", () => {
   it("opens the source once and relays what it emits to every tab", async () => {
     const browser = createFakeBrowser();
-    let emit: ((message: unknown) => void) | undefined;
-    const open = vi.fn((relay: (message: unknown) => void) => {
+    let emit: Parameters<typeof shareAcrossTabs>[2] | undefined;
+    const open = vi.fn((relay: Parameters<typeof shareAcrossTabs>[2]) => {
       emit = relay;
       return () => {};
     });

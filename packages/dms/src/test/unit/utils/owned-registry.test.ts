@@ -18,8 +18,6 @@ function addAs<V>(
   RunWithModuleContext(context, () => registry.add(value));
 }
 
-// What the core does when it takes a module generation down: the event runs in
-// the departing generation's context, which names the owner released with it.
 function destroy(context: ModuleExecutionContext): void {
   RunWithModuleContext(context, () => {
     Events.ModuleDestroyed.emit(context.module);

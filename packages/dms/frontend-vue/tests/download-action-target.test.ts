@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `download` action target fetches its file with the user's session and
  * saves it: its URL and file name take the page's `{{params.X}}` /
@@ -6,12 +6,12 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/lang/queue/de",
   query: {},
 });
@@ -26,7 +26,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: vi.fn() as never,
+          api: vi.fn(),
           pageId: "queue-page",
           componentId: "page-header",
           handleApiError,

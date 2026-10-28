@@ -1,17 +1,12 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
-  computed,
   createApp,
   createSSRApp,
   defineComponent,
   h,
   nextTick,
-  onBeforeUnmount,
   onMounted,
-  provide,
   ref,
-  toRef,
-  watch,
   type App,
   type Component,
   type FunctionalComponent,
@@ -19,51 +14,27 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import DashboardFrame from "../layers/dms-layout/app/build/components/layout/DashboardFrame.vue";
-import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
+import DashboardFrame from "../layers/dms-layout/app/entries/components/layout/DashboardFrame";
+import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
 import {
   readSidePanelPreferences,
   SIDE_PANEL_COOKIE,
   type SidePanelPreferences,
-} from "../layers/dms-layout/app/build/composables/layout/sidePanelState";
-import { SIDE_PANEL_KEYBOARD_STEP_PX } from "../layers/dms-layout/app/build/composables/layout/useSidePanelWidth";
+} from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";
+import { SIDE_PANEL_KEYBOARD_STEP_PX } from "../layers/dms-layout/app/entries/composables/layout/useSidePanelWidth";
 import {
   registerSidePanel,
   resolveSidePanelWidthBounds,
   type SidePanel,
   unregisterSidePanel,
   useAppSidePanels,
-} from "../layers/dms-layout/app/composables/useAppSidePanels";
-import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
+} from "../layers/dms-ui/app/composables/useAppSidePanels";
+import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import {
-  PAGE_FILL_HEIGHT_CLASSES,
-  providePageFillHeight,
-} from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
-  () => ({ useVisitNavBadges: () => {} }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardHeader.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue",
-  () => ({ default: () => null }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
-  () => ({ default: () => null }),
-);
+  installShellRuntime,
+  registerShellUi,
+} from "./helpers/live-shell-runtime";
+import { engine } from "./helpers/api-data-runtime";
 
 const PANEL_COMPONENT = "DemoSidePanel";
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -71,32 +42,21 @@ const WIDTH_VARIABLE = "--dms-side-panel-width";
 const DEFAULT_WIDTH = 440;
 const OVERLAYS_STATE_KEY = "dms-app-overlays";
 
-let sharedState: Map<string, Ref<unknown>>;
-let cookies: Map<string, Ref<unknown>>;
-let loggedIn: Ref<boolean>;
 let isDesktop: boolean;
 let mountedPanels: number;
 let app: App | undefined;
+let disposeRuntime: () => void;
 
-interface CookieOptions {
-  default?: () => unknown;
-}
-
-function useDmsState<T>(key: string, init?: () => T): Ref<T> {
-  if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
-  return sharedState.get(key) as Ref<T>;
-}
-
-function useDmsCookie<T>(name: string, options: CookieOptions = {}): Ref<T> {
-  if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  return cookies.get(name) as Ref<T>;
-}
+const useDmsState = engine.useDmsState;
+const useDmsCookie = engine.useDmsCookie;
 
 function preferences(): SidePanelPreferences {
-  return readSidePanelPreferences(cookies.get(SIDE_PANEL_COOKIE)?.value);
+  return readSidePanelPreferences(useDmsCookie(SIDE_PANEL_COOKIE).value);
 }
 
-function storePreferences(value: unknown): void {
+function storePreferences(
+  value: Parameters<typeof readSidePanelPreferences>[0],
+): void {
   useDmsCookie(SIDE_PANEL_COOKIE).value = value;
 }
 
@@ -123,33 +83,6 @@ const Panel: FunctionalComponent = (_, { slots }) =>
     slots.footer?.(),
   ]);
 
-function installRuntime(): void {
-  const runtime: Record<string, unknown> = {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    provide,
-    ref,
-    toRef,
-    watch,
-    PAGE_FILL_HEIGHT_CLASSES,
-    providePageFillHeight,
-    defineDmsPlugin: (plugin: unknown) => plugin,
-    resolveDmsComponent: () => undefined,
-    useDmsCookie,
-    useDmsState,
-    useI18n: () => ({ t: (key: string) => key }),
-    useTranslation: () => ({ processI18n: (value: string) => value }),
-    useDmsUserSession: () => ({ loggedIn }),
-    // The page brought its site layout.
-    useRenderedSiteLayout: () => {},
-    useRenderedBellCounts: () => {},
-  };
-  Object.entries(runtime).forEach(([name, value]) =>
-    vi.stubGlobal(name, value),
-  );
-}
-
 function stubMatchMedia(): void {
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: query === DESKTOP_QUERY && isDesktop,
@@ -160,6 +93,7 @@ function stubMatchMedia(): void {
 }
 
 function withStubs(target: App): App {
+  registerShellUi(target);
   target.component("UDashboardGroup", Group);
   target.component("UDashboardPanel", Panel);
   target.component("UContainer", (_, { slots }) => h("div", slots.default?.()));
@@ -209,13 +143,14 @@ function press(target: Element | null | undefined, key: string): void {
   target?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
 }
 
-beforeEach(() => {
-  sharedState = new Map();
-  cookies = new Map();
-  loggedIn = ref(true);
+beforeEach(async () => {
   isDesktop = true;
   mountedPanels = 0;
-  installRuntime();
+  disposeRuntime = await installShellRuntime();
+  storePreferences(null);
+  engine.useDmsState<{ _id: string } | null>("dms-user", () => null).value = {
+    _id: "panel-user",
+  };
   stubMatchMedia();
 });
 
@@ -223,6 +158,7 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   document.body.innerHTML = "";
+  disposeRuntime();
   vi.unstubAllGlobals();
 });
 
@@ -261,6 +197,7 @@ describe("side panel registry", () => {
     const { default: plugin } = await import(
       "../layers/dms-layout/app/plugins/side-panel-host"
     );
+    // SAFETY: This plugin's setup closes over useAppOverlay and never reads the app-context argument.
     (plugin as () => void)();
     expect(useDmsState(OVERLAYS_STATE_KEY).value).toEqual(["DmsSidePanelHost"]);
   });
@@ -328,7 +265,7 @@ describe("side panel host on the server", () => {
     expect(await renderApp()).not.toContain("data-dms-side-panel");
     registerSidePanel(panel("a"));
     storePreferences({ openId: "a", widths: {} });
-    loggedIn.value = false;
+    engine.useDmsUserSession().user.value = null;
     expect(await renderApp()).not.toContain("data-dms-side-panel");
   });
 });

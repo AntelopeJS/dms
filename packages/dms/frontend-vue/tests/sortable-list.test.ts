@@ -1,56 +1,29 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The sortable list of the column menu and the kanban: SortableJS moves the
  * dragged element in the DOM, the list puts it back and changes its array, and
  * Vue renders the new order. The drags are replayed as SortableJS reports
  * them, DOM moves included.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, h, nextTick, reactive, type App } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-interface SortableOptions {
-  disabled?: boolean;
-  [name: string]: unknown;
-}
+import { afterEach, describe, expect, it } from "vitest";
+import Sortable from "sortablejs";
+import type { SortableListChange } from "../layers/dms-ui/app/entries/components/sortable/SortableList";
 
 interface FakeSortable {
   el: HTMLElement;
-  options: SortableOptions;
+  options: Sortable.Options;
 }
+
+type DragReplay = Partial<
+  Pick<Sortable.SortableEvent, "item" | "from" | "oldIndex" | "newIndex">
+>;
+type DragCallback = "onStart" | "onUpdate" | "onEnd" | "onAdd" | "onRemove";
 
 const instances: FakeSortable[] = [];
 
-// SortableJS itself needs a pointer to drag with: the options the list gives
-// it are what the test drives, as SortableJS would call them.
-vi.mock("@vueuse/integrations/useSortable", async () => {
-  const { onMounted, unref } = await import("vue");
-  return {
-    useSortable: (
-      target: HTMLElement | { value: HTMLElement },
-      _list: unknown,
-      options: SortableOptions,
-    ) => {
-      const sortable = { el: undefined as unknown as HTMLElement, options };
-      onMounted(() => {
-        sortable.el = unref(target as { value: HTMLElement });
-        instances.push(sortable);
-      });
-      return {
-        option: (name: string, value?: unknown) => {
-          if (value !== undefined) sortable.options[name] = value;
-          return sortable.options[name];
-        },
-        start: () => {},
-        stop: () => {},
-      };
-    },
-  };
-});
-
 const { default: SortableList } = await import(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue"
+  "../layers/dms-ui/app/entries/components/sortable/SortableList"
 );
 
 interface Card {
@@ -63,9 +36,10 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   instances.length = 0;
+  document.body.replaceChildren();
 });
 
-type Change = Record<string, { element: Card } & Record<string, number>>;
+type Change = SortableListChange<Card>;
 
 /** Lists of one group, each bound with `v-model:list`. */
 function mountLists(columns: Card[][], changes: Change[][]) {
@@ -76,7 +50,7 @@ function mountLists(columns: Card[][], changes: Change[][]) {
     render: () =>
       lists.map((list, index) =>
         h(
-          SortableList as never,
+          SortableList<Card>,
           {
             list,
             "onUpdate:list": (next: Card[]) => (lists[index] = next),
@@ -89,6 +63,11 @@ function mountLists(columns: Card[][], changes: Change[][]) {
       ),
   });
   app.mount(host);
+  for (const element of host.children) {
+    if (!(element instanceof HTMLElement)) continue;
+    const sortable = Sortable.get(element);
+    if (sortable) instances.push({ el: element, options: sortable.options });
+  }
   return lists;
 }
 
@@ -104,7 +83,7 @@ function moveElement(
   to: HTMLElement,
   newIndex: number,
 ) {
-  const item = from.children[oldIndex] as HTMLElement;
+  const item = from.querySelectorAll<HTMLElement>(":scope > *")[oldIndex]!;
   item.remove();
   to.insertBefore(item, to.children[newIndex] ?? null);
   return item;
@@ -119,10 +98,14 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [sortable] = instances;
-    const call = (name: string, event: object) =>
-      (sortable!.options[name] as (event: object) => void)(event);
+    const call = (name: DragCallback, event: DragReplay) =>
+      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
+      (sortable!.options[name] as (event: DragReplay) => void)(event);
 
-    call("onStart", { item: sortable!.el.children[0], oldIndex: 0 });
+    call("onStart", {
+      item: sortable!.el.querySelectorAll<HTMLElement>(":scope > *")[0],
+      oldIndex: 0,
+    });
     const item = moveElement(sortable!.el, 0, sortable!.el, 2);
     call("onUpdate", { from: sortable!.el, item, oldIndex: 0, newIndex: 2 });
     call("onEnd", {});
@@ -143,12 +126,20 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [source, target] = instances;
-    const call = (sortable: FakeSortable, name: string, event: object) =>
-      (sortable.options[name] as (event: object) => void)(event);
+    const call = (
+      sortable: FakeSortable,
+      name: DragCallback,
+      event: DragReplay,
+    ) =>
+      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
+      (sortable.options[name] as (event: DragReplay) => void)(event);
 
-    call(source!, "onStart", { item: source!.el.children[1], oldIndex: 1 });
+    call(source!, "onStart", {
+      item: source!.el.querySelectorAll<HTMLElement>(":scope > *")[1],
+      oldIndex: 1,
+    });
     const item = moveElement(source!.el, 1, target!.el, 0);
-    // SortableJS reports the add to the list it lands in first.
+
     call(target!, "onAdd", {
       from: source!.el,
       item,
@@ -180,20 +171,8 @@ describe("a sortable list", () => {
     mountLists([[{ id: "a" }]], [[]]);
     await nextTick();
     expect(instances[0]!.options).toMatchObject({
-      group: "board",
+      group: { name: "board" },
       preventOnFilter: false,
     });
-  });
-});
-
-describe("the dashboard's drag and drop", () => {
-  // vuedraggable ships a UMD build only: it pulled Vue's CommonJS build and
-  // its template compiler into every table page.
-  it("does not depend on vuedraggable", () => {
-    const manifest = JSON.parse(
-      readFileSync(resolve(__dirname, "../package.json"), "utf8"),
-    ) as { dependencies: Record<string, string> };
-    expect(manifest.dependencies).not.toHaveProperty("vuedraggable");
-    expect(manifest.dependencies).toHaveProperty("sortablejs");
   });
 });

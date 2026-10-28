@@ -1,7 +1,3 @@
-// The DMS code editor, built on CodeMirror: the look of the database query
-// console (gutter, current line, colours, autocomplete with icons and
-// details), for any form field holding code. Loaded on demand: a page only
-// pays for CodeMirror once it shows a code field.
 import {
   autocompletion,
   type Completion,
@@ -77,7 +73,7 @@ export interface CodeEditor {
   destroy: () => void;
 }
 
-const LANGUAGES: Record<string, () => Extension> = {
+const LANGUAGES: Record<CodeEditorOptions["language"], () => Extension> = {
   json: () => json(),
   sql: () => sql(),
   html: () => html(),
@@ -149,8 +145,7 @@ const THEME = EditorView.theme({
 });
 
 const MODULE_BOOST = 99;
-// Where a suggestion's icon goes among the parts of its row: before the
-// label (CodeMirror's own icon slot is at 20, turned off here).
+
 const ICON_POSITION = 20;
 
 function completionSource(
@@ -160,7 +155,7 @@ function completionSource(
   return async (context) => {
     const word = context.matchBefore(/[\w.$-]*/);
     if (!word || (word.from === word.to && !context.explicit)) return null;
-    // The module's suggestions come before the language's keywords.
+
     suggestions ??= load().then((items) =>
       items.map((item) => ({ ...item, type: item.icon, boost: MODULE_BOOST })),
     );
@@ -173,7 +168,6 @@ function completionSource(
 }
 
 function completionExtensions(options: CodeEditorOptions): Extension[] {
-  // One source per editor: it loads the module's suggestions once.
   const source = options.completions
     ? completionSource(options.completions)
     : undefined;
@@ -183,7 +177,7 @@ function completionExtensions(options: CodeEditorOptions): Extension[] {
   const render = options.renderIcon;
   return [
     ...sources,
-    // The popup goes to the page, not the editor's frame that would clip it.
+
     tooltips({ parent: document.body, position: "fixed" }),
     EditorView.theme({
       ".cm-tooltip-autocomplete::after": {

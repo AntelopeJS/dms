@@ -39,7 +39,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{ change: [change: SortableListChange<Item>] }>();
 
-defineSlots<{ item(props: { element: Item; index: number }): unknown }>();
+defineSlots<{
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
+  item(props: { element: Item; index: number }): unknown;
+}>();
 
 /** What this list reads of SortableJS's events. */
 interface SortableEvent {
@@ -76,7 +79,7 @@ const { option } = useSortable(root, list, {
   disabled: props.disabled,
   handle: props.handle,
   filter: props.filter,
-  // A filtered item still gets its click: a locked card opens like the others.
+
   preventOnFilter: false,
   ghostClass: props.ghostClass,
   dragClass: props.dragClass,
@@ -97,10 +100,11 @@ const { option } = useSortable(root, list, {
     emit("change", { moved: { element, oldIndex, newIndex } });
   },
   onAdd: (event: SortableEvent) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- A group can join independently typed lists; this existing cast does not validate the source item's type.
     const element = sharedDragged.get(draggedKey()) as Item | undefined;
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;
-    // The element goes back to the list it left, which removes it below.
+
     event.item.remove();
     const next = [...list.value];
     next.splice(newIndex, 0, element);
@@ -129,9 +133,6 @@ watch(
 </script>
 
 <script lang="ts">
-// The item being dragged, by group. A drop on another list only names the
-// element, which belongs to the list it left: the list it lands in reads the
-// item the other one stored when the drag started.
 const sharedDragged = new Map<string, unknown>();
 </script>
 

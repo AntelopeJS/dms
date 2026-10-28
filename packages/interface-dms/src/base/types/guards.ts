@@ -2,6 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 
 /** Loaded model before response field selection; treat current as read-only. */
 export interface GetGuardArgs<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   id: string;
@@ -9,6 +10,7 @@ export interface GetGuardArgs<
 }
 
 export interface EditGuardArgs<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   id: string;
@@ -29,16 +31,19 @@ export interface EditGuardArgs<
  */
 export interface DeleteGuardArgs {
   ids: string[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Confirmation fields are application-defined; narrowing this published payload would reject existing guards.
   values?: Record<string, unknown>;
 }
 
 /** What an archive or restore guard receives; see {@link DeleteGuardArgs}. */
 export interface BulkGuardArgs {
   ids: string[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Confirmation fields are application-defined; narrowing this published payload would reject existing guards.
   values?: Record<string, unknown>;
 }
 
 export interface NewGuardArgs<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   /**
@@ -76,6 +81,7 @@ export type GuardFn<TArgs, TController = unknown> = (
  * guard reads and the `this` it runs with.
  */
 export interface TableViewGuards<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   /** Runs after view authorization and loading, before response and presence acquisition. Not used by exports. */

@@ -48,18 +48,14 @@ const flattenedItems = computed<ColoredSelectItem[]>(() => {
   const items = (props.items ?? []) as unknown as
     | ColoredSelectItem[]
     | ColoredSelectItem[][];
-  return Array.isArray(items[0])
-    ? (items as ColoredSelectItem[][]).flat()
-    : (items as ColoredSelectItem[]);
+  return Array.isArray(items[0]) ? items.flat() : items;
 });
 
 const selectedItem = computed<ColoredSelectItem | undefined>(() => {
   const value = props.modelValue;
   if (value === undefined || value === null) return undefined;
-  const valueKey = (props.valueKey ?? "value") as keyof ColoredSelectItem;
-  return flattenedItems.value.find(
-    (item) => (item as Record<string, unknown>)[valueKey as string] === value,
-  );
+  const valueKey = props.valueKey ?? "value";
+  return flattenedItems.value.find((item) => item[valueKey] === value);
 });
 
 const colorVar = (color?: string) =>
@@ -77,10 +73,10 @@ function handleUpdateModelValue(value: unknown) {
 
 <template>
   <USelect
-    v-bind="forwarded as Record<string, unknown>"
+    v-bind="forwarded"
     :trailing-icon="props.trailingIcon ?? FIELD_TRIGGER_ICON"
-    :model-value="props.modelValue as SelectProps<T, VK, M>['modelValue']"
-    @update:model-value="handleUpdateModelValue as (value: unknown) => void"
+    :model-value="props.modelValue"
+    @update:model-value="handleUpdateModelValue"
   >
     <template
       v-if="
@@ -106,16 +102,16 @@ function handleUpdateModelValue(value: unknown) {
 
     <template #item-leading="{ item }">
       <UIcon
-        v-if="(item as ColoredSelectItem).icon"
-        :name="(item as ColoredSelectItem).icon!"
+        v-if="item.icon"
+        :name="item.icon!"
         class="size-4 shrink-0"
-        :style="colorVar((item as ColoredSelectItem).iconColor)"
+        :style="colorVar(item.iconColor)"
       />
     </template>
 
     <template #item-label="{ item }">
-      <span :style="colorVar((item as ColoredSelectItem).textColor)">
-        {{ (item as ColoredSelectItem).label }}
+      <span :style="colorVar(item.textColor)">
+        {{ item.label }}
       </span>
     </template>
   </USelect>

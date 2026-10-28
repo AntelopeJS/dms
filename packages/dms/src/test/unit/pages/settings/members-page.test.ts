@@ -10,22 +10,18 @@ import {
   countSuccessfulInvites,
   type InviteEmailResult,
   inviteNotice,
-} from "../../../../pages/settings/users/member-invite-batch";
-import {
   detectOwnerChange,
   type MemberRemovalImpact,
   memberRemovalConfirm,
-} from "../../../../pages/settings/users/member-management";
-import {
   buildInviteRoleOptions,
   collectGrantablePermissionIds,
-} from "../../../../pages/settings/users/member-role-options";
+} from "../../../../pages/members";
 import {
   INVITE_EMAILS_MAX,
   memberInviteSchema,
   resolveInviteeNameParts,
   uniqueInviteEmails,
-} from "../../../../validation/member-invite.schema";
+} from "../../../../validation";
 
 const HTTP_CONFLICT = 409;
 
@@ -45,10 +41,11 @@ function registered(
 }
 
 function role(id: string, name: string, permissions: string[]): Role {
+  // SAFETY: buildInviteRoleOptions reads only the role id, name and permissions; these rows are never persisted or accessed as full database entities.
   return { _id: id, name, permissions } as Role;
 }
 
-const tree: Record<string, PermissionTree> = {
+const tree = {
   settings: {
     children: {
       members: registered("settings.members", {
@@ -62,9 +59,11 @@ const tree: Record<string, PermissionTree> = {
     },
   },
   media: registered("media"),
-};
+} satisfies Record<string, PermissionTree>;
 
-function issuePaths(payload: unknown): string[] {
+function issuePaths(
+  payload: Parameters<typeof memberInviteSchema.safeParse>[0],
+): string[] {
   const result = memberInviteSchema.safeParse(payload);
   return result.success
     ? []
@@ -113,8 +112,6 @@ describe("[unit] pages/settings/users members page", () => {
       expect(issuePaths(invitePayload)).to.deep.equal([]);
     });
 
-    // An invite signup always validates the address: the retired switch no
-    // longer limits the invitation to one named person.
     it("ignores a retired skipEmailValidation flag sent with several addresses", () => {
       const result = memberInviteSchema.safeParse({
         ...invitePayload,

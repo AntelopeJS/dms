@@ -1,4 +1,4 @@
-import type { ClientOrigin } from "../../../utils/sign-in-country";
+import type { ClientOrigin } from "../../../utils";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import {
   announceRegistration,
@@ -8,8 +8,8 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { notifyLoginMethodAdded } from "../../../utils/account-notifications";
-import { authSchema } from "../../../validation/auth.schema";
+import { notifyLoginMethodAdded } from "../../../utils";
+import { authSchema } from "../../../validation";
 import { consumeInvite, resolveValidInvite } from "../invite";
 import { type LoginOutcome, resolveLoginOutcome } from "../session-response";
 import { getEnabledOAuthProvider, resolveOAuthPolicy } from "./config";

@@ -1,10 +1,4 @@
-// Semantic tones shared by the generic v2 building blocks (IconWell,
-// StatusPill, EmptyState, CheckList). Tailwind needs literal class strings,
-// so every tone maps to a static record instead of `bg-${tone}` interpolation.
-// The tints and lines come from the v2 tokens (--dms-*-tint / --dms-*-line,
-// both themes) wherever one exists.
-
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 const KNOWN_TONES = new Set<string>([
   "neutral",

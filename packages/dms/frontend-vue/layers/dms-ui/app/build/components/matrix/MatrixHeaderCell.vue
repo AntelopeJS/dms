@@ -51,14 +51,12 @@ const progress = computed(() =>
     ? null
     : Math.max(0, Math.min(1, props.column.progress)) * PROGRESS_SCALE,
 );
-// The header is named by its label, then by this: never the raw ratio.
 const progressText = computed(() =>
   progress.value === null
     ? ""
     : t("dms.matrix.progress", { percent: Math.round(progress.value) }),
 );
 
-// One width update per frame while dragging; the listeners go with the header.
 let frame = 0;
 let detach: (() => void) | null = null;
 
@@ -76,7 +74,6 @@ function startResize(event: PointerEvent): void {
       ),
     );
   };
-  // The width is remembered on the device once the drag ends.
   const onUp = () => {
     detach?.();
     matrix.columns.saveWidths();

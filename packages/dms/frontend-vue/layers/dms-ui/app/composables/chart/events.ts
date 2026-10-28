@@ -1,3 +1,4 @@
+import { isNumber } from "../../../../dms-core/app/utils/type-check";
 import type { ChartType } from "./types";
 
 export const CHART_EVENT_NAMES = {
@@ -27,18 +28,18 @@ export interface ClickPointValue {
   values?: number[];
 }
 
-interface PointWithY {
-  y?: unknown;
-}
-
 /**
  * Projects a series point onto the click payload's value fields: scalars
  * land in `value`, tuple points (rangeArea, candlestick) leave `value` null
  * and carry their tuple in `values`.
  */
-export function readPointValue(point: unknown): ClickPointValue {
-  if (typeof point === "number") return { value: point };
-  const y = (point as PointWithY | undefined)?.y;
-  if (Array.isArray(y)) return { value: null, values: y as number[] };
-  return { value: typeof y === "number" ? y : null };
+export function readPointValue(
+  point: Parameters<typeof isNumber>[0],
+): ClickPointValue {
+  if (isNumber(point)) return { value: point };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep the public unknown input and its existing unchecked optional property read, including getters and primitive boxing.
+  const y = (point as { y?: Parameters<typeof isNumber>[0] } | null | undefined)
+    ?.y;
+  if (Array.isArray(y)) return { value: null, values: y };
+  return { value: isNumber(y) ? y : null };
 }

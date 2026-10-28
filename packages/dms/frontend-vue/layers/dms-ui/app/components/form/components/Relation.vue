@@ -87,15 +87,13 @@ const forwardedProps = computed(() => {
     filterBy: _________,
     ...rest
   } = props;
-  return rest as SelectMenuProps<T, "value", M>;
+  return rest;
 });
 const forwardedPropsEmits = useForwardPropsEmits(forwardedProps, emits);
 // The picks go through `handleUpdateModelValue` alone, which deselects a value
 // picked again: forwarded as well, the form got the pick it had undone.
 const forwarded = computed(() => {
-  const { "onUpdate:modelValue": _, ...rest } = forwardedPropsEmits.value as {
-    "onUpdate:modelValue"?: unknown;
-  };
+  const { "onUpdate:modelValue": _, ...rest } = forwardedPropsEmits.value;
   return rest as typeof forwardedPropsEmits.value;
 });
 
@@ -209,7 +207,7 @@ function mapData(item: Record<string, string>) {
 
   return {
     ...item,
-    label: item[labelValue] as string,
+    label: item[labelValue],
     value: item[valueValue],
     avatar: undefined,
     avatarSource: avatarValue ? item[avatarValue] : undefined,
@@ -323,10 +321,10 @@ function resolveItemAvatar(item: SelectMenuItem): SelectMenuItem {
     return item;
   }
 
-  const { avatarSource, ...rest } = item as AvatarSourceItem;
+  const { avatarSource, ...rest } = item;
   const avatar = buildAvatarProps(avatarSource, rest.label);
 
-  return { ...rest, ...(avatar ? { avatar } : {}) } as SelectMenuItem;
+  return { ...rest, ...(avatar ? { avatar } : {}) };
 }
 
 const displayItems = computed<SelectMenuItem[]>(() =>
@@ -337,6 +335,7 @@ watch(
   mergedItems,
   (items) => {
     for (const item of items) {
+      // SAFETY: Select-menu objects may carry an avatar source; string items yield undefined for this optional property.
       const source = (item as AvatarSourceItem).avatarSource;
       if (isImageRefValue(source)) {
         void resolveAvatarUrl(source.key);
@@ -509,13 +508,13 @@ function extractInsertedId(response: unknown): string | undefined {
     const r = response as Record<string, unknown>;
     if (typeof r.insertedId === "string") return r.insertedId;
     if (Array.isArray(r.insertedIds) && typeof r.insertedIds[0] === "string") {
-      return r.insertedIds[0] as string;
+      return r.insertedIds[0];
     }
     if (
       Array.isArray(r.generated_keys) &&
       typeof r.generated_keys[0] === "string"
     ) {
-      return r.generated_keys[0] as string;
+      return r.generated_keys[0];
     }
     if (typeof r.id === "string") return r.id;
     if (typeof r._id === "string") return r._id;
@@ -528,7 +527,7 @@ async function handleAddSuccess(response: unknown, formData: unknown) {
   if (newId && formData && typeof formData === "object") {
     const valueKey = props.keyMapping?.value || "value";
     const newItem = mapData({
-      ...(formData as Record<string, string>),
+      ...formData,
       [valueKey]: newId,
     });
     const exists = locallyAddedItems.value.some((item) =>
@@ -571,7 +570,7 @@ const addFormOptions = computed(() => {
     :trailing-icon="props.trailingIcon ?? FIELD_TRIGGER_ICON"
     :model-value="props.modelValue"
     :open="isMenuOpen"
-    :items="displayItems as T"
+    :items="displayItems"
     :loading="status === 'pending'"
     value-key="value"
     :portal="false"

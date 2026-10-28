@@ -2,7 +2,6 @@
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import CssVariablesList from "./CssVariablesList.vue";
 
-// Number of `--ui-*` variables, shown in the summary.
 const cssVariableCount = ref<number | null>(null);
 
 const { t } = useI18n();

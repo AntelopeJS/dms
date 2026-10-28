@@ -18,13 +18,8 @@ import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { MatrixOptions } from "../../types/matrix";
 
-// `Matrix` block (interface-dms `base/matrix`): a grid of rows by columns
-// read and edited in place. The state and behaviour live in `useMatrix`, the
-// parts under `build/components/matrix`; this file lays them out.
 interface MatrixBlockProps extends DefaultComponentProps, MatrixOptions {}
 
-// Every flag defaults to `undefined`, not `false`: the options read an
-// absent flag as its own default (`editable` with a `saveUrl`, `urlState`).
 const props = withDefaults(defineProps<MatrixBlockProps>(), {
   editable: undefined,
   typeToEdit: undefined,
@@ -75,7 +70,6 @@ const emptyTitle = computed(() => {
   return matrix.text(props.emptyLabel) || t("dms.matrix.empty");
 });
 
-// Rows deleted elsewhere can leave the page past the end.
 watch(
   () => source.data.value?.total,
   (total) => {

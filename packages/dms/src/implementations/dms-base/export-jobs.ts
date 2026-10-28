@@ -3,14 +3,14 @@ import type {
   RunExportJobOptions,
   runExportJobProxy as RunExportJobDeclaration,
 } from "@antelopejs/interface-dms/base/export-jobs";
-import { runExportJob } from "../../utils/export-jobs-run";
+import { runExportJob } from "../../utils";
 
-export { getDeliverer, getExporter } from "../../utils/export-jobs";
+export { getDeliverer, getExporter } from "../../utils";
 export {
   downloadExportJob as downloadExportJobProxy,
   getExportJobStatus as getExportJobStatusProxy,
   listExportJobs,
-} from "../../utils/export-jobs-run";
+} from "../../utils";
 
 type ErasedRunExportJobOptions = Parameters<typeof RunExportJobDeclaration>[0];
 
@@ -22,5 +22,6 @@ type ErasedRunExportJobOptions = Parameters<typeof RunExportJobDeclaration>[0];
 export function runExportJobProxy(
   options: ErasedRunExportJobOptions,
 ): Promise<ExportJobTicket> {
+  // SAFETY: The proxy narrows generate's context to never while carrying options.context as unknown; runExportJob passes that same captured context to generate without substituting another value.
   return runExportJob(options as RunExportJobOptions);
 }

@@ -167,7 +167,6 @@ export function matrixUrlEntries(
       ? values.join(FACET_SEPARATOR)
       : undefined;
   }
-  // A filter removed must leave the URL: the ones written before are listed.
   const filtered = new Set([
     ...Object.keys(previousFilters ?? {}),
     ...Object.keys(state.filters),

@@ -2,7 +2,10 @@
 import type { Component } from "vue";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import type { ModalSize } from "../../../../types/modal";
-import type { ContainerColor } from "../../../../composables/containers/types";
+import type {
+  ContainerColor,
+  ContainerInstance,
+} from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
   CLOSING_OVERLAY_CLASS,
@@ -17,17 +20,19 @@ interface DynamicModalProps {
   size?: ModalSize;
   containerId: string;
   component: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy component-prop boundary accepts arbitrary values for every string key without validation.
   componentOptions?: Record<string, unknown>;
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy header-prop boundary accepts arbitrary values for every string key without validation.
   headerComponentOptions?: Record<string, unknown>;
   icon?: string;
   color?: ContainerColor;
 }
 
 interface DynamicModalEmits {
-  (e: "close", result?: unknown): void;
+  (e: "close", result?: Parameters<ContainerInstance["close"]>[0]): void;
 }
 
 const props = withDefaults(defineProps<DynamicModalProps>(), {
@@ -41,11 +46,8 @@ const props = withDefaults(defineProps<DynamicModalProps>(), {
 });
 const emit = defineEmits<DynamicModalEmits>();
 
-// Let a DmsForm rendered in the body drop its DmsCard (the modal is the surface).
 provide("dmsFormContainer", true);
 
-// UModal has no size variant, so map our ModalSize onto a max-width. Form
-// modals default wider than Nuxt UI's max-w-lg for breathing room.
 const SIZE_ORDER: ModalSize[] = [
   "sm",
   "md",
@@ -68,8 +70,7 @@ const SIZE_CONTENT: Record<ModalSize, string> = {
   "5xl": "sm:max-w-5xl",
   full: "sm:max-w-5xl h-[calc(100dvh-4rem)]",
 };
-// Form modals shouldn't be narrower than this; callers asking for a bigger
-// size are still honored.
+
 const MIN_SIZE: ModalSize = "3xl";
 
 const resolvedSize = computed(() => {
@@ -79,21 +80,18 @@ const resolvedSize = computed(() => {
     : MIN_SIZE;
 });
 
-// A divided head: the body below is a form, not a continuation of the title.
 const modalUi = computed(() => ({
   content: SIZE_CONTENT[resolvedSize.value],
   overlay: CLOSING_OVERLAY_CLASS,
   header: "border-b border-default pb-4 shrink-0",
-  // The body's bottom and side padding: a form's sticky footer sits flush
-  // with the modal's edges (see Form.vue).
+
   body: "[--dms-form-foot-pb:1.25rem] [--dms-form-foot-px:1.25rem]",
 }));
 
 const { executeGuards, clearGuards } = useLeaveGuard();
 
 const isOpen = defineModel<boolean>("open", { default: true });
-// Reka keeps the page's `pointer-events: none` on the body until the modal
-// has scaled out: released as soon as the close starts, a click lands.
+
 const contentProps = computed(() => ({
   disableOutsidePointerEvents: isOpen.value,
 }));
@@ -118,12 +116,8 @@ async function tryClose() {
   closePromise = null;
 }
 
-// A form in the body closes through the guards (its Cancel button) and
-// registers its own under this id, whatever component wraps it.
 provide(DMS_CONTAINER_KEY, { id: props.containerId, close: tryClose });
 
-// Another page (Back, a link): the modal belongs to the one left. Its
-// unsaved changes were already confirmed by the navigation guard.
 const route = useDmsRoute();
 watch(
   () => route.path,
@@ -134,7 +128,7 @@ watch(
   },
 );
 
-function handleSuccess(result?: unknown) {
+function handleSuccess(result?: Parameters<ContainerInstance["close"]>[0]) {
   clearGuards(props.containerId);
   isOpen.value = false;
   emit("close", result);

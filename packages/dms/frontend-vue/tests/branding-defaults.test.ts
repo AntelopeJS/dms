@@ -18,8 +18,6 @@ describe("branding defaults", () => {
   });
 
   it("survive a live edit of the merged palette and logos", () => {
-    // A clone keeps any object shared between the two places, like the
-    // loader's merge keeps the objects no layer overrides.
     const merged = defu(
       { branding: { footer: { localeSwitcher: false } } },
       structuredClone(appConfig),
