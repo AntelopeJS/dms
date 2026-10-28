@@ -6,6 +6,26 @@ import type {
   RequiredFields,
 } from "./types";
 
+const REQUIRED_FIELDS: Record<RequiredFields, true> = {
+  icon: true,
+  title: true,
+  description: true,
+  subject: true,
+};
+
+function missingFields(data: Partial<NotificationData>): string[] {
+  const supplied = new Set(
+    Object.entries(data)
+      .filter(([, value]) => value !== undefined)
+      .map(([field]) => field),
+  );
+  return Object.keys(REQUIRED_FIELDS).filter((field) => !supplied.has(field));
+}
+
+function isComplete(data: Partial<NotificationData>): data is NotificationData {
+  return missingFields(data).length === 0;
+}
+
 export class NotificationBuilder<Set extends string = never> {
   private data: Partial<NotificationData> = {};
 
@@ -59,7 +79,11 @@ export class NotificationBuilder<Set extends string = never> {
   build(
     this: RequiredFields extends Set ? NotificationBuilder<Set> : never,
   ): SendableNotification {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Required fields are unchecked; callers can supply the generic without calling setters.
-    return new SendableNotification(this.data as NotificationData);
+    if (!isComplete(this.data)) {
+      throw new Error(
+        `Notification is missing required fields: ${missingFields(this.data).join(", ")}`,
+      );
+    }
+    return new SendableNotification(this.data);
   }
 }
