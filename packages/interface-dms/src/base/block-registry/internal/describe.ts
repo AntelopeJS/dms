@@ -166,16 +166,27 @@ const STRUCTURED_TYPE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> =
     [ZodFirstPartyTypeKind.ZodIntersection]: "object",
   };
 
-function literalType(value: ZodDefLike["value"]): BlockOptionType {
+/**
+ * A literal is described by the value it fixes when the descriptor protocol can
+ * carry that value as JSON: a string, a boolean or a finite number. A literal
+ * JSON cannot hold (null, undefined, a bigint, a symbol, NaN or an infinity)
+ * is reported as `unknown` with no `enum`, the same as the schema kinds of
+ * those values.
+ */
+function describeLiteral(value: ZodDefLike["value"]): BlockOptionSchema {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal descriptors classify representation without coercing the underlying Zod literal.
-  if (typeof value === "number") {
-    return "number";
+  switch (typeof value) {
+    case "string":
+      return { type: "string", enum: [value] };
+    case "boolean":
+      return { type: "boolean", enum: [value] };
+    case "number":
+      return Number.isFinite(value)
+        ? { type: "number", enum: [value] }
+        : { type: "unknown" };
+    default:
+      return { type: "unknown" };
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal descriptors classify representation without coercing the underlying Zod literal.
-  if (typeof value === "boolean") {
-    return "boolean";
-  }
-  return "string";
 }
 
 /** Collapse a union of single-value enums into one enum, as a picker wants it. */
@@ -255,11 +266,7 @@ const HANDLERS: Partial<Record<ZodFirstPartyTypeKind, Handler>> = {
       describeSchema(def.right as ZodTypeAny, depth + 1),
     ],
   }),
-  [ZodFirstPartyTypeKind.ZodLiteral]: (def) => ({
-    type: literalType(def.value),
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Literal values are not proven string or number; preserve the known literal descriptor behavior rather than narrow accepted Zod schemas.
-    enum: [def.value as string | number],
-  }),
+  [ZodFirstPartyTypeKind.ZodLiteral]: (def) => describeLiteral(def.value),
   [ZodFirstPartyTypeKind.ZodEnum]: (def) => ({
     type: "string",
     // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Enum dispatch assumes Zod 3's private string values without validating the definition.
