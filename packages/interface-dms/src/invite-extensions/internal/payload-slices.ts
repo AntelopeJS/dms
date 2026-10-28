@@ -21,8 +21,8 @@ export interface StoredPayload {
 }
 
 function issuesOf(error: Error["cause"]): IssueLike[] | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The formatter reads the contributor's optional issues property without a null guard; preserving that unchecked behavior is required by this refactor.
-  const issues = (error as { issues?: unknown }).issues;
+  if (error === null || error === undefined) return undefined;
+  const issues = Object(error).issues;
   return Array.isArray(issues) ? issues : undefined;
 }
 
