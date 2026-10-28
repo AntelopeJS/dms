@@ -109,6 +109,39 @@ function checkFormErrorSummaryLabels() {
   }
 }
 
+function messageKeys(messages, prefix = "") {
+  return Object.entries(messages).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return value !== null && typeof value === "object" && !Array.isArray(value)
+      ? messageKeys(value, path)
+      : [path];
+  });
+}
+
+function checkLocaleKeyParity() {
+  const gaps = [];
+  for (const layer of readdirSync(LAYERS_DIR)) {
+    const dir = join(LAYERS_DIR, layer, "i18n/locales");
+    if (!existsSync(dir)) continue;
+    const catalogs = readdirSync(dir)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => ({
+        name,
+        keys: new Set(
+          messageKeys(JSON.parse(readFileSync(join(dir, name), "utf8"))),
+        ),
+      }));
+    for (const { name, keys } of catalogs) {
+      for (const other of catalogs) {
+        for (const key of other.keys) {
+          if (!keys.has(key)) gaps.push(`${layer}/${name}: ${key}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(gaps, [], "Translate every key in every locale of a layer");
+}
+
 function staticPrefix(key, source) {
   const resolved = key.replace(/\$\{(\w+)\}/g, (interpolation, name) => {
     const declaration = source.match(
@@ -305,6 +338,7 @@ for (const [name, check] of [
   ["layer plugin registration", checkPluginRegistration],
   ["compare mode labels", checkCompareModeLabels],
   ["form error summary labels", checkFormErrorSummaryLabels],
+  ["locale key parity", checkLocaleKeyParity],
   ["async data key ownership", checkAsyncDataKeyOwners],
   ["async data scope registration", checkAsyncDataScopeRegistration],
   ["Geist narrow no-break spaces", checkGeistNarrowSpace],
