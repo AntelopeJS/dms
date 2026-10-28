@@ -108,14 +108,25 @@ export const useAuthFetch = () => {
     };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the existing advertised $fetch contract. Inference loses generic response correlation; an owner annotation also requires native/create members that this wrapper never attached.
-  const $authFetch = withSessionRetry((request, options) =>
-    baseFetch(request, options),
-  ) as AuthFetch;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
-  $authFetch.raw = withSessionRetry((request, options) =>
-    baseFetch.raw(request, options),
-  ) as AuthFetch["raw"];
+  /**
+   * `base` with the session retry, every member its type names: the call and
+   * `raw` retry, `native` is the platform fetch, and `create` derives a fetch
+   * that retries too.
+   */
+  function withSession(base: AuthFetch): AuthFetch {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The wrapper forwards each call to base, whose generic response correlation inference loses; raw, native and create are attached below before it is returned.
+    const authFetch = withSessionRetry((request, options) =>
+      base(request, options),
+    ) as AuthFetch;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
+    authFetch.raw = withSessionRetry((request, options) =>
+      base.raw(request, options),
+    ) as AuthFetch["raw"];
+    authFetch.native = base.native;
+    authFetch.create = (defaults, globalOptions) =>
+      withSession(base.create(defaults, globalOptions));
+    return authFetch;
+  }
 
-  return { $authFetch };
+  return { $authFetch: withSession(baseFetch) };
 };
