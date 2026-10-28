@@ -138,9 +138,9 @@ export function unregisterComponent(
 
 /**
  * Drop a position's entry from the permission map on behalf of a page that no
- * longer owns its id. Its permissions stay, since the live page registers the
- * same ids, and so does the entry when a live page holds the component at that
- * position.
+ * longer owns its id, unless a live page holds the same component at that
+ * position. Only the entry is released: the permissions of the position and of
+ * its component's actions stay registered.
  */
 function releaseComponentIdentity(node: ComponentTreeNode): void {
   if (node.access !== "own") return;
