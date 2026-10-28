@@ -1,4 +1,8 @@
 import { defineAsyncComponent, type Component } from "vue";
+import { buildComponents as authBuildComponents } from "./layers/dms-auth/app/entries/component-registry";
+import { buildComponents as layoutBuildComponents } from "./layers/dms-layout/app/entries/component-registry";
+import { buildComponents as onboardingBuildComponents } from "./layers/dms-onboarding/app/entries/component-registry";
+import { buildComponents as uiBuildComponents } from "./layers/dms-ui/app/entries/component-registry";
 import {
   type DmsFrontendModule,
   type DmsFrontendSdk,
@@ -27,8 +31,8 @@ import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
 import "./layers/dms-layout/app/assets/css/main.css";
-import type {} from "./layers/dms-core/shared/types/runtime-config";
-import type {} from "./layers/dms-core/shared/types/app-config";
+import type {} from "./layers/dms-core/app/entries/shared/types/runtime-config";
+import type {} from "./layers/dms-core/app/entries/shared/types/app-config";
 
 interface VueModule {
   default: Component;
@@ -36,12 +40,16 @@ interface VueModule {
 
 type VueLoader = () => Promise<VueModule>;
 
-const components = import.meta.glob<VueModule>([
-  "./layers/**/app/components/**/*.vue",
-  "./layers/**/app/build/components/**/*.vue",
-  "!./layers/dms-ui/app/build/components/table/TableBody.vue",
-  "!./layers/dms-ui/app/components/form/components/ImagePresentation.vue",
-]);
+const components = {
+  ...import.meta.glob<VueModule>([
+    "./layers/**/app/components/**/*.vue",
+    "!./layers/dms-ui/app/components/form/components/ImagePresentation.vue",
+  ]),
+  ...uiBuildComponents,
+  ...layoutBuildComponents,
+  ...authBuildComponents,
+  ...onboardingBuildComponents,
+};
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );

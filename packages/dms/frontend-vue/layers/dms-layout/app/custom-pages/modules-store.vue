@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
-import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import DmsChipGroup from "#dms-ui/app/entries/components/form/ChipGroup";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
 import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
-import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
+import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
 import {

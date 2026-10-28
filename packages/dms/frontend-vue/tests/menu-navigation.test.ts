@@ -4,7 +4,7 @@ import {
   collectOpenItemIds,
   isMenuItemActive,
 } from "../layers/dms-core/app/utils/menu";
-import { buildMenuItemTarget } from "../layers/dms-ui/app/build/types/tree";
+import { buildMenuItemTarget } from "../layers/dms-ui/app/entries/types/tree";
 
 type TreeNode = Parameters<typeof buildMenuItemTarget>[0];
 

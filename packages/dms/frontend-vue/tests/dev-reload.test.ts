@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createDevReloadCoordinator,
   type DevReloadDeps,
-} from "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder";
+} from "../layers/dms-layout/app/entries/composables/dev-reload/useDevReloadHolder";
 
 /**
  * The dev-reload coordinator is the single mechanism behind both the SSE

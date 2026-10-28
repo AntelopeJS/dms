@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { listPreviewablePages } from "#dms-core/app/build/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { listPreviewablePages } from "#dms-core/app/entries/utils/permission-preview";
 
 const preview = usePermissionPreview();
 const siteLayout = useSiteLayout();

@@ -9,14 +9,14 @@ import {
   useHeaderActionControls,
 } from "../../composables/layout/useHeaderActionControls";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
-import type { CategoryInfo } from "../../../types/page";
+import type { CategoryInfo } from "#dms-core/app/types/page";
 import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
 import {
   foldBreadcrumb,
   isFoldedCrumbs,
   withParentCrumb,
 } from "../../../utils/breadcrumb";
-import { fillRouteParams } from "../../../utils/pageQuery";
+import { fillRouteParams } from "#dms-core/app/utils/pageQuery";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */

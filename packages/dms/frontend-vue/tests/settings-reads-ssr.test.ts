@@ -17,9 +17,9 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
-import { useSecurityOverview } from "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview";
-import { useNotificationPreferences } from "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences";
-import { useNotificationCatalog } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
+import { useSecurityOverview } from "../layers/dms-layout/app/entries/composables/settings/security/useSecurityOverview";
+import { useNotificationPreferences } from "../layers/dms-layout/app/entries/composables/notification/useNotificationPreferences";
+import { useNotificationCatalog } from "../layers/dms-layout/app/entries/composables/notification/useNotificationCatalog";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import type { I18nTranslate } from "../layers/dms-core/app/composables/translation/useTranslation";
 
@@ -132,7 +132,7 @@ describe("Security", () => {
 
   it("says when a session was last active as of the read, the same in the hydrating browser", async () => {
     const { default: SecuritySessions } = await import(
-      "../layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/security/SecuritySessions"
     );
     vi.stubGlobal("useI18n", () => ({
       locale: ref("en"),

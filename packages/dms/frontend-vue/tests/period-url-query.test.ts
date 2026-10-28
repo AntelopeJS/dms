@@ -21,7 +21,7 @@ import {
   rememberPeriod,
   resolvePeriodSelection,
   writePeriodQuery,
-} from "../layers/dms-ui/app/build/composables/period/periodQuery";
+} from "../layers/dms-ui/app/entries/composables/period/periodQuery";
 
 const CHOICES: PeriodChoices = {
   presets: ["last-7-days", "last-30-days", "this-month", "custom"],

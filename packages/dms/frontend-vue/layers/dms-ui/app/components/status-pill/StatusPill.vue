@@ -7,7 +7,7 @@ import {
   DMS_TONE_TEXT,
   isDmsTone,
 } from "../../build/utils/tone";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type StatusPillDot = "none" | "static" | "live";
 export type StatusPillSize = "sm" | "md";

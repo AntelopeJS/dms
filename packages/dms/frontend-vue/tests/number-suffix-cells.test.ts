@@ -15,7 +15,7 @@ import {
   formatPrice,
 } from "../layers/dms-core/app/utils/formatter";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
-import { withNumberSuffix } from "../layers/dms-ui/app/build/composables/data-types/numberSuffix";
+import { withNumberSuffix } from "../layers/dms-ui/app/entries/composables/data-types/numberSuffix";
 
 const NBSP = " ";
 const formatters = new Map<string, DataType["formatter"]>();
@@ -42,7 +42,7 @@ beforeAll(async () => {
       formatters.set(dataType.id, dataType.formatter),
   }));
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });

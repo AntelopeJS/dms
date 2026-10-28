@@ -18,9 +18,9 @@ import {
   type FunctionalComponent,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableFiltersRow from "../layers/dms-ui/app/build/components/table/FiltersRow.vue";
-import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
-import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import TableFiltersRow from "../layers/dms-ui/app/entries/components/table/FiltersRow";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
+import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const SEARCH_URL = "/api/customers/select";

@@ -12,26 +12,26 @@ import { liveShellRuntime } from "./helpers/live-shell-runtime";
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import {
   currentPageLive,
   setCurrentPageLive,
-} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import {
   bindPageLiveEnvironment,
   usePageLiveHost,
-} from "../layers/dms-ui/app/build/composables/live/usePageLiveHost";
+} from "../layers/dms-ui/app/entries/composables/live/usePageLiveHost";
 import {
   liveIntervalMs,
   livePeriodMs,
-} from "../layers/dms-ui/app/build/composables/live/liveCadence";
-import { MissedTally } from "../layers/dms-ui/app/build/composables/live/missedTally";
+} from "../layers/dms-ui/app/entries/composables/live/liveCadence";
+import { MissedTally } from "../layers/dms-ui/app/entries/composables/live/missedTally";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 
 const realtime = liveShellRuntime();
 
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 
 const PAGE = "modules.api.logs";
@@ -252,7 +252,7 @@ describe("the browser around the page", () => {
   it("opens paused with ?live=0, unremembered, and drops it on resume", async () => {
     window.history.replaceState(null, "", "/logs?live=0&tab=5xx");
     const { isPausedByUrl } = await import(
-      "../layers/dms-ui/app/build/composables/live/usePageLiveHost"
+      "../layers/dms-ui/app/entries/composables/live/usePageLiveHost"
     );
     const live = install({}, { isPausedByUrl: isPausedByUrl() });
     const unbind = bindPageLiveEnvironment(live, {});

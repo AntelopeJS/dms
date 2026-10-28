@@ -16,8 +16,8 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
-import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
-import type { PageLayout } from "../layers/dms-layout/app/types/page";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import type { PageLayout } from "../layers/dms-core/app/types/page";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"

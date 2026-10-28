@@ -16,7 +16,7 @@ import {
   formErrorsInjectionKey,
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
-import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
+import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/entries/composables/form/formControlErrors";
 import type InputTagsComponent from "../layers/dms-ui/app/components/form/components/InputTags.vue";
 import type { NamedValue } from "vue-i18n";
 

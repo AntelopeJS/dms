@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
+import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
 interface SecurityBackupCodesModalProps {
   codes: string[];
   /** Codes replace a previous set, which stopped working. */

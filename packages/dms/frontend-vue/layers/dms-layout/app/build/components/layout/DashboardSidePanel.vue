@@ -8,9 +8,9 @@
  * the panel's component.
  */
 import { useMediaQuery } from "@vueuse/core";
-import type { SidePanel } from "../../../composables/useAppSidePanels";
-import { useSidePanel } from "../../../composables/useSidePanel";
-import { sidePanelWidthStyle } from "../../composables/layout/sidePanelState";
+import type { SidePanel } from "#dms-ui/app/composables/useAppSidePanels";
+import { useSidePanel } from "#dms-ui/app/composables/useSidePanel";
+import { sidePanelWidthStyle } from "#dms-ui/app/entries/composables/layout/sidePanelState";
 import { useSidePanelWidth } from "../../composables/layout/useSidePanelWidth";
 
 interface Props {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
-import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
 const CSS_LOAD_DELAY_MS = 100;
 const UI_VARIABLE_PREFIX = "--ui-";

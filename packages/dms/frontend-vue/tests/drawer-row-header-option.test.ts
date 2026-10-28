@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, type Component } from "vue";
-import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
+import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 

@@ -3,7 +3,7 @@ import { useDmsInertiaPage } from "#dms/frontend-module";
 import {
   type CountedNavBadge,
   useNavBadges,
-} from "#dms-ui/app/build/composables/navigation/useNavBadges";
+} from "#dms-ui/app/entries/composables/navigation/useNavBadges";
 
 interface CountedPage {
   navBadges?: Record<string, CountedNavBadge>;

@@ -16,9 +16,9 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
-import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
+import { resolveLinkVariables } from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   periodQueryKeys,
   withPeriodQuery,

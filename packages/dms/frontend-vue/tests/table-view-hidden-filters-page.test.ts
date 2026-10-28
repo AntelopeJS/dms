@@ -1,11 +1,11 @@
 import { computed, nextTick, readonly, ref, watch, type Ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LocationQuery } from "vue-router";
-import { useAccumulatedPages } from "../layers/dms-ui/app/build/composables/table-view/useAccumulatedPages";
-import { usePersistedPagination } from "../layers/dms-ui/app/build/composables/table-view/usePersistedPagination";
+import { useAccumulatedPages } from "../layers/dms-ui/app/entries/composables/table-view/useAccumulatedPages";
+import { usePersistedPagination } from "../layers/dms-ui/app/entries/composables/table-view/usePersistedPagination";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
-import { useTablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
-import { tablePreferenceId } from "../layers/dms-core/app/build/composables/user/tablePreferences";
+import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { tablePreferenceId } from "../layers/dms-core/app/entries/composables/user/tablePreferences";
 
 const PAGE_SIZE = 10;
 const THIRD_PAGE = 2;

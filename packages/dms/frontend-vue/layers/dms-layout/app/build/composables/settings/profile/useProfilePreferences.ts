@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useUniqueLocales } from "#dms-core/app/composables/translation/useUniqueLocales";
 import { formatDate } from "#dms-core/app/utils/formatter";
-import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
+import { iconWellToneOf } from "#dms-ui/app/entries/utils/tone";
 import { useAccessibilityPreferences } from "../../../../composables/general/useAccessibilityPreferences";
 import { useColorModePreference } from "../../../../composables/general/useColorModePreference";
 import { useInterfaceScale } from "../../../../composables/general/useInterfaceScale";

@@ -18,9 +18,9 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
-import SettingsNav from "../layers/dms-layout/app/build/components/pages/settings/shell/SettingsNav.vue";
-import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
-import { useNavBadges } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
+import SettingsNav from "../layers/dms-layout/app/entries/components/pages/settings/shell/SettingsNav";
+import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
+import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
 
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
@@ -360,7 +360,7 @@ describe("SettingsNav badges", () => {
 describe("Security page badge", () => {
   it("publishes what needs attention in the tone the server weighed", async () => {
     const { useSecurityOverview } = await import(
-      "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview"
+      "../layers/dms-layout/app/entries/composables/settings/security/useSecurityOverview"
     );
     const { engine, browserRuntime } = await import(
       "./helpers/api-data-runtime"

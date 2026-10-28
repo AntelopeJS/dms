@@ -52,7 +52,7 @@ const { useDefinedFunctions } = await import(
 );
 vi.stubGlobal("useDefinedFunctions", useDefinedFunctions);
 const { registerBlockFunctions } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/registerBlockFunctions"
+  "../layers/dms-ui/app/entries/composables/blocks/registerBlockFunctions"
 );
 
 const SETTLE_MS = 250;

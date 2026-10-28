@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isString } from "../layers/dms-core/app/utils/type-check";
-import enGB from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
-import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
+import enGB from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
 import {
   ACCOUNT_MENU_ENTRIES,
   PROFILE_ROUTE,

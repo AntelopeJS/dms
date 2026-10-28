@@ -3,7 +3,7 @@ import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type StatGroupLayout = "joined" | "cards";
 

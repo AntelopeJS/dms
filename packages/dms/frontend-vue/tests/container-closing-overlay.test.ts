@@ -32,10 +32,10 @@ import {
   it,
   vi,
 } from "vitest";
-import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/build/components/containers/constants";
+import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/entries/components/containers/constants";
 
 import { DialogRoot } from "reka-ui";
-import type DynamicDrawer from "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue";
+import type DynamicDrawer from "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer";
 
 const require = createRequire(import.meta.url);
 let overlayCss = "";
@@ -116,7 +116,15 @@ beforeAll(async () => {
   const compiler = await compile('@import "tailwindcss/utilities.css";', {
     base: process.cwd(),
     loadStylesheet: async (id: string, base: string) => {
-      const path = require.resolve(id);
+      const stylesheets = new Map([
+        [
+          "tailwindcss/utilities.css",
+          () => require.resolve("tailwindcss/utilities.css"),
+        ],
+      ]);
+      const load = stylesheets.get(id);
+      if (!load) throw new Error(`Unexpected stylesheet ${id}`);
+      const path = load();
       return { path, base, content: await readFile(path, "utf8") };
     },
   });
@@ -178,11 +186,11 @@ type ContainerLoader = () => Promise<{ default: Component }>;
 
 const loadDrawer: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
   );
 const loadModal: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/modal/DynamicModal.vue"
+    "../layers/dms-ui/app/entries/components/containers/modal/DynamicModal"
   );
 
 const CONTAINERS: Array<

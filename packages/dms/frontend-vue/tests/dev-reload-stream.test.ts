@@ -4,7 +4,7 @@ import {
   followDevReload,
   openDevReloadStream,
   openSharedDevReloadStream,
-} from "../layers/dms-layout/app/build/utils/dev-reload-stream";
+} from "../layers/dms-layout/app/entries/utils/dev-reload-stream";
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const ENDPOINT = "http://backend.test/dms/dev/reload";

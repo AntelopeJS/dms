@@ -14,7 +14,7 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NamedValue } from "vue-i18n";
-import DashboardBanners from "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue";
+import DashboardBanners from "../layers/dms-layout/app/entries/components/layout/DashboardBanners";
 import {
   isLayoutBannerInScope,
   isModuleAreaPath,
@@ -26,7 +26,7 @@ import {
   type LayoutBanner,
   type LayoutBannerVariant,
   type SiteLayout,
-} from "../layers/dms-layout/app/types/page";
+} from "../layers/dms-core/app/types/page";
 
 const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
 const APP_PAGE = "/finance/invoices";

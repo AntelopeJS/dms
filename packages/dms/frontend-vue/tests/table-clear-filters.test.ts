@@ -14,7 +14,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaginationState } from "@tanstack/vue-table";
-import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
 import {
   clearTableColumnFilters,
   clearTableFilters,
@@ -24,8 +24,8 @@ import {
   isTableNarrowed,
   resetColumnFilters,
   type TableNarrowingState,
-} from "../layers/dms-ui/app/build/composables/table/utils/clearTableFilters";
-import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
+} from "../layers/dms-ui/app/entries/composables/table/utils/clearTableFilters";
+import TableEmpty from "../layers/dms-ui/app/entries/components/table/Empty";
 import { useTableViewEmptyState } from "../layers/dms-ui/app/composables/table-view/useTableViewEmptyState";
 import type { TableViewEmptyStatesConfig } from "../layers/dms-ui/app/composables/table-view/types";
 

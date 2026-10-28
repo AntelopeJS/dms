@@ -1,4 +1,4 @@
-import type { ModuleCatalogEntry } from "../../types/page";
+import type { ModuleCatalogEntry } from "#dms-core/app/types/page";
 
 /**
  * Why the catalog could not be loaded: `forbidden` when the server refused

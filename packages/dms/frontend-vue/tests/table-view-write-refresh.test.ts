@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 
 const mounted: Array<{ unmount: () => void }> = [];

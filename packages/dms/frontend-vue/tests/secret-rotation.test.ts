@@ -10,8 +10,8 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fieldSavedMarker } from "../layers/dms-ui/app/build/composables/form/fieldSaved";
-import { useInstantForm } from "../layers/dms-ui/app/build/composables/form/useInstantForm";
+import { fieldSavedMarker } from "../layers/dms-ui/app/entries/composables/form/fieldSaved";
+import { useInstantForm } from "../layers/dms-ui/app/entries/composables/form/useInstantForm";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 import { FORM_FIELD_SAVED_KEY } from "../layers/dms-ui/app/composables/form/types/field-saved";
 import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";

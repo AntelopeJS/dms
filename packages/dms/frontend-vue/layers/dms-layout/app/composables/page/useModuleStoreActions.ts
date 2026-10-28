@@ -19,7 +19,7 @@ import {
 import type {
   StoreActionBody,
   StoreOperationKind,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import type { useModuleStore } from "./useModuleStore";
 
 /** What a refused store request carries: the server's error key, if any. */

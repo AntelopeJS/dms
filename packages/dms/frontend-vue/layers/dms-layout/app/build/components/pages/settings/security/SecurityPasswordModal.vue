@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import SecurityDialogFrame, {
   type SecurityDialogTone,

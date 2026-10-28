@@ -17,24 +17,24 @@ import {
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import {
   LIVE_HELD_AT_QUERY_KEY,
   sourceRouteQuery,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type {
   TableLiveHold,
   TableLiveHoldSignals,
   TableNewRowsCounter,
-} from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
-import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
+} from "../layers/dms-ui/app/entries/composables/table-view/useTableLiveHold";
+import type { TableViewLiveHoldOptions } from "../layers/dms-core/app/types/live";
 
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 const { useTableLiveHold } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableLiveHold"
 );
 
 const TOPIC = "api:requests";

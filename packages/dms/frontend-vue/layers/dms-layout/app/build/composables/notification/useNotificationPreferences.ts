@@ -1,6 +1,6 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
-import { useInstantSave } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
+import { useInstantSave } from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
 import {
   hasFailed,
   type NotificationCategory,

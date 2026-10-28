@@ -18,6 +18,8 @@ export default defineConfig({
       "#dms-core": resolve(__dirname, "layers/dms-core"),
       "#dms-ui": resolve(__dirname, "layers/dms-ui"),
       "#dms-layout": resolve(__dirname, "layers/dms-layout"),
+      "#dms-auth": resolve(__dirname, "layers/dms-auth"),
+      "#dms-onboarding": resolve(__dirname, "layers/dms-onboarding"),
 
       "#dms/frontend-module": resolve(
         __dirname,

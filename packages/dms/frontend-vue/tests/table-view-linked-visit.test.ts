@@ -14,7 +14,7 @@ interface VisitDetail {
   replace?: boolean;
 }
 const { useTableLinkedVisit } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableLinkedVisit"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableLinkedVisit"
 );
 
 const emit = (type: string, detail: VisitDetail) =>

@@ -1,6 +1,6 @@
 import { onScopeDispose, type Ref, watch } from "vue";
 import type { RealtimeTopicHandler } from "#dms-core/app/composables/realtime/useUserRealtime";
-import type { PageLayout } from "../../types/page";
+import type { PageLayout } from "#dms-core/app/types/page";
 import {
   fillRouteParams,
   isSamePageQuery,
@@ -8,7 +8,7 @@ import {
   isViewStateKey,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../../utils/pageQuery";
+} from "#dms-core/app/utils/pageQuery";
 
 const BURST_WINDOW_MS = 16;
 

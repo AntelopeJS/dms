@@ -7,12 +7,12 @@ import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-r
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
-import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import layout from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
+import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import layout from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
-import { FormContainerType } from "../layers/dms-ui/app/build/composables/table-view/types";
+import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
 
 interface Messages {
   [key: string]: string | Messages;
@@ -52,7 +52,7 @@ const refresh = vi.fn();
  */
 async function invitesRowActions() {
   const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
+    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
     // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Editing opens a modal without fetching; the mock deliberately omits unused fetch methods.

@@ -10,8 +10,8 @@ import {
   refreshLivePageBlocks,
   refreshPageBlocks,
 } from "../layers/dms-ui/app/utils/blockRefresh";
-import { createPageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+import { createPageLiveController } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 
 const requests: string[] = [];
 

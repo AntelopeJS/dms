@@ -22,8 +22,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   provideServerPageLive,
   setCurrentPageLive,
-} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
-import type { PageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+} from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import type { PageLiveController } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import {
   engine,

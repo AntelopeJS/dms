@@ -5,7 +5,7 @@ import type { ButtonProps } from "@nuxt/ui";
 import { tv } from "tailwind-variants";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** The pill at the card's top right ("Builder", "Local", "Legacy"). */
 export interface RecordCardBadge {

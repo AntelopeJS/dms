@@ -5,7 +5,7 @@ import {
   formatDayMonth,
   formatRelativeDate,
 } from "../../utils/relativeDate";
-import { serverRenderNow } from "#dms-core/app/build/composables/renderNow";
+import { serverRenderNow } from "#dms-core/app/entries/composables/renderNow";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const CELL_TEXT_CLASS = "text-[12.5px]";

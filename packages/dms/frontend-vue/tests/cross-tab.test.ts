@@ -4,7 +4,7 @@ import {
   holdLock,
   shareAcrossTabs,
   whenReleased,
-} from "../layers/dms-core/app/build/utils/crossTab";
+} from "../layers/dms-core/app/entries/utils/crossTab";
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const NAME = "test-source";

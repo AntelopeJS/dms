@@ -9,7 +9,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NotificationInboxItem from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxItem.vue";
+import NotificationInboxItem from "../layers/dms-layout/app/entries/components/pages/settings/notification/NotificationInboxItem";
 
 interface ButtonUi {
   label?: string;

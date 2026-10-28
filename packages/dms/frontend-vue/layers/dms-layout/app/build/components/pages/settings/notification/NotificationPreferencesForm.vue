@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import type { NotificationCategory } from "../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../composables/notification/useNotificationPreferences";
 import { useNotificationGroupsOpen } from "../../../../composables/notification/useNotificationGroupsOpen";
-import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
+import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
 import {
@@ -11,7 +11,7 @@ import {
   MATRIX_CONTAINER_CLASS,
   MATRIX_GRID_CLASS,
 } from "./notificationDisplay";
-import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
+import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
 const PREFERENCES_SKELETON_ROWS = 4;
 

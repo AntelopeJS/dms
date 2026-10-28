@@ -14,15 +14,15 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, vi } from "vitest";
-import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
-import RowSidePanel from "../layers/dms-layout/app/build/components/layout/RowSidePanel.vue";
+import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
+import RowSidePanel from "../layers/dms-ui/app/entries/components/containers/RowSidePanel";
 import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
 import {
   readSidePanelPreferences,
   SIDE_PANEL_COOKIE,
-} from "../layers/dms-layout/app/build/composables/layout/sidePanelState";
-import { closeRowSidePanel } from "../layers/dms-layout/app/build/composables/layout/rowSidePanel";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+} from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";
+import { closeRowSidePanel } from "../layers/dms-ui/app/entries/composables/layout/rowSidePanel";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
 const PANEL_COMPONENT = "RunPanel";

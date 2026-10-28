@@ -17,14 +17,14 @@ import {
   nextTick,
   ref,
 } from "vue";
-import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
+import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/entries/composables/form/formControlErrors";
 import type InputNumberField from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import {
   ABOVE_MAX_MESSAGE,
   BELOW_MIN_MESSAGE,
   numberRangeError,
   numberStepperState,
-} from "../layers/dms-ui/app/build/composables/form/numberRange";
+} from "../layers/dms-ui/app/entries/composables/form/numberRange";
 
 let app: App | undefined;
 let host: HTMLDivElement;

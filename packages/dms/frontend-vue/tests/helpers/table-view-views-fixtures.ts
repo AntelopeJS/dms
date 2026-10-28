@@ -1,5 +1,5 @@
-import type { TableFilter } from "../../layers/dms-ui/app/build/components/table/Table.vue";
-import type { TableStateDefaults } from "../../layers/dms-ui/app/build/composables/table-view/utils/views";
+import type { TableFilter } from "../../layers/dms-ui/app/entries/components/table/Table";
+import type { TableStateDefaults } from "../../layers/dms-ui/app/entries/composables/table-view/utils/views";
 const pinnedStatus: TableFilter = {
   accessorKey: "status",
   mode: "is",

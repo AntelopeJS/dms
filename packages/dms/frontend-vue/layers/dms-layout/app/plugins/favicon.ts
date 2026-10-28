@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import type { DmsLogoSources } from "#dms-core/shared/types/app-config";
+import type { DmsLogoSources } from "#dms-core/app/entries/shared/types/app-config";
 
 const ICON_TYPES: Record<
   ReturnType<

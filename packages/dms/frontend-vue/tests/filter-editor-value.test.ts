@@ -3,7 +3,7 @@ import {
   dateFilterEditorValue,
   filterEditorValue,
   numberFilterEditorValue,
-} from "../layers/dms-ui/app/build/composables/table/utils/filterEditorValue";
+} from "../layers/dms-ui/app/entries/composables/table/utils/filterEditorValue";
 
 const NUMBER = { filterEditorValue: numberFilterEditorValue };
 const DATE = { filterEditorValue: dateFilterEditorValue };

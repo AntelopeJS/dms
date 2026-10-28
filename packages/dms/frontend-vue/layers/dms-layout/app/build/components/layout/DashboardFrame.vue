@@ -10,7 +10,7 @@ import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadge
 import {
   sidePanelWidthStyle,
   useActiveSidePanel,
-} from "../../composables/layout/sidePanelState";
+} from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";

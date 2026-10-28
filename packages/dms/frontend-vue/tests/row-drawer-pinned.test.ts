@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
-import { useTableRows } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
-import { rowLocator } from "../layers/dms-ui/app/build/composables/table-view/utils/locateRow";
+import { useTableRows } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
+import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
 import {
   type OpenedDrawer,
   opened,

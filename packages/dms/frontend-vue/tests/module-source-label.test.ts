@@ -1,7 +1,7 @@
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, expect, it, vi } from "vitest";
-import ModuleSourceLabel from "../layers/dms-layout/app/build/components/pages/modules/ModuleSourceLabel.vue";
+import ModuleSourceLabel from "../layers/dms-layout/app/entries/components/pages/modules/ModuleSourceLabel";
 
 afterEach(() => vi.unstubAllGlobals());
 

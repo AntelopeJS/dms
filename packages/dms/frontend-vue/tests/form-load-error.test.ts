@@ -1,13 +1,13 @@
 import { createSSRApp, defineComponent, h, nextTick, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import FormLoadError from "../layers/dms-ui/app/build/components/form/FormLoadError.vue";
+import FormLoadError from "../layers/dms-ui/app/entries/components/form/FormLoadError";
 import {
   type FormLoadFailure,
   type FormLoadSource,
   missingRecordFailure,
   trackFormRecordLoad,
-} from "../layers/dms-ui/app/build/composables/form/formRecordLoad";
+} from "../layers/dms-ui/app/entries/composables/form/formRecordLoad";
 
 const ROW = { values: { email: "zz-invitee@example.com" }, initial: {} };
 const FORBIDDEN = Object.assign(new Error("Forbidden"), { statusCode: 403 });

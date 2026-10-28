@@ -7,7 +7,7 @@ import {
   type Ref,
 } from "vue";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
-import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import { sameFormValue } from "../unsaved-changes/formValue";
 
 /** How long typing pauses before a text saves. */

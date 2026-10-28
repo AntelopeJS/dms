@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { useExpandedRowDetails } from "../layers/dms-ui/app/build/composables/table-view/useExpandedRowDetails";
-import { buildExpandedRowProps } from "../layers/dms-ui/app/build/composables/table-view/utils/expandedRowProps";
+import { useExpandedRowDetails } from "../layers/dms-ui/app/entries/composables/table-view/useExpandedRowDetails";
+import { buildExpandedRowProps } from "../layers/dms-ui/app/entries/composables/table-view/utils/expandedRowProps";
 import type { TableViewDisplayActions } from "../layers/dms-ui/app/composables/table-view/types";
 
 interface Order {

@@ -8,7 +8,7 @@ import {
   createFieldValueComparer,
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
-import { sameRelationValue } from "../layers/dms-ui/app/build/composables/data-types/relationValue";
+import { sameRelationValue } from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
 
 const authFetch = vi.fn();
 const RELATION_TYPE = {

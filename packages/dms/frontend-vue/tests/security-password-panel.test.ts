@@ -93,7 +93,7 @@ async function submit(): Promise<void> {
 
 async function mountAndOpen(): Promise<void> {
   const { default: SecurityPassword } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecurityPassword.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPassword"
   );
   app = createApp(SecurityPassword);
   app.config.globalProperties.$t = (key: string) => key;

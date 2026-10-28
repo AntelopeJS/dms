@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import { defineComponent, h, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useRowSidePanelContent } from "../layers/dms-layout/app/build/composables/layout/rowSidePanel";
-import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
+import { useRowSidePanelContent } from "../layers/dms-ui/app/entries/composables/layout/rowSidePanel";
+import { isRowClickTrigger } from "../layers/dms-ui/app/entries/utils/rowClickTrigger";
 import { resolveRowClickAction } from "../layers/dms-ui/app/utils/rowClickAction";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import {

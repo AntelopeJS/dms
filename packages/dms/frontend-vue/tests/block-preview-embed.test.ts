@@ -11,11 +11,11 @@ import {
 import {
   useBlockPreviewEmbed,
   type BlockPreviewEmbed,
-} from "../layers/dms-ui/app/build/composables/block-preview/useBlockPreviewEmbed";
+} from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";
 import {
   PREVIEW_CHANNEL,
   type PreviewState,
-} from "../layers/dms-ui/app/build/utils/blockPreview";
+} from "../layers/dms-ui/app/entries/utils/blockPreview";
 
 const parentWindow = { postMessage: vi.fn() };
 const setLocale = vi.fn();

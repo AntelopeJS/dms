@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { effectScope } from "vue";
-import { useCopyFeedback } from "../layers/dms-ui/app/build/composables/clipboard/useCopyFeedback";
+import { useCopyFeedback } from "../layers/dms-ui/app/entries/composables/clipboard/useCopyFeedback";
 
 const writeText = vi.fn(async () => undefined);
 

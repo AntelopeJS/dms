@@ -13,7 +13,7 @@ import {
   TABLES_PREFERENCE_KEY,
   tablePreferenceId,
   writeLocalTableEntry,
-} from "#dms-core/app/build/composables/user/tablePreferences";
+} from "#dms-core/app/entries/composables/user/tablePreferences";
 
 /**
  * The preferences of one table view. A field the server render needs

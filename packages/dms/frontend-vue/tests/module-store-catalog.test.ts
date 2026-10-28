@@ -3,7 +3,7 @@ import {
   MODULE_CATEGORY_ALL,
   filterModules,
   moduleCategoryOptions,
-} from "../layers/dms-layout/app/build/utils/modules-catalog";
+} from "../layers/dms-layout/app/entries/utils/modules-catalog";
 import {
   STORE_SCOPES,
   filterByScope,
@@ -18,7 +18,7 @@ import {
   storeOpenTarget,
   toModuleStoreEntry,
   withStoreDetails,
-} from "../layers/dms-layout/app/build/utils/module-store-catalog";
+} from "../layers/dms-layout/app/entries/utils/module-store-catalog";
 import {
   OTHER_PACKAGE_CHOICE,
   areDependencyDraftsValid,
@@ -27,11 +27,11 @@ import {
   isNpmPackageName,
   parseDependencyConfig,
   validateDependencyDraft,
-} from "../layers/dms-layout/app/build/utils/module-store-install";
-import type { StoreListingEntry } from "../layers/dms-layout/app/types/module-store";
+} from "../layers/dms-layout/app/entries/utils/module-store-install";
+import type { StoreListingEntry } from "../layers/dms-core/app/types/module-store";
 import catalogDocument from "../../data/module-store/catalog.json";
-import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
-import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
+import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   actionKinds,

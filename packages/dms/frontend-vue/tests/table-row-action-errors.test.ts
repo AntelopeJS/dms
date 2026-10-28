@@ -13,8 +13,8 @@ import {
   type ConfirmOptions,
   type ConfirmValues,
 } from "../layers/dms-ui/app/composables/confirm/types";
-import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
+import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 
 type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
@@ -78,7 +78,7 @@ const getRow = vi.fn();
 
 async function rowActions() {
   const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
+    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
     // SAFETY: Row action tests only call the configured fetch function, never its raw/create helpers.

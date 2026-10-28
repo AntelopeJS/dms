@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useOpenDialog } from "#dms-ui/app/build/composables/containers/closingLayers";
-import { isFloatingSaveBarShown } from "#dms-ui/app/build/composables/form/floatingSaveBars";
+import { useOpenDialog } from "#dms-ui/app/entries/composables/containers/closingLayers";
+import { isFloatingSaveBarShown } from "#dms-ui/app/entries/composables/form/floatingSaveBars";
 import { useGithubStarPrompt } from "../../composables/general/useGithubStarPrompt";
-import { useActiveSidePanel } from "../../composables/layout/sidePanelState";
+import { useActiveSidePanel } from "#dms-ui/app/entries/composables/layout/sidePanelState";
 import { useSidebarState } from "./sidebarState";
 
 const TITLE_ID = "dms-github-star-prompt-title";

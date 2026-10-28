@@ -11,9 +11,9 @@ import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
-import { formatElapsed } from "../layers/dms-ui/app/build/composables/live/formatElapsed";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import { formatElapsed } from "../layers/dms-ui/app/entries/composables/live/formatElapsed";
 
 let app: App | undefined;
 let host: HTMLDivElement;

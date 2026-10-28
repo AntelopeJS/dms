@@ -6,7 +6,7 @@
  */
 import { createApp, h, nextTick, type App, type Ref } from "vue";
 import { afterEach, expect, it } from "vitest";
-import { useOpenDialog } from "../layers/dms-ui/app/build/composables/containers/closingLayers";
+import { useOpenDialog } from "../layers/dms-ui/app/entries/composables/containers/closingLayers";
 
 let app: App | undefined;
 

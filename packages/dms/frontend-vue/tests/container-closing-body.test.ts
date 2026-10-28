@@ -36,7 +36,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   UNCOVERED_ATTRIBUTE,
   watchClosingLayers,
-} from "../layers/dms-ui/app/build/composables/containers/closingLayers";
+} from "../layers/dms-ui/app/entries/composables/containers/closingLayers";
 
 import { DialogRoot as LayerDialogRoot } from "reka-ui";
 
@@ -183,11 +183,11 @@ type ContainerLoader = () => Promise<{ default: Component }>;
 
 const loadDrawer: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
   );
 const loadModal: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/modal/DynamicModal.vue"
+    "../layers/dms-ui/app/entries/components/containers/modal/DynamicModal"
   );
 
 const CONTAINERS: Array<

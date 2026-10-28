@@ -5,7 +5,7 @@ import { DmsLink } from "#dms/frontend-module";
 import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { stubBlockRuntime } from "./helpers/block-runtime";
-import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
+import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
 
 const page = (fullId: string, extra: Partial<SiteLayoutTree> = {}) => ({
   fullId,

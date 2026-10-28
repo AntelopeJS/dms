@@ -1,8 +1,8 @@
 import type {
   DmsBrandingLogo,
   DmsUiColors,
-} from "#dms-core/shared/types/app-config";
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+} from "#dms-core/app/entries/shared/types/app-config";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import { actionsTheme } from "./theme/actions";
 import { dataTheme } from "./theme/data";
 import { formControlsTheme } from "./theme/form-controls";

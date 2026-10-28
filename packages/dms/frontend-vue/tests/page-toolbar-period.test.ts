@@ -19,8 +19,8 @@ import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
 import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
-import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
+import coreEnGB from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFrFR from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 
 let app: App | undefined;
 let host: HTMLDivElement;

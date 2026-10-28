@@ -4,7 +4,7 @@ import { tv } from "tailwind-variants";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 import { navBadgeClass } from "../../build/utils/navBadge";
 

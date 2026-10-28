@@ -10,20 +10,20 @@ import {
 } from "#dms-ui/app/types/quick-actions";
 import type { CustomButton } from "#dms-ui/app/composables/table-view/types/custom-button";
 import type { ActionTarget } from "#dms-ui/app/composables/table-view/types/action-target";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
-import { runMountedQuickAction } from "#dms-ui/app/build/utils/quickActionTargets";
-import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
+import { runMountedQuickAction } from "#dms-ui/app/entries/utils/quickActionTargets";
+import { useActionTargets } from "#dms-ui/app/entries/composables/actions/useActionTargets";
 import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
 import {
   hasUrlVariables,
   resolveLinkVariables,
-} from "#dms-ui/app/build/utils/urlVariables";
+} from "#dms-ui/app/entries/utils/urlVariables";
 import {
   dispatchQuickActionTarget,
   findServedQuickAction,
-} from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
-import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "../../../composables/layout/usePageHeaderActions";
+} from "#dms-ui/app/entries/utils/dispatchQuickActionTarget";
+import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { isString } from "#dms-core/app/utils/type-check";
 
 /**

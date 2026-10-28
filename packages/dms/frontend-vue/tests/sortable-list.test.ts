@@ -8,7 +8,7 @@
 import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 import Sortable from "sortablejs";
-import type { SortableListChange } from "../layers/dms-ui/app/build/components/sortable/SortableList.vue";
+import type { SortableListChange } from "../layers/dms-ui/app/entries/components/sortable/SortableList";
 
 interface FakeSortable {
   el: HTMLElement;
@@ -23,7 +23,7 @@ type DragCallback = "onStart" | "onUpdate" | "onEnd" | "onAdd" | "onRemove";
 const instances: FakeSortable[] = [];
 
 const { default: SortableList } = await import(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue"
+  "../layers/dms-ui/app/entries/components/sortable/SortableList"
 );
 
 interface Card {

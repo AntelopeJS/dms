@@ -11,7 +11,7 @@ import {
   formatBytes,
   progressShares,
   registerMetricCellTypes,
-} from "../layers/dms-ui/app/build/composables/data-types/metricCells";
+} from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
 
 type DataTypeFormatter = NonNullable<DataType["formatter"]>["default"];
 

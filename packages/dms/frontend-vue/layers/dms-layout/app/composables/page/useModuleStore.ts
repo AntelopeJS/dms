@@ -3,7 +3,7 @@ import type {
   StoreListing,
   StoreListingEntry,
   StoreOperationKind,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import { isAwaitingFrontend } from "../../build/utils/module-store-catalog";
 
 export const ENDPOINT_STORE_LISTING = "/dms/store/listing";

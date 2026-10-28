@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildTableQuery } from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
-import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import { buildTableQuery } from "../layers/dms-ui/app/entries/composables/table-view/utils/tableQuery";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
 
 const filter = (
   accessorKey: TableFilter["accessorKey"],

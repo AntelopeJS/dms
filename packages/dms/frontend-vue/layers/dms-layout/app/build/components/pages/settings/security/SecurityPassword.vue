@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -11,7 +11,7 @@ import {
   type SessionHandoff,
   useSessionHandoff,
 } from "../../../../composables/security/useSessionHandoff";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";

@@ -18,7 +18,7 @@ import {
   type VNode,
   type App,
 } from "vue";
-import { useTableColumns } from "../layers/dms-ui/app/build/composables/table/useTableColumns";
+import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
 import * as buttons from "../layers/dms-core/app/types/button";

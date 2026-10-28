@@ -11,7 +11,7 @@ import {
   ref,
 } from "vue";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
-import type SearchInputComponent from "../layers/dms-ui/app/build/components/form/SearchInput.vue";
+import type SearchInputComponent from "../layers/dms-ui/app/entries/components/form/SearchInput";
 
 const Input = defineComponent({
   inheritAttrs: false,
@@ -41,7 +41,7 @@ async function mount(
   props: Partial<InstanceType<typeof SearchInputComponent>["$props"]> = {},
 ) {
   const { default: SearchInput } = await import(
-    "../layers/dms-ui/app/build/components/form/SearchInput.vue"
+    "../layers/dms-ui/app/entries/components/form/SearchInput"
   );
   app = createApp(() => h(SearchInput, { placeholder: "Search", ...props }));
   app.component("UInput", Input);

@@ -10,14 +10,14 @@ import {
   type ExtractPropTypes,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import {
   buildCardProps,
   cardAvatar,
   cardFieldColumns,
   cardIdentity,
   cardSubtitle,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/card";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/card";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 

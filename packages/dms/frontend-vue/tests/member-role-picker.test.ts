@@ -16,7 +16,7 @@ import {
   formFieldInjectionKey,
   formStateInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
-import { sameFormValue } from "../layers/dms-ui/app/build/composables/unsaved-changes/formValue";
+import { sameFormValue } from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const ROLES_URL = "/settings/workspace/members/role-options";
@@ -47,7 +47,7 @@ async function flush(): Promise<void> {
 /** The picker inside a UFormField named `roleIds`, as a form renders it. */
 async function mountPicker(props: NonNullable<VNode["props"]> = {}) {
   const { default: MemberRolePicker } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/members/MemberRolePicker"
   );
   const Field = defineComponent({
     setup() {

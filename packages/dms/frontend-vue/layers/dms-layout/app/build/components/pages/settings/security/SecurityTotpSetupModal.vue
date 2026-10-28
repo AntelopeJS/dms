@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
+import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
 import { useTemplateRef } from "vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../composables/settings/security/useCodeFieldError";
 import type { TotpSetup } from "../../../../composables/settings/security/useSecurityOverview";

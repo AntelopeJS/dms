@@ -8,7 +8,10 @@ const { createRequire } = require("node:module");
 const root = path.resolve(process.argv[2]);
 const frontend = path.join(root, "packages/dms/frontend-vue");
 const req = createRequire(path.join(frontend, "package.json"));
-const ts = req("typescript");
+const ts = {
+  ...req("typescript"),
+  findConfigFile: () => path.join(root, ".dependency-cruiser.tsconfig.json"),
+};
 const sfc = req("@vue/compiler-sfc");
 sfc.registerTS(() => ts);
 const layers = path.join(frontend, "layers");
@@ -134,6 +137,10 @@ const compilerOptions = {
   module: ts.ModuleKind.CommonJS,
   target: ts.ScriptTarget.ES2022,
 };
+const dependencyLoaders = {
+  "node:path": () => req("node:path"),
+  vite: () => req("vite"),
+};
 
 function evaluate(source, filename, globals = {}, imports = {}, transformers) {
   const module = { exports: {} };
@@ -143,7 +150,9 @@ function evaluate(source, filename, globals = {}, imports = {}, transformers) {
       const target = path.resolve(path.dirname(filename), specifier);
       return load(target.endsWith(".ts") ? target : `${target}.ts`, globals);
     }
-    return req(specifier);
+    const loader = dependencyLoaders[specifier];
+    if (!loader) throw new Error(`Unexpected probe dependency ${specifier}`);
+    return loader();
   };
   const code = ts.transpileModule(source, {
     compilerOptions,

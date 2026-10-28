@@ -11,7 +11,7 @@ import type {
 import type { CustomButton } from "./custom-button";
 import type { FormProps } from "../../form/types";
 import type { TableProps, TableFilter } from "../../../types/table";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { BlockAction } from "../../../build/components/blocks/BlockActions.vue";
 
 export interface QueryParamFilter {

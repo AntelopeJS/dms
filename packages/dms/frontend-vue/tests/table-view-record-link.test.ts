@@ -8,18 +8,18 @@
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
-import type { DeepLinkedRow } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+import type { DeepLinkedRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   clearWrittenRecord,
   writeRecordId,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   currentQuery,
   withoutQueryParam,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/urlFilters";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/urlFilters";
 
 const { useTableRecordLink } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRecordLink"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRecordLink"
 );
 
 interface Row {

@@ -10,8 +10,8 @@ import {
   nextTick,
   ref,
 } from "vue";
-import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
-import type * as RolePermissionHelpers from "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions";
+import type { RolePermissionNode } from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
+import type * as RolePermissionHelpers from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { TREE } from "./helpers/role-permission-tree-fixture";
@@ -62,16 +62,16 @@ let app: App | undefined;
 beforeAll(async () => {
   installAuthSettingsRuntime();
   helpers = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions"
+    "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions"
   );
   RolePermissionTree = (
     await import(
-      "../layers/dms-layout/app/build/components/pages/settings/roles/RolePermissionTree.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/roles/RolePermissionTree"
     )
   ).default;
   RoleEditor = (
     await import(
-      "../layers/dms-layout/app/build/components/pages/settings/roles/RoleEditor.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/roles/RoleEditor"
     )
   ).default;
 });

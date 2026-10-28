@@ -2,13 +2,13 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { MENU_STATUS_CHIP_COLORS } from "#dms-core/app/utils/menu";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
 import {
   applyPreviewEntryStates,
   type PreviewEntryState,
-} from "#dms-core/app/build/utils/permission-preview";
+} from "#dms-core/app/entries/utils/permission-preview";
 
 interface Props {
   items: NavigationMenuItem[] | NavigationMenuItem[][];

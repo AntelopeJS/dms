@@ -37,11 +37,11 @@ function stubLayerGlobals() {
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
   ({ formatMilliseconds } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/metricCells"
+    "../layers/dms-ui/app/entries/composables/data-types/metricCells"
   ));
 });
 

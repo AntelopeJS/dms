@@ -8,8 +8,8 @@ import { HttpMethod } from "../../layers/dms-core/app/types/http";
 import { Color } from "../../layers/dms-core/app/types/color";
 import { isString } from "../../layers/dms-core/app/utils/type-check";
 import type { FormProps } from "../../layers/dms-ui/app/composables/form/types/props";
-import en from "../../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import en from "../../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 export const i18n = createI18n({
   legacy: false,

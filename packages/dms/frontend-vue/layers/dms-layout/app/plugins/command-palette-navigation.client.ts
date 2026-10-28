@@ -1,5 +1,5 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "@nuxt/ui";
-import { buildMenuItemTarget } from "#dms-ui/app/build/types/tree";
+import { buildMenuItemTarget } from "#dms-ui/app/entries/types/tree";
 
 const NAVIGATION_SOURCE_ID = "dms-navigation";
 const NAVIGATION_SOURCE_ORDER = 40;

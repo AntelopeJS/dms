@@ -9,8 +9,8 @@ import {
   watch,
   watchEffect,
 } from "vue";
-import { useTable } from "../layers/dms-ui/app/build/composables/table/useTable";
-import { useTableColumns } from "../layers/dms-ui/app/build/composables/table/useTableColumns";
+import { useTable } from "../layers/dms-ui/app/entries/composables/table/useTable";
+import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";

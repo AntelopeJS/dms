@@ -1,13 +1,13 @@
 /** @vitest-environment jsdom */
 import { ref } from "vue";
 import { describe, expect, it } from "vitest";
-import { SIDE_PANEL_COOKIE } from "../layers/dms-layout/app/build/composables/layout/sidePanelState";
+import { SIDE_PANEL_COOKIE } from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";
 import {
   ROW_SIDE_PANEL_ID,
   useRowSidePanelContent,
-} from "../layers/dms-layout/app/build/composables/layout/rowSidePanel";
-import { useAppSidePanels } from "../layers/dms-layout/app/composables/useAppSidePanels";
-import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
+} from "../layers/dms-ui/app/entries/composables/layout/rowSidePanel";
+import { useAppSidePanels } from "../layers/dms-ui/app/composables/useAppSidePanels";
+import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import {
   panelMounts,
   refreshes,

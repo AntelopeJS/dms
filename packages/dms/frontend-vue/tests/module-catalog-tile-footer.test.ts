@@ -2,7 +2,7 @@ import { computed, createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { JSDOM } from "jsdom";
 import { afterEach, expect, it, vi } from "vitest";
-import ModuleCatalogTile from "../layers/dms-layout/app/build/components/pages/modules/ModuleCatalogTile.vue";
+import ModuleCatalogTile from "../layers/dms-layout/app/entries/components/pages/modules/ModuleCatalogTile";
 
 afterEach(() => vi.unstubAllGlobals());
 

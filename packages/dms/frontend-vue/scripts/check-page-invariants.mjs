@@ -130,7 +130,7 @@ async function checkShortcutTranslations() {
       NAV_SEARCH_SHORTCUT,
       PAGE_SEARCH_HINT_KEYS,
     } = await import(
-      "../layers/dms-ui/app/build/composables/global/searchShortcuts.ts"
+      "../layers/dms-ui/app/entries/composables/global/searchShortcuts"
     );
     assert.deepEqual(GLOBAL_SLASH_METADATA.key, [NAV_SEARCH_SHORTCUT]);
     assert.deepEqual(
@@ -215,7 +215,7 @@ function checkLiveLabels() {
 
 async function checkPeriodLabels() {
   const { PRESET_SHORT_LABELS } = await import(
-    "../layers/dms-ui/app/build/composables/period/periodShortLabels.ts"
+    "../layers/dms-ui/app/entries/composables/period/periodShortLabels.ts"
   );
   const source = readFileSync(
     resolve(root, "../../interface-dms/src/base/period-selector.ts"),

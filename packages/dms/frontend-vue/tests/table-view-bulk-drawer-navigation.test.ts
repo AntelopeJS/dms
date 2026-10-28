@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import { nextTick } from "vue";
 import { expect, it, vi } from "vitest";
-import TargetComponentTree from "../layers/dms-ui/app/build/components/containers/TargetComponentTree.vue";
-import type { RowNavigationSource } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+import TargetComponentTree from "../layers/dms-ui/app/entries/components/containers/TargetComponentTree";
+import type { RowNavigationSource } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import {
   drawerBody,
   drawers,

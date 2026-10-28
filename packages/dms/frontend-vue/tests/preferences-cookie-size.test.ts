@@ -20,12 +20,12 @@ import {
 import {
   decodePreferencesTree,
   preferencesCookieBytes,
-} from "../layers/dms-core/app/build/composables/user/preferencesCookie";
+} from "../layers/dms-core/app/entries/composables/user/preferencesCookie";
 import {
   LOCAL_TABLE_KEY_PREFIX,
   tablePreferenceId,
-} from "../layers/dms-core/app/build/composables/user/tablePreferences";
-import { useTablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
+} from "../layers/dms-core/app/entries/composables/user/tablePreferences";
+import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
 
 const COMPONENT_ID = "content-child-main-child-main-child-languages";
 const PAGE_ID = "modules.lang.manage.workspace";

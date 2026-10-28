@@ -7,7 +7,7 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import {
   interpolateRowText,
   interpolateUrl,
@@ -16,13 +16,13 @@ import { HttpMethod } from "../layers/dms-core/app/types/http";
 import {
   replaceUrlVariables,
   resolveLinkVariables,
-} from "../layers/dms-ui/app/build/utils/urlVariables";
+} from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   pageLink,
   pageRequestUrl,
-} from "../layers/dms-ui/app/build/composables/page/pageUrlValues";
-import { buttonLinkProps } from "../layers/dms-ui/app/build/utils/link";
-import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
+} from "../layers/dms-ui/app/entries/composables/page/pageUrlValues";
+import { buttonLinkProps } from "../layers/dms-ui/app/entries/utils/link";
+import { resolveConfirmDialog } from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 

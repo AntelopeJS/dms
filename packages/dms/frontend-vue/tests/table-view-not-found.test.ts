@@ -5,7 +5,7 @@
  * retry, nor an empty table.
  */
 import { describe, expect, it } from "vitest";
-import { readFetchNotFound } from "../layers/dms-ui/app/build/utils/fetchNotFound";
+import { readFetchNotFound } from "../layers/dms-ui/app/entries/utils/fetchNotFound";
 
 describe("a table view whose list answers 404", () => {
   it("takes a 404 for not found, and any other failure for an error", () => {

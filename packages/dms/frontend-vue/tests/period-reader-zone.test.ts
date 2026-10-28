@@ -20,8 +20,8 @@ import { resolveComparisonRange } from "../layers/dms-core/app/composables/perio
 import {
   formatPeriodDate,
   parsePeriodDate,
-} from "../layers/dms-ui/app/build/composables/period/periodQuery";
-import { formatPeriodRange } from "../layers/dms-ui/app/build/composables/period/periodDisplay";
+} from "../layers/dms-ui/app/entries/composables/period/periodQuery";
+import { formatPeriodRange } from "../layers/dms-ui/app/entries/composables/period/periodDisplay";
 
 const READER_ZONE =
   browserTimeZone() === "Pacific/Kiritimati"

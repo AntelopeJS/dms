@@ -7,7 +7,7 @@ import { useModal } from "../../layers/dms-ui/app/composables/containers/useModa
 import { useDrawer } from "../../layers/dms-ui/app/composables/containers/useDrawer";
 import { useConfirm } from "../../layers/dms-ui/app/composables/confirm/useConfirm";
 import { useExportJob } from "../../layers/dms-ui/app/composables/useExportJob";
-import { useSiteLayout } from "../../layers/dms-layout/app/composables/page/useSiteLayout";
+import { useSiteLayout } from "../../layers/dms-core/app/composables/page/useSiteLayout";
 import DmsCard from "../../layers/dms-ui/app/components/card/Card.vue";
 import { Color } from "../../layers/dms-core/app/types/color";
 import { HttpMethod } from "../../layers/dms-core/app/types/http";

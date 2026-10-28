@@ -3,7 +3,7 @@ import { isSameSorting } from "./utils/sortableColumns";
 import {
   rowSidePanelOwnerKey,
   useRowSidePanelContent,
-} from "#dms-layout/app/build/composables/layout/rowSidePanel";
+} from "#dms-ui/app/build/composables/layout/rowSidePanel";
 import { useTemplateRef, type ComponentPublicInstance } from "vue";
 import { useRefreshTriggers } from "../blocks/useRefreshTriggers";
 import { refreshPageBlocks } from "../../../utils/blockRefresh";

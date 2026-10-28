@@ -13,7 +13,7 @@ import {
 import {
   registerQuickActionTarget,
   runMountedQuickAction,
-} from "../layers/dms-ui/app/build/utils/quickActionTargets";
+} from "../layers/dms-ui/app/entries/utils/quickActionTargets";
 import { stubMiscActions } from "./helpers/misc-runtime";
 
 const authFetch = vi.fn(async () => ({}));
@@ -87,7 +87,7 @@ afterEach(() => {
 
 async function mountHeaderBar(actions: unknown[] = [INVITE_HEADER_ACTION]) {
   const { default: PageHeaderActionBar } = await import(
-    "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue"
+    "../layers/dms-layout/app/entries/components/layout/PageHeaderActionBar"
   );
   app = createApp({
     render: () => h(PageHeaderActionBar, { actions }),

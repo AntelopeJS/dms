@@ -1,12 +1,12 @@
 /** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import ExpandedRowDetail from "../layers/dms-ui/app/build/components/table-view/ExpandedRowDetail.vue";
+import ExpandedRowDetail from "../layers/dms-ui/app/entries/components/table-view/ExpandedRowDetail";
 import type {
   TableViewColumn,
   TableViewExpandableConfig,
 } from "../layers/dms-ui/app/composables/table-view/types";
-import type { ExpandedRowLoadState } from "../layers/dms-ui/app/build/composables/table-view/useExpandedRowDetails";
+import type { ExpandedRowLoadState } from "../layers/dms-ui/app/entries/composables/table-view/useExpandedRowDetails";
 
 const OrderLines = defineComponent({
   props: { row: Object, rowId: String, refresh: Function, open: Function },

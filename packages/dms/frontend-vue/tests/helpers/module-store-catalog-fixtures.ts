@@ -2,12 +2,12 @@ import {
   type ModuleStoreEntry,
   storeActions,
   toModuleStoreEntry,
-} from "../../layers/dms-layout/app/build/utils/module-store-catalog";
+} from "../../layers/dms-layout/app/entries/utils/module-store-catalog";
 import type {
   MissingInterface,
   StoreListingEntry,
-} from "../../layers/dms-layout/app/types/module-store";
-import en from "../../layers/dms-layout/i18n/locales/layout-en-GB.json";
+} from "../../layers/dms-core/app/types/module-store";
+import en from "../../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
 import { isObject, isString } from "../../layers/dms-core/app/utils/type-check";
 
 interface Messages {

@@ -12,10 +12,10 @@ import { describe, expect, it } from "vitest";
 import {
   type CodeToken,
   loadCodeHighlighter,
-} from "../layers/dms-ui/app/build/utils/codeHighlight";
-import { resolveCodeLanguage } from "../layers/dms-ui/app/build/utils/codeLanguages";
-import { CODE_PALETTE } from "../layers/dms-ui/app/build/utils/codePalette";
-import { shellParser } from "../layers/dms-ui/app/build/utils/shellParser";
+} from "../layers/dms-ui/app/entries/utils/codeHighlight";
+import { resolveCodeLanguage } from "../layers/dms-ui/app/entries/utils/codeLanguages";
+import { CODE_PALETTE } from "../layers/dms-ui/app/entries/utils/codePalette";
+import { shellParser } from "../layers/dms-ui/app/entries/utils/shellParser";
 
 const KEYWORD = "var(--ui-primary)";
 const STRING = "var(--ui-success)";

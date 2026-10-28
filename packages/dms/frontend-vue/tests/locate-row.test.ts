@@ -8,7 +8,7 @@ import {
   LOCATE_MAX_ROWS,
   LOCATE_WINDOW,
   rowLocator,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/locateRow";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
 
 const rowsOf = (count: number) =>
   Array.from({ length: count }, (_, index) => ({ _id: `r${index}` }));

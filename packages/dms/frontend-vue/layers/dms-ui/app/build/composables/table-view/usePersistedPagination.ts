@@ -1,6 +1,6 @@
 import type { PaginationState } from "@tanstack/vue-table";
 import { computed, ref, watch, type Ref } from "vue";
-import { hashText } from "#dms-core/app/build/composables/user/tablePreferences";
+import { hashText } from "#dms-core/app/entries/composables/user/tablePreferences";
 import type { TablePreferences } from "./useTablePreferences";
 
 const FIRST_PAGE_INDEX = 0;

@@ -2,11 +2,11 @@ import type { Ref } from "vue";
 import {
   type InstantSave,
   useInstantSave,
-} from "#dms-ui/app/build/composables/instant-save/useInstantSave";
+} from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
 import { useSidebarStartCollapsed } from "../../../../composables/general/useSidebarStartCollapsed";
 import { useAccessibilityPreferences } from "../../../../../composables/general/useAccessibilityPreferences";
-import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
-import { injectPageHeaderActionsHost } from "../../../../../composables/layout/usePageHeaderActions";
+import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
+import { injectPageHeaderActionsHost } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 
 function usePreferenceRefs() {
   const { reduceMotion, increaseContrast, underlineLinks } =

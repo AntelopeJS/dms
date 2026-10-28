@@ -10,7 +10,7 @@ import type {
   PageLiveNote,
   PageLiveNoteInput,
   PageLiveOptions,
-} from "../../../types/live";
+} from "#dms-core/app/types/live";
 import { refreshLivePageBlocks } from "../../../utils/blockRefresh";
 import { liveIntervalMs } from "./liveCadence";
 import { LiveHolds, toLiveNote } from "./liveHolds";

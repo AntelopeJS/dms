@@ -7,7 +7,7 @@ import {
   buildPageSearchShortcuts,
   PAGE_SEARCH_SHORTCUTS,
   pageSearchAriaKeyshortcuts,
-} from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
+} from "../layers/dms-ui/app/entries/composables/global/searchShortcuts";
 import * as publicSearchShortcuts from "../layers/dms-ui/app/composables/global/searchShortcuts";
 
 let app: App;

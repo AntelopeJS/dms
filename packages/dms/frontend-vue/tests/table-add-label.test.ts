@@ -11,9 +11,9 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableActions from "../layers/dms-ui/app/build/components/table/Actions.vue";
-import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
-import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
+import TableActions from "../layers/dms-ui/app/entries/components/table/Actions";
+import TableEmpty from "../layers/dms-ui/app/entries/components/table/Empty";
+import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 
 const PassThrough = defineComponent({
   setup:

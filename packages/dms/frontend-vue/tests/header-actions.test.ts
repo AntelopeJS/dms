@@ -16,14 +16,14 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import DashboardHeader from "../layers/dms-layout/app/build/components/layout/DashboardHeader.vue";
+import DashboardHeader from "../layers/dms-layout/app/entries/components/layout/DashboardHeader";
 import {
   BUILDER_ACTION_ID,
   type HeaderAction,
   registerHeaderAction,
   useHeaderActions,
 } from "../layers/dms-layout/app/composables/useHeaderActions";
-import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
+import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import { FormEvents } from "../layers/dms-ui/app/composables/form/types/events";
 
 const ACTIVE_COLOR = "primary";

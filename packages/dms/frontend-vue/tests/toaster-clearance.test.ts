@@ -5,7 +5,7 @@ import {
   TOASTER_CLEARANCE_VAR,
   toasterClearance,
   trackToasterClearance,
-} from "../layers/dms-ui/app/build/composables/form/toasterClearance";
+} from "../layers/dms-ui/app/entries/composables/form/toasterClearance";
 
 const VIEWPORT_HEIGHT = 800;
 

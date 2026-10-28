@@ -105,7 +105,7 @@ it("never shows the backend's address a failed request names", () => {
 
 it("drops an address anywhere in the message, and an empty remainder", async () => {
   const { publicErrorMessage } = await import(
-    "../layers/dms-layout/app/build/utils/publicErrorMessage"
+    "../layers/dms-layout/app/entries/utils/publicErrorMessage"
   );
   expect(
     publicErrorMessage(

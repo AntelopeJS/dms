@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
 import {
   settledRenderedBellCounts,
   type UserNotification,
 } from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
-import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/build/utils/tone";
-import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
+import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/entries/utils/tone";
+import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
 const MAX_DISPLAYED_COUNT = 99;
 

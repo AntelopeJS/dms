@@ -13,8 +13,8 @@ import {
   type App,
   type Ref,
 } from "vue";
-import NotificationPopover from "../layers/dms-layout/app/build/components/notification/NotificationPopover.vue";
-import type { useNavBadges } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
+import NotificationPopover from "../layers/dms-layout/app/entries/components/notification/NotificationPopover";
+import type { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;

@@ -4,7 +4,10 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliDecompressSync } from "node:zlib";
 import { z } from "zod";
+import "./check-autoimport-boundaries.mjs";
+import "./test-autoimport-boundaries.mjs";
 import "./check-page-invariants.mjs";
+import "../../../../checks/notification-tone-contract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LAYERS_DIR = join(ROOT, "layers");

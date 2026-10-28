@@ -11,9 +11,9 @@ import {
 } from "vue";
 import { createI18n } from "vue-i18n";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
-import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
-import { secondaryTargetRunner } from "../layers/dms-ui/app/build/composables/confirm/secondaryTarget";
-import { downloadFilename } from "../layers/dms-ui/app/build/utils/fileDownload";
+import { resolveConfirmDialog } from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
+import { secondaryTargetRunner } from "../layers/dms-ui/app/entries/composables/confirm/secondaryTarget";
+import { downloadFilename } from "../layers/dms-ui/app/entries/utils/fileDownload";
 
 import { DialogRoot } from "reka-ui";
 

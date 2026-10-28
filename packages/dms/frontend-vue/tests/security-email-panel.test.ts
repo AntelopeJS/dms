@@ -84,7 +84,7 @@ async function flush(): Promise<void> {
 
 async function mountEmail(): Promise<void> {
   const { default: SecurityEmail } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecurityEmail.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityEmail"
   );
   app = createApp(SecurityEmail);
   browserRuntime(app);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import PasswordRules from "../../../../dms-ui/app/components/check-list/PasswordRules.vue";
 
 interface AuthNewPasswordFieldProps {

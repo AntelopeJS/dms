@@ -1,6 +1,6 @@
 import type { TableViewTab } from "../../../composables/table-view/types";
 import { useNavBadges } from "../navigation/useNavBadges";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
 import { readTableUrlTab, useTableUrlTab } from "./useTableUrlTab";
 import { navBadgeCount } from "./utils/tableCounts";
 import type { TableViewScope } from "./tableViewScope";

@@ -1,6 +1,6 @@
 import { getQuery, parseURL } from "ufo";
 import type { FavoritePage } from "../composables/favorites/useFavoritePages";
-import type { PageValidation } from "../types/page";
+import type { PageValidation } from "#dms-core/app/types/page";
 import { buildPageTarget } from "./breadcrumb";
 
 const FAVORITE_TITLE_SEPARATOR = " · ";

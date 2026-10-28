@@ -7,8 +7,8 @@
 import { computed, createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardGridSkeleton from "../layers/dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
-import { MAX_PAGE_SIZE } from "../layers/dms-ui/app/build/composables/table/constants";
+import CardGridSkeleton from "../layers/dms-ui/app/entries/components/table-view/CardGridSkeleton";
+import { MAX_PAGE_SIZE } from "../layers/dms-ui/app/entries/composables/table/constants";
 
 const Skeleton = defineComponent({
   setup: () => () => h("i", { "data-skeleton": "" }),

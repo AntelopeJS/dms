@@ -14,22 +14,22 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import DashboardFrame from "../layers/dms-layout/app/build/components/layout/DashboardFrame.vue";
-import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
+import DashboardFrame from "../layers/dms-layout/app/entries/components/layout/DashboardFrame";
+import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
 import {
   readSidePanelPreferences,
   SIDE_PANEL_COOKIE,
   type SidePanelPreferences,
-} from "../layers/dms-layout/app/build/composables/layout/sidePanelState";
-import { SIDE_PANEL_KEYBOARD_STEP_PX } from "../layers/dms-layout/app/build/composables/layout/useSidePanelWidth";
+} from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";
+import { SIDE_PANEL_KEYBOARD_STEP_PX } from "../layers/dms-layout/app/entries/composables/layout/useSidePanelWidth";
 import {
   registerSidePanel,
   resolveSidePanelWidthBounds,
   type SidePanel,
   unregisterSidePanel,
   useAppSidePanels,
-} from "../layers/dms-layout/app/composables/useAppSidePanels";
-import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
+} from "../layers/dms-ui/app/composables/useAppSidePanels";
+import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import {
   installShellRuntime,
   registerShellUi,

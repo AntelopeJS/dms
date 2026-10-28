@@ -12,8 +12,8 @@ import {
   revokePermission,
   searchPermissions,
   selectionState,
-} from "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions";
-import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
+} from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
+import type { RolePermissionNode } from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
 
 import {
   TREE,

@@ -4,7 +4,7 @@ import {
   isSidePanelOpen,
   toggleSidePanel,
   useSidePanelPreferences,
-} from "./sidePanelState";
+} from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 /** @internal */
 export interface HeaderActionControls {

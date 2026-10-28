@@ -71,7 +71,7 @@ const addToast = vi.fn();
 const translate = (
   key: string,
   params?: Parameters<
-    (typeof import("../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts"))["resolveConfirmText"]
+    (typeof import("../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts"))["resolveConfirmText"]
   >[1],
 ) =>
   key === "dms.field_errors.named_required"

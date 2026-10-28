@@ -20,7 +20,7 @@ import {
 import {
   FORM_ENTRY_CONTEXT_KEY,
   type FormEntryContext,
-} from "../layers/dms-ui/app/build/composables/form/formEntryContext";
+} from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 
 const UButton = defineComponent({
@@ -46,7 +46,7 @@ let state: FormEntryContext["state"];
 
 async function mount(entry: FormField) {
   const { default: FormFieldNotes } = await import(
-    "../layers/dms-ui/app/build/components/form/FormFieldNotes.vue"
+    "../layers/dms-ui/app/entries/components/form/FormFieldNotes"
   );
   state = ref({ region: "south" });
   const context = {

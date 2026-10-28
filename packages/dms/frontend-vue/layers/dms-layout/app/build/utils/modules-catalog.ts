@@ -5,7 +5,7 @@ import type {
   PageInfo,
   SiteLayout,
   SiteLayoutTree,
-} from "../../types/page";
+} from "#dms-core/app/types/page";
 import { resolveModuleLandingSlug } from "../../utils/moduleLanding";
 
 /** The Modules page, which lists and manages the installed modules. */

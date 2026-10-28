@@ -1,6 +1,6 @@
 import type { TimeFormatPreference } from "#dms-core/app/utils/regional";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
-import type { AccessibilityPreferences } from "#dms-ui/app/build/utils/accessibilityPreferences";
+import type { AccessibilityPreferences } from "#dms-ui/app/entries/utils/accessibilityPreferences";
 import type { NotificationSubject } from "../../notification/useNotificationCatalog";
 import type {
   ColorModePreference,

@@ -59,7 +59,7 @@ import {
 } from "../../build/composables/form/serverFieldErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
 import { fieldSavedMarker } from "../../build/composables/form/fieldSaved";
-import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
 import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
 import DmsFormLoadError from "../../build/components/form/FormLoadError.vue";

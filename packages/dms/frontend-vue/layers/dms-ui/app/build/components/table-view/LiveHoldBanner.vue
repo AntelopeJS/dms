@@ -3,7 +3,7 @@ import { computed } from "vue";
 import type { TableLiveHoldReason } from "../../composables/table-view/useTableLiveHold";
 import type { ConfirmTranslate } from "../../composables/confirm/confirmDialogTexts";
 import { missedRowsText, showLiveNote } from "../../composables/live/liveNotes";
-import type { PageLiveNote } from "../../../types/live";
+import type { PageLiveNote } from "#dms-core/app/types/live";
 
 /**
  * The strip of a `liveHold` table: "N new · Show" once events came in while

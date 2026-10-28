@@ -7,7 +7,7 @@ import type {
   BlockText,
   ComposedTextParam,
 } from "#dms-core/app/types/composed-text";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { isString } from "#dms-core/app/utils/type-check";
 
 /** One entry of an activity feed, as a page declares it or a source answers. */

@@ -48,7 +48,7 @@ let host: HTMLDivElement;
 
 async function mount(): Promise<void> {
   const { default: SecurityStatus } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecurityStatus.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityStatus"
   );
   app = createApp(SecurityStatus);
   browserRuntime(app);

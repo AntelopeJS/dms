@@ -10,7 +10,7 @@ import {
   storeActions,
   storeBlockMessage,
 } from "../../../utils/module-store-catalog";
-import type { StoreOperationKind } from "../../../../types/module-store";
+import type { StoreOperationKind } from "#dms-core/app/types/module-store";
 
 interface ModuleStoreTileProps {
   /** The store module the tile presents. */

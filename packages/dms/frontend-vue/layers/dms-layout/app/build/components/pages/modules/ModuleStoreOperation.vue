@@ -3,7 +3,7 @@ import type { ModuleStoreEntry } from "../../../utils/module-store-catalog";
 import type {
   StoreOperationKind,
   StoreOperationStep,
-} from "../../../../types/module-store";
+} from "#dms-core/app/types/module-store";
 
 interface ModuleStoreOperationProps {
   entry: ModuleStoreEntry;

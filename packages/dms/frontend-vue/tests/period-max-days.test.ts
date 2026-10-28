@@ -7,12 +7,12 @@
 import { CalendarDate } from "@internationalized/date";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
-import PeriodRangeCalendar from "../layers/dms-ui/app/build/components/period/PeriodRangeCalendar.vue";
+import PeriodRangeCalendar from "../layers/dms-ui/app/entries/components/period/PeriodRangeCalendar";
 import {
   calendarRangeDays,
   isBeyondMaxDays,
   limitCalendarRange,
-} from "../layers/dms-ui/app/build/composables/period/periodDisplay";
+} from "../layers/dms-ui/app/entries/composables/period/periodDisplay";
 
 const OCTOBER_FIRST = new CalendarDate(2026, 10, 1);
 const OCTOBER_LAST = new CalendarDate(2026, 10, 31);

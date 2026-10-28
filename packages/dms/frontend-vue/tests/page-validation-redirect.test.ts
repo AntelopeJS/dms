@@ -15,7 +15,7 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CatchAllPage from "../layers/dms-layout/app/pages/[...slug].vue";
-import { pageValidationRedirect } from "../layers/dms-layout/app/build/utils/pageValidationRedirect";
+import { pageValidationRedirect } from "../layers/dms-layout/app/entries/utils/pageValidationRedirect";
 import {
   runCustomValidation,
   validateRequiredQueryParams,
@@ -25,7 +25,7 @@ import {
   providePageFillHeight,
   usePageFillHeight,
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
-import type { PageValidation } from "../layers/dms-layout/app/types/page";
+import type { PageValidation } from "../layers/dms-core/app/types/page";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 
 const PAGE_PATH = "/modules/marketing/funnel";

@@ -16,7 +16,7 @@ import {
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
+import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 
 const MAC_UA =
