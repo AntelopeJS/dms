@@ -204,4 +204,21 @@ describe("[unit] interfaces/dms-base — is_between on a numeric field", () => {
       ),
     );
   });
+
+  it("sends a number bound and an ISO date bound together as numbers", () => {
+    const built = new DefaultDataCompareTypes.IsBetween().filter(
+      context,
+      recordingProxy(),
+      "occurredAtMs",
+      "1, 2026-10-01",
+      row,
+    );
+    expect(built).to.deep.equal(
+      whenSet(
+        expression("ge", 1).and(
+          expression("le", Date.parse("2026-10-01T00:00:00.000Z")),
+        ),
+      ),
+    );
+  });
 });
