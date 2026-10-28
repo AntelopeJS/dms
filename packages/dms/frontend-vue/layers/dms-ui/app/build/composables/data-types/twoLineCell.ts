@@ -1,5 +1,8 @@
 import { h, type VNodeChild } from "vue";
-import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "#dms-core/app/composables/data-types/useDataType";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   type ComposableText,
@@ -27,12 +30,12 @@ interface TwoLineOptions {
   typeOptions?: unknown;
 }
 
-const isBlank = (value: unknown): boolean =>
+const isBlank = (value: Parameters<DataTypeFormatter>[0]): boolean =>
   value === null || value === undefined || value === "";
 
 /** The column's value written by the column's own data type. */
 function formatColumnValue(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   locale: string,
   opts: TwoLineOptions,
   row: Row,
@@ -43,12 +46,13 @@ function formatColumnValue(
     : undefined;
   const format = formatter?.cell ?? formatter?.default;
   if (!format) return String(value);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown; the existing cell forwards that result to Vue without checking VNodeChild.
   return format(value, locale, opts.typeOptions, row) as VNodeChild;
 }
 
 /** The primary line, or nothing when the row has none to show. */
 function readPrimary(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   locale: string,
   opts: TwoLineOptions,
   row: Row,
@@ -56,6 +60,7 @@ function readPrimary(
   const { processText } = getAppComposedText();
   if (opts.primaryField) {
     const text = processText(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Row fields are open plugin values; processText receives the same unchecked value rather than a newly filtered or coerced one.
       readRowField(row, opts.primaryField) as ComposableText,
     );
     return text || undefined;
@@ -71,13 +76,13 @@ function readPrimary(
  * else `subTone`, else muted. No avatar.
  */
 function renderTwoLine(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   locale: string,
-  options: unknown,
+  options: Parameters<DataTypeFormatter>[2],
   row: Row,
 ) {
   const { processText } = getAppComposedText();
-  const opts = (options ?? {}) as TwoLineOptions;
+  const opts: TwoLineOptions = options ?? {};
   const primary = readPrimary(value, locale, opts, row);
   const sub = readSubline(readRowField(row, opts.subField), {
     processText,

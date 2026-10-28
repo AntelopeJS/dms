@@ -5,7 +5,7 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { regionalPreferencesSchema } from "../../../validation/regional-preferences.schema";
+import { regionalPreferencesSchema } from "../../../validation";
 import { userCategory } from "./category";
 import {
   applyRegionalPreferences,
@@ -44,6 +44,7 @@ export class RegionSettingsController extends PageController("region", {
   declare user: User;
 
   @Get("/preferences")
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The original return contract emits Object decorator metadata; ReturnType changes that metadata to undefined.
   getPreferences(): Record<string, unknown> {
     return toRegionFormValues(readRegionalPreferences(this.user));
   }
@@ -51,14 +52,13 @@ export class RegionSettingsController extends PageController("region", {
   /** Saves the preferences the body names; returns all of them. */
   @Post("/preferences")
   async updatePreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof regionalPreferencesSchema.parse>[0],
     @Model(UserModel) userModel: UserModel,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ReturnType<typeof toRegionFormValues>> {
     const input = assertValidation(fromRegionFormValues(body), (value) =>
       regionalPreferencesSchema.parse(value),
     );
-    // The whole stored row is written back: a partial update would drop the
-    // fields it does not name, the password hash among them.
+
     const stored = await userModel.get(this.user._id);
     assert(stored, HTTP_NOT_FOUND, "error.user_not_found");
     applyRegionalPreferences(stored, input);

@@ -7,7 +7,7 @@ import {
 import {
   type NotifiedInviteOutcome,
   notifyInviteOutcome,
-} from "../utils/workspace-notifications";
+} from "./internal/workspace-notifications";
 
 const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
   "accepted",
@@ -28,6 +28,7 @@ async function onInviteDeleted(
     await notifyInviteOutcome(
       payload.tenantId,
       payload.deliveryId,
+      // SAFETY: NOTIFIED_OUTCOMES checked above contains only the invitation outcomes supported by notifyInviteOutcome.
       payload.reason as NotifiedInviteOutcome,
     );
   } catch (error) {

@@ -1,8 +1,0 @@
-{
-  "name": "@antelopejs/dms-api-endpoint-test-host",
-  "version": "0.0.0",
-  "main": "../../../dist/test/api-endpoint/index.js",
-  "antelopeJs": {
-    "baseUrl": "../../../dist/test/api-endpoint"
-  }
-}

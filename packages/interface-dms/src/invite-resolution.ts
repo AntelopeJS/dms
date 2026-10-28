@@ -51,9 +51,9 @@ export async function assertInviteReady(
  * the caller lives in another module, and `isDeepStrictEqual` refuses two views
  * holding the same values — which would report a faithful retry as a conflict.
  */
-function replacementContent(invite: UserInvite | null | undefined): unknown {
+function replacementContent(invite: UserInvite | null | undefined) {
   if (!invite) return null;
-  return JSON.parse(
+  const content: ReturnType<typeof JSON.parse> = JSON.parse(
     JSON.stringify([
       invite.email,
       invite.firstname,
@@ -64,6 +64,7 @@ function replacementContent(invite: UserInvite | null | undefined): unknown {
       invite.extensions,
     ]),
   );
+  return content;
 }
 
 function assertSameDecision(

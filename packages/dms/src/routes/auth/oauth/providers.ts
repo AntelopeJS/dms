@@ -7,7 +7,7 @@ const IDENTITY_MALFORMED_MESSAGE = "error.oauth.identity_malformed";
 
 const GITHUB_API_URL = "https://api.github.com";
 const GITHUB_USER_AGENT = "AntelopeJS-DMS";
-const GITHUB_HEADERS: Record<string, string> = {
+const GITHUB_HEADERS = {
   "User-Agent": GITHUB_USER_AGENT,
   "X-GitHub-Api-Version": "2022-11-28",
 };
@@ -58,7 +58,10 @@ interface GoogleUserInfo {
   name?: string;
 }
 
-function isNonEmptyString(value: unknown): value is string {
+function isNonEmptyString(
+  value: GithubUser["id"] | GithubUser["name"] | GoogleUserInfo["email"],
+): value is string {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider JSON values have not acquired a string contract; this existing check establishes the nonempty email/name claim.
   return typeof value === "string" && value.length > 0;
 }
 
@@ -67,9 +70,12 @@ function isNonEmptyString(value: unknown): value is string {
  * hostile 200 must never coin an identity — an empty or missing id would
  * collapse every such login onto one deterministic row.
  */
-function requireAccountId(value: unknown): string {
+function requireAccountId(
+  value: GithubUser["id"] | GoogleUserInfo["sub"],
+): string {
   const isUsable =
     isNonEmptyString(value) ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider account ids accept both finite numbers and nonempty strings; the branch must preserve that existing wire-format distinction.
     (typeof value === "number" && Number.isFinite(value));
   assert(isUsable, HTTP_BAD_GATEWAY, IDENTITY_MALFORMED_MESSAGE);
   return String(value);
@@ -90,7 +96,7 @@ async function fetchProviderJson<T>(
   });
 
   assert(response.ok, HTTP_BAD_GATEWAY, failureMessage);
-  return (await response.json()) as T;
+  return await response.json();
 }
 
 async function fetchGithubIdentity(
@@ -156,6 +162,7 @@ async function fetchGoogleIdentity(
  * Login providers shipped with the DMS. A provider only becomes available once
  * the instance configuration supplies its credentials.
  */
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The exported registry's string index is consumed by configured provider ids; inference would narrow its published keys to the two built-in providers.
 export const OAUTH_PROVIDERS: Record<string, OAuthProvider> = {
   github: {
     displayName: "GitHub",

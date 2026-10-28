@@ -39,17 +39,18 @@ export async function GenerateHtml<TData = unknown>(
   });
 
   if (!response.ok) {
-    const errorData = (await response
+    const errorData: RenderErrorResponse = await response
       .json()
-      .catch(() => ({}))) as RenderErrorResponse;
+      .catch(() => ({}));
     const errorMessage =
       errorData.message ||
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The render service uses error for both boolean failure flags and messages; retain the existing wire-format distinction.
       (typeof errorData.error === "string" ? errorData.error : null) ||
       errorData.statusMessage ||
       `HTTP ${response.status}`;
     throw new Error(`Failed to render HTML template: ${errorMessage}`);
   }
 
-  const result = (await response.json()) as RenderResponse;
+  const result: RenderResponse = await response.json();
   return result.html;
 }

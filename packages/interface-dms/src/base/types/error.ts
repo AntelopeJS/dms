@@ -17,6 +17,7 @@ export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
 /**
  * Get error message from unknown error
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published error boundary accepts every thrown value and preserves its existing fallback instead of parsing errors.
 export function getErrorMessage(error: unknown): string {
   if (isErrorWithMessage(error)) {
     return error.message;

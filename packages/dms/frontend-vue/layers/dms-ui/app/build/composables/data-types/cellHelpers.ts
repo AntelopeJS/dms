@@ -1,19 +1,20 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import type { BlockText } from "../../../../../dms-core/app/types/composed-text";
 import {
   type ComposableText,
   isComposedText,
 } from "../../../../../dms-core/app/utils/composedText";
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 
-// What the cell data types share: reading a sibling field off the row, and
-// the text tones a cell takes.
+export type Row = Parameters<DataTypeFormatter>[3];
 
-export type Row = Record<string, unknown> | undefined;
-
-export const readRowField = (row: Row, field: string | undefined): unknown =>
-  field && row ? get(row, field) : undefined;
+export const readRowField = (
+  row: Row,
+  field: string | undefined,
+): NonNullable<Row>[string] => (field && row ? get(row, field) : undefined);
 
 /**
  * The `Tone` a row field holds (`toneField` of a display), or nothing when the
@@ -24,7 +25,7 @@ export const readRowTone = (
   field: string | undefined,
 ): Tone | undefined => {
   const tone = readRowField(row, field);
-  return typeof tone === "string" && isDmsTone(tone) ? tone : undefined;
+  return isString(tone) && isDmsTone(tone) ? tone : undefined;
 };
 
 /** The text colour of the row's tone, else `fallback` (the display's own). */
@@ -37,20 +38,24 @@ export const rowToneTextClass = (
   return tone ? DMS_TONE_TEXT[tone] : fallback;
 };
 
-export const stringOf = (value: unknown): string | undefined =>
+export const stringOf = (
+  value: Parameters<DataTypeFormatter>[0],
+): string | undefined =>
   value === null || value === undefined || value === ""
     ? undefined
     : String(value);
 
 /** Truthy the way a status reads it: a non-empty list, a set flag. */
-export const isSet = (value: unknown): boolean => {
+export const isSet = (value: Parameters<DataTypeFormatter>[0]): boolean => {
   if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "string") return value !== "" && value !== "false";
+  if (isString(value)) return value !== "" && value !== "false";
   return Boolean(value);
 };
 
-// Text tones a cell data type can take, as literal classes for Tailwind.
-const CELL_TONES: Record<string, string> = {
+const CELL_TONES: Record<
+  NonNullable<Parameters<typeof toneClass>[0]>,
+  string
+> = {
   default: "text-toned",
   toned: "text-toned",
   highlighted: "text-highlighted",
@@ -93,8 +98,10 @@ export interface SublineReading {
   isStringTranslated: boolean;
 }
 
-const isCellSubline = (value: unknown): value is CellSubline =>
-  typeof value === "object" &&
+const isCellSubline = (
+  value: Parameters<DataTypeFormatter>[0],
+): value is CellSubline =>
+  isObject(value) &&
   value !== null &&
   "text" in value &&
   !isComposedText(value);
@@ -107,7 +114,7 @@ const toSubline = (text: string, tone?: string): ResolvedSubline | undefined =>
  * and its tone — or nothing for an empty field.
  */
 export function readSubline(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   { processText, isStringTranslated }: SublineReading,
 ): ResolvedSubline | undefined {
   if (isCellSubline(value)) {

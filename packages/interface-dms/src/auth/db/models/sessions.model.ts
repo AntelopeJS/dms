@@ -17,9 +17,14 @@ interface UpdateResult {
   modifiedCount?: number;
 }
 
-function updatedRows(result: unknown): number {
+function updatedRows(
+  result: Awaited<
+    ReturnType<ReturnType<SessionModel["table"]["update"]>["run"]>
+  >,
+): number {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters return either a numeric count or a write result; preserve both accepted result representations.
   if (typeof result === "number") return result;
-  const counts = result as UpdateResult | undefined;
+  const counts: UpdateResult | undefined = result;
   return Number(counts?.replaced ?? counts?.modifiedCount ?? 0);
 }
 
@@ -31,11 +36,6 @@ const SEAL_KEY_DOMAIN = "dms-refresh-successor:";
 const LAST_ACTIVE_AT_INDEX = "lastActiveAt";
 const EPOCH_LOWER_BOUND = new Date(0);
 
-// The grace window must hand the current token back to a client that still
-// holds its predecessor, so the current token is sealed under a key derived
-// from that predecessor. Only a holder of the predecessor can derive it: the
-// stored `previousRefreshTokenHash` is a hash of the bare token, and the domain
-// prefix keeps the two derivations apart, so the database alone opens nothing.
 function sealKey(predecessor: string): Buffer {
   return createHash("sha256")
     .update(SEAL_KEY_DOMAIN + predecessor)

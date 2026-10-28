@@ -20,12 +20,9 @@ import {
   registerPageTopic,
   setRealtimeBroker,
   stopRealtime,
+  getSessionInfo,
 } from "../../../realtime";
-import { getSessionInfo } from "../../../realtime/sessions";
-import {
-  ensureSessionOnPage,
-  RealtimeController,
-} from "../../../routes/realtime";
+import { ensureSessionOnPage, RealtimeController } from "../../../routes";
 
 const USER = { _id: "tenant-topics-user", email: "u@example.com" };
 const PAGE_ID = "tenant-topics-page";
@@ -55,11 +52,12 @@ const createFakeStream = (tenantId: string): FakeStream => {
   const rawRequest = Object.assign(new EventEmitter(), {
     headers: { authorization: `Bearer tenant-topics-${tenantId}` },
   });
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies headers, lifecycle events and a writer, not the full HTTP context.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
   } as unknown as RequestContext;
-  // As the route's auth decorator does: the verified user and tenant.
+
   bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId });
   return { ctx, frames, isEnded: () => isEnded };
 };
@@ -74,8 +72,8 @@ interface SharedFrame {
 const sharedFrames = (stream: FakeStream): SharedFrame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: session\n"))
-    .map(
-      (frame) => JSON.parse(frame.split("\ndata: ")[1] ?? "{}") as SharedFrame,
+    .map<SharedFrame>((frame) =>
+      JSON.parse(frame.split("\ndata: ")[1] ?? "{}"),
     );
 
 /** Opens a browser's shared connection and returns its id. */
@@ -83,11 +81,12 @@ const openSharedConnection = async (stream: FakeStream): Promise<string> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    USER as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    USER as User,
   );
   const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
   const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return (JSON.parse(data) as { connectionId: string }).connectionId;
+  return JSON.parse(data).connectionId;
 };
 
 /** Opens a tab's session on the connection, in `tenantId`, on the page. */
@@ -100,7 +99,8 @@ const openTabOnPage = async (
     undefined,
     createFakeStream(tenantId).ctx,
     connectionId,
-    USER as unknown as User,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
+    USER as User,
   );
   const sessionId = greeting.sessionId!;
   const isOnPage = await ensureSessionOnPage(sessionId, pageId, {
@@ -174,7 +174,6 @@ describe("[unit] realtime — tenant-scoped page topics", () => {
   it("ends a session whose page request comes from another workspace", async () => {
     const browser = await openOnPage(TENANT_A);
 
-    // The browser switched to tenant B; the session still belongs to tenant A.
     const isOnPage = await ensureSessionOnPage(browser.sessionId, PAGE_ID, {
       userId: USER._id,
       tenantId: TENANT_B,
@@ -221,7 +220,6 @@ describe("[unit] realtime — platform pages see every tenant", () => {
   const PRESENCE_TOPIC = "tenant-topics:platform-presence";
 
   before(async () => {
-    // Registered pages land in the mocha-loaded implementation's registry.
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
     RegisterModule({
       id: MODULE_ID,
@@ -288,8 +286,10 @@ describe("[unit] realtime — platform pages see every tenant", () => {
     const snapshot = sharedFrames(viewer.stream).find(
       (frame) =>
         frame.event === "snapshot" &&
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Session frame payloads are unvalidated JSON; this presence test assumes the snapshot payload contract.
         (frame.data as { topic?: string }).topic === PRESENCE_TOPIC,
     );
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The snapshot payload remains unvalidated; this assertion probes the expected presence entries shape.
     const entries = (snapshot?.data as { entries?: Array<{ rowId: string }> })
       ?.entries;
     expect(entries?.map((entry) => entry.rowId)).to.deep.equal(["row-1"]);

@@ -43,6 +43,7 @@ const SORTABLE_FIELDS: SortableField[] = [
   "durationMs",
   "at",
 ];
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- HTTP classes are computed numbers, not a closed key union supplied by the request-log contract.
 const STATUS_TONES: Record<number, Tone> = {
   2: "success",
   3: "info",
@@ -50,10 +51,12 @@ const STATUS_TONES: Record<number, Tone> = {
   5: "error",
 };
 
-type FilterMode = (value: unknown, expected: string) => boolean;
+type FilterMode = (
+  value: RequestLogEntry[SortableField],
+  expected: string,
+) => boolean;
 
-// The compare modes the table's tabs and quick filter send
-// (`filter_status=greater_than_or_equal_to:400`).
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Filter modes arrive as arbitrary query strings; inference would remove the string index signature used for missing modes.
 const FILTER_MODES: Record<string, FilterMode> = {
   is: (value, expected) => String(value) === expected,
   greater_than_or_equal_to: (value, expected) =>
@@ -78,8 +81,6 @@ const searchFilter: QueryFilter = (query) => {
     `${entry.method} ${entry.path}`.toLowerCase().includes(search);
 };
 
-// `from` / `to`: the period of the page's PeriodSelector (`periodScope`).
-// `liveHeldAt`: the moment a held table froze its rows, on a paused live page.
 const periodFilter: QueryFilter = (query) => {
   const from = query.get("from");
   const to = query.get("to");
@@ -112,8 +113,9 @@ function sortEntries(
   entries: RequestLogEntry[],
   query: URLSearchParams,
 ): RequestLogEntry[] {
-  const key = query.get("sortKey") as SortableField | null;
-  if (!key || !SORTABLE_FIELDS.includes(key)) return entries;
+  const requestedKey = query.get("sortKey");
+  const key = SORTABLE_FIELDS.find((field) => field === requestedKey);
+  if (!key) return entries;
   const direction = query.get("sortDirection") === "desc" ? -1 : 1;
   return [...entries].sort((left, right) => {
     const a = left[key];

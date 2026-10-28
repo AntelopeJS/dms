@@ -2,12 +2,8 @@ import type {
   DataType,
   DataTypeFilterEditorValue,
 } from "#dms-core/app/composables/data-types/useDataType";
-
-// A view or tab declares its filter value as text (`TableViewTabFilter.value`),
-// the shape the query sends. The chip's value editor wants the value its
-// column's data type holds there ({@link DataType.filterEditorValue}). The
-// editor reads the converted value; the filter keeps its text until the user
-// edits it, so the query is unchanged.
+import type { TableFilter } from "../../../components/table/Table.vue";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const LIST_SEPARATOR = ",";
 const BETWEEN_MODE = "is_between";
@@ -31,8 +27,8 @@ export const dateFilterEditorValue: DataTypeFilterEditorValue = (text, mode) =>
 export function filterEditorValue(
   dataType: Pick<DataType, "filterEditorValue"> | undefined,
   mode: string,
-  value: unknown,
-): unknown {
-  if (typeof value !== "string" || !dataType?.filterEditorValue) return value;
+  value: TableFilter["value"],
+): TableFilter["value"] {
+  if (!isString(value) || !dataType?.filterEditorValue) return value;
   return dataType.filterEditorValue(value, mode);
 }

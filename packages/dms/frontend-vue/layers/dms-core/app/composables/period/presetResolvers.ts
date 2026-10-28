@@ -10,8 +10,6 @@ import {
 } from "./types";
 import { readerClock } from "./periodClock";
 
-// Resolved in the reader's calendar (`readerClock`): the browser's zone, on
-// the server as in the browser.
 function atTime(
   date: Date,
   hours: number,

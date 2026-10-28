@@ -16,9 +16,7 @@ let interfaceVersion: string | undefined;
 
 function readManifest(folder: string): PackageManifest | undefined {
   try {
-    return JSON.parse(
-      readFileSync(path.join(folder, PACKAGE_JSON), "utf-8"),
-    ) as PackageManifest;
+    return JSON.parse(readFileSync(path.join(folder, PACKAGE_JSON), "utf-8"));
   } catch {
     return undefined;
   }

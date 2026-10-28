@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A drawer's or a modal's backdrop lets clicks through to the page as soon
  * as the container starts closing, and fades out quickly (at once with
@@ -20,6 +20,7 @@ import {
   watch,
   type App,
   type Component,
+  type FunctionalComponent,
 } from "vue";
 import { compile } from "tailwindcss";
 import {
@@ -31,21 +32,10 @@ import {
   it,
   vi,
 } from "vitest";
-import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/build/components/containers/constants";
+import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/entries/components/containers/constants";
 
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  return {
-    DialogTitle: passThrough,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot } from "reka-ui";
+import type DynamicDrawer from "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer";
 
 const require = createRequire(import.meta.url);
 let overlayCss = "";
@@ -53,10 +43,11 @@ let overlayCss = "";
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// Renders the container's backdrop as reka does: `data-state` follows the
-// open state and an inline style keeps the backdrop clickable.
 const ContainerStub = defineComponent({
-  props: { open: Boolean, ui: Object },
+  props: {
+    open: Boolean,
+    ui: Object,
+  },
   emits: ["update:open"],
   setup(props, { slots }) {
     return () =>
@@ -64,13 +55,15 @@ const ContainerStub = defineComponent({
         h("div", {
           "data-slot": "overlay",
           "data-state": props.open ? "open" : "closed",
-          class: (props.ui as Record<string, string> | undefined)?.overlay,
+          class: props.ui?.overlay,
           style: { pointerEvents: "auto" },
         }),
-        h("div", { "data-slot": "content" }, [
-          slots.header?.(),
-          slots.body?.(),
-        ]),
+        h(DialogRoot, null, () =>
+          h("div", { "data-slot": "content" }, [
+            slots.header?.(),
+            slots.body?.(),
+          ]),
+        ),
       ]);
   },
 });
@@ -84,7 +77,7 @@ const passThroughStub = defineComponent({
 
 async function mountContainer(
   container: Component,
-  props: Record<string, unknown> = {},
+  props: Partial<InstanceType<typeof DynamicDrawer>["$props"]> = {},
 ): Promise<void> {
   const isOpen = ref(true);
   app = createApp({
@@ -101,7 +94,7 @@ async function mountContainer(
   app.component("UDrawer", ContainerStub);
   app.component("UModal", ContainerStub);
   app.component("UContainer", passThroughStub);
-  app.component("UButton", (buttonProps: Record<string, unknown>) =>
+  app.component("UButton", (buttonProps: Parameters<FunctionalComponent>[0]) =>
     h("button", { ...buttonProps }),
   );
   app.component("USkeleton", () => h("span"));
@@ -110,7 +103,9 @@ async function mountContainer(
 }
 
 async function closeContainer(): Promise<void> {
-  host.querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!.click();
+  host
+    .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
+    .click();
   await vi.waitFor(() => expect(overlay().dataset.state).toBe("closed"));
 }
 
@@ -121,7 +116,15 @@ beforeAll(async () => {
   const compiler = await compile('@import "tailwindcss/utilities.css";', {
     base: process.cwd(),
     loadStylesheet: async (id: string, base: string) => {
-      const path = require.resolve(id);
+      const stylesheets = new Map([
+        [
+          "tailwindcss/utilities.css",
+          () => require.resolve("tailwindcss/utilities.css"),
+        ],
+      ]);
+      const load = stylesheets.get(id);
+      if (!load) throw new Error(`Unexpected stylesheet ${id}`);
+      const path = load();
       return { path, base, content: await readFile(path, "utf8") };
     },
   });
@@ -183,14 +186,20 @@ type ContainerLoader = () => Promise<{ default: Component }>;
 
 const loadDrawer: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
   );
 const loadModal: ContainerLoader = () =>
   import(
-    "../layers/dms-ui/app/build/components/containers/modal/DynamicModal.vue"
+    "../layers/dms-ui/app/entries/components/containers/modal/DynamicModal"
   );
 
-const CONTAINERS: Array<[string, ContainerLoader, Record<string, unknown>]> = [
+const CONTAINERS: Array<
+  [
+    string,
+    ContainerLoader,
+    Partial<InstanceType<typeof DynamicDrawer>["$props"]>,
+  ]
+> = [
   ["side drawer", loadDrawer, { direction: "right" }],
   ["bottom drawer", loadDrawer, { direction: "bottom" }],
   ["modal", loadModal, {}],
@@ -215,8 +224,6 @@ describe.each(CONTAINERS)("a %s's backdrop", (_name, load, props) => {
   });
 });
 
-// The app config's themes, which reach every UModal, USlideover and UDrawer:
-// the confirm dialogs, the "Save as a new view" dialog, a module's own ones.
 describe.each(["modal", "slideover", "drawer"] as const)(
   "every %s's theme",
   (component) => {

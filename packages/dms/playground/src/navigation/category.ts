@@ -1,8 +1,6 @@
 import { Category } from "@antelopejs/interface-dms/page";
 import { pagesSection } from "../sections";
 
-// The category a dynamic menu provider fills: its static pages and the entries
-// computed per request sort together by `order`.
 export const dynamicNavigationCategory = Category("dynamic-nav", {
   displayName: "Dynamic Navigation",
   icon: "i-ph-tree-structure",

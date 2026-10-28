@@ -5,6 +5,7 @@ import { ZodError } from "zod";
  * message, for a schema whose messages are i18n keys. Without it the whole
  * `ZodError` is stringified, which no client can translate.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validation callbacks can throw non-Zod values; preserve their String fallback rather than assuming a ZodError.
 export function firstIssueMessage(error: unknown): string {
   const [issue] = error instanceof ZodError ? error.issues : [];
   return issue ? issue.message : String(error);

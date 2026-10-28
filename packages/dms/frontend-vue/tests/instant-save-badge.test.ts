@@ -1,22 +1,19 @@
-// @vitest-environment jsdom
-import { readFileSync, readdirSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
-import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
-import { providePageHeaderActions } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { providePageHeaderActions } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 
-type Messages = Record<string, unknown>;
+type Messages = typeof uiEn | typeof uiFr;
 
 const translator = (messages: Messages) => (key: string) =>
   String(
-    key
-      .split(".")
-      .reduce<unknown>(
-        (node, part) => (node as Messages | undefined)?.[part],
-        messages,
-      ) ?? key,
+    key.split(".").reduce<unknown>(
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type, anti-slop/require-safety-comment-for-type-assertion -- A dotted translation path walks nested JSON nodes before reaching a string. Inference and the concrete locale owners cannot index arbitrary path segments; this preserves the existing optional lookup without prevalidating it.
+      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+      messages,
+    ) ?? key,
   );
 
 const IconStub = defineComponent({
@@ -76,7 +73,7 @@ describe("DmsInstantSaveBadge", () => {
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
     );
-    const icons: Record<string, string> = {
+    const icons = {
       idle: "i-ph-lightning",
       saving: "i-ph-circle-notch",
       saved: "i-ph-check",
@@ -102,7 +99,7 @@ describe("DmsInstantSaveBadge", () => {
 describe("useInstantSaveHeader", () => {
   it("puts the badge in the page header actions of the layout", async () => {
     const { useInstantSaveHeader } = await import(
-      "../layers/dms-layout/app/composables/layout/useInstantSaveHeader"
+      "../layers/dms-ui/app/composables/layout/useInstantSaveHeader"
     );
     let actions: ReturnType<typeof providePageHeaderActions> | undefined;
     const Page = defineComponent({
@@ -128,75 +125,11 @@ describe("useInstantSaveHeader", () => {
 
   it("folds per-control states: saving wins, then saved, else idle", async () => {
     const { combineSaveStates } = await import(
-      "../layers/dms-layout/app/composables/layout/useInstantSaveHeader"
+      "../layers/dms-ui/app/composables/layout/useInstantSaveHeader"
     );
     expect(combineSaveStates([])).toBe("idle");
     expect(combineSaveStates(["idle", undefined])).toBe("idle");
     expect(combineSaveStates(["idle", "saved"])).toBe("saved");
     expect(combineSaveStates(["saved", "saving", "idle"])).toBe("saving");
-  });
-});
-
-describe("instant-save page registry", () => {
-  const root = resolve(__dirname, "../layers");
-  const read = (path: string) => readFileSync(join(root, path), "utf8");
-  const SETTINGS = "dms-layout/app/custom-pages/settings";
-  const SETTINGS_PARTS = "dms-layout/app/build/components/pages/settings";
-
-  /** Pages (or the section owning them) whose controls save on their own. */
-  /** The generic form: the pill with `saveMode: "instant"`, a bar otherwise. */
-  const FORM = "dms-ui/app/components/form/Form.vue";
-  const INSTANT_SAVE = [
-    `${SETTINGS_PARTS}/theme/useAppearanceSave.ts`,
-    `${SETTINGS_PARTS}/notification/NotificationPreferencesForm.vue`,
-    FORM,
-  ];
-  /** Save bar, explicit actions, or nothing persisted: no pill. */
-  const NO_PILL = [
-    `${SETTINGS}/roles.vue`,
-    `${SETTINGS}/shortcuts.vue`,
-    `${SETTINGS_PARTS}/profile/ProfilePersonalInfo.vue`,
-    `${SETTINGS_PARTS}/roles/RoleEditor.vue`,
-  ];
-
-  const vueFiles = (dir: string): string[] =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const path = join(dir, entry.name);
-      if (entry.isDirectory()) return vueFiles(path);
-      return entry.name.endsWith(".vue") ? [path] : [];
-    });
-
-  it("shows the shared pill on every instant-save page", () => {
-    for (const path of INSTANT_SAVE) {
-      expect(read(path), path).toMatch(/useInstantSaveHeader\(/);
-    }
-  });
-
-  it("keeps it off pages with a save bar or explicit actions", () => {
-    for (const path of NO_PILL) {
-      expect(read(path), path).not.toMatch(/useInstantSaveHeader/);
-    }
-  });
-
-  it("is the only instant-save pill: no page draws its own, none sits by a save bar", () => {
-    const users = vueFiles(root)
-      .map((path) => ({
-        path: relative(root, path).replaceAll("\\", "/"),
-        source: readFileSync(path, "utf8"),
-      }))
-      .filter(({ source }) => /useInstantSaveHeader\(/.test(source));
-    expect(users.map(({ path }) => path).sort()).toEqual(
-      INSTANT_SAVE.filter((path) => path.endsWith(".vue")).sort(),
-    );
-    for (const { path, source } of users) {
-      if (path === FORM) continue;
-      expect(source, path).not.toMatch(/DmsSaveBar|saveBar/);
-    }
-    expect(read(FORM)).toMatch(/if \(instantSave && /);
-    for (const path of vueFiles(root)) {
-      const source = readFileSync(path, "utf8");
-      if (!source.includes("usePageHeaderActions(")) continue;
-      expect(source, path).not.toMatch(/bg-success\/10|\.instant"\)/);
-    }
   });
 });

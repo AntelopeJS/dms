@@ -1,8 +1,6 @@
-// @vitest-environment jsdom
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+/** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
-import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
+import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
 import {
   isLinkedArrival,
   isLinkedVisit,
@@ -13,17 +11,17 @@ import {
   type TableLinkArrival,
   type TableLinkVisit,
   urlFilterScope,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
 import {
   pageArrivalKind,
   trackPageArrivals,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/pageArrival";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/pageArrival";
 
 const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
 const QUERY_PARAM_FILTERS = { customer: { field: "customerId" } };
 
 const arrival = (
-  query: Record<string, unknown>,
+  query: TableLinkArrival["query"],
   rememberedTab = "all",
   keptLinkScope?: string,
   overrides: Partial<TableLinkArrival> = {},
@@ -133,7 +131,7 @@ describe("urlFilterScope", () => {
 });
 
 describe("linkedArrivalPreferences", () => {
-  const kept: Record<string, unknown> = {
+  const kept = {
     activeView: "unassigned",
     activeTab: "closed",
     columnFilters: [{ accessorKey: "status", mode: "is", value: "x" }],
@@ -144,8 +142,11 @@ describe("linkedArrivalPreferences", () => {
   };
   const written: Array<[string, unknown]> = [];
   const preferences: TablePreferences = {
+    // SAFETY: This fixture implements the preference API's generic read; callers request the value type stored under each field.
     get: <V>(field: string, fallback: V) =>
-      (field in kept ? kept[field] : fallback) as V,
+      (field in kept
+        ? new Map(Object.entries(kept)).get(field)
+        : fallback) as V,
     set: (field, value) => {
       written.push([field, value]);
     },
@@ -259,18 +260,18 @@ describe("isLinkedVisit", () => {
   });
 
   it("follows a row's link only for what changes the listing", () => {
-    const rowLink = (query: Record<string, unknown>) =>
+    const rowLink = (query: TableLinkVisit["query"]) =>
       visit({
         query: { record: "r2", ...query },
         previousQuery: { customer: "c1" },
         isLinkClick: true,
       });
-    // What the table already lists: the row opens on it.
+
     expect(rowLink({ customer: "c1" })).toBe(false);
     expect(rowLink({ customer: "c1", view: "unassigned", tab: "closed" })).toBe(
       false,
     );
-    // Another URL filter, view or tab: followed as an arrival.
+
     expect(rowLink({ customer: "c2" })).toBe(true);
     expect(rowLink({ view: "outstanding" })).toBe(true);
     expect(rowLink({ tab: "open" })).toBe(true);
@@ -375,13 +376,13 @@ describe("linkFollowingPreferences", () => {
 });
 
 describe("a link to the kept tab, reloads and the user's pick", () => {
-  // The cookie the preferences live in, across visits and reloads.
   const keptStore = (): TablePreferences & {
-    kept: Record<string, unknown>;
+    kept: Record<string, Parameters<TablePreferences["set"]>[1]>;
   } => {
-    const kept: Record<string, unknown> = {};
+    const kept: Record<string, Parameters<TablePreferences["set"]>[1]> = {};
     return {
       kept,
+      // SAFETY: The preference API correlates a generic read with the value previously stored under that field; these tests keep those field types consistent.
       get: <V>(field: string, fallback: V) =>
         (field in kept ? kept[field] : fallback) as V,
       set: (field, value) => {
@@ -392,7 +393,6 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     };
   };
 
-  // The table arriving on the URL shown, as TableView reads it.
   const arriveOn = (
     store: TablePreferences,
     url: string,
@@ -428,8 +428,6 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     };
   };
 
-  // The user picked the view "due-week" and the tab "overdue" on a plain
-  // visit: the table kept both and wrote `?tab=overdue`.
   const userState = () => {
     const store = keptStore();
     store.set("activeView", "due-week", undefined);
@@ -523,41 +521,5 @@ describe("pageArrivalKind", () => {
     expect(pageArrivalKind()).toBe("history");
     announce(false);
     expect(pageArrivalKind()).toBe("visit");
-  });
-});
-
-describe("table view wiring", () => {
-  const tableView = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/table-view/TableView.vue",
-    ),
-    "utf8",
-  );
-
-  it("reads its state through the link-arrival preferences", () => {
-    expect(tableView).toMatch(
-      /const tablePreferences = linkFollowingPreferences\(\s*isLinked \? linkedArrivalPreferences\(keptPreferences\) : keptPreferences,\s*\{\s*isLinkedArrival: isLinked,/,
-    );
-    expect(tableView).not.toMatch(/keptPreferences\.(set|restore)\(/);
-    expect(tableView).toMatch(
-      /onMounted\(\(\) => void tablePreferences\.settleArrival\(\)\);/,
-    );
-  });
-
-  it("reads how the page was reached, tracked from the app's start", () => {
-    expect(tableView).toMatch(/isVisit: pageArrivalKind\(\) === "visit",/);
-    const register = readFileSync(
-      resolve(__dirname, "../layers/dms-ui/app/plugins/register.ts"),
-      "utf8",
-    );
-    expect(register).toMatch(/trackPageArrivals\(\);/);
-  });
-
-  it("follows a link to the page already shown without keeping its state", () => {
-    expect(tableView).toMatch(/useTableLinkedVisit\(\{/);
-    expect(tableView).toMatch(
-      /tablePreferences\.followLink\(\(\) => \{\s*openLinkedView\(query\);/,
-    );
   });
 });

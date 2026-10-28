@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 import DmsCard from "#dms-ui/app/components/card/Card.vue";
 import DmsEyebrow from "#dms-ui/app/components/section-header/Eyebrow.vue";
 import RoleMemberAvatars from "./RoleMemberAvatars.vue";
@@ -10,7 +10,7 @@ import {
   type RoleOwnersSummary,
   type RoleSummary,
 } from "./role-types";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
 interface RolesListProps {
   roles: RoleSummary[];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTableDataKey } from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
+import { buildTableDataKey } from "../layers/dms-ui/app/entries/composables/table-view/utils/tableQuery";
 
 const baseRequest = {
   componentId: "runs",

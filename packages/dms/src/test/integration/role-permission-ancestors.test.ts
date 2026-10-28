@@ -7,12 +7,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A permission is worth nothing without the ones it sits under: the role
-// routes store a grant with every id above it, and a role stored without
-// them — saved before the routes completed it — is refused the action. A
-// table's edit is stored with its view too, the read its form loads the row
-// through, and its delete with the list it is pressed from.
-
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
 const ROLES_PAGE = "settings.workspace.roles";

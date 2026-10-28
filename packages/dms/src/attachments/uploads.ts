@@ -5,8 +5,8 @@ import {
   type UploadRequest,
 } from "@antelopejs/interface-file-storage";
 import { getUploadsConfig } from "../config";
-import { buildUploadConstraints } from "../utils/upload-constraints";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import { buildUploadConstraints } from "../utils";
+import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess, findNativeUploadDeclaration } from "./access";
 import { assertUploadSatisfiesField } from "./constraints";
 import { attachmentId, attachmentTable, findAttachment } from "./registry";

@@ -1,9 +1,10 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const CARD_SERIES = [
   {
@@ -15,21 +16,10 @@ const CARD_SERIES = [
   },
 ];
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: { fetchUrl?: string }) => ({
-    data: ref(options.fetchUrl ? { value: 8, series: CARD_SERIES } : null),
-    isLoading: ref(false),
-  }),
-}));
-
-interface CircularOptions {
-  labels?: string[];
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<CircularOptions>, required: true },
-    series: { type: Array as PropType<unknown[]>, required: true },
+    options: { type: Object, required: true },
+    series: { type: Array, required: true },
   },
   setup: (props) => () =>
     h("output", [
@@ -70,14 +60,13 @@ async function renderNested(type: ChartType) {
   });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app, { value: 8, series: CARD_SERIES });
+  await renderToString(app);
   return renderToString(app);
 }
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

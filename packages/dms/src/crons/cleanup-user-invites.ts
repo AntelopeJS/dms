@@ -24,7 +24,6 @@ async function decideExpiredRow(row: UserInvite): Promise<void> {
   try {
     await decideInvite({ tenantId, invite, reason: "expired" });
   } catch (error) {
-    // An adverse terminal decision is expected under concurrent cleanup.
     if (!(await decisions.getForInvite(tenantId, invite._id)))
       Logging.Error("Invite expiry decision failed:", error);
   }
@@ -44,7 +43,7 @@ async function decideExpiredInvites(): Promise<void> {
     if (!rows.length) return;
     for (const row of rows) await decideExpiredRow(row);
     cursor = rows[rows.length - 1]._id;
-    // Tenant-scoped rows can share an id across a page boundary.
+
     const boundary = await invites.table
       .getAll(cursor)
       .filter((row) => row.key("expiresAt").lt(cutoff))
@@ -84,7 +83,7 @@ export async function runCleanupUserInvites(): Promise<void> {
 /** Schedules replayable invitation work on every process, without fleet ownership. */
 export function scheduleCleanupUserInvites(): ScheduledTask {
   return cron.schedule(CLEANUP_USER_INVITES_SCHEDULE, () => {
-    void runCleanupUserInvites().catch((error: unknown) => {
+    void runCleanupUserInvites().catch((error) => {
       Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
     });
   });

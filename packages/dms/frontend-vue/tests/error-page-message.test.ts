@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -11,19 +11,6 @@ import {
 } from "vue";
 import ErrorPage from "../layers/dms-layout/app/error.vue";
 
-// The stage around the card needs the full app runtime (i18n locales, color
-// mode cookie); this test is about the card.
-vi.mock("../layers/dms-layout/app/custom-layouts/EmptyLayout.vue", async () => {
-  const { defineComponent, h } = await import("vue");
-  return {
-    default: defineComponent({
-      setup:
-        (_, { slots }) =>
-        () =>
-          h("div", slots.default?.()),
-    }),
-  };
-});
 import {
   HTTP_FORBIDDEN,
   HTTP_NOT_FOUND,
@@ -54,6 +41,15 @@ function installRuntime() {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsRouter", () => ({ back: vi.fn() }));
   vi.stubGlobal("useHomepage", () => "/");
+  vi.stubGlobal("useColorModePreference", () => ref("light"));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(false) }));
+  vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
+  vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
+  vi.stubGlobal("useFooterLinks", () => ({ links: ref([]) }));
+  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
+  vi.stubGlobal("useDmsAppConfig", () => ({
+    branding: { footer: { localeSwitcher: false } },
+  }));
   vi.stubGlobal("useSessionRecovery", () => ({
     loggedIn: ref(true),
     reconcileSession: vi.fn(),
@@ -109,7 +105,7 @@ it("never shows the backend's address a failed request names", () => {
 
 it("drops an address anywhere in the message, and an empty remainder", async () => {
   const { publicErrorMessage } = await import(
-    "../layers/dms-layout/app/build/utils/publicErrorMessage"
+    "../layers/dms-layout/app/entries/utils/publicErrorMessage"
   );
   expect(
     publicErrorMessage(

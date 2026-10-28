@@ -1,3 +1,7 @@
+import {
+  isNumber,
+  isString,
+} from "../../../../../dms-core/app/utils/type-check";
 import type {
   ConfirmDialog,
   ConfirmDialogSecondaryAction,
@@ -24,7 +28,7 @@ import { currentPageUrlValues } from "../page/pageUrlValues";
 /** `t` as vue-i18n gives it: named parameters, then the plural count. */
 export type ConfirmTranslate = (
   key: string,
-  params: Record<string, unknown>,
+  params: NonNullable<ConfirmDialog["params"]>,
   plural?: number,
 ) => string;
 
@@ -35,14 +39,12 @@ export type ConfirmTranslate = (
  */
 export function resolveConfirmText(
   text: string,
-  params: Record<string, unknown>,
+  params: NonNullable<ConfirmDialog["params"]>,
   t: ConfirmTranslate,
 ): string {
   const { isKey, key } = readTranslationKey(text);
   if (!isKey) return interpolateLiteral(text, params);
-  return typeof params.count === "number"
-    ? t(key, params, params.count)
-    : t(key, params);
+  return isNumber(params.count) ? t(key, params, params.count) : t(key, params);
 }
 
 /** Runs a dialog's secondary target, its URL already filled in. */
@@ -50,8 +52,6 @@ export type SecondaryTargetRun = (
   target: ConfirmDialogSecondaryTarget,
 ) => Promise<void> | void;
 
-// The page's `{{params.X}}` / `{{query.X}}` come first, as on an action's own
-// target; the route is only read for a text holding such a token.
 function withPageLink(url: string): string {
   return namesPageValue(url)
     ? resolveLinkVariables(url, currentPageUrlValues())
@@ -70,7 +70,7 @@ function withPageText(text: string): string | undefined {
  */
 function resolveSecondaryTarget(
   target: ConfirmDialogSecondaryTarget,
-  params: Record<string, unknown>,
+  params: NonNullable<ConfirmDialog["params"]>,
 ): ConfirmDialogSecondaryTarget {
   const url = interpolateUrl(withPageLink(target.url), params);
   if (target.type !== "download" || target.filename === undefined) {
@@ -85,7 +85,7 @@ function resolveSecondaryTarget(
 
 function resolveSecondaryAction(
   action: ConfirmDialogSecondaryAction | undefined,
-  params: Record<string, unknown>,
+  params: NonNullable<ConfirmDialog["params"]>,
   t: ConfirmTranslate,
   runTarget: SecondaryTargetRun | undefined,
 ): ConfirmSecondaryAction | undefined {
@@ -105,7 +105,7 @@ function resolveSecondaryAction(
  */
 export function resolveConfirmDialog(
   dialog: ConfirmDialog,
-  row: Record<string, unknown> | undefined,
+  row: ConfirmDialog["params"],
   t: ConfirmTranslate,
   runTarget?: SecondaryTargetRun,
 ): ConfirmOptions {
@@ -125,12 +125,12 @@ export function resolveConfirmDialog(
     description: text(dialog.description),
     confirmLabel: text(dialog.confirmLabel),
     cancelLabel: text(dialog.cancelLabel),
-    // The text to type, the row's name more often than not ("{name}").
+
     confirmText: text(dialog.confirmText),
     impact: dialog.impact?.map((entry) => ({
       ...entry,
       label: text(entry.label) ?? "",
-      count: typeof entry.count === "string" ? text(entry.count) : entry.count,
+      count: isString(entry.count) ? text(entry.count) : entry.count,
     })),
     fields: dialog.fields?.map((field) =>
       processFieldI18n(

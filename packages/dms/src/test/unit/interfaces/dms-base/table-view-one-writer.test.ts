@@ -1,6 +1,4 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
-import { Controller, type ControllerClass } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   DataController,
@@ -42,10 +40,6 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import type { Component } from "@antelopejs/interface-dms/component";
 import { derivedController } from "../../../helpers/derived-controller";
-
-// A data controller has one writing TableView: a second one fails its page's
-// registration, read-only ones share the controller, and a derived controller
-// is how the same data gets a second writing screen.
 
 const TABLE = "one-writer-documents";
 const LOCATION = "/api/one-writer-documents";
@@ -93,14 +87,14 @@ async function registerPage(
   components: Record<string, Component>,
 ): Promise<Error | undefined> {
   class SomePage extends RootPageController(id, { displayName: id }) {}
-  const meta = GetMetadata(SomePage as ControllerClass, PageMetadata);
+  const meta = GetMetadata(SomePage, PageMetadata);
   for (const [key, component] of Object.entries(components)) {
     meta.SetComponent(key, component);
   }
   registered.push(meta);
   return meta.Register().then(
     () => undefined,
-    (error: unknown) => error as Error,
+    (error) => error,
   );
 }
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DmsServerEvent, DmsSession } from "#dms/server";
+import { isString } from "../../dms-core/app/utils/type-check";
 
 /**
  * The accounts this browser is signed in to: an index of their descriptors,
@@ -55,6 +56,7 @@ function accountCookieName(accountId: string): string {
 }
 
 function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session owner does not prove these optional legacy user fields are strings. This preserves the existing unchecked descriptor projection; parsing or coercing them would change stored account payloads.
   const user = (session.user ?? {}) as SessionUser;
   return {
     accountId,
@@ -79,9 +81,9 @@ function writeAccountIndex(event: DmsServerEvent, accounts: AccountIndex) {
 
 export function readAccount(
   event: DmsServerEvent,
-  accountId: unknown,
+  accountId: Parameters<typeof isString>[0],
 ): StoredAccount | undefined {
-  if (typeof accountId !== "string" || !UUID.test(accountId)) return undefined;
+  if (!isString(accountId) || !UUID.test(accountId)) return undefined;
   return event.cookies.readSealed<StoredAccount>(accountCookieName(accountId));
 }
 
@@ -125,10 +127,13 @@ export function persistAccountSession(
   return account;
 }
 
-export function removeAccount(event: DmsServerEvent, accountId: unknown) {
+export function removeAccount(
+  event: DmsServerEvent,
+  accountId: Parameters<typeof readAccount>[1],
+) {
   const accounts = { ...readAccounts(event) };
-  if (typeof accountId === "string") delete accounts[accountId];
+  if (isString(accountId)) delete accounts[accountId];
   writeAccountIndex(event, accounts);
-  if (typeof accountId === "string" && UUID.test(accountId))
+  if (isString(accountId) && UUID.test(accountId))
     event.cookies.clear(accountCookieName(accountId));
 }

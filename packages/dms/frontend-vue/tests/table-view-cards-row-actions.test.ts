@@ -1,4 +1,5 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
+import "./helpers/table-runtime";
 import {
   computed,
   createApp,
@@ -9,7 +10,6 @@ import {
   ref,
   type App,
   type Component,
-  type PropType,
 } from "vue";
 import {
   getCoreRowModel,
@@ -18,15 +18,8 @@ import {
   type Table,
 } from "@tanstack/vue-table";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
 
 type Row = { _id: string; name: string };
 
@@ -35,7 +28,6 @@ const rows: Row[] = [
   { _id: "t2", name: "VPN down" },
 ];
 
-// Stands for the grid's actions column: the cell useTableColumns draws.
 const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
   id: "actions",
   cell: ({ row }) =>
@@ -57,7 +49,7 @@ const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
 const TicketCard = defineComponent({
   props: {
     rowId: String,
-    rowActions: Object as PropType<Component>,
+    rowActions: Object,
   },
   setup: (props) => () =>
     h("article", { "data-id": props.rowId }, [
@@ -75,7 +67,8 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
 }
 
 function createContext(table?: Table<Row>, componentName?: string) {
-  const opened: unknown[] = [];
+  const opened: Row[] = [];
+  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
   const context = reactive({
     items: rows,
     columns: [],
@@ -85,9 +78,9 @@ function createContext(table?: Table<Row>, componentName?: string) {
     options: componentName ? { card: { component: { componentName } } } : {},
     pagination: { pageIndex: 0, pageSize: 10, total: 2 },
     selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: (item: unknown) => opened.push(item) },
+    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
     table,
-  }) as unknown as TableViewDisplayContext<Row>;
+  }) as TableViewDisplayContext<Row>;
   return { context, opened };
 }
 
@@ -119,8 +112,6 @@ describe("the row actions of the cards display", () => {
       locale: ref("en"),
       t: (t: string) => t,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TicketCard" ? TicketCard : undefined,
     );
@@ -180,7 +171,7 @@ describe("the row actions of the cards display", () => {
     );
     const received: Component[] = [];
     const Spy = defineComponent({
-      props: { rowId: String, rowActions: Object as PropType<Component> },
+      props: { rowId: String, rowActions: Object },
       setup: (props) => () => {
         if (props.rowActions) received.push(props.rowActions);
         return h(TicketCard, props);
@@ -193,7 +184,7 @@ describe("the row actions of the cards display", () => {
     expect(edited).toEqual(["t1"]);
     expect(opened).toEqual([]);
     const first = received.slice(0, 2);
-    (context as { loading: boolean }).loading = true;
+    context.loading = true;
     context.items = [...rows];
     await nextTick();
     expect(received.length).toBeGreaterThan(2);

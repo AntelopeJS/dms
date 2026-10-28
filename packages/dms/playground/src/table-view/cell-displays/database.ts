@@ -43,8 +43,6 @@ interface AccountSeed {
   teams: string[];
 }
 
-// Fixed accounts, one per cell state worth seeing: an empty identity, a
-// trial ending soon or already over, a slow p95, an error, no team.
 const ACCOUNTS: AccountSeed[] = [
   {
     name: "Acme Corp",
@@ -170,7 +168,6 @@ function inDays(now: number, days: number | undefined) {
   return days === undefined ? null : new Date(now + days * DAY_MS);
 }
 
-// A repeatable daily series per account: the same seed draws the same line.
 function signupsOf(seed: number): number[] {
   return Array.from({ length: SIGNUP_DAYS }, (_, day) =>
     Math.round(10 + 8 * Math.sin((seed + day) / 2) + ((seed * day) % 5)),

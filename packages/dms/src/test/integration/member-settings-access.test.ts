@@ -6,10 +6,7 @@ import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifica
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { createClient } from "../helpers/http";
 import { resetDatabase } from "../helpers/db";
-import { pageRoutePath } from "@antelopejs/interface-dms/page";
-
-// A member holding no role at all still owns their account settings: the user
-// settings category is `memberAccess`, the workspace one is not.
+import { pageRoutePath, type PageLayout } from "@antelopejs/interface-dms/page";
 
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
@@ -41,14 +38,13 @@ const subject: NotificationSubjectInfo = {
 const PREFERENCE_KEY = `${subject.category.id}:${subject.id}`;
 
 interface PageLayoutResponse {
-  components: Record<string, unknown>;
+  components: PageLayout["components"];
 }
 
 describe("[integration] a member without a role and their own settings", () => {
   let member: AxiosInstance;
   let memberId: string;
 
-  // The page's own layout route: the one its page permission guards.
   const layout = (slug: string) =>
     member.get<PageLayoutResponse>(pageRoutePath(slug, "/pagelayout"));
 
@@ -122,10 +118,10 @@ describe("[integration] a member without a role and their own settings", () => {
 
   it("is served the settings overview named, so its breadcrumb is translated", async () => {
     const response = await member.get("/dms/sitelayout");
-    const overview = response.data.siteLayout.pages[SETTINGS_OVERVIEW] as {
+    const overview: {
       hasAccess: boolean;
       displayName: string;
-    };
+    } = response.data.siteLayout.pages[SETTINGS_OVERVIEW];
     expect(overview.hasAccess).to.equal(true);
     expect(overview.displayName).to.equal("$page.settings.title");
   });
@@ -133,10 +129,8 @@ describe("[integration] a member without a role and their own settings", () => {
   it("sees the account pages in the navigation and not the workspace ones", async () => {
     const response = await member.get("/dms/sitelayout");
     expect(response.status).to.equal(HTTP_OK);
-    const pages = response.data.siteLayout.pages as Record<
-      string,
-      { hasAccess: boolean }
-    >;
+    const pages: Record<string, { hasAccess: boolean }> =
+      response.data.siteLayout.pages;
     for (const slug of PERSONAL_SLUGS) {
       expect(pages[slug]?.hasAccess, slug).to.equal(true);
     }

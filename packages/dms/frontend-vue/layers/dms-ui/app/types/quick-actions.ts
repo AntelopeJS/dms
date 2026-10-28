@@ -1,3 +1,9 @@
+import type {
+  MenuItemQuery,
+  MenuRouteState,
+} from "../../../dms-core/app/types/menu";
+import { isString } from "../../../dms-core/app/utils/type-check";
+
 /**
  * How an `openForm` or `button` quick action reaches its table view: it routes
  * to the action's page with these query parameters, and the table view opens
@@ -17,16 +23,17 @@ export type QuickActionIntent =
   | { kind: "add" }
   | { kind: "button"; button: string };
 
-type QuickActionQuery = Record<string, unknown>;
+type QuickActionQuery = MenuRouteState["query"];
+type IntentReader = (query: QuickActionQuery) => QuickActionIntent | undefined;
 
 const intentReaders: Record<
-  string,
-  (query: QuickActionQuery) => QuickActionIntent | undefined
+  MenuItemQuery[typeof QUICK_ACTION_QUERY_KEY],
+  IntentReader
 > = {
   [QUICK_ACTION_ADD]: () => ({ kind: "add" }),
   [QUICK_ACTION_BUTTON]: (query) => {
     const button = query[QUICK_ACTION_BUTTON_KEY];
-    return typeof button === "string" ? { kind: "button", button } : undefined;
+    return isString(button) ? { kind: "button", button } : undefined;
   },
 };
 
@@ -41,6 +48,6 @@ export function readQuickActionIntent(
 ): QuickActionIntent | undefined {
   if (query[QUICK_ACTION_COMPONENT_KEY] !== componentId) return undefined;
   const action = query[QUICK_ACTION_QUERY_KEY];
-  if (typeof action !== "string") return undefined;
+  if (!isString(action)) return undefined;
   return intentReaders[action]?.(query);
 }

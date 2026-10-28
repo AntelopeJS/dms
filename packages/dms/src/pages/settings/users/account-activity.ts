@@ -1,7 +1,3 @@
-// The "Recent account activity" card of the settings overview: the latest
-// events of the signed-in user's own account, merged from the rows the DMS
-// already keeps. Pure: the store (account-activity-store.ts) reads the rows.
-
 import type { Session, User } from "@antelopejs/interface-dms/auth/db";
 import type { TenantMember, UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../db";
@@ -17,11 +13,11 @@ export const ACTIVITY_DEDUPE_WINDOW_MS = 2 * 60 * 1000;
 
 /** Notification subjects about the account itself. */
 const ACCOUNT_SUBJECTS = new Set(["security", "account", "collaboration"]);
-// A message may pick a worded variant of its title (`title_one`, `title_browser_os`).
+
 const MESSAGE_ID =
   /^\$?dms\.notifications\.messages\.([a-z0-9_]+)\.title(?:_[a-z0-9_]+)?$/;
 const TWO_FACTOR_MESSAGE = /^two_factor_(enabled|disabled)_(totp|email)$/;
-// "Chrome on Windows (203.0.113.7)": the origin param wraps the IP.
+
 const ORIGIN_IP = /^\s*\(([^)]*)\)\s*$/;
 
 export type AccountActivityType =
@@ -139,13 +135,13 @@ export function notificationToEvent(
           ? "two_factor_enabled"
           : "two_factor_disabled",
       date,
+      // SAFETY: TWO_FACTOR_MESSAGE captures only the supported two-factor method alternatives.
       method: twoFactor[2] as TwoFactorMethod,
     };
   }
   switch (messageId) {
     case "new_login":
     case "new_login_unknown_device": {
-      // Alerts sent before the IP had its own param carried it as " (ip)".
       const origin = textParam(params, "origin") ?? "";
       const ip =
         textParam(params, "ip") ??
@@ -176,7 +172,6 @@ export function notificationToEvent(
     case "welcome":
       return { type: "account_created", date };
     case "collaborator_joined":
-      // The name only: the collaborator's email stays on the notification.
       return {
         type: "collaborator_joined",
         date,
@@ -335,6 +330,7 @@ export function buildAccountActivity(
 }
 
 function stripEmpty(event: Draft): Draft {
+  // SAFETY: Draft's required type and date are never undefined, so this filter removes only optional properties and preserves every retained value.
   return Object.fromEntries(
     Object.entries(event).filter(([, value]) => value !== undefined),
   ) as Draft;

@@ -20,6 +20,7 @@ export interface ReadonlyBehavior {
 export interface TableViewColumnDisplay {
   /** Id of the frontend data type drawing the cells. */
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Module-defined cell renderers own these options; the input-component JSON contract would exclude existing renderer values.
   options?: Record<string, unknown>;
 }
 

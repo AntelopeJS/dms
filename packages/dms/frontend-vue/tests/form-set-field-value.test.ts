@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createStartingValueTracker,
   resolveFieldValueWrite,
-} from "../layers/dms-ui/app/build/composables/form/fieldValueRule";
+} from "../layers/dms-ui/app/entries/composables/form/fieldValueRule";
 
 const PROBABILITY_BY_STAGE = {
   targetField: "probability",
@@ -63,9 +63,11 @@ describe("resolveFieldValueWrite", () => {
 });
 
 describe("createStartingValueTracker", () => {
-  const started: Record<string, unknown> = { stage: "won" };
-  const isStarting = (fieldId: string, value: unknown) =>
-    started[fieldId] === value;
+  const started = new Map([["stage", "won"]]);
+  const isStarting = (
+    fieldId: string,
+    value: Parameters<Parameters<typeof createStartingValueTracker>[0]>[1],
+  ) => started.get(fieldId) === value;
 
   it("flags the value a field started from", () => {
     const isInitial = createStartingValueTracker(isStarting);

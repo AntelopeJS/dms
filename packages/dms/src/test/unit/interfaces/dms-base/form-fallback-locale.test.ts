@@ -69,6 +69,7 @@ class RangeAPI extends DataController(
 }
 
 function formFields(): Map<string, FormField> {
+  // SAFETY: RangeAPI declares only ungrouped columns; getFormFields includes groups in its return type for other controllers.
   const fields = GetMetadata(RangeAPI, TableViewMeta).getFormFields(
     "new",
   ) as FormField[];

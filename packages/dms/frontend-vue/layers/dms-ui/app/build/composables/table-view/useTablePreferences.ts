@@ -13,7 +13,7 @@ import {
   TABLES_PREFERENCE_KEY,
   tablePreferenceId,
   writeLocalTableEntry,
-} from "#dms-core/app/build/composables/user/tablePreferences";
+} from "#dms-core/app/entries/composables/user/tablePreferences";
 
 /**
  * The preferences of one table view. A field the server render needs
@@ -40,7 +40,7 @@ export interface TablePreferences {
 
 interface PendingRestore {
   field: LocalTableField;
-  apply: (value: unknown) => void;
+  apply: (value: ReturnType<typeof readLocalTableEntry>[string]) => void;
 }
 
 /** The table's entry in the cookie: `tables.<id>`, its server fields. */
@@ -51,9 +51,8 @@ function useServerTableEntry(id: string) {
   const entry = (): CompactTableEntry | undefined =>
     getPreference<CompactTableEntry | undefined>(path, undefined);
   const tables = () =>
-    getPreference<Record<string, unknown>>(TABLES_PREFERENCE_KEY, {});
+    getPreference<CompactTableEntry>(TABLES_PREFERENCE_KEY, {});
 
-  // The last entry takes the collection with it: no empty branch left over.
   const forget = () => {
     const isLastEntry = Object.keys(tables()).every((key) => key === id);
     removePreference(isLastEntry ? TABLES_PREFERENCE_KEY : path);
@@ -61,8 +60,8 @@ function useServerTableEntry(id: string) {
 
   const set = (
     field: ServerTableField,
-    value: unknown,
-    defaultValue: unknown,
+    value: Parameters<typeof encodeServerField>[1],
+    defaultValue: Parameters<typeof encodeServerField>[2],
   ) => {
     const { key } = SERVER_TABLE_FIELDS[field];
     const next = { ...entry() };
@@ -74,7 +73,6 @@ function useServerTableEntry(id: string) {
     else setPreference(path, next);
   };
 
-  // The table used last is evicted last: opening it counts as a write.
   const markUsed = () => {
     const current = entry();
     if (current && Object.keys(tables()).at(-1) !== id) {
@@ -88,8 +86,8 @@ function useServerTableEntry(id: string) {
 const setLocalField = (
   id: string,
   field: LocalTableField,
-  value: unknown,
-  defaultValue: unknown,
+  value: Parameters<typeof isDefaultValue>[0],
+  defaultValue: Parameters<typeof isDefaultValue>[1],
 ) => {
   const entry = readLocalTableEntry(id);
   if (isDefaultValue(value, defaultValue)) {
@@ -140,6 +138,7 @@ export function useTablePreferences(
       pending.push({
         field,
         apply: (value) => {
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Storage returns arbitrary preference values, while restore accepts caller-selected T and an optional boolean validator. Neither owner proves T; adding mandatory validation would change restoration behavior.
           const restored = value as typeof state.value;
           if (!isValid || isValid(restored)) state.value = restored;
         },

@@ -3,11 +3,7 @@ import type { ModuleStoreEntry } from "../../../utils/module-store-catalog";
 import type {
   StoreOperationKind,
   StoreOperationStep,
-} from "../../../../types/module-store";
-
-// What the store is doing to a module, on whichever tile shows it: the steps
-// of the running operation, the current one spinning, or the error the last
-// one left.
+} from "#dms-core/app/types/module-store";
 
 interface ModuleStoreOperationProps {
   entry: ModuleStoreEntry;
@@ -37,7 +33,7 @@ const KIND_STEPS: Record<StoreOperationKind, StoreOperationStep[]> = {
   apply: ["load"],
 };
 
-const STEP_ICONS: Record<string, string> = {
+const STEP_ICONS = {
   done: "i-ph-check-circle-fill",
   running: "i-ph-circle-notch",
   todo: "i-ph-circle",
@@ -75,7 +71,7 @@ const steps = computed(() => {
   );
   return kindSteps.map((step) => {
     const index = PROGRESS_STEPS.indexOf(step);
-    const state =
+    const state: keyof typeof STEP_ICONS =
       index < current ? "done" : index === current ? "running" : "todo";
     return { step, state };
   });

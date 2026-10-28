@@ -9,10 +9,12 @@
  * token out from under each other and log the user out.
  */
 export function runDeduped<T>(
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Public holder slots may contain unrelated values. A Promise<T>-valued dictionary would reject existing holder objects rather than validate the selected slot.
   holder: Record<PropertyKey, unknown>,
   key: PropertyKey,
   task: () => Promise<T>,
 ): Promise<T> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The selected slot is historically trusted without validation, including truthy non-promises. Inference cannot prove Promise<T>; adding validation would change malformed-holder behavior.
   const existing = holder[key] as Promise<T> | null | undefined;
   if (existing) {
     return existing;

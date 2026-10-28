@@ -1,4 +1,5 @@
 import type { FormFieldOrGroup, FormSection, FormSectionNav } from "./field";
+import type { validateFormState } from "../../../build/composables/form/formValidation";
 import type {
   FormKind,
   FormSaveMode,
@@ -51,11 +52,16 @@ export interface FormProps extends FormComponentProps {
   backTo?: string;
   successMessage?: string;
   errorMessage?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Backend JSON schemas are accepted before conversion by jsonSchemaToZod; a parsed field-value contract would exclude schema keywords and extensions.
   schema?: Record<string, unknown>;
   watchActions?: WatchAction[];
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Success callbacks expose the raw server response and submitted data for application extensions; neither payload has a closed shared schema.
   onSuccessCallback?: (response?: unknown, data?: unknown) => void;
   fieldsOrientation?: "horizontal" | "vertical";
-  submitDefaults?: Record<string, unknown>;
+  submitDefaults?: Record<
+    string,
+    Parameters<typeof validateFormState>[1][string]
+  >;
   containerId?: string;
   redirectOnSuccess?: string;
   /** Field of the loaded row a page form names in the breadcrumb. */

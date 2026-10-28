@@ -1,31 +1,23 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
+import "./helpers/table-runtime";
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type {
   TableViewCardConfig,
   TableViewDisplayContext,
 } from "../layers/dms-ui/app/composables/table-view/types/display";
+import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 
-// The built-in cards draw their fields through each column's display, like
-// grid cells. (Their header, read from the label column's identity display,
-// is #344's.)
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
-
-type Row = Record<string, unknown>;
+type Row = { _id: string; name: string; lead: string; done: number };
 
 const column = (
   accessorKey: string,
   typeId: string,
   display?: TableViewColumn["display"],
 ) =>
+  // SAFETY: Card field rendering reads type.id and display, not the omitted input and filter metadata.
   ({
     id: accessorKey,
     accessorKey,
@@ -33,20 +25,28 @@ const column = (
     listable: true,
     type: { id: typeId },
     display,
-  }) as unknown as TableViewColumn;
+  }) as TableViewColumn;
 
-// Each data type draws `<type>(<value>|<options>|<row id>)`: the test reads
-// which formatter drew a value, with which options and row.
 const formatter = (typeId: string) => ({
-  default: (value: unknown, _locale: string, options: unknown, row?: Row) =>
+  default: (
+    value: Parameters<DataTypeFormatter>[0],
+    _locale: string,
+    options: Parameters<DataTypeFormatter>[2],
+    row?: Parameters<DataTypeFormatter>[3],
+  ) =>
     `${typeId}(${String(value)}|${JSON.stringify(options ?? {})}|${String(row?._id)})`,
-  empty: (_value: unknown, _locale: string, _options: unknown, row?: Row) =>
-    `${typeId}-empty(${String(row?._id)})`,
+  empty: (
+    _value: Parameters<DataTypeFormatter>[0],
+    _locale: string,
+    _options: Parameters<DataTypeFormatter>[2],
+    row?: Parameters<DataTypeFormatter>[3],
+  ) => `${typeId}-empty(${String(row?._id)})`,
 });
 
 let app: App | undefined;
 
 function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
+  // SAFETY: This fixture supplies the row, selection, pagination, and open operations consumed by CardsDisplay.
   const context = {
     items: [{ _id: "team-05", name: "Platform", lead: "ada.png", done: 3 }],
     columns,
@@ -57,7 +57,7 @@ function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
     pagination: { pageIndex: 0, pageSize: 10, total: 1 },
     selection: { isSelected: () => false, toggle: () => undefined },
     actions: { canAdd: false, open: () => undefined },
-  } as unknown as TableViewDisplayContext<Row>;
+  } as TableViewDisplayContext<Row>;
   app = createApp({ render: () => h(CardsDisplay, { context }) });
   app.component("UCheckbox", defineComponent({ render: () => h("input") }));
   app.component("UIcon", defineComponent({ render: () => h("i") }));

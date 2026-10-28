@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import type { Slot } from "vue";
+
 import type { ButtonProps } from "@nuxt/ui";
 import { tv } from "tailwind-variants";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** The pill at the card's top right ("Builder", "Local", "Legacy"). */
 export interface RecordCardBadge {
@@ -40,11 +42,11 @@ interface RecordCardProps {
 
 interface RecordCardSlots {
   /** Content between the description and the footer. */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Replaces the badge (a switch, a menu). */
-  aside?: () => unknown;
+  aside?: () => ReturnType<Slot>;
   /** Replaces the footer's buttons. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<RecordCardProps>(), {
@@ -63,8 +65,6 @@ const props = withDefaults(defineProps<RecordCardProps>(), {
 const emit = defineEmits<{ open: [] }>();
 const slots = defineSlots<RecordCardSlots>();
 
-// v2 record card (ai skills, saas plans): icon well and mono identity on top,
-// a short description, then tags, a mono note and actions on a ruled footer.
 const theme = tv({
   slots: {
     root: "dms-card flex min-w-0 flex-col gap-3 p-[18px] text-start transition-colors",

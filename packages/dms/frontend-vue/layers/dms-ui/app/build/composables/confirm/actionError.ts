@@ -1,4 +1,8 @@
 import {
+  isObject as isObjectType,
+  isString,
+} from "../../../../../dms-core/app/utils/type-check";
+import {
   readTranslationKey,
   type I18nTranslate,
 } from "#dms-core/app/composables/translation/useTranslation";
@@ -14,18 +18,18 @@ export const ACTION_ERROR_GENERIC_KEY = "dms.action_error.generic";
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
 const HTTP_SERVER_ERROR = 500;
-// Longer than a sentence or two: a dump, not a message.
+
 const MAX_MESSAGE_LENGTH = 300;
-// `error.not_found`, `$page.settings.invites.error.expired`.
+
 const KEY_PATTERN = /^\$?[\w-]+(\.[\w-]+)+$/;
-// JSON, HTML, a stack trace or a thrown `TypeError: …`.
+
 const TECHNICAL_PATTERNS = [
   /^\s*[[{<]/,
   /\n\s*at\s/,
   /^\s*[A-Z]\w*Error\b/,
   /<no response>/,
 ];
-// What browsers say when `fetch` itself fails.
+
 const NETWORK_MESSAGES = [/failed to fetch/i, /networkerror/i, /load failed/i];
 
 interface FetchErrorLike {
@@ -37,11 +41,10 @@ interface FetchErrorLike {
   data?: unknown;
 }
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Error bodies are untrusted; property values remain unknown until their individual checks.
 const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+  isObjectType(value) && value !== null;
 
-// An ofetch `FetchError` (or anything shaped like a failed request): its own
-// `message` is the raw "[DELETE] "/api/…": 403 Forbidden" line, never shown.
 const isFetchError = (error: unknown): error is FetchErrorLike =>
   isObject(error) &&
   (error.name === "FetchError" ||
@@ -55,8 +58,9 @@ const statusOf = (error: FetchErrorLike): number | undefined =>
 /** The message the server put in the error body, when it sent one. */
 const serverMessageOf = (error: FetchErrorLike): string | undefined => {
   const { data } = error;
-  if (typeof data === "string") return data;
-  if (isObject(data) && typeof data.message === "string") return data.message;
+  if (isString(data)) return data;
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The object guard accepts all untrusted error data; only an actual string message is returned.
+  if (isObject(data) && isString(data.message)) return data.message;
   return undefined;
 };
 
@@ -96,6 +100,7 @@ const translateKey = (translate: I18nTranslate, key: string) =>
  * required."): a table view's write passes its column labels.
  */
 export function resolveActionError(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The request's catch value is decoded here and may be any thrown JavaScript value.
   error: unknown,
   translate: I18nTranslate,
   labelOf: (field: string) => string | undefined = () => undefined,
@@ -108,9 +113,7 @@ export function resolveActionError(
     const raw = serverMessageOf(error);
     const isForbidden =
       status === HTTP_UNAUTHORIZED || status === HTTP_FORBIDDEN;
-    // Plain text on a refusal or a crash is the server talking to developers
-    // ("Forbidden: missing permission …", "Archive field not configured"):
-    // only a translated key gets through there.
+
     if (isForbidden || status >= HTTP_SERVER_ERROR) {
       const translated =
         raw && KEY_PATTERN.test(raw.trim())
@@ -134,7 +137,7 @@ export function resolveActionError(
   const message =
     error instanceof Error
       ? error.message
-      : typeof error === "string"
+      : isString(error)
         ? error
         : undefined;
   if (message && NETWORK_MESSAGES.some((pattern) => pattern.test(message))) {

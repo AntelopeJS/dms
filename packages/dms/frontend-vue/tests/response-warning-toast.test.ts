@@ -2,18 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   readResponseWarning,
   resolveResponseToast,
-} from "../layers/dms-ui/app/build/utils/responseWarning";
-import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
-import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
-import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+} from "../layers/dms-ui/app/entries/utils/responseWarning";
+import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 const INVITE_EMAIL_FAILED = "$page.settings.members.invite.email_failed";
 const SUCCESS = { color: "success", title: "Invitation sent successfully" };
 
 const translation = {
   processI18n: (key: string) => `i18n:${key}`,
-  processApiMessage: (message: unknown) => `api:${String(message)}`,
+  processApiMessage: (
+    message: Parameters<
+      Parameters<typeof resolveResponseToast>[2]["processApiMessage"]
+    >[0],
+  ) => `api:${String(message)}`,
 };
 
 describe("response warning toast", () => {

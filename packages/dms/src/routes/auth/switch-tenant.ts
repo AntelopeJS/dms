@@ -33,7 +33,7 @@ async function assertMembership(
 export async function switchTenant(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof switchTenantSchema.parse>[0],
 ): Promise<AuthResponse> {
   const { refreshToken, tenantId } = assertValidation(body, (v) =>
     switchTenantSchema.parse(v),

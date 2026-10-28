@@ -1,110 +1,56 @@
-// @vitest-environment jsdom
-import { computed, createApp, h, ref, type App } from "vue";
+/** @vitest-environment jsdom */
+import { createApp, h, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { DmsLink } from "#dms/frontend-module";
 import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue";
+import { useRealDataEngine } from "./fixtures/dataEngine";
+import { stubBlockRuntime } from "./helpers/block-runtime";
+import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
 
-// The settings overview of a member without a role: the Workspace grid lists
-// the workspace pages they can open, and they open none.
-
-const categoryCards = ref<
-  Array<{
-    id: string;
-    title: string;
-    to: string;
-    badge?: string;
-    badgeTone?: string;
-  }>
->([]);
-
-// Hoisted with the mocks below, which render through it.
-const { stub } = vi.hoisted(() => ({
-  stub: (tag: string, attribute: string) => async () => {
-    const vue = await import("vue");
-    return {
-      default: vue.defineComponent({
-        inheritAttrs: false,
-        props: ["title", "state", "badge", "badgeTone"],
-        setup: (props) => () =>
-          vue.h(tag, {
-            [attribute]: props.title ?? props.state ?? "",
-            "data-badge": props.badge,
-            "data-badge-tone": props.badgeTone,
-            "data-state": props.state,
-          }),
-      }),
-    };
-  },
-}));
-
-vi.mock(
-  "#dms-layout/app/build/composables/navigation/useCategoryNavCards",
-  () => ({
-    useCategoryNavCards: () => ({ cards: categoryCards }),
-    usePreviewEntryVeil: () => ({
-      state: () => null,
-      label: () => "",
-      detail: () => undefined,
-      isActive: ref(false),
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-ui/app/build/composables/blocks/useBlockItems",
-  async () => {
-    const { computed: vueComputed } = await import("vue");
-    return {
-      useBlockItems: () => ({
-        items: vueComputed(() => []),
-        isPending: vueComputed(() => false),
-        hasError: vueComputed(() => false),
-        refresh: vi.fn(),
-      }),
-    };
-  },
-);
-
-vi.mock(
-  "../layers/dms-ui/app/components/card/NavCard.vue",
-  stub("a", "data-card"),
-);
-vi.mock(
-  "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue",
-  async () => {
-    const vue = await import("vue");
-    return {
-      default: vue.defineComponent({
-        setup:
-          (_, { slots }) =>
-          () =>
-            vue.h("div", slots.default?.()),
-      }),
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-ui/app/components/section-header/SectionHeader.vue",
-  stub("h2", "data-title"),
-);
-vi.mock(
-  "../layers/dms-ui/app/build/components/blocks/BlockStatus.vue",
-  stub("p", "data-status"),
-);
-
+const page = (fullId: string, extra: Partial<SiteLayoutTree> = {}) => ({
+  fullId,
+  displayName: fullId,
+  fullSlug: `/${fullId.replaceAll(".", "/")}`,
+  layoutUrl: `/${fullId}/pagelayout`,
+  children: {},
+  ...extra,
+});
+let pages: ReturnType<typeof page>[];
 let app: App | undefined;
 
-function mountGrid(props: Record<string, unknown>): HTMLElement {
-  app = createApp({ render: () => h(NavCardGridBlock, props) });
+function mountGrid(
+  props: Partial<InstanceType<typeof NavCardGridBlock>["$props"]>,
+): HTMLElement {
+  app = createApp({
+    render: () =>
+      h(NavCardGridBlock, {
+        componentId: "grid",
+        pageId: "settings",
+        ...props,
+      }),
+  });
+  app.component("DmsLink", DmsLink);
+  app.component("UIcon", () => null);
   const container = document.createElement("div");
   app.mount(container);
   return container;
 }
 
-beforeEach(() => {
-  categoryCards.value = [];
-  vi.stubGlobal("computed", computed);
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
+beforeEach(async () => {
+  useRealDataEngine();
+  await stubBlockRuntime(vi.fn());
+  pages = [];
+  const category = () => ({
+    children: Object.fromEntries(pages.map((entry) => [entry.fullId, entry])),
+  });
+  vi.stubGlobal("useSiteLayout", () => ({
+    siteLayoutTree: ref({
+      children: {
+        settings: { children: { workspace: category(), user: category() } },
+      },
+    }),
   }));
+  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en") }));
 });
 
@@ -115,27 +61,27 @@ afterEach(() => {
 });
 
 it("leaves out a category grid whose pages the viewer opens none of", () => {
+  pages = [page("settings.workspace.members", { hasAccess: false })];
   const container = mountGrid({
     categoryId: "settings.workspace",
-    title: "$page.settings.shell.workspace",
+    title: "Workspace",
   });
   expect(container.querySelector("section")).toBeNull();
 });
 
 it("lists the pages of the category the viewer can open", () => {
-  categoryCards.value = [
-    {
-      id: "settings.workspace.members",
-      title: "$menu.members",
-      to: "/settings/workspace/members",
-    },
-  ];
+  pages = [page("settings.workspace.members", { displayName: "Members" })];
   const container = mountGrid({
     categoryId: "settings.workspace",
-    title: "$page.settings.shell.workspace",
+    title: "Workspace",
   });
-  expect(container.querySelector("[data-title]")).not.toBeNull();
-  expect(container.querySelectorAll("[data-card]")).toHaveLength(1);
+  expect(container.textContent).toContain("Workspace");
+  expect(
+    [...container.querySelectorAll("a")].map((link) => [
+      link.getAttribute("href"),
+      link.textContent?.trim(),
+    ]),
+  ).toEqual([["/settings/workspace/members", "Members"]]);
 });
 
 it("says what the page asks for when there is nothing to list", () => {
@@ -143,22 +89,27 @@ it("says what the page asks for when there is nothing to list", () => {
     categoryId: "settings.workspace",
     empty: { title: "Nothing here" },
   });
-  expect(container.querySelector("[data-status]")).not.toBeNull();
+  expect(container.querySelector('[role="status"]')?.textContent).toContain(
+    "Nothing here",
+  );
 });
 
 it("hands each card its page's badge for the corner, not as a state line", () => {
-  categoryCards.value = [
-    {
-      id: "settings.user.security",
-      title: "$menu.security",
-      to: "/settings/user/security",
+  pages = [
+    page("settings.user.security", {
+      displayName: "Security",
       badge: "1",
       badgeTone: "warning",
-    },
+    }),
   ];
   const container = mountGrid({ categoryId: "settings.user" });
-  const card = container.querySelector("[data-card]") as HTMLElement;
-  expect(card.dataset.badge).toBe("1");
-  expect(card.dataset.badgeTone).toBe("warning");
-  expect(card.dataset.state).toBeUndefined();
+  const card = container.querySelector("a");
+  expect(card?.textContent).toContain("Security");
+  expect(
+    [...card!.querySelectorAll("span")].some(
+      (span) => span.textContent?.trim() === "1",
+    ),
+  ).toBe(true);
+  expect(card?.querySelector(".text-warning")?.textContent?.trim()).toBe("1");
+  expect(card?.querySelector('[role="status"]')).toBeNull();
 });

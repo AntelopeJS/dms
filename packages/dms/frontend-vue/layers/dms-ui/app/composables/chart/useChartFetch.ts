@@ -1,3 +1,4 @@
+import { isFunction } from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   getCurrentScope,
@@ -19,7 +20,6 @@ import {
 } from "../../build/utils/urlVariables";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
-import type { UseApiDataOptions } from "../../../../dms-core/app/composables/auth/useApiData";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -33,6 +33,7 @@ export interface UseChartFetchOptions<T> {
   fetchUrlMethod?: string;
   periodScope?: string;
   realtimeTopic?: string | string[];
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This source is only JSON-stringified for equality; inference has no value and Vue WatchSource's generic owner deliberately permits any result.
   watchSource?: () => unknown;
   staticData?: T | null | (() => T | null);
 }
@@ -54,11 +55,7 @@ export interface UseChartFetchReturn<T> {
 }
 
 const DEBOUNCE_FRAME_MS = 180;
-// How long a card waits for its period scope to register before it stops
-// claiming to load. The selector registers the scope from its own lazily
-// loaded chunk, which on a slow network lands seconds after the card mounts:
-// a short grace would drop the card to its empty state ("No data") while the
-// scope is merely late. Only a scope no selector ever registers reaches it.
+
 export const PENDING_SCOPE_TIMEOUT_MS = 10_000;
 
 /** What a card asks for: its URL with its period, and the state it watches. */
@@ -75,7 +72,9 @@ function isSameRequest(left: ChartRequest, right: ChartRequest): boolean {
 function readStaticData<T>(
   source: UseChartFetchOptions<T>["staticData"],
 ): T | null {
-  if (typeof source === "function") return (source as () => T | null)();
+  if (isFunction(source)) {
+    return source();
+  }
   return source ?? null;
 }
 
@@ -92,7 +91,7 @@ function useResolvedFetchUrl<T>(
   return computed(() =>
     resolveUrlVariables(fetchUrl, {
       routeParams: options.routeParams?.(),
-      routeQuery: route.query as Record<string, unknown>,
+      routeQuery: route.query,
     }),
   );
 }
@@ -160,7 +159,7 @@ function useScopeWait(isWaiting: () => boolean): ComputedRef<boolean> {
 }
 
 function useDebouncedRefresh(
-  refresh: () => Promise<unknown>,
+  refresh: () => Promise<void>,
   isPending: () => boolean,
 ): () => Promise<void> {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -185,8 +184,7 @@ function useDebouncedRefresh(
     waiting ??= new Promise<void>((resolve) => (resolveWaiting = resolve));
     timer = setTimeout(() => {
       timer = null;
-      // Cancellation ends one execution, not the refresh its callers await.
-      // Keep waiting while a replacement read is pending.
+
       void refresh().then(finishIfSettled, finishIfSettled);
     }, DEBOUNCE_FRAME_MS);
     return waiting;
@@ -220,22 +218,17 @@ export function useChartFetch<T>(
     };
   });
   const request = useScheduledRequest(target);
-  const loaded = useApiData<T>(() => request.current.value.url, {
-    method: options.fetchUrlMethod as UseApiDataOptions<T>["method"],
-    // A block never holds a navigation: it draws its skeleton meanwhile.
+  const loaded = useApiData<T | null>(() => request.current.value.url, {
+    method: options.fetchUrlMethod,
+
     lazy: true,
-    default: () => readStaticData(options.staticData) as T,
+    default: () => readStaticData(options.staticData),
     watch: [() => request.current.value.watched],
-    // Read again on its own triggers (realtime topic, page refresh, live
-    // gate): left out of the page's data refresh, which would read it twice.
+
     refreshOnPageRefresh: false,
   });
   const { data, status, error } = loaded;
-  // A 404 says what the block showed is gone (another tab deleted it, the
-  // URL now names another record): its last values must not stay on screen
-  // as if they still belonged to it. Any other failure of a read of the same
-  // request keeps them; a failure of a different (reactive) request shows
-  // none, as they belong to the record it replaced.
+
   watch(error, (failure) => {
     if (failure && readFetchNotFound(failure)) data.value = null;
   });
@@ -250,13 +243,9 @@ export function useChartFetch<T>(
       isWaitingForScope.value,
   );
   const refresh = async () => {
-    // A request that changed loads as it moves: joined, not started twice.
     await loaded.refresh(request.flush() ? { dedupe: "defer" } : undefined);
   };
-  // A realtime event or a page refresh (refreshPageBlocks) means the data
-  // behind unchanged inputs moved: read again once a burst holds still. The
-  // values on screen stay current until the new answer replaces them.
-  // `refreshPageBlocks()` waits for the read the burst ends with.
+
   useRefreshTriggers(
     options.realtimeTopic,
     useDebouncedRefresh(
@@ -264,17 +253,18 @@ export function useChartFetch<T>(
       () => status.value === "pending",
     ),
   );
-  return { data: data as Ref<T | null>, isLoading, error, refresh };
+  return { data, isLoading, error, refresh };
 }
 
 /** A block without `fetchUrl`: its `staticData`, followed as it changes. */
 function useStaticChartData<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue deeply unwraps static data, which need not remain T; retain the existing public ref contract and reactive behavior.
   const data = ref<T | null>(
     readStaticData(options.staticData),
   ) as Ref<T | null>;
-  if (typeof options.staticData === "function")
+  if (isFunction(options.staticData))
     watch(
       () => readStaticData(options.staticData),
       (next) => {

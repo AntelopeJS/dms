@@ -1,6 +1,3 @@
-// Who receives the workspace notifications, and when two of them are one.
-// Pure: the senders (workspace-notifications.ts) read the rows.
-
 /** Saves of one role by one person this close together are one editing session. */
 export const EDITING_SESSION_MS = 10 * 60 * 1000;
 

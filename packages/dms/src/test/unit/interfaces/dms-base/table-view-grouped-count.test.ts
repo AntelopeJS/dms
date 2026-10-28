@@ -1,5 +1,4 @@
 import { Controller } from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
 import { DataController } from "@antelopejs/interface-data-api";
 import { Sortable } from "@antelopejs/interface-data-api/metadata";
 import {
@@ -10,15 +9,8 @@ import {
 import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import {
-  Column,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
-import { validateGroupedOptions } from "@antelopejs/interface-dms/base/table-view/internal/validation";
+import { Column, TableView } from "@antelopejs/interface-dms/base/table-view";
 import { captureWarnings } from "../../../helpers/logging";
-
-// A counted group is read with `filter_<column>`, which the count route
-// ignores on a column without a filter: registration says so.
 
 @RegisterTable("grouped-count-rows", CORE_SCHEMA_NAME)
 class Row extends Table {
@@ -47,11 +39,10 @@ class GroupedCountAPI extends DataController(
 function warningsFor(groupByField: string, count: boolean): string[] {
   const captured = captureWarnings();
   try {
-    validateGroupedOptions(
-      "GroupedCountAPI",
-      GetMetadata(GroupedCountAPI, TableViewMeta),
-      { groupByField, count },
-    );
+    TableView(GroupedCountAPI, {
+      grouped: { groupByField, count },
+      realtime: false,
+    });
   } finally {
     captured.restore();
   }

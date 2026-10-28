@@ -46,7 +46,7 @@ async function loadPendingInvite(
 export const inviteGetRoute: DataControllerCallback = {
   ...TableViewRoutes.Get,
   func: async function (
-    this: unknown,
+    this: ThisParameterType<DataControllerCallback["func"]>,
     ctx: RequestContext,
     params: Parameters.GetParameters,
     ...rest: unknown[]
@@ -71,7 +71,8 @@ export const inviteGetRoute: DataControllerCallback = {
 export async function editPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: unknown,
+  body: Parameters<typeof CollectInviteExtensionEdits>[0],
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The row callback result is awaited and discarded, matching the data controller's unconstrained result contract.
   writeRow: () => Promise<unknown>,
 ): Promise<void> {
   return changeTenantMembers(tenantId, async () => ({
@@ -83,8 +84,8 @@ export async function editPendingInvite(
 async function editAdmittedPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: unknown,
-  writeRow: () => Promise<unknown>,
+  body: Parameters<typeof CollectInviteExtensionEdits>[0],
+  writeRow: Parameters<typeof editPendingInvite>[3],
 ): Promise<void> {
   const edits = CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
@@ -105,7 +106,7 @@ async function editAdmittedPendingInvite(
 const editInviteWithExtensions: DataControllerCallback = {
   ...DefaultRoutes.Edit,
   func: function (
-    this: unknown,
+    this: ThisParameterType<DataControllerCallback["func"]>,
     ctx: RequestContext,
     params: Parameters.EditParameters,
     body: Buffer,

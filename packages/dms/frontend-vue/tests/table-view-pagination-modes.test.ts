@@ -1,6 +1,6 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useAccumulatedPages } from "../layers/dms-ui/app/build/composables/table-view/useAccumulatedPages";
+import { useAccumulatedPages } from "../layers/dms-ui/app/entries/composables/table-view/useAccumulatedPages";
 
 beforeEach(() => {
   vi.stubGlobal("ref", ref);

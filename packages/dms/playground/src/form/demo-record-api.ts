@@ -16,7 +16,9 @@ const HTTP_BAD_REQUEST = 400;
 export const JSON_TYPE = "application/json";
 
 /** The record of a demo form, kept in memory: a restart puts it back. */
-export type DemoRecord = Record<string, unknown>;
+export type DemoRecord = Awaited<
+  ReturnType<ReturnType<typeof formSchema>["parseAsync"]>
+>;
 
 /** Who may read and write a demo record: the page showing its form. */
 export type DemoRecordGuard = Parameters<typeof AuthUserWithPermission>[0];

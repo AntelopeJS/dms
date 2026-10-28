@@ -1,165 +1,122 @@
+import { type ControllerClass } from "@antelopejs/interface-api";
 import {
-  type ControllerClass,
-  ControllerMeta,
-  RegisterRoute,
-  UnregisterRoute,
-} from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
-import { Logging } from "@antelopejs/interface-core/logging";
-import type { UploadConstraints } from "@antelopejs/interface-file-storage";
-import { AuthOwnerOnly, AuthUser } from "../auth";
-// Import from the defining leaf, not the dms-base barrel: the barrel pulls in
-// table-view, which imports the page interface back — entering through the
-// barrel would then call DefaultLayout() while the barrel is still
-// mid-evaluation.
-import { DefaultLayout } from "../base/layouts";
-import {
-  Action,
   type Component,
-  type ComponentFilterContext,
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import { ResolveComponentSlots } from "../internal/component-slots";
-import { RoleModel, TenantMemberModel } from "../db";
-import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
-import {
-  GetEffectiveUserPermissions,
-  HasPermission,
-  MarkModuleScopedPermission,
-  type Permission,
-  RegisterPermission,
-  UnregisterPermission,
-} from "../permissions";
-import { TenantScopedModel } from "../tenant-scoped-model";
-import { AssertTenantAccess } from "../tenant-access";
-import { gateAllowsSurface } from "../internal/tenant-access";
+import type { SlotOptions } from "../component-slots";
+import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
-import { SignUploadToken, internal as uploadInternal } from "../uploads";
-// Categories resolve controller classes through PageMetadata; neither module
-// dereferences the other during evaluation.
-// oxlint-disable import/no-cycle
-import { internal, isInsideModule } from "./categories";
-import {
-  resolveCategoryInfo,
-  resolveInheritedLayout,
-} from "./internal/categories";
-// oxlint-enable import/no-cycle
 import type { ComponentTreeNode } from "./component-tree";
-import { collectComponentTree } from "./internal/component-tree";
-import {
-  assembleLayoutComponents,
-  type PageExtensionEntry,
-} from "./internal/extension-assembly";
-import { collectExtensionErrors } from "./internal/extension-validation";
-import { PageDeclarationConflictError } from "./declaration-conflict";
-import { pageRoutePath } from "./page-routes";
-import { type ComponentNodeMap, filterComponents } from "./layout-filter";
-import {
-  filterLayoutHeaderActions,
-  withComponentHeaderButtons,
-} from "./internal/layout-filter";
-import { readPageRecord } from "./internal/page-record";
-import {
-  inheritedMemberAccess,
-  opensToMembers,
-} from "./internal/member-access";
-import { withTableViewPlacements } from "./internal/table-view-ids";
-import {
-  pageExtensions,
-  pageLayoutHandlers,
-  pageMetadataByFullId,
-  stampPageRegistration,
-  isPageExtensionRegistered,
-  permissionMap,
-  runAsPageExtensionOwner,
-  syncTargetExtensions,
-} from "./internal/registry";
+import type { PageExtensionEntry } from "./internal/extension-assembly";
+import type { ComponentNodeMap } from "./layout-filter";
 import {
   type MenuOptions,
   type PageExtensionComponent,
   type PageExtensionInfo,
   type PageInfo,
   type PageLayout,
-  type PageLayoutHandler,
   type PageLayoutRequest,
 } from "./types";
-import {
-  PageRegistration,
-  type RouteCallbackContext,
-} from "./internal/page-registration";
-import {
-  isPageInsideModule,
-  logModuleRouteGated,
-  RequestQueryProperty,
-  RequestRouteParametersProperty,
-  RequestTenantIdProperty,
-} from "./internal/metadata-helpers";
-
-const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
-
-interface UploadFieldNode {
-  type: string;
-  disabled?: boolean;
-  component: { options?: Record<string, unknown> };
-}
-
-function isNativeUploadField(value: unknown): value is UploadFieldNode {
-  if (!value || typeof value !== "object") return false;
-  const node = value as Record<string, unknown>;
-  return (
-    typeof node.type === "string" &&
-    NATIVE_UPLOAD_FIELD_TYPES.has(node.type) &&
-    !!node.component &&
-    typeof node.component === "object"
-  );
-}
-
-function readUploadConstraints(
-  options: Record<string, unknown>,
-): UploadConstraints | undefined {
-  const declared = options.constraints as UploadConstraints | undefined;
-  if (!declared || typeof declared !== "object") return undefined;
-  const constraints: UploadConstraints = {};
-  if (typeof declared.maxSize === "number")
-    constraints.maxSize = declared.maxSize;
-  if (Array.isArray(declared.allowedMimetypes))
-    constraints.allowedMimetypes = declared.allowedMimetypes.filter(
-      (mimetype) => typeof mimetype === "string",
-    );
-  return constraints;
-}
-
-function resolveWritePermission(
-  componentName: string,
-  component: Component,
-  path: readonly string[],
-): string | undefined {
-  if (componentName !== "dms-table-view")
-    return component.getAction("submit")?.permissionId;
-  const action = { new: "add", edit: "edit" };
-  const mode = Object.keys(action).find((key) => path.includes(key));
-  if (mode)
-    return (
-      component.getAction(action[mode as keyof typeof action])?.permissionId ??
-      "__native_upload_disabled__"
-    );
-  return "__native_upload_disabled__";
-}
-
-// Only a page that declared components has hidden them all: one declaring
-// none has nothing to explain.
-function hiddenComponentsFlag(
-  declared: Record<string, ComponentInfoSerialized>,
-  served: Record<string, ComponentInfoSerialized>,
-): Pick<PageLayout, "allComponentsHidden"> {
-  const hidesAll =
-    Object.keys(declared).length > 0 && Object.keys(served).length === 0;
-  return hidesAll ? { allComponentsHidden: true } : {};
-}
+import type { UploadFieldNode } from "./internal/metadata-uploads";
+import { SignUploadToken } from "../uploads";
+// oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
+import * as metadata from "./internal/metadata-lifecycle";
 
 export class PageMetadata {
   public static key = Symbol();
+
+  static {
+    metadata.installMetadataOwner((page) => ({
+      get registration() {
+        return page.registration;
+      },
+      get componentMap() {
+        return page.componentMap;
+      },
+      get componentTrees() {
+        return page.componentTrees;
+      },
+      get nativeUploadFields() {
+        return page.nativeUploadFields;
+      },
+      get notifiedComponents() {
+        return page.notifiedComponents;
+      },
+      get extensionEntries() {
+        return page.extensionEntries;
+      },
+      get layoutRef() {
+        return page.layoutRef;
+      },
+      get ownComponents() {
+        return page.ownComponents;
+      },
+      set ownComponents(value) {
+        page.ownComponents = value;
+      },
+      get detached() {
+        return page.detached;
+      },
+      set detached(value) {
+        page.detached = value;
+      },
+      get moduleScoped() {
+        return page.moduleScoped;
+      },
+      set moduleScoped(value) {
+        page.moduleScoped = value;
+      },
+      get skipComponentPermissions() {
+        return page.skipComponentPermissions;
+      },
+      set skipComponentPermissions(value) {
+        page.skipComponentPermissions = value;
+      },
+      get pagePermissionId() {
+        return page.pagePermissionId;
+      },
+      set pagePermissionId(value) {
+        page.pagePermissionId = value;
+      },
+      get registeredPagePermission() {
+        return page.registeredPagePermission;
+      },
+      set registeredPagePermission(value) {
+        page.registeredPagePermission = value;
+      },
+      registerPermission: (info) => page.registerPagePermission(info),
+      ownsPermissions: () => page.ownsPagePermissions(),
+      ownProperties: () => page.ownRouteProperties(),
+      auth: (info) => page.applyAuthDecorators(info),
+      route: (info) => page.registerLayoutRoute(info),
+      permissionId: (key) => page.componentPermissionId(key),
+      unregister: (component, key) => page.unregisterComponent(component, key),
+      register: (node) => page.registerComponentNode(node),
+      unregisterNode: (node) => page.unregisterComponentNode(node),
+      registersPermissions: () => page.registersComponentPermissions(),
+      actions: (component) => page.actionPermissions(component),
+      actionsForNode: (node) => page.actionPermissions(node.component),
+      notify: (node) => page.notifyPageCreated(node),
+      bind: (serialized, key) =>
+        page.bindNativeUploadFields(
+          serialized,
+          page.componentPermissionId(key),
+        ),
+      takenKeys: () => page.takenComponentKeys(),
+      path: (contribution) => page.extensionComponentPath(contribution),
+      prepareExtension: (contribution, path) =>
+        page.prepareComponent(contribution.component, path),
+      unregisterExtension: (contribution) =>
+        page.unregisterComponent(
+          contribution.component,
+          page.extensionComponentPath(contribution),
+        ),
+      drop: (info) => page.dropExtension(info),
+      rebuild: () => page.rebuildLayoutComponents(),
+      releaseGate: () => page.releaseOwnComponentsGate(),
+    }));
+  }
 
   public pageInfo?: PageInfo;
   public layout?: ComponentInfo;
@@ -181,13 +138,8 @@ export class PageMetadata {
 
   /** Exact live positions of a component, including mounts on multiple pages. */
   public ComponentPermissionIds(component: Component): string[] {
-    return [...this.componentMap.values()]
-      .filter((node) => node.component === component && node.access === "own")
-      .map((node) => node.permissionId);
+    return metadata.componentPermissionIds(this, component);
   }
-  // What each declared component actually claimed, so the teardown gives back
-  // exactly that — the tree is read from the component itself, which a hot
-  // reload may have rebuilt by then.
   private componentTrees = new Map<string, ComponentTreeNode[]>();
   private notifiedComponents = new Set<Component>();
   private extensionEntries = new Map<PageExtensionInfo, PageExtensionEntry[]>();
@@ -204,7 +156,7 @@ export class PageMetadata {
   private ownComponentsGate: Promise<void> = Promise.resolve();
   private releaseOwnComponentsGate: () => void = () => undefined;
   private detached = false;
-  private registration = new PageRegistration();
+  private registration = new metadata.PageRegistration();
   private pagePermissionId = "";
   private registeredPagePermission = false;
   private skipComponentPermissions = false;
@@ -213,20 +165,7 @@ export class PageMetadata {
   constructor(public readonly target: ControllerClass) {}
 
   inherit(parent: PageMetadata) {
-    const merge = <T extends object>(src?: T, dst?: T): T | undefined => {
-      if (src) {
-        if (dst) {
-          return { ...dst, ...src };
-        } else {
-          return { ...src };
-        }
-      } else {
-        return dst;
-      }
-    };
-    this.pageInfo = merge(parent.pageInfo, this.pageInfo);
-    this.layout = merge(parent.layout, this.layout);
-    this.components = merge(parent.components, this.components) ?? {};
+    metadata.inherit(this, parent);
   }
 
   public SetComponent(id: string, component: Component) {
@@ -239,37 +178,7 @@ export class PageMetadata {
     menuOptions: MenuOptions,
     pageLayout?: ComponentInfo,
   ) {
-    const { parent, ...menu } = menuOptions;
-    const resolvedCategory = resolveCategoryInfo(menu.category);
-    const parentFullId = resolvedCategory?.fullId ?? "";
-    const fullId = parentFullId ? `${parentFullId}.${id}` : id;
-
-    const location = pageRoutePath(fullSlug, "/pagelayout");
-
-    const pageInfo: PageInfo = {
-      ...menu,
-      category: resolvedCategory,
-      id,
-      fullId,
-      fullSlug,
-      layoutUrl: location,
-      parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
-      hidden: menu.hidden || resolvedCategory?.hidden,
-      publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
-      authOnly: menu.authOnly || resolvedCategory?.authOnly,
-      memberAccess:
-        menu.memberAccess ||
-        inheritedMemberAccess(resolvedCategory?.memberAccess),
-      bypassTenantAccessGate:
-        menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
-    };
-
-    this.layout =
-      pageLayout ??
-      menu.layout ??
-      resolveInheritedLayout(resolvedCategory) ??
-      DefaultLayout();
-    this.pageInfo = pageInfo;
+    metadata.setPageInfo(this, id, fullSlug, menuOptions, pageLayout);
   }
 
   public async Register() {
@@ -278,7 +187,7 @@ export class PageMetadata {
       throw new Error("PageMetadata not properly initialized");
     }
 
-    this.registration = new PageRegistration();
+    this.registration = new metadata.PageRegistration();
     this.layoutRef = { layout: this.layout, components: {} };
     this.ownComponents = {};
     this.componentMap = new Map();
@@ -286,19 +195,11 @@ export class PageMetadata {
     this.notifiedComponents = new Set();
     this.extensionEntries = new Map();
     this.detached = false;
-    // Shut before the page is published: from that point an extension can find
-    // it and try to graft onto it. Everything that follows runs inside the try,
-    // so nothing failing on the way can leave the gate shut — a page whose gate
-    // stays shut holds every sync on it, teardowns included.
     this.closeOwnComponentsGate();
 
     try {
       this.publish(pageInfo);
 
-      // Every permission is registered before the first await, so
-      // GetResponsibleModule() still sees the registering module's frame:
-      // resolved from an async continuation it returns nothing, and the
-      // core's own sweep then has no module to attribute them to.
       const prepared = Object.entries(this.components).map(([key, component]) =>
         this.prepareComponent(component, key),
       );
@@ -309,9 +210,6 @@ export class PageMetadata {
       this.ownComponentsReady = true;
       this.rebuildLayoutComponents();
     } catch (error) {
-      // A half-registered page is worse than none: it sits in the registry,
-      // routed, with no layout to serve. Detached with it, so a sync held back
-      // by the gate does not graft extensions onto the wreck once released.
       this.detached = true;
       this.registration.dispose();
       throw error;
@@ -319,8 +217,8 @@ export class PageMetadata {
       this.releaseOwnComponentsGate();
     }
 
-    if (pageExtensions.has(pageInfo.fullId)) {
-      await syncTargetExtensions(pageInfo.fullId);
+    if (metadata.pageExtensions.has(pageInfo.fullId)) {
+      await metadata.syncTargetExtensions(pageInfo.fullId);
     }
   }
 
@@ -335,43 +233,8 @@ export class PageMetadata {
    * flight then wrote the metadata of a page that no longer serves — which
    * later extensions would graft themselves onto.
    */
-  private publish(pageInfo: PageInfo): void {
-    const previous = pageMetadataByFullId.get(pageInfo.fullId);
-    pageMetadataByFullId.set(pageInfo.fullId, this);
-    this.registration.track(() => {
-      if (pageMetadataByFullId.get(pageInfo.fullId) === this) {
-        pageMetadataByFullId.delete(pageInfo.fullId);
-      }
-    });
-    if (previous && previous !== this) {
-      previous.Dispose();
-    }
-
-    stampPageRegistration(pageInfo);
-    internal.RegisterPage.register(pageInfo);
-    this.registration.track(() => {
-      internal.RegisterPage.unregister(pageInfo);
-    });
-
-    this.moduleScoped = isInsideModule(pageInfo);
-    this.skipComponentPermissions =
-      pageInfo.noComponentPermissions === true || pageInfo.authOnly === true;
-    this.pagePermissionId = this.registerPagePermission(pageInfo);
-    permissionMap.set(this.target, this.pagePermissionId);
-    this.registration.track(() => {
-      if (!this.ownsPagePermissions()) return;
-      permissionMap.delete(this.target);
-      if (this.registeredPagePermission && this.pagePermissionId) {
-        UnregisterPermission(this.pagePermissionId);
-        this.registeredPagePermission = false;
-      }
-    });
-
-    this.ownRouteProperties();
-    this.applyAuthDecorators(pageInfo);
-    RequestQueryProperty()(this.target.prototype, "pageQuery");
-    RequestRouteParametersProperty()(this.target.prototype, "pageParams");
-    this.registerLayoutRoute(pageInfo);
+  private publish(pageInfo: PageInfo) {
+    metadata.publish(this, pageInfo);
   }
 
   /**
@@ -382,20 +245,7 @@ export class PageMetadata {
    * @internal
    */
   public Dispose(): void {
-    this.detached = true;
-    this.releaseOwnComponentsGate();
-    // Extensions belong to other modules: they survive this page and re-apply
-    // if it registers again, but nothing of theirs may outlive it in the
-    // permission tree. Synchronous, unlike registration, so a hot reload that
-    // re-registers immediately cannot have this land on the replacement.
-    // Snapshot: dropExtension deletes from the map being iterated.
-    // oxlint-disable-next-line unicorn/no-useless-spread
-    for (const info of [...this.extensionEntries.keys()]) {
-      this.dropExtension(info);
-    }
-    this.rebuildLayoutComponents();
-    this.ownComponents = {};
-    this.registration.dispose();
+    metadata.dispose(this);
   }
 
   /**
@@ -413,8 +263,6 @@ export class PageMetadata {
     const run = this.extensionSyncQueue
       .then(() => this.awaitOwnComponents())
       .then(() => this.applyRegisteredExtensions());
-    // The queue itself must never stay rejected, or a single failed sync would
-    // silently freeze every later registration and teardown on this page.
     this.extensionSyncQueue = run.catch(() => undefined);
     return run;
   }
@@ -438,14 +286,11 @@ export class PageMetadata {
    * @internal Read by the menu, which leaves such a page out.
    */
   public async HidesEveryComponent(permissions: Set<string>): Promise<boolean> {
-    if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return false;
-    }
-    const keys = Object.keys(this.layoutRef?.components ?? {});
-    if (keys.length === 0) return false;
+    const keys = metadata.permissionKeys(this);
+    if (!keys) return false;
     for (const key of keys) {
       const permissionId = this.componentPermissionId(key);
-      if (await HasPermission(permissions, permissionId)) return false;
+      if (await metadata.HasPermission(permissions, permissionId)) return false;
     }
     return true;
   }
@@ -457,7 +302,7 @@ export class PageMetadata {
    * old one would resolve its anchors against components the new one has yet
    * to write.
    */
-  private async awaitOwnComponents(): Promise<void> {
+  private async awaitOwnComponents() {
     let gate = this.ownComponentsGate;
     await gate;
     while (gate !== this.ownComponentsGate) {
@@ -466,29 +311,19 @@ export class PageMetadata {
     }
   }
 
-  private closeOwnComponentsGate(): void {
+  private closeOwnComponentsGate() {
     this.ownComponentsReady = false;
-    // Release the gate being replaced before dropping the only handle on its
-    // resolver: whoever waits on it would otherwise wait on a promise nobody
-    // can settle any more. `awaitOwnComponents` catches them up with this one.
     this.releaseOwnComponentsGate();
     this.ownComponentsGate = new Promise<void>((resolve) => {
       this.releaseOwnComponentsGate = resolve;
     });
   }
 
-  private async applyRegisteredExtensions(): Promise<void> {
+  private async applyRegisteredExtensions() {
     const infos = this.detached
       ? []
-      : (pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
-    const desired = new Set(infos);
-    // Snapshot: dropExtension deletes from the map being iterated.
-    // oxlint-disable-next-line unicorn/no-useless-spread
-    for (const info of [...this.extensionEntries.keys()]) {
-      if (!desired.has(info)) {
-        this.dropExtension(info);
-      }
-    }
+      : (metadata.pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
+    metadata.removeStaleExtensions(this, infos);
     for (const info of infos) {
       if (!this.extensionEntries.has(info)) {
         await this.addExtension(info);
@@ -497,71 +332,18 @@ export class PageMetadata {
     this.rebuildLayoutComponents();
   }
 
-  private registerPagePermission(pageInfo: PageInfo): string {
-    const fromAction =
-      pageInfo.permission instanceof Action
-        ? pageInfo.permission.toPermission()
-        : undefined;
-
-    const pagePermission = fromAction ?? {
-      id: pageInfo.fullId,
-      title: pageInfo.displayName,
-      icon: pageInfo.icon,
-      defaultGranted:
-        pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
-      ...(pageInfo.permission as Partial<Permission> | undefined),
-    };
-
-    this.registeredPagePermission = false;
-    if (this.moduleScoped) {
-      MarkModuleScopedPermission(pagePermission.id);
-    } else if (!fromAction && pageInfo.authOnly !== true) {
-      RegisterPermission(pagePermission.id, pagePermission);
-      this.registeredPagePermission = true;
-    }
-
-    return pagePermission.id;
+  private registerPagePermission(pageInfo: PageInfo) {
+    return metadata.registerPermission(this, pageInfo);
   }
 
-  private registerLayoutRoute(pageInfo: PageInfo): void {
-    const apimeta = GetMetadata(this.target, ControllerMeta);
-    const resolvePageLayout = (request: PageLayoutRequest) =>
-      this.resolvePageLayout(request);
-    // The by-slug entry carries no guard of its own, so it asks the resolver
-    // to assert the gate; the route below is already guarded.
-    const handler: PageLayoutHandler = (request) =>
-      this.resolvePageLayout(request, { enforceTenantAccessGate: true });
-    pageLayoutHandlers.set(pageInfo.fullSlug, handler);
-
-    const routeId = RegisterRoute({
-      location: pageInfo.layoutUrl,
-      callback: async function (this: RouteCallbackContext) {
-        return resolvePageLayout({
-          user: this.user,
-          memberModel: this.memberModel,
-          roleModel: this.roleModel,
-          tenantId: this.tenantId,
-          query: this.pageQuery,
-          params: this.pageParams,
-        });
-      },
-      method: "GET",
-      mode: "handler",
-      parameters: [],
-      properties: apimeta.computed_props,
-      proto: this.target.prototype,
-    });
-
-    this.registration.track(() => {
-      if (pageLayoutHandlers.get(pageInfo.fullSlug) === handler) {
-        pageLayoutHandlers.delete(pageInfo.fullSlug);
-      }
-      // …and the page's own HTTP route. The by-slug entry used to be the only
-      // half taken down, so an unregistered page kept answering on its direct
-      // route for as long as its module stayed loaded — the very thing the
-      // by-slug cleanup was added to prevent.
-      UnregisterRoute(routeId);
-    });
+  private registerLayoutRoute(pageInfo: PageInfo) {
+    metadata.registerLayoutRoute(
+      () => this.target,
+      pageInfo,
+      () => this.registration,
+      (request) => this.resolvePageLayout(request),
+      (request, options) => this.resolvePageLayout(request, options),
+    );
   }
 
   private async resolvePageLayout(
@@ -574,127 +356,69 @@ export class PageMetadata {
       params,
       resolverContext,
     }: PageLayoutRequest,
-    // Only for the by-slug entry, which has no guard of its own.
     { enforceTenantAccessGate = false } = {},
-  ): Promise<PageLayout> {
-    const layout = this.layoutRef;
-    if (!layout) {
-      throw new Error("PageMetadata not properly initialized");
+  ) {
+    const layout = metadata.registeredLayout(this);
+    if (metadata.tenantGateRequired(this, enforceTenantAccessGate, user)) {
+      await metadata.AssertTenantAccess(user._id, tenantId);
     }
-
-    // Only for the by-slug entry: the page's own route already asserts the
-    // gate through its auth decorators, and asserting again would cost every
-    // page load a second sweep of user-supplied gate callbacks. `/dms/pagelayout`
-    // has no such guard — it asks for a session and nothing else — so without
-    // this the page-level `bypassTenantAccessGate` flag would be advisory: a
-    // member of a denied tenant could read the layout, upload tokens included,
-    // of every page that did not opt out.
-    //
-    // Which surfaces survive a denial is `gateAllowsSurface`'s call, shared
-    // with the menu and realtime page access so the three cannot drift.
-    if (
-      enforceTenantAccessGate &&
-      user &&
-      this.pageInfo &&
-      !gateAllowsSurface(this.pageInfo, true)
-    ) {
-      await AssertTenantAccess(user._id, tenantId);
-    }
-
-    // Slots are resolved per request rather than baked into the cached layout:
-    // a component that opens one is answering contributors that may register at
-    // any time, long after this page did. Resolved *before* the permission
-    // filter, so contributed content goes through every filter the page's own
-    // content does — a contributed watch guarded by `requirePermission`
-    // included.
-    const components = await ResolveComponentSlots(layout.components);
-
-    // Upload tokens are already baked into the cached layout: each form
-    // stamped its own fields when it serialized, at registration
-    // (`SignUploadToken` in interfaces/dms/uploads).
-    const loadPermissions = async (): Promise<Set<string>> => {
-      if (!user) return new Set<string>();
-      const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
-      return GetEffectiveUserPermissions(
-        user,
-        tenantId,
-        roleIds,
-        roleModel,
-        resolverContext,
-      );
-    };
-
-    // Header actions declaring a permission are filtered on every page, even
-    // one skipping component permissions: they name their own requirement.
-    // The page's record is read first, so every availability of the page
-    // reads it with the URL.
-    const context: ComponentFilterContext = { tenantId, user, query, params };
-    const read = await readPageRecord(layout.layout, context);
+    const components = await metadata.ResolveComponentSlots(layout.components);
+    const { loadPermissions, context } = metadata.prepareLayoutContext({
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      query,
+      params,
+      resolverContext,
+    });
+    const read = await metadata.readPageRecord(layout.layout, context);
     context.record = read?.record;
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return {
-        ...layout,
-        layout: withComponentHeaderButtons(
-          await filterLayoutHeaderActions(
-            layout.layout,
-            loadPermissions,
-            context,
-            this.pagePermissionId,
-            read?.status,
-          ),
-          components,
+      const respond = metadata.prepareLayoutResponse(layout, components);
+      return respond(
+        await metadata.filterPageHeader(
+          this,
+          layout,
+          loadPermissions,
+          context,
+          read,
         ),
-        components: withTableViewPlacements(components),
-      };
+      );
     }
-
     const permissions = await loadPermissions();
-    const servedComponents = await filterComponents(
+    const served = await metadata.filterPageComponents(
+      this,
       components,
-      this.pagePermissionId,
       permissions,
-      this.componentMap,
       context,
     );
-
-    return {
-      ...layout,
-      // A component's header buttons are added once it was filtered: the
-      // ones the caller may not press are gone already.
-      layout: withComponentHeaderButtons(
-        await filterLayoutHeaderActions(
-          layout.layout,
-          async () => permissions,
-          context,
-          this.pagePermissionId,
-          read?.status,
-        ),
-        servedComponents,
+    const respond = metadata.prepareFilteredLayoutResponse(
+      layout,
+      components,
+      served,
+    );
+    return respond(
+      await metadata.filterPageHeader(
+        this,
+        layout,
+        async () => permissions,
+        context,
+        read,
       ),
-      components: withTableViewPlacements(servedComponents),
-      ...hiddenComponentsFlag(components, servedComponents),
-    };
+    );
   }
 
-  // Component and action ids descend from the page permission id, so a module
-  // page's mark already covers them — they only need to stay out of the
-  // grantable permission tree.
-  private registersComponentPermissions(): boolean {
+  private registersComponentPermissions() {
     return !this.skipComponentPermissions && !this.moduleScoped;
   }
 
-  private componentPermissionId(componentKey: string): string {
-    return `${this.pagePermissionId}.${componentKey}`;
+  private componentPermissionId(key: string) {
+    return `${this.pagePermissionId}.${key}`;
   }
 
-  private actionPermissions(component: Component): Permission[] {
-    const grantsMembers = opensToMembers(this.pageInfo?.memberAccess);
-    return Object.values(component.actions)
-      .map((action) => action.toPermission())
-      .filter((permission): permission is Permission => !!permission)
-      .map((permission) =>
-        grantsMembers ? { ...permission, defaultGranted: true } : permission,
-      );
+  private actionPermissions(component: Component) {
+    return metadata.actionPermissions(component, this.pageInfo);
   }
 
   /**
@@ -711,162 +435,62 @@ export class PageMetadata {
    * of its position: they take part in per-request filtering under that id, so
    * a child that never claimed it would have its `onFilter` skipped.
    */
-  private prepareComponent(
-    component: Component,
-    componentKey: string,
-  ): () => Promise<{ key: string; serialized: ComponentInfoSerialized }> {
-    const nodes = collectComponentTree(
-      component,
-      this.componentPermissionId(componentKey),
-    );
-    this.componentTrees.set(componentKey, nodes);
-
-    // Tracked before anything is claimed: `onPageCreated` is consumer code and
-    // can throw between the permission being registered and the end of this
-    // method, and the rollback can only undo what it was told about.
-    this.registration.track(() => {
-      this.unregisterComponent(component, componentKey);
-    });
-
-    for (const node of nodes) {
-      this.registerComponentNode(node);
-    }
-
-    return async () => {
-      const serialized = await component.serialize();
-      if (this.detached || this.componentTrees.get(componentKey) !== nodes)
-        return { key: componentKey, serialized };
-      await this.bindNativeUploadFields(
-        serialized,
-        this.componentPermissionId(componentKey),
-      );
-      return { key: componentKey, serialized };
-    };
+  private prepareComponent(component: Component, key: string) {
+    return metadata.prepareComponent(this, component, key);
   }
 
   private async bindNativeUploadFields(
     serialized: ComponentInfoSerialized,
-    componentId: string,
-  ): Promise<void> {
-    if (this.detached || this.componentMap.get(componentId)?.access !== "own")
-      return;
-    if (serialized.options)
-      serialized.options = JSON.parse(JSON.stringify(serialized.options));
+    id: string,
+  ) {
+    if (!metadata.prepareUploadOptions(this, serialized, id)) return;
     await this.bindUploadOptions(
       serialized.options,
       serialized.componentName,
-      componentId,
+      id,
       [],
     );
     for (const child of serialized.children ?? []) {
-      await this.bindNativeUploadFields(
-        child.component,
-        `${componentId}.${child.id}`,
-      );
+      await this.bindNativeUploadFields(child.component, `${id}.${child.id}`);
     }
   }
 
   private async bindUploadOptions(
-    value: unknown,
-    componentName: string,
-    componentId: string,
+    value: SlotOptions[string],
+    name: string,
+    id: string,
     path: string[],
-  ): Promise<void> {
+  ) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
     if (!value || typeof value !== "object") return;
-    if (isNativeUploadField(value)) {
-      await this.registerNativeUploadField(
-        value,
-        componentName,
-        componentId,
-        path,
-      );
+    if (metadata.isNativeUploadField(value)) {
+      await this.registerNativeUploadField(value, name, id, path);
     }
     for (const [key, child] of Object.entries(value)) {
-      await this.bindUploadOptions(child, componentName, componentId, [
-        ...path,
-        key,
-      ]);
+      await this.bindUploadOptions(child, name, id, [...path, key]);
     }
   }
 
   private async registerNativeUploadField(
     node: UploadFieldNode,
-    componentName: string,
-    componentId: string,
+    name: string,
+    id: string,
     path: string[],
-  ): Promise<void> {
-    const mount = this.componentMap.get(componentId);
-    if (this.detached || mount?.access !== "own") return;
-    const options = node.component.options ?? {};
-    node.component.options = options;
-    const registration: NativeUploadFieldRegistration = {
-      pageId: this.pageInfo?.fullId ?? "",
-      componentId,
-      storage:
-        typeof options.storage === "string" ? options.storage : undefined,
-      path: typeof options.path === "string" ? options.path : undefined,
-      field:
-        typeof options.attachmentField === "string"
-          ? options.attachmentField
-          : path.join("/"),
-      visibility: options.visibility === "public" ? "public" : "private",
-      writePermission: node.disabled
-        ? "__native_upload_disabled__"
-        : resolveWritePermission(componentName, mount.component, path),
-      readPermissions:
-        this.registersComponentPermissions() && !this.pageInfo?.publicAccess
-          ? componentId
-              .slice(this.pagePermissionId.length + 1)
-              .split(".")
-              .map(
-                (_, index, parts) =>
-                  `${this.pagePermissionId}.${parts.slice(0, index + 1).join(".")}`,
-              )
-          : [],
-      constraints: readUploadConstraints(options),
-    };
-    options.uploadToken = await SignUploadToken(registration);
-    if (this.detached || this.componentMap.get(componentId) !== mount) return;
-    uploadInternal.RegisterNativeUploadField.register(registration);
-    const fields = this.nativeUploadFields.get(componentId) ?? [];
-    fields.push(registration);
-    this.nativeUploadFields.set(componentId, fields);
+  ) {
+    const phase = metadata.prepareUploadRegistration(
+      this,
+      node,
+      name,
+      id,
+      path,
+    );
+    if (!phase) return;
+    phase.options.uploadToken = await SignUploadToken(phase.registration);
+    metadata.finishUploadRegistration(this, phase);
   }
 
-  private registerComponentNode(node: ComponentTreeNode): void {
-    const { component, permissionId } = node;
-    this.componentMap.set(permissionId, node);
-
-    // A withheld position claims nothing: its id belongs to an action, and it
-    // is in the map only so the filter can refuse it. Its hook stays unrun —
-    // a component that is never served must not register side effects.
-    if (node.access === "withheld") return;
-
-    // First position wins, and the walk is parent-first: a component mounted
-    // both by the page and inside another keeps the id it is declared under.
-    // Overwriting would make `GetPermissionId` — and every guard built on it —
-    // depend on walk order.
-    if (node.access === "own" && !permissionMap.has(component)) {
-      permissionMap.set(component, permissionId);
-    }
-
-    if (this.registersComponentPermissions() && node.access === "own") {
-      RegisterPermission(permissionId, {
-        id: permissionId,
-        title: component.metadata.name,
-        icon: component.metadata.icon,
-        description: component.metadata.description,
-        defaultGranted: opensToMembers(this.pageInfo?.memberAccess),
-      });
-    }
-
-    this.notifyPageCreated(node);
-
-    if (this.registersComponentPermissions()) {
-      for (const actionPermission of this.actionPermissions(component)) {
-        RegisterPermission(actionPermission.id, actionPermission);
-      }
-    }
+  private registerComponentNode(node: ComponentTreeNode) {
+    metadata.registerComponentNode(this, node);
   }
 
   /**
@@ -881,26 +505,8 @@ export class PageMetadata {
    * screen that no longer serves. The page's own components keep aborting it —
    * a half-registered page is worse than none.
    */
-  private notifyPageCreated(node: ComponentTreeNode): void {
-    if (!node.component.onPageCreated) return;
-    if (this.notifiedComponents.has(node.component)) return;
-    this.notifiedComponents.add(node.component);
-
-    if (node.depth === 0) {
-      node.component.onPageCreated(this);
-      return;
-    }
-    try {
-      node.component.onPageCreated(this);
-    } catch (error) {
-      // …except what two components both claim (a form route, the writing
-      // TableView of a controller): the page cannot honour both declarations,
-      // and carrying on would silently serve one of them in place of the other.
-      if (error instanceof PageDeclarationConflictError) throw error;
-      Logging.Error(
-        `[dms] component "${node.permissionId}" failed its onCreated hook on page "${this.pageInfo?.fullId}": ${String(error)}`,
-      );
-    }
+  private notifyPageCreated(node: ComponentTreeNode) {
+    metadata.notifyPageCreated(this, node);
   }
 
   /**
@@ -909,109 +515,49 @@ export class PageMetadata {
    * page under a new class) shares them with the live one. Only the current
    * owner — or nobody, when the page is gone for good — may take them down.
    */
-  private ownsPagePermissions(): boolean {
-    const owner = pageMetadataByFullId.get(this.pageInfo?.fullId ?? "");
-    return owner === undefined || owner === this;
+  private ownsPagePermissions() {
+    return metadata.ownsPagePermissions(this);
   }
 
-  // Nothing was prepared under this key — a teardown replayed after the
-  // extension that owned it was already dropped, or a walk that threw before
-  // claiming anything. Giving back what was never taken would unregister a
-  // permission another position still holds.
-  private unregisterComponent(_component: Component, componentKey: string) {
-    const nodes = this.componentTrees.get(componentKey);
-    if (!nodes) return;
-    this.componentTrees.delete(componentKey);
-
-    for (const node of nodes) {
-      for (const field of this.nativeUploadFields.get(node.permissionId) ??
-        []) {
-        uploadInternal.RegisterNativeUploadField.unregister(field);
-      }
-      this.nativeUploadFields.delete(node.permissionId);
-      this.componentMap.delete(node.permissionId);
-      this.notifiedComponents.delete(node.component);
-    }
-
-    if (!this.ownsPagePermissions()) return;
-
-    for (const node of nodes) {
-      this.unregisterComponentNode(node);
-    }
+  private unregisterComponent(_component: Component, key: string) {
+    metadata.unregisterComponent(this, key);
   }
 
-  // Action ids are resolved through `permissionMap`, so the node's own entry
-  // only goes once its actions have been given back — and only when the entry
-  // is this position's, since another one may have claimed the instance first.
-  private unregisterComponentNode(node: ComponentTreeNode): void {
-    if (node.access === "withheld") return;
-    if (this.registersComponentPermissions()) {
-      for (const actionPermission of this.actionPermissions(node.component)) {
-        UnregisterPermission(actionPermission.id);
-      }
-    }
-    if (node.access !== "own") return;
-    if (this.registersComponentPermissions()) {
-      UnregisterPermission(node.permissionId);
-    }
-    if (permissionMap.get(node.component) === node.permissionId) {
-      permissionMap.delete(node.component);
-    }
+  private unregisterComponentNode(node: ComponentTreeNode) {
+    metadata.unregisterComponentNode(this, node);
   }
 
-  // A component is tracked before it is processed, so a detach landing mid-way
-  // still finds it. One that fails to register is taken back down and left out
-  // of the layout, while the rest of its extension stands: the extension is
-  // recorded either way, so a later sync never replays an `onPageCreated` side
-  // effect that already ran.
-  private async addExtension(info: PageExtensionInfo): Promise<void> {
-    const errors = collectExtensionErrors(info, {
-      own: this.ownComponents,
-      taken: this.takenComponentKeys(),
-    });
-    const entries: PageExtensionEntry[] = [];
-    // Recorded even when it contributes nothing: an extension the page refused
-    // must not be re-examined — and re-reported — on every later sync.
-    this.extensionEntries.set(info, entries);
-    if (errors.length > 0) {
-      for (const error of errors) {
-        Logging.Error(`[dms] ${error}`);
-      }
-      return;
-    }
-
+  private async addExtension(info: PageExtensionInfo) {
+    const entries = metadata.prepareExtensionEntries(this, info);
+    if (!entries) return;
     for (const [declarationIndex, contribution] of info.components.entries()) {
-      // Revoked mid-way: its module is going away, and running in that
-      // module's context now would claim a generation that is being released.
-      if (!isPageExtensionRegistered(info)) break;
+      if (!metadata.isPageExtensionRegistered(info)) break;
       entries.push({
         ...contribution,
         extensionName: info.extensionName,
         declarationIndex,
       });
       try {
-        const componentPath = this.extensionComponentPath(contribution);
-        // Both halves, as the extending module: the claim registers
-        // permissions and runs `onCreated`, the serialization binds native
-        // upload fields.
-        const prepare = runAsPageExtensionOwner(info, () =>
-          this.prepareComponent(contribution.component, componentPath),
+        const prepare = metadata.prepareExtensionComponent(
+          this,
+          info,
+          contribution,
         );
-        const { serialized } = await runAsPageExtensionOwner(info, prepare);
+        const { serialized } = await metadata.runAsPageExtensionOwner(
+          info,
+          prepare,
+        );
         entries[entries.length - 1].serialized = serialized;
       } catch (error) {
-        entries.pop();
-        this.unregisterComponent(
-          contribution.component,
-          this.extensionComponentPath(contribution),
-        );
-        if (error instanceof PageDeclarationConflictError) throw error;
-        Logging.Error(
-          `[dms] page extension "${info.extensionName}" could not register component "${contribution.key}" on page "${info.targetFullId}": ${String(error)}`,
+        metadata.reportExtensionFailure(
+          this,
+          entries,
+          info,
+          contribution,
+          error,
         );
       }
     }
-
     if (this.detached) {
       this.dropExtension(info);
     }
@@ -1022,41 +568,20 @@ export class PageMetadata {
    * own fields, the extension that injected it otherwise. One namespace,
    * because a page's components share one permission subtree.
    */
-  private takenComponentKeys(): Map<string, string> {
-    const owner = this.pageInfo?.fullId ?? "";
-    const taken = new Map<string, string>(
-      Object.keys(this.ownComponents).map((key) => [key, owner]),
-    );
-    for (const [info, entries] of this.extensionEntries) {
-      for (const entry of entries) {
-        taken.set(entry.key, info.extensionName);
-      }
-    }
-    return taken;
+  private takenComponentKeys() {
+    return metadata.takenKeys(this);
   }
 
-  private dropExtension(info: PageExtensionInfo): void {
-    for (const entry of this.extensionEntries.get(info) ?? []) {
-      this.unregisterComponent(
-        entry.component,
-        this.extensionComponentPath(entry),
-      );
-    }
-    this.extensionEntries.delete(info);
+  private dropExtension(info: PageExtensionInfo) {
+    metadata.dropExtension(this, info);
   }
 
-  private extensionComponentPath(component: PageExtensionComponent): string {
-    const anchorPath = component.anchorPath ?? [];
-    if (anchorPath.length <= 1) return component.key;
-    return [...anchorPath.slice(0, -1), component.key].join(".");
+  private extensionComponentPath(component: PageExtensionComponent) {
+    return metadata.extensionComponentPath(component);
   }
 
-  private rebuildLayoutComponents(): void {
-    if (!this.layoutRef) return;
-    this.layoutRef.components = assembleLayoutComponents(
-      this.ownComponents,
-      [...this.extensionEntries.values()].flat(),
-    );
+  private rebuildLayoutComponents() {
+    metadata.rebuildLayoutComponents(this);
   }
 
   /**
@@ -1070,38 +595,11 @@ export class PageMetadata {
    * too, so the page's `/pagelayout` route ended up asking for the permission
    * of its last form (`<table>.view`), and a form page for the one after it.
    */
-  private ownRouteProperties(): void {
-    const properties = GetMetadata(this.target, ControllerMeta).computed_props;
-    for (const [key, property] of Object.entries(properties)) {
-      properties[key] = { ...property, modifiers: [...property.modifiers] };
-    }
+  private ownRouteProperties() {
+    metadata.ownRouteProperties(this.target);
   }
 
-  private applyAuthDecorators(pageInfo: PageInfo): void {
-    if (pageInfo.publicAccess === true) return;
-
-    const authOnly = pageInfo.authOnly === true;
-    const isModulePage = isPageInsideModule(pageInfo);
-    this.guardOptions = {
-      bypassTenantAccessGate: pageInfo.bypassTenantAccessGate,
-    };
-    const authDecorator = authOnly
-      ? AuthUser()
-      : isModulePage
-        ? AuthOwnerOnly()
-        : AuthUserWithPermission(this.target, this.guardOptions);
-
-    authDecorator(this.target.prototype, "user");
-
-    if (isModulePage && !authOnly) {
-      logModuleRouteGated(pageInfo.fullSlug);
-    }
-
-    if (authOnly) return;
-
-    TenantScopedModel(RoleModel)(this.target.prototype, "roleModel");
-    TenantScopedModel(TenantMemberModel)(this.target.prototype, "memberModel");
-
-    RequestTenantIdProperty()(this.target.prototype, "tenantId");
+  private applyAuthDecorators(pageInfo: PageInfo) {
+    metadata.applyAuthDecorators(this, pageInfo);
   }
 }

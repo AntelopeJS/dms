@@ -1,70 +1,61 @@
-import { createSSRApp, defineComponent, h, ref } from "vue";
-import { renderToString } from "vue/server-renderer";
+/** @vitest-environment jsdom */
+import { ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import MeterBlock from "../layers/dms-ui/app/components/meter/MeterBlock.vue";
+import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import { extraRuntime, mountExtra } from "./helpers/chart-extra-runtime";
 
-const data = ref<Record<string, unknown> | null>(null);
-const error = ref<unknown>(null);
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data,
-    isLoading: ref(false),
-    error,
-    refresh: async () => {},
-  }),
-}));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-
-const Slot = defineComponent({
-  props: { label: { type: String, default: undefined } },
-  setup:
-    (props, { slots }) =>
-    () =>
-      h("div", [props.label, slots.default?.()]),
+let fail = false;
+let app: ReturnType<typeof mountExtra>["app"] | undefined;
+const fetch = vi.fn(async () => {
+  if (fail) throw new Error("network");
+  return { value: 8, max: 10 };
 });
 
-async function render(): Promise<string> {
-  const app = createSSRApp({
-    render: () =>
-      h(MeterBlock, {
-        componentId: "meter",
-        pageId: "page",
-        label: "Seats",
-        fetchUrl: "/seats",
-      }),
+function render() {
+  const mounted = mountExtra(MeterBlock, {
+    componentId: "meter",
+    pageId: "page",
+    label: "Seats",
+    fetchUrl: "/seats",
   });
-  for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton"]) {
-    app.component(name, Slot);
-  }
-  return renderToString(app);
+  app = mounted.app;
+  return mounted.root;
 }
 
-beforeEach(() => {
-  data.value = null;
-  error.value = null;
+beforeEach(async () => {
+  fail = false;
+  fetch.mockClear();
+  await extraRuntime(fetch);
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  app?.unmount();
+  vi.unstubAllGlobals();
+});
 
 it("shows a failed load as an error with a retry, not as 0 / 100", async () => {
-  error.value = new Error("network");
-  const html = await render();
-  expect(html).toContain("dms.table.load_error_title");
-  expect(html).toContain("dms.table.load_error_retry");
-  expect(html).toContain("Seats");
-  expect(html).not.toContain("100");
+  fail = true;
+  const root = render();
+  await vi.waitFor(() =>
+    expect(root.textContent).toContain("dms.table.load_error_title"),
+  );
+  expect(root.textContent).toContain("dms.table.load_error_retry");
+  expect(root.textContent).toContain("Seats");
+  expect(root.textContent).not.toContain("100");
+  fail = false;
+  root.querySelector("button")!.click();
+  await vi.waitFor(() => expect(root.textContent).toMatch(/8\s*\/\s*10/));
+  expect(fetch).toHaveBeenCalledTimes(2);
 });
 
 it("keeps the last figures when only a refetch fails", async () => {
-  data.value = { value: 8, max: 10 };
-  error.value = new Error("network");
-  const html = await render();
-  expect(html).not.toContain("dms.table.load_error_title");
-  expect(html).toMatch(/8\s*\/\s*10/);
+  const root = render();
+  await vi.waitFor(() => expect(root.textContent).toMatch(/8\s*\/\s*10/));
+  fail = true;
+  await refreshPageBlocks();
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(root.textContent).not.toContain("dms.table.load_error_title");
+  expect(root.textContent).toMatch(/8\s*\/\s*10/);
 });

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   type App,
   computed,
@@ -10,9 +10,6 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-
-// The password dialog asked before a two-factor method is added: it sends the
-// password once typed, flags an empty one, and shows the API's refusal.
 
 const FIELD_ID = "security-confirm-current-password";
 
@@ -32,15 +29,16 @@ const Input = defineComponent({
   inheritAttrs: false,
   props: { modelValue: String },
   emits: ["update:modelValue"],
-  setup:
-    (props, { attrs, emit }) =>
-    () =>
+  setup: (props, { attrs, emit }) => {
+    const input = ref<HTMLInputElement>();
+    return () =>
       h("input", {
         ...attrs,
+        ref: input,
         value: props.modelValue,
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
-      }),
+        onInput: () => emit("update:modelValue", input.value!.value),
+      });
+  },
 });
 
 async function flush(): Promise<void> {
@@ -58,7 +56,7 @@ async function submit(): Promise<void> {
 
 async function mount(): Promise<void> {
   const { default: SecurityPasswordModal } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/security/SecurityPasswordModal.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPasswordModal"
   );
   app = createApp(() =>
     h(SecurityPasswordModal, {

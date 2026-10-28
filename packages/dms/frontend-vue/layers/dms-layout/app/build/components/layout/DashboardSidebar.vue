@@ -3,7 +3,7 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import {
   convertSiteLayoutTreeToTreeItems,
   convertSiteLayoutTreeToTreeItemsForModule,
-} from "#dms-ui/app/build/types/tree";
+} from "#dms-ui/app/entries/types/tree";
 import {
   isSidebarWidgetVisible,
   resolveSidebarWidgetPosition,
@@ -15,7 +15,7 @@ import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
 
 const MODULES_PATH = "/modules";
-// Registered id of the Modules entry, so "Preview as role" can lock it.
+
 const MODULES_FULL_ID = "modules";
 const MODULES_TREE_KEY = "modules";
 const MODULES_ICON = "i-ph-squares-four-light";
@@ -27,8 +27,7 @@ const SIDEBAR_MAX_WIDTH_PX = 320;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 60;
 const SEARCH_SHORTCUT_KEYS = ["meta", "k"];
 const DESKTOP_QUERY = "(min-width: 1024px)";
-// On a short screen the menu overflows the body, which then scrolls: without
-// this the flex column squeezed the search field and widgets instead.
+
 const SIDEBAR_UI = { body: "*:shrink-0" };
 
 const { t } = useI18n();
@@ -37,11 +36,9 @@ const { processI18n } = useTranslation();
 const route = useDmsRoute();
 const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
 const { formatShortcut } = useKeyboardPlatform();
-// The palette's own key (Nuxt UI binds `meta_k`: ⌘ on macOS, Ctrl elsewhere),
-// printed for the platform: "⌘K" or "Ctrl K".
+
 const searchShortcutHint = computed(() => formatShortcut(SEARCH_SHORTCUT_KEYS));
-// The collapsed rail shows only the icon: its tooltip (shown only while
-// collapsed, labelled with the button's label) adds the key.
+
 const searchTooltip = computed(() => ({ kbds: [searchShortcutHint.value] }));
 
 function closeMobileSidebar(event?: KeyboardEvent): void {
@@ -49,30 +46,24 @@ function closeMobileSidebar(event?: KeyboardEvent): void {
   sidebarOpen.value = false;
 }
 
-// The drawer only exists below `lg`: widening past it (a tablet turned to
-// landscape) closes it, so the desktop sidebar never stays pinned as one.
 const isDesktop = useMediaQuery(DESKTOP_QUERY);
 watch(isDesktop, (desktop) => {
   if (desktop) sidebarOpen.value = false;
 });
 
-// Going to a page closes the drawer, wherever the navigation came from (a
-// menu link, the user menu, the palette).
 watch(
   () => route.path,
   () => closeMobileSidebar(),
 );
 
-// A link to the page already shown changes no route: close on the click.
 function closeOnLinkClick(event: MouseEvent): void {
   if (!sidebarOpen.value) return;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM target is typed EventTarget; keep the existing unchecked closest call, including throws for synthetic non-element targets, instead of adding a filtering guard.
   if ((event.target as Element | null)?.closest("a[href]")) {
     closeMobileSidebar();
   }
 }
 
-// The drawer always shows the full menu, even when the desktop sidebar was
-// collapsed to its rail.
 const isRail = (collapsed: boolean): boolean => collapsed && !sidebarOpen.value;
 
 onMounted(() => window.addEventListener("keydown", closeMobileSidebar));
@@ -92,9 +83,7 @@ const isOwner = useIsOwner();
 const currentModule = useCurrentModule();
 const isInModule = computed(() => currentModule.value !== null);
 const { widgets: sidebarWidgets } = useSidebarWidgets();
-// Scope and position are independent axes: a widget renders where its
-// `position` says, but only while its module — none for a global one — is the
-// one being browsed.
+
 const visibleSidebarWidgets = computed(() =>
   sidebarWidgets.value.filter((widget) =>
     isSidebarWidgetVisible(widget, currentModule.value?.id),
@@ -114,16 +103,11 @@ const widgetsBelowSearchBar = widgetsAtPosition(
 );
 const homepage = useHomepage();
 
-// Use the matched page/category's `fullId` to drive sidebar expansion.
-// URL-based matching would miss hidden pages (registered but not in the menu
-// tree) and custom-pages whose urlSlug escapes the parent category's URL.
 const currentFullId = computed(() => {
   const match = siteLayout.findMatchingRouteOrCategory(route.path);
   return match?.metadata.fullId ?? null;
 });
 
-// Query parameters are part of the highlight: several entries can share one page
-// and only differ by them (`/project?project=<id>`).
 const currentRoute = computed<MenuRouteState>(() => ({
   path: route.path,
   query: route.query,
@@ -162,7 +146,6 @@ const favoriteItems = computed((): NavigationMenuItem[][] => {
         defaultOpen: true,
         children: favoritePages.sortedFavorites.value.map(
           (favorite): DmsMenuItem => ({
-            // The page's registered id, for the preview's locks.
             fullId: siteLayout.findMatchingRoute(
               stripQueryAndHash(favorite.path),
             )?.metadata.fullId,
@@ -185,12 +168,8 @@ const items = computed((): NavigationMenuItem[][] => {
       moduleRootNode.value,
     );
     const translatedItems = translateMenuItems(moduleMenuItems, processI18n);
-    const openItems = addDefaultOpenToMenuItems(
+    return applyMenuRouteState(
       translatedItems,
-      currentFullId.value,
-    );
-    return addActiveStateToMenuItems(
-      openItems,
       currentFullId.value,
       currentRoute.value,
     );
@@ -204,12 +183,8 @@ const items = computed((): NavigationMenuItem[][] => {
     siteLayout.siteLayoutTree.value,
   );
   const translatedItems = translateMenuItems(menuItems, processI18n);
-  const openItems = addDefaultOpenToMenuItems(
+  return applyMenuRouteState(
     translatedItems,
-    currentFullId.value,
-  );
-  return addActiveStateToMenuItems(
-    openItems,
     currentFullId.value,
     currentRoute.value,
   );
@@ -220,7 +195,7 @@ const openCategories = ref<string[]>([]);
 watch(
   () => items.value,
   (menuItems) => {
-    const requiredIds = getExpandedItemIds(menuItems, currentFullId.value);
+    const requiredIds = collectOpenItemIds(menuItems);
     const current = new Set(openCategories.value);
     for (const id of requiredIds) {
       current.add(id);
@@ -251,27 +226,23 @@ const footerItems = computed((): NavigationMenuItem[] => {
     });
   }
 
-  // The settings are reached from the account menu, not from here. Back and
-  // Modules only highlight their destinations, regardless of the router's
-  // default prefix matching.
   if (isOwner.value) {
-    result.push({
+    const moduleItem: NavigationMenuItem = {
       fullId: MODULES_FULL_ID,
       label: t("menu.modules"),
       to: MODULES_PATH,
       icon: MODULES_ICON,
       exact: true,
-      ...(moduleCount.value > 0
-        ? {
-            badge: {
-              label: String(moduleCount.value),
-              color: "neutral",
-              variant: "subtle",
-              size: "sm",
-            },
-          }
-        : {}),
-    });
+    };
+    if (moduleCount.value > 0) {
+      moduleItem.badge = {
+        label: String(moduleCount.value),
+        color: "neutral",
+        variant: "subtle",
+        size: "sm",
+      };
+    }
+    result.push(moduleItem);
   }
 
   return result;

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../index";
-import { signUploadToken, verifyUploadToken } from "../../utils/upload-token";
+import { getAuthConfig } from "../..";
+import { signUploadToken, verifyUploadToken } from "../../utils";
 
 describe("[unit] upload-token", () => {
   describe("sign/verify round-trip", () => {
@@ -48,9 +48,6 @@ describe("[unit] upload-token", () => {
       expect(verifyUploadToken(foreign)).to.equal(null);
     });
 
-    // Verification pins HS256: nothing else could verify against an HMAC
-    // secret today, and the pin is what keeps an algorithm-confusion bug in
-    // the JWT library from ever mattering here.
     it("returns null for a token signed with another algorithm", () => {
       const foreign = sign(
         { storage: "s3-evil", purpose: "file-upload" },

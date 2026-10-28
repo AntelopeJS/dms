@@ -1,4 +1,4 @@
-import type { Tone } from "../../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 /** A page's navigation badge: its label (`""` for none) and its tone. */
 export interface NavBadge {

@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// The placeholder of a ModuleTile while the grid loads, block for block the
-// tile's size: the 36px icon well and the 20px pill, the title's 28px line,
-// two description lines, and the footer band with its xs button. Nothing
-// moves once the tiles replace it.
-
 interface ModuleTileSkeletonProps {
   /**
    * A store tile still to install: no status pill, and the 30px npm package

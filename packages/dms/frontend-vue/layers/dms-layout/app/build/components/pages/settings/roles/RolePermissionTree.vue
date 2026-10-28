@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 import RolePermissionArea from "./RolePermissionArea.vue";
 import RolePermissionBranch from "./RolePermissionBranch.vue";
 import RolePermissionGroup from "./RolePermissionGroup.vue";
@@ -68,7 +68,6 @@ function autoAddedHintOf(id: string): string | undefined {
   return t("page.settings.roles.editor.auto_added", { name: label });
 }
 
-// Only a closed row hides them: an open one shows its children's own.
 function warningsBelowOf(node: RolePermissionNode): string[] {
   if (props.expanded.has(node.id)) return [];
   return selectedWarningsBelow(props.index, node.id, props.selection);
@@ -86,7 +85,6 @@ function isNewHeading(position: number): boolean {
   return position === 0 || hits[position - 1]?.heading !== heading;
 }
 
-// Handed down the nested branches as one object instead of a dozen props.
 const rowContext = computed<PermissionRowContext>(() => ({
   index: props.index,
   selection: props.selection,

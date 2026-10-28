@@ -1,8 +1,7 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import type {
   RequestAuthenticator,
   RequestPrincipal,
@@ -14,26 +13,26 @@ const TENANT = "credential-tenant";
 const USER_ID = "credential-user";
 
 function context(authorization = "Bearer opaque.secret"): RequestContext {
+  // SAFETY: The resolver and tenant lookup access only rawRequest.headers.authorization and request identity; a Pick cannot satisfy their full RequestContext parameter.
   return { rawRequest: { headers: { authorization } } } as RequestContext;
 }
 
 function principal(tenantId = TENANT, userId = USER_ID): RequestPrincipal {
-  return { tenantId, user: { _id: userId } as User };
+  // SAFETY: Principal validation and identity snapshots access only user._id; the owner-derived user type also requires unrelated profile and authentication fields.
+  return { tenantId, user: { _id: userId } as RequestPrincipal["user"] };
 }
 
 function handler(authenticate = async () => principal()): RequestAuthenticator {
   return { recognizes: (token) => token.startsWith("opaque."), authenticate };
 }
 
-async function expectUnauthorized(
-  action: () => Promise<unknown>,
-): Promise<void> {
+async function expectUnauthorized<T>(action: () => Promise<T>): Promise<void> {
   try {
     await action();
     expect.fail("Expected authentication failure");
   } catch (error) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(UNAUTHORIZED);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(UNAUTHORIZED);
   }
 }
 

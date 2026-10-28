@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
-import { resolveFormSuccessTarget } from "../layers/dms-ui/app/build/composables/table-view/registerDefaultFunctions";
+import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { resolveFormSuccessTarget } from "../layers/dms-ui/app/entries/composables/table-view/registerDefaultFunctions";
 
-// The redirect a page-mode form of a table view registered below
-// `/workspaces/:id` sends on submit, as the TableView factory generates it for
-// each form page route.
 const EDIT_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NEW_PATTERN = "/workspaces/:id/invoiceTable/new";
 const EDIT_REDIRECT = { url: "/workspaces/{{params.id:1}}" };
@@ -35,8 +32,6 @@ describe("page-mode form redirect", () => {
     ).toEqual({ path: "/workspaces/ws-42" });
   });
 
-  // The page path the router hands over is already percent-encoded: the path
-  // sent back is the one the page was reached at.
   it("sends back an encoded page path as it was", () => {
     expect(
       resolveFormSuccessTarget(

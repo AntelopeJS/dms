@@ -35,8 +35,6 @@ export class PageStackCombined extends PageController("stack-combined", {
     });
     const profile = Placeholder({ label: "👤", height: "60px", width: "60px" });
 
-    // The actions sit in the header itself: a nested stack takes the full
-    // width of its row, which would leave the Spacer no room to push them.
     const header = HStack({ spacing: "16px", alignment: "center" })
       .child("logo", logo)
       .child("title", title)

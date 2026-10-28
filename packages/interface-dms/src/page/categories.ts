@@ -16,10 +16,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "./types";
-// Category creation in internal/categories registers through the proxies
-// declared here, and isInsideModule resolves categories through it: neither
-// module dereferences the other while it evaluates.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- Category creation registers through these proxies; resolveCategoryInfo is called only after module evaluation.
 import { resolveCategoryInfo } from "./internal/categories";
 
 /**

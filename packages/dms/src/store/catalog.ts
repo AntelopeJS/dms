@@ -21,7 +21,9 @@ interface CachedCatalog {
 let cachedRemote: CachedCatalog | undefined;
 let bundled: StoreCatalogEntry[] | undefined;
 
+/* oxlint-disable anti-slop/no-runtime-typeof -- Catalog entries are filtered by the existing required string checks, not by a stricter replacement schema. */
 function isCatalogEntry(value: unknown): value is StoreCatalogEntry {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This partial view enables the existing field checks; optional catalog properties remain unchecked for compatibility.
   const entry = value as Partial<StoreCatalogEntry> | null;
   return (
     typeof entry?.id === "string" &&
@@ -30,13 +32,16 @@ function isCatalogEntry(value: unknown): value is StoreCatalogEntry {
     typeof entry.category === "string"
   );
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */
 
 /**
  * The entries of a catalog document. A document of another version, or an
  * entry missing a field, is dropped rather than half-read: the store must
  * never install a package the catalog did not name in full.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser accepts raw local or fetched JSON and applies the existing version and entry checks.
 export function readCatalogDocument(document: unknown): StoreCatalogEntry[] {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The version and entries are checked below; validating the full catalog would change malformed-document behavior.
   const catalog = document as Partial<StoreCatalog> | null;
   if (catalog?.version !== SUPPORTED_CATALOG_VERSION) {
     throw new Error(

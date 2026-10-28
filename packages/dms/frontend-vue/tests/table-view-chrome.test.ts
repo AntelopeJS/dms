@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FULL_TABLE_CHROME,
   resolveTableChrome,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 import {
   applyQuickFilter,
   quickFilterButtonLabel,
@@ -11,27 +11,30 @@ import {
   relationQuickFilterItems,
   relationQuickFilterSource,
   staticQuickFilterItems,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/quickFilters";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/quickFilters";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 
 const column = (
   id: string,
-  options: Record<string, unknown> = {},
+  options: NonNullable<
+    TableViewColumn["type"]["inputComponent"]
+  >["options"] = {},
   defaultCompareMode?: string,
-): TableViewColumn =>
-  ({
+): TableViewColumn => ({
+  id,
+  accessorKey: id,
+  header: id,
+  listable: true,
+  type: {
     id,
-    accessorKey: id,
-    header: id,
-    listable: true,
-    type: {
-      id,
-      defaultCompareMode,
-      inputComponent: { componentName: "x", options },
-    },
-  }) as unknown as TableViewColumn;
+    compareModes: [],
+    filterComponents: {},
+    defaultCompareMode,
+    inputComponent: { componentName: "x", options },
+  },
+});
 
 const dataTypes = (id: string): DataType | undefined =>
   id === "relation" ? { id, selectSource: relationSelectSource } : undefined;
@@ -82,85 +85,7 @@ describe("TableView layout", () => {
 
 describe("TableView quick filters", () => {
   const translate = (key: string) => key.replace(/^\$/, "t:");
-
-  it("lists a select's items and a boolean's two values", () => {
-    expect(
-      staticQuickFilterItems(
-        column("select", { items: [{ value: 1, label: "$one" }] }),
-        translate,
-      ),
-    ).toEqual([{ value: "1", label: "t:one" }]);
-    expect(
-      staticQuickFilterItems(column("boolean"), translate)?.map((i) => i.value),
-    ).toEqual(["true", "false"]);
-  });
-
-  it("reads a relation's values from the select source its data type names", () => {
-    const relation = column("relation", {
-      multiple: true,
-      searchUrl: "/api/roles/select",
-      keyMapping: { label: "title" },
-    });
-    expect(staticQuickFilterItems(relation, translate)).toBe(undefined);
-    const source = relationQuickFilterSource(relation, dataTypes)!;
-    expect(source).toEqual({
-      searchUrl: "/api/roles/select",
-      keyMapping: { label: "title" },
-    });
-    // The value key is not mapped: the route's `value`, as the picker reads.
-    expect(
-      relationQuickFilterItems(
-        [{ value: "r1", title: "Admin", _id: "x" }, { title: "no id" }],
-        source,
-      ),
-    ).toEqual([{ value: "r1", label: "Admin" }]);
-  });
-
-  it("names a relation's values by the route's label and value keys by default", () => {
-    const source = relationQuickFilterSource(
-      column("relation", { searchUrl: "/api/customers/select" }),
-      dataTypes,
-    )!;
-    expect(
-      relationQuickFilterItems(
-        [{ value: "cust-060", label: "Acme", _id: "row", name: "other" }],
-        source,
-      ),
-    ).toEqual([{ value: "cust-060", label: "Acme" }]);
-  });
-
-  it("fetches values only for a type that declares a select source", () => {
-    const searchable = column("custom_picker", { searchUrl: "/api/x/select" });
-    expect(relationQuickFilterSource(searchable, dataTypes)).toBe(undefined);
-  });
-
-  it("matches inside a list for a multiple column, by equality otherwise", () => {
-    expect(quickFilterMode(column("relation", { multiple: true }))).toBe(
-      "array_contains_string",
-    );
-    expect(quickFilterMode(column("select"))).toBe("is");
-    expect(quickFilterMode(column("select"), "is_not")).toBe("is_not");
-  });
-
-  it("matches inside a tags column's list and offers its suggested tags", () => {
-    // A list is told by the type's own default mode, not by its id.
-    const tags = column(
-      "tags",
-      { suggestions: ["battery", "solar"] },
-      "array_contains_string",
-    );
-    expect(quickFilterMode(tags)).toBe("array_contains_string");
-    expect(quickFilterMode(column("tags"))).toBe("is");
-    expect(quickFilterMode(column("labels", {}, "array_contains_string"))).toBe(
-      "array_contains_string",
-    );
-    expect(staticQuickFilterItems(tags, translate)).toEqual([
-      { value: "battery", label: "battery" },
-      { value: "solar", label: "solar" },
-    ]);
-    // A column that declares no value offers none (as a relation before its read).
-    expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
-  });
+  registerQuickFilterSourceTests(translate);
 
   const roles = { field: "roleIds", mode: "array_contains_string" } as const;
   const dueDate = {
@@ -221,3 +146,83 @@ describe("TableView quick filters", () => {
     expect(quickFilterButtonLabel(role, filters, false)).toBe("Role: Admin");
   });
 });
+
+function registerQuickFilterSourceTests(translate: (key: string) => string) {
+  it("lists a select's items and a boolean's two values", () => {
+    expect(
+      staticQuickFilterItems(
+        column("select", { items: [{ value: 1, label: "$one" }] }),
+        translate,
+      ),
+    ).toEqual([{ value: "1", label: "t:one" }]);
+    expect(
+      staticQuickFilterItems(column("boolean"), translate)?.map((i) => i.value),
+    ).toEqual(["true", "false"]);
+  });
+
+  it("reads a relation's values from the select source its data type names", () => {
+    const relation = column("relation", {
+      multiple: true,
+      searchUrl: "/api/roles/select",
+      keyMapping: { label: "title" },
+    });
+    expect(staticQuickFilterItems(relation, translate)).toBe(undefined);
+    const source = relationQuickFilterSource(relation, dataTypes)!;
+    expect(source).toEqual({
+      searchUrl: "/api/roles/select",
+      keyMapping: { label: "title" },
+    });
+
+    expect(
+      relationQuickFilterItems(
+        [{ value: "r1", title: "Admin", _id: "x" }, { title: "no id" }],
+        source,
+      ),
+    ).toEqual([{ value: "r1", label: "Admin" }]);
+  });
+
+  it("names a relation's values by the route's label and value keys by default", () => {
+    const source = relationQuickFilterSource(
+      column("relation", { searchUrl: "/api/customers/select" }),
+      dataTypes,
+    )!;
+    expect(
+      relationQuickFilterItems(
+        [{ value: "cust-060", label: "Acme", _id: "row", name: "other" }],
+        source,
+      ),
+    ).toEqual([{ value: "cust-060", label: "Acme" }]);
+  });
+
+  it("fetches values only for a type that declares a select source", () => {
+    const searchable = column("custom_picker", { searchUrl: "/api/x/select" });
+    expect(relationQuickFilterSource(searchable, dataTypes)).toBe(undefined);
+  });
+
+  it("matches inside a list for a multiple column, by equality otherwise", () => {
+    expect(quickFilterMode(column("relation", { multiple: true }))).toBe(
+      "array_contains_string",
+    );
+    expect(quickFilterMode(column("select"))).toBe("is");
+    expect(quickFilterMode(column("select"), "is_not")).toBe("is_not");
+  });
+
+  it("matches inside a tags column's list and offers its suggested tags", () => {
+    const tags = column(
+      "tags",
+      { suggestions: ["battery", "solar"] },
+      "array_contains_string",
+    );
+    expect(quickFilterMode(tags)).toBe("array_contains_string");
+    expect(quickFilterMode(column("tags"))).toBe("is");
+    expect(quickFilterMode(column("labels", {}, "array_contains_string"))).toBe(
+      "array_contains_string",
+    );
+    expect(staticQuickFilterItems(tags, translate)).toEqual([
+      { value: "battery", label: "battery" },
+      { value: "solar", label: "solar" },
+    ]);
+
+    expect(staticQuickFilterItems(column("tags"), translate)).toBeUndefined();
+  });
+}

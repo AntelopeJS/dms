@@ -96,14 +96,13 @@ export function zonedClock(timeZone: string): PeriodClock {
       milliseconds: date.getUTCMilliseconds(),
     };
   };
-  // The zone's offset at an instant: how far its wall clock is from UTC.
+
   const offsetAt = (time: number) => utcOf(wall(new Date(time))) - time;
   return {
     wall,
     instant: (target) => {
       const asUtc = utcOf(target);
-      // Twice: the offset at the first guess is the right one unless the
-      // guess and the answer fall on either side of a daylight saving change.
+
       const guess = asUtc - offsetAt(asUtc);
       return new Date(asUtc - offsetAt(guess));
     },

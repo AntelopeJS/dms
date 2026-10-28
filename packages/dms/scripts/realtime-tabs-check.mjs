@@ -1,31 +1,11 @@
-// Checks that many tabs of one browser can use a running DMS at once: opens
-// `--tabs` tabs of one profile, signed in, counts the long-lived streams they
-// hold to the dashboard's origin, then times a request from every tab.
-//
-//   pnpm --dir packages/dms realtime:tabs-check --email <e> --password <p>
-//     [--base-url <url>] [--tabs <n>] [--path </page>] [--channel <chrome|msedge>]
-//     [--max-streams <n>] [--timeout <ms>] [--legacy-streams <n>]
-//
-// Over HTTP/1.1 a browser opens at most six connections per host, and each
-// stream holds one: if the tabs hold them all, every other request waits.
-// Defaults to the playground's frontend, http://localhost:3001, and 8 tabs;
-// DMS_CHECK_EMAIL and DMS_CHECK_PASSWORD stand in for the flags.
-//
-// `--legacy-streams <n>` opens n extra connection streams per tab, as a
-// client that does not share its connection between tabs, to see the check
-// fail.
-
 import { parseArgs } from "node:util";
 import { chromium } from "playwright-core";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
 const DEFAULT_TABS = 8;
-// The browser's shared realtime connection, plus in development the reload
-// stream its signed-out tabs share (the tab the script signs in from).
 const DEFAULT_MAX_STREAMS = 2;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const NAVIGATION_TIMEOUT_MS = 60_000;
-// Long enough for a tab's realtime session to open after its page loads.
 const SETTLE_MS = 3_000;
 const SIGN_IN_PATH = "/auth";
 const LOGIN_PATH = "/auth/login";
@@ -121,14 +101,12 @@ async function openLegacyStreams(page, count) {
     );
   const opened = open().then(() => true);
   if (await withDeadline(opened, NAVIGATION_TIMEOUT_MS)) return;
-  // The page redirected on its own after loading: open them on the next one.
   await withDeadline(page.waitForLoadState("load"), NAVIGATION_TIMEOUT_MS);
   await withDeadline(open(), NAVIGATION_TIMEOUT_MS);
 }
 
 /**
- * `promise`, or `null` once `ms` passed: a tab still navigating holds an
- * evaluation until its page exists, which may be never.
+ * Resolves to the promise's value, or null if it rejects or exceeds `ms`.
  */
 function withDeadline(promise, ms) {
   let timer;
@@ -167,6 +145,7 @@ async function openTabs(context, options) {
     const page = await context.newPage();
     const started = Date.now();
     let loadMs = null;
+    // oxfmt-ignore
     try {
       await page.goto(`${options.baseUrl}${options.path}`, {
         waitUntil: "load",
@@ -174,7 +153,6 @@ async function openTabs(context, options) {
       });
       loadMs = Date.now() - started;
     } catch {
-      // Reported below: a tab that never loads is the failure looked for.
     }
     console.log(
       `  tab ${index + 1}: ${loadMs === null ? "never loaded" : `loaded ${loadMs} ms`}`,

@@ -181,7 +181,7 @@ export function usePeriodLocation(
     comparisons: period.comparisons.value,
   };
   const urlSource = (): PeriodSource => ({
-    query: route.query as PeriodQuery,
+    query: route.query,
     keys: urlKeys,
     isRangeAlwaysAccepted: true,
   });
@@ -205,9 +205,8 @@ export function usePeriodLocation(
     },
   );
 
-  // Only the route is followed here: the preferences move with the period.
   watch(
-    () => urlKeysText(route.query as PeriodQuery, urlKeys),
+    () => urlKeysText(route.query, urlKeys),
     (text) => {
       if (writer.isEcho(text) || isRouteBehindBrowser(text, urlKeys)) return;
       const current = readSelection(period);

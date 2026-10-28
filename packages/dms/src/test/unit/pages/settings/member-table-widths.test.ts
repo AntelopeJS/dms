@@ -2,26 +2,23 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { inviteSettingDataAPI } from "../../../../pages/settings/users/invites";
+import { inviteSettingDataAPI } from "../../../../pages/members";
 
-// The settings column beside the sidebar and the settings menu on a 1440px
-// screen.
 const SETTINGS_TABLE_WIDTH = 865;
-// The grid's row actions, as it sizes them (useTableColumns): the cell
-// gutters, then each button and the gaps between them.
+
 const CELL_GUTTERS = 28;
 const ICON_BUTTON = 24;
 const BUTTON_GAP = 4;
 const MENU_ACTIONS_WIDTH = 91;
-// Labelled buttons: their padding and icon, then ~6.5px a character.
+
 const LABEL_PADDING = 20;
 const LABEL_ICON = 16;
 const LABEL_CHARACTER = 6.5;
-// The French labels, the longest ("Resend", "Revoke" in English).
+
 const RESEND_BUTTON =
   LABEL_PADDING + LABEL_ICON + "Renvoyer".length * LABEL_CHARACTER;
 const REVOKE_BUTTON = LABEL_PADDING + "Révoquer".length * LABEL_CHARACTER;
-// Edit and Copy link (icons), Resend and Revoke (labelled).
+
 const INVITE_ACTIONS_WIDTH =
   CELL_GUTTERS +
   2 * ICON_BUTTON +

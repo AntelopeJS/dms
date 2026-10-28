@@ -17,10 +17,11 @@ function readStorage(key: string): string | null {
 }
 
 function writeStorage(key: string, value: string): void {
+  // prettier-ignore
   try {
     localStorage.setItem(key, value);
   } catch {
-    /* storage unavailable (private mode, quota): the group folds on reload */
+    // eslint-disable-line no-empty -- Unavailable storage loses only the persisted group choice.
   }
 }
 

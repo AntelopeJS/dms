@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -12,55 +12,10 @@ import {
   watch,
   type App,
 } from "vue";
-
-// The password-reset code page: a new code starts clean, without the refusal
-// of the previous one.
-
-vi.mock("#dms-ui/app/build/components/form/OtpInput.vue", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  return {
-    default: define({
-      props: { modelValue: Array, error: String },
-      emits: ["update:modelValue"],
-      setup: (props, { emit, expose }) => {
-        expose({ focus: () => undefined });
-        return () =>
-          render("div", [
-            render("input", {
-              "data-testid": "code",
-              onInput: (event: Event) =>
-                emit(
-                  "update:modelValue",
-                  (event.target as HTMLInputElement).value.split(""),
-                ),
-            }),
-            render("p", { "data-testid": "code-error" }, props.error ?? ""),
-          ]);
-      },
-    }),
-  };
-});
-vi.mock(
-  "../layers/dms-layout/app/build/components/layout/StageCard.vue",
-  async () => {
-    const { defineComponent: define, h: render } = await import("vue");
-    return {
-      default: define({
-        setup:
-          (_, { slots }) =>
-          () =>
-            render("section", slots.default?.()),
-      }),
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-auth/app/build/components/AuthBackLink.vue",
-  async () => {
-    const { defineComponent: define, h: render } = await import("vue");
-    return { default: define({ setup: () => () => render("span") }) };
-  },
-);
+import {
+  installAuthSettingsRuntime,
+  PinInput,
+} from "./helpers/auth-settings-runtime";
 
 const { default: ForgotValidationPage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/forgot-validation.vue"
@@ -112,6 +67,7 @@ const Passthrough = defineComponent({
 });
 
 function installRuntime() {
+  installAuthSettingsRuntime();
   Object.entries({ computed, ref, reactive, watch, onMounted }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
   );
@@ -121,14 +77,14 @@ function installRuntime() {
   }));
   vi.stubGlobal("useToast", () => ({ add: toastAdd }));
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <Result>(fn: () => Result) => fn(),
   }));
   vi.stubGlobal("useDmsRoute", () => ({
     query: { email: "member@local.test" },
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("navigateDms", vi.fn());
-  // The resend link shows at once: the wait is not under test.
+
   vi.stubGlobal("useCooldown", () => ({
     cooldown: ref(0),
     startCooldown: vi.fn(),
@@ -141,6 +97,9 @@ function mountPage() {
   app.component("UForm", Form);
   app.component("UAlert", Alert);
   app.component("UButton", Passthrough);
+  app.component("UPinInput", PinInput);
+  app.component("DmsLink", Passthrough);
+  app.component("UIcon", Passthrough);
   app.component("i18n-t", Passthrough);
   app.mount(host);
 }
@@ -152,8 +111,7 @@ async function settle() {
   }
 }
 
-const codeError = () =>
-  host.querySelector('[data-testid="code-error"]')?.textContent ?? "";
+const codeError = () => host.querySelector('[id^="otp-"]')?.textContent ?? "";
 const formError = () => host.querySelector('[data-testid="form-error"]');
 
 function resendButton(): HTMLButtonElement {

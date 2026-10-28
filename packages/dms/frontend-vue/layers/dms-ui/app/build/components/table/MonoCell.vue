@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { useClipboard } from "@vueuse/core";
 
-// A value in the mono font (an id, a key, a slug), with a button copying it
-// that shows on hover. The root is a block flex box held to its cell's
-// width: an inline one grows with the value, which then never truncates.
-
 interface Props {
   value: string;
   /** Draws the copy button. */

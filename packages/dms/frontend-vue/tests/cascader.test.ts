@@ -206,7 +206,6 @@ describe("cascaderValuePath", () => {
 });
 
 describe("readCascaderAncestry", () => {
-  // The select route narrowed with `?ids=`: only the rows asked for.
   function selectRoute(rows: CategoryRow[]) {
     const reads: string[][] = [];
     const read = async (ids: string[]) => {
@@ -223,7 +222,7 @@ describe("readCascaderAncestry", () => {
       "speakers",
       "tv",
     ]);
-    // One read per level, a shared parent asked once.
+
     expect(reads).toEqual([
       ["headphones", "speakers", "tv"],
       ["audio", "video"],

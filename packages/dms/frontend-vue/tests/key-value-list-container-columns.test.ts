@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A KeyValueList's columns follow its own width, not the window's: in a
  * 600px drawer on a wide screen a two-column list stays one column until
@@ -42,7 +42,7 @@ it.each([
   [3, ["@min-[560px]:grid-cols-2", "@min-[840px]:grid-cols-3"]],
 ])("lays %i columns out by the list's own width", async (columns, steps) => {
   const root = await mountList(columns);
-  const wrapper = root.firstElementChild as HTMLElement;
+  const wrapper = root.firstElementChild!;
   expect(wrapper.classList).toContain("@container");
   const list = wrapper.querySelector("dl")!;
   for (const step of steps) expect(list.classList).toContain(step);

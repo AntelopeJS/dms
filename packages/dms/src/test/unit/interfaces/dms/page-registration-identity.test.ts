@@ -1,7 +1,3 @@
-// The module receives a per-context view of what the interface hands it, not
-// the value itself, so a registration coming back from the implementation is
-// never the object the metadata holds. These cover the token that recognises it
-// anyway, and the teardown that depends on it.
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
@@ -135,10 +131,6 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.not.equal(undefined);
   });
 
-  // `RegisteringProxy` finds its entries by object reference, so a caller
-  // holding a view of the page — which is every caller on the other side of the
-  // boundary — used to unregister nothing at all, silently: the page stayed in
-  // the registry, routed, and kept serving its layout.
   it("unregisters a page handed back as a view of itself", async () => {
     const pageInfo = await registerPage("pri-unregister-view");
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.not.equal(undefined);
@@ -148,12 +140,11 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.equal(undefined);
   });
 
-  // Not a view this time but an unrelated object wearing the same token, which
-  // is all the runtime guarantees survives the round trip.
   it("unregisters a page through any object carrying its token", async () => {
     const pageInfo = await registerPage("pri-unregister-token");
     const bearer = buildPageInfo("pri-unregister-token");
     Object.defineProperty(bearer, REGISTRATION_TOKEN, {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Registration stamps a private symbol absent from PageInfo's public contract; this test deliberately copies that token rather than reconstructing a complete registration.
       value: (pageInfo as unknown as Record<symbol, string>)[
         REGISTRATION_TOKEN
       ],
@@ -201,8 +192,6 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
 
     pageInterfaceInternal.RegisterModule.unregister(viewOf(info));
 
-    // The implementation clears the module's category resolution on teardown,
-    // which only runs if the unregister reached it at all.
     expect(moduleRootCategories.has(info.id)).to.equal(false);
   });
 
@@ -213,8 +202,7 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     };
     const view = viewOf(info);
     pageInterfaceInternal.RegisterDynamicMenuProvider.register(info);
-    // Filed under the interface's own view of `info`, which no caller holds:
-    // the token is the only way back to it.
+
     expect(dynamicMenuProviderIdentity.resolve(view)).to.not.equal(view);
 
     pageInterfaceInternal.RegisterDynamicMenuProvider.unregister(view);
@@ -237,8 +225,6 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     expect(pageExtensions.get(target.fullId)).to.equal(undefined);
   });
 
-  // `revokePageExtension` is what the implementation calls back into, and it
-  // always receives a view: dropping the entry by reference revoked nothing.
   it("revokes a page extension named by a view of it", async () => {
     const target = await registerPage("pri-revoke-target");
     const info: PageExtensionInfo = {

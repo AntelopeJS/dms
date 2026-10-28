@@ -16,7 +16,6 @@ import {
   PROFILE_ATTACHMENT_FIELDS,
 } from "./profile-attachments";
 import {
-  type DateRange,
   Gender,
   MaritalStatus,
   type Profile,
@@ -42,7 +41,7 @@ function createDefaultProfile(): Partial<Profile> {
     email: "john.doe@example.com",
     phone: "+1-555-123-4567",
     birthDate: new Date("1990-05-15"),
-    vacationDates: { start: "2025-07-01", end: "2025-07-15" } as DateRange,
+    vacationDates: { start: "2025-07-01", end: "2025-07-15" },
     gender: Gender.male,
     maritalStatus: MaritalStatus.single,
     country: "us",
@@ -98,8 +97,6 @@ export class ProfileAPIController extends Controller("/api/profile") {
         context,
         componentIds: GetComponentPermissionIds(PageFormProfileEdit.basicInfo),
         fields: PROFILE_ATTACHMENT_FIELDS,
-        // The other forms of the page submit no file field: keep the stored
-        // ones, or cleanup would read their absence as a removal.
         submitted: { ...before, ...profileUpdates },
         before,
       },
@@ -135,8 +132,6 @@ export class ProfileAPIController extends Controller("/api/profile") {
     stored: Profile,
     updates: Partial<Profile>,
   ): Partial<Profile> {
-    // Each form of the page submits its own fields only: one it leaves out
-    // keeps its stored value, one it sends empty (`null`) is cleared.
     return {
       ...updates,
       _id: DEFAULT_PROFILE_ID,
@@ -152,12 +147,8 @@ export class ProfileAPIController extends Controller("/api/profile") {
     };
   }
 
-  private formatProfileResponse(profile: Profile) {
+  private formatProfileResponse(profile: Pick<Profile, keyof Profile>) {
     return {
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
       ...profile,
     };
   }

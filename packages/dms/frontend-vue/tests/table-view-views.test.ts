@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -12,216 +12,28 @@ import {
 } from "vue";
 import type { SortingState, VisibilityState } from "@tanstack/vue-table";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableViews from "../layers/dms-ui/app/build/components/table/Views.vue";
-import { mergeColumnOrder } from "../layers/dms-ui/app/build/composables/table/utils/columnOrder";
 import {
   PHONE_VIEWPORT_QUERY,
   useMobileDisplay,
-} from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
-import { useTableViews } from "../layers/dms-ui/app/build/composables/table-view/useTableViews";
-import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
-import { linkedArrivalPreferences } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
-import {
-  isSameTableState,
-  readTableUrlKey,
-  snapshotViewState,
-  type TableStateDefaults,
-  viewSnapshot,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/views";
+} from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
+import { useTableViews } from "../layers/dms-ui/app/entries/composables/table-view/useTableViews";
+import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { linkedArrivalPreferences } from "../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
+import { type TableStateDefaults } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import type { TableViewViewsConfig } from "../layers/dms-ui/app/composables/table-view/types";
 import type {
   TableDensity,
   TableFilter,
-} from "../layers/dms-ui/app/build/components/table/Table.vue";
+} from "../layers/dms-ui/app/entries/components/table/Table";
+import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
+import type { ToastProps } from "@nuxt/ui";
 
-const pinnedStatus: TableFilter = {
-  accessorKey: "status",
-  mode: "is",
-  value: "open",
-  pinned: true,
-  initialValue: "open",
-};
-
-const DEFAULTS: TableStateDefaults = {
-  pinnedFilters: [pinnedStatus],
-  sorting: [{ id: "createdAt", desc: true }],
-  visibility: { title: true, owner: true, email: false },
-  columnOrder: ["title", "owner", "email"],
-  display: "table",
-  density: "default",
-  displays: new Set(["table", "grouped"]),
-};
-
-describe("table view states", () => {
-  it("opens a view over the table's defaults", () => {
-    const snapshot = viewSnapshot(
-      {
-        filters: [
-          { accessorKey: "status", mode: "is", value: "closed" },
-          { accessorKey: "owner", mode: "is", value: "{{user.id}}" },
-        ],
-        search: "invoice",
-        sort: [{ field: "title" }],
-        columns: { visible: ["email"], hidden: ["owner"], order: ["email"] },
-        display: "grouped",
-        density: "compact",
-      },
-      DEFAULTS,
-    );
-    expect(snapshot).toEqual({
-      filters: [
-        { ...pinnedStatus, value: "closed" },
-        {
-          accessorKey: "owner",
-          mode: "is",
-          value: "{{user.id}}",
-          pinned: false,
-        },
-      ],
-      search: "invoice",
-      sorting: [{ id: "title", desc: false }],
-      visibility: { title: true, owner: false, email: true },
-      order: ["email"],
-      display: "grouped",
-      density: "compact",
-    });
-  });
-
-  it("falls back to the defaults for what a view leaves out, and for a display the table lacks", () => {
-    expect(viewSnapshot({ display: "kanban" }, DEFAULTS)).toEqual({
-      filters: [pinnedStatus],
-      search: "",
-      sorting: DEFAULTS.sorting,
-      visibility: DEFAULTS.visibility,
-      order: [],
-      display: "table",
-      density: "default",
-    });
-  });
-
-  it("tells a changed state from the view's, ignoring empty filters and blank searches", () => {
-    const opened = viewSnapshot({ search: "invoice" }, DEFAULTS);
-    expect(
-      isSameTableState(
-        opened,
-        {
-          ...opened,
-          search: " invoice ",
-          filters: [...opened.filters, { accessorKey: "owner", mode: "is" }],
-        },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, sorting: [{ id: "createdAt", desc: false }] },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, visibility: { ...opened.visibility, email: true } },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, density: "compact" },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-  });
-
-  it("compares column orders on the columns they move", () => {
-    const opened = viewSnapshot({}, DEFAULTS);
-    const fullDeclared = ["select", "title", "owner", "email", "actions"];
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, order: fullDeclared },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-    expect(
-      isSameTableState(
-        opened,
-        { ...opened, order: ["select", "email", "title", "owner", "actions"] },
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(false);
-  });
-
-  it("keeps a state as a view that opens on the same state", () => {
-    const state = viewSnapshot(
-      {
-        filters: [{ accessorKey: "owner", mode: "is", value: "u1" }],
-        search: "late",
-        sort: [{ field: "title", desc: true }],
-        columns: { hidden: ["title"], order: ["owner", "title"] },
-        display: "grouped",
-      },
-      DEFAULTS,
-    );
-    expect(
-      isSameTableState(
-        viewSnapshot(snapshotViewState(state), DEFAULTS),
-        state,
-        DEFAULTS.columnOrder,
-      ),
-    ).toBe(true);
-  });
-
-  it("reads a view or a tab off the URL, the short key only for a page's only table", () => {
-    const query = { "content.view": "mine", view: "other", tab: "open" };
-    expect(
-      readTableUrlKey(
-        query,
-        { tableId: "content", isSoleTableView: false },
-        "view",
-      ),
-    ).toEqual({ value: "mine" });
-    expect(
-      readTableUrlKey(
-        { tab: "open" },
-        { tableId: "content", isSoleTableView: true },
-        "tab",
-      ),
-    ).toEqual({ value: "open" });
-    expect(
-      readTableUrlKey(
-        { tab: "open" },
-        { tableId: "content", isSoleTableView: false },
-        "tab",
-      ),
-    ).toEqual({ ignoredShortKey: true });
-    expect(readTableUrlKey({}, { tableId: "content" }, "view")).toEqual({});
-  });
-
-  it("reads an empty key as cleared, not as absent", () => {
-    const sole = { tableId: "content", isSoleTableView: true };
-    expect(readTableUrlKey({ "content.view": "" }, sole, "view")).toEqual({
-      isCleared: true,
-    });
-    expect(readTableUrlKey({ view: "" }, sole, "view")).toEqual({
-      isCleared: true,
-    });
-    expect(
-      readTableUrlKey(
-        { view: "" },
-        { tableId: "content", isSoleTableView: false },
-        "view",
-      ),
-    ).toEqual({});
-  });
-});
+import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
 
 interface HarnessOptions {
   views: TableViewViewsConfig;
   query?: Record<string, string>;
-  preferences?: Record<string, unknown>;
+  preferences?: Record<string, Parameters<TablePreferences["set"]>[1]>;
   userId?: string;
   viewName?: string;
   /** Arrived through a link naming what the table lists. */
@@ -233,39 +45,31 @@ interface HarnessOptions {
 }
 
 describe("useTableViews", () => {
+  const fixture = createTableViewViewsFixture();
+  registerViewArrivalTests(fixture);
+  registerViewDefaultsAndSavingTests(fixture);
+  registerViewClosingTests(fixture);
+  registerMobileAndDeclaredViewTests(fixture);
+});
+
+function createTableViewViewsFixture() {
   let app: App | undefined;
   let toasts: unknown[];
-  let dialogs: Array<{ title: string }>;
+  let dialogs: ConfirmOptions[];
 
   const mountViews = async (options: HarnessOptions) => {
     const preferences = new Map<string, unknown>(
       Object.entries(options.preferences ?? {}),
     );
-    // `useTablePreferences`: the browser-only fields come back once mounted.
+
     const restores: Array<() => void> = [];
-    const tablePreferences: TablePreferences = {
-      get: <V>(field: string, fallback: V) =>
-        (preferences.has(field) ? preferences.get(field) : fallback) as V,
-      set: (field, value) => {
-        preferences.set(field, value);
-      },
-      restore: (field, state) => {
-        restores.push(() => {
-          if (preferences.has(field)) {
-            state.value = preferences.get(field) as typeof state.value;
-          }
-        });
-      },
-    };
+    const tablePreferences = createRestorablePreferences(preferences, restores);
     vi.stubGlobal("useDmsUserSession", () => ({
       user: ref({ _id: options.userId ?? "u1" }),
     }));
     vi.stubGlobal("useDmsRoute", () => ({ query: options.query ?? {} }));
     vi.stubGlobal("useConfirm", () => ({
-      confirm: async (dialog: {
-        title: string;
-        onConfirm?: (values: Record<string, unknown>) => Promise<void>;
-      }) => {
+      confirm: async (dialog: ConfirmOptions) => {
         dialogs.push(dialog);
         if (!dialog.onConfirm) return options.isConfirmed ?? true;
         await dialog.onConfirm({ label: options.viewName ?? "Mine" });
@@ -295,7 +99,7 @@ describe("useTableViews", () => {
       defineComponent({
         setup() {
           onMounted(() => restores.forEach((restore) => restore()));
-          // As the table view does, before its views.
+
           tablePreferences.restore("density", state.density);
           tablePreferences.restore("columnOrder", state.columnOrder);
           api = useTableViews({
@@ -351,7 +155,7 @@ describe("useTableViews", () => {
       processI18n: (text: string) => text.replace(/^\$/, "i18n:"),
     }));
     vi.stubGlobal("useToast", () => ({
-      add: (toast: unknown) => toasts.push(toast),
+      add: (toast: ToastProps) => toasts.push(toast),
     }));
   });
 
@@ -360,10 +164,49 @@ describe("useTableViews", () => {
     app = undefined;
     vi.unstubAllGlobals();
   });
+  return {
+    mountViews,
+    VIEWS,
+    get toasts() {
+      return toasts;
+    },
+    get app() {
+      return app;
+    },
+    get dialogs() {
+      return dialogs;
+    },
+  };
+}
 
+function createRestorablePreferences(
+  preferences: Map<string, unknown>,
+  restores: Array<() => void>,
+): TablePreferences {
+  return {
+    // SAFETY: The preference API's generic read uses the field's stored type; these fixtures preserve that correlation.
+    get: <V>(field: string, fallback: V) =>
+      (preferences.has(field) ? preferences.get(field) : fallback) as V,
+    set: (field, value) => {
+      preferences.set(field, value);
+    },
+    restore: (field, state) => {
+      restores.push(() => {
+        if (preferences.has(field)) {
+          // SAFETY: restore receives the ref for the same preference field stored in this map.
+          state.value = preferences.get(field) as typeof state.value;
+        }
+      });
+    },
+  };
+}
+
+function registerViewArrivalTests(
+  fixture: ReturnType<typeof createTableViewViewsFixture>,
+) {
   it("opens the view the URL names, over the state kept from the last visit", async () => {
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "mine" },
       preferences: { activeView: "all" },
     });
@@ -378,19 +221,19 @@ describe("useTableViews", () => {
   });
 
   it("falls back to the default view, with a word, for a view the caller cannot open", async () => {
-    const { api } = await mountViews({
-      views: VIEWS,
+    const { api } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { "content.view": "user-of-someone-else" },
     });
     expect(api.activeViewId.value).toBe("all");
-    expect(toasts).toEqual([
+    expect(fixture.toasts).toEqual([
       expect.objectContaining({ title: "dms.table.views.unavailable_title" }),
     ]);
   });
 
   it("opens a user view the URL names once its views are restored in the browser", async () => {
-    const { api } = await mountViews({
-      views: VIEWS,
+    const { api } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "user-mine" },
       preferences: {
         userViews: [
@@ -399,30 +242,33 @@ describe("useTableViews", () => {
       },
     });
     expect(api.activeViewId.value).toBe("user-mine");
-    expect(toasts).toEqual([]);
+    expect(fixture.toasts).toEqual([]);
   });
 
   it("restores the browser-only state, a view opened on arrival keeping its own", async () => {
-    const opened = await mountViews({
-      views: VIEWS,
+    const opened = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "all" },
       preferences: { density: "compact" },
     });
     expect(opened.state.density.value).toBe("default");
-    app?.unmount();
+    fixture.app?.unmount();
 
-    const kept = await mountViews({
-      views: VIEWS,
+    const kept = await fixture.mountViews({
+      views: fixture.VIEWS,
       preferences: { density: "compact", activeView: "" },
     });
     expect(kept.state.density.value).toBe("compact");
   });
 
   it("brings the kept view's search back with it", async () => {
-    const { api, state } = await mountViews({
+    const { api, state } = await fixture.mountViews({
       views: {
-        ...VIEWS,
-        items: [...VIEWS.items, { id: "printers", label: "P", search: "T-13" }],
+        ...fixture.VIEWS,
+        items: [
+          ...fixture.VIEWS.items,
+          { id: "printers", label: "P", search: "T-13" },
+        ],
       },
       preferences: { activeView: "printers" },
     });
@@ -431,8 +277,8 @@ describe("useTableViews", () => {
   });
 
   it("brings a kept user view's search back once its views are restored", async () => {
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       preferences: {
         activeView: "user-mine",
         userViews: [
@@ -443,33 +289,37 @@ describe("useTableViews", () => {
     expect(api.activeViewId.value).toBe("user-mine");
     expect(state.globalFilter.value).toBe("T-13");
   });
+}
 
+function registerViewDefaultsAndSavingTests(
+  fixture: ReturnType<typeof createTableViewViewsFixture>,
+) {
   it("opens on the defaults, not the kept view, when a link names the table's state", async () => {
-    const { api, preferences } = await mountViews({
-      views: VIEWS,
+    const { api, preferences } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { tab: "closed" },
       preferences: { activeView: "mine" },
       isLinked: true,
     });
     expect(api.activeViewId.value).toBe("all");
-    // Kept for the next plain visit.
+
     expect(preferences.get("activeView")).toBe("mine");
   });
 
   it("opens the default view on a first visit only", async () => {
-    const first = await mountViews({ views: VIEWS });
+    const first = await fixture.mountViews({ views: fixture.VIEWS });
     expect(first.api.activeViewId.value).toBe("all");
-    app?.unmount();
-    const later = await mountViews({
-      views: VIEWS,
+    fixture.app?.unmount();
+    const later = await fixture.mountViews({
+      views: fixture.VIEWS,
       preferences: { activeView: "" },
     });
     expect(later.api.activeViewId.value).toBe(undefined);
   });
 
   it("marks a view modified until it is reset", async () => {
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "mine" },
     });
     expect(api.isModified.value).toBe(false);
@@ -483,8 +333,8 @@ describe("useTableViews", () => {
   });
 
   it("saves the current state as a view of the user's own, served to them only", async () => {
-    const { api, state, preferences } = await mountViews({
-      views: VIEWS,
+    const { api, state, preferences } = await fixture.mountViews({
+      views: fixture.VIEWS,
       viewName: " Printers ",
       preferences: {
         userViews: [{ id: "user-x", label: "Theirs", ownerId: "u2" }],
@@ -504,7 +354,7 @@ describe("useTableViews", () => {
       "i18n:tickets.mine",
       "Printers",
     ]);
-    expect((preferences.get("userViews") as unknown[]).length).toBe(2);
+    expect(preferences.get("userViews")).toHaveLength(2);
 
     state.density.value = "compact";
     await nextTick();
@@ -518,10 +368,18 @@ describe("useTableViews", () => {
     expect(api.activeViewId.value).toBe(undefined);
     expect(api.items.value).toHaveLength(2);
   });
+}
 
+function registerViewClosingTests(
+  fixture: ReturnType<typeof createTableViewViewsFixture>,
+) {
   it("closes the open view when it is clicked again, back to the table's defaults", async () => {
-    const { api, state } = await mountViews({
-      views: { ...VIEWS, defaultView: undefined, items: VIEWS.items.slice(1) },
+    const { api, state } = await fixture.mountViews({
+      views: {
+        ...fixture.VIEWS,
+        defaultView: undefined,
+        items: fixture.VIEWS.items.slice(1),
+      },
       query: { view: "mine" },
     });
     expect(state.sorting.value).toEqual([{ id: "title", desc: false }]);
@@ -536,8 +394,8 @@ describe("useTableViews", () => {
   });
 
   it("opens no view on a link with an empty view key, over the default view", async () => {
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "" },
       preferences: { activeView: "mine" },
       isLinked: true,
@@ -556,22 +414,22 @@ describe("useTableViews", () => {
     const userViews = [
       { id: "user-printers", label: "Printers", ownerId: "u1", search: "T-13" },
     ];
-    const declined = await mountViews({
-      views: VIEWS,
+    const declined = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "user-printers" },
       preferences: { userViews },
       isConfirmed: false,
     });
     await declined.api.deleteView("user-printers");
-    expect(dialogs).toEqual([
+    expect(fixture.dialogs).toEqual([
       expect.objectContaining({ title: "dms.table.views.delete_title" }),
     ]);
     expect(declined.api.activeViewId.value).toBe("user-printers");
     expect(declined.state.globalFilter.value).toBe("T-13");
-    app?.unmount();
+    fixture.app?.unmount();
 
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "user-printers" },
       preferences: { userViews },
     });
@@ -583,17 +441,22 @@ describe("useTableViews", () => {
     expect(state.globalFilter.value).toBe(undefined);
     expect(state.sorting.value).toEqual(DEFAULTS.sorting);
   });
+}
 
+function registerMobileAndDeclaredViewTests(
+  fixture: ReturnType<typeof createTableViewViewsFixture>,
+) {
   describe("on a phone, with a mobileDisplay", () => {
     beforeEach(() => {
+      // SAFETY: useMobileDisplay only reads matches from the MediaQueryList returned by this fixture.
       window.matchMedia = vi.fn((query: string) => ({
         matches: query === PHONE_VIEWPORT_QUERY,
-      })) as unknown as typeof window.matchMedia;
+      })) as typeof window.matchMedia;
     });
 
     it("opens the default view on the phone's display when the view sets none", async () => {
-      const { api, state } = await mountViews({
-        views: VIEWS,
+      const { api, state } = await fixture.mountViews({
+        views: fixture.VIEWS,
         mobileDisplay: "grouped",
       });
       expect(api.activeViewId.value).toBe("all");
@@ -605,9 +468,9 @@ describe("useTableViews", () => {
     });
 
     it("keeps the display an open view fixes", async () => {
-      const { state } = await mountViews({
+      const { state } = await fixture.mountViews({
         views: {
-          ...VIEWS,
+          ...fixture.VIEWS,
           items: [{ id: "all", label: "All", display: "table" }],
         },
         mobileDisplay: "grouped",
@@ -616,8 +479,8 @@ describe("useTableViews", () => {
     });
 
     it("opens a view the URL names without a display on the phone's display", async () => {
-      const { api, state } = await mountViews({
-        views: VIEWS,
+      const { api, state } = await fixture.mountViews({
+        views: fixture.VIEWS,
         query: { view: "mine" },
         mobileDisplay: "grouped",
       });
@@ -627,8 +490,8 @@ describe("useTableViews", () => {
   });
 
   it("never saves over a view the module declares", async () => {
-    const { api, state } = await mountViews({
-      views: VIEWS,
+    const { api, state } = await fixture.mountViews({
+      views: fixture.VIEWS,
       query: { view: "mine" },
     });
     state.globalFilter.value = "printer";
@@ -637,140 +500,4 @@ describe("useTableViews", () => {
     await nextTick();
     expect(state.globalFilter.value).toBe(undefined);
   });
-});
-
-describe("table views strip", () => {
-  let app: App | undefined;
-
-  const mountStrip = (props: Record<string, unknown>) => {
-    const emitted: Array<[string, unknown?]> = [];
-    app = createApp({
-      render: () =>
-        h(TableViews, {
-          ...props,
-          onOpen: (id: string) => emitted.push(["open", id]),
-          onReset: () => emitted.push(["reset"]),
-          onSave: () => emitted.push(["save"]),
-          onSaveAs: () => emitted.push(["saveAs"]),
-          onDelete: (id: string) => emitted.push(["delete", id]),
-        }),
-    });
-    app.component(
-      "UButton",
-      defineComponent({
-        props: { label: String, ariaLabel: String },
-        emits: ["click"],
-        setup:
-          (buttonProps, { emit, slots }) =>
-          () =>
-            h(
-              "button",
-              {
-                "aria-label": buttonProps.ariaLabel,
-                onClick: () => emit("click"),
-              },
-              slots.default?.() ?? buttonProps.label,
-            ),
-      }),
-    );
-    app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
-    app.component(
-      "USkeleton",
-      defineComponent({ setup: () => () => h("span") }),
-    );
-    app.component(
-      "UDropdownMenu",
-      defineComponent({
-        setup:
-          (_, { slots }) =>
-          () =>
-            slots.default?.(),
-      }),
-    );
-    const container = document.createElement("div");
-    app.mount(container);
-    return { container, emitted };
-  };
-
-  beforeEach(() => {
-    vi.stubGlobal("computed", computed);
-    vi.stubGlobal("useI18n", () => ({
-      t: (key: string) => key,
-      locale: ref("en"),
-    }));
-    vi.stubGlobal("useDmsAppConfig", () => ({ ui: { icons: {} } }));
-  });
-
-  afterEach(() => {
-    app?.unmount();
-    app = undefined;
-    vi.unstubAllGlobals();
-  });
-
-  const items = [
-    { id: "all", label: "All workspaces" },
-    { id: "late", label: "Past due", tone: "error", count: 3 },
-    { id: "user-1", label: "Mine", isUserView: true },
-  ];
-
-  it("draws the views as pills with their counters and opens the one clicked", () => {
-    const { container, emitted } = mountStrip({
-      items,
-      activeId: "all",
-      layout: "strip",
-      canSaveAs: true,
-    });
-    const pills = [...container.querySelectorAll("button[aria-pressed]")];
-    expect(pills.map((pill) => pill.textContent?.trim())).toEqual([
-      "All workspaces",
-      "Past due 3",
-      "Mine",
-    ]);
-    expect(pills[0]!.getAttribute("aria-pressed")).toBe("true");
-    (pills[1] as HTMLElement).click();
-    const saveCurrent = [...container.querySelectorAll("button")].find(
-      (button) => button.textContent?.includes("dms.table.views.save_current"),
-    );
-    saveCurrent!.click();
-    expect(emitted).toEqual([["open", "late"], ["saveAs"]]);
-  });
-
-  it("offers Reset on a modified view, and Save and Delete on the user's own", () => {
-    const { container, emitted } = mountStrip({
-      items,
-      activeId: "user-1",
-      layout: "strip",
-      modified: true,
-      canSaveAs: true,
-    });
-    const labels = [...container.querySelectorAll("button[aria-label]")].map(
-      (button) => button.getAttribute("aria-label"),
-    );
-    expect(labels).toEqual([
-      "dms.table.views.reset",
-      "dms.table.views.save",
-      "dms.table.views.delete",
-    ]);
-    (
-      container.querySelector(
-        'button[aria-label="dms.table.views.delete"]',
-      ) as HTMLElement
-    ).click();
-    expect(emitted).toEqual([["delete", "user-1"]]);
-  });
-});
-
-describe("column order", () => {
-  it("completes a partial order, the checkbox, caret and actions at their edges", () => {
-    const declared = ["select", "expand", "title", "owner", "email", "actions"];
-    expect(mergeColumnOrder(["email", "gone", "actions"], declared)).toEqual([
-      "select",
-      "expand",
-      "email",
-      "title",
-      "owner",
-      "actions",
-    ]);
-    expect(mergeColumnOrder([], declared)).toEqual(declared);
-  });
-});
+}

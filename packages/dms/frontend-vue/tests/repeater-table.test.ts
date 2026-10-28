@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A read-only list (an array or key-value field shown, not edited) reads as
  * a table of values: each cell drawn as the grid draws it (amounts
@@ -13,13 +13,13 @@ import RepeaterTable from "../layers/dms-ui/app/components/form/components/Repea
 import {
   joinRelationValue,
   relationLabelSource,
-} from "../layers/dms-ui/app/build/composables/form/repeaterTable";
+} from "../layers/dms-ui/app/entries/composables/form/repeaterTable";
 import {
   NotFoundRelation,
   relationSelectSource,
-} from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-// The relation data type, as it registers its `select` route.
 const RELATION_TYPE = { selectSource: relationSelectSource };
 
 const PRODUCT = {
@@ -48,7 +48,7 @@ describe("a relation column of a read-only list", () => {
       keyMapping: { label: "name", value: "_id" },
       multiple: false,
     });
-    // A type that names no `select` route has no rows to read.
+
     expect(relationLabelSource(UNIT_PRICE, {})).toBeUndefined();
     expect(relationLabelSource(UNIT_PRICE, undefined)).toBeUndefined();
   });
@@ -64,7 +64,7 @@ describe("a relation column of a read-only list", () => {
       rowsByValue.get("p1"),
       new NotFoundRelation("gone"),
     ]);
-    // An id not read yet stays as it is: it is not known to be missing.
+
     expect(
       joinRelationValue("p2", { rowsByValue, readIds: new Set() }, false),
     ).toBe("p2");
@@ -88,28 +88,45 @@ afterEach(() => {
 });
 
 async function mountTable(
-  rows: Record<string, unknown>[],
-  columns: Record<string, unknown>[] = [PRODUCT, UNIT_PRICE],
+  rows: {
+    product?: string;
+    replaces?: string;
+    quantity?: number;
+    unitPrice?: number;
+  }[],
+  columns: InstanceType<typeof RepeaterTable>["$props"]["columns"] = [
+    PRODUCT,
+    UNIT_PRICE,
+  ],
 ) {
-  for (const name of ["computed", "ref"]) {
-    vi.stubGlobal(name, vue[name as keyof typeof vue]);
+  for (const [name, value] of Object.entries({
+    computed: vue.computed,
+    ref: vue.ref,
+  })) {
+    vi.stubGlobal(name, value);
   }
-  const formatters: Record<string, (value: unknown) => string> = {
-    relation: (value) =>
-      typeof value === "object" && value
-        ? String((value as { name: string }).name)
-        : String(value),
-    price: (value) => `€${value}`,
-    number: (value) => String(value),
-  };
+  const formatters = new Map<
+    string,
+    (value: string | number | { name: string } | null | undefined) => string
+  >(
+    Object.entries({
+      relation: (
+        value: string | number | { name: string } | null | undefined,
+      ) => (isObject(value) && value ? String(value.name) : String(value)),
+      price: (value: string | number | { name: string } | null | undefined) =>
+        `€${value}`,
+      number: (value: string | number | { name: string } | null | undefined) =>
+        String(value),
+    }),
+  );
   vi.stubGlobal("useDataTypes", () => ({
-    getDataType: (id: string) =>
-      formatters[id]
-        ? {
-            formatter: { default: formatters[id] },
-            ...(id === "relation" ? RELATION_TYPE : {}),
-          }
-        : undefined,
+    getDataType: (id: string) => {
+      const formatter = formatters.get(id);
+      if (!formatter) return undefined;
+      if (id === "relation")
+        return { formatter: { default: formatter }, ...RELATION_TYPE };
+      return { formatter: { default: formatter } };
+    },
   }));
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en"),
@@ -123,15 +140,12 @@ async function mountTable(
     }),
   }));
   const requested: string[] = [];
-  vi.stubGlobal(
-    "useDmsAsyncData",
-    (key: string, read: () => Promise<unknown>) => {
-      requested.push(key);
-      const data = ref<unknown>();
-      void read().then((rows) => (data.value = rows));
-      return { data };
-    },
-  );
+  vi.stubGlobal("useDmsAsyncData", <T>(key: string, read: () => Promise<T>) => {
+    requested.push(key);
+    const data = ref<unknown>();
+    void read().then((rows) => (data.value = rows));
+    return { data };
+  });
   const host = document.createElement("div");
   document.body.append(host);
   app = createApp({
@@ -159,7 +173,7 @@ describe("a read-only list's rows", () => {
       "Panel",
       "€319",
     ]);
-    // One request per relation column, shared by its cells.
+
     expect(requested).toHaveLength(1);
   });
 

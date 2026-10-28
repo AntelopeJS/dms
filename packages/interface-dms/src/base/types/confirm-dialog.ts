@@ -65,6 +65,7 @@ export interface ConfirmDialog {
   title: string;
   description?: string;
   /** Values the texts are interpolated with, besides the row's fields. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published interpolation payloads accept application-defined values; no fixed message schema exists here.
   params?: Record<string, unknown>;
   /** Header icon. */
   icon?: string;

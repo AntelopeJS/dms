@@ -26,9 +26,6 @@ interface ItemsResponse {
   items: KeyValueListItem[];
 }
 
-// What a module does after changing the data behind its menu: mutate, then tell
-// the DMS. Every open session of the tenant re-fetches its site layout, so the
-// status dots move without a reload.
 export class NavigationDemoController extends Controller(NAVIGATION_DEMO_API) {
   @Post("rotate-status")
   async rotateStatus(

@@ -5,8 +5,7 @@ export interface AccountMenuEntry {
 }
 
 export const PROFILE_ROUTE = "/settings/user/profile";
-// The account menu is the only way to the settings: the sidebar footer has no
-// Settings entry, so this one opens all of them, not just the user's own.
+
 export const SETTINGS_ROUTE = "/settings";
 export const SWITCH_ACCOUNT_ROUTE = "/auth/accounts";
 

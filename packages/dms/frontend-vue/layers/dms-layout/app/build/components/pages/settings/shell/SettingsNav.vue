@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import { navBadgeClass } from "#dms-ui/app/build/utils/navBadge";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import { navBadgeClass } from "#dms-ui/app/entries/utils/navBadge";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,
@@ -14,8 +14,6 @@ import {
 const SETTINGS_INDEX_PATH = "/settings";
 const ALL_SETTINGS_ICON = "i-ph-squares-four";
 
-// v2 settings nav: title, search, "All settings", then one eyebrow-labelled
-// group per scope. Under lg it folds into a horizontal strip of items.
 const theme = tv({
   slots: {
     root: "flex gap-1.5 overflow-x-auto no-scrollbar max-lg:-mx-4 max-lg:px-4 lg:grid lg:gap-[18px] lg:overflow-visible",
@@ -44,8 +42,7 @@ const theme = tv({
       warning: { trailDot: "bg-warning" },
       error: { trailDot: "bg-error" },
     },
-    // "Preview as role" only, the same hatches as the sidebar's: red for a
-    // page the role could not open, orange for one it opens partially.
+
     previewState: {
       hidden: {
         item: "text-muted dms-hatch-locked",
@@ -59,7 +56,6 @@ const theme = tv({
   },
 });
 
-// Registered id of the settings index ("All settings").
 const SETTINGS_INDEX_ID = "settings";
 
 const ui = computed(() => theme());
@@ -87,9 +83,6 @@ const visibleGroups = computed<SettingsNavGroup[]>(() => {
     .filter((group) => group.pages.length > 0);
 });
 
-// Only the most specific entry is active: on pending invitations, Members
-// (whose path it lies under) is not. Read from every entry, not the searched
-// ones, so a search never moves the highlight.
 const activePath = computed(() =>
   findActiveSettingsPath(
     route.path,
@@ -98,9 +91,6 @@ const activePath = computed(() =>
 );
 const isActive = (to: string): boolean => activePath.value === to;
 
-// Under lg the nav is a horizontal strip wider than the screen: the active
-// item is centred in it on load and on every page change, so a page late in
-// the list (Roles, Member invitations) is not highlighted out of sight.
 const navRoot = useTemplateRef<HTMLElement>("navRoot");
 function revealActiveItem(): void {
   const root = navRoot.value;
@@ -115,17 +105,11 @@ function revealActiveItem(): void {
 onMounted(revealActiveItem);
 watch(() => route.path, revealActiveItem, { flush: "post" });
 
-// The page's badge, counted by the server when the menu loads (`navBadge`)
-// or declared, then kept fresh by the page that shows the count; drawn in
-// its tone, as a status pill is.
 const { navBadgeOf } = useNavBadges();
 const badgeOf = (page: SettingsNavPage) => navBadgeOf(page);
 const badgeClass = (page: SettingsNavPage): string =>
   navBadgeClass(badgeOf(page)?.tone);
 
-// "Preview as role": a settings page the role could not open stays listed,
-// locked, so the preview shows what the role loses; one it opens without all
-// of it is drawn partially locked.
 const preview = usePermissionPreview();
 const PREVIEW_STATE_LABELS = {
   hidden: "page.settings.roles.preview.menu_hidden",

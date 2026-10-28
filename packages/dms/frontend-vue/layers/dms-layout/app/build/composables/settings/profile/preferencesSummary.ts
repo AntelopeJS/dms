@@ -1,8 +1,6 @@
-// The sentences of the profile's "Preferences & access" rows, and which rows
-// the user may see. Pure: useProfilePreferences reads the data.
-
 import type { TimeFormatPreference } from "#dms-core/app/utils/regional";
-import type { AccessibilityPreferences } from "#dms-ui/app/build/utils/accessibilityPreferences";
+import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
+import type { AccessibilityPreferences } from "#dms-ui/app/entries/utils/accessibilityPreferences";
 import type { NotificationSubject } from "../../notification/useNotificationCatalog";
 import type {
   ColorModePreference,
@@ -12,13 +10,13 @@ import type {
 /** `t` as vue-i18n takes it: key, named params, plural count. */
 export type SummaryTranslate = (
   key: string,
-  params?: Record<string, unknown>,
+  params?: Parameters<I18nTranslate>[1],
   plural?: number,
 ) => string;
 
 const KEY = "page.settings.profile.preferences";
 const SEPARATOR = " · ";
-// 4 January 2026 is a Sunday: day `n` of the week is `n` days later.
+
 const FIRST_SUNDAY_UTC = Date.UTC(2026, 0, 4, 12);
 const DAY_MS = 24 * 60 * 60 * 1000;
 

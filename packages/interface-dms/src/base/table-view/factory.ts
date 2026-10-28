@@ -3,74 +3,35 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
-import { GetPermissionId, PageMetadata } from "../../page";
-import { claimFormPageRoute } from "../../page/internal/form-page-routes";
-import { resolveInheritedLayout } from "../../page/internal/categories";
+import type { PageMetadata } from "../../page";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
-import type { RowActionRule } from "../types/row-action";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
-import { FormPageLayout } from "../layouts";
-import { hasSearchableFields } from "../internal/searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
 import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
-import {
-  registerTableViewCustomTopics,
-  registerTableViewPageTopics,
-} from "./internal/realtime";
-import {
-  adaptRowActions,
-  resolveCustomButtons,
-  resolveCustomRowActions,
-  resolveTableViewGrants,
-} from "./internal/request-filter";
 import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
 import { TableViewRoutes } from "./routes";
 import {
-  applyFormPageSubmitDefaults,
-  applyFormRedirect,
   buildFilterSubmitDefaults,
-  buildFormPageUrls,
-  buildFormRedirectUrl,
-  FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
-  formPageConfig,
   type FormPageKind,
-  formPageSlug,
-  formRouteKey,
-  joinPageSlug,
   registerTableViewActions,
-  resolveFormPageTexts,
-  serializeCustomButtons,
   serializeExpandable,
-  serializeRowActions,
-  serializeTableViewDisplays,
 } from "./internal/factory-helpers";
 import { TableViewFunctions } from "./factory-helpers";
-import {
-  declaresCounters,
-  resolveTableViewTabs,
-  serializeTableViewTabs,
-  warnIfTabsLackCountBatch,
-} from "./internal/tabs";
+import { declaresCounters, warnIfTabsLackCountBatch } from "./internal/tabs";
 import { declareTabNavBadges } from "./internal/nav-badges";
-import {
-  resolveTableViewViews,
-  serializeTableViewViews,
-} from "./internal/views";
-import {
-  serializeEmptyStates,
-  serializeFooter,
-  warnIfSummaryLacksRoute,
-} from "./internal/footer";
-import { claimWritingTableView, tableViewAccess } from "./internal/writer";
+import { warnIfSummaryLacksRoute } from "./internal/footer";
+import { tableViewAccess } from "./internal/writer";
 import { tableViewFromSource } from "./source";
+import { validateTableViewOptions } from "./internal/validation";
+import { tableViewCreated } from "./internal/factory-lifecycle-created";
+import { filterTableViewOptions } from "./internal/factory-lifecycle-filter";
 import {
-  assertRowScopedFormSlugs,
-  validateTableViewOptions,
-} from "./internal/validation";
-import { fireAndForget } from "../../utils/fire-and-forget";
+  prepareTableViewSerialization,
+  serializeTableViewOptions,
+} from "./internal/factory-lifecycle-options";
 
 export function TableView<T extends ControllerClass>(
   controller: T,
@@ -86,11 +47,6 @@ export function TableView<T extends ControllerClass>(
     meta.setBypassTenantAccessGate();
   }
   meta.recordGateBypassRegistration(options.bypassTenantAccessGate === true);
-  // The flag is latched controller-wide: once any registration opens the data
-  // routes, every other registration of the same controller shares the
-  // opening and has no way to re-gate them. Warn as soon as the two kinds
-  // coexist, whichever registered first — checking only the later one would
-  // stay silent on the exact same end state.
   if (meta.hasMixedGateBypassRegistrations) {
     Logging.Warn(
       `[DMS] TableView on "${controller.name}" is mounted both with and without bypassTenantAccessGate: its data routes stay reachable while a gate denies the tenant, for every page that mounts it.`,
@@ -149,17 +105,16 @@ export function TableView<T extends ControllerClass>(
   const access = tableViewAccess(options.rowActions, capabilities);
   const isWriting = access === "write";
   const forms = buildTableViewForms(controller, options, access);
-  const { new: newForm, edit: editForm, view: viewForm } = forms;
+  const { view: viewForm } = forms;
 
-  const declaredCustomButtons = options.customButtons;
-  const serializedCustomButtons = serializeCustomButtons(declaredCustomButtons);
-  const serializedRowActions = options.rowActions
-    ? serializeRowActions(options.rowActions)
-    : undefined;
-  // Kept for the per-request filter, whose `options` are the serialized ones.
-  const declaredCustomRowActions = options.rowActions?.custom;
-  const declaredTabs = options.tabs;
-  const declaredViews = options.views;
+  const prepared = prepareTableViewSerialization(options, {
+    controller,
+    meta,
+    config,
+    forms,
+    serializedExpandable,
+    isExportEnabled,
+  });
 
   const isPageMode =
     options.formContainer === undefined ||
@@ -167,17 +122,13 @@ export function TableView<T extends ControllerClass>(
   const builder = new ComponentBuilder<TableViewOptionsSerialized>(
     TABLE_VIEW_COMPONENT_NAME,
   );
-  // The table view embeds its new/edit/view forms synchronously into its own
-  // options, so it is the async host that claims their upload tokens.
   builder.transformOptions(StampUploadFieldTokens);
-  for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
+  for (const { id, permission, permissionId } of prepared.declarations
+    .declaredCustomButtons ?? []) {
     if (id) builder.button(id, { permission, permissionId });
   }
   declareTabNavBadges(builder, options.tabs, controller);
 
-  // Declared from what the controller offers, a read-only TableView's write
-  // actions included: they keep guarding the write routes of a controller no
-  // TableView writes through.
   registerTableViewActions(builder, {
     ...capabilities,
     hasViewForm: !!viewForm,
@@ -188,260 +139,36 @@ export function TableView<T extends ControllerClass>(
   recordTableView(meta, builder, access, options);
 
   builder
-    .options({
-      ...withHiddenColumns(config, options.columns?.hidden),
-      rowActions: serializedRowActions,
-      caption: options.caption,
-      density: options.density,
-      maxHeight: options.maxHeight,
-      rowClick: options.rowClick,
-      expandable: serializedExpandable,
-      enableTableExport: isExportEnabled,
-      rowIdKey: options.rowIdKey,
-      labelKey: options.labelKey,
-      formContainer: options.formContainer,
-      archiveMode: options.archiveMode,
-      archivedCountLabel: options.archivedCountLabel,
-      defaultSort: options.defaultSort,
-      pinnedRows: options.pinnedRows as RowActionRule | undefined,
-      queryParamFilters: options.queryParamFilters,
-      routeParamFilters: options.routeParamFilters,
-      customButtons: serializedCustomButtons,
-      defaultFilters: options.defaultFilters,
-      realtimeTopic: options.realtimeTopic,
-      liveHold: options.liveHold,
-      tabs: serializeTableViewTabs(options.tabs),
-      views: serializeTableViewViews(options.views),
-      layout: options.layout,
-      searchable: hasSearchableFields(controller),
-      searchPlaceholder: options.searchPlaceholder,
-      searchShortcut: options.searchShortcut,
-      quickFilters: options.quickFilters,
-      pageSize: options.pageSize,
-      pagination: options.pagination,
-      reorder: options.reorder,
-      footer: serializeFooter(controller.name, meta, options.footer),
-      emptyStates: serializeEmptyStates(options.emptyStates),
-      displays: serializeTableViewDisplays(options),
-      defaultDisplay: options.defaultDisplay,
-      mobileDisplay: options.mobileDisplay,
-      formComponents: {
-        new: newForm ? newForm.serializeSync() : undefined,
-        edit: editForm ? editForm.serializeSync() : undefined,
-        view: viewForm ? viewForm.serializeSync() : undefined,
-      },
-    })
+    .options(serializeTableViewOptions(prepared.serialization))
     .meta({
       name: options.caption || "TableView",
       icon: "i-ph-table",
     })
     .onCreated((parentPage: PageMetadata) => {
-      const parentInfo = parentPage.pageInfo;
-      if (!parentInfo) {
-        throw new Error("Parent page info not found");
-      }
-
-      const customPages =
-        options.formContainer?.type === "page"
-          ? options.formContainer.pages
-          : undefined;
-
-      const tableViewPermissionId = GetPermissionId(builder);
-
-      if (tableViewPermissionId && isWriting) {
-        claimWritingTableView(meta, controller.name, {
-          owner: tableViewPermissionId,
-          page: parentPage,
-        });
-      }
-
-      if (options.realtime !== false) {
-        registerTableViewPageTopics(parentInfo.fullId, config.location);
-      }
-      registerTableViewCustomTopics(parentInfo.fullId, options.realtimeTopic);
-
-      if (!tableViewPermissionId) {
-        Logging.Warn("TableView permission ID not found");
-        return;
-      }
-
-      if (!isPageMode) {
-        return;
-      }
-
-      const routeKey = formRouteKey(
-        tableViewPermissionId,
-        GetPermissionId(parentPage.target) ?? parentInfo.fullId,
+      tableViewCreated(
+        {
+          controller,
+          options,
+          meta,
+          builder,
+          config,
+          isWriting,
+          forms,
+          isPageMode,
+        },
+        parentPage,
       );
-
-      // Every kind, `customPage` entries included: they register no sub-page
-      // below and are still the URL the frontend navigates to.
-      builder.mergeOptions({
-        formPages: buildFormPageUrls(
-          parentInfo.fullSlug,
-          routeKey,
-          customPages,
-        ),
-      });
-
-      assertRowScopedFormSlugs(customPages);
-
-      const registerFormPage = (kind: FormPageKind) => {
-        const form = forms[kind];
-        if (!form || formPageConfig(kind, customPages)?.customPage) return;
-
-        const definition = FORM_PAGE_DEFINITIONS[kind];
-        const urlSlug = formPageSlug(kind, routeKey, customPages);
-        const fullSlug = joinPageSlug(parentInfo.fullSlug, urlSlug);
-        // The page's own id would be the same for every table view it carries,
-        // so the sub-page is filed under the table view's key as well.
-        const id = `${routeKey}.${kind}`;
-
-        claimFormPageRoute({
-          owner: tableViewPermissionId,
-          pageFullId: parentInfo.fullId,
-          kind,
-          fullId: `${parentInfo.fullId}.${id}`,
-          fullSlug,
-        });
-
-        const texts = resolveFormPageTexts(kind, customPages);
-
-        const FormController = class extends parentPage.target {};
-        const formMeta = new PageMetadata(FormController as ControllerClass);
-        formMeta.SetInfo(
-          id,
-          fullSlug,
-          {
-            displayName: texts.displayName,
-            description: texts.description,
-            category: parentInfo,
-            urlSlug,
-            hidden: true,
-            permission: builder.getAction(definition.action),
-          },
-          resolveInheritedLayout(parentInfo) ?? FormPageLayout(),
-        );
-        const frame = { pageSlug: parentInfo.fullSlug, formSlug: fullSlug };
-        if (definition.submitsFilterDefaults) {
-          applyFormPageSubmitDefaults(form, options, frame);
-        }
-        // The edit and details pages end their breadcrumb with the row's
-        // label once the form has loaded it.
-        if (kind !== "new" && options.labelKey) {
-          form.mergeOptions({ labelKey: options.labelKey });
-        }
-        const listUrl = buildFormRedirectUrl(frame);
-        form.mergeOptions({ backTo: listUrl });
-        if (definition.redirectsOnSubmit) {
-          applyFormRedirect(
-            form,
-            listUrl,
-            Object.keys(options.queryParamFilters ?? {}),
-          );
-        }
-        formMeta.SetComponent("form", form);
-        fireAndForget(formMeta.Register(), "table view form registration");
-
-        if (options.realtime === false) return;
-        registerTableViewPageTopics(
-          `${parentInfo.fullId}.${id}`,
-          config.location,
-        );
-      };
-
-      for (const kind of FORM_PAGE_KINDS) {
-        registerFormPage(kind);
-      }
     })
-    .onFilter(async (permissions, options, permissionId, context) => {
-      const grants = await resolveTableViewGrants(permissions, permissionId);
-
-      const adaptedFormComponents = {
-        new: grants.add ? options.formComponents.new : undefined,
-        edit: grants.edit ? options.formComponents.edit : undefined,
-        view: grants.view ? options.formComponents.view : undefined,
-      };
-
-      const adaptedRowActions = adaptRowActions({
-        rowActions: options.rowActions,
-        archiveMode: options.archiveMode,
-        grants,
-        custom: await resolveCustomRowActions(
-          permissions,
-          declaredCustomRowActions,
-          options.rowActions?.custom,
-          permissionId,
-        ),
-        controllerRules: meta.controllerRowActionRules,
-      });
-
-      const adaptedCustomButtons = await resolveCustomButtons(
+    .onFilter((permissions, options, permissionId, context) => {
+      return filterTableViewOptions(prepared.declarations, [
         permissions,
-        declaredCustomButtons,
-        options.customButtons,
+        options,
         permissionId,
         context,
-      );
-
-      const adaptedTabs = await resolveTableViewTabs(
-        permissions,
-        declaredTabs,
-        options.tabs,
-        permissionId,
-      );
-
-      const adaptedViews = await resolveTableViewViews(
-        permissions,
-        declaredViews,
-        options.views,
-        permissionId,
-      );
-
-      return {
-        ...options,
-        // The export routes refuse a caller without the action: its toolbar
-        // entry is left out too, like the add/edit/delete buttons.
-        enableTableExport: options.enableTableExport && grants.export,
-        formComponents: adaptedFormComponents,
-        rowActions: adaptedRowActions,
-        customButtons: adaptedCustomButtons,
-        tabs: adaptedTabs,
-        views: adaptedViews,
-      };
+      ]);
     });
 
   return builder;
-}
-
-/** A column of the controller's config, as far as hiding it goes. */
-interface HideableColumn {
-  id: string;
-  isVisible?: boolean;
-}
-
-/** The controller's config, as far as its columns go. */
-interface ColumnsConfig {
-  columns: HideableColumn[];
-}
-
-/**
- * The controller's config with the columns a table view hides set to open
- * hidden, as a column declared `isVisible: false` does. The config is the
- * controller's, which other table views share: the table view gets a copy.
- */
-function withHiddenColumns<T extends ColumnsConfig>(
-  config: T,
-  hidden: string[] = [],
-): T {
-  if (hidden.length === 0) return config;
-  const hiddenIds = new Set(hidden);
-  return {
-    ...config,
-    columns: config.columns.map((column) =>
-      hiddenIds.has(column.id) ? { ...column, isVisible: false } : column,
-    ),
-  };
 }
 
 /**
@@ -478,8 +205,6 @@ function buildTableViewForms<T extends ControllerClass>(
           }),
           view: viewForm,
         };
-  // Each form is handed to the module before it is embedded or mounted, so
-  // what it declares on the builder (its watches) reaches every container.
   for (const kind of FORM_PAGE_KINDS) {
     const form = forms[kind];
     if (form) options.forms?.[kind]?.(form);

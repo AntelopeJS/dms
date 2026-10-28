@@ -1,4 +1,4 @@
-export { dispatchQuickActionTarget } from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
+export { dispatchQuickActionTarget } from "#dms-ui/app/entries/utils/dispatchQuickActionTarget";
 
 export interface QuickActionCategoryGroup {
   category: QuickActionCategoryInfo;

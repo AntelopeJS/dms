@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// The "Esc to cancel" hint at the start of a modal footer. It takes the room
-// the buttons leave and shows only when it fits there whole: long button
-// labels push it out instead of squeezing it onto two lines past the edge.
 interface ModalEscHintProps {
   label: string;
 }

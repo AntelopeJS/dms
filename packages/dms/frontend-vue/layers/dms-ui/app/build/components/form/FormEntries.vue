@@ -11,7 +11,7 @@ import {
   entryRowLayout,
   GROUP_MEMBER_CLASSES,
 } from "../../composables/form/formLayout";
-import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
 import DmsFieldRow from "../../../components/field-row/FieldRow.vue";
@@ -43,8 +43,6 @@ function isGroupVisible(group: FieldGroup): boolean {
   return group.fields.some((field) => !context.isFieldHidden(field));
 }
 
-// A description tells how to fill the field ("Left empty, the default rate
-// applies"): a form where nothing can be changed shows only the values.
 function descriptionOf(entry: FormFieldOrGroup): string | undefined {
   return context.isReadOnly.value ? undefined : entry.description;
 }

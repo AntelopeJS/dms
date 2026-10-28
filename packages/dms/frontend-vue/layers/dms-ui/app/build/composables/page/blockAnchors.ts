@@ -1,9 +1,5 @@
 import type { ComponentPublicInstance, VNode } from "vue";
 
-// The blocks a page draws, by their anchor: the key path `RecursiveComponent`
-// renders them under (`summary`, `tabs.statistics`). Registered from a
-// template ref, which only runs in the browser, so a server render never
-// fills it.
 const blocks = new Map<string, ComponentPublicInstance>();
 
 /**
@@ -32,6 +28,7 @@ function firstElementOf(vnode: VNode | null | undefined): Element | null {
   if (vnode.component) return firstElementOf(vnode.component.subTree);
   if (!Array.isArray(vnode.children)) return null;
   for (const child of vnode.children) {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- VNode child representations can include scalars and arrays; retain the unchecked recursive projection and null fallback.
     const element = firstElementOf(child as VNode);
     if (element) return element;
   }

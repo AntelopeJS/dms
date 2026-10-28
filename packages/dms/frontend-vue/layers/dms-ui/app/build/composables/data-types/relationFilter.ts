@@ -1,4 +1,5 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
+import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
 
 /**
  * A relation picker narrowed by another field of its form: the related
@@ -14,9 +15,11 @@ const FILTER_MODE = "is";
 
 type FilterValue = string | number | boolean;
 
-function isFilterValue(value: unknown): value is FilterValue {
-  if (typeof value === "string") return value !== "";
-  return typeof value === "number" || typeof value === "boolean";
+function isFilterValue(
+  value: RelationPickChange["source"],
+): value is FilterValue {
+  if (isString(value)) return value !== "";
+  return isNumber(value) || isBoolean(value);
 }
 
 /**
@@ -26,8 +29,8 @@ function isFilterValue(value: unknown): value is FilterValue {
  */
 export function relationFilterParams(
   filterBy: RelationFilterBy | undefined,
-  sourceValue: unknown,
-): Record<string, string> {
+  sourceValue: RelationPickChange["source"],
+) {
   if (!filterBy || !isFilterValue(sourceValue)) return {};
   return { [`filter_${filterBy.field}`]: `${FILTER_MODE}:${sourceValue}` };
 }
@@ -49,7 +52,7 @@ export interface RelationPickOutcome {
 }
 
 /** Whether a picker holds a value. */
-function hasRelationPick(value: unknown): boolean {
+function hasRelationPick(value: RelationPickChange["pick"]): boolean {
   return !isEmptyFormValue(value);
 }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import { computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsKeyValueList, {
@@ -13,10 +14,6 @@ import type { DefaultComponentProps } from "../../../../dms-core/app/types/compo
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 import { isComposedText } from "../../../../dms-core/app/utils/composedText";
 
-// `KeyValueList` block (interface-dms `base/key-value-list`): label / value
-// rows (v2 .c-dl), static or from `fetchUrl` (`{ items }`), in a card by
-// default. Labels, details and text values follow the `$` i18n convention or
-// are composed texts.
 interface KeyValueListBlockItem
   extends Omit<KeyValueItem, "label" | "value" | "detail"> {
   label: BlockText;
@@ -60,8 +57,7 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   periodScope: undefined,
   realtimeTopic: undefined,
   empty: undefined,
-  // A fetched list's length is unknown until it lands: draw the rows a record
-  // card usually lists (customer, ids, status, amounts, dates), not a stub.
+
   skeletonCount: 5,
 });
 
@@ -81,15 +77,12 @@ const { items, isPending, hasError, notFound, refresh } =
     componentId: props.componentId,
   });
 
-// A composed value already says how each of its parameters is written, so it
-// is composed whatever the row's type; a plain one is translated only where
-// the type draws text.
 function resolveValue(item: KeyValueListBlockItem): KeyValueItem["value"] {
   if (isComposedText(item.value)) return processText(item.value);
-  if (typeof item.value === "string" && TRANSLATED_TYPES.has(item.type)) {
+  if (isString(item.value) && TRANSLATED_TYPES.has(item.type)) {
     return processText(item.value);
   }
-  return item.value as KeyValueItem["value"];
+  return item.value;
 }
 
 const resolvedItems = computed<KeyValueItem[]>(() =>
@@ -110,8 +103,7 @@ const isEmpty = computed(
     !notFound.value &&
     resolvedItems.value.length === 0,
 );
-// A card with a head gets its body padding from the list itself, so the rows'
-// hairlines run to the same inset as the head's.
+
 const listClass = computed(() => (props.card ? "px-[18px] py-2" : undefined));
 </script>
 

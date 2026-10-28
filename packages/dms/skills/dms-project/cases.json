@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "restart-backend",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Restart the backend.",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms-dev", "dms", "dms-frontend"]
+      }
+    },
+    {
+      "id": "change-not-showing-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "i changed the page but nothing shows up in the dashboard??",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms-dev", "dms-frontend", "dms", "dms-pages"]
+      }
+    },
+    {
+      "id": "backend-logs",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Where can I read the logs of the DMS dev servers?",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms-dev", "dms-frontend", "dms"]
+      }
+    },
+    {
+      "id": "new-dms-project",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Create a new project that uses the DMS, starting from the template.",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms", "antelopejs", "ajs-cli"]
+      }
+    },
+    {
+      "id": "add-dms-module-adonis",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "add dms-lang to my AdonisJS app",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms", "ajs-cli", "antelopejs"]
+      }
+    },
+    {
+      "id": "dms-project-antelope-config",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Show me the antelope.config.ts of a DMS app that loads the DMS, MongoDB, the API server and auth-jwt, with my own src as the local module.",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms", "antelopejs", "ajs-cli"],
+        "mustMention": ["defineConfig"]
+      }
+    },
+    {
+      "id": "dms-project-adonis-call-interface",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my adonis app embeds the dms, how do i call a dms interface from a controller",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms", "ajs-cli", "antelopejs"],
+        "mustMention": ["runtime.use"]
+      }
+    },
+    {
+      "id": "dms-project-not-frontend-server-routes",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Write a dms.server.ts for my frontend module that adds a server route and a proxy to the backend.",
+      "expect": {
+        "skills": ["dms-frontend"],
+        "acceptable": ["dms", "dms-module"],
+        "avoid": ["dms-project"]
+      }
+    }
+  ]
+}

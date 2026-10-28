@@ -8,14 +8,14 @@ import {
 } from "@antelopejs/interface-dms/page/internal/layout-filter";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { resolveCustomButtons } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
-import type {
-  CustomButton,
-  CustomButtonSerialized,
-} from "@antelopejs/interface-dms/base/types/custom-button";
+import type { CustomButton } from "@antelopejs/interface-dms/base/types/custom-button";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
-function actionsOf(options: unknown): PageHeaderButtonSerialized[] {
+function actionsOf(
+  options: ReturnType<typeof DefaultLayout>["options"],
+): PageHeaderButtonSerialized[] {
+  // SAFETY: All callers pass DefaultLayout options, whose declared and served headerActions are serialized buttons; DefaultLayout erases its options generic.
   return (options as { headerActions?: PageHeaderButtonSerialized[] })
     .headerActions!;
 }
@@ -204,6 +204,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         },
       ],
     });
+    // SAFETY: filterLayoutHeaderActions serves DefaultLayout headerActions and headerActionsQuery, but DefaultLayout's return type erases the options shape.
     const serve = async (query: Record<string, string>) =>
       (await filterLayoutHeaderActions(
         scoped,
@@ -238,6 +239,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         },
       ],
     });
+    // SAFETY: filterLayoutHeaderActions serves DefaultLayout headerActions and headerActionsQuery, but DefaultLayout's return type erases the options shape.
     const serve = async (query: Record<string, string>) =>
       (await filterLayoutHeaderActions(
         queue,
@@ -321,7 +323,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
         rowActions: { add: { placement: "header", label: "$tasks.new" } },
       },
     },
-  } as unknown as Record<string, ComponentInfoSerialized>;
+  } satisfies Record<string, ComponentInfoSerialized>;
 
   it("adds them after the page's own, naming the component that runs them", () => {
     const layout = withComponentHeaderButtons(
@@ -360,7 +362,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
         ...components.table,
         options: { rowActions: { add: false } },
       },
-    } as unknown as Record<string, ComponentInfoSerialized>;
+    } satisfies Record<string, ComponentInfoSerialized>;
     const layout = DefaultLayout();
     expect(withComponentHeaderButtons(layout, refused)).to.equal(layout);
   });
@@ -379,7 +381,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
           },
         ],
       },
-    } as unknown as Record<string, ComponentInfoSerialized>;
+    } satisfies Record<string, ComponentInfoSerialized>;
 
     const layout = withComponentHeaderButtons(DefaultLayout(), nested);
 
@@ -406,7 +408,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
 
 describe("[unit] interfaces/dms-base/table-view — a toolbar button its availability hides", () => {
   it("is left out of the buttons served, the others kept", async () => {
-    const declared: CustomButton[] = [
+    const declared = [
       { id: "export", label: "Export", target: { type: "page", url: "/x" } },
       {
         id: "add",
@@ -420,10 +422,9 @@ describe("[unit] interfaces/dms-base/table-view — a toolbar button its availab
         target: { type: "page", url: "/purge" },
         availability: () => ({ reason: "$locked" }),
       },
-    ];
+    ] satisfies CustomButton[];
     const serialized = declared.map(
-      ({ availability: _availability, ...button }) =>
-        button as CustomButtonSerialized,
+      ({ availability: _availability, ...button }) => button,
     );
 
     const served = await resolveCustomButtons(

@@ -3,7 +3,7 @@ export type SecurityDialogTone = "primary" | "error" | "warning";
 </script>
 
 <script setup lang="ts">
-import DmsModalEscHint from "#dms-ui/app/build/components/modal/ModalEscHint.vue";
+import DmsModalEscHint from "#dms-ui/app/entries/components/modal/ModalEscHint";
 
 interface SecurityDialogFrameProps {
   title: string;

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Data">
 import { computed, type Component, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import DmsKeyValueList, {
@@ -19,16 +19,16 @@ import type { ExpandedRowLoadState } from "../../composables/table-view/useExpan
  * (each value drawn by its column's data type, like a cell). While a
  * `lazyLoad` row loads, or if it fails, the band says so in its place.
  */
-interface ExpandedRowDetailProps {
+interface ExpandedRowDetailProps<T extends Data> {
   /** What the band details, as a custom band receives it. */
-  rowProps: TableViewExpandedRowProps;
+  rowProps: TableViewExpandedRowProps<T>;
   /** The table view's `expandable` configuration. */
   config: TableViewExpandableConfig;
   /** Where the row a `lazyLoad` band shows stands. */
   loadState?: ExpandedRowLoadState;
 }
 
-const props = withDefaults(defineProps<ExpandedRowDetailProps>(), {
+const props = withDefaults(defineProps<ExpandedRowDetailProps<T>>(), {
   loadState: "ready",
 });
 const emit = defineEmits<{ retry: [] }>();
@@ -83,8 +83,6 @@ function renderField(key: string | undefined): VNodeChild {
   return renderColumnValue(column, row, "detail");
 }
 
-// The value slot renders a VNode tree; a functional wrapper keeps it in the
-// template's flow.
 const FieldValue = (fieldProps: { item: KeyValueItem }) =>
   renderField(fieldProps.item.id);
 </script>

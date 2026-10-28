@@ -3,10 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
-// Database-computed fields of a table view (src/test/attachment-host/computed.ts):
-// the list returns them on every row, whether or not the request filters or
-// sorts on them, as the data API's own list does.
-
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
 
@@ -34,9 +30,11 @@ describe("[integration] table view computed fields", () => {
   });
 
   async function list(query = ""): Promise<Task[]> {
-    const response = await client.get(`${LOCATION}/list?limit=50${query}`);
+    const response = await client.get<{ results: Task[] }>(
+      `${LOCATION}/list?limit=50${query}`,
+    );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.results as Task[];
+    return response.data.results;
   }
 
   const computedOf = (tasks: Task[]) =>
@@ -82,8 +80,11 @@ describe("[integration] table view computed sub-query beside a relation", () => 
       name: "Apollo",
     });
     expect(project.status, JSON.stringify(project.data)).to.equal(HTTP_OK);
-    const [created] = (await client.get("/api/computed/projects/list?limit=5"))
-      .data.results as { _id: string }[];
+    const [created] = (
+      await client.get<{ results: { _id: string }[] }>(
+        "/api/computed/projects/list?limit=5",
+      )
+    ).data.results;
     projectId = created!._id;
     for (const title of ["Plan", "Build"]) {
       const task = await client.post(`${LOCATION}/new`, {
@@ -94,8 +95,10 @@ describe("[integration] table view computed sub-query beside a relation", () => 
       });
       expect(task.status, JSON.stringify(task.data)).to.equal(HTTP_OK);
     }
-    const listed = await client.get(`${LOCATION}/list?limit=5&sortKey=title`);
-    taskId = (listed.data.results as { _id: string }[])[0]!._id;
+    const listed = await client.get<{ results: { _id: string }[] }>(
+      `${LOCATION}/list?limit=5&sortKey=title`,
+    );
+    taskId = listed.data.results[0]!._id;
   });
 
   it("resolves a single relation of a row read alone", async () => {
@@ -109,8 +112,10 @@ describe("[integration] table view computed sub-query beside a relation", () => 
   });
 
   it("resolves it in the list too", async () => {
-    const response = await client.get(`${LOCATION}/list?limit=5`);
-    const [task] = response.data.results as Record<string, unknown>[];
+    const response = await client.get<{
+      results: { siblings: number; projectId: { _id: string; name: string } }[];
+    }>(`${LOCATION}/list?limit=5`);
+    const [task] = response.data.results;
     expect(task!.siblings).to.equal(2);
     expect(task!.projectId).to.include({ _id: projectId, name: "Apollo" });
   });

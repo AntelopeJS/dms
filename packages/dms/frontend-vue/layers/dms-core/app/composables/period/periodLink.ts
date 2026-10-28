@@ -1,3 +1,6 @@
+import { isString } from "../../utils/type-check";
+import type { ValidationRouteContext } from "../../utils/query-validation";
+
 /** The keys one `PeriodSelector` keeps its period under in the page URL. */
 export interface PeriodQueryKeys {
   period: string;
@@ -8,14 +11,6 @@ export interface PeriodQueryKeys {
   compareTo: string;
 }
 
-const KEY_NAMES: Array<keyof PeriodQueryKeys> = [
-  "period",
-  "compare",
-  "from",
-  "to",
-  "compareFrom",
-  "compareTo",
-];
 const QUERY_SEPARATOR = "?";
 const FRAGMENT_SEPARATOR = "#";
 
@@ -25,14 +20,21 @@ const FRAGMENT_SEPARATOR = "#";
  */
 export function periodQueryKeys(id?: string): PeriodQueryKeys {
   const prefix = id ? `${id}.` : "";
-  return Object.fromEntries(
-    KEY_NAMES.map((name) => [name, `${prefix}${name}`]),
-  ) as unknown as PeriodQueryKeys;
+  return {
+    period: `${prefix}period`,
+    compare: `${prefix}compare`,
+    from: `${prefix}from`,
+    to: `${prefix}to`,
+    compareFrom: `${prefix}compareFrom`,
+    compareTo: `${prefix}compareTo`,
+  };
 }
 
-function firstText(value: unknown): string | undefined {
+function firstText(
+  value: Parameters<typeof withPeriodQuery>[1][string],
+): string | undefined {
   const text = Array.isArray(value) ? value[0] : value;
-  return typeof text === "string" && text ? text : undefined;
+  return isString(text) && text ? text : undefined;
 }
 
 /**
@@ -43,7 +45,7 @@ function firstText(value: unknown): string | undefined {
  */
 export function withPeriodQuery(
   link: string,
-  query: Record<string, unknown>,
+  query: ValidationRouteContext["query"],
   id: string,
 ): string {
   const [beforeFragment = "", ...fragment] = link.split(FRAGMENT_SEPARATOR);

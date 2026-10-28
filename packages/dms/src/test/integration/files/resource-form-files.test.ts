@@ -14,8 +14,7 @@ const METADATA = "/api/files/metadata";
 const PRESIGN_URL = "/api/files/presign";
 const LOCATION = "/api/native-attachments";
 const FILE_FIELD = `${LOCATION}#file`;
-// ResourceForm blocks posting to the same data routes as the TableViews of
-// the controller (see the attachment test host).
+
 const NEW_FORM_SLUG = "/nativefiles-new-form";
 const EDIT_FORM_SLUG = "/nativefiles-edit-form";
 const PROFILE_SLUG = "/settings/user/profile";

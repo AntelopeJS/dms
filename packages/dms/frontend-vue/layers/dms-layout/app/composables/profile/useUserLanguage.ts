@@ -15,6 +15,7 @@ export function useUserLanguage() {
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);
 
+    // prettier-ignore
     try {
       await $authFetch(PROFILE_ENDPOINT, {
         method: "POST",
@@ -27,7 +28,7 @@ export function useUserLanguage() {
 
       await refreshUser();
     } catch {
-      /* ignore — silently skip the update on network / backend errors */
+      // eslint-disable-line no-empty -- Profile-write and session-refresh failures remain silent.
     }
   }
 

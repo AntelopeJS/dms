@@ -49,6 +49,7 @@ export namespace FormFunctions {
 export interface SetFieldValueParams {
   targetField: string;
   value?: unknown;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published field mappings can assign arbitrary application field values; narrowing would change watch payloads.
   valueMap?: Record<string, unknown>;
 }
 
@@ -306,6 +307,7 @@ export interface FormProps extends BaseComponentProps {
    * Used to inherit context (e.g. a parent id from `queryParamFilters`) into a
    * page-rendered "new" form.
    */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published defaults are application-owned form fields and are validated by the submitting route.
   submitDefaults?: Record<string, unknown>;
   /**
    * Opens the form to a contributor: whoever owns the slot rewrites these

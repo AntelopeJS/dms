@@ -12,7 +12,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   INVITE_EMAILS_MAX,
   INVITE_FULL_NAME_MAX_LENGTH,
-} from "../../../validation/member-invite.schema";
+} from "../../../validation";
 import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
 const DEFAULT_INVITE_LANGUAGE = "en";
@@ -57,8 +57,7 @@ export const memberInviteForm = Form({
       id: "emails",
       label: "$page.settings.members.invite.field.emails",
       description: "$page.settings.members.invite.field.emails_description",
-      // Typed or pasted as tags; an address already a member comes back as
-      // a server error naming it, and its tag turns red.
+
       type: new DefaultDataTypes.TagsType({
         itemType: "email",
         max: INVITE_EMAILS_MAX,
@@ -74,9 +73,7 @@ export const memberInviteForm = Form({
         dataApiController: roleSettingDataAPI,
         keyMapping: { label: "name", value: "_id" },
       }),
-      // Pills with each role's permission count instead of a relation picker:
-      // the inviter compares roles while choosing them. Inert while the
-      // invitee is made an owner, as on the "Change roles" form.
+
       inputComponent: CustomComponent("DmsMemberRolePicker")
         .options({
           rolesUrl: INVITE_ROLES_URL,
@@ -84,7 +81,7 @@ export const memberInviteForm = Form({
           ownerField: "asTenantOwner",
         })
         .serializeSync(),
-      // Required unless the invitee is made an owner (see the watchers).
+
       required: false,
     },
     {
@@ -95,7 +92,7 @@ export const memberInviteForm = Form({
         items: DASHBOARD_LANGUAGE_ITEMS,
       }),
       required: true,
-      // Until the inviter's own language arrives from `fetchUrl`.
+
       defaultValue: DEFAULT_INVITE_LANGUAGE,
     },
     {
@@ -110,8 +107,7 @@ export const memberInviteForm = Form({
     },
     {
       id: "asTenantOwner",
-      // A card with its own title and explanation, as the owner role
-      // deserves more than a bare switch.
+
       type: new DefaultDataTypes.BooleanType({
         display: "card",
         icon: "i-ph-crown",
@@ -124,20 +120,16 @@ export const memberInviteForm = Form({
     },
   ],
   fieldsOrientation: "vertical",
-  // Modules attach their own fields here through `RegisterInviteExtension`.
+
   slotId: INVITE_FORM_SLOT_ID,
   fetchUrl: INVITE_DEFAULTS_URL,
   submitUrl: INVITE_URL,
   submitUrlMethod: HttpMethod.post,
   submitLabel: "$page.settings.members.invite.submit",
   successMessage: "$page.settings.members.invite.success",
-  // Resolved from the invite response: pending invites vs directly-added
-  // existing users land on different pages.
+
   redirectOnSuccess: "{{response.redirectPath}}",
 })
-  // Owners hold every permission: no role is asked of them. The picker greys
-  // the roles itself (`ownerField`), as disabling the field would swap it for
-  // a read-only display of the role ids.
   .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
     params: { targetField: "roles", setRequired: false },
     onParam: whenFieldIs("asTenantOwner", true),

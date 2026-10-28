@@ -8,13 +8,13 @@ import {
   vi,
 } from "vitest";
 import { ref } from "vue";
+import type { I18nTranslate } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useRegionalFormat } from "../layers/dms-core/app/composables/user/useRegionalFormat";
 import {
   regionalFormatLocale,
   setRegionalPreferencesSource,
 } from "../layers/dms-core/app/utils/regional";
 
-// 23:30 UTC on 30 Sep: already 1 Oct in Brussels.
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));
 const DAY_MONTH_YEAR: Intl.DateTimeFormatOptions = {
   day: "numeric",
@@ -27,7 +27,7 @@ const locale = ref("fr-FR");
 beforeEach(() => {
   locale.value = "fr-FR";
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, params?: Record<string, unknown>) =>
+    t: (key: string, params?: Parameters<I18nTranslate>[1]) =>
       `${key}:${JSON.stringify(params ?? {})}`,
     locale,
   }));
@@ -92,7 +92,8 @@ describe("useRegionalFormat", () => {
       }).format(12),
     ]);
     expectTypeOf(formatNumber(1)).toEqualTypeOf<string>();
-    expectTypeOf(formatNumber("n/a" as unknown)).toEqualTypeOf<unknown>();
+    expectTypeOf<Parameters<typeof formatNumber>[0]>().toEqualTypeOf<unknown>();
+    expectTypeOf<ReturnType<typeof formatNumber>>().toEqualTypeOf<unknown>();
     expect(formatNumber("n/a")).toBe("n/a");
   });
 

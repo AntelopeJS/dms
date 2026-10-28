@@ -51,8 +51,6 @@ export class PageTableViewKanban extends PageController(
     defaultDisplay: "kanban",
   });
 
-  // Read-only over the shared tasks: a boolean column groups in two columns,
-  // and nothing can be dragged.
   static byDone = TableView(taskDataAPI, {
     caption: "Done or not (read-only board)",
     labelKey: "name",

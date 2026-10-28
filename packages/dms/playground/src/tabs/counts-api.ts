@@ -23,7 +23,6 @@ export class TabCountsAPIController extends Controller("/api/tab-counts") {
     return { members, invoices };
   }
 
-  // Published, so the badges read again without a page refresh.
   @Post("add")
   async add() {
     members += 1;

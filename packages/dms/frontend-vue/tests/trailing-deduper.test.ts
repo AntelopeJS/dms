@@ -3,7 +3,7 @@ import { createTrailingDeduper } from "../layers/dms-core/app/utils/trailingDedu
 
 function deferred() {
   let resolve!: () => void;
-  let reject!: (error: unknown) => void;
+  let reject!: (error: Error) => void;
   const promise = new Promise<void>((res, rej) => {
     resolve = () => res();
     reject = rej;
@@ -19,7 +19,7 @@ describe("createTrailingDeduper", () => {
     const deduper = createTrailingDeduper();
 
     const inFlight = deduper.run(task);
-    // The invalidation lands while the first run is still pending.
+
     const queued = deduper.run(task);
     expect(task).toHaveBeenCalledTimes(1);
 

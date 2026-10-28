@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ComponentPublicInstance } from "vue";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { childLayoutPath } from "#dms-core/app/build/utils/permission-preview";
+import type { ComponentPublicInstance, useAttrs } from "vue";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { childLayoutPath } from "#dms-core/app/entries/utils/permission-preview";
 import { childComponentId } from "../utils/componentId";
 import {
   GRID_DECLARED_COLUMNS,
@@ -24,14 +24,17 @@ interface Props {
    * Props handed to this block only, as they are (functions included), over
    * its options: what an action target's container gives its block.
    */
-  rootProps?: Record<string, unknown>;
+  rootProps?: Record<
+    keyof ReturnType<typeof useAttrs>,
+    ReturnType<typeof useAttrs>[string]
+  >;
 }
 
 const props = defineProps<Props>();
 
-// The block's anchor is its layout path: `scrollToBlock(key)` finds it there.
 let anchored: ComponentPublicInstance | null = null;
-function anchorBlock(instance: unknown): void {
+function anchorBlock(instance: Element | ComponentPublicInstance | null): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dynamic components can resolve to native elements; preserve the existing unchecked anchor forwarding.
   const block = (instance as ComponentPublicInstance | null) ?? null;
   registerBlockAnchor(props.layoutPath, block, anchored);
   anchored = block;
@@ -64,6 +67,7 @@ function calculateColumnCount(
 ): number {
   if (!children) return 0;
   return children.reduce(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep the existing addition behavior even when an unvalidated colSpan is not numeric.
     (sum, child) => sum + ((child.colSpan as number) || 1),
     0,
   );
@@ -74,9 +78,7 @@ function getColSpanStyle(
 ): Record<string, string> | undefined {
   const colSpan = Number(child.colSpan);
   if (!colSpan || colSpan <= 1) return undefined;
-  // Never more tracks than the grid has left at its current width (a phone
-  // keeps one): a wider span would add implicit columns past the screen.
-  // `--dms-grid-tracks` comes from the enclosing Grid / GridRow.
+
   return {
     gridColumn: `span min(${colSpan}, var(--dms-grid-tracks, ${colSpan}))`,
   };
@@ -86,8 +88,6 @@ const columnCount = computed(() =>
   calculateColumnCount(props.component.children),
 );
 
-// A Grid drawn here lines its rows up on the widest of them: declared from
-// the layout, so it is known before any row sets up (see GridDeclaredColumns).
 provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
   componentId: props.componentId,
   columns: computed(() =>

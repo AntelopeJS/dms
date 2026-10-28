@@ -68,7 +68,7 @@ async function loadedManifest(localPath: string): Promise<PackageManifest> {
   try {
     return JSON.parse(
       await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
-    ) as PackageManifest;
+    );
   } catch {
     return {};
   }
@@ -79,12 +79,12 @@ async function describeModule(
 ): Promise<RuntimeModule | undefined> {
   try {
     const info = await GetModuleInfo(moduleId);
-    const source = info.source as PackageSource;
+    const source: PackageSource = info.source;
     const isPackage = source.type === PACKAGE_SOURCE_TYPE;
     const manifest = await loadedManifest(info.localPath);
     return {
       id: moduleId,
-      // A local or git working copy names its package in its manifest.
+
       packageName: isPackage ? source.package : manifest.name,
       version: manifest.version,
       isPackageSource: isPackage,

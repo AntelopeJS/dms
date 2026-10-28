@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -6,7 +6,7 @@ import IconWell from "../layers/dms-ui/app/components/icon-well/IconWell.vue";
 import {
   DMS_TONE_WELL,
   isDmsTone,
-} from "../layers/dms-ui/app/build/utils/tone";
+} from "../layers/dms-ui/app/entries/utils/tone";
 
 describe("Tone", () => {
   it("knows the semantic tones only", () => {

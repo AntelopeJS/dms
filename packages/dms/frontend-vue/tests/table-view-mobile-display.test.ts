@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view declaring `mobileDisplay` opens a phone on it once mounted —
  * cards rather than a grid cut after its first columns — unless a display was
@@ -10,16 +10,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PHONE_VIEWPORT_QUERY,
   useMobileDisplay,
-} from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
+} from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import type { TableViewViewStateConfig } from "../layers/dms-ui/app/composables/table-view/types";
 
 const OFFERED = new Set(["table", "cards"]);
 const mounted: Array<{ unmount: () => void }> = [];
 
 function setViewport(isPhone: boolean) {
-  window.matchMedia = vi.fn((query: string) => ({
-    matches: isPhone && query === PHONE_VIEWPORT_QUERY,
-  })) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi.fn(
+    (query: string): MediaQueryList =>
+      Object.assign(new EventTarget(), {
+        matches: isPhone && query === PHONE_VIEWPORT_QUERY,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+      }),
+  );
 }
 
 function mountTable(

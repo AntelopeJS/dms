@@ -50,7 +50,5 @@ export class RealtimePage extends PageController(
   });
 }
 
-// The page's own topic: no block names it, so it is bound by hand, and the
-// sessions on this page receive what is published on it.
 const realtimePageId = GetPermissionId(RealtimePage);
 if (realtimePageId) RegisterPageTopic(realtimePageId, PINGS_TOPIC);

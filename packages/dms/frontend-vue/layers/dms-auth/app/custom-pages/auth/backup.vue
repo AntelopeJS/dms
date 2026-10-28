@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import {
@@ -20,7 +20,7 @@ const route = useDmsRoute();
 const { formError, clearFormError, showError } = useAuthFormError();
 const form = useTemplateRef<AuthFormHandle>("form");
 
-const token = computed(() => (route.query.token as string) || "");
+const token = computed(() => route.query.token || "");
 
 const twoFactorTarget = computed(() => ({
   path: "/auth/2fa",
@@ -37,7 +37,6 @@ const backToLoginTarget = computed(() => ({
 
 const isLoading = ref(false);
 
-// Codes are issued in uppercase and compared by hash: normalise what was typed.
 const fields = z.object({
   code: z
     .string()
@@ -63,11 +62,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       },
     });
 
-    // The sign-in token in this page's URL is spent: the destination takes
-    // its place in the history.
     await usePostLoginRedirect(undefined, { replace: true });
   } catch (error: unknown) {
-    // A wrong code shows under the field; an expired sign-in above the form.
     await showError(error, "page.backup.error_title", {
       fields: ["code"],
       codes: { "error.invalid_backup_code": "code" },

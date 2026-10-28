@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A long sectioned form groups its navigation under headings: the sections
  * naming the same `navGroup` one after the other share one, in the side list
@@ -9,8 +9,8 @@ import { type App, createApp, defineComponent, h, nextTick } from "vue";
 import {
   groupSectionsForNav,
   layoutSections,
-} from "../layers/dms-ui/app/build/composables/form/formSections";
-import FormSectionNav from "../layers/dms-ui/app/build/components/form/FormSectionNav.vue";
+} from "../layers/dms-ui/app/entries/composables/form/formSections";
+import FormSectionNav from "../layers/dms-ui/app/entries/components/form/FormSectionNav";
 
 const field = (id: string) => ({
   id,
@@ -45,7 +45,7 @@ const plainLayout = layoutSections(
   ],
 );
 
-type NavProps = Record<string, unknown>;
+type NavProps = Partial<InstanceType<typeof FormSectionNav>["$props"]>;
 
 async function mount(variant: "list" | "chips", props: NavProps = {}) {
   app = createApp({

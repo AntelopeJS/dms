@@ -2,11 +2,10 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
+import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import type {
   Data,
-  TableColumn,
   TableFilter,
   TableSharedData,
   TableUrlFilter,
@@ -20,14 +19,11 @@ import {
   useRelationFilterLabels,
 } from "../../composables/table/useRelationFilterLabels";
 
-// v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
-// a chip opens its value editor in a popover.
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-2 border-b border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5",
     list: "flex min-w-0 flex-wrap items-center gap-2",
-    // A chip never outgrows the row: on a phone its compare mode and value
-    // shrink to an ellipsis (the chip's tooltip spells them out).
+
     item: "flex h-7 max-w-full min-w-0 items-stretch divide-x divide-default overflow-hidden rounded-md border border-accented bg-(--ui-bg) text-[12.5px] shadow-xs has-[[data-state=open]]:border-primary has-[[data-state=open]]:ring-[3px] has-[[data-state=open]]:ring-primary/16",
     chip: "flex min-w-0 items-stretch divide-x divide-default hover:bg-elevated/60",
     label:
@@ -58,13 +54,14 @@ const tableSharedData =
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableFiltersRow: Partial<typeof theme> };
 };
 
 const uiVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableFiltersRow || {}),
+  ...appConfig.ui?.tableFiltersRow,
 });
 const ui = computed(() => uiVariant());
 
@@ -81,7 +78,7 @@ const columns = computed(() =>
   (tableSharedData?.value?.labeledColumns.value || []).map((col) => ({
     id: col.column.id,
     label: col.label,
-    type: (col.column.columnDef as TableColumn<unknown>).type,
+    type: col.column.columnDef.type,
   })),
 );
 
@@ -104,7 +101,8 @@ const resolveFilterComponent = (filter: TableFilter) => {
     : opts.placeholder;
   const items = Array.isArray(opts.items)
     ? opts.items.map((item) => {
-        const obj = item as Record<string, unknown>;
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Component option items are unchecked JSON. The owner allows primitives too; preserve the existing object spread and label access rather than changing malformed-input behavior.
+        const obj = item as ComponentOptionsData;
         return {
           ...obj,
           label: isString(obj.label) ? processI18n(obj.label) : obj.label,
@@ -120,7 +118,7 @@ const resolveAsyncComponent = (componentName?: string) => {
   return resolveDmsComponent(componentName) || componentName;
 };
 
-const updateFilterValue = (index: number, value: unknown) => {
+const updateFilterValue = (index: number, value: TableFilter["value"]) => {
   const updated = [...filters.value];
   const current = updated[index];
   if (!current) return;
@@ -143,8 +141,6 @@ const removeUrlFilter = (filter: TableUrlFilter) => {
   tableSharedData?.value?.emits("removeUrlFilter", filter.param);
 };
 
-// The "clear all" action: offered while something narrows the rows, named
-// after what it clears (filters, search or both).
 const clearable = computed(
   () => tableSharedData?.value?.clearableFilters.value,
 );
@@ -160,8 +156,9 @@ const addFilterOpen = ref(false);
 const { locale } = useI18n();
 const { getDataType } = useDataTypes();
 
-// What a chip's editor holds: a view's text value read as its column's type.
-const editorValue = (filter: TableFilter): unknown => {
+const editorValue = (
+  filter: TableFilter,
+): ReturnType<typeof filterEditorValue> => {
   const typeId = getColumn(filter.accessorKey)?.type?.id;
   return filterEditorValue(
     typeId ? getDataType(typeId) : undefined,
@@ -170,23 +167,22 @@ const editorValue = (filter: TableFilter): unknown => {
   );
 };
 
-// Select-like filters show the option labels, not the raw stored values
-// (their formatter renders a pill, which a chip can't hold).
 const itemLabels = (filter: TableFilter): string | undefined => {
   const items = resolveFilterComponent(filter)?.options?.items;
   if (!Array.isArray(items) || filter.value === undefined) return undefined;
   const values = Array.isArray(filter.value) ? filter.value : [filter.value];
   const labels = values.map((value) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- find does not validate the matched option's shape. Preserve the existing unchecked label read using the component options owner's property contract.
     const item = items.find(
-      (candidate) => (candidate as { value?: unknown })?.value === value,
-    ) as { label?: unknown } | undefined;
+      (candidate) =>
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Options can contain primitives. This legacy lookup reads an optional value without validating the option; narrowing would change its matching behavior.
+        (candidate as Pick<ComponentOptionsData, "value">)?.value === value,
+    ) as Pick<ComponentOptionsData, "label"> | undefined;
     return item?.label !== undefined ? String(item.label) : String(value);
   });
   return labels.length ? labels.join(", ") : undefined;
 };
 
-// A relation filter holds the related rows' ids: its chip names the rows,
-// read from where the column's data type says they live (its `select` route).
 const relationSource = (
   filter: TableFilter,
 ): RelationFilterSource | undefined => {
@@ -219,7 +215,6 @@ const displayValue = (filter: TableFilter): string => {
   return formatted || EMPTY_FILTER_VALUE;
 };
 
-// The ids of a relation filter its route did not answer, named on hover.
 const notFoundIds = (filter: TableFilter): string => {
   const source = relationSource(filter);
   if (!source) return "";
@@ -228,7 +223,6 @@ const notFoundIds = (filter: TableFilter): string => {
     .join(", ");
 };
 
-// The whole filter in words, for a chip shrunk to an ellipsis.
 const chipTitle = (filter: TableFilter, label?: string): string =>
   [
     label ?? getColumn(filter.accessorKey)?.label,

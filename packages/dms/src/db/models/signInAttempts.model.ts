@@ -3,8 +3,6 @@ import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { SignInAttempt, signInAttemptsTableName } from "../tables";
 import type { SignInAttemptKind } from "../tables/signInAttempts.table";
 
-// A row id derived from what the row records, so that when two instances
-// write the same event only one insert wins.
 function derivedId(...parts: string[]): string {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }

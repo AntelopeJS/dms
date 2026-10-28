@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The module store listing through the runtime's real async data: read with
  * the page, so the Modules page and the store render their tiles with the
@@ -27,7 +27,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { useModuleStore } from "../layers/dms-layout/app/composables/page/useModuleStore";
-import ModuleTileSkeleton from "../layers/dms-layout/app/build/components/pages/modules/ModuleTileSkeleton.vue";
+import ModuleTileSkeleton from "../layers/dms-layout/app/entries/components/pages/modules/ModuleTileSkeleton";
 
 const idleListing = {
   enabled: true,
@@ -42,8 +42,7 @@ const mounted: App[] = [];
 const Store = defineComponent({
   setup() {
     const store = useModuleStore();
-    // As the Modules pages: nothing awaits the listing, the server render
-    // waits for it on its own and the browser adopts its answer.
+
     onMounted(() => store.start());
     return () =>
       h(
@@ -139,8 +138,6 @@ it("waits for the background read of a return to the page, instead of looping on
   for (let tick = 0; tick < 4; tick++) await settle();
   expect(container.innerHTML).toBe("<main><p>orders</p></main>");
 
-  // Leaving and coming back: the listing is shown at once from the last
-  // visit and read again in the background, still in flight when it starts.
   shown.value = false;
   await settle();
   let answer: (listing: typeof idleListing) => void = () => {};
@@ -157,7 +154,9 @@ it("waits for the background read of a return to the page, instead of looping on
 
 it("sizes the tile skeleton like the tile: icon well, pill, title, description and footer", async () => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
-  const render = async (props: Record<string, unknown>) => {
+  const render = async (
+    props: InstanceType<typeof ModuleTileSkeleton>["$props"],
+  ) => {
     const app = createSSRApp({ render: () => h(ModuleTileSkeleton, props) });
     app.component("USkeleton", {
       props: { class: { type: String, default: undefined } },

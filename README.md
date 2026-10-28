@@ -153,6 +153,49 @@ pnpm --dir packages/dms docs:catalog       # docs-data/blocks.json from ListBloc
 pnpm --dir packages/dms docs:screenshots   # docs/images/blocks/<example>.<theme>.png from docs-data/examples.json
 ```
 
+### Capture documentation screenshots
+
+`docs:screenshots` renders each hand-authored example in `packages/dms/docs-data/examples.json`
+through a running DMS's `/dms-preview` page. It captures light and dark themes, cropped
+to the blocks, into `packages/dms/docs/images/blocks/<id>.<theme>.png`. The docs use
+these images when no live preview answers.
+
+Enable the preview with `docsPreview: true` or `DMS_DOCS_PREVIEW=1`, as the playground does.
+The default frontend URL is `http://localhost:3001`; `DMS_PREVIEW_URL` overrides it.
+
+```bash
+pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>] [--theme <light|dark>]
+```
+
+| Flag | Meaning | Default |
+| --- | --- | --- |
+| `--base-url` | DMS frontend URL | `DMS_PREVIEW_URL`, then `http://localhost:3001` |
+| `--only` | Comma-separated example IDs | All examples |
+| `--theme` | Capture only `light` or `dark` | Both themes |
+
+### Check realtime connections across tabs
+
+`realtime:tabs-check` signs in and opens several tabs in one browser profile. It counts
+the long-lived streams to the dashboard's origin, then times a request from each tab.
+HTTP/1.1 browsers allow at most six connections per host; streams that hold all of
+them leave ordinary requests waiting.
+
+```bash
+pnpm --dir packages/dms realtime:tabs-check --email <email> --password <password> [--base-url <url>] [--tabs <n>] [--path </page>] [--channel <chrome|msedge>] [--max-streams <n>] [--timeout <ms>] [--legacy-streams <n>]
+```
+
+| Flag | Meaning | Default |
+| --- | --- | --- |
+| `--email` | Sign-in email | `DMS_CHECK_EMAIL`; required if unset |
+| `--password` | Sign-in password | `DMS_CHECK_PASSWORD`; required if unset |
+| `--base-url` | DMS frontend URL | `http://localhost:3001` |
+| `--tabs` | Tabs in the shared profile | `8` |
+| `--path` | Page to open in each tab | `/` |
+| `--channel` | Browser channel | `chrome` |
+| `--max-streams` | Maximum shared long-lived streams | `2`: realtime and the development reload stream |
+| `--timeout` | Per-tab request deadline in milliseconds | `5000` |
+| `--legacy-streams` | Extra connection streams per tab to demonstrate the check failing | `0` |
+
 ## License
 
 [Apache-2.0](./LICENSE). The runtime package ships the DB-IP IP to Country Lite database under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): see [`packages/dms`](./packages/dms#third-party-data).

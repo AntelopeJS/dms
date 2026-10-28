@@ -6,7 +6,10 @@ import {
   useSecurityOverview,
 } from "../../../../composables/settings/security/useSecurityOverview";
 
-const METHODS_LABEL_KEYS: Record<string, string> = {
+const METHODS_LABEL_KEYS: Record<
+  ReturnType<SecurityOverview["twoFactor"]["methods"]["join"]>,
+  string
+> = {
   "email,totp": "page.settings.security.status.methods_both",
   totp: "page.settings.security.status.methods_totp",
   email: "page.settings.security.status.methods_email",
@@ -139,8 +142,6 @@ const items = computed<StatGroupItem[]>(() => {
   ];
 });
 
-// The summary feeds every block of the page: its failure is said once, here,
-// with the retry that reloads them all.
 const hasLoadError = computed(() => !overview.value && isUnavailable.value);
 const retryActions = computed(() => [
   {
@@ -151,7 +152,6 @@ const retryActions = computed(() => [
     onClick: () => void refresh(),
   },
 ]);
-
 </script>
 
 <template>

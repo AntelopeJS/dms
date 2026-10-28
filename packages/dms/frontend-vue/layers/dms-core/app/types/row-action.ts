@@ -1,50 +1,71 @@
 import type { AnyFieldRule, FieldRule } from "./row-action-operators";
 import type { ActionConfirm } from "./confirm-dialog";
+import type { DataTypeFormatter } from "../composables/data-types/useDataType";
 
 export type FieldEqualsRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = FieldRule<T, "equals">;
 
 export type FieldNotEqualsRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = FieldRule<T, "notEquals">;
 
 export type FieldInRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = FieldRule<T, "in">;
 
 export type FieldNotInRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = FieldRule<T, "notIn">;
 
 export type AndRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = {
   and: RowActionRule<T>[];
 };
 
 export type OrRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = {
   or: RowActionRule<T>[];
 };
 
 export type NotRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = {
   not: RowActionRule<T>;
 };
 
 export type LogicalRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = AndRule<T> | OrRule<T> | NotRule<T>;
 
 export type RowActionRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = AnyFieldRule<T> | LogicalRule<T>;
 
 export interface RowActionConfig<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > {
   isEnabled?: boolean;
   isVisible?: boolean;

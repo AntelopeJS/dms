@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A server render of a protected page waits on two requests made by its
  * middlewares, one after the other: the onboarding status (`onboarding`),
@@ -6,10 +6,10 @@
  * the real renderer runtime, middlewares and composables, and each middleware
  * joins the request already in flight.
  */
-import { createSSRApp, defineComponent, h, nextTick, type App } from "vue";
+import { createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DmsAppContext, DmsFrontendRuntime } from "#dms/frontend-module";
+import type { DmsAppContext } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
 for (const name of [
@@ -69,22 +69,23 @@ const { default: permissionsPreload } = await import(
 
 const ONBOARDING = "/api/onboarding/informations";
 const PERMISSIONS = "/dms/permissions";
-const ANSWERS: Record<string, unknown> = {
-  [ONBOARDING]: { has_onboarded: true },
-  [PERMISSIONS]: ["orders.read"],
-};
+type PreloadAnswer = { has_onboarded: boolean } | string[];
+const ANSWERS = new Map<string, PreloadAnswer>([
+  [ONBOARDING, { has_onboarded: true }],
+  [PERMISSIONS, ["orders.read"]],
+]);
 
 interface PendingRequest {
   url: string;
-  resolve: (value: unknown) => void;
+  resolve: (value: PreloadAnswer) => void;
 }
 
 const pending: PendingRequest[] = [];
 const asked: string[] = [];
-// Each request waits for the test to answer it.
+
 const $authFetch = vi.fn(
   (url: string) =>
-    new Promise((resolve) => {
+    new Promise<PreloadAnswer>((resolve) => {
       asked.push(url);
       pending.push({ url, resolve });
     }),
@@ -104,7 +105,7 @@ async function answerRounds(): Promise<string[][]> {
     const waiting = pending.splice(0);
     if (waiting.length === 0) continue;
     rounds.push(waiting.map((request) => request.url).sort());
-    for (const request of waiting) request.resolve(ANSWERS[request.url]);
+    for (const request of waiting) request.resolve(ANSWERS.get(request.url)!);
   }
   return rounds;
 }
@@ -119,19 +120,20 @@ const Page = defineComponent({
 });
 
 /** A server runtime, its app set up the way the DMS module registers it. */
-function serverRender(path: string): { app: App; html: Promise<string> } {
+function serverRender(path: string) {
   const runtime = engine.createDmsFrontendRuntime(undefined, {}, true);
   const app = createSSRApp(Page);
+  // SAFETY: These preload plugins only need runWithContext from the application context; the Vue app owns that implementation.
   const context = {
-    runWithContext: (callback: () => unknown) => app.runWithContext(callback),
-  } as unknown as DmsAppContext;
+    runWithContext: <T>(callback: () => T) => app.runWithContext(callback),
+  } as DmsAppContext;
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = path;
   runtime.route.fullPath = path;
   runtime.route.matched = [{}];
-  engine.provideDmsFrontendRuntime(app, runtime as DmsFrontendRuntime);
-  // The plugins run before the page renders, as `installDmsPlugins` does.
+  engine.provideDmsFrontendRuntime(app, runtime);
+
   for (const plugin of [onboardingPreload, permissionsPreload])
     app.runWithContext(() => plugin(context));
   return { app, html: renderToString(app) };

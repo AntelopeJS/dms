@@ -40,7 +40,7 @@ beforeEach(() => {
   vi.stubEnv("SSR", false);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
+  vi.stubGlobal("useDmsState", <State>(_key: string, init: () => State) =>
     ref(init()),
   );
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
@@ -54,7 +54,7 @@ beforeEach(() => {
   createFakeBrowser().openTab().activate();
   server = createRealtimeServer();
   installRealtimeFetch(server);
-  // Fresh per test: the singleton of a previous test keeps watching its own.
+
   loggedIn = ref(true);
   session = ref({ accountId: "account-1", activeTenantId: "tenant-1" });
   user = ref({ _id: "user-1" });
@@ -70,6 +70,12 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime reconnection", () => {
+  registerRealtimeSessionSwitchTests();
+  registerRealtimeStreamRecoveryTests();
+  registerRealtimeAuthRefreshTests();
+});
+
+function registerRealtimeSessionSwitchTests() {
   it("opens a new session on the same connection in the workspace the session switched to, and resubscribes the page", async () => {
     const api = await loadApi();
     await settle();
@@ -176,7 +182,9 @@ describe("useUserRealtime reconnection", () => {
     await settle();
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
   });
+}
 
+function registerRealtimeStreamRecoveryTests() {
   it("names the dev reload topic its session carries, while it is open", async () => {
     server.devReloadTopic = "dms:dev-reload";
     const api = await loadApi();
@@ -267,8 +275,6 @@ describe("useUserRealtime reconnection", () => {
   });
 
   it("ends a session answered after it stopped waiting for one", async () => {
-    // Signed out while the session request was in flight: the session the
-    // answer names is a stray, ended at once.
     server.beforeSessionAnswer = () => {
       server.beforeSessionAnswer = undefined;
       loggedIn.value = false;
@@ -276,7 +282,6 @@ describe("useUserRealtime reconnection", () => {
     await loadApi();
     await settle();
 
-    // The backend ends only a session of the connection the request names.
     expect(server.closedSessions).toEqual(["session-1"]);
   });
 
@@ -292,7 +297,9 @@ describe("useUserRealtime reconnection", () => {
     expect(api.sessionId.value).toBe("session-1");
     expect(received).toEqual([snapshot]);
   });
+}
 
+function registerRealtimeAuthRefreshTests() {
   it("refreshes the browser session when a session is refused with a 401", async () => {
     const refreshSession = vi.fn(async () => {
       server.sessionStatus = undefined;
@@ -312,4 +319,4 @@ describe("useUserRealtime reconnection", () => {
     await settle();
     expect(api.sessionId.value).toBe("session-1");
   });
-});
+}

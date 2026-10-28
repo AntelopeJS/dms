@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -18,33 +18,28 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
-import SettingsNav from "../layers/dms-layout/app/build/components/pages/settings/shell/SettingsNav.vue";
-import {
-  type NavBadge,
-  useNavBadges,
-} from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
-
-// A navigation badge is drawn in the tone the server counted it with (the
-// status pills' soft tints), neutral grey without one, and hidden at zero;
-// the count a page publishes live keeps its tone too.
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: defineComponent({ setup: () => () => h("input") }),
-}));
+import SettingsNav from "../layers/dms-layout/app/entries/components/pages/settings/shell/SettingsNav";
+import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
+import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
 
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 
+// SAFETY: useNavBadges owns this state key and initializes it to the NavBadge dictionary read by these assertions.
 const liveBadges = () =>
-  state.get("dms-nav-badges") as Ref<Record<string, NavBadge>> | undefined;
+  state.get("dms-nav-badges") as
+    | ReturnType<typeof useNavBadges>["badges"]
+    | undefined;
 
 beforeEach(() => {
+  vi.stubGlobal("defineShortcuts", () => {});
+  vi.stubGlobal("useDmsCookie", () => ref("other"));
   state = new Map();
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -122,29 +117,41 @@ describe("the counts a page visit carries", () => {
   });
 });
 
-describe("NavigationMenu badges", () => {
-  // Renders each entry's badge the way UNavigationMenu hands it over.
-  const MenuStub = defineComponent({
-    props: {
-      items: {
-        type: Array as PropType<NavigationMenuItem[][]>,
-        required: true,
-      },
+const MenuStub = defineComponent({
+  props: {
+    items: {
+      // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
+      type: Array as PropType<NavigationMenuItem[][]>,
+      required: true,
     },
-    setup(props) {
-      const renderItem = (item: NavigationMenuItem): VNode =>
-        h("div", {
+  },
+  setup(props, { slots }) {
+    const renderItem = (item: NavigationMenuItem): VNode =>
+      h(
+        "div",
+        {
           "data-entry": item.fullId,
           "data-badge": item.badge?.label,
           "data-color": item.badge?.color,
           "data-variant": item.badge?.variant,
           "data-prefetch": String(item.prefetch),
-        });
-      return () => h("nav", props.items.flat().map(renderItem));
-    },
-  });
+          "data-trailing-icon": item.trailingIcon,
+        },
+        [
+          slots["item-leading"]?.({
+            item,
+            active: item.active,
+            ui: { linkLeadingIcon: () => "size-4" },
+          }),
+          ...(item.children?.map(renderItem) ?? []),
+        ],
+      );
+    return () => h("nav", props.items.flat().map(renderItem));
+  },
+});
 
-  const ITEMS: NavigationMenuItem[] = [
+describe("NavigationMenu badges", () => {
+  const ITEMS = [
     { label: "Plain", fullId: "pages.plain", to: "/plain", badge: "7" },
     {
       label: "Security",
@@ -160,16 +167,33 @@ describe("NavigationMenu badges", () => {
       badge: "4",
       badgeTone: "primary",
     },
-  ];
+  ] satisfies NavigationMenuItem[];
 
   const badgeOf = (fullId: string) =>
     host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
 
-  function mount(): void {
+  function mount(items = ITEMS): void {
     state.set("dms-permission-preview-session", ref(null));
     state.set("dms-permission-preview-result", ref(null));
-    app = createApp(NavigationMenu, { items: ITEMS });
+    app = createApp(NavigationMenu, { items });
     app.component("UNavigationMenu", MenuStub);
+    app.component(
+      "UIcon",
+      defineComponent({
+        props: ["name"],
+        setup: (props) => () => h("i", { "data-icon": props.name }),
+      }),
+    );
+    app.component(
+      "UChip",
+      defineComponent({
+        props: ["color"],
+        setup:
+          (props, { slots }) =>
+          () =>
+            h("span", { "data-chip-color": props.color }, slots.default?.()),
+      }),
+    );
     app.mount(host);
   }
 
@@ -193,7 +217,7 @@ describe("NavigationMenu badges", () => {
     vi.stubGlobal("$fetch", fetch);
     mount();
     for (const item of ITEMS)
-      expect(badgeOf(item.fullId as string).prefetch).toBe("true");
+      expect(badgeOf(item.fullId).prefetch).toBe("true");
     host
       .querySelector("nav")!
       .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
@@ -213,10 +237,39 @@ describe("NavigationMenu badges", () => {
     });
     expect(badgeOf("settings.user.security").badge).toBeUndefined();
   });
+
+  it("puts parent status on the leading icon while leaves retain a trailing dot or badge", () => {
+    mount([
+      {
+        fullId: "project",
+        label: "Project",
+        icon: "i-ph-folder",
+        status: "success",
+        children: [
+          { fullId: "project.api", label: "API", status: "warning" },
+          {
+            fullId: "project.more",
+            label: "More",
+            status: "error",
+            badge: "+3",
+          },
+        ],
+      },
+    ]);
+    expect(
+      host.querySelector(
+        '[data-chip-color="success"] [data-icon="i-ph-folder"]',
+      ),
+    ).not.toBeNull();
+    expect(badgeOf("project").trailingIcon).toBeUndefined();
+    expect(badgeOf("project.api").trailingIcon).toBe("i-ph-circle-fill");
+    expect(badgeOf("project.more").trailingIcon).toBeUndefined();
+    expect(badgeOf("project.more").badge).toBe("+3");
+  });
 });
 
 describe("SettingsNav badges", () => {
-  const page = (id: string, extra: Record<string, unknown> = {}) => ({
+  const page = (id: string, extra: Partial<SiteLayoutTree> = {}) => ({
     id,
     fullId: `settings.user.${id}`,
     displayName: id,
@@ -267,7 +320,7 @@ describe("SettingsNav badges", () => {
   });
 
   const trailBadge = (to: string) =>
-    host.querySelector(`[data-to="${to}"] span:last-child`) as HTMLElement;
+    host.querySelector<HTMLElement>(`[data-to="${to}"] span:last-child`)!;
 
   function mount(): void {
     vi.stubGlobal("useSiteLayout", () => ({ siteLayoutTree: tree }));
@@ -307,7 +360,7 @@ describe("SettingsNav badges", () => {
 describe("Security page badge", () => {
   it("publishes what needs attention in the tone the server weighed", async () => {
     const { useSecurityOverview } = await import(
-      "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview"
+      "../layers/dms-layout/app/entries/composables/settings/security/useSecurityOverview"
     );
     const { engine, browserRuntime } = await import(
       "./helpers/api-data-runtime"

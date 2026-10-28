@@ -161,7 +161,6 @@ const SALES: ChartCardData = {
   ],
 };
 
-// Both a standalone donut and a donut inside ChartCard read series[0].data.
 const CHANNELS: ChartCardData = {
   value: 14600,
   series: [
@@ -234,7 +233,6 @@ function listRequests(query: URLSearchParams) {
 
 /** @internal Registers public, read-only demo data only when the preview page is enabled. */
 export function registerPreviewFixtures() {
-  // Method decorators register immediately: keep this class inside the gate.
   class PreviewFixturesController extends Controller(
     "/api/block-preview/fixtures",
   ) {

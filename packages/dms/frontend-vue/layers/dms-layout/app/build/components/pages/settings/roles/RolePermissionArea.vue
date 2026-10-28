@@ -37,11 +37,7 @@ const childrenId = computed(() => childrenElementId(props.area.node.id));
 const subtitle = computed(() =>
   processI18n(props.area.node.description ?? props.area.section ?? ""),
 );
-// v2 .cs-parea: caret, tri-state box, icon tile, title over its subtitle and
-// the "n/m" count with its bar; the count turns accent when complete. The
-// row reads the editor's width (@container/editor): the hover id goes under
-// 576px, and under 448px (phones) the icon tile and the bar go too and the
-// title wraps, which otherwise kept three letters of it.
+
 const theme = tv({
   slots: {
     root: "group mt-1 grid min-h-[46px] grid-cols-[20px_20px_30px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-elevated @max-md/editor:grid-cols-[20px_20px_minmax(0,1fr)_auto]",

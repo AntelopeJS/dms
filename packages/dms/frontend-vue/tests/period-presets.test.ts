@@ -83,8 +83,6 @@ describe("previous-period comparison", () => {
   });
 
   it("keeps whole-day comparisons on midnight across a DST change", () => {
-    // October 2026 holds the European DST change (Oct 25); the previous
-    // 31 days must still start at local midnight.
     const range = {
       from: new Date(2026, 9, 5),
       to: new Date(new Date(2026, 10, 5).getTime() - 1),
@@ -108,7 +106,6 @@ describe("previous-period comparison", () => {
 });
 
 describe("calendar comparisons", () => {
-  // The 18th of October: the month and the quarter are under way.
   const TODAY = new Date(2026, 9, 18, 10, 30);
   const endOf = (year: number, month: number, day: number) =>
     new Date(new Date(year, month, day + 1).getTime() - 1);
@@ -124,12 +121,11 @@ describe("calendar comparisons", () => {
     );
 
   it("compares a month to the month before, not to as many days", () => {
-    // September (30 days) against August (31), not August 2-31.
     expect(compare("last-month")).toEqual({
       from: new Date(2026, 7, 1),
       to: endOf(2026, 7, 31),
     });
-    // Q3 against Q2, not March 31 - June 30.
+
     expect(compare("last-quarter")).toEqual({
       from: new Date(2026, 3, 1),
       to: endOf(2026, 5, 30),
@@ -141,7 +137,6 @@ describe("calendar comparisons", () => {
   });
 
   it("compares what has elapsed of a period under way", () => {
-    // October 1-31 holds no data past the 18th: September 1-18 it is.
     expect(compare("this-month")).toEqual({
       from: new Date(2026, 8, 1),
       to: endOf(2026, 8, 18),
@@ -161,7 +156,6 @@ describe("calendar comparisons", () => {
   });
 
   it("keeps the day within a shorter month", () => {
-    // March 31: the month before has no 31st.
     const lastOfMarch = new Date(2026, 2, 31, 9);
     const range = resolvePresetRange("this-month", lastOfMarch, FALLBACK);
     expect(

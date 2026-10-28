@@ -1,4 +1,4 @@
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import { DMS_TONE_SOFT } from "./tone";
 
 /**

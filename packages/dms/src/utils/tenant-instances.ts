@@ -31,6 +31,7 @@ export async function registerTenantInstance(tenantId: string): Promise<void> {
 }
 
 async function listTenantIds(): Promise<string[]> {
+  // SAFETY: This projection selects the tenant table's required string _id field only.
   const rows = (await GetModel(TenantModel).table.pluck(
     TENANT_ID_FIELD,
   )) as TenantIdRow[];

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from "vue";
+import { computed, useId, type SVGAttributes } from "vue";
 import {
   closeSparkArea,
   projectSparkPoints,
@@ -30,9 +30,9 @@ const FLAT_AREA_OPACITY = 0.12;
 const PERCENT = 100;
 const DEFAULT_ARIA_LABEL = "Trend";
 
-// Accents resolve through theme tokens so sparklines follow light/dark mode;
-// primary is the v2 sparkline cyan, deeper than the fill cyan on white.
-const STROKE_BY_ACCENT: Record<string, string> = {
+type AccentStroke = Extract<SVGAttributes["stroke"], string>;
+
+const STROKE_BY_ACCENT: Record<NonNullable<Props["accent"]>, AccentStroke> = {
   primary: "var(--dms-sparkline)",
   secondary: "var(--ui-secondary)",
   success: "var(--ui-success)",
@@ -74,7 +74,6 @@ const areaOpacity = computed(() =>
   props.area === "flat" ? FLAT_AREA_OPACITY : undefined,
 );
 
-// The end dot is HTML over the stretched SVG, so it stays round at any size.
 const dotStyle = computed(() => {
   const last = points.value[points.value.length - 1];
   if (!props.showDot || !last) return null;

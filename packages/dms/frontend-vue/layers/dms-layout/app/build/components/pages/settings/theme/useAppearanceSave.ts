@@ -2,11 +2,11 @@ import type { Ref } from "vue";
 import {
   type InstantSave,
   useInstantSave,
-} from "#dms-ui/app/build/composables/instant-save/useInstantSave";
+} from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
 import { useSidebarStartCollapsed } from "../../../../composables/general/useSidebarStartCollapsed";
 import { useAccessibilityPreferences } from "../../../../../composables/general/useAccessibilityPreferences";
-import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
-import { injectPageHeaderActionsHost } from "../../../../../composables/layout/usePageHeaderActions";
+import { useInstantSaveHeader } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
+import { injectPageHeaderActionsHost } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 
 function usePreferenceRefs() {
   const { reduceMotion, increaseContrast, underlineLinks } =
@@ -37,21 +37,19 @@ export interface AppearanceSave {
   ) => void;
 }
 
-// One save per page header: the Appearance page is a block per group, and
-// they share it so the header pill states every pick once.
 const savesByHeader = new WeakMap<object, AppearanceSave>();
 
 function createAppearanceSave(): AppearanceSave {
   const preferences = usePreferenceRefs();
-  // Every appearance preference is per device, kept in a cookie: writing the
-  // cookie is the save.
+  const preferenceValues: {
+    [K in AppearanceKey]: Ref<AppearancePreferences[K]>;
+  } = preferences;
+
   const instant: InstantSave<AppearancePreferences> =
     useInstantSave<AppearancePreferences>({
-      read: (key) =>
-        preferences[key].value as AppearancePreferences[typeof key],
+      read: (key) => preferenceValues[key].value,
       write: (key, value) => {
-        (preferences[key] as Ref<AppearancePreferences[typeof key]>).value =
-          value;
+        preferenceValues[key].value = value;
       },
       save: () => Promise.resolve(),
     });

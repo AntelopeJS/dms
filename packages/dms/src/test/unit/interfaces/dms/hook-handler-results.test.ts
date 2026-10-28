@@ -59,6 +59,6 @@ describe("[unit] interfaces/dms/hooks — handler results", () => {
     const countRows = (): number => WRITTEN_ROWS;
     // @ts-expect-error a tenant export contribution is not a number
     const contributor: HookHandler<Hook.TENANT_DATA_EXPORT> = countRows;
-    expect(contributor).to.be.a("function");
+    expect(contributor).to.equal(countRows);
   });
 });

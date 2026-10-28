@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, ref } from "vue";
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 
 interface CommandPaletteAssistantAnswerFrameProps {
   /** The assistant's resolved label, shown as the frame's eyebrow. */
@@ -22,11 +22,9 @@ const eyebrowClass = [
   EYEBROW_CLASS,
   "mb-2 flex items-center gap-1.5 text-secondary",
 ];
-// Line widths of the loading skeleton, after the v2 mockup.
+
 const SKELETON_WIDTHS = ["w-[82%]", "w-[64%]", "w-[40%]"];
 
-// A rejected async setup would leave the skeleton up for good: the frame
-// states the failure instead, and the other palette content keeps working.
 onErrorCaptured((error) => {
   console.error("[command-palette] the assistant answer failed", error);
   hasFailed.value = true;

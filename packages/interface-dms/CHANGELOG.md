@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.9.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.9.0...v0.9.1)
+
+### 🚀 Enhancements
+
+- **menu:** Support nested dynamic menu entries ([#446](https://github.com/AntelopeJS/dms/pull/446))
+
+### 🩹 Fixes
+
+- **release:** Build the interface before the release lint ([#454](https://github.com/AntelopeJS/dms/pull/454))
+
+### 📖 Documentation
+
+- **changelog:** Upgrade notes of dms 0.11.0 ([#440](https://github.com/AntelopeJS/dms/pull/440))
+
+### 📦 Build
+
+- Adopt the AntelopeJS guardrail pack ([#444](https://github.com/AntelopeJS/dms/pull/444))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.11.0 ([65235375](https://github.com/AntelopeJS/dms/commit/65235375))
+- Configure Renovate with the shared preset ([#445](https://github.com/AntelopeJS/dms/pull/445))
+
+### 🤖 CI
+
+- Run docs-playground on main pushes only ([#443](https://github.com/AntelopeJS/dms/pull/443))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.9.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.8.0...v0.9.0)

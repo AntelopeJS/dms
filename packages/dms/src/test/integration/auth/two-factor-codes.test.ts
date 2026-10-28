@@ -1,12 +1,12 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { generateCode } from "2fa";
-import { decode, type JwtPayload } from "jsonwebtoken";
-import { UserNotificationsModel } from "../../../db/models/userNotifications.model";
+import { decode } from "jsonwebtoken";
+import { UserNotificationsModel } from "../../../db/models";
 import { generateTwoFactorToken } from "../../../implementations/dms-auth";
-import { acceptTotpCode, totpStepAt } from "../../../utils/two-factor-codes";
+import { acceptTotpCode, totpStepAt } from "../../../utils";
 import {
   authorizedClient,
   type RegisteredUser,
@@ -22,11 +22,6 @@ import {
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The codes of a second factor: a sign-in challenge takes a handful of them
-// and opens one session, an account a few more across its challenges, an
-// emailed code is stored hashed, an authenticator code works once, and email
-// codes turn on only once one of them came back.
-
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -37,11 +32,9 @@ const TWO_FACTOR_EMAIL_TEMPLATE = "EmailTwoFactor";
 const ATTEMPTS_PER_CHALLENGE = 5;
 const WRONG_BACKUP_CODE = "WRONG000";
 const TOTP_STEP_MS = 30 * 1000;
-// A code computed this close to the end of its window may reach the server
-// in the next one: wait for the next window instead.
+
 const TOTP_SAFE_MARGIN_MS = 3 * 1000;
-// A timer can fire a millisecond before `Date.now()` reaches its deadline, and
-// a code computed then is still the previous window's: overshoot the boundary.
+
 const TOTP_BOUNDARY_OVERSHOOT_MS = 50;
 const RATE_LIMIT_MS = 60 * 1000;
 const ATTEMPTS_PER_ACCOUNT = 10;
@@ -71,11 +64,14 @@ async function enableTotp(
   client: AxiosInstance,
   user: RegisteredUser,
 ): Promise<EnabledTotp> {
-  const setup = await client.post(`${TWO_FACTOR}/enable-totp`, {
-    currentPassword: user.password,
-  });
+  const setup = await client.post<{ secret: string }>(
+    `${TWO_FACTOR}/enable-totp`,
+    {
+      currentPassword: user.password,
+    },
+  );
   expect(setup.status, JSON.stringify(setup.data)).to.equal(HTTP_OK);
-  const { secret } = setup.data as { secret: string };
+  const { secret } = setup.data;
   const code = await currentTotpCode(secret);
   const confirmed = await client.post(`${TWO_FACTOR}/confirm-totp`, { code });
   expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);
@@ -84,20 +80,29 @@ async function enableTotp(
 
 async function lastEmailedCode(): Promise<string> {
   const email = await lastRenderedEmail(TWO_FACTOR_EMAIL_TEMPLATE);
-  const code = email?.props.verificationCode;
-  if (typeof code !== "string") throw new Error("No two-factor code was sent");
-  return code;
+  const props = email?.props;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; owner-derived types cannot establish a captured object's properties.
+  if (!props || typeof props !== "object" || !("verificationCode" in props))
+    throw new Error("No two-factor code was sent");
+  const { verificationCode } = props;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; a template reference carries no runtime schema for the captured value.
+  if (typeof verificationCode !== "string")
+    throw new Error("No two-factor code was sent");
+  return verificationCode;
 }
 
 async function signIn(user: RegisteredUser): Promise<string> {
-  const response = await createClient().post("/api/auth/login", {
+  const response = await createClient().post<{
+    requires_2fa: boolean;
+    two_factor_token: string;
+  }>("/api/auth/login", {
     email: user.email,
     password: user.password,
   });
   expect(response.data.requires_2fa, JSON.stringify(response.data)).to.equal(
     true,
   );
-  return response.data.two_factor_token as string;
+  return response.data.two_factor_token;
 }
 
 function verify(token: string, method: string, code: string) {
@@ -113,7 +118,6 @@ async function tryWrongCodes(token: string, count: number): Promise<void> {
   }
 }
 
-// The lockout notification is sent in the background of the request.
 async function lockoutNotifications(userId: string): Promise<number> {
   const deadline = Date.now() + NOTIFICATION_WAIT_MS;
   for (;;) {
@@ -138,7 +142,6 @@ const emailedCodeCount = (): number =>
   renderedEmails.filter((email) => email.template === TWO_FACTOR_EMAIL_TEMPLATE)
     .length;
 
-// Runs `request` while no email can go out.
 async function duringEmailOutage<T>(request: () => Promise<T>): Promise<T> {
   emailOutage.isOn = true;
   try {
@@ -148,8 +151,6 @@ async function duringEmailOutage<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-// Ages the last emailed code past the resend limit, so a test can ask for
-// another one at once.
 async function allowNextEmailCode(userId: string): Promise<void> {
   const user = await storedUser(userId);
   user.twoFactorEmailCodeRequestedAt = new Date(Date.now() - RATE_LIMIT_MS);
@@ -163,7 +164,7 @@ describe("[integration] auth/two-factor codes", function () {
   let client: AxiosInstance;
 
   const methods = async () =>
-    (await client.get(TWO_FACTOR)).data.methods as string[];
+    (await client.get<{ methods: string[] }>(TWO_FACTOR)).data.methods;
 
   const startEmailSetup = () =>
     client.post(`${TWO_FACTOR}/enable-email`, {
@@ -197,7 +198,9 @@ describe("[integration] auth/two-factor codes", function () {
 
     it("gives two sign-ins in the same second a challenge each", async () => {
       const { backupCodes } = await enableTotp(client, user);
-      const { tenantId } = decode(await signIn(user)) as JwtPayload;
+      const claims = decode(await signIn(user), { json: true });
+      assert.exists(claims);
+      const { tenantId } = claims;
       const stored = await storedUser(user.userId);
       const [first, second] = [
         generateTwoFactorToken(tenantId, stored),
@@ -334,8 +337,7 @@ describe("[integration] auth/two-factor codes", function () {
       expect(await accept(laterCode, later)).to.equal(true);
       expect(await accept(laterCode, later)).to.equal(false);
       expect(await accept(earlierCode, earlier)).to.equal(false);
-      // The step is written alone, not through the whole row: the rest of
-      // the account, its password included, is left as it was.
+
       expect(await signIn(user)).to.be.a("string");
     });
 

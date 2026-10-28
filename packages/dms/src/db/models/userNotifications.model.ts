@@ -4,7 +4,7 @@ import type {
   NotificationData,
   NotificationTone,
 } from "@antelopejs/interface-dms/notifications/types";
-import { runInBatches } from "../../utils/run-in-batches";
+import { runInBatches } from "../../utils/run-in-batches/index";
 import { UserNotification, userNotificationsTableName } from "../tables";
 import type { NavBadgeCount } from "@antelopejs/interface-dms/component";
 import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
@@ -222,6 +222,7 @@ export class UserNotificationsModel extends BasicDataModel(
       }),
     );
     const messageKeys = [...new Set([...titles, ...descriptions])]
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Stored notification text can be malformed; only string translation references belong in the message catalog.
       .filter((value) => typeof value === "string" && value.startsWith("$"))
       .map((value) => value.slice(1))
       .sort();
@@ -474,7 +475,6 @@ export class UserNotificationsModel extends BasicDataModel(
     try {
       return await this.create({ ...notification, duplicateId });
     } catch (error) {
-      // A failed acknowledgement can follow a committed insert, as for createIdempotently.
       const existing = await this.table.get(duplicateId).run();
       if (!existing) throw error;
       return undefined;
@@ -502,7 +502,6 @@ export class UserNotificationsModel extends BasicDataModel(
         id,
       });
     } catch (error) {
-      // A failed acknowledgement can follow a committed insert, independent of driver error codes.
       const existing = await this.table.get(id).run();
       if (!existing || !isReceiptOf(existing, userId)) throw error;
       return undefined;
@@ -539,7 +538,6 @@ export class UserNotificationsModel extends BasicDataModel(
       updatedAt: new Date(),
     };
 
-    // A fixed id marks the row as the receipt of an idempotent delivery.
     if (id !== undefined) {
       notification._id = id;
       notification.isIdempotent = true;

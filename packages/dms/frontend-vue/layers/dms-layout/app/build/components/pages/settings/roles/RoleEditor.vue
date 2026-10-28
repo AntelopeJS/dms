@@ -22,7 +22,7 @@ import {
   type RoleEditorField,
   type RoleMemberPreview,
 } from "./role-types";
-import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
 interface RoleEditorProps {
   isNew: boolean;
@@ -80,9 +80,7 @@ defineExpose({
 const NAMED_MEMBERS_LIMIT = 2;
 
 const query = ref("");
-// Every collapsible row, areas and nested rows alike, starts closed: the user
-// opens what they need. A search shows its hits instead of the tree and never
-// touches this set, so clearing it brings the previous state back as is.
+
 const expanded = ref<Set<string>>(new Set());
 
 const hits = computed(() =>
@@ -93,8 +91,7 @@ const hits = computed(() =>
 const hitAreaCount = computed(
   () => new Set((hits.value ?? []).map((hit) => hit.areaId)).size,
 );
-// The permissions of the role that amount to owner-level access, however
-// they were ticked (a parent grants its whole subtree).
+
 const ownerLevelLabels = computed(() =>
   selectedWarningLabels(props.index, props.areas, props.selection, processI18n),
 );
@@ -135,9 +132,6 @@ const actions = computed<DropdownMenuItem[]>(() => [
   },
 ]);
 
-// The tree opens and closes one depth per click (areas are depth 1): expand
-// opens the shallowest depth not fully open, collapse closes the deepest
-// depth with a row shown open (see `nextExpandDepth`, `nextCollapseDepth`).
 const levels = computed(() => buildPermissionLevels(props.areas));
 const depthCount = computed(() => levels.value.levels.length);
 const canExpand = computed(

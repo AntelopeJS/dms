@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
 import { getAuthConfig } from "../../config";
 import {
@@ -17,12 +17,12 @@ import {
 const TENANT_ID = "purpose-test-tenant";
 const HTTP_UNAUTHORIZED = 401;
 
-async function expectUnauthorized(run: () => Promise<unknown>): Promise<void> {
+async function expectUnauthorized<T>(run: () => Promise<T>): Promise<void> {
   try {
     await run();
   } catch (error) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_UNAUTHORIZED);
+    assert.instanceOf(error, HTTPResult);
+    expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
     return;
   }
   expect.fail("Expected authentication to reject the token");

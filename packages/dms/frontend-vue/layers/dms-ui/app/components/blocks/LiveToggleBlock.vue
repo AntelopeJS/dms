@@ -18,8 +18,6 @@ import {
 import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// Its ids are optional: it reads the page's live state, not its own, and a
-// component may draw it by hand inside its own `PageToolbar`.
 interface LiveToggleBlockProps extends Partial<DefaultComponentProps> {
   align?: "left" | "center" | "right";
   /** Shows "updated N s ago". */
@@ -61,8 +59,6 @@ interface LiveToggleSizeClasses {
   pillButton: string;
 }
 
-// The pill takes the toolbar's one height (its buttons fill it), as the
-// period selector's segments beside it and the Resume button do.
 const SIZE_CLASSES: Record<PageToolbarSize, LiveToggleSizeClasses> = {
   xs: {
     text: "text-[11.5px]",
@@ -79,7 +75,7 @@ const SIZE_CLASSES: Record<PageToolbarSize, LiveToggleSizeClasses> = {
 };
 
 const { t } = useI18n();
-const translate = t as ConfirmTranslate;
+const translate: ConfirmTranslate = t;
 const live = usePageLive();
 const toolbar = usePageToolbar();
 useToolbarLiveToggle(toolbar);
@@ -89,10 +85,6 @@ const heightClass = computed(
   () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[size.value],
 );
 
-// The toggle is drawn from the server on, live (the remembered pause applies
-// once mounted), so it takes its place before the page paints. Only the
-// "updated N s ago" text waits for the browser's clock: the server's would
-// not match the hydrating render's.
 const isMounted = ref(false);
 onMounted(() => (isMounted.value = true));
 const updatedText = useUpdatedLabel(
@@ -113,8 +105,6 @@ const items = computed(() => [
   { value: PAUSE, label: t("dms.live.pause"), icon: "i-ph-pause" },
 ]);
 
-// The browser's clock only: the server's text would not match the hydrating
-// render's.
 const updatedLabel = computed(() => (isMounted.value ? updatedText.value : ""));
 
 const missedText = computed(() => {
@@ -123,8 +113,6 @@ const missedText = computed(() => {
   return missedRowsText(count, props.missedLabel, translate);
 });
 
-// "Paused · typing in the Tester · 40 new requests", the detail apart: it
-// takes its own tone.
 const pausedText = computed(() => {
   const reason = live.pauseReason.value;
   return [
@@ -142,7 +130,6 @@ const detail = computed(() => {
   return showLiveNote(note, translate);
 });
 
-// A hidden tab resumes by itself when it shows again: no button for it.
 const canResume = computed(
   () =>
     live.isPaused.value &&

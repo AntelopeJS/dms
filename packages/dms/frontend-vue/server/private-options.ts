@@ -1,4 +1,5 @@
 import type { DmsServerEvent } from "#dms/server";
+import { z } from "zod";
 
 /**
  * A secret of the DMS's private options, as the frontend server hands them
@@ -18,10 +19,10 @@ export function privateSecret(
   key: string,
   variable: string,
 ): string | undefined {
-  const options = event.module.privateOptions[section] as
-    | Record<string, unknown>
-    | undefined;
-  const value = options?.[key];
-  if (typeof value === "string" && value) return value;
+  const options = event.module.privateOptions[section];
+  const secret = z
+    .string()
+    .safeParse(options == null ? undefined : Object(options)[key]);
+  if (secret.success && secret.data) return secret.data;
   return process.env[variable] || undefined;
 }

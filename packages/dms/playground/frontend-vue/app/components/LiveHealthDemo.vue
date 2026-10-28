@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// A module's own block on a live page: it reads its route like a built-in
-// block (gated by maxRate, counted while paused), tallies the 5xx it misses
-// for the toggle, and holds the page while its note field has the focus.
 
 interface Props {
   healthUrl: string;
@@ -38,7 +35,7 @@ useRealtimeTopic(
   () => props.realtimeTopic,
   (event) => {
     if (!live.isPaused.value || !("payload" in event)) return;
-    const payload = (event.payload ?? {}) as BatchPayload;
+    const payload: BatchPayload = (event.payload ?? {});
     if (!payload.server5xx) return;
     missedServerErrors.value += payload.server5xx;
     live.setMissedDetail({

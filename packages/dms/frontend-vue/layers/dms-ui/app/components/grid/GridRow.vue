@@ -19,10 +19,6 @@ const props = defineProps<GridRowProps>();
 
 const gridContext = inject<GridContext | null>(GRID_CONTEXT, null);
 
-// The grid's template is for its own rows only. A row nested in one of this
-// row's cells (inside a Section, a stack...) lays out its own children: were it
-// to read the outer grid, it would take that grid's column count and leave
-// empty tracks beside its cells. A Grid inside a cell provides its own context.
 provide<GridContext | null>(GRID_CONTEXT, null);
 
 /** The identity this row counts under, so its width dies with it. */
@@ -34,7 +30,7 @@ watchEffect(() => gridContext?.setRowColumnCount(rowId, columnCount.value));
 onUnmounted(() => gridContext?.dropRow(rowId));
 
 const gap = computed(() => gridContext?.gap.value ?? DEFAULT_GAP);
-// Outside a Grid, the row spreads its own children over the width.
+
 const maxColumns = computed(() =>
   Math.max(1, gridContext ? gridContext.maxColumns.value : columnCount.value),
 );
@@ -45,12 +41,8 @@ const columnsTemplate = computed(() =>
   gridColumnsTemplate(maxColumns.value, gap.value, minColumnWidth.value),
 );
 
-// The row is a size container: whether its spacers hold a cell and how far
-// its spans reach are container queries on its own width, identical in the
-// server render and the browser (see gridResponsiveStyles).
 const scope = gridScopeId(props.componentId || useId());
-// Its cells close over the ones their blocks leave empty
-// (see gridCollapsedCellStyles).
+
 const responsiveStyles = computed(() =>
   [
     gridCollapsedCellStyles(scope, maxColumns.value),

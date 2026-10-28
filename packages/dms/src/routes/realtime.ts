@@ -20,7 +20,7 @@ import {
   addDevReloadListener,
   DEV_RELOAD_TOPIC,
   isDevReloadEnabled,
-} from "../implementations/dms/dev-reload";
+} from "../store/frontend";
 import {
   buildMemberMenuTopic,
   buildMenuTopic,
@@ -34,8 +34,6 @@ import {
   type PresenceActor,
   subscribeRealtime,
   type TenantView,
-} from "../realtime";
-import {
   getConnectionInfo,
   getSessionInfo,
   getSessionSubscriptions,
@@ -45,7 +43,7 @@ import {
   setSessionPage,
   unregisterConnection,
   unregisterSession,
-} from "../realtime/sessions";
+} from "../realtime";
 
 const REALTIME_BASE = "/api/realtime";
 const HELLO_EVENT = "hello";
@@ -97,22 +95,20 @@ const buildActor = (user: User): PresenceActor => ({
   displayName: user.name || user.email,
 });
 
+/* oxlint-disable anti-slop/no-runtime-typeof -- This HTTP boundary checks the three presence routing strings before use. */
 const isValidPresenceBody = (
   body: unknown,
 ): body is { pageId: string; topic: string; key: string } => {
   if (!body || typeof body !== "object") return false;
-  const candidate = body as PresenceRequestBody;
+  const candidate: PresenceRequestBody = body;
   return (
     typeof candidate.pageId === "string" &&
     typeof candidate.topic === "string" &&
     typeof candidate.key === "string"
   );
 };
+/* oxlint-enable anti-slop/no-runtime-typeof */
 
-// Menu invalidations: the session's own tenant, its user's access in that
-// tenant, plus the broadcast topic a NotifyMenuChanged() call that names no
-// tenant lands on. The session subscribes to these and the greeting announces
-// them, so both must read the same list.
 export const menuTopicsFor = (
   tenantId: string | undefined,
   userId: string | undefined,
@@ -163,10 +159,6 @@ const applySessionTopics = async (
   for (const topic of desired) {
     const isNew = !subscriptions.has(topic);
     if (isNew) {
-      // Tracked rather than bound to the broker of the moment: a live SSE
-      // session must keep receiving across a realtime reconfiguration. An
-      // event another tenant published is not this session's to receive,
-      // unless it views every tenant on this topic.
       subscriptions.set(
         topic,
         subscribeRealtime(topic, (event) => {
@@ -191,10 +183,11 @@ const cleanupSession = async (sessionId: string): Promise<void> => {
   await getPresenceTracker().releaseAllForSession(sessionId);
 };
 
-const warnUnlessClosed = (sessionId: string) => (error: unknown) => {
-  if (!getSessionInfo(sessionId)) return;
-  Logging.Warn("Realtime: applySessionTopics failed", error);
-};
+const warnUnlessClosed =
+  (sessionId: string) => (error: Parameters<typeof Logging.Warn>[1]) => {
+    if (!getSessionInfo(sessionId)) return;
+    Logging.Warn("Realtime: applySessionTopics failed", error);
+  };
 
 const isSessionOf = (
   info: SessionInfo,
@@ -250,8 +243,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       close: stream.close,
     });
     stream.send(HELLO_EVENT, { connectionId, ts: Date.now() });
-    // Once per connection, outside any session: every tab of the browser
-    // hears it from the one stream.
+
     const stopDevReload = addDevReloadListener((type) =>
       stream.send(DEV_RELOAD_TOPIC, {
         topic: DEV_RELOAD_TOPIC,
@@ -290,12 +282,11 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       ? getConnectionInfo(connectionId)
       : undefined;
     if (!connectionId || !connection) return { ok: false };
-    // The connection id is the browser's: another user's request holding it
-    // must not read that user's events.
+
     assert(connection.userId === user._id, 403, "error.forbidden");
     const sessionId = randomUUID();
     const tenantId = getRequestTenantId(ctx);
-    const send = (eventName: string, data: unknown) =>
+    const send: SessionInfo["send"] = (eventName, data) =>
       connection.send(SESSION_EVENT, { sessionId, event: eventName, data });
     registerSession(sessionId, {
       user,
@@ -339,10 +330,8 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/subscribe/:pageId")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, page, session, tenant models, and user through decorators.
   async subscribePage(
     @Context() ctx: RequestContext,
     @Parameter("pageId", "param") pageId: string,
@@ -389,12 +378,11 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/acquire")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async acquire(
     @Context() ctx: RequestContext,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
     @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
@@ -428,12 +416,11 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/release")
-  // Each parameter is bound to a request input by its decorator, so
-  // the framework hands them in positionally: an options object is not
-  // expressible here.
-  // oxlint-disable-next-line eslint/max-params
+
+  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async release(
     @Context() ctx: RequestContext,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
     @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,

@@ -1,46 +1,24 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `duration` and a plain text (`string`) cell take the colour of the tone a
  * row field holds (`toneField`), as text and never as a pill; a row without
  * one keeps the default look. A duration may also be written in milliseconds
  * whatever its size (`format: "ms"`).
  */
-import {
-  createApp,
-  createSSRApp,
-  defineComponent,
-  h,
-  type App,
-  type VNodeChild,
-} from "vue";
+import { createApp, createSSRApp, defineComponent, h, type App } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => unknown;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
 let formatMilliseconds: (ms: number, locale: string) => string;
 
-const formatters = new Map<string, Formatter>();
+const formatters = new Map<string, Formatter | undefined>();
 const register = (dataType: DataType) =>
-  formatters.set(dataType.id, dataType.formatter?.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter?.default);
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -59,11 +37,11 @@ function stubLayerGlobals() {
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
   ({ formatMilliseconds } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/metricCells"
+    "../layers/dms-ui/app/entries/composables/data-types/metricCells"
   ));
 });
 
@@ -74,10 +52,12 @@ afterEach(() => {
   app = undefined;
 });
 
-function render(content: unknown): HTMLElement {
+function render(content: ReturnType<Formatter>): HTMLElement {
   const container = document.createElement("div");
   app = createApp(
-    defineComponent({ setup: () => () => content as VNodeChild }),
+    defineComponent({
+      setup: () => () => content,
+    }),
   );
   app.mount(container);
   return container;
@@ -85,9 +65,9 @@ function render(content: unknown): HTMLElement {
 
 const cell = (
   id: string,
-  value: unknown,
-  options: unknown,
-  row: Record<string, unknown> = {},
+  value: Parameters<Formatter>[0],
+  options: Parameters<Formatter>[2],
+  row: NonNullable<Parameters<Formatter>[3]> = {},
 ) => formatters.get(id)!(value, "en-GB", options, row);
 
 describe("milliseconds format", () => {
@@ -191,9 +171,8 @@ describe("empty plain text cell", () => {
   });
 
   it("hydrates the server's HTML without a mismatch", async () => {
-    // As Table.vue draws it: the formatter's output is the cell's root.
     const Cell = defineComponent({
-      setup: () => () => cell("string", "", undefined) as VNodeChild,
+      setup: () => () => cell("string", "", undefined),
     });
     const Row = { render: () => h("div", [h("b", "id"), h(Cell)]) };
     const container = document.createElement("div");

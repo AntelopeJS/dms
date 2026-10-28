@@ -16,19 +16,19 @@ const KEY_MISSING = "$dms.field_errors.key_missing";
 const KEY_DUPLICATE = "$dms.field_errors.key_duplicate";
 
 const nameOf = (row: KeyValueRow): string => (row.key ?? "").trim();
-const isBlank = (value: unknown): boolean =>
+const isBlank = (value: KeyValueRow["value"]): boolean =>
   value === undefined || value === null || value === "";
 const isUnfilled = (row: KeyValueRow): boolean =>
   !nameOf(row) && isBlank(row.value);
 
 /** The rows of a key-value object, in its order. */
 export function keyValueRows(
-  value: Record<string, unknown> | null | undefined,
+  value: Record<string, KeyValueRow["value"]> | null | undefined,
   toggleable: boolean | undefined,
 ): KeyValueRow[] {
   return Object.entries(value ?? {}).map(([key, entry]) => {
     if (!toggleable) return { key, value: entry };
-    const toggled = (entry ?? {}) as Partial<ToggledValue>;
+    const toggled: Partial<ToggledValue> = entry ?? {};
     return { key, value: toggled.value, enabled: toggled.enabled ?? true };
   });
 }
@@ -37,7 +37,7 @@ export function keyValueRows(
 export function keyValueObject(
   rows: readonly KeyValueRow[],
   toggleable: boolean | undefined,
-): Record<string, unknown> {
+): Record<string, KeyValueRow["value"]> {
   return Object.fromEntries(
     rows
       .filter((row) => !isUnfilled(row))

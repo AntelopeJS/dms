@@ -76,13 +76,6 @@ const SECONDARY_LABELS: Record<FormKind, string> = {
   action: "dms.button.reset",
 };
 
-// Its states have the same height, so switching between them never moves the
-// content around it. The floating bar overlays the form: its root is a sticky
-// anchor at the form's end that takes no space while the bar hides, and the
-// bar's height plus its gaps while it shows, so the last field scrolls clear
-// of it and nothing above it moves. The band, a footer, folds away while
-// hidden: it shows below the form, which keeps its place and only loses the
-// band's height of its visible area.
 const theme = tv({
   slots: {
     root: "",
@@ -148,9 +141,7 @@ const buttons = computed(() => BUTTONS[props.variant]);
 trackFloatingSaveBar(
   () => props.variant === "floating" && !state.value.isHidden,
 );
-// Toasts stack in the bottom corner the floating bar and a drawer's footer
-// band reach: they rise above the bar rather than cover its buttons. The
-// band's surface is its root, the floating card its inner bar.
+
 const rootElement = useTemplateRef<HTMLElement>("root");
 const barElement = useTemplateRef<HTMLElement>("bar");
 trackToasterClearance(
@@ -158,7 +149,6 @@ trackToasterClearance(
   () => !state.value.isHidden,
 );
 
-// Empty while there is nothing to save: the hidden bar keeps its one line.
 const statusText = computed(() => {
   if (!props.dirty) return "";
   const changed = props.changes.map((label) => processI18n(label)).join(", ");

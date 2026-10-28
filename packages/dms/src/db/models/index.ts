@@ -5,3 +5,4 @@ export * from "./userEmailChanges.model";
 export * from "./userKnownDevices.model";
 export * from "./userNotificationPreferences.model";
 export * from "./userNotifications.model";
+export * from "./notification-feed-filter";

@@ -22,7 +22,6 @@ export type DownloadFetch = (
 const DISPOSITION_NAME = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i;
 const FALLBACK_FILENAME = "download";
 
-// A malformed escape is kept as written rather than failing the download.
 function decodeName(name: string): string {
   try {
     return decodeURIComponent(name);

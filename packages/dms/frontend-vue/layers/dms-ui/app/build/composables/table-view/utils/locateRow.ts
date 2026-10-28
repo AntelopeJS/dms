@@ -84,8 +84,7 @@ export function rowLocator(options: RowLocatorOptions) {
       const local = all ? find(all, id) : -1;
       return all && local >= 0 ? locationIn(all, 0, local) : undefined;
     }
-    // The window around where the row last stood first, then the result
-    // from its start, until its end or the rows looked through run out.
+
     const starts = hint === undefined ? [] : [Math.max(0, hint - HALF_WINDOW)];
     let end = LOCATE_MAX_ROWS;
     for (let start = 0; start < end; start += LOCATE_WINDOW) starts.push(start);
@@ -93,7 +92,7 @@ export function rowLocator(options: RowLocatorOptions) {
     for (const start of starts) {
       if (read.has(start) || start >= end) continue;
       read.add(start);
-      // One row before the window: its first row's previous.
+
       const offset = Math.max(0, start - 1);
       const window = await list(offset, LOCATE_WINDOW + (start > 0 ? 2 : 1));
       if (!window) return undefined;

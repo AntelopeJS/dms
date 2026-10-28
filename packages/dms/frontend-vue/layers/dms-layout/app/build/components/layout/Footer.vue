@@ -29,16 +29,12 @@ function isExternal(to: string): boolean {
   return EXTERNAL_LINK_PATTERN.test(to);
 }
 
-// A signed-in user on a page of this layout (the account switcher) switches
-// their profile's language too: the session applies that one on every load,
-// and the server writes in it, so switching the screen alone would leave the
-// two apart. A visitor's choice lives in the locale cookie.
-async function onLocaleChange(code: unknown) {
+async function onLocaleChange(code: Parameters<typeof changeLanguage>[0]) {
   if (isLoggedIn.value) {
-    await changeLanguage(code as string);
+    await changeLanguage(code);
     return;
   }
-  await setLocale(code as typeof locale.value);
+  await setLocale(code);
 }
 </script>
 

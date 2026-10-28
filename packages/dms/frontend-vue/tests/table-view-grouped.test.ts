@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -8,10 +8,9 @@ import {
   ref,
   watch,
   type App,
-  type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useGroupedRows } from "../layers/dms-ui/app/build/composables/table-view/useGroupedRows";
+import { useGroupedRows } from "../layers/dms-ui/app/entries/composables/table-view/useGroupedRows";
 import {
   dateGroupLabel,
   groupedOptionsFor,
@@ -24,7 +23,7 @@ import {
   orderGroupedRows,
   pickedTableSorting,
   rowGroupKey,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/groupedRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 
 const LABELS = {
@@ -48,7 +47,7 @@ describe("grouped rows", () => {
   it("files a date under its calendar day and week, in the reader's time zone", () => {
     expect(rowGroupKey(local(29, 23), "day", "en-GB")).toBe("2026-09-29");
     expect(rowGroupKey(local(29, 1), "day", "en-GB")).toBe("2026-09-29");
-    // Tuesday Sep 29: the week starts on Monday Sep 28 in en-GB.
+
     expect(rowGroupKey(local(29, 9), "week", "en-GB")).toBe("2026-09-28");
     expect(rowGroupKey(local(27, 9), "week", "en-GB")).toBe("2026-09-21");
     expect(rowGroupKey(undefined, "day", "en-GB")).toBe(NO_GROUP_KEY);
@@ -102,7 +101,6 @@ describe("grouped rows", () => {
 
 describe("groupRows", () => {
   it("files every row of a group under one header, whatever the order", () => {
-    // Rows still sorted by name while the grouped sort loads.
     const rows = [
       { name: "Ann", role: "technician" },
       { name: "Bob", role: "office" },
@@ -133,7 +131,7 @@ describe("grouped display sorting", () => {
     expect(pickedTableSorting(input)).toEqual([
       { id: "position", desc: false },
     ]);
-    // Off the grouped display the order field sorts the list.
+
     expect(listTableSorting({ ...input, grouped: undefined })).toEqual([
       { id: "position", desc: false },
     ]);
@@ -143,7 +141,7 @@ describe("grouped display sorting", () => {
     const input = { ...base, canSort: false, grouped };
     expect(pickedTableSorting(input)).toEqual([{ id: "title", desc: true }]);
     expect(listTableSorting(input)).toEqual([{ id: "status", desc: false }]);
-    // A display without the picker, and not grouped, keeps the default.
+
     expect(listTableSorting({ ...input, grouped: undefined })).toEqual(
       base.defaultSorting,
     );
@@ -173,7 +171,7 @@ describe("grouped display sorting", () => {
       "c",
       "e",
     ]);
-    // A sort on the grouped column itself leaves the listed order.
+
     expect(ids([{ id: "status", desc: false }])).toEqual([
       "a",
       "b",
@@ -185,14 +183,22 @@ describe("grouped display sorting", () => {
 });
 
 describe("grouped group-by", () => {
-  const column = (accessorKey: string, typeId: string, options = {}) =>
-    ({
-      id: accessorKey,
-      accessorKey,
-      header: accessorKey,
-      listable: true,
-      type: { id: typeId, inputComponent: { options } },
-    }) as unknown as TableViewColumn;
+  const column = (
+    accessorKey: string,
+    typeId: string,
+    options = {},
+  ): TableViewColumn => ({
+    id: accessorKey,
+    accessorKey,
+    header: accessorKey,
+    listable: true,
+    type: {
+      id: typeId,
+      inputComponent: { options },
+      compareModes: [],
+      filterComponents: {},
+    },
+  });
   const columns = [
     column("status", "select", { items: [{ value: "open", label: "Open" }] }),
     column("tags", "select", { multiple: true }),
@@ -273,6 +279,7 @@ describe("useGroupedRows", () => {
           grouped = useGroupedRows({
             grouped: { groupByField: "status", count: true, collapsible: true },
             isActive: computed(() => true),
+            // SAFETY: This fixture only renders the no-value header, which bypasses the column's data-type renderer.
             columns: [
               { id: "status", accessorKey: "status", header: "Status" },
             ] as TableViewColumn[],
@@ -304,7 +311,7 @@ describe("useGroupedRows", () => {
     expect(grouping.collapsible).toBe(true);
     expect(grouping.keyOf(rows.value[0]!)).toBe("open");
     expect(grouping.countOf?.("open")).toBe(12);
-    const noValue = grouping.header(NO_GROUP_KEY, rows.value[2]!) as VNode;
-    expect(noValue.children).toBe("dms.table.grouped.none");
+    const noValue = grouping.header(NO_GROUP_KEY, rows.value[2]!);
+    expect(noValue).toHaveProperty("children", "dms.table.grouped.none");
   });
 });

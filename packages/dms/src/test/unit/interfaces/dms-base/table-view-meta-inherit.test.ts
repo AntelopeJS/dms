@@ -29,9 +29,6 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
-// `class B extends DataController(T, {}, Controller("/b", A))`: B starts with
-// what A declares about its columns, and keeps its own TableViews.
-
 const TABLE = "meta-inherit-documents";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)

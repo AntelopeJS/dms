@@ -49,11 +49,11 @@ const DEDUPE_START_SUFFIX = 2;
 
 type TenantExportContributor = RegisteredHook<Hook.TENANT_DATA_EXPORT>;
 
-function describeError(error: unknown): string {
+function describeError(error: PromiseRejectedResult["reason"]): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function abortReason(signal: AbortSignal): unknown {
+function abortReason(signal: AbortSignal): AbortSignal["reason"] {
   return signal.reason ?? new Error("Tenant export aborted");
 }
 
@@ -67,19 +67,16 @@ class ExportArchiveWriter {
     private readonly signal: AbortSignal,
   ) {
     this.output = fs.createWriteStream(localPath);
-    // The consumer must be attached before the first entry: archiver's zip
-    // stream has a bounded internal buffer and stalls forever once it fills
-    // with nobody reading.
+
     this.archive.pipe(this.output);
-    // A permanent listener keeps a late archive error from reaching Node as an
-    // unhandled 'error' event; it is replayed on the next write instead.
-    this.archive.on("error", (error: unknown) => {
+
+    this.archive.on("error", (error) => {
       this.failure ??= error;
     });
-    this.archive.on("warning", (warning: unknown) => {
+    this.archive.on("warning", (warning) => {
       Logging.Warn("[dms] tenant export archive warning:", warning);
     });
-    this.output.on("error", (error: unknown) => {
+    this.output.on("error", (error) => {
       this.failure ??= error;
     });
     this.signal.addEventListener("abort", () => this.archive.abort(), {
@@ -103,7 +100,10 @@ class ExportArchiveWriter {
     }
   }
 
-  appendJson(name: string, data: unknown): Promise<void> {
+  appendJson(
+    name: string,
+    data: Parameters<TenantExportArchive["addJson"]>[1],
+  ): Promise<void> {
     const payload = Buffer.from(JSON.stringify(data, null, JSON_INDENT));
     return this.append(name, () => {
       this.archive.append(payload, { name });
@@ -117,8 +117,6 @@ class ExportArchiveWriter {
   }
 
   async appendFile(name: string, localPath: string): Promise<void> {
-    // An unreadable path only surfaces as an archiver warning, which would
-    // leave the awaited entry pending forever.
     await fs.promises.stat(localPath);
     await this.append(name, () => {
       this.archive.file(localPath, { name });
@@ -127,8 +125,7 @@ class ExportArchiveWriter {
 
   async finalize(): Promise<void> {
     const closed = finished(this.output);
-    // A failing finalize destroys the output before `closed` is awaited, which
-    // would otherwise surface as an unhandled rejection.
+
     closed.catch(() => undefined);
     await this.archive.finalize();
     await closed;
@@ -162,7 +159,8 @@ class ExportArchiveWriter {
       const onEntry = (entry: archiver.EntryData): void => {
         if (entry.name === name) settle(resolve);
       };
-      const onError = (error: unknown): void => settle(() => reject(error));
+      const onError = (error: Parameters<typeof Promise.reject>[0]): void =>
+        settle(() => reject(error));
       const onAbort = (): void =>
         settle(() => reject(abortReason(this.signal)));
 
@@ -186,7 +184,10 @@ class ScopedTenantExportArchive implements TenantExportArchive {
     this.closed = true;
   }
 
-  addJson(path: string, data: unknown): Promise<void> {
+  addJson(
+    path: string,
+    data: Parameters<TenantExportArchive["addJson"]>[1],
+  ): Promise<void> {
     return this.add(path, (name) => this.writer.appendJson(name, data));
   }
 
@@ -249,8 +250,7 @@ function resolveModuleIds(contributors: TenantExportContributor[]): string[] {
 async function writeContribution(
   writer: ExportArchiveWriter,
   moduleId: string,
-  // Mirrors the hook result, which stays `void` so a contributor may return
-  // nothing.
+
   contribution: TenantDataExportContribution | void,
 ): Promise<string | undefined> {
   if (!contribution) return undefined;
@@ -269,8 +269,6 @@ async function collectContribution(
   try {
     return await contributor.handler(options.tenantId, scoped, options.signal);
   } finally {
-    // Writes are refused past the handler's return: a late one would land in
-    // the stream position of whichever contributor runs next.
     scoped.close();
   }
 }
@@ -300,8 +298,6 @@ async function runContributor(
       failed: false,
     };
   } catch (error) {
-    // An abort or a broken archive cancels the whole export; only a genuine
-    // contributor failure degrades it to a partial archive.
     writer.throwIfAborted();
     writer.assertUsable();
     Logging.Error(

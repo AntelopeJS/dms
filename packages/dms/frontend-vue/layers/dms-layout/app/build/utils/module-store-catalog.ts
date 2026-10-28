@@ -1,12 +1,15 @@
-import type { Tone } from "#dms-ui/app/types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
-import { type ModuleCatalogEntry, MODULE_URL_PREFIX } from "../../types/page";
+import {
+  type ModuleCatalogEntry,
+  MODULE_URL_PREFIX,
+} from "#dms-core/app/types/page";
 import type {
   ModuleSourceKind,
   StoreListingEntry,
   StoreModuleState,
   StoreOperationKind,
-} from "../../types/module-store";
+} from "#dms-core/app/types/module-store";
 import {
   type DisplayResolver,
   compareDisplayNames,
@@ -120,8 +123,7 @@ export function toModuleStoreEntry(
   const registered = registeredModules.find((module) => module.id === entry.id);
   return {
     ...entry,
-    // The registration also names Installed and navigation. Keep the catalog
-    // fallback for unloaded modules, whose translations may not be served.
+
     title: registered?.title ?? entry.title,
     catalogCategory: resolveCatalogCategory(registered, entry),
   };
@@ -208,7 +210,6 @@ export function sortStoreModules<T extends StoreListingEntry>(
  * applying the file otherwise.
  */
 export function storeActions(entry: StoreListingEntry): StoreAction[] {
-  // The developer's working copy is theirs to change in antelope.config.ts.
   if (entry.isWorkingCopy) return [];
   const installed = entry.installedVersion !== undefined;
   const byState: Record<StoreModuleState, StoreOperationKind[]> = {
@@ -271,7 +272,7 @@ export function storeActionBlock(
 ): StoreActionBlock | undefined {
   if (RELEASE_ACTIONS.has(kind)) return releaseBlock(entry, kind);
   if (!TAKE_DOWN_ACTIONS.has(kind)) return undefined;
-  // The project cannot be removed first: only a change to its code frees it.
+
   if (entry.usedByProject) return "used_by_project";
   return entry.dependents.length > 0 ? "dependents" : undefined;
 }
@@ -396,7 +397,7 @@ export function storeOnlyModules(
       description: entry.description,
       icon: entry.icon,
       hasAccess: true,
-      // Nothing to open: the module serves no page.
+
       landingSlug: "",
       catalogCategory: entry.catalogCategory,
       version:

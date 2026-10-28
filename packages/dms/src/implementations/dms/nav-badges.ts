@@ -1,8 +1,3 @@
-// The navigation badges the pages publish (a table view tab declared with
-// `navBadge`), counted for the caller on each page visit and served next to
-// the page (`navBadges`), never in the site layout a browser keeps for
-// minutes: a count read once would stay on screen that long.
-
 import type { RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
