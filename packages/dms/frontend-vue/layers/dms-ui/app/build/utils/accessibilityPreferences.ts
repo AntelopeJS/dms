@@ -48,6 +48,7 @@ function isRecord(
 ): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
 }
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 /** The cookie as a value: already parsed, or the raw (URI-encoded) JSON. */
 function decodeCookieValue(

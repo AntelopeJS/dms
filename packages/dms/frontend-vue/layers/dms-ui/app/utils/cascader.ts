@@ -284,6 +284,7 @@ export function cascaderValueId(
   const row = asPickedRow(item);
   return row ? rowValue(row, keyMapping.value) : rowValue({ id: item }, "id");
 }
+/* oxlint-enable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type */
 
 /** What a cell already holds of its path, and the ids it still has to read. */
 export interface CascaderValueReads {

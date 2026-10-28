@@ -405,6 +405,7 @@ function issueFor(
     ? { key: refused.issue, name: match.name, value: refused.value }
     : undefined;
 }
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 function resolveNode(
   node: PreviewChildNode,

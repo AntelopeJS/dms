@@ -564,6 +564,7 @@ export function useFieldErrors<F extends string>(
     await focus(fields[0]!.field as F);
     return true;
   }
+  /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
 
   /** The toast of an error that belongs to no field. */
   function toastError(
