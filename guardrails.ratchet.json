@@ -18,7 +18,6 @@
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
-    "packages/dms/docs-data/examples.json": 48123,
     "packages/dms/frontend-vue/layers/dms-layout/app/assets/css/main.css": 23018,
     "packages/dms/frontend-vue/layers/dms-layout/app/theme/form-controls.ts": 22632,
     "packages/dms/frontend-vue/layers/dms-ui/app/build/components/table/Actions.vue": 20545,
