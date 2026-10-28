@@ -26,6 +26,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "../types";
+import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
 // oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
@@ -230,11 +231,7 @@ export function createCategoryFunction(
   };
 
   internal.RegisterCategory.register(categoryInfo);
-  const fromAction =
-    categoryInfo.permission instanceof Action
-      ? categoryInfo.permission.toPermission()
-      : undefined;
-  const categoryPermission: Permission = fromAction ?? {
+  const categoryPermission: Permission = {
     id: categoryInfo.fullId,
     title: categoryInfo.displayName,
     icon: categoryInfo.icon,
@@ -243,8 +240,8 @@ export function createCategoryFunction(
     ...ownPermission(categoryInfo.permission),
   };
   if (isInsideModule(categoryInfo)) {
-    MarkModuleScopedPermission(categoryPermission.id);
-  } else if (!fromAction) {
+    MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
+  } else if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
