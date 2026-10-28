@@ -1,6 +1,6 @@
 import { SignUploadToken } from "@antelopejs/interface-dms/uploads";
 import { expect } from "chai";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 
 describe("[integration] SignUploadToken interface wiring", () => {
   it("routes to the DMS implementation and signs a verifiable token", async function () {

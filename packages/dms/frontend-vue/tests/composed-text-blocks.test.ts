@@ -1,20 +1,17 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * StatGroup, KeyValueList and Banner draw a composed text wherever they draw
  * a text — from their options or from the JSON their route answers — in the
  * reader's language, and keep drawing plain strings as before.
  */
-import {
-  Suspense,
-  createApp,
-  defineComponent,
-  h,
-  reactive,
-  ref,
-  type Component,
-} from "vue";
+import { Suspense, createApp, h, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import {
+  extraRuntime,
+  provideExtraRuntime,
+  registerTextBoundaries,
+  plainSpaces,
+} from "./helpers/chart-extra-runtime";
 import { createI18n } from "vue-i18n";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 
@@ -46,43 +43,6 @@ const i18n = createI18n({
 
 let fetchedItems: unknown[] = [];
 
-vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async () => ({ items: fetchedItems }),
-}));
-vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
-
-vi.mock(
-  "../layers/dms-ui/app/build/composables/actions/useActionTargets",
-  () => ({ useActionTargets: () => ({ handleCustomButton: () => {} }) }),
-);
-
-// The generic components only lay out what the block resolved: their props
-// are what is checked here.
-const propsProbe = (name: string, keys: string[]) => ({
-  default: defineComponent({
-    props: keys,
-    setup: (props) => () =>
-      h("pre", { "data-probe": name }, JSON.stringify(props)),
-  }),
-});
-vi.mock("../layers/dms-ui/app/components/stat-group/StatGroup.vue", () =>
-  propsProbe("stat-group", ["items"]),
-);
-vi.mock("../layers/dms-ui/app/components/key-value-list/KeyValueList.vue", () =>
-  propsProbe("key-value-list", ["items"]),
-);
-vi.mock("../layers/dms-ui/app/components/banner/Banner.vue", () =>
-  propsProbe("banner", ["title", "description"]),
-);
-
 const StatGroupBlock = (
   await import("../layers/dms-ui/app/components/blocks/StatGroupBlock.vue")
 ).default;
@@ -99,22 +59,16 @@ const mounted: Array<{ unmount: () => void }> = [];
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-// Under a Suspense, as the page renders its blocks: a Banner's setup waits
-// for its first answer.
-function render(component: Component, props: Record<string, unknown>) {
+function render(component: Component, props: Parameters<typeof createApp>[1]) {
   const root = document.createElement("div");
   const app = createApp(() =>
     h(Suspense, null, { default: () => h(component, props) }),
   );
+  provideExtraRuntime(app);
+  registerTextBoundaries(app);
   app.mount(root);
   mounted.push(app);
-  return () =>
-    JSON.parse(
-      (root.querySelector("[data-probe]")?.textContent ?? "{}").replace(
-        /[\u00a0\u202f]/g,
-        " ",
-      ),
-    );
+  return () => plainSpaces(root.textContent ?? "");
 }
 
 const mrr = {
@@ -126,7 +80,7 @@ const seats = (value: number) => ({
   params: { count: { type: "count", value } },
 });
 
-beforeEach(() => useRealDataEngine());
+beforeEach(() => extraRuntime(async () => ({ items: fetchedItems })));
 
 beforeEach(() => {
   i18n.global.locale.value = "en";
@@ -136,12 +90,12 @@ beforeEach(() => {
     t: i18n.global.t,
     locale: i18n.global.locale,
   }));
-  vi.stubGlobal("useDmsCookie", () => ref<string[]>([]));
 });
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
   setRegionalPreferencesSource(() => ({}));
+  vi.unstubAllGlobals();
 });
 
 describe("StatGroupBlock", () => {
@@ -153,10 +107,8 @@ describe("StatGroupBlock", () => {
       ],
     });
 
-    expect(read().items).toEqual([
-      { eyebrow: "MRR", value: "€922.00", detail: "3 seats" },
-      { eyebrow: "Plain", value: "1,284", detail: "As written" },
-    ]);
+    expect(read()).toContain("MRR€922.003 seats");
+    expect(read()).toContain("Plain1,284As written");
   });
 
   it("composes the cells its route answers, in the reader's language", async () => {
@@ -171,9 +123,7 @@ describe("StatGroupBlock", () => {
     const read = render(StatGroupBlock, { fetchUrl: "/api/billing-stats" });
     await settle();
 
-    expect(read().items).toEqual([
-      { eyebrow: "Espaces", value: "922,00 €", detail: "1 siège" },
-    ]);
+    expect(read()).toContain("Espaces922,00 €1 siège");
   });
 });
 
@@ -189,12 +139,10 @@ describe("KeyValueListBlock", () => {
       ],
     });
 
-    expect(read().items).toEqual([
-      { label: "MRR", value: "€922.00", type: "money" },
-      { label: "Seats", value: "no seat", detail: "Payment failed" },
-      { label: "Next invoice", value: 588, type: "money" },
-      { label: "Plan", value: "Workspaces" },
-    ]);
+    expect(read()).toContain("MRR€922.00");
+    expect(read()).toContain("Seatsno seatPayment failed");
+    expect(read()).toContain("Next invoice€588.00");
+    expect(read()).toContain("PlanWorkspaces");
   });
 });
 
@@ -209,15 +157,13 @@ describe("BannerBlock", () => {
     });
     await flushPromises();
 
-    expect(read()).toEqual({
-      title: "Payment failed",
-      description: "Payment failed, retry Oct 10",
-    });
+    expect(read().match(/Payment failed/g)).toHaveLength(2);
+    expect(read()).toContain("Payment failed, retry Oct 10");
   });
 
   it("keeps a plain title as written", async () => {
     const read = render(BannerBlock, { title: "Beta" });
     await flushPromises();
-    expect(read().title).toBe("Beta");
+    expect(read()).toContain("Beta");
   });
 });

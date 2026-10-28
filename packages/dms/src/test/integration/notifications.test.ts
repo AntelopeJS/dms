@@ -6,7 +6,7 @@ import {
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../db";
-import { notifyOutdatedModules } from "../../dev/module-update-notifications";
+import { notifyOutdatedModules } from "../../dev";
 import { internal } from "../../implementations/dms-notifications";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -133,8 +133,6 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   });
 
   it("preserves unkeyed create results and physical deletion", async () => {
-    // Two different messages: an identical one within the duplicate window
-    // is not stored again (see the next case).
     await sendable.toUser(USER);
     await new SendableNotification({
       ...data,
@@ -239,7 +237,7 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   it("keeps the first delivery when a key is reused with other content", async () => {
     await sendable.toUsersIdempotently([USER], EVENT);
     const [row] = await model.table.run();
-    await assert.rejects(model.table.insert(row).run(), (error: unknown) => {
+    await assert.rejects(model.table.insert(row).run(), (error) => {
       assert.ok(IsDuplicateKeyError(error));
       return true;
     });

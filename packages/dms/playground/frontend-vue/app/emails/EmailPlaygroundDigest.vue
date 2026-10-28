@@ -20,6 +20,7 @@ interface DigestTexts {
 
 const DEFAULT_LOCALE = "en";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The locale prop is an open string; unrecognized keys intentionally select DEFAULT_LOCALE.
 const TEXTS: Record<string, DigestTexts> = {
   en: {
     title: "Your playground digest",

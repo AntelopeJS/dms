@@ -10,8 +10,6 @@ import {
 const DEFAULT_WORKSPACE = "web";
 const DEFAULT_LOCALE = "en";
 
-// The relative `permission: "audit"` of the page's header button resolves to
-// this id; registering it lists it under the page in Settings › Roles.
 RegisterPermission(PAGE_HEADER_AUDIT_PERMISSION_ID, {
   id: PAGE_HEADER_AUDIT_PERMISSION_ID,
   title: "Open the audit trail",

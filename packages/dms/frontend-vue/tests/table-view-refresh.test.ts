@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A table view reads its rows again when they moved without a write through
  * its own routes: on each event of its `realtimeTopic`, and each time the page
@@ -7,19 +7,15 @@
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import {
+  startTableRealtime,
+  stopTableRealtime,
+  publishTableEvent,
+} from "./helpers/table-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 
-const topicHandlers = new Map<string, RealtimeTopicHandler>();
-
-vi.mock("../layers/dms-core/app/composables/realtime/useRealtimeTopic", () => ({
-  useRealtimeTopic: (topic: string, handler: RealtimeTopicHandler) => {
-    topicHandlers.set(topic, handler);
-  },
-}));
-
 const { useRefreshTriggers } = await import(
-  "../layers/dms-ui/app/build/composables/blocks/useRefreshTriggers"
+  "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
 );
 
 const UPLOADS_TOPIC = "media:uploads";
@@ -39,10 +35,12 @@ function mountBlock(topic: string | string[] | undefined) {
   return { onRefresh, unmount: () => app.unmount() };
 }
 
-beforeEach(() => topicHandlers.clear());
+beforeEach(startTableRealtime);
 
-afterEach(() => {
+afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
+  await stopTableRealtime();
+  vi.unstubAllGlobals();
 });
 
 it("refreshes on each page refresh while mounted", () => {
@@ -56,12 +54,14 @@ it("refreshes on each page refresh while mounted", () => {
   expect(block.onRefresh).toHaveBeenCalledTimes(1);
 });
 
-it("refreshes on each event of any of its topics, not on a snapshot", () => {
+it("refreshes on each event of any of its topics, not on a snapshot", async () => {
   const block = mountBlock([UPLOADS_TOPIC, "media:jobs"]);
-  expect([...topicHandlers.keys()]).toEqual([UPLOADS_TOPIC, "media:jobs"]);
-
-  topicHandlers.get(UPLOADS_TOPIC)?.({ type: "batch.done" } as never);
-  topicHandlers.get("media:jobs")?.({ type: "job.done" } as never);
-  topicHandlers.get(UPLOADS_TOPIC)?.({ entries: [] } as never);
+  await publishTableEvent(UPLOADS_TOPIC);
+  await publishTableEvent("media:jobs");
+  await publishTableEvent(UPLOADS_TOPIC, true);
+  expect(block.onRefresh).toHaveBeenCalledTimes(2);
+  block.unmount();
+  mounted.length = 0;
+  await publishTableEvent(UPLOADS_TOPIC);
   expect(block.onRefresh).toHaveBeenCalledTimes(2);
 });

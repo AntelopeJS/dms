@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   type CellSublineValue,
@@ -6,8 +7,8 @@ import {
   type ColumnOptions,
   DefaultDisplays,
   RegisterDisplay,
+  TableView,
 } from "@antelopejs/interface-dms/base/table-view";
-import { serializeColumnDisplay } from "@antelopejs/interface-dms/base/table-view/internal/column-display";
 
 interface DurationOptions {
   unit?: "s" | "ms";
@@ -17,6 +18,30 @@ interface DurationOptions {
 class DurationDisplay extends ColumnDisplay<DurationOptions> {}
 
 class UnregisteredDisplay extends ColumnDisplay {}
+
+function serializeColumnDisplay(display?: ColumnOptions["display"]) {
+  const options = TableView.fromSource({
+    fetchUrl: "/column-display-test",
+    columns: {
+      member: {
+        name: "Member",
+        type: new DefaultDataTypes.StringType(),
+        display,
+      },
+    },
+  }).serializeSync().options;
+  const { columns } = z
+    .object({
+      columns: z.array(
+        z.object({
+          display: z.object({ type: z.string() }).passthrough().optional(),
+        }),
+      ),
+    })
+    .parse(options);
+  expect(columns).to.have.length(1);
+  return columns[0].display;
+}
 
 describe("[unit] interfaces/dms-base — column displays", () => {
   it("serializes a built-in display to its frontend id and options", () => {

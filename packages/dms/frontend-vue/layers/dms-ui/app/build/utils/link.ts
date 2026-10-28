@@ -1,8 +1,3 @@
-// How a link target configured on a block is followed. Block options are plain
-// strings, so the kind is read off the string itself: an in-page anchor stays a
-// bare `<a href="#…">` (an Inertia visit would reload the page to scroll), an
-// absolute URL opens in a new tab, and everything else is a DMS route.
-
 import { pageLink } from "../composables/page/pageUrlValues";
 
 export type LinkKind = "internal" | "anchor" | "external";

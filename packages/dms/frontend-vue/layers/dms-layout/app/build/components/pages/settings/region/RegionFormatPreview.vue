@@ -15,11 +15,8 @@ const PREVIEW_FRACTION_DIGITS = 2;
 const { locale, t } = useI18n();
 const { timeZone } = useUserRegionalPreferences();
 
-// Frozen at mount: the preview shows formats, not a ticking clock.
 const previewDate = new Date();
 
-// Recomputed from the session user, which the dashboard reads again after
-// each save of the Language & region form.
 const samples = computed<FormatSample[]>(() => {
   const tag = locale.value;
   return [

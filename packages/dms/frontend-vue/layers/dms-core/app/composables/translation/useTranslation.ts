@@ -1,9 +1,9 @@
+import type { NamedValue } from "vue-i18n";
+import { isString } from "../../utils/type-check";
+
 const TRANSLATION_KEY_PREFIX = "$";
 
-export type I18nTranslate = (
-  key: string,
-  params: Record<string, unknown>,
-) => string;
+export type I18nTranslate = (key: string, params: NamedValue) => string;
 
 /**
  * i18n access for DMS app plugins, where `useI18n()` is unavailable: returns
@@ -34,7 +34,7 @@ export function readTranslationKey(value: string) {
 export function resolveI18nKey(
   translate: I18nTranslate,
   key: string,
-  params?: Record<string, unknown> | null,
+  params?: Parameters<I18nTranslate>[1] | null,
 ): string {
   const marked = readTranslationKey(key);
   if (marked.isKey) {
@@ -55,10 +55,10 @@ export function resolveI18nKey(
  */
 export function resolveApiMessage(
   translate: I18nTranslate,
-  message: unknown,
-  params?: Record<string, unknown> | null,
+  message: Parameters<typeof isString>[0],
+  params?: Parameters<I18nTranslate>[1] | null,
 ): string {
-  const text = typeof message === "string" ? message : String(message);
+  const text = isString(message) ? message : String(message);
   const marked = readTranslationKey(text);
   const translated = translate(marked.key, params ?? {});
 
@@ -75,7 +75,7 @@ export function resolveApiMessage(
 export function resolveOptionalI18nKey(
   translate: I18nTranslate,
   key: string | undefined,
-  params?: Record<string, unknown> | null,
+  params?: Parameters<I18nTranslate>[1] | null,
 ): string | undefined {
   if (!key) {
     return undefined;
@@ -92,13 +92,16 @@ export function resolveOptionalI18nKey(
 type ComposerTranslate = ReturnType<typeof useI18n>["t"];
 
 function translationOf(t: ComposerTranslate) {
-  function processI18n(key: string, params?: Record<string, unknown> | null) {
+  function processI18n(
+    key: string,
+    params?: Parameters<I18nTranslate>[1] | null,
+  ) {
     return resolveI18nKey(t, key, params);
   }
 
   function processApiMessage(
-    message: unknown,
-    params?: Record<string, unknown> | null,
+    message: Parameters<typeof resolveApiMessage>[1],
+    params?: Parameters<I18nTranslate>[1] | null,
   ) {
     return resolveApiMessage(t, message, params);
   }

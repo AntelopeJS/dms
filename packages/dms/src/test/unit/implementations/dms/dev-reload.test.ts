@@ -6,9 +6,8 @@ import {
   DevReloadController,
   scheduleBroadcast,
   setSlugProvider,
-} from "../../../../implementations/dms/dev-reload";
+} from "../../../../store/frontend";
 
-// Comfortably past the 250 ms broadcast debounce.
 const SETTLE_MS = 400;
 
 function connect(): PassThrough {
@@ -37,7 +36,7 @@ describe("[unit] implementations/dms/dev-reload", () => {
 
   beforeEach(() => {
     stream = connect();
-    // Drop the hello frame the connection writes.
+
     read(stream);
   });
 
@@ -57,9 +56,6 @@ describe("[unit] implementations/dms/dev-reload", () => {
   });
 
   it("still notifies when a reload left the registry empty", async () => {
-    // The silent case is the one that stranded the client: it kept showing a
-    // 404 with no reason to look again, so even the next good reload passed
-    // unnoticed. Say something, and it re-probes.
     setSlugProvider(() => []);
 
     scheduleBroadcast();
@@ -97,7 +93,6 @@ describe("[unit] implementations/dms/dev-reload", () => {
 
       closeDevReloadStreams();
 
-      // Resolving at all is the assertion: a stream left open never ends.
       await Promise.all([ended(stream), ended(other)]);
       expect(stream.writableEnded).to.equal(true);
       expect(other.writableEnded).to.equal(true);

@@ -4,9 +4,9 @@
  */
 import { createI18n } from "vue-i18n";
 import { describe, expect, it } from "vitest";
-import { formatArchivedCount } from "../layers/dms-ui/app/build/composables/table/utils/archivedCount";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import { formatArchivedCount } from "../layers/dms-ui/app/entries/composables/table/utils/archivedCount";
+import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 const invoices = {
   invoices: {
@@ -21,12 +21,14 @@ function translator(locale: "en" | "fr") {
     fallbackLocale: "en",
     messages: { en, fr: { ...fr, ...invoices } },
   });
-  return i18n.global.t as Parameters<typeof formatArchivedCount>[0];
+  return i18n.global.t;
 }
 
 describe("formatArchivedCount", () => {
   it("counts the archive without agreeing with a noun", () => {
-    expect(formatArchivedCount(translator("en"), 13, "13")).toBe("Archived: 13");
+    expect(formatArchivedCount(translator("en"), 13, "13")).toBe(
+      "Archived: 13",
+    );
     expect(formatArchivedCount(translator("fr"), 13, "13")).toBe(
       "Archives : 13",
     );
@@ -50,7 +52,12 @@ describe("formatArchivedCount", () => {
 
   it("fills a plain text label", () => {
     expect(
-      formatArchivedCount(translator("en"), 3, "3", "{count} archived invoices"),
+      formatArchivedCount(
+        translator("en"),
+        3,
+        "3",
+        "{count} archived invoices",
+      ),
     ).toBe("3 archived invoices");
   });
 });

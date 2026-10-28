@@ -22,6 +22,7 @@ export interface TableReorderOptions<T> {
   isOrderedDisplay: ComputedRef<boolean>;
   /** Lists the rows again, after a move failed. */
   refresh: () => Promise<void> | void;
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch may reject with any JavaScript value. No error schema owns this callback, and restricting it would exclude existing rejection values.
   onError: (error: unknown) => void;
 }
 
@@ -55,7 +56,10 @@ export function useTableReorder<T>(options: TableReorderOptions<T>) {
     data.value = {
       ...page,
       results: moved.map((row) => {
-        const value = values.get(String(get(row as never, rowIdKey)));
+        const value = values.get(
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained, while Nuxt get declares object input even though its implementation handles other values. Its owner-derived input type preserves this unchecked dynamic lookup without adding guards.
+          String(get(row as Parameters<typeof get>[0], rowIdKey)),
+        );
         return value === undefined ? row : { ...row, [reorder.field]: value };
       }),
     };

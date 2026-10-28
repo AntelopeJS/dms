@@ -5,9 +5,7 @@ export const demoModule = RegisterModule({
   title: "Demo Module",
   description: "A demo module to showcase the module system",
   icon: "i-ph-cube",
-  // `/modules/demo` opens this page instead of the first one by order.
   landingPage: "contact",
-  // Modules catalog: version, category, state pill and live readout.
   version: "1.4.0",
   catalogCategory: "Content",
   status: () => "live",
@@ -16,8 +14,6 @@ export const demoModule = RegisterModule({
     { tone: "info", text: `up ${formatUptime(process.uptime())}` },
     { tone: "error", text: "1 sync job failing" },
   ],
-  // Group the module's loose pages under a controllable category heading
-  // instead of the default "Pages" label.
   defaultCategory: {
     displayName: "Demo Pages",
     icon: "i-ph-files",

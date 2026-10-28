@@ -121,7 +121,6 @@ export class PageChartCardKpi extends PageController(
       ),
   );
 
-  // Read again on each point appended by the header button, over realtime.
   static liveCard = ChartCard({
     title: "Live counter",
     description: "realtimeTopic: the figure is the last point",

@@ -1,7 +1,9 @@
-// Mirror of ComposedText and its parameters from
-// @antelopejs/interface-dms/base/types/composed-text.
-
-/** A text composed in the reader's language from an i18n key and raw values. */
+/**
+ * A text composed in the reader's language from an i18n key and raw values.
+ * Keep this shape and its parameter types in sync with
+ * `@antelopejs/interface-dms/base/types/composed-text`, which defines the
+ * payload the backend sends.
+ */
 export interface ComposedText {
   /** The i18n key of the message; the leading `$` is optional. */
   key: string;

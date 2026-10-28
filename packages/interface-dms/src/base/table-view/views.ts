@@ -1,7 +1,3 @@
-// The views of a table view: named states a module declares (and users save)
-// over the same rows, the URL keys that open them, and the link a backend
-// builds to one of them.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { PageMetadata } from "../../page";

@@ -24,6 +24,7 @@ export async function authenticateRequestPrincipal(
   return resolveRequestPrincipal(ctx, authenticators, async (token) => {
     const decoded = await internal.AuthUserAuthenticator(token);
     const user = await internal.AuthUserValidator(decoded);
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- AuthUserValidator's published result includes boolean sentinels which cannot supply a user identity.
     if (!user || typeof user === "boolean") {
       throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
     }

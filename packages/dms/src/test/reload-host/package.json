@@ -1,8 +1,0 @@
-{
-  "name": "@antelopejs/dms-reload-test-host",
-  "version": "0.0.0",
-  "main": "index.js",
-  "dependencies": {
-    "@antelopejs/interface-dms": ">=0.3.1 <1.0.0"
-  }
-}

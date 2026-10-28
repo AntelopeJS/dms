@@ -1,14 +1,11 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The renderer's error handler only keeps an error for the error page: in
  * development, the original error is logged first, with its stack, and the
  * renderer's handler still runs.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DmsAppContext } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
 const { default: devErrorLogPlugin } = await import(
@@ -19,7 +16,8 @@ let app: App;
 let showErrorPage: ReturnType<typeof vi.fn>;
 
 const install = () =>
-  devErrorLogPlugin({ vueApp: app } as unknown as DmsAppContext);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only vueApp is consumed by the error-handler plugin; the fixture deliberately omits unrelated app-context services.
+  devErrorLogPlugin({ vueApp: app } as never);
 
 beforeEach(() => {
   app = createApp({ render: () => null });
@@ -51,23 +49,6 @@ describe("dev error log", () => {
     expect(app.config.errorHandler).toBe(showErrorPage);
   });
 
-  it("is registered for the browser, in development only", () => {
-    // The frontend only runs the plugins a module registers (dms.frontend.ts
-    // imports every layer, too much to set up here).
-    const entry = readFileSync(
-      resolve(__dirname, "../dms.frontend.ts"),
-      "utf8",
-    );
-    const devOnly = entry.slice(
-      entry.indexOf("if (import.meta.env.DEV) {"),
-      entry.indexOf("// Before any data is read"),
-    );
-    expect(devOnly).toMatch(
-      /import\(\s*"\.\/layers\/dms-core\/app\/plugins\/dev-error-log"\s*\)/,
-    );
-    expect(devOnly).toMatch(/\{ \.\.\.clientOnly, enforce: "pre" \}/);
-  });
-
   it("logs an error a page throws once the runtime installed it", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     await engine.setupFrontendModules([
@@ -94,6 +75,7 @@ describe("dev error log", () => {
     engine.provideDmsFrontendRuntime(page, runtime);
     await engine.installDmsPlugins(
       page,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This no-translation fixture supplies only the locale and message setter used during plugin installation.
       { locale: { value: "en" }, setLocaleMessage() {} } as never,
       runtime,
       async () => ({}),

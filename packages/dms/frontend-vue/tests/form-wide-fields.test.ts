@@ -15,7 +15,7 @@ import {
   entryFields,
   entryRowLayout,
   isWideField,
-} from "../layers/dms-ui/app/build/composables/form/formLayout";
+} from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type {
   FieldGroup,
   FormField,
@@ -23,7 +23,7 @@ import type {
 
 function field(
   componentName: string,
-  options?: Record<string, unknown>,
+  options?: FormField["component"]["options"],
   type?: string,
 ): FormField {
   return { id: componentName, type, component: { componentName, options } };

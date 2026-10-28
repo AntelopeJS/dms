@@ -8,10 +8,6 @@ export interface TimeZoneOption {
   offset: string;
 }
 
-type IntlWithSupportedValues = typeof Intl & {
-  supportedValuesOf?: (key: "timeZone") => string[];
-};
-
 /** Offered when the runtime cannot list its zones. */
 const FALLBACK_TIME_ZONES = [
   "UTC",
@@ -40,10 +36,7 @@ const MINUTES_PER_HOUR = 60;
 
 /** Every IANA zone the runtime knows. */
 export function listTimeZones(): string[] {
-  return (
-    (Intl as IntlWithSupportedValues).supportedValuesOf?.("timeZone") ??
-    FALLBACK_TIME_ZONES
-  );
+  return Intl.supportedValuesOf?.("timeZone") ?? FALLBACK_TIME_ZONES;
 }
 
 /** `UTC+02:00`: the offset of `timeZone` at `at`. */

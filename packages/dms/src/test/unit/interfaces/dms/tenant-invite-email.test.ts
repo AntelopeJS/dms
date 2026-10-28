@@ -6,12 +6,11 @@ import {
   sendAdminInviteEmail,
 } from "@antelopejs/interface-dms/auth";
 import { TenantModel } from "@antelopejs/interface-dms/db";
-import { sendTenantInviteEmail } from "@antelopejs/interface-dms/internal/invites";
+import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 
 const WORKSPACE_ID = "tenant-invite-email-workspace";
 const WORKSPACE_NAME = "Storefront";
 const INVITEE_EMAIL = "invitee@acme.dev";
-const TOKEN = "tenant-invite-email-token";
 
 interface SentInviteEmail {
   email: string;
@@ -46,19 +45,22 @@ describe("[unit] interfaces/dms — tenant invitation emails", () => {
   });
 
   it("names the workspace and the inviter, in the invitation's language", async () => {
-    await sendTenantInviteEmail({
+    const result = await inviteUserToTenant({
       tenantId: WORKSPACE_ID,
       email: INVITEE_EMAIL,
-      token: TOKEN,
       firstname: "Ada",
       lastname: "Lovelace",
       language: "fr",
       inviterName: "Grace Hopper",
+      sendEmail: true,
+      awaitEmailDelivery: true,
     });
 
+    if (result.kind !== "invited") throw new Error("Expected an invitation");
+    expect(result.emailDelivery).to.equal("sent");
     expect(sent).to.have.length(1);
     expect(sent[0].email).to.equal(INVITEE_EMAIL);
-    expect(sent[0].token).to.equal(TOKEN);
+    expect(sent[0].token).to.equal(result.token);
     expect(sent[0].inviteeName).to.equal("Ada Lovelace");
     expect(sent[0].context).to.deep.equal({
       workspaceName: WORKSPACE_NAME,

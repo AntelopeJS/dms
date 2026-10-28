@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
-import { listenersFor, type MemberAddedEvent } from "../../automation/events";
-import { runCleanupUserInvites } from "../../crons/cleanup-user-invites";
+import { listenersFor, type MemberAddedEvent } from "../../automation";
+import { runCleanupUserInvites } from "../../crons";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import {
@@ -17,10 +17,7 @@ import {
   type TenantDeletionContext,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import {
-  applyInviteExtension,
-  clearInviteExtensions,
-} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
+import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
 import {
   assertInviteReady,
   completeInviteResolution,
@@ -29,7 +26,7 @@ import {
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { Form } from "@antelopejs/interface-dms/base/form";
-import { consumeInvite } from "../../routes/auth/invite";
+import { consumeInvite } from "../../routes/authentication";
 import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-resolution-tenant";
@@ -84,15 +81,15 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
   let failAccept: boolean;
   let cleaned: Set<string>;
   let accepted: Set<string>;
+  let unregisterExtension: () => void;
 
   beforeEach(async () => {
     await resetDatabase();
-    clearInviteExtensions();
     failCleanup = false;
     failAccept = false;
     cleaned = new Set();
     accepted = new Set();
-    applyInviteExtension({
+    unregisterExtension = RegisterInviteExtension({
       key: "test",
       component: Form({ fields: [] }),
       schema: z.object({ value: z.string() }),
@@ -103,10 +100,8 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
         if (failAccept) throw new Error("accept effect acknowledgement lost");
       },
       onCleanup: (payload, context) => {
-        // Field by field, not `deepEqual`: the payload reaches the extension as
-        // a per-context view of the stored slice, which carries the same values
-        // without being the same object.
         assert.equal(
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The extension callback erases its payload type; this test assumes the registered slice schema.
           (payload as InviteExtensionSlice | undefined)?.value,
           "snapshot",
         );
@@ -135,7 +130,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     invite = row;
   });
 
-  afterEach(() => clearInviteExtensions());
+  afterEach(() => unregisterExtension());
 
   it("chooses one outcome under simultaneous acceptance and cancellation", async () => {
     const results = await Promise.allSettled([
@@ -333,7 +328,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       invite,
       reason: "cancelled",
     });
-    clearInviteExtensions();
+    unregisterExtension();
     await assert.rejects(
       completeInviteResolution(resolution),
       /awaits extensions/,
@@ -403,7 +398,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
 
   it("keeps automation best-effort and exposes replay identity without promising deduplication", async () => {
     const observed: string[] = [];
-    const listener = (payload: unknown) => {
+    const listener = (
+      payload: Parameters<
+        Parameters<ReturnType<typeof listenersFor>["add"]>[0]
+      >[0],
+    ) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The automation listener contract erases event payloads; this test assumes the member-added event shape.
       observed.push((payload as MemberAddedEvent).deliveryId ?? "missing");
       throw new Error("best-effort observer failed");
     };

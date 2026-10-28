@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "orders-table",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add an orders page to the dashboard with a table of the orders: customer, total and status.",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["TableView", "RegisterPage"],
+        "mustNotMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "orders-table-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "need a table of all the orders in the admin asap",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["TableView"]
+      }
+    },
+    {
+      "id": "kpi-row-revenue",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a row of KPI cards at the top of the dashboard: revenue, number of orders and average basket.",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["KpiCard"],
+        "mustNotMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "settings-form",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a settings page with a form to edit the company name, address and VAT number.",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": [
+          "dms-best-practices",
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "mustMention": ["Form"]
+      }
+    },
+    {
+      "id": "dms-pages-fetch-url-404-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my table fetch url 404s, the route is declared on the page class itself",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": ["dms", "dms-best-practices"],
+        "mustMention": ["pageRoutePath"]
+      }
+    },
+    {
+      "id": "dms-pages-not-safe-mode-builder",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "we run the assistant in safe mode, just move the revenue kpi block above the orders table",
+      "expect": {
+        "skills": ["dms-builder-safe"],
+        "acceptable": ["dms", "dms-ai"],
+        "avoid": ["dms-pages"]
+      }
+    }
+  ]
+}

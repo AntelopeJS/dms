@@ -3,14 +3,14 @@ import { computed, ref } from "vue";
 import {
   browserTimeZone,
   setReaderTimeZoneSource,
+  type RegionalPreferenceFields,
 } from "../layers/dms-core/app/utils/regional";
 
-// A zone the test process does not run in, as a browser elsewhere sends it.
 const READER_ZONE =
   browserTimeZone() === "Pacific/Auckland"
     ? "America/New_York"
     : "Pacific/Auckland";
-const user = ref<Record<string, unknown>>({});
+const user = ref<RegionalPreferenceFields>({});
 
 beforeEach(() => {
   vi.stubGlobal("computed", computed);

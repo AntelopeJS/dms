@@ -11,6 +11,9 @@ import type {
   ChartSeries,
   ChartXAxis,
 } from "../layers/dms-ui/app/composables/chart/types";
+import type { ApexOptions } from "apexcharts";
+
+type RawOptionSection = ReturnType<typeof useApexChart>["options"]["value"];
 
 const SERIES: ChartSeries[] = [
   { name: "p50 – p99", data: [{ x: "10:00", y: [12, 48] }] },
@@ -114,9 +117,7 @@ describe("typed X axis", () => {
   });
 });
 
-function optionsFor(
-  input: Partial<UseApexChartInput>,
-): Record<string, unknown> {
+function optionsFor(input: Partial<UseApexChartInput>) {
   const chart = useApexChart(() => ({
     type: "line",
     series: SERIES,
@@ -125,11 +126,9 @@ function optionsFor(
   return chart.options.value;
 }
 
-function sectionOf(
-  options: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> {
-  return options[key] as Record<string, unknown>;
+function sectionOf(options: RawOptionSection, key: string): RawOptionSection {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RawOptionSection deliberately permits arbitrary overrides; no Apex owner type guarantees this section and the tests must observe its unchecked output.
+  return options[key] as RawOptionSection;
 }
 
 describe("rangeArea", () => {
@@ -215,11 +214,14 @@ describe("annotations", () => {
       optionsFor({ annotations: [CAP] }),
       "annotations",
     );
-    const [line] = annotations.yaxis as Array<Record<string, unknown>>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; using the Apex annotation owner retains its fields without claiming runtime validation.
+    const [line] = annotations.yaxis as NonNullable<
+      NonNullable<ApexOptions["annotations"]>["yaxis"]
+    >;
     expect(line!.y).toBe(250);
     expect(line!.borderColor).toBe("#f59e0b");
     expect(line!.strokeDashArray).toBeGreaterThan(0);
-    expect((line!.label as Record<string, unknown>).text).toBe("spend cap");
+    expect(line!.label!.text).toBe("spend cap");
   });
 
   it("draws a solid line when dashed is false", () => {
@@ -227,7 +229,10 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ ...CAP, dashed: false }] }),
       "annotations",
     );
-    const [line] = annotations.yaxis as Array<Record<string, unknown>>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    const [line] = annotations.yaxis as NonNullable<
+      NonNullable<ApexOptions["annotations"]>["yaxis"]
+    >;
     expect(line!.strokeDashArray).toBe(0);
   });
 
@@ -236,10 +241,13 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ y: 4, label: "cap", color: "warning" }] }),
       "annotations",
     );
-    const [line] = annotations.yaxis as Array<Record<string, unknown>>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    const [line] = annotations.yaxis as NonNullable<
+      NonNullable<ApexOptions["annotations"]>["yaxis"]
+    >;
     expect(line!.borderColor).not.toBe("warning");
     expect(String(line!.borderColor)).toMatch(/^(#|rgb|hsl)/);
-    expect((line!.label as Record<string, unknown>).style).toMatchObject({
+    expect(line!.label!.style).toMatchObject({
       color: line!.borderColor,
     });
   });
@@ -249,7 +257,10 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ y: 10, y2: 40, color: "#10b981" }] }),
       "annotations",
     );
-    const [band] = annotations.yaxis as Array<Record<string, unknown>>;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    const [band] = annotations.yaxis as NonNullable<
+      NonNullable<ApexOptions["annotations"]>["yaxis"]
+    >;
     expect(band!.y2).toBe(40);
     expect(band!.fillColor).toBe("#10b981");
     expect(band!.opacity).toBeGreaterThan(0);

@@ -49,7 +49,6 @@ export class PageChartPeriod extends PageController("chart-period", {
     valueFormat: "currency",
   });
 
-  // A "today" range rolls over at midnight on its own.
   static calendar = PeriodSelector({
     id: "period-calendar",
     presets: [
@@ -124,8 +123,6 @@ export class PageChartPeriod extends PageController("chart-period", {
     periodScope: "period-segmented",
   });
 
-  // `all` sends no bounds; the choice is remembered under a key shared with
-  // Ops Metrics, so it follows the user there.
   static segmentedOps = PeriodSelector({
     id: "period-ops",
     variant: "segmented",
@@ -180,7 +177,6 @@ export class PageChartPeriod extends PageController("chart-period", {
     valueFormat: "currency",
   });
 
-  // No id: the selector takes the default scope "page".
   static pageScope = PeriodSelector({
     presets: ["last-7-days", "last-30-days"],
     defaultPreset: "last-7-days",

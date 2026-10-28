@@ -4,11 +4,7 @@ import {
   type StoreAction,
   storeBlockMessage,
 } from "../../../utils/module-store-catalog";
-import type { StoreOperationKind } from "../../../../types/module-store";
-
-// The Manage menu of an installed module: the store actions its tile does
-// not show as its button. One that cannot run stays listed, disabled, with
-// why under it.
+import type { StoreOperationKind } from "#dms-core/app/types/module-store";
 
 interface ModuleManageMenuProps {
   entry: ModuleStoreEntry;

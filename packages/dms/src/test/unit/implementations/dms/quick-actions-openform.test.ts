@@ -38,14 +38,19 @@ const RECOVERY_ADD_PERMISSION = `${RECOVERY_PAGE_ID}.invoices.add`;
 
 const gateInfo = denyingTenantGate("of-gate", DENIED_TENANT, "of.suspended");
 
+type ServedAction = Awaited<
+  ReturnType<typeof buildSiteLayoutPayload>
+>["quickActions"]["actions"][string];
+type ServedFormAction = Omit<ServedAction, "target"> & {
+  target: Extract<ServedAction["target"], { type: "openForm" }>;
+};
+
 function formCapableComponent(name: string): ComponentBuilder<unknown> {
   const component = CustomComponent(name).meta({ name });
   component.action("add", { title: "Add" });
-  return component as ComponentBuilder<unknown>;
+  return component;
 }
 
-// The recovery surface: reachable under a denying gate, and its form has to
-// stay usable — that is the entire point of the opt-out.
 class PageOfRecovery extends PageController("of-recovery", {
   displayName: "Recovery",
   category: pagesCategory,
@@ -72,21 +77,17 @@ class PageOfNested extends PageController("of-nested", {
   );
 }
 
-async function actionsFor(
-  grantedPermissions: string[],
-  tenantId: string,
-): Promise<Record<string, { target: { component?: string } }>> {
+async function actionsFor(grantedPermissions: string[], tenantId: string) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
+    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
     { _id: "of-member" } as User,
     memberModel,
     roleModel,
     tenantId,
   );
-  return payload.quickActions.actions as Record<
-    string,
-    { target: { component?: string } }
-  >;
+  // SAFETY: Callers inspect only this suite's of-* registrations, all openForm targets; other global actions are not inspected as forms.
+  return payload.quickActions.actions as Record<string, ServedFormAction>;
 }
 
 async function registerPageWithComponents(
@@ -185,8 +186,6 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
     }
   });
 
-  // Reading the add permission from the emptied gated set would drop the form
-  // of the very page the gate opt-out exists to keep usable.
   it("keeps a recovery page's form while the gate denies the tenant", async () => {
     const actions = await actionsFor(
       [RECOVERY_PAGE_ID, RECOVERY_ADD_PERMISSION],
@@ -204,7 +203,6 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
     expect(actions).to.not.have.property(`${CATEGORY_ID}:of-recovery`);
   });
 
-  // Unnamed, every table view of the page would open a form at once.
   it("refuses to serve an unnamed target on a page with several forms", async () => {
     const actions = await actionsFor(
       [

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { type App, createApp, h, nextTick } from "vue";
 
@@ -11,9 +11,15 @@ const ITEMS = [
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown>) {
+async function mount(
+  props: Partial<
+    InstanceType<
+      (typeof import("../layers/dms-ui/app/entries/components/form/ChipGroup"))["default"]
+    >["$props"]
+  >,
+) {
   const { default: ChipGroup } = await import(
-    "../layers/dms-ui/app/build/components/form/ChipGroup.vue"
+    "../layers/dms-ui/app/entries/components/form/ChipGroup"
   );
   const onPick = vi.fn();
   app = createApp({

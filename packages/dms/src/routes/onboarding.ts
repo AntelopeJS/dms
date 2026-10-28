@@ -5,7 +5,7 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { normalizeEmail, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { SystemStateModel } from "../db";
-import { generateAuthKey } from "../utils/auth-key";
+import { generateAuthKey } from "../utils";
 import {
   type OnboardingRegisterAdmin,
   onboardingRegisterAdminSchema,
@@ -37,10 +37,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     const hasUsers = users.length > 0;
 
     if (hasUsers) {
-      // The spread row is an AntelopeJS table class: `Table` declares one
-      // field and a static, no instance methods, and the value is
-      // serialised to JSON on the way out. No prototype to lose.
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings instance's own database fields alongside the onboarding flag, not its prototype methods.
       await this.model.updateConfig({ ...settings, has_onboarded: true });
     }
 
@@ -50,7 +47,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Post("/register")
   async postRegister(
     @Model(UserModel) userModel: UserModel,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof onboardingRegisterAdminSchema.parse>[0],
   ) {
     const data = assertValidation(body, (v) =>
       onboardingRegisterAdminSchema.parse(v),
@@ -98,11 +95,8 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     assert(settings, 428, "error.settings_not_found");
     assert(!settings.has_onboarded, 412, "error.onboarding_already_completed");
 
-    // The spread row is an AntelopeJS table class: `Table` declares one
-    // field and a static, no instance methods, and the value is
-    // serialised to JSON on the way out. No prototype to lose.
     await this.model.updateConfig({
-      // oxlint-disable-next-line typescript/no-misused-spread
+      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the settings instance's own persisted fields before overriding onboarding details; its prototype methods are not configuration.
       ...settings,
       has_onboarded: true,
       platform_name: details.platformName ?? settings.platform_name,

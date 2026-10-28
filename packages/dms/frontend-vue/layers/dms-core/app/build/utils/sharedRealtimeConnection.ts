@@ -1,8 +1,10 @@
 import {
   isUnauthorizedStreamError,
   openSseStream,
+  type SseEventHandler,
   type SseStreamHandle,
 } from "../../composables/realtime/useSseStream";
+import { isString } from "../../utils/type-check";
 import {
   browserCrossTabEnvironment,
   type CrossTabEnvironment,
@@ -93,7 +95,7 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
   onFrame: (
     sessionId: string | undefined,
     eventName: string,
-    data: unknown,
+    data: Parameters<SseEventHandler>[1],
   ) => void;
   environment?: CrossTabEnvironment;
 }
@@ -123,7 +125,6 @@ export const createReconnector = (): Reconnector => {
   return {
     isCancelled: () => isCancelled,
     schedule: (open) => {
-      // A pending reconnect absorbs concurrent triggers: one attempt at a time.
       if (isCancelled || timer) return;
       timer = setTimeout(() => {
         timer = undefined;
@@ -144,7 +145,7 @@ export const createReconnector = (): Reconnector => {
 
 /** Retries after a failure, refreshing the browser session first on a 401. */
 export const recoverFromError = (
-  error: unknown,
+  error: Parameters<typeof isUnauthorizedStreamError>[0],
   retry: () => void,
   recovery: StreamRecovery,
 ): void => {
@@ -162,7 +163,7 @@ export const recoverFromError = (
 };
 
 interface StreamCallbacks extends StreamRecovery {
-  onEvent: (eventName: string, data: unknown) => void;
+  onEvent: (eventName: string, data: Parameters<SseEventHandler>[1]) => void;
   onDisconnected: () => void;
 }
 
@@ -227,10 +228,13 @@ const connectWithBackoff = (
   };
 };
 
-const readConnectionId = (data: unknown): string | null => {
+const readConnectionId = (
+  data: Parameters<SseEventHandler>[1],
+): string | null => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SSE decoding returns arbitrary values; inference cannot read this optional property. Keep the existing unchecked property read and subsequent string guard rather than asserting that decoding validated a frame.
   const connectionId = (data as { connectionId?: unknown } | null)
     ?.connectionId;
-  return typeof connectionId === "string" ? connectionId : null;
+  return isString(connectionId) ? connectionId : null;
 };
 
 interface SessionFrame {
@@ -275,7 +279,7 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   const endSessionsOf = (otherTabId: string) => {
     const sessionIds = sessionsByTab.get(otherTabId) ?? new Set<string>();
     sessionsByTab.delete(otherTabId);
-    // The sessions of a connection that went ended with it.
+
     if (!connectionId) return;
     for (const sessionId of sessionIds) {
       closeSession(options.sessionCloseUrl, connectionId, sessionId);
@@ -283,7 +287,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   };
 
   const watchSession = (message: SessionMessage) => {
-    // This tab's own sessions end with the stream it holds.
     if (message.tabId === tabId || message.connectionId !== connectionId) {
       return;
     }
@@ -302,6 +305,7 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   };
 
   const unlisten = bus.listen((raw) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus transports unknown browser messages, not validated HubMessages. Neither inference nor its owner proves this union; preserve the existing unchecked dispatch, including malformed-message behavior.
     const message = raw as HubMessage;
     if (message.kind === "query")
       bus.post({ kind: "connection", connectionId });
@@ -311,7 +315,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
     }
   });
 
-  // The tabs may still hold the connection of a leader that went: they drop it.
   publish(null);
   const stream = connectWithBackoff(options.streamUrl, {
     onEvent: (eventName, data) => {
@@ -325,9 +328,10 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         bus.post({ kind: "frame", connectionId, event: eventName, data });
         return;
       }
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE owner exposes unparsed data; this is only an unchecked view for the two existing string checks, not proof of a complete SessionFrame.
       const frame = data as SessionFrame | null;
-      if (typeof frame?.sessionId !== "string") return;
-      if (typeof frame.event !== "string") return;
+      if (!isString(frame?.sessionId)) return;
+      if (!isString(frame.event)) return;
       bus.post({
         kind: "frame",
         connectionId,
@@ -363,12 +367,12 @@ export function joinSharedRealtimeConnection(
   const environment = options.environment ?? browserCrossTabEnvironment();
   const tabId = createTabId();
   const bus = openTabBus(options.name, environment);
-  // Held before any session is announced: the leader waits on it to learn
-  // that this tab went.
+
   const tabLock = holdLock(tabLockName(options.name, tabId), environment);
   let connectionId: string | undefined;
 
   const unlisten = bus.listen((raw) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus does not validate its payload. Narrowing its owner to HubMessage or adding validation here would change the current acceptance and failure behavior of malformed messages.
     const message = raw as HubMessage;
     if (message.kind === "connection") {
       const next = message.connectionId ?? undefined;

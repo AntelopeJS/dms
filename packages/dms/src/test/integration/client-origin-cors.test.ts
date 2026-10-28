@@ -1,6 +1,6 @@
 import { GetCorsConfig, SetCorsConfig } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import { allowClientOrigin } from "../../client-origin-cors";
+import { allowClientOrigin } from "../../config/client-origin-cors";
 import { getConfig } from "../../config";
 import { createClient } from "../helpers/http";
 
@@ -9,7 +9,7 @@ const MANUAL_ORIGIN = "https://manual.example.com";
 const MANUAL_PATTERN = /^https:\/\/[a-z]+\.preview\.example\.com$/;
 const STRANGER_ORIGIN = "https://stranger.example.com";
 
-async function allowedOriginFor(origin: string): Promise<unknown> {
+async function allowedOriginFor(origin: string) {
   const response = await createClient().get(SYSTEM_STATE, {
     headers: { origin },
   });

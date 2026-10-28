@@ -1,8 +1,7 @@
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
-import { compileRowRule } from "../../../../implementations/dms-base/footer-summary";
+import { compileRowRule } from "../../../../implementations/dms-base/services";
 
-// A condition built by hand: each operator records itself as text.
 interface Expression {
   text: string;
   and: (other: Expression) => Expression;
@@ -18,13 +17,18 @@ const expression = (text: string): Expression => ({
 });
 
 const field = (name: string) =>
+  // SAFETY: compileRowRule calls only eq/ne on fields; their expression results implement every and/or/not operation exercised here, not the entire database proxy API.
   ({
-    eq: (value: unknown) => expression(`${name}=${String(value)}`),
-    ne: (value: unknown) => expression(`${name}!=${String(value)}`),
+    eq: (value: Parameters<ValueProxy<unknown>["eq"]>[0]) =>
+      expression(`${name}=${String(value)}`),
+    ne: (value: Parameters<ValueProxy<unknown>["ne"]>[0]) =>
+      expression(`${name}!=${String(value)}`),
   }) as unknown as ValueProxy<unknown>;
 
 const compile = (rule: Parameters<typeof compileRowRule>[0]) => {
   const condition = compileRowRule(rule, field);
+  // SAFETY: Nonliteral results originate from this fixture's eq/ne and expression combinators, all of which return an Expression with text.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner returns literal booleans or query proxies; preserve the existing distinction before reading the fixture expression's text.
   return typeof condition === "boolean"
     ? condition
     : (condition as unknown as Expression).text;

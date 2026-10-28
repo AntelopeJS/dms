@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A read-only relation (a ResourceForm in view mode, a disabled field) shows
  * the related row's label and avatar, as the edit form's picker and the table
@@ -18,17 +18,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   mapRelationBeforeState,
   sameRelationValue,
-} from "../layers/dms-ui/app/build/composables/data-types/relationValue";
-import { readonlyFieldValue } from "../layers/dms-ui/app/build/composables/form/readonlyValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
+import { readonlyFieldValue } from "../layers/dms-ui/app/entries/composables/form/readonlyValue";
+import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-
-vi.mock(
-  "../layers/dms-ui/app/build/components/form/FormFieldNotes.vue",
-  () => ({
-    default: { render: () => null },
-  }),
-);
 
 const relationType: DataType = {
   id: "relation",
@@ -84,6 +77,7 @@ describe("a disabled relation field", () => {
     shown = [];
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("inject", inject);
+    vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en-GB") }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({
       getDataType: (id: string) =>
@@ -100,7 +94,7 @@ describe("a disabled relation field", () => {
 
   it("hands its display the row the server joined, not the id", async () => {
     const { default: FormFieldControl } = await import(
-      "../layers/dms-ui/app/build/components/form/FormFieldControl.vue"
+      "../layers/dms-ui/app/entries/components/form/FormFieldControl"
     );
     const field = {
       id: "customer",
@@ -113,12 +107,14 @@ describe("a disabled relation field", () => {
         return () => h(FormFieldControl, { field });
       },
     });
+    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- This fixture intentionally provides only the context fields read by the disabled control. The full FormEntryContext owner requires unrelated callbacks; inference cannot make the partial provider complete.
     app.provide(FORM_ENTRY_CONTEXT_KEY, {
       state: ref({ customer: "cust-025" }),
       initialValues: ref({ customer }),
       loading: false,
       isFieldDisabled: () => true,
     } as never);
+    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion
     app.component(
       "UFormField",
       defineComponent({

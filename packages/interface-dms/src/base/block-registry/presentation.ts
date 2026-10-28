@@ -41,8 +41,6 @@ function isPresentation(option: BlockOptionSchema): boolean {
   );
 }
 
-// A scalar widget can replace a union's structured value, so a restricted
-// descendant in any branch forbids offering that parent too.
 function hasRestrictedHints(option: BlockOptionSchema): boolean {
   if (
     !IsSimpleBlockOption(option) ||
@@ -76,7 +74,6 @@ function hasValueEditor(option: BlockOptionSchema): boolean {
   if (hasRestrictedHints(option)) return false;
   if (isScalar(option)) return true;
   if (option.type === "array") {
-    // Content collections can carry demonstration rows even when enum-valued.
     return (
       ["appearance", "behavior", "layout", "features"].includes(
         option.ui?.group ?? "",
@@ -90,7 +87,6 @@ function hasValueEditor(option: BlockOptionSchema): boolean {
       !!option.keys?.enum?.length && !!option.values && isScalar(option.values)
     );
   }
-  // Rich text and palettes can still use the scalar widget their schema declares.
   return (
     option.type === "union" &&
     !!option.ui?.widget &&
@@ -118,7 +114,6 @@ export function BlockPresentationPaths(
     prefix: string,
   ): void => {
     for (const [key, option] of Object.entries(config)) {
-      // Dots and prototype keys cannot be represented safely by path editors.
       if (
         key.includes(".") ||
         ["__proto__", "constructor", "prototype"].includes(key)

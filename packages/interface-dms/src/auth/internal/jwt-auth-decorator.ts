@@ -15,15 +15,16 @@ type Validator<T, R> = (data: T) => R | Promise<R>;
 
 function bearerToken(ctx: RequestContext): string | undefined {
   const header = ctx.rawRequest?.headers?.authorization;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Incoming HTTP authorization is read before token validation; non-string values supply no bearer token.
   return typeof header === "string" ? header.split(" ")[1] : undefined;
 }
 
 function isVerifiedUser(value: unknown): value is { _id: string } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { _id?: unknown })._id === "string"
-  );
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A custom authenticator validator can return any value; only an object with a string id binds a principal.
+  if (typeof value !== "object" || value === null) return false;
+  const { _id }: { _id?: unknown } = value;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The verified principal requires a string id rather than an arbitrary validator result.
+  return typeof _id === "string";
 }
 
 /**
@@ -46,8 +47,6 @@ export function CreateJwtAuthDecorator<
       const provider = async (ctx: RequestContext): Promise<R> => {
         const data = await callbacks.authenticator(bearerToken(ctx));
         const result = await validate(data);
-        // A replacement validator may skip the signature check: only the
-        // configured one, which verifies the token, binds its tenant.
         if (!validator && data && isVerifiedUser(result)) {
           bindVerifiedRequestPrincipal(ctx, {
             userId: result._id,
@@ -58,7 +57,7 @@ export function CreateJwtAuthDecorator<
       };
       if (key === undefined) {
         SetParameterProvider(
-          (target as { prototype: object }).prototype,
+          target.prototype,
           Symbol(CLASS_PROVIDER_DESCRIPTION),
           undefined,
           provider,

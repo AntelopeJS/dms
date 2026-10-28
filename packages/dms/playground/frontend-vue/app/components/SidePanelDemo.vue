@@ -12,7 +12,6 @@ const PENDING_MOUNT_TIME = "…";
 const { close } = useSidePanelDemo();
 const route = useDmsRoute();
 const draft = ref("");
-// Read once mounted: the server render and the hydration must agree.
 const mountedAt = ref(PENDING_MOUNT_TIME);
 onMounted(() => {
   mountedAt.value = new Date().toLocaleTimeString();

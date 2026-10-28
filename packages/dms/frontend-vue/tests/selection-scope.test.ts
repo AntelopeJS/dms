@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectionScopeKey } from "../layers/dms-ui/app/build/utils/selectionScope";
+import { selectionScopeKey } from "../layers/dms-ui/app/entries/utils/selectionScope";
 
 const STATUS_FILTER = { accessorKey: "status", mode: "is", value: "open" };
 const TAB_FILTER = { accessorKey: "isRead", mode: "is", value: "false" };

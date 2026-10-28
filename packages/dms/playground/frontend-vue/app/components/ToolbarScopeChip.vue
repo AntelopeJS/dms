@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// A module's own block on the left of a PageToolbar: the scope its page
-// reads, as a chip as tall as the toolbar's controls.
 
 interface Props {
   label: string;

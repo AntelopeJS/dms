@@ -98,7 +98,6 @@ export function usePeriodDraft(period: UsePeriodReturn): UsePeriodDraftReturn {
 
   function selectPreset(next: PeriodPreset): void {
     if (next === CUSTOM_PRESET && !customRange.value) {
-      // Custom starts from the days on screen, ready to be adjusted.
       const shown = range.value ?? startingRange(new Date());
       customRange.value = calendarToRange(rangeToCalendar(shown));
     }

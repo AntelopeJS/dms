@@ -1,3 +1,5 @@
+import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
+
 /** The forms a table view opens: add (`new`), edit and details (`view`). */
 export type TableViewFormKind = "new" | "edit" | "view";
 
@@ -75,7 +77,7 @@ export interface FormContainerTexts {
 export function resolveFormContainerTexts(
   source: FormContainerTextSource,
   resolve: (text: string) => string,
-  t: (key: string, params?: Record<string, unknown>) => string,
+  t: (key: string, params?: { caption: string }) => string,
 ): FormContainerTexts {
   const keys = FALLBACK_KEYS[source.kind];
   const texts = source.pages?.[FORM_PAGE_KEYS[source.kind]];
@@ -104,22 +106,21 @@ export function resolveFormContainerTexts(
  * `locale`, its language, or else its first text.
  */
 export function formatRecordLabel(
-  value: unknown,
+  value: FormContainerTextSource["recordLabel"],
   locale?: string,
 ): string | undefined {
-  if (typeof value === "number") return String(value);
-  if (typeof value === "string") return value.trim() || undefined;
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (isNumber(value)) return String(value);
+  if (isString(value)) return value.trim() || undefined;
+  if (!value || !isObject(value) || Array.isArray(value)) {
     return undefined;
   }
-  const texts = value as Record<string, unknown>;
   const candidates = [
-    locale ? texts[locale] : undefined,
-    locale ? texts[locale.split("-")[0]!] : undefined,
-    ...Object.values(texts),
+    locale ? value[locale] : undefined,
+    locale ? value[locale.split("-")[0]!] : undefined,
+    ...Object.values(value),
   ];
   for (const candidate of candidates) {
-    if (typeof candidate !== "string") continue;
+    if (!isString(candidate)) continue;
     const label = candidate.trim();
     if (label) return label;
   }

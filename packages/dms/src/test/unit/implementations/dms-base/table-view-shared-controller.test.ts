@@ -1,7 +1,7 @@
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
-import { applyArchiveFilter } from "../../../../implementations/dms-base/search-route";
+import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
@@ -22,15 +22,17 @@ type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
 function stampedBuilder(
   permissionIds: Record<string, string> = {},
 ): TableViewBuilder {
+  // SAFETY: TableViewMeta.actionPermissionIds only calls getAction and reads permissionId; no other builder or action members are exercised by this fixture.
   return {
     getAction: (actionId: string) =>
       permissionIds[actionId]
         ? { permissionId: permissionIds[actionId] }
         : undefined,
-  } as unknown as TableViewBuilder;
+  } as TableViewBuilder;
 }
 
 function requestShowingArchived(): RequestContext {
+  // SAFETY: applyArchiveFilter reads only url.searchParams on this request; this is not a complete request context.
   return {
     url: new URL("http://localhost/list?showArchived=true"),
   } as RequestContext;
@@ -39,19 +41,20 @@ function requestShowingArchived(): RequestContext {
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
   throw new Error("expected the archive filter to refuse");
 }
 
 describe("[unit] implementations/dms-base — data controller shared by several TableViews", () => {
-  // Held here: the meta only keeps weak references to the builders.
   const builders: TableViewBuilder[] = [];
 
-  function sharedController(...tableViews: TableViewBuilder[]): unknown {
-    class Controller {}
+  function sharedController(...tableViews: TableViewBuilder[]) {
+    class Controller {
+      declare ["constructor"]: typeof Controller;
+    }
     const meta = GetMetadata(Controller, TableViewMeta);
     meta.setArchiveField(ARCHIVE_FIELD);
     for (const builder of tableViews) {
@@ -69,10 +72,7 @@ describe("[unit] implementations/dms-base — data controller shared by several 
     const first = stampedBuilder();
     const last = stampedBuilder();
     const instance = sharedController(first, last);
-    const meta = GetMetadata(
-      (instance as { constructor: new () => unknown }).constructor,
-      TableViewMeta,
-    );
+    const meta = GetMetadata(instance.constructor, TableViewMeta);
     expect(meta.componentBuilders).to.deep.equal([first, last]);
   });
 
@@ -83,18 +83,13 @@ describe("[unit] implementations/dms-base — data controller shared by several 
       stampedBuilder({ add: "pages.b.table.add" }),
       stampedBuilder({ add: "pages.a.table.add" }),
     );
-    const meta = GetMetadata(
-      (instance as { constructor: new () => unknown }).constructor,
-      TableViewMeta,
-    );
+    const meta = GetMetadata(instance.constructor, TableViewMeta);
     expect(meta.actionPermissionIds("add")).to.deep.equal([
       "pages.a.table.add",
       "pages.b.table.add",
     ]);
   });
 
-  // The last TableView built carries no archive mode: reading only that one
-  // used to leave the archived rows open to anyone.
   it("guards archived rows when only an earlier TableView declares viewArchived", async () => {
     const instance = sharedController(
       stampedBuilder({ [VIEW_ARCHIVED_ACTION]: ARCHIVING_TABLE_PERMISSION }),

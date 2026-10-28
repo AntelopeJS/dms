@@ -1,4 +1,4 @@
-import type { Component } from "vue";
+import type { Component, ComponentPublicInstance } from "vue";
 import type { ModalSize } from "../../types/modal";
 import type { RowNavigation } from "../../types/row-navigation";
 
@@ -26,14 +26,14 @@ export interface ContainerOptions {
   title: string;
   description?: string;
   component: Component;
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ComponentPublicInstance["$attrs"];
   /**
    * Mounts the body component anew when it changes: a drawer stepping to
    * another row gives the component a fresh start on it.
    */
   componentKey?: string;
   headerComponent?: Component;
-  headerComponentOptions?: Record<string, unknown>;
+  headerComponentOptions?: ComponentPublicInstance["$attrs"];
   containerId?: string;
   /** Icon rendered in a 36px tinted well before the title. */
   icon?: string;
@@ -108,7 +108,7 @@ export interface DrawerRowHeader {
   /** Drawn under the position line, in the title's column (pills, hints). */
   component?: Component;
   /** Props passed to `component`. */
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
 }
 
 /** Options accepted by {@link useModal}'s `open`. */

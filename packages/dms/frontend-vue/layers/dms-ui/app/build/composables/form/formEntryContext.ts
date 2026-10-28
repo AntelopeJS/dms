@@ -1,4 +1,5 @@
 import type { InjectionKey, Ref } from "vue";
+import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import type { FormField } from "../../../composables/form/types/field";
 import type { FormData } from "../../../composables/form/types/value";
@@ -9,7 +10,7 @@ import type { FormLayoutClasses } from "./formLayout";
  * the state of each field and how its rows are laid out.
  */
 export interface FormEntryContext {
-  state: Ref<Record<string, unknown>>;
+  state: ReturnType<typeof useWatch>["state"];
   initialValues: Ref<FormData>;
   loading: Ref<boolean>;
   componentId: string;
@@ -33,7 +34,9 @@ export interface FormEntryContext {
   /** Whether a field holds a value it did not load (or last save) with. */
   isFieldChanged: (fieldId: string) => boolean;
   /** The value a field loaded (or was last saved) with. */
-  baselineValue: (fieldId: string) => unknown;
+  baselineValue: (
+    fieldId: string,
+  ) => FormEntryContext["state"]["value"][string];
   /** The instant-save state of a field: `idle` unless the form saves so. */
   fieldSaveState: (fieldId: string) => SaveStatusState;
   /** Saves again the changes whose save failed. */

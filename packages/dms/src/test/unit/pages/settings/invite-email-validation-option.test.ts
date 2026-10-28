@@ -6,14 +6,16 @@ import {
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
-import { inviteSettingDataAPI } from "../../../../pages/settings/users/invites";
-import { memberInviteForm } from "../../../../pages/settings/users/member-invite-form";
+import {
+  inviteSettingDataAPI,
+  memberInviteForm,
+} from "../../../../pages/members";
 
 const RETIRED_OPTION = "skipEmailValidation";
 
 function inviteFormOptions(): FormPropsSerialized {
-  return memberInviteForm.serializeSync()
-    .options as unknown as FormPropsSerialized;
+  // SAFETY: memberInviteForm is a form component; serialization erases its options type but retains the form fields read below.
+  return memberInviteForm.serializeSync().options as FormPropsSerialized;
 }
 
 function inviteFormFields(): FormFieldSerialized[] {

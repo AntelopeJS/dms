@@ -206,6 +206,7 @@ export type ActionTarget =
        * JSON body sent with the request. The values of the action's confirm
        * `fields` are merged into it, the input winning.
        */
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published action bodies are interpreted by the destination route, which owns validation.
       body?: Record<string, unknown>;
       /**
        * Field of the JSON response copied to the clipboard on success (a
@@ -297,6 +298,7 @@ export type ActionTargetSerialized =
        * JSON body sent with the request. The values of the action's confirm
        * `fields` are merged into it, the input winning.
        */
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published serialized action bodies retain the destination route's arbitrary application fields.
       body?: Record<string, unknown>;
       /**
        * Field of the JSON response copied to the clipboard on success (a

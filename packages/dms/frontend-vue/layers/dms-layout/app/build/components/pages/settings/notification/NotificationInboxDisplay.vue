@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
-import TableEmpty from "#dms-ui/app/build/components/table/Empty.vue";
-import TablePagination from "#dms-ui/app/build/components/table/Pagination.vue";
+import TableEmpty from "#dms-ui/app/entries/components/table/Empty";
+import TablePagination from "#dms-ui/app/entries/components/table/Pagination";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types/display";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
 import { useNotificationCatalog } from "../../../../composables/notification/useNotificationCatalog";
@@ -16,11 +16,7 @@ import {
   groupNotificationsByDay,
   type NotificationSourceTag,
 } from "./notificationDisplay";
-import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
-
-// The `dms:inbox` display of the notifications page's table: the user's feed
-// as v2 inbox rows under day headings. The table brings the tabs, the
-// buttons, the empty states and the infinite pagination.
+import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
 interface NotificationInboxDisplayProps {
   context: TableViewDisplayContext<UserNotification>;
@@ -66,16 +62,13 @@ const sourceOf = (
   return labelKey ? { label: t(labelKey), isModule: false } : undefined;
 };
 
-// A change made here moves the counts too (the write's answer, then its
-// realtime echo): the watcher below leaves it to the one read that follows it.
 let ownChanges = 0;
 
-// A change of a row is listed again, from the server, once.
-const runThenRefresh = async (action: () => Promise<unknown>) => {
+const runThenRefresh = async (action: () => ReturnType<typeof markAsRead>) => {
   ownChanges++;
   try {
     await action();
-    // What the action changed reaches the watcher before the guard drops.
+
     await nextTick();
   } catch {
     toast.add({ title: t("dms.form.error_title"), color: "error" });
@@ -99,8 +92,6 @@ const toggleRead = (notification: UserNotification) =>
       : markAsRead(notification._id),
   );
 
-// A deletion cannot be undone, and its button sits next to Mark read: it is
-// asked first, as "Delete all" is, with the safe answer focused.
 const removeNotification = async (notification: UserNotification) => {
   const isConfirmed = await confirm({
     title: t("page.settings.notifications.delete_one_title"),
@@ -117,9 +108,6 @@ const removeNotification = async (notification: UserNotification) => {
   }
 };
 
-// What the stream changes elsewhere (a notification arriving, read in
-// another tab) is listed again here: once per change of the count or of the
-// newest notification, not each time the bell's lists are rebuilt.
 watch([unreadCount, () => notifications.value[0]?._id], () => {
   if (ownChanges === 0) void props.context.refresh();
 });

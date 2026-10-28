@@ -1,4 +1,4 @@
-import type { SiteLayoutTree } from "../types/page";
+import type { SiteLayoutTree } from "#dms-core/app/types/page";
 
 const MODULES_TREE_KEY = "modules";
 

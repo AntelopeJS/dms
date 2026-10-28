@@ -6,11 +6,7 @@ import {
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 
-type LabelFormatter = (
-  value: string,
-  timestamp?: number,
-  opts?: { i?: number; w?: unknown },
-) => string;
+type LabelFormatter = ReturnType<typeof thinnedCategoryFormatter>;
 
 const HOURS = Array.from(
   { length: 24 },
@@ -27,6 +23,7 @@ function heatmapFormatter(
     series: [{ name: "Mon", data: HOURS.map((x) => ({ x, y: 1 })) }],
     ...input,
   })).options.value;
+  // SAFETY: useApexChart creates xaxis.labels for these axis chart fixtures, and any formatter is the thinnedCategoryFormatter callback.
   const labels = (options.xaxis as { labels: { formatter?: LabelFormatter } })
     .labels;
   return labels.formatter;
@@ -81,6 +78,7 @@ describe("heatmap x-axis labels", () => {
       type: "column",
       series: [{ name: "A", data: [1, 2] }],
     })).options.value;
+    // SAFETY: This column chart fixture creates xaxis.labels and leaves its optional formatter absent.
     expect(
       (options.xaxis as { labels: { formatter?: unknown } }).labels.formatter,
     ).toBeUndefined();

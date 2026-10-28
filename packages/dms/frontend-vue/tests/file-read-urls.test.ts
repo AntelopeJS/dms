@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Stored files' read URLs through the runtime's real async data: a key
  * resolved in a component's setup is read with the page (the server waits for
@@ -93,7 +93,7 @@ describe("file read URLs in a server render", () => {
     expect(html).toBe(
       '<div><img src="https://example.test/avatar"><img src="https://example.test/avatar"></div>',
     );
-    // Two avatars of one file: one read.
+
     expect(metadataCalls()).toHaveLength(1);
 
     authFetch.mockClear();
@@ -112,7 +112,11 @@ describe("file read URLs in the browser", () => {
     vi.setSystemTime(START_TIME);
     browserRuntime();
   });
+  registerFileUrlRefreshTests();
+  registerDeferredFileUrlTests();
+});
 
+function registerFileUrlRefreshTests() {
   it("preserves expiry and refreshes a visible URL before it expires", async () => {
     authFetch
       .mockResolvedValueOnce({
@@ -203,8 +207,11 @@ describe("file read URLs in the browser", () => {
     expect(urls.getUrl(RESOURCE_KEY)).toBeUndefined();
     scope.stop();
   });
+}
 
+function registerDeferredFileUrlTests() {
   it("does not restart refresh timers when an in-flight lookup finishes after disposal", async () => {
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This resolver completes an unparsed network response after disposal; the real file URL composable owns parsing, not this transport double.
     let finish!: (value: unknown) => void;
     authFetch.mockReturnValue(
       new Promise((resolve) => {
@@ -243,4 +250,4 @@ describe("file read URLs in the browser", () => {
       "https://example.test/uploaded",
     );
   });
-});
+}

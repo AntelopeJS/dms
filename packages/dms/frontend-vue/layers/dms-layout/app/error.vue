@@ -13,7 +13,10 @@ interface ErrorConfig {
   tone: StageCardTone;
 }
 
-const ERROR_CONFIGS: Record<number, ErrorConfig> = {
+const ERROR_CONFIGS: Record<
+  NonNullable<DmsErrorData["statusCode"]>,
+  ErrorConfig
+> = {
   404: {
     icon: "i-ph-magnifying-glass",
     titleKey: "error.404.title",
@@ -45,8 +48,6 @@ const RECOVERING_ICON = "i-ph-spinner-gap";
 
 const DEFAULT_STATUS_CODE = 500;
 
-// Their cards already say what happened; the message behind them is the
-// technical cause ("DMS backend request failed"), which the server has logged.
 const STATUSES_WITHOUT_ERROR_MESSAGE = new Set([
   HTTP_NOT_FOUND,
   HTTP_FORBIDDEN,
@@ -67,8 +68,6 @@ const statusCode = computed(
   () => props.error.statusCode || DEFAULT_STATUS_CODE,
 );
 
-// Never the backend's address a failed request names (see
-// `publicErrorMessage`).
 const visibleErrorMessage = computed(() =>
   STATUSES_WITHOUT_ERROR_MESSAGE.has(statusCode.value)
     ? undefined

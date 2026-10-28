@@ -1,6 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { Data } from "./Table.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
@@ -21,7 +20,8 @@ interface Emits {
 const emits = defineEmits<Emits>();
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuImport: Partial<typeof theme> };
 };
 
@@ -37,7 +37,7 @@ const applyImport = () => {
 
 const uiTableMenuImportVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuImport || {}),
+  ...appConfig.ui?.tableMenuImport,
 });
 const uiTableMenuImport = computed(() => uiTableMenuImportVariant());
 </script>

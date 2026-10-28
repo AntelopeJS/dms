@@ -10,7 +10,6 @@ import { FEATURE_AREAS, type PlaygroundFeature } from "./types";
 
 export const FEATURE_INDEX_URL = "/api/playground-features";
 
-// The tabs filter on the area; the browser searches, sorts and pages.
 const AREA_FILTER_KEY = "filter_area";
 const IS_FILTER_PREFIX = /^is:/;
 

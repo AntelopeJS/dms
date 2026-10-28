@@ -7,8 +7,6 @@ interface InputColorProps {
 
 const props = defineProps<InputColorProps>();
 
-// The field state UFormField hands its control: the swatch and the hex input
-// both show the error border, the input carries the aria attributes.
 const {
   color,
   highlight,
@@ -26,14 +24,14 @@ const FALLBACK_COLOR = "#000000";
 const hasColor = computed(
   () => !!modelValue.value && HEX_PATTERN.test(modelValue.value),
 );
-// The native picker opens on black; the swatch shows no colour until one is
-// picked, rather than a black one reading as a value.
+
 const swatchValue = computed(() =>
   hasColor.value ? modelValue.value! : FALLBACK_COLOR,
 );
 
 const handlePickerInput = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
   modelValue.value = target.value;
   emitFormChange();
 };

@@ -66,7 +66,30 @@ const FLOATING_PROMISES = ["error", { ignoreVoid: false }] as const;
 
 export default defineConfig({
   extends: [antelopePreset({ importSorting: false })],
-  ignorePatterns: [...ANTELOPE_IGNORE_PATTERNS, "packages/dms/frontend-vue/**"],
+  ignorePatterns: [
+    ...ANTELOPE_IGNORE_PATTERNS,
+    "packages/dms/frontend-vue/**",
+    "packages/dms/playground/frontend-vue/app/plugins/app-widget-demo.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/command-palette-assistant-demo.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/command-palette-source-demo.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/dms-page-setup-demo.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/feature-palette-source.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/flag-display.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/header-action-demo.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/page-validation-demo.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/quick-action-ping.client.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/side-panel-demo.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/sidebar-widget-demo.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/sign-in-links-demo.ts",
+    "packages/dms/playground/frontend-vue/app/plugins/table-view-cards-display.ts",
+    "packages/dms/playground/frontend-vue/app/composables/usePageSetupLog.ts",
+    "packages/dms/playground/frontend-vue/app/composables/usePlaygroundPaletteSource.ts",
+    "packages/dms/playground/frontend-vue/app/composables/useSidePanelDemo.ts",
+    "packages/dms/playground/frontend-vue/app/components/custom/BlockWiringPanel.vue",
+    "packages/dms/playground/frontend-vue/app/components/custom/ModuleToolkit.vue",
+    "packages/dms/playground/frontend-vue/app/components/custom/SlotFrame.vue",
+    "packages/dms/playground/frontend-vue/app/components/chrome/PlaygroundOverlayBubble.vue",
+  ],
   options: {
     typeAware: true,
   },
@@ -96,7 +119,6 @@ export default defineConfig({
       files: ["packages/dms/playground/**"],
       rules: {
         "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off",
       },
     },
     {

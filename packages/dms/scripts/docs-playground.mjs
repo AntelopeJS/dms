@@ -20,7 +20,6 @@ const POLL_MS = 1000;
 const SECRET_BYTES = 32;
 const children = new Set();
 
-// This image holds disposable demo data, never a user's persisted session.
 for (const name of [
   "DMS_JWT_SECRET",
   "AUTH_JWT_SECRET",
@@ -51,7 +50,6 @@ function start(script, args = []) {
         : reject(new Error(`${script} exited: ${code ?? signal}`)),
     );
   });
-  // Long-running children may fail while another step is being awaited.
   child.done.catch(() => {});
   return child;
 }
@@ -88,8 +86,6 @@ async function stopChildren() {
 async function build() {
   const { MongoMemoryServer } = await import("mongodb-memory-server-core");
   const mongo = await MongoMemoryServer.create({
-    // MongoDB 8's allocator requires CPU sysfs unavailable in some build sandboxes.
-    // This disposable build database uses 7.0; runtime remains tested on MongoDB 8.
     binary: { version: "7.0.45" },
   });
   process.env.MONGO_URL = mongo.getUri();
@@ -100,7 +96,6 @@ async function build() {
     await waitFor(`${apiUrl}/dms/frontend`, api, {
       "x-dms-bootstrap": process.env.DMS_BOOTSTRAP_SECRET,
     });
-    // dms-frontend 0.8 builds from the project itself, not from the backend.
     await start(frontendCli, ["build", "-e", "docs"]).done;
     const client = frontend();
     await waitFor(`${previewUrl}/dms-preview`, client);

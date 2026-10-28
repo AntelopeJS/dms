@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   type BlockOptionsFor,
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the published BlockResponseShape import name in this subpath's declarations.
   type BlockResponseShape,
   ui,
 } from "./block-registry";
@@ -109,15 +110,19 @@ export const blockCardOption = (isOnByDefault: boolean) =>
 export const blockFetchUrlOption = (
   description: string,
   periodOption?: string,
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Public parameter and type names must remain stable in declarations.
   responseShape?: BlockResponseShape,
-) =>
-  ui(z.string().optional().describe(description), {
+) => {
+  const hints: Parameters<typeof ui>[1] = {
     label: "Data source",
     group: "data",
     widget: "dataSource",
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published source compatibility metadata and parameter names cannot be renamed.
     ...(responseShape ? { responseShape } : { advanced: true }),
-    ...(periodOption ? { periodOption } : {}),
-  });
+  };
+  if (periodOption) hints.periodOption = periodOption;
+  return ui(z.string().optional().describe(description), hints);
+};
 
 /** The `periodScope` option of a block whose data source follows a period. */
 export const blockPeriodScopeOption = () =>
@@ -131,7 +136,6 @@ export const blockPeriodScopeOption = () =>
 
 /** The `realtimeTopic` option of a block that refetches on realtime events. */
 export const blockRealtimeTopicOption = () =>
-  // A topic is a name the backend publishes under, which only its code knows.
   ui(
     z
       .union([z.string(), z.array(z.string())])

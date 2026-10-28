@@ -3,7 +3,7 @@ import {
   keyValueObject,
   keyValueProblem,
   keyValueRows,
-} from "../layers/dms-ui/app/build/composables/form/keyValueRows";
+} from "../layers/dms-ui/app/entries/composables/form/keyValueRows";
 
 describe("key-value rows", () => {
   it("reads an object as rows, and back", () => {

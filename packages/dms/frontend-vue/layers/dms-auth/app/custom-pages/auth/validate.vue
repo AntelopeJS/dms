@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthResendCode from "../../build/components/AuthResendCode.vue";
 import { useAuthFormError } from "../../build/composables/useAuthFormError";
@@ -27,7 +27,7 @@ if (!route.query.id) {
 }
 
 const PIN_LENGTH = 6;
-// Refusals of the typed code: shown under the cells, not above the form.
+
 const CODE_ERRORS = {
   "error.invalid_token": "token",
   "error.token_expired": "token",
@@ -44,7 +44,6 @@ interface CodeState {
 }
 const state = reactive<CodeState>({});
 
-// Typing a new code clears the refusal of the previous one.
 watch(
   () => state.pin,
   (digits) => {
@@ -59,7 +58,6 @@ onMounted(() => {
 });
 
 async function onSubmit(event: FormSubmitEvent<CodeState>) {
-  // An empty or partial code is flagged under the cells, not sent.
   const missing = codeEntryError(event.data.pin, PIN_LENGTH);
   if (missing) {
     codeError.value = processApiMessage(missing);
@@ -74,7 +72,7 @@ async function onSubmit(event: FormSubmitEvent<CodeState>) {
       method: "POST",
       body: {
         token: (event.data.pin ?? []).join(""),
-        user_id: route.query.id as string,
+        user_id: route.query.id,
       },
     });
 
@@ -91,7 +89,7 @@ async function onSubmit(event: FormSubmitEvent<CodeState>) {
   } finally {
     isLoading.value = false;
   }
-  // The cells are disabled while the request runs: focus them once enabled.
+
   if (codeError.value) {
     await nextTick();
     codeInput.value?.focus();

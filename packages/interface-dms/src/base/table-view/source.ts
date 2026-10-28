@@ -1,7 +1,3 @@
-// A table view over rows a module's own route lists, without a data
-// controller: `TableView.fromSource(...)`. Read-only — its rows open custom
-// drawers or call custom routes, never the built-in forms.
-
 import { ComponentBuilder } from "../../component";
 import { ReadonlyBehaviorType } from "../types";
 import { serializeType } from "../data-types";
@@ -173,7 +169,6 @@ export interface TableViewSourceSerialized {
   periodScope?: string;
 }
 
-// The built-in row actions a source table never offers.
 const NO_BUILT_IN_ACTIONS = {
   add: false,
   edit: false,
@@ -323,7 +318,6 @@ export function tableViewFromSource(
   for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
     if (id) builder.button(id, { permission, permissionId });
   }
-  // The column metadata a data controller would give its table views.
   const config = {
     location: options.fetchUrl,
     columns: serializeSourceColumns(options.columns, capabilities),

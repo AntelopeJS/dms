@@ -6,7 +6,9 @@ import {
   QUICK_ACTION_QUERY_KEY,
 } from "../../types/quick-actions";
 
-type QuickActionTargetHandler = (target: QuickActionTarget) => unknown;
+type QuickActionTargetHandler = (
+  target: QuickActionTarget,
+) => ReturnType<typeof navigateDms> | void;
 
 const targetHandlers: Record<
   QuickActionTarget["type"],
@@ -16,9 +18,7 @@ const targetHandlers: Record<
     if (target.type !== "navigate") return;
     return navigateDms({ path: target.to, query: target.query });
   },
-  // Routed rather than broadcast: the table view reads the intent from the
-  // query on mount, so the action works from any page — a window event would
-  // have to outrace the navigation it needs.
+
   openForm: (target) => {
     if (target.type !== "openForm") return;
     return navigateDms({
@@ -55,6 +55,7 @@ const targetHandlers: Record<
  * action's page, `event` dispatches a window `CustomEvent` in place for whoever
  * listens.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- The public auto-import contract returns unknown; inference and navigateDms-derived returns reject base-compatible implementations.
 export function dispatchQuickActionTarget(target: QuickActionTarget): unknown {
   const handler = targetHandlers[target.type];
   return handler?.(target);

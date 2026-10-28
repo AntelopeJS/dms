@@ -1,6 +1,3 @@
-// The navigation badges a table view publishes: the counter of a tab declared
-// with `navBadge`, counted on the server when the menu loads.
-
 import {
   type ControllerClass,
   GetControllerInstance,
@@ -26,9 +23,7 @@ import type { TableViewTab, TableViewTabFilter } from "../options";
 const FILTER_QUERY_PREFIX = "filter_";
 
 /** The list query a tab's hidden filter reads as (`filter_<key>=<mode>:<value>`). */
-function tabFilterQuery(
-  filter: TableViewTabFilter | undefined,
-): Record<string, string> {
+function tabFilterQuery(filter: TableViewTabFilter | undefined) {
   if (!filter) return {};
   return {
     [`${FILTER_QUERY_PREFIX}${filter.accessorKey}`]: `${filter.mode}:${filter.value ?? ""}`,
@@ -71,6 +66,7 @@ async function countRows(
     GetDataControllerMeta(instance),
   );
   const { total } = await countWithSearch(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- GetControllerInstance returns an instance, while the published runtime proxy accepts DataControllerCallback as its receiver type; that mismatch is not validated here.
     instance as DataControllerCallback,
     queryContext,
     { filters },
@@ -84,6 +80,7 @@ async function countRows(
 function withTabTone(
   tab: TableViewTab,
 ): (count: number) => number | NavBadgeCount {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published navBadge option declares a boolean shorthand or an object with a tone; this selects the object variant.
   const tone = typeof tab.navBadge === "object" ? tab.navBadge.tone : undefined;
   return (count) => (tone ? { count, tone } : count);
 }
@@ -105,6 +102,7 @@ function navBadgeSourceOf(
     };
   }
   const { to, countFrom } = tab;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Published tab targets and count sources may be strings or controller classes; navigation badges require the class variants.
   if (typeof to === "string" || !countFrom || typeof countFrom === "string") {
     Logging.Warn(
       `[DMS] TableView on "${controller.name}": tab "${tab.id}" sets navBadge but links to a path or counts from a location; a navigation badge needs a page controller \`to\` and a data controller \`countFrom\`. It publishes nothing.`,

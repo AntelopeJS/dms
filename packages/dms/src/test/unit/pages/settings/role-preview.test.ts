@@ -11,15 +11,13 @@ import {
   losesOnPreviewPage,
   type RolePreviewLayoutNode,
   sanitizePreviewPermissions,
-} from "../../../../pages/settings/users/role-preview";
+} from "../../../../pages/permissions";
 
 function leaf(id: string, title = id): PermissionTree {
   return { data: { id, title }, children: {} };
 }
 
-// sales.orders (page) › table (component with actions) and kpis (grid with a
-// `revenue` child component); `sales` itself is not registered.
-const TREE: Record<string, PermissionTree> = {
+const TREE = {
   sales: {
     children: {
       orders: {
@@ -48,15 +46,15 @@ const TREE: Record<string, PermissionTree> = {
       },
     },
   },
-};
+} satisfies Record<string, PermissionTree>;
 
-const COMPONENTS: Record<string, ComponentInfoSerialized> = {
+const COMPONENTS = {
   kpis: {
     componentName: "DmsGrid",
     children: [{ id: "revenue", component: { componentName: "DmsKpi" } }],
   },
   table: { componentName: "DmsTableView" },
-};
+} satisfies Record<string, ComponentInfoSerialized>;
 
 const childrenOf = (id: string) => listPermissionChildren(TREE, id);
 

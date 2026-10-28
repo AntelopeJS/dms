@@ -5,6 +5,7 @@ import {
 } from "@antelopejs/interface-core";
 
 export interface PublishMessageOptions {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published realtime payloads carry consumer-defined message keys without interpretation by the interface.
   payload?: Record<string, unknown>;
   actorId?: string;
   /**
@@ -24,6 +25,7 @@ export interface PublishMessageOptions {
 export interface RealtimeMessage {
   topic: string;
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Subscribers receive the open consumer payload from PublishMessageOptions unchanged.
   payload?: Record<string, unknown>;
   actorId?: string;
   /**
@@ -53,9 +55,6 @@ export namespace internal {
   >();
 }
 
-// One registration per topic, not per page: the core keys what it replays to a
-// new DMS generation by this id, so an id shared by the topics of one page
-// would bring back only the last of them.
 function pageTopicId(pageId: string, topic: string): string {
   return JSON.stringify([pageId, topic]);
 }

@@ -3,18 +3,13 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
-import { UserNotificationsModel } from "../../db/models/userNotifications.model";
+import { UserNotificationsModel } from "../../db/models";
 import {
   authorizedClient,
   type RegisteredUser,
   registerUser,
 } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
-
-// Changes made through the members table are told once the write is done, in
-// the same request — whichever instance runs it: the member whose roles
-// changed hears it, and the other owners hear of a removal. The table's
-// guards hand the notification back.
 
 const MEMBERS_API = "/api/tables/members";
 const MESSAGES = "$dms.notifications.messages";

@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="T extends Data">
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 import type { TableSharedData, Data } from "./Table.vue";
 import {
@@ -19,7 +18,8 @@ const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuPage: Partial<typeof theme> };
 };
 
@@ -43,7 +43,7 @@ const pageSize = computed({
 
 const uiTableMenuPageVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuPage || {}),
+  ...appConfig.ui?.tableMenuPage,
 });
 const uiTableMenuPage = computed(() => uiTableMenuPageVariant());
 </script>

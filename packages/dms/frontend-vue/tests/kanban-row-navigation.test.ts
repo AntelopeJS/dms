@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A board reads its rows column by column, apart from the table's list: it
  * hands the cards it shows to the table view (`rows-shown`, then the display
@@ -6,6 +6,8 @@
  * drawer steps through them ("3 of 5", previous / next, J and K).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "./helpers/table-runtime";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   type App,
   type Component,
@@ -21,16 +23,6 @@ import {
 } from "vue";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
-
-vi.mock(
-  "../layers/dms-ui/app/build/components/sortable/SortableList.vue",
-  () => ({
-    default: defineComponent({
-      props: { list: { type: Array, default: () => [] } },
-      setup: () => () => h("div"),
-    }),
-  }),
-);
 
 interface Deal {
   _id: string;
@@ -64,7 +56,6 @@ const STAGE_COLUMN = {
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The list route, filtered on one column as the board asks for it.
 const authFetch = vi.fn(
   async (_url: string, { query }: { query: Record<string, string> }) => {
     const stage = query.filter_stage!.replace("is:", "");
@@ -80,25 +71,14 @@ beforeEach(() => {
     watch,
     h,
     inject,
-    useId: () => "board",
     useAuthFetch: () => ({ $authFetch: authFetch }),
-    useTranslation: () => ({
-      processI18n: (text: string) => text,
-      processApiMessage: (text: string) => text,
-    }),
-    useDataTypes: () => ({ getDataType: () => undefined }),
     useI18n: () => ({ locale: ref("en"), t: (key: string) => key }),
     useToast: () => ({ add: vi.fn() }),
-    normalizeActionConfig: () => ({ isEnabled: false }),
-    evaluateRowActionRule: () => true,
     resolveDmsComponent: () => undefined,
-    useDmsAsyncData: async (_key: string, read: () => Promise<unknown>) => {
-      const data = ref(await read());
-      return { data, status: ref("success"), refresh: vi.fn() };
-    },
   })) {
     vi.stubGlobal(name, value);
   }
+  useRealDataEngine();
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -117,6 +97,7 @@ async function mountBoard(onRowsShown: (rows: Deal[]) => void) {
     render: () =>
       h(Suspense, null, {
         default: () =>
+          // SAFETY: KanbanBoard is a Vue component; erase its generic row type only at Vue's h overload boundary.
           h(KanbanBoard as Component, {
             groupByField: "stage",
             location: "/deals",

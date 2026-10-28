@@ -11,10 +11,10 @@ import {
   keptServerErrors,
   serverErrorValue,
   type KeptServerError,
-} from "../layers/dms-ui/app/build/composables/form/serverFieldErrors";
+} from "../layers/dms-ui/app/entries/composables/form/serverFieldErrors";
 
 const RATE_ERROR = { name: "rate", message: "A business pays 21%." };
-// Placed on the part of the field it names.
+
 const STREET_ERROR = { name: "address.street", message: "Unknown street." };
 
 const kept = new Map<string, KeptServerError>([

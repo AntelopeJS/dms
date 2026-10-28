@@ -11,7 +11,7 @@ import {
   isServerPageLive,
 } from "../../build/composables/live/currentPageLive";
 import type { PageLiveController } from "../../build/composables/live/pageLiveController";
-import type { PageLiveNote, PageLiveNoteInput } from "../../types/live";
+import type { PageLiveNote, PageLiveNoteInput } from "#dms-core/app/types/live";
 
 /** The Live / Pause state of the page on screen, for a module's component. */
 export interface PageLiveState {
@@ -93,8 +93,6 @@ export interface PageLiveState {
  * `realtimeTopic` are.
  */
 export function usePageLive(): PageLiveState {
-  // An async block hydrates after the page has installed its controller and
-  // read its data: until mounted, it draws the state the server drew.
   const isHydrating = shallowRef(isDmsHydrating());
   if (isHydrating.value) onMounted(() => (isHydrating.value = false));
   const shown = () => (isHydrating.value ? null : currentPageLive());
@@ -124,8 +122,6 @@ interface PageLiveHold {
   release: () => void;
 }
 
-// One hold per call of usePageLive, released with the component's scope: a
-// component leaving the page never leaves it paused.
 function usePageLiveHold(): PageLiveHold {
   const owner = Symbol("page-live-hold");
   let holder: PageLiveController | null = null;

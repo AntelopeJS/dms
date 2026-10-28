@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
@@ -58,7 +58,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
     await dmsApp.runWithContext(() => navigateDms("/auth/recover-success"));
   } catch (error: unknown) {
-    // A refused password shows under its field; an expired link above the form.
     await showError(error, "page.forgot.error_title", {
       fields: ["password"],
       form,

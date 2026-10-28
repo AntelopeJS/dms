@@ -210,8 +210,6 @@ const comparisonSchema = ui(z.enum(PERIOD_COMPARISONS), {
 
 /** The options `PeriodSelector` accepts. */
 export const PeriodSelectorSchema = z.object({
-  // A card bound to a period follows the page's scope, so a selector seeded
-  // with an id of its own drove no card at all — and said nothing.
   id: ui(
     z
       .string()
@@ -243,8 +241,6 @@ export const PeriodSelectorSchema = z.object({
     label: "Available comparisons",
     group: "behavior",
   }),
-  // Keyed by a closed set, so an editor lists one entry per range to relabel
-  // rather than asking for an object typed by hand.
   presetLabels: ui(z.record(presetSchema, z.string()).optional(), {
     label: "Range labels",
     group: "content",

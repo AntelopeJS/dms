@@ -1,6 +1,6 @@
 import { onScopeDispose, type Ref, watch } from "vue";
 import type { RealtimeTopicHandler } from "#dms-core/app/composables/realtime/useUserRealtime";
-import type { PageLayout } from "../../types/page";
+import type { PageLayout } from "#dms-core/app/types/page";
 import {
   fillRouteParams,
   isSamePageQuery,
@@ -8,9 +8,8 @@ import {
   isViewStateKey,
   layoutUrlWithQuery,
   pageQueryValues,
-} from "../../utils/pageQuery";
+} from "#dms-core/app/utils/pageQuery";
 
-// One frame: the events of one burst (a bulk delete) read the record once.
 const BURST_WINDOW_MS = 16;
 
 /** How the server read the record a page shows (`DefaultLayout({ record })`). */
@@ -31,8 +30,9 @@ export interface PageRecordDeletionSource {
   subscribe(topic: string, handler: RealtimeTopicHandler): () => void;
 }
 
-const optionsOf = (layout: PageLayout | null | undefined) =>
-  layout?.layout.options as RecordLayoutOptions | undefined;
+const optionsOf = (
+  layout: PageLayout | null | undefined,
+): RecordLayoutOptions | undefined => layout?.layout.options;
 
 /**
  * Leaves a detail page whose record was deleted, in every tab and for every
@@ -51,8 +51,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   const { t } = useI18n();
 
   const pageRoute = () => siteLayout.findMatchingRoute(route.path);
-  const currentQuery = () =>
-    pageQueryValues(route.query as Record<string, unknown>);
+  const currentQuery = () => pageQueryValues(route.query);
   /** The page URL the record is named by, leaving out the view's state. */
   const recordKey = () =>
     JSON.stringify([
@@ -77,7 +76,6 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
       );
       return optionsOf(layout)?.recordStatus;
     } catch {
-      // Unknown: the record is not taken for deleted on a failed read.
       return undefined;
     }
   }
@@ -112,8 +110,6 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   const declaresRecord = () =>
     optionsOf(source.pageLayout())?.recordStatus !== undefined;
 
-  // What the page was served with stands for its URL when it was served for
-  // it; another record of the same page is read once to know where it stands.
   function follow(): void {
     if (known?.key === recordKey()) return;
     latestRead++;
@@ -131,7 +127,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  // Presence snapshots ride the same topics: they carry no `type`.
+
   const onEvent: RealtimeTopicHandler = (event) => {
     if (!("type" in event) || !declaresRecord()) return;
     clearTimeout(timer);

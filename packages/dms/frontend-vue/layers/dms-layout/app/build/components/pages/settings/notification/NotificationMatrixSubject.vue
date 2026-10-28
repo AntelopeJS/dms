@@ -19,9 +19,6 @@ const { t } = useI18n();
 const label = computed(() => t(props.subject.labelKey));
 const isLocked = computed(() => props.subject.locked === true);
 
-// A second click while the first save is in flight would race it; the row
-// stays interactive-looking (v2 shows the switch at full strength) and the
-// click is dropped instead.
 const onToggle = (value: boolean) => {
   if (props.state !== "saving") emit("toggle", value);
 };

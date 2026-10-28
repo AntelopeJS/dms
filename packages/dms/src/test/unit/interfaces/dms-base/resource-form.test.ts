@@ -19,16 +19,12 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import type {
-  FormFieldSerialized,
-  FormPropsSerialized,
-} from "@antelopejs/interface-dms/base/form";
+import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import {
   Column,
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view/meta";
-import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { ResourceForm } from "@antelopejs/interface-dms/base/table-view/resource-form";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types/http";
@@ -65,14 +61,14 @@ class TicketAPI extends DataController(
   declare reference: string;
 }
 
-function optionsOf(builder: {
-  serializeSync: () => { options?: unknown };
-}): FormPropsSerialized {
-  return builder.serializeSync().options as FormPropsSerialized;
+function optionsOf(
+  builder: ReturnType<typeof ResourceForm>,
+): FormPropsSerialized {
+  return builder.serializeSync().options!;
 }
 
 function fieldIds(options: FormPropsSerialized): string[] {
-  return (options.fields as FormFieldSerialized[]).map((field) => field.id);
+  return options.fields.map((field) => field.id);
 }
 
 /**
@@ -82,16 +78,15 @@ function fieldIds(options: FormPropsSerialized): string[] {
  */
 describe("[unit] interfaces/dms-base/resource-form — a form derived from its table", () => {
   it("is the form a TableView opens for the mode", () => {
-    const table = TableView(TicketAPI).serializeSync()
-      .options as TableViewOptionsSerialized;
+    const table = TableView(TicketAPI).serializeSync().options!;
 
     const created = optionsOf(ResourceForm(TicketAPI, { mode: "new" }));
 
     expect(created.submitUrl).to.equal(`${LOCATION}/new`);
     expect(created.submitUrlMethod).to.equal(HttpMethod.post);
-    // Declared a create form: the client never guesses it from the method.
+
     expect(created.kind).to.equal("create");
-    const opened = table.formComponents.new?.options as FormPropsSerialized;
+    const opened = table.formComponents.new!.options!;
     expect(opened.kind).to.equal("create");
     expect(created.fetchUrl).to.equal(opened.fetchUrl);
     expect(fieldIds(created)).to.deep.equal(fieldIds(opened));
@@ -120,10 +115,9 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
   });
 
   it("keeps the TableView's own pages on their :id segment", () => {
-    const table = TableView(TicketAPI).serializeSync()
-      .options as TableViewOptionsSerialized;
+    const table = TableView(TicketAPI).serializeSync().options!;
 
-    const opened = table.formComponents.edit?.options as FormPropsSerialized;
+    const opened = table.formComponents.edit!.options!;
     expect(opened.submitUrl).to.equal(`${LOCATION}/edit?id={{params.id}}`);
   });
 
@@ -132,7 +126,7 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
 
     expect(shown.submitUrl).to.equal(undefined);
     expect(
-      (shown.fields as FormFieldSerialized[]).every((field) => field.disabled),
+      shown.fields.every((field) => "disabled" in field && field.disabled),
     ).to.equal(true);
   });
 
@@ -175,8 +169,6 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     const built = meta.resourceFormBuilders.length;
     TableView(TicketAPI);
 
-    // A page-mode TableView mounts these as the components of its form
-    // sub-pages, which stage files under their own component ids.
     expect(
       meta.resourceFormBuilders
         .slice(built)

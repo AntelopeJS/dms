@@ -10,8 +10,6 @@ import {
 const GAP = "1rem";
 const MIN = "240px";
 
-// Guards the exact-fit case: at the width where the track floor is precisely
-// one Nth of the container, binary floats land a hair under the integer.
 const FIT_EPSILON = 1e-6;
 
 /**
@@ -128,7 +126,6 @@ describe("grid responsive styles", () => {
   });
 
   it("agrees with the template on where a track drops", () => {
-    // 5 columns of 240px with 16px gaps need 1264px: one pixel less reflows.
     const template = gridColumnsTemplate(5, GAP, MIN);
     expect(resolveColumnCount(template, 1264, 16)).toBe(5);
     expect(resolveColumnCount(template, 1263, 16)).toBe(4);

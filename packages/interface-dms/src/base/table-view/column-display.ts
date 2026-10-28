@@ -24,9 +24,9 @@ import { displayIds } from "./internal/column-display";
  * ```
  */
 export abstract class ColumnDisplay<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Registered module displays define their own options; the published generic default cannot impose one display's schema.
   Options extends object = Record<string, unknown>,
 > {
-  // Nominal: a plain `{ options }` object is no display, it has no id.
   protected readonly isColumnDisplay = true;
 
   constructor(public readonly options?: Options) {}
@@ -36,6 +36,7 @@ export abstract class ColumnDisplay<
 export interface ColumnDisplaySerialized {
   /** Id of the frontend data type drawing the cells. */
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published serialized envelope carries options owned by the registered display, not by this transport.
   options?: Record<string, unknown>;
 }
 

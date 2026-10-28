@@ -22,6 +22,7 @@ import {
 } from "../../../helpers/page-access";
 
 const TENANT = "module-address-tenant";
+// SAFETY: Module-page access consumes this id and owner flag; no persisted-user operations are exercised.
 const OWNER = { _id: "module-address-owner", owner: true } as User;
 const LANDING_MODULE = "module-address-landing";
 const ORDERED_MODULE = "module-address-ordered";
@@ -43,18 +44,15 @@ async function servedSlug(path: string): Promise<string | undefined> {
   return payload.route?.fullSlug;
 }
 
-async function failureStatus(path: string): Promise<unknown> {
+async function failureStatus(path: string): Promise<number | undefined> {
   try {
     await servedSlug(path);
-  } catch (error) {
-    return (error as { status?: number }).status;
+  } catch (error: PromiseRejectedResult["reason"]) {
+    return error.status;
   }
   return undefined;
 }
 
-// A module's own address has no page. Its page request is answered with the
-// module's landing page, so the page render runs the module routing middleware
-// (which redirects there) instead of the server failing the visit with a 404.
 describe("[unit] implementations/dms/page — a module's own address", () => {
   const cleanups: Array<() => void> = [];
 

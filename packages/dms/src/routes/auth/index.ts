@@ -1,4 +1,4 @@
-export * from "./client-ip";
+export * from "../../utils/client-ip/index";
 export * from "./forgot-password";
 export * from "./login";
 export * from "./logout";
@@ -6,7 +6,7 @@ export * from "./me";
 export * from "./oauth";
 export * from "./refresh";
 export * from "./request-2fa-email";
-export * from "./request-email-verification";
+export * from "../../utils/request-email-verification/index";
 export * from "./reset-password";
 export * from "./session-handoff";
 export * from "./session-response";

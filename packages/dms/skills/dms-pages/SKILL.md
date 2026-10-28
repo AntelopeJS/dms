@@ -1,6 +1,6 @@
 ---
 name: dms-pages
-description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid / KpiCard blocks imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
+description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid / KpiCard blocks imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them. Not for editing existing pages through the AI builder in safe mode (use dms-builder-safe).
 icon: i-ph-layout
 category: dashboard
 tags: [pages, components, forms, tables, data-types, navigation]
@@ -91,7 +91,7 @@ served under `/dms/pages`, not at the page's own path (which is the page): name 
 
 A **`TableView` is normally backed by a `DataController`**: a class
 `extends DataController(TableClass, TableViewRoutes.All, Controller("/path"))` registered
-with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`).
+with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`). `TableClass` is a `Table` declared with `@RegisterTable(name, schema)` from `@antelopejs/interface-database-decorators` (`RegisterTable` is not exported by interface-data-api).
 `TableViewRoutes` (from `@antelopejs/interface-dms/base/table-view`) provides the presets — `Get`, `List`,
 `Select`, `Count`, `New`, `Edit`, `Delete`, `Archive`, `Restore`, or `All`. Field decorators:
 `@Column` / `@Select` / `@Exported` / `@ArchiveField` / `@Searchable` from `@antelopejs/interface-dms/base` (plus

@@ -10,7 +10,7 @@ const POLL_ATTEMPTS = 50;
 
 export interface RenderedEmail {
   template: string;
-  props: Record<string, unknown>;
+  props: Parameters<typeof GenerateHtml>[1];
   language?: string;
 }
 
@@ -35,15 +35,15 @@ export function captureEmails(): void {
   ImplementInterface(
     { GenerateHtml },
     {
-      GenerateHtml: async (
-        template: HtmlTemplateRef,
-        props: unknown,
+      GenerateHtml: async <T>(
+        template: HtmlTemplateRef<T>,
+        props: T,
         language?: string,
       ) => {
         if (emailOutage.isOn) throw new Error("Email outage");
         renderedEmails.push({
           template: template.name,
-          props: props as Record<string, unknown>,
+          props,
           language,
         });
         return "<p>email</p>";
@@ -64,7 +64,7 @@ export function captureEmails(): void {
 /** The last email rendered from `template` that `matches`, once it is. */
 export async function lastRenderedEmail(
   template: string,
-  matches: (props: Record<string, unknown>) => boolean = () => true,
+  matches: (props: RenderedEmail["props"]) => boolean = () => true,
 ): Promise<RenderedEmail | undefined> {
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
     const email = renderedEmails.findLast(

@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted } from "vue";
 import { useRealtimeTopic } from "../../../../../dms-core/app/composables/realtime/useRealtimeTopic";
+import type { RealtimeEvent } from "../../../../../dms-core/app/composables/realtime/useUserRealtime";
 import {
   onLivePageBlocksRefresh,
   onPageBlocksRefresh,
@@ -21,7 +22,7 @@ import { type LiveGate, useLiveGate } from "../live/currentPageLive";
  */
 export function useRefreshTriggers(
   realtimeTopic: string | string[] | undefined,
-  onRefresh: () => void | Promise<unknown>,
+  onRefresh: () => void | Parameters<typeof waitForPageBlocksRefresh>[1],
 ): LiveGate {
   let pageRefresh: Event | undefined;
   const gate = useLiveGate(() => {
@@ -30,7 +31,6 @@ export function useRefreshTriggers(
   });
   subscribeRealtimeTopics(realtimeTopic, gate.trigger);
   subscribePageRefresh(gate, (event) => {
-    // The gate reads at once on a page refresh: the read starts in this call.
     pageRefresh = event;
     try {
       gate.catchUp();
@@ -43,7 +43,7 @@ export function useRefreshTriggers(
 
 function subscribeRealtimeTopics(
   topic: string | string[] | undefined,
-  onEvent: (event: object) => void,
+  onEvent: (event: RealtimeEvent) => void,
 ): void {
   if (!topic) return;
   const topics = Array.isArray(topic) ? topic : [topic];
@@ -55,8 +55,6 @@ function subscribeRealtimeTopics(
   }
 }
 
-// Mounted only: the page refresh is a browser event, and a block the server
-// renders has nothing to refetch.
 function subscribePageRefresh(
   gate: LiveGate,
   onPageRefresh: (event: Event) => void,

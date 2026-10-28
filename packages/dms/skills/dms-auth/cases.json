@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "admins-only-page",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Only administrators should be able to open the billing page.",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms-pages", "dms-best-practices", "dms-saas", "dms"]
+      }
+    },
+    {
+      "id": "route-permission",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Protect this API route so only users with the orders.write permission can call it.",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["api-interface", "auth-interface", "dms"],
+        "mustMention": ["AuthUserWithPermission"]
+      }
+    },
+    {
+      "id": "dms-auth-check-permission-in-code",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "how do i check in my handler if the logged in user actually has the orders.write perm, not just slap a decorator on it",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms", "auth-interface"],
+        "mustMention": ["HasPermission"]
+      }
+    },
+    {
+      "id": "dms-auth-register-standalone-permission",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Register a standalone permission cookbook.edit that depends on cookbook.view and is not granted to anyone by default.",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms"],
+        "mustMention": ["RegisterPermission", "defaultGranted"]
+      }
+    },
+    {
+      "id": "dms-auth-expired-session-returns-200",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my page still loads with a 200 as anonymous when the session expired so the token refresh never fires, why",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms", "auth-interface"],
+        "mustMention": ["IfAuthUser"]
+      }
+    },
+    {
+      "id": "dms-auth-not-saas-billing",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Set up Stripe billing with plans and public sign-up so customers can subscribe to my DMS app.",
+      "expect": {
+        "skills": ["dms-saas"],
+        "acceptable": ["dms", "dms-project"],
+        "avoid": ["dms-auth"]
+      }
+    }
+  ]
+}

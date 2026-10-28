@@ -41,7 +41,7 @@ import {
   type NotificationFeedFilter,
   type NotificationReadState,
   parseNotificationFeedQuery,
-} from "../../../db/models/notification-feed-filter";
+} from "../../../db/models";
 import {
   findSubjectByPreferenceKey,
   getRegisteredCategories,
@@ -54,7 +54,7 @@ import {
 import {
   userNotificationPreferencesPatchSchema,
   userNotificationPreferencesSchema,
-} from "../../../validation/user-notification-preferences.schema";
+} from "../../../validation";
 import { userCategory } from "./category";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -85,8 +85,8 @@ function parseOffset(value?: string): number {
   return Math.max(Number(value) || 0, 0);
 }
 
-// The inbox table's read-state tab filters on `isRead`: `filter_isRead=is:false`.
 const INBOX_READ_FILTER_KEY = "filter_isRead";
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Request filter keys are arbitrary strings; inference and NotificationReadState do not retain the string-indexed lookup used for unrecognized filters without changing its existing property access.
 const INBOX_READ_STATES: Record<string, NotificationReadState> = {
   "is:false": "unread",
   "is:true": "read",
@@ -252,8 +252,6 @@ export class NotificationsSettingsController extends PageController(
     icon: "i-ph-sliders-horizontal",
   });
 
-  // The navigation counts the user's own unread notifications, in the tone
-  // of the most important one, as the header bell does.
   static inbox = Section({
     title: `${NOTIFICATION_TEXTS}.inbox_title`,
     description: `${NOTIFICATION_TEXTS}.inbox_description`,
@@ -272,10 +270,6 @@ export class NotificationsSettingsController extends PageController(
 }
 
 export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
-  // A user's own notifications are not tenant data: no membership and no
-  // tenant access gate. The header bell polls them on every page, including
-  // the billing page a blocked tenant needs, and a member removed from their
-  // workspace still reads the notification telling them so.
   @AuthUser()
   declare user: User;
 
@@ -297,7 +291,9 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Put("/preferences")
   async updatePreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof userNotificationPreferencesSchema.parse
+    >[0],
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {
@@ -316,7 +312,9 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Route("handler", "patch", "/preferences")
   async patchPreferences(
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof userNotificationPreferencesPatchSchema.parse
+    >[0],
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {
@@ -513,7 +511,7 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
       filter,
     );
     const counts = await this.feedCounts(notificationsModel);
-    // A filtered pass names its rows: "all read" would clear the others too.
+
     if (isFilteredFeed(filter)) {
       await publishNotificationsRead(this.user._id, ids, counts);
     } else {

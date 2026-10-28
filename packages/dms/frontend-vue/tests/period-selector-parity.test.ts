@@ -9,9 +9,9 @@ import { resolvePresetRange } from "../layers/dms-core/app/composables/period/pr
 import { resolveComparisonRange } from "../layers/dms-core/app/composables/period/compareResolvers";
 import { usePeriod } from "../layers/dms-core/app/composables/period/usePeriod";
 import { appendPeriodToUrl } from "../layers/dms-core/app/composables/period/usePeriodScope";
-import { usePeriodDraft } from "../layers/dms-ui/app/build/composables/period/usePeriodDraft";
-import { formatRelativeInstant } from "../layers/dms-ui/app/build/composables/period/periodDisplay";
-import { resolveComparisonControl } from "../layers/dms-ui/app/build/composables/period/periodComparisonControl";
+import { usePeriodDraft } from "../layers/dms-ui/app/entries/composables/period/usePeriodDraft";
+import { formatRelativeInstant } from "../layers/dms-ui/app/entries/composables/period/periodDisplay";
+import { resolveComparisonControl } from "../layers/dms-ui/app/entries/composables/period/periodComparisonControl";
 
 const NOW = new Date(2026, 9, 11, 19, 54);
 const FALLBACK = { from: new Date(2026, 0, 1), to: new Date(2026, 0, 31) };

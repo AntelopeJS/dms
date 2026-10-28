@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useFileReadUrls } from "../../../composables/useFileReadUrls";
 
 /**
@@ -70,7 +71,7 @@ const name = computed(() =>
 const tileIcon = computed(() =>
   isEmpty.value ? (props.emptyIcon ?? props.icon) : props.icon,
 );
-// Without a title the subtitle stands as the name, unless an empty label does.
+
 const hasSubtitleLine = computed(
   () =>
     !!props.subtitle &&
@@ -81,12 +82,12 @@ const isSelf = computed(
 );
 
 const avatarKey = computed(() =>
-  props.avatar && typeof props.avatar === "object" ? props.avatar.key : null,
+  props.avatar && isObject(props.avatar) ? props.avatar.key : null,
 );
 watch(avatarKey, (key) => key && resolve(key), { immediate: true });
 
 const avatarSrc = computed(() => {
-  if (typeof props.avatar === "string") return props.avatar || undefined;
+  if (isString(props.avatar)) return props.avatar || undefined;
   return avatarKey.value ? getUrl(avatarKey.value) : undefined;
 });
 
@@ -133,7 +134,7 @@ const initials = computed(() =>
         <UBadge
           v-for="badge in props.badges"
           :key="badge.label"
-          :color="(badge.color ?? 'neutral') as 'neutral'"
+          :color="badge.color ?? 'neutral'"
           variant="soft"
           size="sm"
           :label="badge.label"

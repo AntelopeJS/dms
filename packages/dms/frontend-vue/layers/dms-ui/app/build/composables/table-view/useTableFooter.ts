@@ -10,13 +10,14 @@ import type {
   TableFooterTexts,
 } from "../../components/table/Table.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import type { TableCountQuery } from "./useTableRows";
 
 export interface TableFooterOptions {
   footer: TableViewFooter | undefined;
   columns: TableViewColumn[];
   location: string;
   /** The list query without paging: the rows the figures cover. */
-  query: ComputedRef<Record<string, unknown>>;
+  query: ComputedRef<TableCountQuery["query"]>;
   /** Prefix of the data key, unique to the table on its page. */
   dataKey: string;
 }
@@ -27,7 +28,6 @@ interface LegendItemOption {
   iconColor?: string;
 }
 
-// Sorting changes no figure: it stays out of the summary request.
 const UNSORTED_KEYS = new Set(["sortKey", "sortDirection"]);
 
 /**
@@ -60,7 +60,7 @@ export function useTableFooter(options: TableFooterOptions) {
             query: summaryQuery.value,
             signal,
           }),
-    // Read again with the table's rows, on the table's own triggers.
+
     { lazy: true, watch: [summaryQuery], refreshOnPageRefresh: false },
   );
 
@@ -85,11 +85,9 @@ export function useTableFooter(options: TableFooterOptions) {
     (column) => column.accessorKey === footer?.legend,
   );
   const legend = computed<TableFooterLegendItem[] | undefined>(() => {
-    const items = (
-      legendColumn?.type?.inputComponent?.options as
-        | { items?: LegendItemOption[] }
-        | undefined
-    )?.items;
+    const options: { items?: LegendItemOption[] } | undefined =
+      legendColumn?.type?.inputComponent?.options;
+    const items = options?.items;
     return items?.map((item) => ({
       label: processI18n(item.label ?? ""),
       color: item.textColor ?? item.iconColor,

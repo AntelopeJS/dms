@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { extractRouteParams } from "../layers/dms-layout/app/composables/page/useSiteLayout";
+import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import {
   fieldValuesOfSubmitDefaults,
   replaceUrlVariables,
   resolveSubmitDefaults,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
-// The forms of a table view filtered by `routeParamFilters: { id: { field:
-// "_instance" } }`, registered below a page whose own slug is `:id`. The tokens
-// are what the TableView factory generates for each form page route.
 const EDIT_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NEW_PATTERN = "/workspaces/:id/invoiceTable/new";
 const EDIT_DEFAULTS = { _instance: "{{params.id:1}}" };
@@ -44,8 +41,6 @@ describe("route param filter defaults on a nested form page", () => {
     ).toEqual({ _instance: "ws-42" });
   });
 
-  // A form reached at an absolute URL does not carry the page's parameters:
-  // the default is dropped rather than submitted as a literal token.
   it("drops a default no parameter of the route answers", () => {
     const context = contextOf(
       "/modules/automation/builder/:id",

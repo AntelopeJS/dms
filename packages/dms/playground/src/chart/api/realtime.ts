@@ -29,6 +29,10 @@ interface RealtimeTopItem {
   value: number;
 }
 
+interface RealtimeTopResponse {
+  items: RealtimeTopItem[];
+}
+
 let nextSequence = 0;
 
 function buildPoint(): Point {
@@ -57,7 +61,6 @@ export class RealtimeDemoApiController extends Controller(
     return { series: [{ name: SERIES_NAME, data: realtimeSeries }] };
   }
 
-  // The figure of a ChartCard: the last point, over the same series.
   @Get("card")
   getCard(): RealtimeCardPayload {
     const last = realtimeSeries[realtimeSeries.length - 1];
@@ -67,9 +70,8 @@ export class RealtimeDemoApiController extends Controller(
     };
   }
 
-  // The highest points of the series, for a TopListCard.
   @Get("top")
-  getTop(): { items: RealtimeTopItem[] } {
+  getTop(): RealtimeTopResponse {
     const items = [...realtimeSeries]
       .sort((left, right) => right.y - left.y)
       .slice(0, TOP_POINTS)
@@ -77,7 +79,6 @@ export class RealtimeDemoApiController extends Controller(
     return { items };
   }
 
-  // One point is one change: a paused page counts "1 new" per bump.
   @Post("bump")
   async bump(): Promise<{ ok: boolean }> {
     appendNewPoint();

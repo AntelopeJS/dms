@@ -31,8 +31,6 @@ interface MeterResponse {
   valueLabel?: BlockText;
 }
 
-// The page block behind the backend `Meter` builder: static figures or a
-// data source, optionally in a card. DmsMeter draws it.
 interface MeterBlockProps extends DefaultComponentProps {
   label?: string;
   hint?: BlockText;
@@ -115,19 +113,16 @@ const figures = computed(() => {
 });
 
 const showSkeleton = computed(() => isLoading.value && !data.value);
-// v2 error state, as on a KPI card: a failed first load shows a message and
-// a retry button in place of the bar, never default figures (`0 / 100`); a
-// failed refetch keeps the last figures.
+
 const hasError = computed(
   () => !isLoading.value && !data.value && Boolean(error.value),
 );
-// A 404 is a status too, but nothing to retry: the figures do not exist.
+
 const notFound = computed(() =>
   hasError.value ? readFetchNotFound(error.value) : null,
 );
-// The placeholder is the meter's own shape: the label line (the label is
-// configuration, shown as is), the bar at its size, the legend line.
-const SKELETON_TRACK_HEIGHTS: Record<string, string> = {
+
+const SKELETON_TRACK_HEIGHTS = {
   xs: "h-1",
   sm: "h-1.5",
   md: "h-2",
@@ -138,7 +133,7 @@ const skeletonTrackClass = computed(
 const skeletonHasLegend = computed(
   () => props.legend || props.actions.length > 0,
 );
-// Resolved once: the frame does not change after the page is laid out.
+
 const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
 </script>
 

@@ -67,20 +67,20 @@ const interfaceKinds = createLookupCache<InterfaceKind>(LIFETIMES);
  */
 type InterfaceKind = "required" | "standalone" | "library";
 
-function fetchRegistryDocument(file: string): Promise<unknown> {
+function fetchRegistryDocument(file: string): ReturnType<Response["json"]> {
   return registryDocuments.get(file, async () => {
     const response = await fetch(`${INTERFACES_REGISTRY_URL}/${file}`, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return undefined;
-    return (await response.json()) as unknown;
+    const document: unknown = await response.json();
+    return document;
   });
 }
 
 async function registryFolders(): Promise<Record<string, string>> {
-  const manifest = (await fetchRegistryDocument(MANIFEST_FILE)) as
-    | RegistryManifest
-    | undefined;
+  const manifest: RegistryManifest | undefined =
+    await fetchRegistryDocument(MANIFEST_FILE);
   return manifest?.interfaces ?? {};
 }
 
@@ -101,9 +101,9 @@ export async function findImplementations(
 ): Promise<InterfaceImplementation[]> {
   const folder = (await registryFolders())[interfacePackage];
   if (!folder) return [];
-  const manifest = (await fetchRegistryDocument(
+  const manifest: InterfaceManifest | undefined = await fetchRegistryDocument(
     `interfaces/${folder}/${MANIFEST_FILE}`,
-  )) as InterfaceManifest | undefined;
+  );
   return (manifest?.modules ?? []).flatMap((module) => {
     const implementation = asImplementation(module);
     return implementation ? [implementation] : [];
@@ -126,11 +126,12 @@ function kindOf(
  * `npm view` answers a range matching several releases with one manifest per
  * release, oldest first: the newest is the one that installs.
  */
-function newestManifest(view: unknown): AntelopeManifest | undefined {
+function newestManifest(
+  view: Awaited<ReturnType<typeof npmView>>,
+): AntelopeManifest | undefined {
   const manifest = Array.isArray(view) ? view.at(-1) : view;
-  return manifest && typeof manifest === "object"
-    ? (manifest as AntelopeManifest)
-    : undefined;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-only npm metadata filter.
+  return manifest && typeof manifest === "object" ? manifest : undefined;
 }
 
 /**
@@ -162,7 +163,7 @@ async function readModulePackage(
   try {
     return JSON.parse(
       await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
-    ) as ModulePackage;
+    );
   } catch {
     return undefined;
   }

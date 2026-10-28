@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The header bell's counts as the dashboard frame reads them with the page,
  * through the runtime's real async data: a server render shows the badge,
@@ -19,7 +19,7 @@ const authFetch = vi.fn(async () => structuredClone(COUNTS));
 const loggedIn = ref(true);
 const mounted: App[] = [];
 
-stubApiData(authFetch as never);
+stubApiData(authFetch);
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
 vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
 const { useNotifications, useRenderedBellCounts } = await import(
@@ -40,8 +40,7 @@ const Counts = defineComponent({
       );
   },
 });
-// As the dashboard frame: in the persistent layout, outside the page's
-// <Suspense>, around the header and the page.
+
 const Frame = defineComponent({
   setup() {
     useRenderedBellCounts();

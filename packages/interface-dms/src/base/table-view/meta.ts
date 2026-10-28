@@ -1,18 +1,13 @@
-import assert from "node:assert";
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
   Access,
   AccessMode,
   DataAPIMeta,
+  type FieldData,
   Filter,
   GetEffectiveMode,
   Listable,
-  Validator,
 } from "@antelopejs/interface-data-api/metadata";
 import {
   getModifiedFields,
@@ -21,13 +16,8 @@ import {
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
 import type { ColumnDisplay } from "./column-display";
-import { serializeColumnDisplay } from "./internal/column-display";
-// Through the barrel, not core: the default data types register themselves by
-// decorator, and this value import is what evaluates them. serializeType below
-// reads the registry they fill, so importing the definitions alone would leave
-// every column serialised without a type -- silently, since serializeType then
-// just returns undefined.
-// oxlint-disable-next-line import/no-cycle
+import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
+// oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
 import { type DataType, serializeType } from "../data-types";
 import {
   type FieldCondition,
@@ -36,10 +26,8 @@ import {
   type FormField,
   type FormFieldOrGroup,
 } from "../form-types";
-import { adaptFieldValidationSchema } from "../form-schema";
 import {
   type DefaultValue,
-  type FieldMetadata,
   FormMode,
   type ReadonlyBehavior,
   ReadonlyBehaviorType,
@@ -58,8 +46,6 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   new: FormMode.new,
 };
 
-// The data-api action each form runs, whose `@Access` override applies: a
-// form shows a row it read through `get`.
 const ACCESS_ACTION_BY_FORM_MODE: Record<FormMode, string> = {
   [FormMode.new]: "new",
   [FormMode.edit]: "edit",
@@ -153,16 +139,14 @@ export type TableViewAccess = "read" | "write";
 
 /** A data type of the same class whose options can change on their own. */
 function copyDataType(type: DataType): DataType {
-  const copy = Object.create(Object.getPrototypeOf(type) as object) as DataType;
+  const copy: DataType = Object.create(Object.getPrototypeOf(type));
   return Object.assign(copy, type, {
     options: type.options && { ...type.options },
   });
 }
 
-// A footer summary's id: its index among the controller's summaries.
 const FOOTER_SUMMARY_ID = /^\d+$/;
 
-// The actions of a table view that change rows through the data routes.
 const WRITE_ACTION_IDS = new Set([
   "add",
   "edit",
@@ -174,6 +158,7 @@ const WRITE_ACTION_IDS = new Set([
 export class TableViewMeta {
   public static key = Symbol();
 
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This published constructor contract accepts arbitrary controller constructors; their instance result cannot be narrowed compatibly here.
   constructor(public readonly target: new (...args: unknown[]) => unknown) {}
 
   public options: TableViewOptions<any> = {};
@@ -188,9 +173,6 @@ export class TableViewMeta {
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
-  // Held weakly: a page module that hot-reloads builds a new TableView or
-  // ResourceForm on the same controller, and the one it replaced must not stay
-  // reachable from here.
   private readonly componentBuilderRefs = new WeakRefList<
     ComponentBuilder<TableViewOptionsSerialized>
   >();
@@ -206,10 +188,6 @@ export class TableViewMeta {
    * parent's: the derived controller serves its own.
    */
   public inherit(parent: TableViewMeta): void {
-    // Each column gets its own copy of its type: a file column's type carries
-    // the attachment field of the controller it saves through, stamped when a
-    // form over that controller is built, and the two controllers save
-    // through different routes.
     for (const [key, column] of Object.entries(parent.columns)) {
       this.columns[key] = { ...column, type: copyDataType(column.type) };
     }
@@ -302,16 +280,12 @@ export class TableViewMeta {
     this.controllerGuards = guards;
   }
 
-  // Latched, never reset: routes are shared by every registration of the
-  // controller, so a later TableView() call without the flag (another page
-  // showing the same data) must not silently re-gate — or un-gate — them.
   public setBypassTenantAccessGate() {
     this.bypassTenantAccessGate = true;
   }
 
   private gateBypassRegistrations = new Set<boolean>();
 
-  // Both kinds of registration seen for this controller, in any order.
   public get hasMixedGateBypassRegistrations(): boolean {
     return this.gateBypassRegistrations.size > 1;
   }
@@ -336,12 +310,12 @@ export class TableViewMeta {
   }
 
   /** Whether a field is read-only in the data API action a form runs. */
-  private isReadOnlyIn(meta: FieldMetadata, mode: FormMode): boolean {
+  private isReadOnlyIn(meta: FieldData, mode: FormMode): boolean {
     const action = ACCESS_ACTION_BY_FORM_MODE[mode];
     return GetEffectiveMode(meta, action) === AccessMode.ReadOnly;
   }
 
-  private getRequiredForMode(data: FieldMetadata, mode: FormMode): boolean {
+  private getRequiredForMode(data: FieldData, mode: FormMode): boolean {
     if (mode === FormMode.view) return false;
     return data.mandatory?.has(mode) || false;
   }
@@ -349,9 +323,9 @@ export class TableViewMeta {
   private buildFormField(
     key: string,
     options: ColumnOptions,
-    meta: FieldMetadata,
+    meta: FieldData,
     formMode: FormMode,
-    localizedFields: string[],
+    localizedFields: PropertyKey[],
   ): FormField {
     const behavior = this.resolveReadonlyBehavior(
       options.readonlyBehavior,
@@ -363,18 +337,13 @@ export class TableViewMeta {
       behavior === ReadonlyBehaviorType.disabled;
     const isRequired = this.getRequiredForMode(meta, formMode);
     const isLocalized = localizedFields.includes(key);
-    const { tableClass } = GetMetadata(
-      this.target as ControllerClass,
-      DataAPIMeta,
-    );
+    const { tableClass } = GetMetadata(this.target, DataAPIMeta);
 
     return {
       id: key,
       label: options.name ?? key,
       description: options.description,
       type: options.type,
-      // A read-only field displays its value: what only editing uses (a
-      // relation's add form) stays out of it.
       inputComponent:
         options.inputComponent?.serializeSync() ??
         (isDisabled ? options.type.describedInputComponent() : undefined),
@@ -392,17 +361,17 @@ export class TableViewMeta {
   }
 
   public getFormFields(mode: "view" | "edit" | "new"): FormFieldOrGroup[] {
-    const metadata = GetMetadata(this.target as ControllerClass, DataAPIMeta);
+    const metadata = GetMetadata(this.target, DataAPIMeta);
     const formMode = FORM_MODE_BY_VIEW_MODE[mode];
     const localizedFields = getModifiedFields(
       metadata.tableClass.prototype,
       LocalizationModifier,
-    ) as string[];
+    );
 
     const sortedEntries = Object.entries(this.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .filter(([key, options]) => {
-        const meta = metadata.fields[key] as FieldMetadata;
+        const meta = metadata.fields[key];
 
         if (this.isReadOnlyIn(meta, formMode)) {
           const behavior = this.resolveReadonlyBehavior(
@@ -421,7 +390,7 @@ export class TableViewMeta {
     const processedGroups = new Set<string>();
 
     for (const [key, options] of sortedEntries) {
-      const meta = metadata.fields[key] as FieldMetadata;
+      const meta = metadata.fields[key];
 
       if (options.group) {
         if (processedGroups.has(options.group)) {
@@ -436,7 +405,7 @@ export class TableViewMeta {
             this.buildFormField(
               k,
               opts,
-              metadata.fields[k] as FieldMetadata,
+              metadata.fields[k],
               formMode,
               localizedFields,
             ),
@@ -462,35 +431,7 @@ export class TableViewMeta {
   }
 
   private buildConfig() {
-    const apimeta = GetMetadata(this.target as ControllerClass, ControllerMeta);
-    const datameta = GetMetadata(this.target as ControllerClass, DataAPIMeta);
-
-    return {
-      location: apimeta.location,
-      columns: Object.entries(this.columns)
-        .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
-        .map(([key, options]) => {
-          const meta = datameta.fields[key];
-
-          return {
-            id: key,
-            header: options.name ?? key,
-            isVisible: options.isVisible,
-            type: serializeType(options.type),
-            accessorKey: key,
-            listable: !!meta.listable?.list,
-            enableSorting: meta.sortable !== undefined,
-            enableColumnFilter: !!options.filterable,
-            cellWrap: options.cellWrap,
-            size: options.size,
-            display: serializeColumnDisplay(options.display),
-            defaultValue: options.defaultValue,
-            accessMode: meta.mode,
-            readonlyBehavior:
-              options.readonlyBehavior ?? ReadonlyBehaviorType.default,
-          };
-        }),
-    };
+    return buildTableConfig(this, serializeType);
   }
 
   public get config() {
@@ -505,9 +446,6 @@ export class TableViewMeta {
     this.groups[id] = config;
   }
 
-  // Footer summaries every table view over the controller declared, by id:
-  // the `summary` route computes the ones a request names, and never a
-  // figure a table did not declare.
   private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
@@ -515,7 +453,7 @@ export class TableViewMeta {
     summaries: TableViewFooterSummary<T>[],
   ): string[] {
     return summaries.map((summary) => {
-      this.footerSummaries.push(summary as TableViewFooterSummary<any>);
+      this.footerSummaries.push(summary);
       return String(this.footerSummaries.length - 1);
     });
   }
@@ -539,72 +477,28 @@ export class TableViewMeta {
 export const Column = MakeMethodAndPropertyDecorator(
   (target, key, descriptor, options: ColumnOptions) => {
     const meta = GetMetadata(target.constructor, TableViewMeta);
-    meta.setColumn(key as string, options);
-
-    if (options.validate !== false) {
-      // Referenced to test that the type declares it; the call below goes
-      // through `options.type`, bound.
-      // oxlint-disable-next-line typescript/unbound-method
-      assert(options.type.getValidation, "Type has no getValidation method");
-
-      const dataMeta = GetMetadata(
-        target.constructor as ControllerClass,
-        DataAPIMeta,
-      );
-      const localizedFields = getModifiedFields(
-        dataMeta.tableClass.prototype,
-        LocalizationModifier,
-      ) as string[];
-      const isLocalized = localizedFields.includes(key as string);
-
-      const baseSchema = options.type.getValidation();
-      const zodSchema = adaptFieldValidationSchema(baseSchema, {
-        localized: isLocalized,
-        required: false,
-        fallbackLocale: isLocalized
-          ? LocalizationModifier.fallbackLocaleOf(
-              dataMeta.tableClass,
-              key as string,
-            )
-          : undefined,
-      });
-
-      // The parse result rather than its success flag: the data API writes
-      // the parsed value, so a date sent as text is stored as a date.
-      Validator((value) => zodSchema.safeParseAsync(value))(
-        target,
-        key,
-        descriptor ?? {},
-      );
-    }
-
-    if (options.filterable) {
-      Filter(options.type.filter.bind(options.type))(target, key as string);
-    }
-
-    if (options.type.decorateField) {
-      options.type.decorateField(target, key, descriptor);
-    }
+    decorateColumn(target, key, descriptor, options, meta);
   },
 );
 
 export function ColumnGroup(id: string, config: ColumnGroupConfig) {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published decorator accepts constructors with arbitrary instance results; constraining the constructor would change its declaration.
   return (target: new (...args: unknown[]) => unknown) => {
     GetMetadata(target, TableViewMeta).setGroup(id, config);
   };
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields are declared as strings; this adapter does not reject non-string keys.
   GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
 
-  // Archive field need to be data-api filterable and listable to work properly
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey but Filter expects a string; key-kind validation would change existing behavior.
   Filter()(target, key as string);
-  Listable()(target, key as string);
-  // ...and readable: the rows carry it, for the client to evaluate the
-  // archive rules. A field declaring its own access keeps it.
-  const field = GetMetadata(target.constructor as ControllerClass, DataAPIMeta)
+  Listable()(target, key);
+  const field = GetMetadata(target.constructor, DataAPIMeta)
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published field map uses string keys, while the decorator supplies PropertyKey without verifying its kind.
     .fields[key as string];
-  if (!field?.mode) Access(AccessMode.ReadOnly)(target, key as string);
+  if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
 });
 
 export const Select = MakeMethodAndPropertyDecorator(

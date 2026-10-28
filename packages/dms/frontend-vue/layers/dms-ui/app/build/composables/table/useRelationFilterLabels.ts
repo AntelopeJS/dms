@@ -15,9 +15,9 @@ export interface RelationFilterSource extends DataTypeSelectSource {
 
 const labelKey = (searchUrl: string, id: string) => `${searchUrl}\n${id}`;
 
-// The plain ids a filter value holds, each once.
 const NO_LABELS: ReadonlySet<string> = new Set();
-const idsOf = (value: unknown) => unlabeledRelationIds(value, NO_LABELS);
+const idsOf = (value: Parameters<typeof unlabeledRelationIds>[0]) =>
+  unlabeledRelationIds(value, NO_LABELS);
 
 /** How a chip names one id of a relation filter. */
 export interface RelationFilterLabel {
@@ -69,7 +69,6 @@ export function useRelationFilterLabels(sources: () => RelationFilterSource[]) {
       return ids.length ? [{ source, ids }] : [];
     });
 
-  // In the browser only: a server render draws the chips with their ids.
   onMounted(() => {
     watch(
       pending,

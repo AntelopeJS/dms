@@ -1,4 +1,5 @@
 import { injectLocal } from "@vueuse/core";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type { ShallowRef } from "vue";
 import type {
   Data,
@@ -12,19 +13,18 @@ const TOAST_DURATION_MS = 3000;
 interface SerializedTableConfig {
   v: typeof CONFIG_VERSION;
   search?: string;
-  filters: unknown[];
+  filters: TableSharedData<Data>["columnFiltersState"]["value"];
   order: string[];
   visibility: Record<string, boolean>;
   pinning: { left?: string[]; right?: string[] };
-  sorting: unknown[];
+  sorting: TableSharedData<Data>["sortingState"]["value"];
   pagination: { pageIndex: number; pageSize: number };
   density?: TableDensity;
 }
 
 const isSerializedConfig = (value: unknown): value is SerializedTableConfig => {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as { v?: unknown };
-  return candidate.v === CONFIG_VERSION;
+  if (!value || !isObject(value)) return false;
+  return value.v === CONFIG_VERSION;
 };
 
 const encodeConfig = (config: SerializedTableConfig): string => {
@@ -74,11 +74,11 @@ export const useTableConfigClipboard = <T extends Data>() => {
     if (!data) return;
 
     data.globalFilterState.value = config.search ?? "";
-    data.columnFiltersState.value = config.filters as never;
+    data.columnFiltersState.value = config.filters;
     data.columnOrderState.value = config.order;
     data.columnVisibilityState.value = config.visibility;
     data.columnPinningState.value = config.pinning;
-    data.sortingState.value = config.sorting as never;
+    data.sortingState.value = config.sorting;
     data.paginationState.value = config.pagination;
     if (config.density) data.densityState.value = config.density;
   };

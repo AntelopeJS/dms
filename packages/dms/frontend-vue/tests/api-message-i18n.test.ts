@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveApiMessage } from "../layers/dms-core/app/composables/translation/useTranslation";
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Translation keys are arbitrary strings; inference cannot index unknown keys and a Map or own-key guard would change inherited-key lookup.
 const MESSAGES: Record<string, string> = {
   "error.unauthorized": "You are not allowed to perform this action.",
   "page.settings.invites.error.not_found": "This invitation no longer exists.",

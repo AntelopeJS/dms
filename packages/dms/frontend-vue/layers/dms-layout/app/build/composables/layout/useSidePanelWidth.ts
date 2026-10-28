@@ -2,18 +2,18 @@ import type { Ref } from "vue";
 import {
   RESIZE_KEYBOARD_STEP_PX,
   useResizableSize,
-} from "#dms-ui/app/build/composables/containers/useResizableSize";
+} from "#dms-ui/app/entries/composables/containers/useResizableSize";
 import {
   resolveSidePanelWidthBounds,
   type SidePanel,
   type SidePanelWidthBounds,
-} from "../../../composables/useAppSidePanels";
+} from "#dms-ui/app/composables/useAppSidePanels";
 import {
   readSidePanelPreferences,
   storeSidePanelWidth,
   useSidePanelDragWidth,
   useSidePanelPreferences,
-} from "./sidePanelState";
+} from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 /** @internal */
 export const SIDE_PANEL_KEYBOARD_STEP_PX = RESIZE_KEYBOARD_STEP_PX;
@@ -61,7 +61,6 @@ export function useSidePanelWidth(panel: SidePanel): SidePanelWidth {
   });
 
   return {
-    // The panel always has a default width: its size is never natural.
     width: computed(() => resizable.size.value ?? bounds.defaultWidth),
     bounds,
     isDragging: resizable.isDragging,

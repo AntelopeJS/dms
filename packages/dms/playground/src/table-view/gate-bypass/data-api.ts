@@ -21,9 +21,6 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { Task, TaskModel } from "../database";
 
-// Dedicated controller over the shared task table, read as one invoice per
-// task: the gate bypass is a controller-level opt-out, so scoping it here
-// keeps /api/task fully gated.
 @RegisterDataController()
 export class gateDemoInvoiceAPI extends DataController(
   Task,

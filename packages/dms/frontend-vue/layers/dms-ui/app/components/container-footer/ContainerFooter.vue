@@ -16,8 +16,6 @@ const props = withDefaults(defineProps<ContainerFooterProps>(), {
   justify: "end",
 });
 
-// Same band as a form's footer in a container (FORM_SURFACE_CLASSES), but
-// pushed to the bottom (`mt-auto`) rather than set under the fields.
 const FOOTER_CLASS =
   "border-default bg-default sticky bottom-[calc(var(--dms-form-foot-pb,0px)*-1)] z-10 mt-auto -mx-[var(--dms-form-foot-px,0px)] -mb-[var(--dms-form-foot-pb,0px)] flex flex-wrap items-center gap-2 border-t px-[var(--dms-form-foot-px,0px)] pt-3 pb-[var(--dms-form-foot-pb,12px)]";
 const JUSTIFY_CLASSES = {

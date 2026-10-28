@@ -14,8 +14,9 @@ const SESSION_EXPIRED_ERROR = "error.session_expired";
  * @param sessionId The token's `sessionId` claim, unverified
  */
 export async function loadTokenSession(
-  sessionId: unknown,
+  sessionId: Session["_id"] | undefined,
 ): Promise<Session | undefined> {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- An unverified JWT claim must be a string before reaching the Session query.
   if (typeof sessionId !== "string" || !sessionId) {
     return undefined;
   }

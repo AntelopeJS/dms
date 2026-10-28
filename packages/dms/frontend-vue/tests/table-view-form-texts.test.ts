@@ -4,9 +4,9 @@ import {
   formatRecordLabel,
   resolveFormContainerTexts,
   type FormContainerTextSource,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/formTexts";
-import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/formTexts";
+import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
 const TASKS = {
   en: {
@@ -26,8 +26,10 @@ function texts(source: FormContainerTextSource, locale: "en" | "fr" = "en") {
       fr: { ...fr, tasks: TASKS.fr },
     },
   });
-  const t = (key: string, params?: Record<string, unknown>) =>
-    i18n.global.t(key, params ?? {});
+  const t = (
+    key: string,
+    params?: Parameters<Parameters<typeof resolveFormContainerTexts>[2]>[1],
+  ) => i18n.global.t(key, params ?? {});
   const resolve = (text: string) =>
     text.startsWith("$") ? t(text.slice(1)) : text;
   return resolveFormContainerTexts(source, resolve, t);

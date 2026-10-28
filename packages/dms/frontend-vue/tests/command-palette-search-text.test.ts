@@ -6,12 +6,12 @@ import {
   hideSearchTextMatches,
 } from "../layers/dms-layout/app/composables/useCommandPaletteSources";
 
-const MESSAGES: Record<string, string> = {
-  "settings.billing.description": "Manage your plan and invoices",
-};
+const MESSAGES = new Map([
+  ["settings.billing.description", "Manage your plan and invoices"],
+]);
 
 function translate(key: string): string {
-  return MESSAGES[key] ?? key;
+  return MESSAGES.get(key) ?? key;
 }
 
 function item(matchedKeys: string[]) {
@@ -22,14 +22,12 @@ function item(matchedKeys: string[]) {
   };
 }
 
-// Recorded from Fuse while searching "shareable" against a page whose title
-// does not contain the term, so the contract test below runs on the shape the
-// palette really produces. `highlight` renders the first match whose key is not
-// the palette's `labelKey` (`label` by default) as the item suffix.
-const SEARCH_TEXT_MATCH = {
+const SEARCH_TEXT_MATCH: NonNullable<
+  Parameters<typeof highlight>[0]["matches"]
+>[number] = {
   key: COMMAND_PALETTE_SEARCH_TEXT_KEY,
   value: "Tabs with URL persistence for shareable links",
-  indices: [[30, 38]] as [number, number][],
+  indices: [[30, 38]],
 };
 const PALETTE_LABEL_KEY = "label";
 

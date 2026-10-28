@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, h, nextTick, type App } from "vue";
 import ListRow from "../layers/dms-ui/app/components/list-row/ListRow.vue";
@@ -9,7 +9,9 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 async function mount(truncate: boolean) {
-  app = createApp({ render: () => h(ListRow, { title: LONG_TITLE, truncate }) });
+  app = createApp({
+    render: () => h(ListRow, { title: LONG_TITLE, truncate }),
+  });
   app.mount(host);
   await nextTick();
 }

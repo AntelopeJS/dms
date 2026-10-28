@@ -204,8 +204,6 @@ it("emits the nested row's responsive rules for its own column count", async () 
     .match(/<style>[\s\S]*?<\/style>/g)
     ?.filter((sheet) => sheet.includes('data-dms-grid="dms-grid-reach"'));
 
-  // Two columns: one rule per narrower track count, and one trailing-run
-  // collapse rule (plus the hidden empty cell).
   expect(reachRules).toHaveLength(1);
   expect(reachRules?.[0]).toContain("--dms-grid-tracks: 1;");
   expect(reachRules?.[0]).not.toContain("--dms-grid-tracks: 2;");

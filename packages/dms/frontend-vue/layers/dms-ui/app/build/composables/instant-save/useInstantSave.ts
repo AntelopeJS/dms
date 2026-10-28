@@ -7,7 +7,7 @@ import {
   type Ref,
 } from "vue";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
-import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import { sameFormValue } from "../unsaved-changes/formValue";
 
 /** How long typing pauses before a text saves. */
@@ -30,6 +30,7 @@ export interface InstantSaveSource<V extends object> {
   /** Keeps the changed keys; rejects when they are refused. */
   save: (changes: Partial<V>) => Promise<void>;
   /** Called after a refused save is put back (field errors, a toast). */
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A rejected save can throw any JavaScript value; Promise<void> has no rejection type to derive for this callback contract.
   onError?: (error: unknown, changes: Partial<V>) => void;
 }
 
@@ -71,14 +72,24 @@ export interface InstantSave<V extends object> {
 
 type Timer = ReturnType<typeof setTimeout>;
 
+function saveKeys<V extends object>(values: Partial<V>): InstantSaveKey<V>[] {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Partial<V> does not guarantee exact string keys at runtime; retain the unchecked Object.keys projection.
+  return Object.keys(values) as InstantSaveKey<V>[];
+}
+
 /** The saves of one page: what waits, what runs, what the server holds. */
 class InstantSaveQueue<V extends object> {
-  readonly states = reactive({}) as Partial<
-    Record<InstantSaveKey<V>, SaveStatusState>
-  >;
-  readonly failed = ref<Partial<V> | null>(null) as Ref<Partial<V> | null>;
-  private readonly confirmed = new Map<InstantSaveKey<V>, unknown>();
-  private readonly pending = new Map<InstantSaveKey<V>, unknown>();
+  readonly states: Partial<Record<InstantSaveKey<V>, SaveStatusState>> =
+    reactive({});
+  readonly failed: Ref<Partial<V> | null> = ref(null);
+  private readonly confirmed = new Map<
+    InstantSaveKey<V>,
+    V[InstantSaveKey<V>] | undefined
+  >();
+  private readonly pending = new Map<
+    InstantSaveKey<V>,
+    V[InstantSaveKey<V>] | undefined
+  >();
   private readonly inFlight = new Set<InstantSaveKey<V>>();
   private readonly debounceTimers = new Map<InstantSaveKey<V>, Timer>();
   private readonly savedTimers = new Map<InstantSaveKey<V>, Timer>();
@@ -93,18 +104,22 @@ class InstantSaveQueue<V extends object> {
   }
 
   confirm(values: Partial<V>): void {
-    for (const [key, value] of Object.entries(values)) {
-      this.confirmed.set(key as InstantSaveKey<V>, value);
+    for (const key of saveKeys(values)) {
+      this.confirmed.set(key, values[key]);
     }
   }
 
   /** A change to send with the next save of its key. */
-  put(key: InstantSaveKey<V>, value: unknown): void {
+  put<K extends InstantSaveKey<V>>(key: K, value: V[K] | undefined): void {
     clearTimeout(this.debounceTimers.get(key));
     this.pending.set(key, value);
   }
 
-  wait(key: InstantSaveKey<V>, value: unknown, debounce: boolean): void {
+  wait<K extends InstantSaveKey<V>>(
+    key: K,
+    value: V[K],
+    debounce: boolean,
+  ): void {
     this.put(key, value);
     if (!debounce) {
       void this.send([key]);
@@ -150,6 +165,7 @@ class InstantSaveQueue<V extends object> {
 
   /** Moves the waiting changes of these keys to a running save. */
   private take(keys: InstantSaveKey<V>[]): Partial<V> {
+    // SAFETY: pending stores only V[K] or undefined for a key K; ready contains only keys in pending. Partial<V> permits those supplied values, while Object.fromEntries loses their per-key relationship.
     const changes = Object.fromEntries(
       keys.map((key) => [key, this.pending.get(key)]),
     ) as Partial<V>;
@@ -162,20 +178,23 @@ class InstantSaveQueue<V extends object> {
   }
 
   private onSaved(changes: Partial<V>): void {
-    for (const key of Object.keys(changes) as InstantSaveKey<V>[]) {
+    for (const key of saveKeys(changes)) {
       this.confirmed.set(key, changes[key]);
       this.setState(key, "saved");
     }
     this.settleFailed(changes, false);
   }
 
-  private onRefused(error: unknown, changes: Partial<V>): void {
-    for (const key of Object.keys(changes) as InstantSaveKey<V>[]) {
-      // A newer value picked meanwhile stays on screen: its own save follows.
+  private onRefused(
+    error: Parameters<NonNullable<InstantSaveSource<V>["onError"]>>[0],
+    changes: Partial<V>,
+  ): void {
+    for (const key of saveKeys(changes)) {
       const isShown =
         !this.pending.has(key) &&
         sameFormValue(this.source.read(key), changes[key]);
       if (isShown) {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The queue API does not require a remembered value; preserve the unchecked rollback lookup.
         this.source.write(key, this.confirmed.get(key) as V[typeof key]);
       }
       this.setState(key, "error");
@@ -185,10 +204,10 @@ class InstantSaveQueue<V extends object> {
   }
 
   private settleFailed(changes: Partial<V>, isRefused: boolean): void {
-    const rest = { ...this.failed.value } as Record<string, unknown>;
-    for (const key of Object.keys(changes)) delete rest[key];
+    const rest: Partial<V> = { ...this.failed.value };
+    for (const key of saveKeys(changes)) delete rest[key];
     const next = isRefused ? { ...rest, ...changes } : rest;
-    this.failed.value = Object.keys(next).length ? (next as Partial<V>) : null;
+    this.failed.value = Object.keys(next).length ? next : null;
   }
 
   private setState(key: InstantSaveKey<V>, state: SaveStatusState): void {
@@ -224,9 +243,10 @@ export function useInstantSave<V extends object>(
   };
 
   const changeMany: InstantSave<V>["changeMany"] = (changes) => {
-    const keys = Object.keys(changes) as InstantSaveKey<V>[];
+    const keys = saveKeys(changes);
     for (const key of keys) {
       saves.remember(key);
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Partial changes may contain undefined for required source fields; retain the unchecked write-through.
       source.write(key, changes[key] as V[typeof key]);
       saves.put(key, changes[key]);
     }
@@ -239,7 +259,6 @@ export function useInstantSave<V extends object>(
     if (changes) changeMany(changes);
   };
 
-  // A text still waiting for typing to pause is saved when the page goes.
   onScopeDispose(() => {
     saves.dispose();
     void saves.flush();

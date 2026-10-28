@@ -6,7 +6,7 @@ import type {
 import {
   mapPermissionTree,
   permissionLabel,
-} from "../../../../pages/settings/users/permission-tree-nodes";
+} from "../../../../pages/permissions";
 
 interface LabelledNode {
   id: string;
@@ -120,8 +120,6 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
   });
 
   describe("under an entry every member holds", () => {
-    // The settings root as registered: every member holds the root and the
-    // account pages, the workspace pages still take a role.
     const settings = {
       settings: registered(
         "settings",
@@ -212,8 +210,6 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
   });
 
   describe("categories", () => {
-    // The built-in Pages root in a project filing its pages under a root of
-    // its own: only the public sign-in pages are left below it.
     const publicOnly = {
       pages: registered("pages", {
         login: registered("pages.login", {}, { defaultGranted: true }),

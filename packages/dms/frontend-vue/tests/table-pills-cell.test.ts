@@ -1,33 +1,18 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The `pills` cell draws a list of strings and related rows as outline role
  * pills, and the pill items a server styles per row in their own tone and
  * variant.
  */
-import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
+import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
-
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => VNodeChild;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
 const registered = new Map<string, DataType["formatter"]>();
 
-// Auto-imports of the layer the default types are registered with.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
@@ -40,7 +25,7 @@ function stubLayerGlobals() {
   ]) {
     vi.stubGlobal(name, () => "");
   }
-  // The formatters read the application's composer, not `useI18n()`.
+
   vi.stubGlobal("useDmsApp", () => ({
     $i18n: { t: (key: string) => `i18n:${key}`, locale: { value: "en" } },
   }));
@@ -52,13 +37,11 @@ function stubLayerGlobals() {
 
 let app: App | undefined;
 
-function renderPills(value: unknown, options: unknown = {}): HTMLElement {
-  const content = (registered.get("pills")!.default as Formatter)(
-    value,
-    "en",
-    options,
-    {},
-  );
+function renderPills(
+  value: Parameters<Formatter>[0],
+  options: Parameters<Formatter>[2] = {},
+): HTMLElement {
+  const content = registered.get("pills")!.default(value, "en", options, {});
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => () => content }));
   app.component("UIcon", defineComponent({ render: () => h("i") }));
@@ -75,7 +58,7 @@ const pillsOf = (cell: HTMLElement) =>
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });

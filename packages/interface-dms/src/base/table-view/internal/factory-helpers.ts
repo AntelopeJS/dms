@@ -1,11 +1,3 @@
-// The helpers the TableView factory chains together: action and display
-// serialization, the actions it declares, and its page-mode form pages (their
-// slugs, URLs, redirection and filter defaults).
-//
-// Split out of factory.ts. The declaration checks live in `./validation`, the
-// filter tabs in `./tabs`, the per-request filtering in `./request-filter` and
-// the one writing TableView of a controller in `./writer`.
-
 import { ComponentBuilder } from "../../../component";
 import { type FormBuilder, FormEvents } from "../../form-types";
 import { serializeActionTarget } from "../../types/internal/action-target";
@@ -14,14 +6,6 @@ import type {
   CustomButtonSerialized,
 } from "../../types/custom-button";
 import { serializeActionConfirm } from "../../internal/confirm-dialog";
-import type {
-  AddRowActionConfig,
-  BulkRowActionConfig,
-  CustomRowAction,
-  CustomRowActionSerialized,
-  RowActionConfigSerialized,
-  RowActionRule,
-} from "../../types/row-action";
 import {
   LIST_ACTION,
   SELECT_ACTION,
@@ -39,7 +23,6 @@ import {
   type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
-  type KanbanOptionsSerialized,
   type QueryParamFilters,
   type RouteParamFilters,
   type TableViewCardOptions,
@@ -53,9 +36,21 @@ import {
   type TableViewRowActionOptionsSerialized,
 } from "../options";
 import { TableViewFunctions } from "../factory-helpers";
+import {
+  serializeCustomRowAction,
+  serializeRowActionConfig,
+  tableViewActionDependencies,
+} from "./factory-private-actions";
+import { serializeCard } from "./factory-private-displays";
+import { pageParamToken, toFormPageUrl } from "./factory-private-urls";
 
 /** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
+
+interface FormRedirectParams {
+  url: string;
+  preserveQuery?: string[];
+}
 
 /** @internal */
 export function applyFormRedirect<T>(
@@ -63,9 +58,7 @@ export function applyFormRedirect<T>(
   redirectUrl: string,
   preserveQuery?: string[],
 ): void {
-  // `preserveQuery` is set only when there is something to preserve, so the
-  // params carry no key for it otherwise.
-  const params: { url: string; preserveQuery?: string[] } = {
+  const params: FormRedirectParams = {
     url: redirectUrl,
   };
   if (preserveQuery && preserveQuery.length > 0) {
@@ -103,40 +96,6 @@ export function serializeCustomButtons(
       return served;
     },
   );
-}
-
-/** A built-in row action as the options carry it: its confirmation serialized. */
-function serializeRowActionConfig<T extends Record<string, unknown>>(
-  config: boolean | BulkRowActionConfig<T> | AddRowActionConfig<T> | undefined,
-): boolean | RowActionConfigSerialized | undefined {
-  if (config === undefined || typeof config === "boolean") return config;
-  const { confirm, rule, ...rest } = config;
-  const served: RowActionConfigSerialized = rest;
-  if (rule) served.rule = rule as RowActionRule;
-  if (confirm) served.confirm = serializeActionConfirm(confirm);
-  return served;
-}
-
-/** A custom row action as the options carry it. */
-function serializeCustomRowAction<T extends Record<string, unknown>>(
-  action: CustomRowAction<T>,
-): CustomRowActionSerialized {
-  const served: CustomRowActionSerialized = {
-    id: action.id,
-    label: action.label,
-    icon: action.icon,
-    rule: action.rule as RowActionRule | undefined,
-    target: serializeActionTarget(action.target),
-    isVisible: action.isVisible,
-    isDefault: action.isDefault,
-    color: action.color,
-    variant: action.variant,
-    showLabel: action.showLabel,
-    bulk: action.bulk,
-    deepLink: action.deepLink,
-  };
-  if (action.confirm) served.confirm = serializeActionConfirm(action.confirm);
-  return served;
 }
 
 /**
@@ -179,41 +138,6 @@ export interface TableViewCapabilities {
    * by URL, rather than over the table (a drawer, a modal, a side panel).
    */
   formsArePages: boolean;
-}
-
-/**
- * The dependencies of each action of a table view, by action id. An action
- * depends on the permission guarding what it reads. The edit form loads its
- * row through the view route: without the view it opens empty, and a value
- * saved from it replaces one it never showed. An export writes its own
- * `@Exported` fields, which may go past the columns the list shows. A delete
- * reads nothing of the row.
- *
- * An action only reached from the table's rows also depends on the `list`
- * that shows them: delete, the archive trio, export, and a form opening over
- * the table. A form opening as its own page is reached by URL — a link in a
- * notification leads a member to the one record they may edit — and does not.
- * `select` serves the relation pickers of other pages and depends on nothing;
- * `restore` is pressed from the archived rows, so it depends on
- * `viewArchived`, and through it on `list`.
- */
-function tableViewActionDependencies(
-  capabilities: TableViewCapabilities,
-): Record<string, string[] | undefined> {
-  const listed = [LIST_ACTION];
-  const formListed = capabilities.formsArePages ? [] : listed;
-  const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : [];
-  const orUndefined = (ids: string[]) => (ids.length > 0 ? ids : undefined);
-  return {
-    add: orUndefined(formListed),
-    edit: orUndefined([...readsRow, ...formListed]),
-    [VIEW_ACTION]: orUndefined(formListed),
-    delete: listed,
-    archive: listed,
-    restore: [VIEW_ARCHIVED_ACTION],
-    [VIEW_ARCHIVED_ACTION]: listed,
-    export: [...readsRow, ...listed],
-  };
 }
 
 /**
@@ -328,6 +252,7 @@ export function serializeExpandable(
     );
   }
   const fields = expandable.fields.map((field) =>
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Expandable fields declare a string shorthand or a configured field; this normalizes that declared union.
     typeof field === "string" ? { key: field } : field,
   );
   assertKnownColumns(
@@ -351,41 +276,18 @@ export interface TableViewDisplaySources {
   card?: TableViewCardOptions;
 }
 
-/** The card both card displays draw: the table view's `card`. */
-function serializeCard({
-  card,
-}: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
-  if (
-    !card?.fields &&
-    !card?.component &&
-    !card?.minWidth &&
-    !card?.skeletonHeight
-  )
-    return undefined;
-  const serialized: TableViewCardOptionsSerialized = {
-    fields: card.fields,
-    component: card.component?.serializeSync(),
-  };
-  if (card.minWidth) serialized.minWidth = card.minWidth;
-  if (card.skeletonHeight) serialized.skeletonHeight = card.skeletonHeight;
-  return serialized;
-}
-
 /** The options a built-in display takes from the table view's own options. */
 type BuiltinDisplayOptions = (
   sources: TableViewDisplaySources,
   card: TableViewCardOptionsSerialized | undefined,
-) => Record<string, unknown> | undefined;
+) => TableViewDisplayOptionSerialized["options"];
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The registry accepts arbitrary display ids and optional lookups; its callbacks share the published serialized display option contract.
 const BUILTIN_DISPLAY_OPTIONS: Record<string, BuiltinDisplayOptions> = {
   [CARDS_DISPLAY_ID]: (_sources, card) => (card ? { card } : undefined),
   [KANBAN_DISPLAY_ID]: ({ kanban }, card) => {
     if (!kanban) return undefined;
-    const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
-    // The serialised options and a bare dictionary do not overlap, so this
-    // cannot be one assertion; the display registry reads it by key.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    return kanbanOptions as unknown as Record<string, unknown>;
+    return { ...kanban, card };
   },
   [GROUPED_DISPLAY_ID]: ({ grouped }) => (grouped ? { ...grouped } : undefined),
 };
@@ -501,6 +403,7 @@ export function resolveFormPageTexts(
 }
 
 /** @internal */
+// SAFETY: FORM_PAGE_DEFINITIONS declares only the new, edit and view keys that make up FormPageKind.
 export const FORM_PAGE_KINDS = Object.keys(
   FORM_PAGE_DEFINITIONS,
 ) as FormPageKind[];
@@ -512,24 +415,6 @@ export const FORM_PAGE_KINDS = Object.keys(
  */
 export function joinPageSlug(pageSlug: string, slug: string): string {
   return `${pageSlug}/${slug}`.replace(/\/+/g, "/");
-}
-
-// A slug starting with "/" addresses a page of its own and is navigated
-// verbatim, query string included; leading ".." segments each drop one segment
-// of the carrying page. Registration joins the slug as it stands instead —
-// these two forms name a page the table view does not register.
-function toFormPageUrl(pageSlug: string, slug: string): string {
-  if (slug.startsWith("/")) return slug;
-  const parts = slug.split("/");
-  let parentCount = 0;
-  while (parentCount < parts.length && parts[parentCount] === "..") {
-    parentCount++;
-  }
-  const segments = pageSlug.replace(/\/$/, "").split("/");
-  return joinPageSlug(
-    segments.slice(0, segments.length - parentCount).join("/"),
-    parts.slice(parentCount).join("/"),
-  );
 }
 
 /**
@@ -600,9 +485,14 @@ export function buildFormPageUrls(
   routeKey: string,
   pages?: FormContainerPages,
 ): TableViewFormPageUrls {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This initially empty accumulator is incomplete until FORM_PAGE_KINDS fills every published URL key below.
   const urls = {} as TableViewFormPageUrls;
   for (const kind of FORM_PAGE_KINDS) {
-    urls[kind] = toFormPageUrl(pageSlug, formPageSlug(kind, routeKey, pages));
+    urls[kind] = toFormPageUrl(
+      pageSlug,
+      formPageSlug(kind, routeKey, pages),
+      joinPageSlug,
+    );
   }
   return urls;
 }
@@ -625,43 +515,6 @@ export interface TableViewUrlFilters {
 export interface FormRouteFrame {
   pageSlug: string;
   formSlug: string;
-}
-
-// Mirrors how the frontend reads a route pattern (extractRouteParams): one
-// placeholder per segment, in pattern order.
-function slugPlaceholders(slug: string): string[] {
-  return slug
-    .split("/")
-    .filter((segment) => segment.startsWith(":"))
-    .map((segment) => segment.substring(1));
-}
-
-const countOccurrences = (names: string[], name: string): number =>
-  names.filter((candidate) => candidate === name).length;
-
-/**
- * The token reading, on a form page, an occurrence of the route parameter
- * `name` of the page carrying the table view — by default its last, the value
- * its `routeParamFilters` filter on.
- *
- * The bare name holds the last occurrence of a repeated placeholder, which on
- * a form route is the form's own (`/workspaces/:id/invoiceTable/:id/edit`:
- * the row id). The page's placeholders precede the form's, so the page's
- * occurrence is addressed by its number. Numbered keys exist only for repeated
- * names, hence the bare name otherwise.
- */
-function pageParamToken(
-  name: string,
-  frame?: FormRouteFrame,
-  occurrence?: number,
-): string {
-  if (!frame) return `{{params.${name}}}`;
-  const pageOccurrence =
-    occurrence ?? countOccurrences(slugPlaceholders(frame.pageSlug), name);
-  const total = countOccurrences(slugPlaceholders(frame.formSlug), name);
-  return pageOccurrence > 0 && total > 1
-    ? `{{params.${name}:${pageOccurrence}}}`
-    : `{{params.${name}}}`;
 }
 
 /**

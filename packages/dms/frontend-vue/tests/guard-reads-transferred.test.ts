@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The two reads a server render's guards make, the onboarding status and the
  * permission set, go through the renderer's data layer: on a runtime set up
@@ -58,16 +58,16 @@ vi.stubGlobal("useSiteLayout", () => ({
 
 const ONBOARDING = "/api/onboarding/informations";
 const PERMISSIONS = "/dms/permissions";
-const ANSWERS: Record<string, unknown> = {
+const ANSWERS = {
   [ONBOARDING]: { has_onboarded: true },
   [PERMISSIONS]: ["orders.read"],
 };
 const asked: string[] = [];
-// The backend: every request goes through the renderer's own `$fetch`, as
-// `$authFetch` does, which is where a server render tells the reads apart.
+
+// oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The URL-dispatched test backend cannot implement the transport's caller-selected generic response type; it returns these two raw endpoint payloads, not arbitrary T.
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
-  return ANSWERS[url];
+  return Object.entries(ANSWERS).find(([path]) => path === url)?.[1];
 }) as unknown as NonNullable<DmsFrontendRuntime["serverFetch"]>;
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch: engine.$fetch }));
 
@@ -116,9 +116,10 @@ const settle = async () => {
 
 /** Attaches `runtime` to `app` the way the DMS app does, and runs its plugins. */
 function install(app: App, runtime: DmsFrontendRuntime): void {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Guard preload plugins require only runWithContext; unrelated app-context services are absent in this SSR fixture.
   const context = {
-    runWithContext: (callback: () => unknown) => app.runWithContext(callback),
-  } as unknown as DmsAppContext;
+    runWithContext: app.runWithContext.bind(app),
+  } as DmsAppContext;
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = "/orders";
@@ -139,7 +140,10 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
   const app = createSSRApp(Page);
   install(app, runtime);
   const html = await renderToString(app);
-  return { html, payload: structuredClone(engine.serializeDmsPayload(runtime)) };
+  return {
+    html,
+    payload: structuredClone(engine.serializeDmsPayload(runtime)),
+  };
 }
 
 const mounted: App[] = [];
@@ -176,7 +180,9 @@ describe("the reads of a server render's guards", () => {
     expect(asked.sort()).toEqual([ONBOARDING, PERMISSIONS].sort());
     const warnings = warn.mock.calls.map((call) => String(call[0]));
     expect(
-      warnings.filter((message) => message.includes("was read during a server render")),
+      warnings.filter((message) =>
+        message.includes("was read during a server render"),
+      ),
     ).toEqual([]);
     expect(JSON.stringify(payload.data)).toContain("orders.read");
     expect(JSON.stringify(payload.data)).toContain("hasOnboarded");
@@ -198,10 +204,9 @@ describe("the reads of a server render's guards", () => {
     expect(host.textContent).toBe("can read");
     expect(asked).toEqual([]);
 
-    // A client navigation past the hydration runs the guards again.
     runtime.hydrating = false;
     await app.runWithContext(async () => {
-      await onboardingMiddleware(runtime.route as never, runtime.route as never);
+      await onboardingMiddleware(runtime.route, runtime.route);
       await usePermissions().loadPermissions();
     });
     await settle();
@@ -210,7 +215,7 @@ describe("the reads of a server render's guards", () => {
 
   it("let a refresh read the set again, and a cleared set load anew", async () => {
     const runtime = engine.createDmsFrontendRuntime(backend);
-    // Never mounted: the app only carries the runtime the calls run with.
+
     const app = createApp(Page);
     install(app, runtime);
     await settle();

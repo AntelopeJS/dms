@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A data-type formatter runs wherever a value is drawn — a footer summary, a
  * group header, a card field, a filter chip, an export — often with no
@@ -15,23 +15,15 @@ import { Size } from "../layers/dms-core/app/types/size";
 import * as formatterUtils from "../layers/dms-core/app/utils/formatter";
 import { parse } from "../layers/dms-core/app/utils/stringTypeParser";
 import * as typeChecks from "../layers/dms-core/app/utils/type-check";
-import coreEn from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFr from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import coreEn from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
+type Messages = import("vue-i18n").LocaleMessage<
+  import("vue-i18n").VueMessageType
+>;
 
-type Messages = Record<string, unknown>;
-
-// The layers' locale files share their top-level keys (`dms`, …).
 const mergeMessages = (...sources: Messages[]): Messages =>
   sources.reduce<Messages>((merged, source) => {
     for (const [key, value] of Object.entries(source)) {
@@ -58,9 +50,6 @@ const i18n = createI18n({
 
 const dataTypes = new Map<string, DataType>();
 
-// Auto-imports of the layers, with their real implementations: `useI18n` is
-// vue-i18n's own, so a formatter calling it outside a setup throws as it
-// does in the application.
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
   for (const [name, value] of Object.entries({
@@ -80,8 +69,6 @@ function stubLayerGlobals() {
   }));
 }
 
-// The shapes a column value comes in, from the empty ones to the rows of a
-// relation and the composed texts a row may carry.
 const SAMPLE_VALUES: unknown[] = [
   undefined,
   null,
@@ -105,10 +92,29 @@ const SAMPLE_VALUES: unknown[] = [
 
 const SAMPLE_OPTIONS: unknown[] = [undefined, {}, { multiple: true }];
 
+function collectFormatterFailures(
+  id: string,
+  mode: string,
+  format: NonNullable<DataType["formatter"]>[string],
+  failures: string[],
+) {
+  for (const value of SAMPLE_VALUES) {
+    for (const options of SAMPLE_OPTIONS) {
+      try {
+        format(value, "en-GB", options, {});
+      } catch (error) {
+        failures.push(
+          `${id}.${mode}(${JSON.stringify(value)}, ${JSON.stringify(options)}): ${String(error)}`,
+        );
+      }
+    }
+  }
+}
+
 beforeAll(async () => {
   stubLayerGlobals();
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });
@@ -126,17 +132,7 @@ describe("data-type formatters outside a component setup", () => {
     const failures: string[] = [];
     for (const [id, dataType] of dataTypes) {
       for (const [mode, format] of Object.entries(dataType.formatter ?? {})) {
-        for (const value of SAMPLE_VALUES) {
-          for (const options of SAMPLE_OPTIONS) {
-            try {
-              format(value, "en-GB", options, {});
-            } catch (error) {
-              failures.push(
-                `${id}.${mode}(${JSON.stringify(value)}, ${JSON.stringify(options)}): ${String(error)}`,
-              );
-            }
-          }
-        }
+        collectFormatterFailures(id, mode, format, failures);
       }
     }
     expect(failures).toEqual([]);
@@ -160,11 +156,6 @@ describe("data-type formatters outside a component setup", () => {
   });
 });
 
-// A catalog-like table: cards and groups by a relation, an image held as a
-// URL, tags, a number with a suffix, a select, a localized rich text, and a
-// footer summing a two-line column. Its renderer is created in the table's
-// setup; its values are drawn later, from a footer summary, a group header
-// or a card field, with no setup active.
 describe("a catalog-like table drawn after its setup", () => {
   const columns = {
     image: { accessorKey: "image", type: { id: "image" } },
@@ -213,7 +204,7 @@ describe("a catalog-like table drawn after its setup", () => {
 
   it("renders every column of a row with no setup active", async () => {
     const { useColumnValueRenderer } = await import(
-      "../layers/dms-ui/app/build/composables/data-types/useColumnValueRenderer"
+      "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
     );
     let renderer: ReturnType<typeof useColumnValueRenderer> | undefined;
     const app = createApp(
@@ -233,8 +224,7 @@ describe("a catalog-like table drawn after its setup", () => {
           renderer!.renderColumnValue(column, row, "detail"),
         ).not.toThrow();
       }
-      // The footer summary of the two-line column, as `useTableFooter`
-      // draws it.
+
       expect(() =>
         renderer!.renderValue(columns.price, 9999, undefined),
       ).not.toThrow();

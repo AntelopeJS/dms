@@ -1,7 +1,10 @@
-import { MongoClient } from "mongodb";
+import {
+  MongoClient,
+  type Document,
+  type Filter,
+  type IndexDescriptionInfo,
+} from "mongodb";
 
-// `__antelope_instances` is the mongodb adapter's instance bookkeeping
-// collection; wiping it would deregister tenants/instances.
 const PRESERVED_COLLECTION_PREFIXES = ["system.", "__antelope"];
 const DMS_SCHEMA_DB = "dms-core";
 
@@ -13,8 +16,6 @@ function getMongoUrl(): string {
   return url;
 }
 
-// One client for the whole run: `resetDatabase` runs before most integration
-// tests, and a connect/close per call adds a handshake to every one of them.
 let sharedClient: Promise<MongoClient> | undefined;
 
 function getClient(): Promise<MongoClient> {
@@ -25,8 +26,6 @@ function getClient(): Promise<MongoClient> {
   return sharedClient;
 }
 
-// Root-level hook: the harness stops the replica set right after mocha, and an
-// open client would keep monitoring a server that is gone.
 after(async () => {
   const client = sharedClient;
   sharedClient = undefined;
@@ -51,7 +50,7 @@ export async function resetDatabase(): Promise<void> {
 
 export async function countRawDocuments(
   collectionName: string,
-  filter: Record<string, unknown> = {},
+  filter: Filter<Document> = {},
 ): Promise<number> {
   const client = await MongoClient.connect(getMongoUrl());
   try {
@@ -70,7 +69,7 @@ export async function countRawDocuments(
 
 export async function listRawIndexes(
   collectionName: string,
-): Promise<Record<string, Record<string, unknown>>> {
+): Promise<Record<string, IndexDescriptionInfo["key"]>> {
   const client = await MongoClient.connect(getMongoUrl());
   try {
     const indexes = await client

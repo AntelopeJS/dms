@@ -56,20 +56,13 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
-// v2 .cs-pleaf: checkbox, name with its hints and description, and the
-// permission id revealed on hover; a changed row is tinted until saved.
 const theme = tv({
   slots: {
     root: "group grid min-h-[42px] cursor-pointer items-center gap-2.5 rounded-[7px] px-2 py-[5px] hover:bg-elevated",
-    // A long identifier-like label (PlaygroundCodeBlock) at the deepest
-    // level on a phone breaks (its text span is min-w-0) instead of
-    // overflowing the card.
+
     name: "flex flex-wrap items-center gap-2 text-[13px] text-default wrap-break-word",
     description: "mt-px text-xs text-muted",
-    // The hover id and the bar read the editor's width (@container/editor):
-    // no id under 576px, no bar under 448px. The id is capped (full in its
-    // title): the auto column grew to a deep node's whole dotted id, which
-    // crushed the label and pushed the row past the card.
+
     id: "max-w-40 min-w-0 truncate font-mono text-[10.5px] font-medium text-dimmed opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 @max-xl/editor:hidden",
     count:
       "flex shrink-0 items-center gap-2 font-mono text-[11px] font-semibold text-dimmed",
@@ -114,7 +107,6 @@ function toggle(): void {
   emit("toggle", props.state !== true);
 }
 
-// A collapsible row opens on a click; its checkbox grants or revokes.
 function onRowClick(): void {
   if (props.expandable) emit("toggle-expanded");
   else toggle();

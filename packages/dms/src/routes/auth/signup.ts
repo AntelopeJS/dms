@@ -11,10 +11,10 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { generateAuthKey } from "../../utils/auth-key";
-import type { ClientOrigin } from "../../utils/sign-in-country";
-import { rememberSignInDevice } from "../../utils/sign-in-monitor";
-import { authSchema } from "../../validation/auth.schema";
+import { generateAuthKey } from "../../utils";
+import type { ClientOrigin } from "../../utils";
+import { rememberSignInDevice } from "../../hooks";
+import { authSchema } from "../../validation";
 import { consumeInvite, resolveValidInvite } from "./invite";
 import { issueAuthResponse } from "./session-response";
 import type { AuthResponse } from "./types";
@@ -157,7 +157,7 @@ async function resolveOverwritableAccount(
 export async function signup(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.signup.parse>[0],
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
@@ -165,10 +165,6 @@ export async function signup(
     authSchema.signup.parse(v),
   );
 
-  // The invitation is settled first so that a caller holding no invitation
-  // learns nothing: taking the account first answers an anonymous prober,
-  // whose bogus token then draws one refusal for a known address and another
-  // for an unknown one.
   const resolvedInvite = await resolveValidInvite(token, email);
   const { invite: existingInvite, tenantId } = resolvedInvite;
 

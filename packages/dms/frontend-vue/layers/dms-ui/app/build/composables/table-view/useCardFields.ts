@@ -2,8 +2,11 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { h, type VNodeChild } from "vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 
-type Row = Record<string, unknown>;
+type Row = Parameters<
+  ReturnType<typeof useColumnValueRenderer>["renderColumnValue"]
+>[1];
 
 /**
  * Draws a row's fields on a card (the cards display, the kanban board) the
@@ -16,11 +19,11 @@ export function useCardFields() {
 
   const renderField = (column: TableViewColumn, item: Row): VNodeChild => {
     const rendered = renderColumnValue(column, item, "cell");
-    if (typeof rendered !== "string" && typeof rendered !== "number") {
+    if (!isString(rendered) && !isNumber(rendered)) {
       return rendered;
     }
     const value = get(item, column.accessorKey);
-    // The fallback of a missing value reads dimmed, as an empty cell does.
+
     const isMissing = value === null || value === undefined;
     return h(
       "span",

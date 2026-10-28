@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import { useAuthFormError } from "../../build/composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
@@ -17,13 +17,13 @@ const { processApiMessage } = useTranslation();
 const { formError, showFormError, clearFormError, showError } =
   useAuthFormError();
 
-const token = computed(() => (route.query.token as string) || "");
+const token = computed(() => route.query.token || "");
 const availableMethods = computed(() =>
-  ((route.query.methods as string) || "").split(",").filter(Boolean),
+  (route.query.methods || "").split(",").filter(Boolean),
 );
 
 const PIN_LENGTH = 6;
-// Refusals of the typed code: shown under the cells, not above the form.
+
 const CODE_ERRORS = {
   "error.invalid_2fa_code": "code",
   "error.2fa_code_expired": "code",
@@ -46,7 +46,6 @@ const isEmailSent = ref(false);
 const codeError = ref<string>();
 const codeInput = useTemplateRef<{ focus: () => void }>("codeInput");
 
-// Typing a new code clears the refusal of the previous one.
 watch(pin, (digits) => {
   if (digits.some(Boolean)) codeError.value = undefined;
 });
@@ -93,7 +92,6 @@ async function requestEmailCode() {
 }
 
 async function verify() {
-  // An empty or partial code is flagged under the cells, not sent.
   const missing = codeEntryError(pin.value, PIN_LENGTH);
   if (missing) {
     codeError.value = processApiMessage(missing);
@@ -115,8 +113,6 @@ async function verify() {
       },
     });
 
-    // The sign-in token in this page's URL is spent: the destination takes
-    // its place in the history.
     await usePostLoginRedirect(undefined, { replace: true });
   } catch (error: unknown) {
     pin.value = [];

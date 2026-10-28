@@ -5,22 +5,18 @@ import {
   preloadPageLayoutComponents,
 } from "../layers/dms-layout/app/composables/page/usePageComponentPreload";
 
-// The page's layout component (`dms-default-layout`) is registered as a
-// layout, not as a component: the preload looked it up among the components
-// on every page, and warned in development that nothing matched it.
-
 const LAYOUT = {
   layout: {
     componentName: "dms-default-layout",
-    children: [{ component: { componentName: "PageBanner" } }],
+    children: [{ id: "banner", component: { componentName: "PageBanner" } }],
   },
   components: {
     main: {
       componentName: "DmsCard",
-      children: [{ component: { componentName: "DmsTable" } }],
+      children: [{ id: "table", component: { componentName: "DmsTable" } }],
     },
   },
-} as never;
+} satisfies NonNullable<Parameters<typeof collectPageLayoutComponentNames>[0]>;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -28,7 +24,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-// Each component a lazy loader, settled by hand.
 function stubLazyComponents() {
   const pending = new Map<string, () => void>();
   vi.stubGlobal("resolveDmsComponent", (name: string) => ({
@@ -41,7 +36,7 @@ function stubLazyComponents() {
 const settled = async (promise: Promise<void>) => {
   let isSettled = false;
   void promise.then(() => (isSettled = true));
-  // The loaders, their join and the race each take a turn.
+
   for (let turn = 0; turn < 10; turn++) await Promise.resolve();
   return isSettled;
 };

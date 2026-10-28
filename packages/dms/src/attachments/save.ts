@@ -11,7 +11,7 @@ import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import { findConstraintViolation } from "./constraints";
 import {
@@ -22,11 +22,10 @@ import {
 import { denyAttachment, findAttachment, loadAttachment } from "./registry";
 
 const BAD_REQUEST = 400;
-// Matched by name: the storage module throws its own copy of the class, which
-// `instanceof` against the one imported here does not recognise.
+
 const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
 
-function isFileNotFoundError(error: unknown): boolean {
+function isFileNotFoundError(error: PromiseRejectedResult["reason"]): boolean {
   return error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME;
 }
 
@@ -65,7 +64,7 @@ async function validateReference(
   ref: AttachmentReference,
 ): Promise<void> {
   const attachment = await loadAttachment(ref.key, ref.field.storage);
-  const owner = JSON.parse(attachment.claimsJson) as UploadTokenClaims;
+  const owner: UploadTokenClaims = JSON.parse(attachment.claimsJson);
   const principal = await assertNativeFileAccess(request.context, owner, false);
   if (
     principal.tenantId !== attachment.tenantId ||
@@ -87,10 +86,12 @@ async function prepareReferences(
 }
 
 async function remapValue(
-  value: unknown,
+  value: AttachmentSaveRequest["submitted"][string],
   map: Map<string, string>,
-): Promise<unknown> {
+): Promise<AttachmentSaveRequest["submitted"][string]> {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
   if (typeof value === "string") return map.get(value) ?? value;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
   if (!value || typeof value !== "object") return value;
   if (Array.isArray(value))
     return Promise.all(value.map((item) => remapValue(item, map)));
@@ -124,7 +125,7 @@ async function promoteReferences(
 
 async function cleanRemoved(
   request: AttachmentSaveRequest,
-  document: Record<string, unknown>,
+  document: AttachmentSaveRequest["submitted"],
 ) {
   const after = collectAttachments(request.fields, document);
   for (const ref of collectAttachments(request.fields, request.before)) {
@@ -144,7 +145,9 @@ async function cleanRemoved(
 /** Failed saves retain promoted objects: another save may already reference them. */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
-  save: (document: Record<string, unknown>) => Promise<AttachmentSaveResult<T>>,
+  save: (
+    document: AttachmentSaveRequest["submitted"],
+  ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
   const refs = await prepareReferences(request);
   const saved = await save(await promoteReferences(request, refs));

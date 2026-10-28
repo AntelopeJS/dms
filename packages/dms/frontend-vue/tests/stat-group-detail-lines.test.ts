@@ -4,9 +4,6 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
 
-// A detail or a title cut on its first line loses what it says: a stat
-// group's details and a nav card's title take two lines before the ellipsis.
-
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -14,7 +11,11 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-async function render(component: Component, props: Record<string, unknown>) {
+type DetailProps =
+  | InstanceType<typeof StatGroup>["$props"]
+  | InstanceType<typeof NavCard>["$props"];
+
+async function render(component: Component, props: DetailProps) {
   const app = createSSRApp({ render: () => h(component, props) });
   for (const name of ["UIcon", "USkeleton", "DmsLink"]) {
     app.component(name, Slot);
@@ -36,7 +37,9 @@ function detailClasses(html: string): string {
 }
 
 describe("StatGroup detail", () => {
-  it.each(["joined", "cards"])(
+  it.each(["joined", "cards"] satisfies NonNullable<
+    InstanceType<typeof StatGroup>["$props"]["layout"]
+  >[])(
     "gives a %s cell's detail two lines before its ellipsis",
     async (layout) => {
       const html = await render(StatGroup, {
@@ -67,7 +70,7 @@ describe("StatGroup columnsFrom", () => {
     eyebrow,
     value: "—",
   }));
-  // The column classes of the group's grid, whatever their order.
+
   const columnClasses = (html: string) =>
     (/<div class="([^"]*\bgrid\b[^"]*)"/.exec(html)?.[1] ?? "")
       .split(" ")

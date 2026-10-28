@@ -49,7 +49,6 @@ export function usePageRealtime(
   const resolvedPageId = computed(() => toValue(pageId) || undefined);
 
   if (import.meta.env.SSR) {
-    // No dispose runs on the server, so a claim there would never be released.
     void user.setPage(resolvedPageId.value ?? null);
   } else {
     const claim: PageClaim = { pageId: undefined };

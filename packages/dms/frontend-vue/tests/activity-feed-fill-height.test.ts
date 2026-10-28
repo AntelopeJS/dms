@@ -1,19 +1,11 @@
-import { computed, createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
 
-const items = ref<Array<Record<string, unknown>>>([]);
-
-vi.mock("../layers/dms-ui/app/build/composables/blocks/useBlockItems", () => ({
-  useBlockItems: () => ({
-    items: computed(() => items.value),
-    count: computed(() => undefined),
-    isPending: computed(() => false),
-    hasError: computed(() => false),
-    refresh: async () => {},
-  }),
-}));
+type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
+const items = ref<FeedProps["items"]>([]);
 
 const Slot = defineComponent({
   props: { title: { type: String, default: undefined } },
@@ -23,7 +15,7 @@ const Slot = defineComponent({
       h("div", attrs, [props.title, slots.default?.()]),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(props: FeedProps): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(ActivityFeed, {
@@ -44,6 +36,7 @@ async function render(props: Record<string, unknown>): Promise<string> {
   ]) {
     app.component(name, Slot);
   }
+  await chartRuntime(app, { items: items.value });
   return renderToString(app);
 }
 
@@ -59,7 +52,6 @@ beforeEach(() => {
     date: new Date(Date.UTC(2026, 9, 9, 23 - index)).toISOString(),
   }));
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -69,11 +61,11 @@ it("filling its cell, scrolls the entries in a focusable region sized to nothing
   expect(area).toBeDefined();
   expect(area).toContain('tabindex="0"');
   expect(area).toContain('aria-label="Recent account activity"');
-  // Sized to nothing, it leaves the row's height to the cards beside it…
+
   expect(area).toMatch(/\bcontain-size\b/);
   expect(area).toMatch(/\boverflow-y-auto\b/);
   expect(area).toMatch(/\bh-full\b/);
-  // …and once the grid stacks its cells, takes its own height, capped.
+
   expect(area).toContain(
     "[@container_style(--dms-grid-tracks:1)]:max-h-[24rem]",
   );

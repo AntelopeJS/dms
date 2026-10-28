@@ -54,7 +54,10 @@ const direction = ref<Direction>("right");
 const size = ref<ModalWidth>("md");
 const lastResult = ref("");
 
-function describe(kind: string, value: unknown): void {
+function describe(
+  kind: string,
+  value: Awaited<ReturnType<typeof openModal>["result"]>,
+): void {
   lastResult.value = value
     ? `${kind} confirmed → ${JSON.stringify(value)}`
     : `${kind} dismissed without a result`;

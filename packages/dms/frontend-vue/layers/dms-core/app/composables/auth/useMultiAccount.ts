@@ -12,8 +12,6 @@ const HTTP_POST = "POST" as const;
 
 type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 
-// Keyed on the DMS app rather than the module, so an SSR request never sees
-// another one's ref.
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
 
 /**
@@ -32,6 +30,7 @@ function useAccountsStorage(): AccountsRef {
   const existing = accountsStorageByApp.get(dmsApp);
   if (existing) return existing;
 
+  // SAFETY: A newly created effect scope is active, so run synchronously returns this callback's useStorage result.
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
   ) as AccountsRef;
@@ -50,9 +49,6 @@ interface BrowserSession {
   activeTenantId?: string;
 }
 
-// Same statuses the validate-account route treats as a verdict on the token;
-// the two paths must agree on what "expired" means, or the switcher shows a
-// badge its own validation would not have set.
 const TOKEN_REJECTION_STATUSES = new Set([400, 401, 403]);
 
 interface UpstreamError {
@@ -60,7 +56,9 @@ interface UpstreamError {
   statusCode?: number;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Request failures can throw arbitrary JavaScript values. FetchError owner types cannot describe every thrown value.
 function isTokenRejection(error: unknown): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked projection intentionally preserves property access on primitive errors. It does not establish an UpstreamError contract.
   const { status, statusCode } = (error ?? {}) as UpstreamError;
   const upstreamStatus = statusCode ?? status;
   return (
@@ -82,7 +80,7 @@ function buildActiveAccount(
     name: user.name,
     lastUsed: new Date(),
     isExpired: false,
-  } as StoredAccount;
+  };
 }
 
 function upsertAccount(
@@ -125,6 +123,7 @@ async function requestAccountSwitch(account: StoredAccount) {
  * @internal
  */
 export async function refreshSessionSurfaces(
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Refresh results are awaited and discarded. Deriving from the session fetch owner would reject otherwise valid callbacks with other results.
   refreshUser: () => Promise<unknown>,
 ): Promise<void> {
   await refreshUser();
@@ -154,7 +153,7 @@ export async function validateAccount(account: StoredAccount) {
 function createSwitchAccount(
   accounts: AccountsRef,
   addCurrentAccount: () => void,
-  refreshUser: () => Promise<unknown>,
+  refreshUser: Parameters<typeof refreshSessionSurfaces>[0],
 ) {
   return async function switchAccount(userId: string) {
     const account = accounts.value.find((a) => a.userId === userId);
@@ -167,10 +166,6 @@ function createSwitchAccount(
     try {
       await requestAccountSwitch(account);
     } catch (error) {
-      // Only a verdict on the token expires the account. A 500, a timeout or
-      // an unreachable backend says nothing about it, and painting a healthy
-      // account "Session expired" is exactly what the three-state verdict in
-      // `validateAccount` exists to avoid — the switch path must agree with it.
       if (isTokenRejection(error)) {
         account.isExpired = true;
       }
@@ -204,16 +199,13 @@ export function useMultiAccount() {
   } = useDmsUserSession<User, BrowserSession>();
 
   const getActiveAccount = (): StoredAccount | undefined =>
-    buildActiveAccount(
-      user.value,
-      session.value?.accountId as string | undefined,
-    );
+    buildActiveAccount(user.value, session.value?.accountId);
 
   const addCurrentAccount = () => {
     if (!user.value || !session.value) {
       return;
     }
-    const accountId = session.value.accountId as string | undefined;
+    const accountId = session.value.accountId;
     if (accountId) upsertAccount(accounts, user.value, accountId);
   };
 

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A number field writes its unit inside the box, before the stepper ("30
  * days"), so it is as wide as the fields around it; a text field
@@ -14,12 +14,11 @@ import {
   h,
   nextTick,
 } from "vue";
-import { characterCountText } from "../layers/dms-ui/app/build/utils/characterCount";
+import { characterCountText } from "../layers/dms-ui/app/entries/utils/characterCount";
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The `ui` each control was handed, last render last.
 let ui: Array<{ base?: unknown } | undefined> = [];
 
 const Control = (tag: string) =>
@@ -29,7 +28,7 @@ const Control = (tag: string) =>
     setup:
       (props, { slots, attrs }) =>
       () => {
-        ui.push(props.ui as { base?: unknown } | undefined);
+        ui.push(props.ui);
         return h("div", { "data-control": tag }, [
           h(tag, { ...attrs }),
           slots.trailing?.(),
@@ -37,7 +36,10 @@ const Control = (tag: string) =>
       },
   });
 
-async function mount(component: Component, props: Record<string, unknown>) {
+async function mount(
+  component: Component,
+  props: Parameters<typeof createApp>[1],
+) {
   app = createApp({ render: () => h(component, props) });
   app.component("UInput", Control("input"));
   app.component("UTextarea", Control("textarea"));
@@ -46,9 +48,16 @@ async function mount(component: Component, props: Record<string, unknown>) {
   await nextTick();
 }
 
-const load = async (name: string) =>
-  (await import(`../layers/dms-ui/app/components/form/components/${name}.vue`))
-    .default as Component;
+const loaders = {
+  InputText: () =>
+    import("../layers/dms-ui/app/components/form/components/InputText.vue"),
+  Textarea: () =>
+    import("../layers/dms-ui/app/components/form/components/Textarea.vue"),
+  InputNumber: () =>
+    import("../layers/dms-ui/app/components/form/components/InputNumber.vue"),
+};
+const load = async (name: keyof typeof loaders): Promise<Component> =>
+  (await loaders[name]()).default;
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
@@ -125,7 +134,7 @@ describe("a number field's unit", () => {
 
   it("makes room for the unit at the end of the value", async () => {
     await mount(await load("InputNumber"), { modelValue: 30, suffix: "h" });
-    const wrapper = host.firstElementChild as HTMLElement;
+    const wrapper = host.querySelector<HTMLElement>(":scope > *")!;
     expect(wrapper.style.getPropertyValue("--dms-field-suffix-width")).toBe(
       "1ch",
     );

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A `TableView.fromSource` table whose `fetchUrl` reads the page query lists
  * again when a link changes that query, through the runtime's real async data
@@ -21,13 +21,14 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 
 const { useTableRows } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableRows"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
 );
 const { useTableCountsData, useTableListData } = await import(
-  "../layers/dms-ui/app/build/composables/table-view/useTableListData"
+  "../layers/dms-ui/app/entries/composables/table-view/useTableListData"
 );
 
 const FETCH_URL = "/api/log/route?route={{query.route}}";
+// SAFETY: These row-source tests only consume column ids and accessor keys, not rendering or input metadata.
 const COLUMNS = [{ id: "path", accessorKey: "path" }] as TableViewColumn[];
 const TAB_QUERIES = [{ id: "get", query: { filter_method: "is:GET" } }];
 const ROUTE_VALUE = "GET /api/search?q=shoes&page=2";
@@ -37,10 +38,11 @@ const ENCODED_URL =
 type Api = Parameters<typeof useTableRows>[0]["api"];
 
 const requests: string[] = [];
+// SAFETY: The row-source test only calls the list endpoint; generic fetch helpers are not used by this fixture.
 const api = (async (url: string) => {
   requests.push(url);
   return { results: [{ _id: "a", path: "/api/search" }], total: 1 };
-}) as unknown as Api;
+}) as Api;
 
 let runtime: DmsFrontendRuntime;
 const mounted: App[] = [];
@@ -108,8 +110,6 @@ describe("a source table following the page query", () => {
     expect(requests).toEqual([ENCODED_URL, ENCODED_URL]);
   });
 
-  // An Inertia link without preserveState remounts the page: the new table
-  // reads the new query from its first render, so its URL never changes.
   it("lists again when the link remounts the page", async () => {
     mountTable();
     await settle();

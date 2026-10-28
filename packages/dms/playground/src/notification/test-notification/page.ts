@@ -59,7 +59,6 @@ export class PageNotificationTest extends PageController(
   },
   FormPageLayout(),
 ) {
-  // Its nav badge counts the notifications you sent yourself with it.
   static notificationForm = Form({
     title: "Send Custom Notification",
     description: "Fill in the form and submit to send yourself a notification",
@@ -67,8 +66,6 @@ export class PageNotificationTest extends PageController(
     submitLabel: "Send notification",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
-    // Each submit sends a new notification: the fields empty once it is
-    // sent, so a second Enter does not send the same one again.
     kind: "action",
     fieldsOrientation: "horizontal",
     fields: [
@@ -114,8 +111,6 @@ export class PageNotificationTest extends PageController(
     }),
   });
 
-  // One-click notifications: picking a card makes the action form ready to
-  // send; it empties again once sent.
   static presetForm = Form({
     title: "Preset notifications",
     description:

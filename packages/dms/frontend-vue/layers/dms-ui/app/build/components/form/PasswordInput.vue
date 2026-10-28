@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 import type { InputProps } from "@nuxt/ui/components/Input.vue";
-
-// The one password input of the DMS (sign-in, new password, security
-// settings, the form's PasswordType): a UInput whose Phosphor eye toggles
-// the value's visibility. Attributes (`id`, `autocomplete`, `placeholder`,
-// `size`, `aria-describedby`, listeners) go to the UInput.
 
 interface PasswordInputProps {
   /** Rings the field in the error ink and marks it invalid. */
@@ -41,12 +37,10 @@ const INVALID_BINDINGS = {
 
 const attrs = useAttrs();
 const controlledId = computed(() =>
-  typeof attrs.id === "string" ? attrs.id : undefined,
+  isString(attrs.id) ? attrs.id : undefined,
 );
 const { t } = useI18n();
 
-// Built on the attributes, not after them: a colour or an icon the caller
-// passes stays unless this input has its own.
 const inputBindings = computed(() => ({
   ...attrs,
   type: isVisible.value ? "text" : "password",

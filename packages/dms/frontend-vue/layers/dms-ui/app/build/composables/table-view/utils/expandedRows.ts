@@ -14,6 +14,7 @@ export function defaultExpandedRows(
   single = false,
 ): ExpandedRowMap {
   if (mode === "none" || rowIds.length === 0) return {};
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The exported ExpandedRowMap contract permits boolean-valued entries. Retain that existing caller contract instead of narrowing it to branch-specific known keys or values.
   if (mode === "first" || single) return { [rowIds[0]!]: true };
   return Object.fromEntries(rowIds.map((id) => [id, true]));
 }

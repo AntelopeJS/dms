@@ -52,6 +52,7 @@ export type FieldRule<
 }[keyof T];
 
 export type AnyFieldRule<
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row generic permits arbitrary application fields; the caller's T owns their value types.
   T extends Record<string, unknown> = Record<string, unknown>,
 > = {
   [Op in FieldOperatorKey]: FieldRule<T, Op>;

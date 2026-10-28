@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { useTab } from "../layers/dms-ui/app/composables/tab/useTab";
 import { TabEvents } from "../layers/dms-ui/app/composables/tab/types/events";
-import type { TabProps } from "../layers/dms-ui/app/composables/tab/types";
+import { isNumber, isString } from "../layers/dms-core/app/utils/type-check";
 
 const TAB_COUNT = 3;
 const sendComponentEvent = vi.fn();
@@ -12,8 +12,8 @@ beforeEach(() => {
   Object.entries({ computed, ref, watch, TabEvents }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("isNumber", (value: unknown) => typeof value === "number");
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isNumber", isNumber);
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent }));
   vi.stubGlobal("useWatch", () => ({ isLoading: ref(false), state: ref({}) }));
   vi.stubGlobal("useDmsRoute", () => reactive({ query: {} }));
@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 it("switches tabs without announcing them when no component owns the set", async () => {
-  const { activeTab, goToTab } = useTab(TAB_COUNT, { items: [] } as TabProps);
+  const { activeTab, goToTab } = useTab(TAB_COUNT, { items: [] });
 
   goToTab(1);
   await nextTick();
@@ -38,7 +38,7 @@ it("announces a tab change for a registered component", async () => {
     items: [],
     componentId: "settings.tabs",
     pageId: "settings",
-  } as TabProps);
+  });
 
   goToTab(2);
   await nextTick();

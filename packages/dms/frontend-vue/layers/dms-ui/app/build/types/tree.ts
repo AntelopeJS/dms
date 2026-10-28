@@ -28,10 +28,6 @@ function isExcludedFromRoot(item: SiteLayoutTree): boolean {
   );
 }
 
-// A registered entry links to its own slug, narrowed by the query parameters it
-// declares so a single page (with `validation.requiredQueryParams`) can back
-// several entries. The sidebar tells those sibling entries apart itself (see
-// `isMenuItemActive`), so the link stays a plain string.
 export function buildMenuItemTarget(item: SiteLayoutTree): string | undefined {
   if (!item.layoutUrl) {
     return undefined;
@@ -98,10 +94,6 @@ function convertToTreeItems(node: SiteLayoutTree): NavigationMenuItem[][] {
   return groups;
 }
 
-// Module roots are only ever direct children of the `modules` category, so the
-// same walk serves the root menu and a module's own menu. A page left out of
-// the menu (refused, or showing the viewer none of its blocks) hands its
-// place to the pages nested under it that the viewer can open.
 function convertChildrenToItems(node: SiteLayoutTree): NavigationMenuItem[] {
   return node.childrenOrders.flatMap((nodeId): NavigationMenuItem[] => {
     const item = node.children[nodeId]!;
@@ -151,11 +143,7 @@ export function convertSiteLayoutTreeToTreeItemsForModule(
   }
 
   const groups: NavigationMenuItem[][] = [];
-  // Fallback grouping: pages that are direct non-label children of the module
-  // root are wrapped in a synthetic "Pages" group. A module's `defaultCategory`
-  // redirects its loose pages (module set, no explicit category) into a real
-  // category child rendered via `subCategoryGroups` above; pages that instead
-  // target the module root explicitly still land here.
+
   if (pageItems.length > 0) {
     groups.push([
       {

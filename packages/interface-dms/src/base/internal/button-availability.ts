@@ -18,9 +18,8 @@ export type AvailabilityFields = Pick<
 >;
 
 const isHidden = (
-  answer: CustomButtonUnavailability | CustomButtonHidden,
-): answer is CustomButtonHidden =>
-  (answer as Partial<CustomButtonHidden>).hidden === true;
+  answer: Partial<CustomButtonUnavailability & CustomButtonHidden>,
+): answer is CustomButtonHidden => answer.hidden === true;
 
 /**
  * A served button, disabled with its reason when its `availability` refuses

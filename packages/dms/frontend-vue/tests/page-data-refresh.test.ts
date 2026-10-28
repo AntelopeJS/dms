@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A page's `useApiData` reads follow the page: `refreshPageBlocks()` (an
  * action of the user) and an event on one of the page's realtime topics read
@@ -9,7 +9,11 @@
  */
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import type {
+  RealtimeEvent,
+  RealtimeSnapshotEvent,
+  RealtimeTopicHandler,
+} from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   refreshLivePageBlocks,
@@ -18,11 +22,11 @@ import {
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 
 const requests: string[] = [];
-// Holds the answers back while set.
+
 let held: Promise<void> | undefined;
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: async (url: string) => {
@@ -36,10 +40,9 @@ const { useApiData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"
 );
 const { usePageDataRefresh } = await import(
-  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh"
+  "../layers/dms-ui/app/entries/composables/live/usePageDataRefresh"
 );
 
-// Past the one-frame window a burst of refreshes collapses into.
 const settle = () => new Promise((resolve) => setTimeout(resolve, 40));
 
 const pageTopics = ref<string[]>([]);
@@ -49,9 +52,14 @@ function subscribe(topic: string, handler: RealtimeTopicHandler) {
   handlers.get(topic)!.add(handler);
   return () => handlers.get(topic)?.delete(handler);
 }
-function publish(topic: string, event: object): void {
-  for (const handler of handlers.get(topic) ?? [])
+function publish(
+  topic: string,
+  event: Omit<RealtimeEvent, "ts"> | RealtimeSnapshotEvent,
+): void {
+  for (const handler of handlers.get(topic) ?? []) {
+    // SAFETY: Page refresh observes the event kind, never its timestamp; these fixtures intentionally omit ts.
     handler(event as Parameters<RealtimeTopicHandler>[0]);
+  }
 }
 
 const mounted: App[] = [];
@@ -141,7 +149,6 @@ describe("the page's data refresh", () => {
     await settle();
     expect(requests).toEqual(["/api/orders"]);
 
-    // A presence snapshot rides the topic too, and changes no data.
     requests.length = 0;
     publish("table:orders", { topic: "table:orders", entries: [] });
     await settle();
@@ -197,7 +204,6 @@ describe("the page's data refresh on a page declared with live", () => {
     await refreshPageBlocks();
     expect(requests).toEqual(["/api/orders"]);
 
-    // The user's refresh read what the event announced: nothing left to read.
     requests.length = 0;
     live.resume();
     await settle();

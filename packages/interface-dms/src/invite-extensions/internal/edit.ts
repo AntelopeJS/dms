@@ -5,14 +5,17 @@ import { listInviteExtensions, logInviteExtensionFailure } from "./registry";
 import type { InviteExtensionContext, InviteExtensionPayloads } from "../types";
 import type { InviteExtensionInfo } from "./types";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(
+  value: Parameters<typeof CollectInviteExtensionEdits>[0],
+): value is ReturnType<typeof ReadInviteExtensionFields> {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This guard is the raw submission boundary and preserves the existing object-but-not-array classification.
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-// Payloads cross module boundaries as per-context views, which
-// `isDeepStrictEqual` refuses to equate with plain data holding the same
-// values: both sides are compared as plain JSON.
-function isSamePayload(a: unknown, b: unknown): boolean {
+function isSamePayload(
+  a: InviteExtensionPayloads[string],
+  b: InviteExtensionPayloads[string],
+): boolean {
   return isDeepStrictEqual(
     JSON.parse(JSON.stringify(a ?? null)),
     JSON.parse(JSON.stringify(b ?? null)),
@@ -29,8 +32,9 @@ function isSamePayload(a: unknown, b: unknown): boolean {
  */
 export function ReadInviteExtensionFields(
   payloads: InviteExtensionPayloads | null | undefined,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published form reader returns raw stored fields so edit round trips do not transform extension input.
 ): Record<string, unknown> {
-  const values: Record<string, unknown> = {};
+  const values: ReturnType<typeof ReadInviteExtensionFields> = {};
   for (const info of listInviteExtensions()) {
     const stored = payloads?.[info.key];
     if (!isRecord(stored)) continue;
@@ -38,6 +42,7 @@ export function ReadInviteExtensionFields(
       values[inviteExtensionFieldId(info.key, fieldId)] = value;
     }
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published raw-field dictionary return contract rather than narrow the stored extension values.
   return values;
 }
 
@@ -56,6 +61,7 @@ export function ReadInviteExtensionFields(
  * @internal
  */
 export function CollectInviteExtensionEdits(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published submission boundary accepts arbitrary bodies and validates each present slice with its extension schema.
   body: unknown,
 ): InviteExtensionPayloads {
   const source = isRecord(body) ? body : {};

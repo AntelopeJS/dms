@@ -1,6 +1,9 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
+import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
+import iconsPlugin from "@nuxt/ui/runtime/vue/plugins/icons.js";
+import { icons } from "@iconify-json/ph/icons.json";
 import {
   buildAccessSummary,
   buildAppearanceSummary,
@@ -10,42 +13,49 @@ import {
   type SummaryTranslate,
   tallySubjects,
   weekdayName,
-} from "../layers/dms-layout/app/build/composables/settings/profile/preferencesSummary";
-import type { NotificationSubject } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
-import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
+} from "../layers/dms-layout/app/entries/composables/settings/profile/preferencesSummary";
+import type { NotificationSubject } from "../layers/dms-layout/app/entries/composables/notification/useNotificationCatalog";
+import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { useNotifications } from "../layers/dms-layout/app/composables/notification/useNotifications";
+import { useComponentEvent } from "../layers/dms-core/app/composables/components/useComponentEvent";
+import { useColorModePreference } from "../layers/dms-layout/app/composables/general/useColorModePreference";
+import { useAccessibilityPreferences } from "../layers/dms-layout/app/composables/general/useAccessibilityPreferences";
 
 const KEY = "page.settings.profile.preferences";
 
-// A tiny en-GB catalog: enough to read the sentences the rows would show.
-const MESSAGES: Record<string, string> = {
-  access_roles: "Role: {roles} | Roles: {roles}",
-  access_no_role: "No role in this workspace",
-  access_workspace_owner: "workspace owner",
-  access_platform_owner: "platform owner, full access",
-  access_platform_owner_alone: "Platform owner, full access",
-  access_workspace_owner_alone: "Workspace owner, no role",
-  access_unavailable: "Your roles couldn't be loaded.",
-  region_summary:
-    "{language} · {zone}: dates {date}, {clock}, weeks start on {weekday}",
-  clock_h23: "24-hour time",
-  clock_h12: "12-hour time",
-  notifications_unread:
-    "No unread notifications | {count} unread notification | {count} unread notifications",
-  notifications_subjects: "{on} of {total} subjects on",
-  notifications_email_soon: "email coming soon",
-  theme_light: "Light theme",
-  theme_dark: "Dark theme",
-  theme_system_light: "System theme (light now)",
-  theme_system_dark: "System theme (dark now)",
-  density_small: "compact density",
-  density_normal: "normal density",
-  density_large: "large density",
-  accessibility_on: "{options} on",
-  a11y_reduce_motion: "reduced motion",
-  a11y_increase_contrast: "increased contrast",
-  a11y_underline_links: "underlined links",
-};
+const MESSAGES = new Map(
+  Object.entries({
+    access_roles: "Role: {roles} | Roles: {roles}",
+    access_no_role: "No role in this workspace",
+    access_workspace_owner: "workspace owner",
+    access_platform_owner: "platform owner, full access",
+    access_platform_owner_alone: "Platform owner, full access",
+    access_workspace_owner_alone: "Workspace owner, no role",
+    access_unavailable: "Your roles couldn't be loaded.",
+    region_summary:
+      "{language} · {zone}: dates {date}, {clock}, weeks start on {weekday}",
+    clock_h23: "24-hour time",
+    clock_h12: "12-hour time",
+    notifications_unread:
+      "No unread notifications | {count} unread notification | {count} unread notifications",
+    notifications_subjects: "{on} of {total} subjects on",
+    notifications_email_soon: "email coming soon",
+    theme_light: "Light theme",
+    theme_dark: "Dark theme",
+    theme_system_light: "System theme (light now)",
+    theme_system_dark: "System theme (dark now)",
+    density_small: "compact density",
+    density_normal: "normal density",
+    density_large: "large density",
+    accessibility_on: "{options} on",
+    a11y_reduce_motion: "reduced motion",
+    a11y_increase_contrast: "increased contrast",
+    a11y_underline_links: "underlined links",
+  }),
+);
 
 /** vue-i18n's plural choice: 2 forms are one|other, 3 are zero|one|other. */
 function pickPlural(forms: string[], count?: number): string {
@@ -55,7 +65,7 @@ function pickPlural(forms: string[], count?: number): string {
 }
 
 const t: SummaryTranslate = (key, params = {}, plural) => {
-  const message = MESSAGES[key.replace(`${KEY}.`, "")];
+  const message = MESSAGES.get(key.replace(`${KEY}.`, ""));
   if (message === undefined) return key;
   const form = pickPlural(message.split(" | "), plural);
   return form.replace(/\{(\w+)\}/g, (_, name: string) =>
@@ -176,7 +186,7 @@ describe("summary sentences", () => {
     ).toBe(
       "System theme (dark now) · compact density · reduced motion and increased contrast on",
     );
-    // "Automatic" motion follows the system: not an option the user turned on.
+
     expect(
       buildAppearanceSummary(t, {
         ...base,
@@ -212,141 +222,14 @@ describe("access gating", () => {
   });
 });
 
-// The section itself: its composable with every data source stubbed.
 const navPages = ref<{ fullId: string; to: string }[]>([]);
-const unreadCount = ref(0);
-const unreadTone = ref<string | undefined>(undefined);
-const bellPending = ref(true);
-const preferencesLoading = ref(true);
-const colorMode = ref<"light" | "dark" | "system">("dark");
-const prefersDark = ref(false);
 let authFetch: ReturnType<typeof vi.fn>;
-let resolveAccess: (value: unknown) => void;
-// Whether the section reads the notification preferences (its row shows).
-let readsPreferences: () => boolean = () => false;
-
-vi.mock("@vueuse/core", () => ({ usePreferredDark: () => prefersDark }));
-vi.mock("#dms-ui/app/components/icon-well/IconWell.vue", async () => {
-  const { defineComponent, h } = await import("vue");
-  return {
-    default: defineComponent({
-      props: { icon: String, tone: String },
-      setup: (props) => () =>
-        h("span", { "data-icon": props.icon, "data-tone": props.tone }),
-    }),
-  };
-});
-vi.mock("../layers/dms-layout/app/composables/page/useIsOwner", async () => {
-  const { computed } = await import("vue");
-  return { useIsOwner: () => computed(() => false) };
-});
-vi.mock(
-  "#dms-core/app/composables/user/useUserRegionalPreferences",
-  async () => {
-    const { ref } = await import("vue");
-    return {
-      useUserRegionalPreferences: () => ({
-        preferences: ref({}),
-        timeZone: ref("Europe/Brussels"),
-        timeFormat: ref("h23"),
-        weekStartsOn: ref(1),
-      }),
-    };
-  },
-);
-vi.mock("#dms-core/app/composables/translation/useUniqueLocales", async () => {
-  const { ref } = await import("vue");
-  return {
-    useUniqueLocales: () => ({
-      uniqueLocales: ref([{ code: "en-GB", name: "English" }]),
-    }),
-  };
-});
-vi.mock("#dms-core/app/utils/formatter", () => ({
-  formatDate: () => "03/10/2026",
-}));
-vi.mock(
-  "../layers/dms-layout/app/build/composables/settings/useSettingsNavigation",
-  async () => {
-    const { computed } = await import("vue");
-    return {
-      useSettingsNavigation: () => ({
-        groups: computed(() => [{ id: "account", pages: navPages.value }]),
-      }),
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/notification/useNotifications",
-  () => ({
-    useNotifications: () => ({
-      unreadCount,
-      unreadTone,
-      areCountsLoaded: {
-        get value() {
-          return !bellPending.value;
-        },
-      },
-    }),
-  }),
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog",
-  async () => {
-    const { ref } = await import("vue");
-    return {
-      useNotificationCatalog: () => ({
-        subjects: ref([
-          { id: "a", category: { id: "core" } },
-          { id: "b", category: { id: "core" }, locked: true },
-          { id: "c", category: { id: "core" } },
-        ]),
-      }),
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences",
-  async () => {
-    const { ref } = await import("vue");
-    return {
-      useNotificationPreferences: (enabled: () => boolean) => {
-        readsPreferences = enabled;
-        return {
-          isLoading: preferencesLoading,
-          loadFailed: ref(false),
-          isEnabled: (s: { id: string }) => s.id !== "c",
-        };
-      },
-    };
-  },
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/general/useColorModePreference",
-  () => ({ useColorModePreference: () => colorMode }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/general/useInterfaceScale",
-  async () => {
-    const { ref } = await import("vue");
-    return { useInterfaceScale: () => ref("normal") };
-  },
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/general/useAccessibilityPreferences",
-  async () => {
-    const { ref } = await import("vue");
-    return {
-      useAccessibilityPreferences: () => ({
-        preferences: ref({
-          reduceMotion: "auto",
-          increaseContrast: true,
-          underlineLinks: false,
-        }),
-      }),
-    };
-  },
-);
+let resolveAccess: (value: Parameters<typeof buildAccessSummary>[1]) => void;
+let resolvePreferences: (value: Record<string, boolean>) => void;
+let feed: ReturnType<typeof useNotifications>;
+let theme: "dark" | "system" = "dark";
+const readsPreferences = () =>
+  authFetch.mock.calls.some(([url]) => String(url).endsWith("/preferences"));
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -358,10 +241,18 @@ const flush = async () => {
 
 async function mountSection(): Promise<void> {
   const { default: ProfilePreferencesSummary } = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePreferencesSummary.vue"
+    "../layers/dms-layout/app/entries/components/pages/settings/profile/ProfilePreferencesSummary"
   );
   app = createApp(ProfilePreferencesSummary);
   browserRuntime(app);
+  app.use(iconsPlugin);
+  app.component("UIcon", UIcon);
+  app.runWithContext(() => {
+    useColorModePreference().value = theme;
+    useAccessibilityPreferences().increaseContrast.value = true;
+    feed = useNotifications();
+  });
+  await app.runWithContext(() => useSiteLayout().loadSiteLayout());
   app.component(
     "USkeleton",
     defineComponent({
@@ -394,6 +285,9 @@ const buttons = () =>
   [...host.querySelectorAll("a")].map((a) => a.getAttribute("href"));
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-03T12:00:00Z"));
   navPages.value = [
     { fullId: "settings.user.region", to: "/settings/user/region" },
     {
@@ -402,20 +296,55 @@ beforeEach(() => {
     },
     { fullId: "settings.user.appearance", to: "/settings/user/appearance" },
   ];
-  unreadCount.value = 0;
-  unreadTone.value = undefined;
-  bellPending.value = true;
-  preferencesLoading.value = true;
-  colorMode.value = "dark";
-  prefersDark.value = false;
-  authFetch = vi.fn(
-    () =>
-      new Promise((resolve) => {
-        resolveAccess = resolve;
-      }),
-  );
-  vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
-  stubApiData((...args: unknown[]) => authFetch(...(args as [])));
+  theme = "dark";
+  authFetch = vi.fn((url: string) => {
+    if (url === "/dms/sitelayout")
+      return Promise.resolve({
+        siteLayout: { pages: {}, categories: {} },
+        siteLayoutTree: {
+          children: {
+            settings: {
+              fullId: "settings",
+              fullSlug: "/settings",
+              displayName: "Settings",
+              children: Object.fromEntries(
+                navPages.value.map((page, index) => [
+                  index,
+                  {
+                    fullId: page.fullId,
+                    fullSlug: page.to,
+                    displayName: page.fullId,
+                    layoutUrl: "/layout",
+                    children: {},
+                  },
+                ]),
+              ),
+            },
+          },
+        },
+        isOwner: false,
+      });
+    if (url.endsWith("/categories"))
+      return Promise.resolve({
+        categories: [{ id: "core", labelKey: "Core" }],
+        subjects: [subject("a"), subject("b", { locked: true }), subject("c")],
+      });
+    return new Promise((resolve) => {
+      if (url.endsWith("/access")) resolveAccess = resolve;
+      else resolvePreferences = resolve;
+    });
+  });
+  vi.stubGlobal("useI18n", () => ({
+    t,
+    locale: ref("en-GB"),
+    locales: ref([{ code: "en-GB", name: "English" }]),
+  }));
+  vi.stubGlobal("useDmsUserSession", () => ({
+    user: ref({ timeZone: "Europe/Brussels", timeFormat: "h23", weekStart: 1 }),
+  }));
+  vi.stubGlobal("useSiteLayout", useSiteLayout);
+  vi.stubGlobal("useComponentEvent", useComponentEvent);
+  stubApiData(authFetch);
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -424,17 +353,16 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   host.remove();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
 describe("Preferences & access section", () => {
   it("holds skeletons while the data loads, never a false 0 unread, with the buttons already there", async () => {
     await mountSection();
-    // Access and notifications wait for their data; region and appearance
-    // were written at mount.
+
     expect(skeletonRows()).toBe(2);
-    // The skeleton is shaped from a sample sentence, blanked: its words'
-    // lengths stay, no sample count is ever in the page.
+
     expect(rowTexts()[2]).not.toMatch(/unread|[0-9]/);
     expect(host.textContent).toContain(
       "x xxxxxx xxxxxxxxxxxxx · x xx x xxxxxxxx xx",
@@ -446,14 +374,11 @@ describe("Preferences & access section", () => {
     ]);
     expect(readsPreferences()).toBe(true);
 
-    // The preferences answer first: still a skeleton until the bell's count.
-    preferencesLoading.value = false;
+    resolvePreferences({ "core:c": false });
     await flush();
     expect(skeletonRows()).toBe(2);
 
-    unreadCount.value = 3;
-    unreadTone.value = "error";
-    bellPending.value = false;
+    feed.applyBellCounts({ all: 3, unread: 3, unreadTone: "error" });
     resolveAccess({
       roles: ["Admin"],
       workspaceOwner: true,
@@ -464,7 +389,7 @@ describe("Preferences & access section", () => {
     expect(rowTexts()).toEqual([
       expect.stringContaining("Role: Admin · workspace owner"),
       expect.stringContaining(
-        "English · Europe / Brussels: dates 03/10/2026, 24-hour time, weeks start on Monday",
+        "English · Europe / Brussels: dates 03 October 2026, 24-hour time, weeks start on Monday",
       ),
       expect.stringContaining(
         "3 unread notifications · 2 of 3 subjects on · email coming soon",
@@ -473,32 +398,49 @@ describe("Preferences & access section", () => {
         "Dark theme · normal density · increased contrast on",
       ),
     ]);
-    // The bell takes the unread badge's tone, as the server weighs it.
     expect(
       host
-        .querySelector("[data-icon='i-ph-bell-ringing']")
-        ?.getAttribute("data-tone"),
-    ).toBe("error");
+        .querySelectorAll(":scope > div > div")[2]
+        ?.querySelector("span[aria-hidden='true']")
+        ?.classList.contains("text-error"),
+    ).toBe(true);
   });
 
-  it("colours the notifications row with the unread badge's tone, quiet without unread", async () => {
-    preferencesLoading.value = false;
-    bellPending.value = false;
-    unreadCount.value = 2;
-    unreadTone.value = "warning";
+  it("colours the bell with the unread severity and quiets it without unread", async () => {
     await mountSection();
-    const bellTone = () =>
-      host.querySelector("[data-icon^='i-ph-bell']")?.getAttribute("data-tone");
-    expect(bellTone()).toBe("warning");
-
-    unreadTone.value = "neutral";
+    resolvePreferences({});
+    feed.applyBellCounts({ all: 2, unread: 2, unreadTone: "warning" });
     await flush();
-    expect(bellTone()).toBe("muted");
+    const notificationRow = host.querySelectorAll(":scope > div > div")[2]!;
+    const well = () =>
+      notificationRow.querySelector("span[aria-hidden='true']");
+    const ringing = document.createElement("div");
+    ringing.innerHTML = `<svg>${icons["bell-ringing"].body}</svg>`;
+    const quiet = document.createElement("div");
+    quiet.innerHTML = `<svg>${icons.bell.body}</svg>`;
+    await vi.waitFor(() => {
+      expect(well()?.classList.contains("text-warning")).toBe(true);
+      expect(well()?.querySelector("svg")?.innerHTML).toBe(
+        ringing.firstElementChild?.innerHTML,
+      );
+    });
 
-    unreadCount.value = 0;
-    unreadTone.value = undefined;
+    feed.applyBellCounts({ all: 2, unread: 2, unreadTone: "neutral" });
     await flush();
-    expect(bellTone()).toBe("muted");
+    expect(well()?.classList.contains("text-muted")).toBe(true);
+    expect(well()?.querySelector("svg")?.innerHTML).toBe(
+      ringing.firstElementChild?.innerHTML,
+    );
+
+    feed.applyBellCounts({ all: 2, unread: 0 });
+    await flush();
+    expect(well()?.classList.contains("text-muted")).toBe(true);
+    await vi.waitFor(() =>
+      expect(well()?.querySelector("svg")?.innerHTML).toBe(
+        quiet.firstElementChild?.innerHTML,
+      ),
+    );
+    expect(notificationRow.textContent).toContain("No unread notifications");
   });
 
   it("hides the rows of pages the user cannot open and keeps Your access informative", async () => {
@@ -522,16 +464,22 @@ describe("Preferences & access section", () => {
   });
 
   it("says the roles could not be loaded rather than spinning forever", async () => {
-    authFetch = vi.fn(async () => {
-      throw new Error("403");
+    const normal = authFetch.getMockImplementation()!;
+    authFetch.mockImplementation((url: string) => {
+      if (url.endsWith("/access")) return Promise.reject(new Error("403"));
+      return normal(url);
     });
     await mountSection();
     expect(rowTexts()[0]).toContain("Your roles couldn't be loaded.");
   });
 
   it("resolves a system theme in the browser", async () => {
-    colorMode.value = "system";
-    prefersDark.value = true;
+    theme = "system";
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
     await mountSection();
     expect(rowTexts()[3]).toContain("System theme (dark now)");
   });

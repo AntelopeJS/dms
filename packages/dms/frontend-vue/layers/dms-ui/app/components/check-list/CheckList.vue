@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 
 export type CheckListState = "ok" | "warn" | "error" | "pending" | "info";
@@ -43,9 +43,12 @@ interface CheckListProps {
 
 interface CheckListSlots {
   /** Inside the frame, above the list (summary, strength bars…). */
-  header?: () => unknown;
+  header?: () => ReturnType<Slot>;
   /** Custom label content. */
-  label?: (props: { item: CheckListItem; state: CheckListState }) => unknown;
+  label?: (props: {
+    item: CheckListItem;
+    state: CheckListState;
+  }) => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<CheckListProps>(), {

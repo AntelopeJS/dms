@@ -45,12 +45,14 @@ function refuse(): never {
   throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_HANDOFF_ERROR);
 }
 
-function readClaims(token: string, secret: string): SessionHandoffPayload {
+function readClaims(token: string, secret: string) {
   try {
     const payload = verify(token, secret, { algorithms: ["HS256"] });
+    // oxfmt-ignore
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT verification returns either text or an open claims object; the existing rejection distinguishes those wire formats.
     return typeof payload === "string"
       ? refuse()
-      : (payload as SessionHandoffPayload);
+      : payload;
   } catch {
     return refuse();
   }
@@ -64,14 +66,18 @@ function readClaims(token: string, secret: string): SessionHandoffPayload {
 export async function validateSessionHandoffToken(
   token: string,
 ): Promise<SessionHandoffClaims> {
+  // SAFETY: Only optional claims are read before their existing string checks; decoding does not authenticate or guarantee any claim.
   const unverified = decode(token) as SessionHandoffPayload | null;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The unverified JWT id can have any JSON type; its existing string check gates the user query.
   if (typeof unverified?.id !== "string") refuse();
   const user = await GetModel(UserModel).get(unverified.id);
   if (!user) refuse();
   const claims = readClaims(token, generateSecret(user.authKey));
   if (
     claims.purpose !== SESSION_HANDOFF_PURPOSE ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT claims remain untyped after signature verification; this check narrows the tenant id without changing accepted tokens.
     typeof claims.tenantId !== "string" ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT signature verification does not establish the session claim's primitive type.
     typeof claims.sessionId !== "string"
   ) {
     refuse();

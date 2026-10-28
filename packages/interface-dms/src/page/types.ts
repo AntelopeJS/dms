@@ -49,8 +49,10 @@ export interface PageSetupContext {
   on(
     component: string,
     event: string,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The public event bus carries contributor-defined event data; narrowing it would break handlers for arbitrary event payloads.
     handler: (data: unknown) => void,
   ): () => void;
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The public event bus forwards arbitrary contributor payloads without imposing a shared event schema.
   emit(component: string, event: string, data?: unknown): void;
 }
 
@@ -379,7 +381,9 @@ export interface PageInfo extends CategoryInfo {
  */
 export interface DynamicMenuItem {
   /**
-   * Unique within the provider's category; becomes the entry's `fullId` suffix.
+   * Unique among siblings; appended to the parent's `fullId` with a dot.
+   * Top-level entries use the provider category as their parent.
+   * Duplicate sibling ids are skipped with a warning; the first admitted entry wins.
    * Dots separate the levels of a `fullId`, so an id may not contain one — an
    * entry that does is skipped with a warning.
    */
@@ -403,6 +407,10 @@ export interface DynamicMenuItem {
   icon?: string;
   order?: number;
   variant?: MenuItemVariant;
+  /**
+   * Status dot, trailing on leaves and on the leading icon for parents.
+   * An entry with children and a status should declare an icon.
+   */
   status?: MenuItemStatus;
   /** Short count or label rendered at the end of the entry (`3`, `new`). */
   badge?: string;
@@ -419,6 +427,13 @@ export interface DynamicMenuItem {
    * `<recoveryPageFullId>.settle`.
    */
   permissionId?: string;
+  /**
+   * Nested menu entries, each admitted on its own target access and permission.
+   * An unadmitted parent drops its subtree. Omitted and empty arrays mean a leaf.
+   * The maximum depth is 3, counting provider entries as level 1.
+   * Deeper entries are dropped with a warning.
+   */
+  children?: readonly DynamicMenuItem[];
 }
 
 /**

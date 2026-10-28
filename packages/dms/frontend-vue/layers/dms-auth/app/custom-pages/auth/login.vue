@@ -2,9 +2,9 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
-import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/entries/components/form/PasswordInput";
 import {
   type AuthFormHandle,
   useAuthFormError,
@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
+import { isObject } from "#dms-core/app/utils/type-check";
 
 const route = useDmsRoute();
 const homepage = useHomepage();
@@ -44,18 +45,14 @@ useLiveFormErrors(form, state);
 function isTwoFactorRequired(
   response: unknown,
 ): response is TwoFactorRequiredResponse {
-  return (
-    !!response && typeof response === "object" && "requires_2fa" in response
-  );
+  return !!response && isObject(response) && "requires_2fa" in response;
 }
 
 function isTenantAssignmentRequired(
   response: unknown,
 ): response is TenantAssignmentRequiredResponse {
   return (
-    !!response &&
-    typeof response === "object" &&
-    "requires_tenant_assignment" in response
+    !!response && isObject(response) && "requires_tenant_assignment" in response
   );
 }
 
@@ -81,7 +78,7 @@ async function handleTenantAssignmentRedirect(
 }
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-  const redirectUrl = route.query.redirect as string | undefined;
+  const redirectUrl = route.query.redirect;
 
   try {
     isLoading.value = true;
@@ -108,7 +105,6 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       usePostLoginRedirect(redirectUrl || homepage),
     );
   } catch (error: unknown) {
-    // Wrong credentials name no field: they stay above the form.
     await showError(error, "page.auth.error_title", {
       fields: ["email", "password"],
       form,

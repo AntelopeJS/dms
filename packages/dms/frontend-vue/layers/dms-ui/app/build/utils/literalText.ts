@@ -1,9 +1,14 @@
+import {
+  isString,
+  isNumber,
+  isBoolean,
+} from "../../../../dms-core/app/utils/type-check";
+import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
+
 const PLACEHOLDER = /\{(\w+)\}/g;
 
 const isFillable = (value: unknown): value is string | number | boolean =>
-  typeof value === "string" ||
-  typeof value === "number" ||
-  typeof value === "boolean";
+  isString(value) || isNumber(value) || isBoolean(value);
 
 /**
  * A literal (non-`$`) text with its `{name}` placeholders filled from
@@ -12,7 +17,7 @@ const isFillable = (value: unknown): value is string | number | boolean =>
  */
 export function interpolateLiteral(
   text: string,
-  params: Record<string, unknown>,
+  params: Parameters<I18nTranslate>[1],
 ): string {
   return text.replace(PLACEHOLDER, (placeholder, name: string) => {
     const value = Object.hasOwn(params, name) ? params[name] : undefined;

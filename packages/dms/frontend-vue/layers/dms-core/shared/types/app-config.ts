@@ -2,7 +2,7 @@
  * Application configuration shared by DMS frontend modules.
  */
 export interface DmsUiConfig {
-  [key: string]: unknown;
+  [key: string]: import("#dms/frontend-module").DmsAppConfig[string];
   icons: Record<string, string>;
 }
 
@@ -83,7 +83,7 @@ export interface DmsBrandingConfig {
 }
 
 export interface DmsAppConfig {
-  [key: string]: unknown;
+  [key: string]: import("#dms/frontend-module").DmsAppConfig[string];
   ui: DmsUiConfig;
   branding: DmsBrandingConfig;
 }

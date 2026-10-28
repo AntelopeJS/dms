@@ -32,8 +32,6 @@ const props = withDefaults(defineProps<GridProps>(), {
  */
 const rowColumnCounts = ref(new Map<symbol, number>());
 
-// The widest row the layout declares for this grid, known from the first
-// render (only when the declaration is this grid's own, not an ancestor's).
 const declared = inject<GridDeclaredColumns | null>(
   GRID_DECLARED_COLUMNS,
   null,
@@ -68,8 +66,6 @@ const columnsTemplate = computed(() =>
   gridColumnsTemplate(maxColumns.value, props.gap, props.minColumnWidth),
 );
 
-// The grid is a size container: its responsive rules (spacers, clamped spans)
-// are container queries, identical in the server render and the browser.
 const scope = gridScopeId(props.componentId || useId());
 const responsiveStyles = computed(() =>
   gridResponsiveStyles(
