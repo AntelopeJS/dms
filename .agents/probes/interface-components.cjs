@@ -1,5 +1,6 @@
 const { join } = require("node:path");
 const { createRequire } = require("node:module");
+const { execFileSync } = require("node:child_process");
 
 const root = process.argv[2];
 const requireInterface = createRequire(
@@ -118,6 +119,54 @@ async function observeUploadConstraintReads() {
     { mode: "proxy", trace: [["constraints", true], ["maxSize", true], ["maxSize", true], ["allowedMimetypes", true], ["allowedMimetypes", true]], constraints: { maxSize: 29, allowedMimetypes: ["image/png"] } },
   ]);
   return observed;
+}
+
+function observeDefaultTypesFresh() {
+  const script = `
+    const { createRequire } = require("node:module");
+    const { join } = require("node:path");
+    const load = createRequire(join(process.argv[1], "packages/interface-dms/package.json"));
+    const core = load("./dist/base/data-types/core.js");
+    const registrations = [];
+    const register = core.RegisterDataType;
+    core.RegisterDataType = (id) => {
+      registrations.push(id);
+      return register(id);
+    };
+    load(process.argv[2]);
+    const defaults = load("./dist/base/data-types/default-types.js");
+    const descriptors = (value) => Reflect.ownKeys(value).map((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      return [String(key), descriptor.enumerable, descriptor.configurable,
+        descriptor.writable, Boolean(descriptor.get), Boolean(descriptor.set)];
+    });
+    const observations = Object.entries(defaults.DefaultDataTypes).map(([name, Type]) => {
+      if (typeof Type !== "function") return [name, "not a constructor"];
+      const options = { marker: 73, min: 2, max: 11, minLength: 2, maxLength: 7,
+        items: [{ label: "First", value: "first" }, { label: "Other", value: "other" }],
+        dataApiController: class Related {}, keyMapping: { label: "title", value: "_id", parent: "parent" } };
+      try {
+        const instance = new Type(options);
+        let validation;
+        try {
+          const schema = instance.getValidation();
+          validation = [undefined, null, "x", "first", 1, 5, true, [], {}].map((value) => schema.safeParse(value).success);
+        } catch (error) { validation = { error: error.message }; }
+        const registered = core.getDataTypeId(instance);
+        return [name, Type.name, registered, Object.keys(instance),
+          instance.options === options, Object.getPrototypeOf(instance).constructor === Type,
+          registered ? core.CreateDataType(registered, options) instanceof Type : false, validation];
+      } catch (error) { return [name, { error: error.message }]; }
+    });
+    process.stdout.write(JSON.stringify({ registrations, observations,
+      exports: descriptors(defaults), namespace: descriptors(defaults.DefaultDataTypes),
+      select: defaults.SELECT_DISPLAYS, boolean: defaults.BOOLEAN_DISPLAYS }));
+  `;
+  return [
+    "./dist/base/data-types/default-types.js",
+    "./dist/base/data-types/index.js",
+    "./dist/base/table-view.js",
+  ].map((entry) => JSON.parse(execFileSync(process.execPath, ["-e", script, root, entry], { encoding: "utf8" })));
 }
 
 function observeDataTypesAndHints() {
@@ -1162,6 +1211,7 @@ async function observe() {
     permission,
     typeBoundaries: await observeTypeBoundaries(),
     uploadConstraintReads: await observeUploadConstraintReads(),
+    defaultTypesFresh: observeDefaultTypesFresh(),
     dataTypesAndHints: observeDataTypesAndHints(),
     routes: await observeRoutes(),
     factoryHelpers: observeFactoryHelpers(),

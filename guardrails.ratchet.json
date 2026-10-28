@@ -1,10 +1,8 @@
 {
   "rules": {
-    "antelopejs/no-comments": 74,
-    "anti-slop/require-safety-comment-for-type-assertion": 2
+    "antelopejs/no-comments": 74
   },
   "oversizeFiles": {
-    "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
-    "packages/interface-dms/src/base/data-types/default-types.ts": 46322
+    "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056
   }
 }
