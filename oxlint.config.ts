@@ -119,7 +119,6 @@ export default defineConfig({
       files: ["packages/dms/playground/**"],
       rules: {
         "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off",
       },
     },
     {

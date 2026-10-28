@@ -14,9 +14,6 @@
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
-    "packages/dms/playground/src/feature-index/blocks.ts": 33307,
-    "packages/dms/playground/src/feature-index/table-view.ts": 22573,
-    "packages/dms/playground/src/table-view/defaultValues.ts": 41666,
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
     "packages/interface-dms/src/base/data-types/default-types.ts": 49790,
     "packages/interface-dms/src/base/form-schema.ts": 25278,
