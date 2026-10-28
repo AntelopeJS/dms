@@ -12,6 +12,7 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { rowRuleProblem } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import type { FooterSummaryValues } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
 import type {
   TableViewFooterSummary,
@@ -63,7 +64,7 @@ type FieldComparison = (
   operand: FieldEqualsRule["equals"],
 ) => Condition;
 
-// SAFETY: This unchecked boundary treats in/notIn operands as arrays. First-present-key dispatch does not validate their shape; malformed mixed-key inputs can throw TypeError.
+// SAFETY: compileRowRule rejects a rule whose dispatched in/notIn operand is no array (rowRuleProblem) before this table runs, so the operand is an array.
 const FIELD_COMPARISONS = {
   equals: (value, operand) => value.eq(operand),
   notEquals: (value, operand) => value.ne(operand),
@@ -77,32 +78,24 @@ type RuleCompiler = (
   read: FieldReader,
 ) => Condition;
 
-// SAFETY: Logical operands are unchecked. These assertions assume and/or arrays and a single not rule; dispatch does not establish those shapes, and malformed operands can throw TypeError.
+// SAFETY: compileRowRule rejects a rule whose dispatched logical operand is no array of rules (and/or) or no rule (not) (rowRuleProblem) before this table runs.
 const LOGICAL_COMPILERS = {
   and: (rules, read) =>
     (rules as RowActionRule[])
-      .map((rule) => compileRowRule(rule, read))
+      .map((rule) => compileChecked(rule, read))
       .reduce(both, true),
   or: (rules, read) =>
     (rules as RowActionRule[])
-      .map((rule) => compileRowRule(rule, read))
+      .map((rule) => compileChecked(rule, read))
       .reduce(either, false),
-  not: (rule, read) => negate(compileRowRule(rule as RowActionRule, read)),
+  not: (rule, read) => negate(compileChecked(rule as RowActionRule, read)),
 } satisfies Record<string, RuleCompiler>;
 
-/**
- * A row rule as a database condition: the same grammar the row actions
- * evaluate in the browser (`equals`, `notEquals`, `in`, `notIn`, `and`, `or`,
- * `not`), on the row's stored fields.
- */
-export function compileRowRule(
-  rule: RowActionRule,
-  read: FieldReader,
-): Condition {
+function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
   const record: RuleRow = rule;
   const logical = Object.keys(LOGICAL_COMPILERS).find((key) => key in record);
   if (logical) {
-    // SAFETY: Object.keys identifies a handler-table key, but its operand remains unchecked. The rule/array assertion trusts caller input; malformed mixed-key operands can throw TypeError.
+    // SAFETY: Object.keys identifies a handler-table key and rowRuleProblem has checked its operand shape, array of rules for and/or and a rule for not.
     return LOGICAL_COMPILERS[logical as keyof typeof LOGICAL_COMPILERS](
       record[logical] as RowActionRule | RowActionRule[],
       read,
@@ -115,6 +108,21 @@ export function compileRowRule(
     read(String(record.field)),
     record[operator],
   );
+}
+
+/**
+ * A row rule as a database condition: the same grammar the row actions
+ * evaluate in the browser (`equals`, `notEquals`, `in`, `notIn`, `and`, `or`,
+ * `not`), on the row's stored fields. A rule whose operator operand has the
+ * wrong shape, nested ones included, throws an `Error` naming it.
+ */
+export function compileRowRule(
+  rule: RowActionRule,
+  read: FieldReader,
+): Condition {
+  const problem = rowRuleProblem(rule);
+  if (problem) throw new Error(`Malformed row rule: ${problem}`);
+  return compileChecked(rule, read);
 }
 
 type SummaryReader = (

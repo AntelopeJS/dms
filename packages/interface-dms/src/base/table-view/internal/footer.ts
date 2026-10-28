@@ -8,6 +8,7 @@ import {
 } from "../../types/row-action-operators";
 import type { RowActionRule } from "../../types/row-action";
 import { TableViewMeta } from "../meta";
+import { rowRuleProblem } from "./row-rule-shape";
 import { servesRoute } from "./tabs";
 import type {
   TableViewEmptyStates,
@@ -47,6 +48,8 @@ function assertSummary<T extends Record<string, unknown>>(
   if (summary.op === "sum" && !summary.field) {
     throw new Error(`${where} sums no field: give it a field`);
   }
+  const problem = summary.where && rowRuleProblem(summary.where, "where");
+  if (problem) throw new Error(`${where} has a malformed rule: ${problem}`);
   const fields = [
     ...(summary.field ? [summary.field] : []),
     ...(summary.where ? ruleFields(summary.where) : []),
