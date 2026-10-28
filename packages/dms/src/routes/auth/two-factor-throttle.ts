@@ -2,12 +2,9 @@ import { createHash } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import {
-  SignInAttemptsModel,
-  type TwoFactorTries,
-} from "../../db/models/signInAttempts.model";
-import { notifyTwoFactorLockout } from "../../utils/account-notifications";
-import { ATTEMPT_RETENTION_MS } from "../../utils/sign-in-monitor";
+import { SignInAttemptsModel, type TwoFactorTries } from "../../db/models";
+import { notifyTwoFactorLockout } from "../../utils";
+import { ATTEMPT_RETENTION_MS } from "../../hooks";
 
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_TOO_MANY_REQUESTS = 429;

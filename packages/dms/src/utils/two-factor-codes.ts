@@ -5,7 +5,7 @@ import { generateCode as generateTotpCode } from "2fa";
 import {
   TWO_FACTOR_EMAIL_CODE_LIFETIME_MS,
   TWO_FACTOR_RATE_LIMIT_MS,
-} from "../routes/auth/constants";
+} from "./auth-constants";
 import { generateCode, hashCode, hashesMatch } from "./one-time-code";
 
 export type TwoFactorMethod = "totp" | "email";

@@ -1,4 +1,4 @@
-import type { SignInAttemptKind } from "../db/tables/signInAttempts.table";
+import type { SignInAttemptKind } from "../types";
 
 export const FAILED_SIGN_IN_THRESHOLD = 5;
 export const FAILED_SIGN_IN_WINDOW_MS = 15 * 60 * 1000;

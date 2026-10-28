@@ -6,7 +6,7 @@ import {
   loadRoleDeleteConfirm,
   prepareRoleDeletion,
   REASSIGN_FIELD,
-} from "../../../../pages/settings/users/role-editor-store";
+} from "../../../../pages/permissions";
 
 const TENANT = "role-delete-confirm-tenant";
 const HTTP_CONFLICT = 409;

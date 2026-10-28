@@ -4,7 +4,7 @@ import {
   FAILED_SIGN_IN_THRESHOLD,
   FAILED_SIGN_IN_WINDOW_MS,
   type SignInAttemptRecord,
-} from "../../../utils/failed-sign-ins";
+} from "../../../utils";
 
 const NOW = new Date("2026-10-02T12:00:00.000Z");
 const MINUTE_MS = 60 * 1000;

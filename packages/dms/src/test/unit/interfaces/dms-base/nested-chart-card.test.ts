@@ -16,7 +16,7 @@ import { ChartArea } from "@antelopejs/interface-dms/base/chart";
 import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
 
-import { getPageTopics } from "../../../../realtime/registry";
+import { getPageTopics } from "../../../../realtime";
 
 const PAGE_ID = "ncc-dashboard";
 const PAGE_FULL_ID = `pages.${PAGE_ID}`;

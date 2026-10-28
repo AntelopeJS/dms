@@ -1,7 +1,9 @@
 import { expect } from "chai";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
-import { InvitesSettingsController } from "../../../../pages/settings/users/invites";
-import { membersTable } from "../../../../pages/settings/users/members";
+import {
+  InvitesSettingsController,
+  membersTable,
+} from "../../../../pages/members";
 
 const MEMBER_LISTS_ROWS = 10;
 

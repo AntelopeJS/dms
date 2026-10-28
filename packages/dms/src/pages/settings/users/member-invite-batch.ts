@@ -13,7 +13,7 @@ import {
   type MemberInvitePayload,
   resolveInviteeNameParts,
   uniqueInviteEmails,
-} from "../../../validation/member-invite.schema";
+} from "../../../validation";
 
 /** What happened to one address of an invite request. */
 export type InviteOutcome = "invited" | "added" | "already_member" | "failed";

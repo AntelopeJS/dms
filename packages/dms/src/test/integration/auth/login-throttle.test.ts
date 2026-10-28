@@ -1,7 +1,7 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { getAuthConfig } from "../../../config";
-import { SignInAttemptsModel } from "../../../db/models/signInAttempts.model";
+import { SignInAttemptsModel } from "../../../db/models";
 import { registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";

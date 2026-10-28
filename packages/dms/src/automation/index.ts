@@ -40,7 +40,7 @@ async function loadAutomationInterface(): Promise<
   AutomationInterface | undefined
 > {
   try {
-    return await import(AUTOMATION_INTERFACE_PACKAGE);
+    return await import("@antelopejs/interface-dms-automation");
   } catch (error) {
     if (isMissingAutomationInterface(error)) return undefined;
     throw error;
@@ -116,3 +116,7 @@ function cleanupAutomationNodes(
   }
   return errors;
 }
+export * from "./actions";
+export * from "./registration-lifecycle";
+export * from "./send-notification";
+export * from "./triggers";

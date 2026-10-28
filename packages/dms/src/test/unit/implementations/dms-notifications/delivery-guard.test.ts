@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { hasNotificationTitle } from "../../../../implementations/dms-notifications/delivery-guard";
+import { hasNotificationTitle } from "../../../../implementations/dms-notifications/services";
 
 describe("[unit] implementations/dms-notifications/delivery-guard", () => {
   it("delivers a notification with a title", () => {

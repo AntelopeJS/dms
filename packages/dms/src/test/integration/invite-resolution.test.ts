@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
-import { listenersFor, type MemberAddedEvent } from "../../automation/events";
-import { runCleanupUserInvites } from "../../crons/cleanup-user-invites";
+import { listenersFor, type MemberAddedEvent } from "../../automation";
+import { runCleanupUserInvites } from "../../crons";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import {
@@ -26,7 +26,7 @@ import {
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { Form } from "@antelopejs/interface-dms/base/form";
-import { consumeInvite } from "../../routes/auth/invite";
+import { consumeInvite } from "../../routes/authentication";
 import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-resolution-tenant";

@@ -6,7 +6,7 @@ import {
   isActivityWriteDue,
   recordUserActivity,
   USER_ACTIVITY_WRITE_INTERVAL_MS,
-} from "../../../utils/user-activity";
+} from "../../../utils";
 
 const NOW = new Date("2026-09-30T12:00:00.000Z");
 const PASSWORD = "activity-test-password";

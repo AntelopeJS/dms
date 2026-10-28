@@ -1,9 +1,6 @@
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
-import {
-  signUploadToken,
-  type UploadTokenClaims,
-} from "../../utils/upload-token";
+import { signUploadToken, type UploadTokenClaims } from "../../utils";
 
 const PRESIGN_URL = "/api/files/presign";
 const HTTP_OK = 200;

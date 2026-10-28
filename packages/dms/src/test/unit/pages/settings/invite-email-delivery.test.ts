@@ -5,17 +5,15 @@ import { expect } from "chai";
 import { sendAdminInviteEmail } from "@antelopejs/interface-dms/auth";
 import { TenantModel, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
-import { ACTIONS, INVITE_USER_ACTION_ID } from "../../../../automation/actions";
-import { inviteMembers } from "../../../../pages/settings/users/member-invite-batch";
+import { ACTIONS, INVITE_USER_ACTION_ID } from "../../../../automation";
 import {
+  inviteMembers,
   INVITE_RESEND_EMAIL_FAILED_WARNING,
   resendPendingInvite,
-} from "../../../../pages/settings/users/invite-resend";
-import {
   INVITE_EMAIL_FAILED_WARNING,
   INVITES_PAGE_PATH,
   memberInviteResponse,
-} from "../../../../pages/settings/users/members";
+} from "../../../../pages/members";
 import { resetDatabase } from "../../../helpers/db";
 
 const WORKSPACE_ID = "invite-email-delivery-workspace";

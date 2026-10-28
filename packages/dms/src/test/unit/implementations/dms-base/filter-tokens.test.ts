@@ -3,7 +3,7 @@ import { expect } from "chai";
 import {
   resolveFilterTokens,
   resolveFilterValueTokens,
-} from "../../../../implementations/dms-base/filter-tokens";
+} from "../../../../implementations/dms-base/services";
 
 const NOW = new Date("2026-10-05T09:30:00.000Z");
 const CONTEXT = { userId: "user-42", now: NOW };

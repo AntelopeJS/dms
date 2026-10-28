@@ -5,7 +5,7 @@ import {
   applyRoleWarnings,
   declarePermissionWarning,
   resolvePermissionWarnings,
-} from "../../../../pages/settings/users/permission-warnings";
+} from "../../../../pages/permissions";
 
 const WARNING = "$test.warning.owner_level";
 

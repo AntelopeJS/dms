@@ -7,7 +7,6 @@ import { Form } from "@antelopejs/interface-dms/base/form";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Hook, RegisterHook } from "@antelopejs/interface-dms/hooks";
 import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
-import "./package.json";
 
 const disposers: Array<() => void> = [];
 

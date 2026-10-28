@@ -1,5 +1,5 @@
 import { assert } from "@antelopejs/interface-api-util";
-import { AttemptLimiter } from "../../utils/attempt-limiter";
+import { AttemptLimiter } from "./attempt-limiter";
 
 const HTTP_TOO_MANY_REQUESTS = 429;
 const TOO_MANY_ATTEMPTS_MESSAGE = "error.too_many_sign_in_attempts";

@@ -1,7 +1,7 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { getAuthConfig, type SignInCountryConfig } from "../../../config";
-import { resetCountryLookup } from "../../../utils/sign-in-country";
+import { resetCountryLookup } from "../../../utils";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";

@@ -6,8 +6,7 @@ import type {
   ActionType,
   ExecutionCtx,
 } from "@antelopejs/interface-dms-automation";
-import { ACTIONS } from "../../automation/actions";
-import { SEND_NOTIFICATION_ACTION_ID } from "../../automation/send-notification";
+import { ACTIONS, SEND_NOTIFICATION_ACTION_ID } from "../../automation";
 import { UserNotificationsModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
 

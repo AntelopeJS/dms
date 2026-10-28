@@ -1,7 +1,7 @@
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../../config";
-import { authSchema } from "../../validation/auth.schema";
+import { authSchema } from "../../validation";
 
 export async function verifyEmail(
   userModel: UserModel,

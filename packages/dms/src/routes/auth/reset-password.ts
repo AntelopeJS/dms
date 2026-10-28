@@ -3,9 +3,9 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { revokeAllSessions } from "../../pages/settings/users/account-credentials";
-import { notifyPasswordReset } from "../../utils/account-notifications";
-import { authSchema } from "../../validation/auth.schema";
+import { revokeAllSessions } from "../../pages/account";
+import { notifyPasswordReset } from "../../utils";
+import { authSchema } from "../../validation";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { assertResetCode } from "./reset-code";
 

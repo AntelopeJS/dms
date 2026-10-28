@@ -12,26 +12,29 @@ import type {
   ReadScope,
   RoleSendOptions,
 } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
 import {
+  UserNotificationPreferencesModel,
   type UserNotificationCounts,
   UserNotificationsModel,
   buildNewUserNotification,
-} from "../../db/models/userNotifications.model";
-import type { UserNotification } from "../../db/tables/userNotifications.table";
-import { getRealtimeBroker } from "../../realtime/current";
-import { buildUserNotificationTopic } from "../../realtime/registry";
-import type { RealtimeEvent } from "../../realtime/broker";
-import { runInBatches } from "../../utils/run-in-batches";
+} from "../../db/models";
+import type { UserNotification } from "../../db/tables";
+import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
+import type { RealtimeEvent } from "../../realtime";
+import { runInBatches } from "../../utils/run-in-batches/index";
+import {
+  categoryRegistry,
+  isSubjectLocked,
+  subjectRegistry,
+} from "../../utils/notification-registry/index";
 import {
   DUPLICATE_WINDOW_MS,
   duplicateIds,
   isWithinDuplicateWindow,
 } from "./delivery-dedupe";
 import { hasNotificationTitle } from "./delivery-guard";
-import { categoryRegistry, isSubjectLocked, subjectRegistry } from "./registry";
 
-export * from "./registry";
+export * from "../../utils/notification-registry/index";
 
 const NOTIFICATION_NEW_EVENT = "notification:new";
 const NOTIFICATION_READ_EVENT = "notification:read";

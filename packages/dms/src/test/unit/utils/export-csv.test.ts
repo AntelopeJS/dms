@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
-import { getExporter } from "../../../utils/export-jobs";
+import { getExporter } from "../../../utils";
 import { readText } from "../../helpers/files";
 
 const BYTE_ORDER_MARK = "\uFEFF";

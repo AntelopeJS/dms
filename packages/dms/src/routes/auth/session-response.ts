@@ -7,8 +7,8 @@ import {
   sanitizeUser,
 } from "@antelopejs/interface-dms/auth";
 import type { SessionModel, User } from "@antelopejs/interface-dms/auth/db";
-import type { ClientOrigin } from "../../utils/sign-in-country";
-import { recordSignIn } from "../../utils/sign-in-monitor";
+import type { ClientOrigin } from "../../utils";
+import { recordSignIn } from "../../hooks";
 import { pickInitialTenantId } from "./pick-tenant";
 import type {
   AuthResponse,

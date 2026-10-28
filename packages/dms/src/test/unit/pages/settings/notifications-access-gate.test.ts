@@ -7,7 +7,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { generateAccessToken } from "../../../../implementations/dms-auth";
-import { NotificationsApiController } from "../../../../pages/settings/users/notifications";
+import { NotificationsApiController } from "../../../../pages/account";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   RegisterTenantAccessGate,

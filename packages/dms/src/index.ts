@@ -10,6 +10,7 @@ import "./db";
 
 // oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
+import "./implementations/dms-auth/email-templates";
 import "./pages";
 import "./routes";
 import {
@@ -35,24 +36,21 @@ import {
   CLEANUP_USER_INVITES_CRON_NAME,
   registerDmsCrons,
   runCleanupUserInvites,
-} from "./crons";
-import {
   runSweepStaleExports,
   SWEEP_STALE_EXPORTS_CRON_NAME,
-} from "./crons/sweep-stale-exports";
+} from "./crons";
+import { startModuleUpdateWatcher, stopModuleUpdateWatcher } from "./dev";
 import {
-  startModuleUpdateWatcher,
-  stopModuleUpdateWatcher,
-} from "./dev/module-update-notifications";
-import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
-import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
-import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
+  registerInviteExtensionCleanup,
+  registerTenantDeletedCleanup,
+  registerWorkspaceNotifications,
+} from "./hooks";
 import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
-} from "./implementations/dms/dev-reload";
-import { publishDevBootstrapCredential } from "./implementations/dms/dev-handshake";
-import { initFrontendBootstrapSecret } from "./implementations/dms/frontend-bootstrap";
+  initFrontendBootstrapSecret,
+} from "./store/frontend";
+import { publishDevBootstrapCredential } from "./implementations/dms/services";
 import {
   cancelMissingCategoryCheck,
   cancelPendingMenuNotifications,
@@ -66,15 +64,15 @@ import {
   cancelPendingExtensionReport,
   startPendingExtensionReport,
   stopPendingExtensionReport,
-} from "./page-extensions/pending-report";
+} from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
+import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
-} from "./startup-config";
-import { allowClientOrigin } from "./client-origin-cors";
+} from "./config/startup-config";
+import { allowClientOrigin } from "./config/client-origin-cors";
 import {
   ensureDefaultTenantExists,
   provisionDefaultTenant,

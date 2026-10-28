@@ -10,7 +10,7 @@ import {
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
-import { buildTenantExportArchive } from "../../../utils/tenant-export-archive";
+import { buildTenantExportArchive } from "../../../utils";
 import { readText } from "../../helpers/files";
 
 const TENANT_ID = "tenant-1";

@@ -6,9 +6,9 @@ import {
   InMemoryBroker,
   setRealtimeBroker,
   stopRealtime,
+  getSessionInfo,
 } from "../../../realtime";
-import { getSessionInfo } from "../../../realtime/sessions";
-import { RealtimeController } from "../../../routes/realtime";
+import { RealtimeController } from "../../../routes";
 
 const USER = { _id: "stop-closes-streams-user", email: "u@example.com" };
 

@@ -19,24 +19,27 @@ import {
 import { instanceId } from "./instance";
 import { RedisBroker } from "./redis-broker";
 import { closeAllSessions } from "./sessions";
+import { RealtimeDriver, RealtimeConfig } from "../types";
+export { RealtimeDriver, RealtimeConfig } from "../types";
 
 export * from "./broker";
 
 export { getPresenceTracker, getRealtimeBroker } from "./current";
+
 export * from "./instance";
+
 export * from "./presence";
+
 export * from "./redis-broker";
+
 export * from "./registry";
+
 export * from "./sse";
 
-export type RealtimeDriver = "redis" | "memory" | "auto";
 type ResolvedDriver = "redis" | "memory";
 
-export interface RealtimeConfig {
-  driver?: RealtimeDriver;
-}
-
 const DEFAULT_DRIVER: RealtimeDriver = "auto";
+
 const REDIS_INTERFACE_ID = "@antelopejs/interface-redis";
 
 const driverFactories: Record<ResolvedDriver, () => RealtimeBroker> = {
@@ -67,6 +70,7 @@ interface TrackedSubscription {
 }
 
 const trackedSubscriptions = new Map<number, TrackedSubscription>();
+
 let nextSubscriptionId = 0;
 
 /**
@@ -167,3 +171,5 @@ export async function stopRealtime(): Promise<void> {
   }
   await getRealtimeBroker().close?.();
 }
+export * from "./current";
+export * from "./sessions";

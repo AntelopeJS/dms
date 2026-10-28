@@ -4,7 +4,7 @@ import {
   resolveClientIp,
   resolveRequestClientIp,
   trustedProxyCount,
-} from "../../routes/auth/client-ip";
+} from "../../utils";
 
 const SOCKET_ADDRESS = "10.0.0.9";
 const CLIENT_ADDRESS = "109.132.199.8";

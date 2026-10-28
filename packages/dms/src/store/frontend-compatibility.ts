@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { coerce, maxSatisfying, satisfies, validRange } from "semver";
-import { GetFrontendModules } from "../implementations/dms/frontend-modules";
-import { getFrontendAcknowledgement } from "../implementations/dms/frontend-ready";
+import { GetFrontendModules } from "./internal/frontend/frontend-modules";
+import { getFrontendAcknowledgement } from "./internal/frontend/frontend-ready";
 import { createLookupCache } from "./cache";
 import { npmView } from "./registry";
 import { readPublishedFiles } from "./tarball";

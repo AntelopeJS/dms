@@ -2,9 +2,9 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { withMemberRolePicker } from "../../../../pages/settings/users/member-roles-field";
+import { withMemberRolePicker } from "../../../../pages/members";
 import type { FormFieldSerialized } from "@antelopejs/interface-dms/base/form";
-import type { EditRolePickerOptions } from "../../../../pages/settings/users/member-roles-field";
+import type { EditRolePickerOptions } from "../../../../pages/members";
 
 const plainField = (id: string) => ({
   id,

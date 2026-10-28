@@ -1,4 +1,5 @@
-import Module from "node:module";
+import Module, { findPackageJSON } from "node:module";
+import { dirname, join } from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import type * as TableViewInterface from "@antelopejs/interface-dms/base/table-view";
 import type * as RealtimeInterface from "@antelopejs/interface-dms/realtime";
@@ -23,37 +24,33 @@ export interface EvaluationOrderResult {
   pageTopics: string[];
 }
 
-const TABLE_VIEW = "@antelopejs/interface-dms/base/table-view";
-const REALTIME = "@antelopejs/interface-dms/realtime";
 const LOCATION = "/api/evaluation-order";
 const PAGE_ID = "pages.evaluation-order";
 const SESSION = "evaluation-order-session";
 const ROW = "evaluation-order-row";
-const DMS_REALTIME = "../../../../realtime";
-const DMS_REALTIME_IMPLEMENTATION = "../../../../implementations/dms/realtime";
-const DMS_TABLE_VIEW_IMPLEMENTATION =
-  "../../../../implementations/dms-base/table-view";
-const DMS_REALTIME_MODULES = [
-  DMS_REALTIME,
-  "../../../../realtime/table-view",
-  DMS_REALTIME_IMPLEMENTATION,
-];
 
 function enterThroughTableView(): typeof TableViewInterface {
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Node's public Module declaration omits _load; this isolated child process deliberately intercepts that private loader to control evaluation order.
   const loader = Module as unknown as ModuleLoader;
   const load = loader._load;
-  const tableViewEntry = require.resolve(TABLE_VIEW);
+  const manifest = findPackageJSON(
+    "@antelopejs/interface-dms/base/table-view",
+    __filename,
+  );
+  if (!manifest) throw new Error("Cannot locate table-view package");
+  const tableViewEntry = join(dirname(manifest), "dist/base/table-view.js");
   let hasLoadedDms = false;
   loader._load = function (request, parent, isMain) {
     if (!hasLoadedDms && parent?.filename === tableViewEntry) {
       hasLoadedDms = true;
-      for (const path of DMS_REALTIME_MODULES) require(path);
+      require("../../../../realtime");
+      require("../../../../realtime/table-view/index");
+      require("../../../../implementations/dms/realtime");
     }
     return load.call(this, request, parent, isMain);
   };
   try {
-    return require(TABLE_VIEW);
+    return require("@antelopejs/interface-dms/base/table-view");
   } finally {
     loader._load = load;
   }
@@ -61,23 +58,19 @@ function enterThroughTableView(): typeof TableViewInterface {
 
 async function run(): Promise<EvaluationOrderResult> {
   const tableView = enterThroughTableView();
-  const realtimeInterface: typeof RealtimeInterface = require(REALTIME);
-  const realtime: typeof DmsRealtime = require(DMS_REALTIME);
+  const realtimeInterface: typeof RealtimeInterface = require("@antelopejs/interface-dms/realtime");
+  const realtime: typeof DmsRealtime = require("../../../../realtime");
   const rowTopic = tableView.tableViewRowTopic(LOCATION);
 
   realtimeInterface.RegisterPageTopic(PAGE_ID, rowTopic);
 
   ImplementInterface(
     realtimeInterface,
-    require(
-      DMS_REALTIME_IMPLEMENTATION,
-    ) satisfies typeof DmsRealtimeImplementation,
+    require("../../../../implementations/dms/realtime") satisfies typeof DmsRealtimeImplementation,
   );
   ImplementInterface(
     tableView,
-    require(
-      DMS_TABLE_VIEW_IMPLEMENTATION,
-    ) satisfies typeof DmsTableViewImplementation,
+    require("../../../../implementations/dms-base/table-view") satisfies typeof DmsTableViewImplementation,
   );
 
   const published: string[] = [];

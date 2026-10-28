@@ -3,7 +3,7 @@ import {
   applyInviteExtension,
   revokeInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions/internal/registry";
-import { scheduleBroadcast } from "./dev-reload";
+import { scheduleBroadcast } from "../../store/frontend";
 
 export namespace internal {
   export const RegisterInviteExtension = {

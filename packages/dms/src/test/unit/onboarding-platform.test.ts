@@ -3,8 +3,10 @@ import { expect } from "chai";
 import { getConfig } from "../../config";
 import { SystemStateModel } from "../../db";
 import type { SystemState } from "../../db/tables";
-import { PublicOnboardingController } from "../../routes/onboarding";
-import { PublicSystemStateController } from "../../routes/system-state";
+import {
+  PublicOnboardingController,
+  PublicSystemStateController,
+} from "../../routes";
 
 const FIXTURE_ROW_ID = "onboarding-platform-fixture";
 const PLATFORM_NAME = "Acme back office";

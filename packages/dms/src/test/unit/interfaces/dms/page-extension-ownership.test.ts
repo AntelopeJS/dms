@@ -17,7 +17,7 @@ import {
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
-import { clearPageTopics, getPageTopics } from "../../../../realtime/registry";
+import { clearPageTopics, getPageTopics } from "../../../../realtime";
 import {
   liveReloadHostOwner,
   RELOAD_HOST_EXTENSION_KEY,

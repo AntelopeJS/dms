@@ -6,8 +6,10 @@ import {
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
-import { inviteSettingDataAPI } from "../../../../pages/settings/users/invites";
-import { memberInviteForm } from "../../../../pages/settings/users/member-invite-form";
+import {
+  inviteSettingDataAPI,
+  memberInviteForm,
+} from "../../../../pages/members";
 
 const RETIRED_OPTION = "skipEmailValidation";
 

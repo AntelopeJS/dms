@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import { getConfig, isDocsPreviewEnabled } from "../../config";
-import { listPreviewBlockTypes } from "../../pages/public/preview/block-types";
+import { listPreviewBlockTypes } from "../../pages/preview";
 
 const DOCS_PREVIEW_ENV = "DMS_DOCS_PREVIEW";
 

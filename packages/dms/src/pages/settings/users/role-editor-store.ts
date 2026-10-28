@@ -24,11 +24,8 @@ import {
   GetMenuOrder,
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
-import { haveSameMembers } from "../../../utils/notification-rules";
-import {
-  type RoleEditorInput,
-  roleDeleteSchema,
-} from "../../../validation/role-editor.schema";
+import { haveSameMembers } from "../../../utils";
+import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,
   resolvePermissionWarnings,

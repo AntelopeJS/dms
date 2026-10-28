@@ -16,8 +16,8 @@ import {
   ROLE_MEMBER_PREVIEW_LIMIT,
   summarizeOwners,
   summarizeRoles,
-} from "../../../../pages/settings/users/role-editor";
-import { mapPermissionTree } from "../../../../pages/settings/users/permission-tree-nodes";
+  mapPermissionTree,
+} from "../../../../pages/permissions";
 
 const NOW = new Date("2026-06-01T00:00:00Z");
 const TOMORROW = new Date("2026-06-02T00:00:00Z");

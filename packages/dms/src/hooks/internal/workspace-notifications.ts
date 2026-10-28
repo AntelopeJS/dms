@@ -13,19 +13,17 @@ import {
   CollaborationSubject,
 } from "@antelopejs/interface-dms/notifications";
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationsModel } from "../db/models/userNotifications.model";
+import { UserNotificationsModel } from "../../db/models";
 import {
   emitNotification,
   emitNotificationToEach,
   NOTIFICATION_LINKS,
   type NotificationTemplate,
-} from "./notification-emitter";
-import {
   isWithinEditingSession,
   ownersToNotifyOfJoin,
   recipientsExcept,
-} from "./notification-rules";
-import { rolesChangedTone } from "./notification-tones";
+  rolesChangedTone,
+} from "../../utils";
 
 const MESSAGES_PREFIX = "$dms.notifications.messages";
 

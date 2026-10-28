@@ -11,7 +11,6 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import {
-  Action,
   type Component,
   type ComponentButton,
 } from "@antelopejs/interface-dms/component";
@@ -72,12 +71,19 @@ import {
   MENU_CHANGED_EVENT_TYPE,
 } from "../../realtime";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
-import { acknowledgeFrontendReady } from "./frontend-ready";
+import {
+  scheduleBroadcast,
+  setSlugProvider,
+  acknowledgeFrontendReady,
+  buildFrontendManifest,
+  BOOTSTRAP_HEADER,
+  warnOnceFor,
+} from "../../store/frontend";
 import { assertPageSessionAccepted } from "./stale-session";
-import { buildFrontendManifest } from "./frontend-modules";
-import { BOOTSTRAP_HEADER } from "./frontend-bootstrap";
-import type { FrontendManifest, ManifestModuleEntry } from "./manifest";
+import type {
+  FrontendManifest,
+  ManifestModuleEntry,
+} from "../../store/frontend";
 import {
   getQuickActionsForUser,
   type QuickActionsPayload,
@@ -97,7 +103,6 @@ import {
 } from "./menu-categories";
 import type { ResolvedNavBadges } from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
-import { warnOnceFor } from "./warn-once";
 import {
   aggregatePreviewMenu,
   findHeaderActionsHiddenByPreview,
@@ -110,9 +115,18 @@ import {
   readHeaderActions,
   type ServedQuickActions,
 } from "./permission-preview";
-import { runInBatches } from "../../utils/run-in-batches";
+import {
+  runInBatches,
+  pagesBySlug,
+  findPageByFullId,
+  resolvePagePermissionId,
+  getRoleIdsForUser,
+  WILDCARD_PERMISSION,
+  isPlatformPage as isPlatformPageHelper,
+  userCanAccessPage as userCanAccessPageHelper,
+} from "../../utils";
 
-export { AddFrontendModule, GetFrontendModules } from "./frontend-modules";
+export { AddFrontendModule, GetFrontendModules } from "../../store/frontend";
 
 type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   children: Record<string, SiteLayoutTree>;
@@ -121,8 +135,8 @@ type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   hasAccess?: boolean;
 };
 
-const pagesBySlug: Record<string, PageInfo> = {};
 const categoriesByFullId: Record<string, CategoryInfo> = {};
+
 const navigationTree: SiteLayoutTree = {
   displayName: "",
   children: {},
@@ -132,6 +146,7 @@ const navigationTree: SiteLayoutTree = {
   fullSlug: "",
   category: undefined,
 };
+
 const OMIT_SHARED_PAGE_QUERY_VALUE = "false";
 
 const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
@@ -139,16 +154,6 @@ const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
 const PAGE_REQUEST_PARAMETERS = ["path", "shared"];
 
 setSlugProvider(() => Object.keys(pagesBySlug));
-
-function resolvePagePermissionId(
-  permission: PageInfo["permission"],
-  fullId: string,
-): string {
-  if (permission instanceof Action) {
-    return permission.permissionId ?? fullId;
-  }
-  return permission?.id || fullId;
-}
 
 function warnOnSlugCollision<T extends { fullSlug: string; fullId: string }>(
   existing: T | undefined,
@@ -168,24 +173,12 @@ function findNavigableCategoryBySlug(slug: string): CategoryInfo | undefined {
   );
 }
 
-function findEntryByFullId<T extends { fullId: string }>(
-  registry: Record<string, T>,
-  fullId: string,
-): T | undefined {
-  return Object.values(registry).find((entry) => entry.fullId === fullId);
-}
-
-function findPageByFullId(fullId: string): PageInfo | undefined {
-  return findEntryByFullId(pagesBySlug, fullId);
-}
-
 /**
  * Whether `fullId` is a platform page: a module's, owner-only, listing the
  * data of every tenant.
  */
 export function isPlatformPage(fullId: string): boolean {
-  const info = findPageByFullId(fullId);
-  return info !== undefined && isInsideModule(info);
+  return isPlatformPageHelper(fullId);
 }
 
 function findNavigationEntryByFullId(
@@ -201,32 +194,19 @@ export async function userCanAccessPage(
   roleModel: RoleModel,
   tenantId: string,
 ): Promise<boolean> {
-  const info = findPageByFullId(fullId);
-  if (!info) return false;
-
-  if (!user) return !isInsideModule(info) && info.publicAccess === true;
-  const access = await CheckTenantAccess(user._id, tenantId);
-
-  if (!gateAllowsSurface(info, !access.allowed)) return false;
-  const roleIds = await getRoleIdsForUser(memberModel, user);
-  const permissions = await GetEffectiveUserPermissions(
+  return userCanAccessPageHelper(
     user,
-    tenantId,
-    roleIds,
+    fullId,
+    memberModel,
     roleModel,
-  );
-  if (permissions.has(WILDCARD_PERMISSION)) return true;
-  if (isInsideModule(info)) return false;
-  if (info.authOnly) return true;
-  return HasPermission(
-    permissions,
-    resolvePagePermissionId(info.permission, info.fullId),
+    tenantId,
   );
 }
 
 const warnedMissingCategories = new Set<string>();
 
 const suspectedMissingCategories = new Set<string>();
+
 let missingCategoryCheck: NodeJS.Timeout | undefined;
 
 const MISSING_CATEGORY_SETTLE_MS = 250;
@@ -453,6 +433,7 @@ function removeFromTree(fullId: string) {
 }
 
 const moduleRegistry: Record<string, ModuleInfo> = {};
+
 const dynamicMenuProviders: DynamicMenuProviderInfo[] = [];
 
 const nodeProviders = new WeakMap<object, DynamicMenuProviderInfo>();
@@ -462,7 +443,7 @@ const nodeTargets = new WeakMap<object, PageInfo>();
 let previewStructureVersion = 0;
 
 const HTTP_FORBIDDEN = 403;
-const WILDCARD_PERMISSION = "*";
+
 const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 /**
@@ -525,7 +506,9 @@ function ignoreModuleContextGone(error: Error["cause"]): void {
 }
 
 const MENU_NOTIFICATION_WINDOW_MS = 250;
+
 const lastMenuPublishAt = new Map<string, number>();
+
 const pendingMenuNotifications = new Map<string, NodeJS.Timeout>();
 
 function schedulePublishMenuChanged(target: string): void {
@@ -991,9 +974,11 @@ type PageResponsePayloadArguments = [
 export function buildPagePayload(
   ...arguments_: SharedPagePayloadArguments
 ): Promise<PagePayload>;
+
 export function buildPagePayload(
   ...arguments_: PageResponsePayloadArguments
 ): Promise<PageResponsePayload>;
+
 export async function buildPagePayload(
   ...arguments_: SharedPagePayloadArguments | PageResponsePayloadArguments
 ): Promise<PageResponsePayload> {
@@ -1226,6 +1211,7 @@ function memoizeViewerModels(
 }
 
 const PREVIEW_LOSS_TTL_MS = 30_000;
+
 const PREVIEW_LOSS_MAX_SCOPES = 16;
 
 const PREVIEW_PAGE_CONCURRENCY = 4;
@@ -1627,14 +1613,6 @@ interface NavigationEntry extends Partial<
 }
 
 type DynamicChildren = Map<string, SiteLayoutTree[]>;
-
-async function getRoleIdsForUser(
-  memberModel: TenantMemberModel,
-  user: User,
-): Promise<string[]> {
-  const member = await memberModel.getByUser(user._id);
-  return member?.roleIds ?? [];
-}
 
 function collectSurfaceBypassFlags(): Map<string, boolean> {
   const flags = new Map<string, boolean>();
@@ -2584,12 +2562,14 @@ type ModuleCatalogEntry = Omit<ModuleInfo, "status" | "readout"> & {
 };
 
 const DEFAULT_MODULE_STATUS: ModuleStatus = "live";
+
 const MODULE_STATUSES = new Set<string>([
   "live",
   "beta",
   "update",
   "attention",
 ]);
+
 const MODULE_READOUT_TONES = new Set<string>([
   "success",
   "info",

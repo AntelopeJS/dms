@@ -1,6 +1,6 @@
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { expect } from "chai";
-import { evaluateRowActionRule } from "../../../utils/row-action-rule-evaluator";
+import { evaluateRowActionRule } from "../../../utils";
 
 const ROW_ACTIVE_ADMIN = {
   status: "active",

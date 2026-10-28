@@ -41,7 +41,7 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { User } from "@antelopejs/interface-dms/auth/db";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import { getClientBaseUrl } from "../../../config";
-import { buildAdminInviteSignupLink } from "../../../utils/admin-invite-email";
+import { buildAdminInviteSignupLink } from "../../../utils";
 import {
   Column,
   DefaultDisplays,

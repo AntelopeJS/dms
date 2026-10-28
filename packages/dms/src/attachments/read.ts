@@ -4,7 +4,7 @@ import {
   FileNotFoundError,
   GetFileMetadata,
 } from "@antelopejs/interface-file-storage";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import {
   denyAttachment,

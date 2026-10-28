@@ -6,7 +6,7 @@ import type {
   NotificationCategoryInfo,
   NotificationSubjectInfo,
 } from "@antelopejs/interface-dms/notifications/types";
-import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
+import { UserNotificationPreferencesModel } from "../../db/models";
 import { internal } from "../../implementations/dms-notifications";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";

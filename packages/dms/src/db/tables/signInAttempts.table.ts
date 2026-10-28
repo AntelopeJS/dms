@@ -7,24 +7,10 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { User } from "@antelopejs/interface-dms/auth/db/tables/users.table";
+import { SignInAttemptKind } from "../../types";
+export { SignInAttemptKind } from "../../types";
 
 export const signInAttemptsTableName = "sign_in_attempts";
-
-/**
- * `failed`: a wrong password. `alerted`: the user was told about a burst of
- * them. `reset_code`: a password-reset code was tried. `two_factor`: a code
- * was tried against a two-factor challenge. `two_factor_used`: a two-factor
- * challenge opened its session, and opens no other. `current_password`: a
- * signed-in session gave the account password again (Security page, account
- * deletion).
- */
-export type SignInAttemptKind =
-  | "failed"
-  | "alerted"
-  | "reset_code"
-  | "two_factor"
-  | "two_factor_used"
-  | "current_password";
 
 /**
  * Failed password attempts, password re-checks, password-reset and two-factor

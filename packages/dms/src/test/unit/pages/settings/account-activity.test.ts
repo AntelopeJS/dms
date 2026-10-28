@@ -6,7 +6,7 @@ import {
   type AccountActivitySources,
   buildAccountActivity,
   notificationToEvent,
-} from "../../../../pages/settings/users/account-activity";
+} from "../../../../pages/account";
 
 const USER_ID = "activity-user";
 const OTHER_ID = "someone-else";

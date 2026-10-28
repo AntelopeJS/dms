@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
+import { notifyRolePermissionsChanged } from "../../../hooks";
 
 const DATABASE_DOWN = "connection reset by peer";
 

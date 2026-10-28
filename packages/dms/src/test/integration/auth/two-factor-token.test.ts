@@ -3,7 +3,7 @@ import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { decode, sign } from "jsonwebtoken";
 import { generateTwoFactorToken } from "../../../implementations/dms-auth";
-import { generateSecret } from "../../../implementations/dms-auth/token-secret";
+import { generateSecret } from "../../../implementations/dms-auth/services";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";

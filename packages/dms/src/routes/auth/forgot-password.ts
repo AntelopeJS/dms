@@ -4,8 +4,8 @@ import { sendEmailForgotEmail } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { authSchema } from "../../validation/auth.schema";
+import { SignInAttemptsModel } from "../../db/models";
+import { authSchema } from "../../validation";
 
 const RATE_LIMIT_MS = 60 * 1000;
 

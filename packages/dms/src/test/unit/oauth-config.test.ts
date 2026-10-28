@@ -1,12 +1,12 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import { getAuthConfig, type OAuthConfig } from "../../index";
-import { buildOAuthAuthorizeUrl } from "../../routes/auth/oauth/authorize-url";
+import { getAuthConfig, type OAuthConfig } from "../..";
 import {
+  buildOAuthAuthorizeUrl,
   getEnabledOAuthProvider,
   listEnabledOAuthProviders,
   resolveOAuthPolicy,
-} from "../../routes/auth/oauth/config";
+} from "../../routes/oauth";
 
 const HTTP_NOT_FOUND = 404;
 const CREDENTIALS = { clientId: "client-id", clientSecret: "client-secret" };

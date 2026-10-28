@@ -6,7 +6,7 @@ import {
   degradedLayerAccessWarning,
   matchesFrontendBootstrap,
   resolveBootstrapOutcome,
-} from "../../implementations/dms/frontend-bootstrap";
+} from "../../store/frontend";
 
 const HTTP_UNAUTHORIZED = 401;
 const SECRET = "a-configured-bootstrap-secret";

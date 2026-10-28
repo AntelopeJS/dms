@@ -1,4 +1,4 @@
-import { runInBatches } from "../utils/run-in-batches";
+import { runInBatches } from "../utils/run-in-batches/index";
 import {
   isEventForTenant,
   type KvStore,

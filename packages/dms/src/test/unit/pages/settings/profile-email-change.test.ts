@@ -1,7 +1,7 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { assertEmailAvailable } from "../../../../pages/settings/users/profile-helpers";
+import { assertEmailAvailable } from "../../../../pages/account";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";

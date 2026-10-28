@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import type { AccountActivityEvent } from "../../../../pages/settings/users/account-activity";
-import { toActivityFeedItems } from "../../../../pages/settings/users/account-activity-feed";
+import type { AccountActivityEvent } from "../../../../pages/account";
+import { toActivityFeedItems } from "../../../../pages/account";
 
 const TEXTS = "$page.settings.overview.activity";
 const ALL_PAGES = {

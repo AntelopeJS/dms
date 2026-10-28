@@ -5,7 +5,7 @@ import {
   isWithinEditingSession,
   ownersToNotifyOfJoin,
   recipientsExcept,
-} from "../../../utils/notification-rules";
+} from "../../../utils";
 
 const NOW = new Date("2026-10-02T12:00:00.000Z");
 const MINUTE_MS = 60 * 1000;

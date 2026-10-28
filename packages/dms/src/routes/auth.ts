@@ -15,10 +15,7 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../config";
-import {
-  type ClientOrigin,
-  resolveClientOrigin,
-} from "../utils/sign-in-country";
+import { type ClientOrigin, resolveClientOrigin } from "../utils";
 import * as authRoutes from "./auth/index";
 import type { OAuthAuthorizeUrl } from "./auth/oauth";
 import type { LoginOutcome } from "./auth/session-response";

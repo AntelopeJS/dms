@@ -15,8 +15,8 @@ import {
   ACTIONS,
   INVITE_USER_ACTION_ID,
   SEND_EMAIL_ACTION_ID,
-} from "../../automation/actions";
-import { SEND_NOTIFICATION_ACTION_ID } from "../../automation/send-notification";
+  SEND_NOTIFICATION_ACTION_ID,
+} from "../../automation";
 import { UserNotificationsModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
 import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";

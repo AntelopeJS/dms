@@ -7,7 +7,7 @@ import {
   UserExternalIdentityModel,
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { generateAuthKey } from "../../../utils/auth-key";
+import { generateAuthKey } from "../../../utils";
 import type { OAuthPolicy } from "./config";
 import { decideOAuthResolution, type OAuthResolution } from "./linking-policy";
 import type { ProviderIdentity } from "./providers";

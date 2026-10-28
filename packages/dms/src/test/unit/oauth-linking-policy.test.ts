@@ -1,11 +1,11 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import type { OAuthPolicy } from "../../routes/auth/oauth/config";
 import {
+  type OAuthPolicy,
   decideOAuthResolution,
   type OAuthAccountMatch,
-} from "../../routes/auth/oauth/linking-policy";
-import type { ProviderIdentity } from "../../routes/auth/oauth/providers";
+  type ProviderIdentity,
+} from "../../routes/oauth";
 
 const HTTP_FORBIDDEN = 403;
 

@@ -23,7 +23,7 @@ import type {
   FieldInRule,
   RowActionRule,
 } from "@antelopejs/interface-dms/base/types/row-action";
-import type { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
+import type { evaluateRowActionRule } from "../../utils";
 import { buildFilteredQuery } from "./search-route";
 
 type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];

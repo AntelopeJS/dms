@@ -6,10 +6,9 @@ import { Send } from "@antelopejs/interface-email";
 import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
-import {
-  GenerateHtml,
-  RegisterHtmlTemplate,
-} from "@antelopejs/interface-dms/html-render";
+import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
+export * from "./account-emails";
+import { AdminInviteTemplate } from "./email-templates";
 import { decode, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
@@ -17,14 +16,12 @@ import {
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
-} from "../../utils/admin-invite-email";
+  recordUserActivity,
+} from "../../utils";
 import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
-
-export * from "./account-emails";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
@@ -50,15 +47,6 @@ interface TokenResult {
   token: string;
   expiresIn: number;
 }
-
-interface AdminInviteData extends AdminInviteEmailNames {
-  email: string;
-  signupLink: string;
-  expiresInDays: number;
-}
-
-const AdminInviteTemplate =
-  RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
 
 /**
  * Common validation logic for user tokens
@@ -490,6 +478,6 @@ export async function sendAdminInviteEmail(
   Logging.Info(`[DMS-AUTH] Invite email sent to "${email}"`);
 }
 
-export { notifyWelcome as NotifyWelcome } from "../../utils/account-notifications";
-export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../utils/workspace-notifications";
-export { parseUserAgent as ParseUserAgent } from "../../utils/user-agent";
+export { notifyWelcome as NotifyWelcome } from "../../utils";
+export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../hooks";
+export { parseUserAgent as ParseUserAgent } from "../../utils";

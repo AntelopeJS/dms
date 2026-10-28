@@ -4,9 +4,9 @@ import type { AxiosInstance } from "axios";
 import { assert, expect } from "chai";
 import { generateCode } from "2fa";
 import { decode } from "jsonwebtoken";
-import { UserNotificationsModel } from "../../../db/models/userNotifications.model";
+import { UserNotificationsModel } from "../../../db/models";
 import { generateTwoFactorToken } from "../../../implementations/dms-auth";
-import { acceptTotpCode, totpStepAt } from "../../../utils/two-factor-codes";
+import { acceptTotpCode, totpStepAt } from "../../../utils";
 import {
   authorizedClient,
   type RegisteredUser,

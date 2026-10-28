@@ -20,12 +20,9 @@ import {
   registerPageTopic,
   setRealtimeBroker,
   stopRealtime,
+  getSessionInfo,
 } from "../../../realtime";
-import { getSessionInfo } from "../../../realtime/sessions";
-import {
-  ensureSessionOnPage,
-  RealtimeController,
-} from "../../../routes/realtime";
+import { ensureSessionOnPage, RealtimeController } from "../../../routes";
 
 const USER = { _id: "tenant-topics-user", email: "u@example.com" };
 const PAGE_ID = "tenant-topics-page";

@@ -1,6 +1,6 @@
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
-import { compileRowRule } from "../../../../implementations/dms-base/footer-summary";
+import { compileRowRule } from "../../../../implementations/dms-base/services";
 
 interface Expression {
   text: string;

@@ -3,16 +3,22 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
-import { isCompatible } from "../../../store/compatibility";
-import { findDependents, isProjectModule } from "../../../store/interfaces";
-import { packageDeclarationSource } from "../../../store/declarations";
-import { supportsFrontend } from "../../../store/frontend-compatibility";
-import { findWorkingCopy, isLive, sourceKindOf } from "../../../store/runtime";
-import { startStoreOperation } from "../../../store/operations";
-import { readTarFile } from "../../../store/tarball";
-import { storeInstallSchema } from "../../../validation/store.schema";
-import type { RuntimeModule } from "../../../store/types";
+import {
+  loadStoreCatalog,
+  readCatalogDocument,
+  isCompatible,
+  findDependents,
+  isProjectModule,
+  packageDeclarationSource,
+  supportsFrontend,
+  findWorkingCopy,
+  isLive,
+  sourceKindOf,
+  startStoreOperation,
+  readTarFile,
+} from "../../../store";
+import { storeInstallSchema } from "../../../validation";
+import type { RuntimeModule } from "../../../store";
 
 const HTTP_FORBIDDEN = 403;
 

@@ -4,7 +4,7 @@ import type {
   UserTimeFormat,
   UserWeekStart,
 } from "@antelopejs/interface-dms/auth/db";
-import type { RegionalPreferencesInput } from "../../../validation/regional-preferences.schema";
+import type { RegionalPreferencesInput } from "../../../validation";
 
 /**
  * How the Language & region form shows a regional preference left unset:

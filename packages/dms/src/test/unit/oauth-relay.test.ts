@@ -1,9 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import {
-  assertOAuthRelay,
-  deriveOAuthRelaySecret,
-} from "../../routes/auth/oauth/relay";
+import { assertOAuthRelay, deriveOAuthRelaySecret } from "../../routes/oauth";
 
 const HTTP_UNAUTHORIZED = 401;
 

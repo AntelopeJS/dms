@@ -7,7 +7,7 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { signup } from "../../routes/auth/signup";
+import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
 
 const HTTP_BAD_REQUEST = 400;

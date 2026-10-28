@@ -1,7 +1,7 @@
 import type { NavBadgeCount } from "@antelopejs/interface-dms/component";
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 import { combineNavBadgeCounts } from "@antelopejs/interface-dms/page/internal/nav-badges";
-import { LOW_BACKUP_CODES } from "../../../utils/notification-tones";
+import { LOW_BACKUP_CODES } from "../../../utils";
 import type { TwoFactorStatus } from "./two-factor-operations";
 
 /** Something on the Security page that needs the user's attention. */

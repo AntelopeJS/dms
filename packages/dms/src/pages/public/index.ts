@@ -10,4 +10,4 @@ import "./auth/backup";
 import "./auth/accounts";
 import "./auth/oauth-complete";
 
-import "./onboarding/index";
+import "./onboarding";

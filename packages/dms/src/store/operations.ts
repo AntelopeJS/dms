@@ -1,7 +1,7 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { removeFrontendModulesUnder } from "../implementations/dms/frontend-modules";
+import { removeFrontendModulesUnder } from "./internal/frontend/frontend-modules";
 import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
 import { isCompatible, installedInterfaceVersion } from "./compatibility";

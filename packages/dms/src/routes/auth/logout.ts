@@ -6,8 +6,8 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { generateAuthKey } from "../../utils/auth-key";
-import { authSchema } from "../../validation/auth.schema";
+import { generateAuthKey } from "../../utils";
+import { authSchema } from "../../validation";
 
 export async function logout(
   userModel: UserModel,

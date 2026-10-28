@@ -20,7 +20,7 @@ import {
   addDevReloadListener,
   DEV_RELOAD_TOPIC,
   isDevReloadEnabled,
-} from "../implementations/dms/dev-reload";
+} from "../store/frontend";
 import {
   buildMemberMenuTopic,
   buildMenuTopic,
@@ -34,8 +34,6 @@ import {
   type PresenceActor,
   subscribeRealtime,
   type TenantView,
-} from "../realtime";
-import {
   getConnectionInfo,
   getSessionInfo,
   getSessionSubscriptions,
@@ -45,7 +43,7 @@ import {
   setSessionPage,
   unregisterConnection,
   unregisterSession,
-} from "../realtime/sessions";
+} from "../realtime";
 
 const REALTIME_BASE = "/api/realtime";
 const HELLO_EVENT = "hello";

@@ -1,17 +1,19 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel, type User } from "@antelopejs/interface-dms/auth/db";
-import { SignInAttemptsModel } from "../db/models/signInAttempts.model";
-import { UserKnownDevicesModel } from "../db/models/userKnownDevices.model";
-import { notifyFailedSignIns, notifyNewLogin } from "./account-notifications";
+import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
 import {
+  notifyFailedSignIns,
+  notifyNewLogin,
   evaluateFailedSignIns,
   FAILED_SIGN_IN_THRESHOLD,
   FAILED_SIGN_IN_WINDOW_MS,
-} from "./failed-sign-ins";
-import { type ClientOrigin, lookupCountry } from "./sign-in-country";
-import { classifySignIn, describeSignInDevice } from "./sign-in-devices";
-import { parseUserAgent } from "./user-agent";
+  type ClientOrigin,
+  lookupCountry,
+  classifySignIn,
+  describeSignInDevice,
+  parseUserAgent,
+} from "../../utils";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const MS_PER_MINUTE = 60 * 1000;

@@ -5,7 +5,7 @@ import {
   LocalizationModifier,
   unlock,
 } from "@antelopejs/interface-database-decorators";
-import { fetchRowForGuard } from "../implementations/dms-base/table-view";
+import { fetchRowForGuard } from "../db";
 import type {
   AttachmentField,
   internal,

@@ -12,7 +12,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   INVITE_EMAILS_MAX,
   INVITE_FULL_NAME_MAX_LENGTH,
-} from "../../../validation/member-invite.schema";
+} from "../../../validation";
 import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
 const DEFAULT_INVITE_LANGUAGE = "en";

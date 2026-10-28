@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const { createRequire } = require("node:module");
 const { join, relative, resolve, sep } = require("node:path");
-const { writeFileSync } = require("node:fs");
+const { mkdirSync, rmSync, writeFileSync } = require("node:fs");
 const { spawnSync } = require("node:child_process");
 
 const root = resolve(process.argv[2]);
@@ -181,6 +181,7 @@ uploadEvaluationOrder()
         result,
         uploadOrder,
         runtime,
+        registries: observeBootedRegistries(),
       }) + "\n",
     );
   })
@@ -188,6 +189,94 @@ uploadEvaluationOrder()
     process.stderr.write(String(error) + "\n");
     process.exitCode = 1;
   });
+
+function observeBootedRegistries() {
+  const name = `backend-runtime-${process.pid}`;
+  const directory = join(root, "packages/dms/dist/test", name);
+  const marker = "BACKEND_RUNTIME_REGISTRIES=";
+  mkdirSync(directory, { recursive: true });
+  try {
+    writeFileSync(join(directory, "probe.test.js"), `
+const assert = require("node:assert/strict");
+describe("booted backend registry observations", function () {
+  it("preserves public registry order", async function () {
+    const html = require("@antelopejs/interface-dms/html-render");
+    const pages = require("@antelopejs/interface-dms/page");
+    const permissions = require("@antelopejs/interface-dms/permissions");
+    const hooks = require("@antelopejs/interface-dms/hooks");
+    const blocks = require("@antelopejs/interface-dms/base/block-registry");
+    const sources = require("@antelopejs/interface-dms/base/data-sources");
+    const templates = Object.keys(await html.GetAllHtmlTemplates());
+    assert.ok(templates.length > 0, "No booted HTML templates observed");
+    const treeKeys = (tree) => Object.entries(tree).map(([key, node]) =>
+      [key, node.data?.id ?? null, treeKeys(node.children)]);
+    const observations = {
+      templates,
+      pages: await pages.GetRegisteredPageIds(),
+      permissions: treeKeys(await permissions.GetPermissions()),
+      hooks: Object.fromEntries(Object.values(hooks.Hook).map((name) =>
+        [name, hooks.GetRegisteredHooks(name).map((entry) =>
+          ({ moduleId: entry.moduleId ?? null, handler: entry.handler.name }))])),
+      blocks: blocks.ListBlockTypes().map((entry) => entry.type),
+      dataSources: sources.ListDataSources().map((entry) => entry.id),
+    };
+    console.log(${JSON.stringify(marker)} + JSON.stringify(observations));
+  });
+});
+`);
+    const boot = spawnSync(process.execPath, ["-e", `
+const { createRequire } = require("node:module");
+const { dirname, join, resolve } = require("node:path");
+const { realpathSync } = require("node:fs");
+const moduleRoot = process.argv[1];
+const load = createRequire(join(moduleRoot, "package.json"));
+const core = dirname(load.resolve("@antelopejs/core/package.json"));
+const test = load(join(core, "dist/core/test/test-module.js"));
+const { NodeFileSystem } = load(join(core, "dist/core/filesystem.js"));
+const { mergeDeep } = load(join(core, "dist/utils/object.js"));
+const { internal } = load("@antelopejs/interface-core/internal");
+async function boot() {
+  const fs = new NodeFileSystem();
+  const loaded = await test.loadTestConfig(moduleRoot, fs);
+  if (!loaded) throw new Error("Missing backend test configuration");
+  loaded.config.cacheFolder = resolve(
+    dirname(realpathSync(join(moduleRoot, "node_modules"))),
+    loaded.config.cacheFolder,
+  );
+  let manager;
+  try {
+    const overrides = await loaded.test.setup?.();
+    const config = overrides ? mergeDeep(loaded.config, overrides) : loaded.config;
+    manager = await test.setupTestEnvironment(moduleRoot, config, fs);
+    return await test.executeTests(moduleRoot, loaded.test, manager, fs, [process.argv[2]]);
+  } finally {
+    try {
+      if (manager) await manager.destroyAll();
+    } finally {
+      internal.testStubMode = false;
+      if (manager) manager.resolver.stubModulePath = undefined;
+      await loaded.test.cleanup?.();
+    }
+  }
+}
+boot().then((failures) => { process.exitCode = failures > 0 ? 1 : 0; })
+  .catch((error) => { console.error(error); process.exitCode = 1; });
+`, join(root, "packages/dms"), join(directory, "probe.test.js")], {
+      cwd: join(root, "packages/dms"),
+      env: { ...process.env, DMS_PREBUILT: "1", DMS_TEST_DIR: `dist/test/${name}` },
+      encoding: "utf8",
+      timeout: 180000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    if (boot.error) throw boot.error;
+    assert.equal(boot.status, 0, boot.stdout + boot.stderr);
+    const lines = boot.stdout.split("\n").filter((line) => line.includes(marker));
+    assert.equal(lines.length, 1, boot.stdout + boot.stderr);
+    return JSON.parse(lines[0].slice(lines[0].indexOf(marker) + marker.length));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 
 function observeRuntime() {
   const Module = require("node:module");
@@ -385,6 +474,8 @@ function baselineContract() {
   assert.equal(modules.length, 273);
   const moves = {
     "config.js": "config/internal/state.js",
+    "startup-config.js": "config/startup-config.js",
+    "client-origin-cors.js": "config/client-origin-cors.js",
     "implementations/dms-notifications/registry.js": "utils/notification-registry.js",
     "routes/auth/client-ip.js": "utils/client-ip.js",
     "routes/auth/constants.js": "utils/auth-constants.js",

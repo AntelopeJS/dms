@@ -6,7 +6,7 @@ import type {
   ActionType,
   ExecutionCtx,
 } from "@antelopejs/interface-dms-automation";
-import { ACTIONS, SEND_EMAIL_ACTION_ID } from "../../automation/actions";
+import { ACTIONS, SEND_EMAIL_ACTION_ID } from "../../automation";
 import { resetDatabase } from "../helpers/db";
 import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";
 

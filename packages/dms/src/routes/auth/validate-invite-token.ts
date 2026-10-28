@@ -1,5 +1,5 @@
 import { assertValidation } from "@antelopejs/interface-api-util";
-import { authSchema } from "../../validation/auth.schema";
+import { authSchema } from "../../validation";
 import { resolveValidInvite } from "./invite";
 
 /**
