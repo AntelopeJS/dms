@@ -155,6 +155,16 @@ describe("[unit] utils/type-check", () => {
         expect(isPrimitive(value), `value=${String(value)}`).to.equal(false);
       }
     });
+
+    /**
+     * Fails to compile when the predicate narrows to the typeof tag names
+     * ("string" | "number" | ...) instead of the primitive values themselves.
+     */
+    it("narrows a number to a number, not to a tag-name string", () => {
+      const format = (input: number | Date): string =>
+        isPrimitive(input) ? input.toFixed(1) : input.toISOString();
+      expect(format(SAMPLE_NUMBER)).to.equal("42.0");
+    });
   });
 
   describe("isJSON", () => {

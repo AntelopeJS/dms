@@ -8,6 +8,16 @@ const primitiveTypes = [
 ] as const;
 type Primitive = (typeof primitiveTypes)[number];
 
+interface PrimitiveValueByTag {
+  string: string;
+  number: number;
+  boolean: boolean;
+  undefined: undefined;
+  bigint: bigint;
+  symbol: symbol;
+}
+type PrimitiveValue = PrimitiveValueByTag[Primitive];
+
 const createTypeGuard =
   <T>(type: string) =>
   (v: unknown): v is T =>
@@ -34,9 +44,9 @@ export const isBigint = createTypeGuard<bigint>("bigint");
 export const isSymbol = createTypeGuard<symbol>("symbol");
 
 /** @internal */
-export const isPrimitive = (value: unknown): value is Primitive => {
+export const isPrimitive = (value: unknown): value is PrimitiveValue => {
   const types: readonly string[] = primitiveTypes;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published predicate classifies JavaScript tags and retains its existing Primitive contract.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published predicate classifies JavaScript tags and narrows to the primitive values whose tags it accepts.
   return types.includes(typeof value);
 };
 
