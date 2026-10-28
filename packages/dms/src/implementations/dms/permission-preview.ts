@@ -179,24 +179,21 @@ export interface PreviewCacheScope {
   preview: Iterable<string>;
 }
 
-const KEY_PART_SEPARATOR = "\u0000";
-const KEY_ID_SEPARATOR = "\n";
-
-function sortedIds(ids: Iterable<string>): string {
-  return [...new Set(ids)].sort().join(KEY_ID_SEPARATOR);
+function sortedIds(ids: Iterable<string>): string[] {
+  return [...new Set(ids)].sort();
 }
 
 /** Key of a preview scope: the same viewer and sets give the same key, in any order. */
 export function previewCacheKey(scope: PreviewCacheScope): string {
   return createHash("sha256")
     .update(
-      [
+      JSON.stringify([
         scope.tenantId,
         scope.userId,
-        String(scope.structureVersion),
+        scope.structureVersion,
         sortedIds(scope.real),
         sortedIds(scope.preview),
-      ].join(KEY_PART_SEPARATOR),
+      ]),
     )
     .digest("hex");
 }
