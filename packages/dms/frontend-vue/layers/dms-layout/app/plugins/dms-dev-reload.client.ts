@@ -5,7 +5,7 @@ const RELOAD_ENDPOINT_PATH = "/dms/dev/reload";
 
 function resolveBackendBase(): string | null {
   const config = useDmsRuntimeConfig();
-  const dmsConfig = (config.public as { dms?: { baseURL?: string } }).dms;
+  const dmsConfig = config.public.dms;
   const baseURL = dmsConfig?.baseURL?.replace(/\/+$/, "");
   return baseURL || null;
 }
@@ -30,7 +30,7 @@ export default defineDmsPlugin(() => {
     {
       endpoint,
       onReload: () => {
-        void coordinator.requestRefresh().catch((err: unknown) => {
+        void coordinator.requestRefresh().catch((err) => {
           console.error("[dms-dev-reload] Reload handler failed:", err);
         });
       },

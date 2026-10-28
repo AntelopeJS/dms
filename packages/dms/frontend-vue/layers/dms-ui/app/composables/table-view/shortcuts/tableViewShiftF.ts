@@ -33,6 +33,6 @@ export function createTableViewShiftFShortcut(
 export function tableSearchShortcuts(
   key: string | undefined,
   openSearch: () => void,
-): Record<string, () => void> {
+) {
   return { [key || DEFAULT_TABLE_SEARCH_SHORTCUT]: openSearch };
 }

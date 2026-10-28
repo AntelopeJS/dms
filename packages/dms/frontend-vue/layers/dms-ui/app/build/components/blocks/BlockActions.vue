@@ -53,7 +53,7 @@ const { processI18n } = useTranslation();
 const isButtonAction = (action: BlockActionItem): action is BlockButtonAction =>
   "target" in action && Boolean(action.target);
 
-function actionProps(action: BlockActionItem): Record<string, unknown> {
+function actionProps(action: BlockActionItem) {
   if (!isButtonAction(action)) return buttonLinkProps(action.to);
   return { onClick: () => emit("press", action) };
 }

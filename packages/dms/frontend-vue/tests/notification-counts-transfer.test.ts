@@ -19,7 +19,7 @@ const authFetch = vi.fn(async () => structuredClone(COUNTS));
 const loggedIn = ref(true);
 const mounted: App[] = [];
 
-stubApiData(authFetch as never);
+stubApiData(authFetch);
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
 vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
 const { useNotifications, useRenderedBellCounts } = await import(

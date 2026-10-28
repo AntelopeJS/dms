@@ -2,7 +2,6 @@
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useTemplateRef, type ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
@@ -44,7 +43,8 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tablePagination: Partial<typeof theme> };
 };
 
@@ -116,7 +116,7 @@ const currentPage = computed(
 
 const uiTablePaginationVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tablePagination || {}),
+  ...appConfig.ui?.tablePagination,
 });
 const uiTablePagination = computed(() => uiTablePaginationVariant());
 </script>

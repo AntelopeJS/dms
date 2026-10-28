@@ -13,6 +13,7 @@ import {
 import { usePasswordStrength } from "../layers/dms-ui/app/composables/usePasswordStrength";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
 const overview = ref({ hasPassword: true, activeSessions: 1 });
 const authFetch = vi.fn();
@@ -47,16 +48,17 @@ const Input = defineComponent({
   inheritAttrs: false,
   props: { modelValue: String },
   emits: ["update:modelValue", "blur"],
-  setup:
-    (props, { attrs, emit }) =>
-    () =>
+  setup: (props, { attrs, emit }) => {
+    const input = ref<HTMLInputElement>();
+    return () =>
       h("input", {
         ...attrs,
+        ref: input,
         value: props.modelValue,
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: () => emit("update:modelValue", input.value!.value),
         onBlur: () => emit("blur"),
-      }),
+      });
+  },
 });
 
 const Collapsible = defineComponent({
@@ -125,10 +127,14 @@ beforeEach(() => {
     te: () => false,
   }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  stubApiData(async (url: string, options?: unknown) =>
-    url === "/dms/pages/settings/user/security"
-      ? { ...overview.value }
-      : authFetch(url, options),
+  stubApiData(
+    async (
+      url: string,
+      options?: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
+    ) =>
+      url === "/dms/pages/settings/user/security"
+        ? { ...overview.value }
+        : authFetch(url, options),
   );
   vi.stubGlobal("$fetch", handoffFetch);
   vi.stubGlobal("useDmsUserSession", () => ({

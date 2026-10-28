@@ -75,7 +75,7 @@ const SIZE_CLASSES: Record<PageToolbarSize, LiveToggleSizeClasses> = {
 };
 
 const { t } = useI18n();
-const translate = t as ConfirmTranslate;
+const translate: ConfirmTranslate = t;
 const live = usePageLive();
 const toolbar = usePageToolbar();
 useToolbarLiveToggle(toolbar);

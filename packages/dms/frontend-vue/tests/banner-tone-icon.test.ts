@@ -21,7 +21,9 @@ let app: App | undefined;
 
 afterEach(() => app?.unmount());
 
-function iconOf(props: Record<string, unknown>): string | null {
+function iconOf(
+  props: Partial<InstanceType<typeof DmsBanner>["$props"]>,
+): string | null {
   const host = document.createElement("div");
   app = createApp({
     render: () => h(DmsBanner, { title: "Notice", ...props }),
@@ -38,7 +40,9 @@ function iconOf(props: Record<string, unknown>): string | null {
   return host.querySelector("[data-icon]")?.getAttribute("data-icon") ?? null;
 }
 
-it.each([
+it.each<
+  [NonNullable<InstanceType<typeof DmsBanner>["$props"]["tone"]>, string]
+>([
   ["warning", "i-ph-warning"],
   ["success", "i-ph-check-circle"],
   ["info", "i-ph-info"],

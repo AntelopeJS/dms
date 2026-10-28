@@ -11,7 +11,8 @@ export const useSessionRecovery = () => {
 
   function refreshSession(): Promise<boolean> {
     return runDeduped(
-      dmsApp as unknown as Record<PropertyKey, unknown>,
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- DmsAppContext lacks runDeduped's arbitrary property index. Owner-derived holder typing still requires this conversion; preserve the shared app holder without a wrapper or changed identity.
+      dmsApp as unknown as Parameters<typeof runDeduped>[0],
       IN_FLIGHT_REFRESH_KEY,
       () =>
         fetchSession()

@@ -11,17 +11,51 @@ interface ReadState {
 }
 
 function createContext(state: ReadState) {
-  return reactive({
+  return reactive<TableViewDisplayContext>({
     items: [],
     columns: [],
     ...state,
     rowIdKey: "_id",
     labelKey: "name",
     options: {},
-    pagination: { pageIndex: 0, pageSize: 10, total: 0 },
-    selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: () => {} },
-  }) as unknown as TableViewDisplayContext;
+    location: "/tasks",
+    query: {},
+    presenceByRow: {},
+    refresh: () => {},
+    pagination: {
+      pageIndex: 0,
+      pageSize: 10,
+      total: 0,
+      setPage: () => {},
+      setPageSize: () => {},
+      mode: "pages",
+      hasMore: false,
+      loadMore: () => {},
+    },
+    selection: {
+      ids: [],
+      isSelected: () => false,
+      toggle: () => {},
+      toggleAll: () => {},
+      clear: () => {},
+    },
+    actions: {
+      canAdd: false,
+      canEdit: false,
+      canDelete: false,
+      canDetails: false,
+      canEditRow: () => false,
+      canDeleteRow: () => false,
+      add: () => {},
+      edit: () => {},
+      delete: () => {},
+      duplicate: () => {},
+      details: () => {},
+      open: () => {},
+      custom: () => {},
+      customFor: () => [],
+    },
+  });
 }
 
 describe("the cards display of an empty list", () => {

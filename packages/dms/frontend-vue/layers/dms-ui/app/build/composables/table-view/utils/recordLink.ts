@@ -1,4 +1,5 @@
 import type { CustomRowAction } from "../../../../types/row-action";
+import type { LocationQuery } from "#dms/frontend-module";
 import {
   readTableUrlKey,
   tableUrlKey,
@@ -17,7 +18,7 @@ export function recordUrlKey(scope: TableUrlScope): string {
 
 /** The row the URL names for this table, if any. */
 export function readRecordId(
-  query: Record<string, unknown>,
+  query: LocationQuery,
   scope: TableUrlScope,
 ): string | undefined {
   return readTableUrlKey(query, scope, RECORD_URL_KEY).value;

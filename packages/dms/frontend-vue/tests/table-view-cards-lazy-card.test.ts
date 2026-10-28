@@ -40,6 +40,7 @@ let app: App | undefined;
 let container: HTMLElement;
 
 function mount() {
+  // SAFETY: CardsDisplay only uses the supplied context fields while rendering these lazy cards.
   const context = reactive({
     items: [{ _id: "s0" }, { _id: "s1" }],
     columns: [],
@@ -51,7 +52,7 @@ function mount() {
     pagination: { pageIndex: 0, pageSize: 3, total: 2 },
     selection: { isSelected: () => false, toggle: () => {} },
     actions: { canAdd: false, open: () => {} },
-  }) as unknown as TableViewDisplayContext;
+  }) as TableViewDisplayContext;
   app = createApp({ render: () => h(CardsDisplay, { context }) });
   app.component("USkeleton", {
     render: () => h("span", { "data-test": "skeleton" }),
@@ -114,7 +115,7 @@ it("draws the cards at once when the card's code is already there", async () => 
 
 it("keeps the skeleton while a component the card draws loads", async () => {
   mount();
-  resolveCard(RecordSiteCard as typeof SiteCard);
+  resolveCard(RecordSiteCard);
 
   await vi.waitFor(() => expect(resolveRecordCard).toBeDefined());
   await nextTick();

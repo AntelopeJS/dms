@@ -73,6 +73,7 @@ const refreshCounts = () =>
   });
 
 const handleFormSubmitSuccess = async (event: Event) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM callbacks infer Event while the form publisher emits CustomEvent. The current handler intentionally projects detail without validating it; a narrower input or runtime guard would change the event boundary.
   const customEvent = event as CustomEvent;
   const submitUrl = customEvent.detail?.data?.submitUrl;
 
@@ -89,10 +90,7 @@ onMounted(async () => {
   if (!areCountsLoaded.value) await settledRenderedBellCounts();
   if (!areCountsLoaded.value) await refreshCounts();
 
-  window.addEventListener(
-    FormEvents.SUBMIT_SUCCESS,
-    handleFormSubmitSuccess as EventListener,
-  );
+  window.addEventListener(FormEvents.SUBMIT_SUCCESS, handleFormSubmitSuccess);
 });
 
 onUnmounted(() => {
@@ -100,7 +98,7 @@ onUnmounted(() => {
 
   window.removeEventListener(
     FormEvents.SUBMIT_SUCCESS,
-    handleFormSubmitSuccess as EventListener,
+    handleFormSubmitSuccess,
   );
 });
 

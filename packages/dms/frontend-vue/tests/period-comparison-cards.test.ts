@@ -20,8 +20,16 @@ import type {
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
+import type {
+  ChartCardResponse,
+  KpiCardResponse,
+  TopListCardResponse,
+} from "../layers/dms-ui/app/composables/chart/types";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-const response = ref<Record<string, unknown> | null>(null);
+const response = ref<
+  ChartCardResponse | KpiCardResponse | TopListCardResponse | null
+>(null);
 const mounted: Array<{ unmount(): void }> = [];
 const scopes: Array<() => void> = [];
 
@@ -34,18 +42,20 @@ const COMPARE_RANGE = {
   from: new Date("2025-10-01T00:00:00Z"),
   to: new Date("2025-10-31T23:59:59Z"),
 };
-const TRANSLATIONS: Record<string, string> = {
-  "dms.chart.versus_value": "vs {value}",
-  "dms.period.compare_labels.previous-period": "vs previous period",
-  "dms.period.compare_labels.previous-year": "vs previous year",
-  "dms.period.compare_options.previous-year": "Previous year",
-  "dms.chart.legend_comparison": "Comparison",
-};
+const TRANSLATIONS = new Map<string, string>(
+  Object.entries({
+    "dms.chart.versus_value": "vs {value}",
+    "dms.period.compare_labels.previous-period": "vs previous period",
+    "dms.period.compare_labels.previous-year": "vs previous year",
+    "dms.period.compare_options.previous-year": "Previous year",
+    "dms.chart.legend_comparison": "Comparison",
+  }),
+);
 const TREND = /12[.,]4\s?%/;
 
 function translate(key: string, params?: Record<string, string> | string) {
-  const template = TRANSLATIONS[key] ?? key;
-  if (typeof params !== "object") return template;
+  const template = TRANSLATIONS.get(key) ?? key;
+  if (!isObject(params)) return template;
   return template.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? "");
 }
 
@@ -66,7 +76,7 @@ function periodState(
 
 async function render(
   card: Component,
-  props: Record<string, unknown>,
+  props: Partial<InstanceType<typeof KpiCard>["$props"]>,
   state: PeriodState | null,
 ): Promise<string> {
   const root = document.createElement("div");
@@ -79,22 +89,21 @@ async function render(
             computed(() => state),
           ),
         );
-      return () =>
-        h(card, {
+      return () => {
+        const cardProps: Partial<InstanceType<typeof KpiCard>["$props"]> = {
           title: "Revenue",
           componentId: "card",
           pageId: "page",
           periodScope: SCOPE,
           fetchUrl: state ? "/revenue" : undefined,
-          ...(!state
-            ? {
-                staticValue: 48200,
-                staticDelta: 12.4,
-                staticPreviousValue: 42900,
-              }
-            : {}),
-          ...props,
-        });
+        };
+        if (!state) {
+          cardProps.staticValue = 48200;
+          cardProps.staticDelta = 12.4;
+          cardProps.staticPreviousValue = 42900;
+        }
+        return h(card, { ...cardProps, ...props });
+      };
     },
   });
   provideExtraRuntime(app);

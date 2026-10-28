@@ -18,20 +18,23 @@ import { relationSelectSource } from "../layers/dms-ui/app/build/composables/dat
 
 const column = (
   id: string,
-  options: Record<string, unknown> = {},
+  options: NonNullable<
+    TableViewColumn["type"]["inputComponent"]
+  >["options"] = {},
   defaultCompareMode?: string,
-): TableViewColumn =>
-  ({
+): TableViewColumn => ({
+  id,
+  accessorKey: id,
+  header: id,
+  listable: true,
+  type: {
     id,
-    accessorKey: id,
-    header: id,
-    listable: true,
-    type: {
-      id,
-      defaultCompareMode,
-      inputComponent: { componentName: "x", options },
-    },
-  }) as unknown as TableViewColumn;
+    compareModes: [],
+    filterComponents: {},
+    defaultCompareMode,
+    inputComponent: { componentName: "x", options },
+  },
+});
 
 const dataTypes = (id: string): DataType | undefined =>
   id === "relation" ? { id, selectSource: relationSelectSource } : undefined;

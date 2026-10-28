@@ -30,7 +30,7 @@ import {
  */
 interface RepeaterTableProps {
   columns: RepeaterTableColumn[];
-  rows: Record<string, unknown>[];
+  rows: Parameters<typeof relationRowValue>[1][];
 }
 
 const props = defineProps<RepeaterTableProps>();
@@ -98,7 +98,10 @@ function isNumeric(column: RepeaterTableColumn): boolean {
   return NUMERIC_TYPE_IDS.has(column.type ?? "");
 }
 
-function cellValue(column: RepeaterTableColumn, row: Record<string, unknown>) {
+function cellValue(
+  column: RepeaterTableColumn,
+  row: RepeaterTableProps["rows"][number],
+) {
   const value = row[column.id];
   const relation = relationRows.get(column.id);
   if (!relation) return value;

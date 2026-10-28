@@ -9,11 +9,11 @@ afterEach(() => vi.unstubAllGlobals());
 const SOURCE_NAME = "[modules.source.npm]";
 
 /** The installed tile's footer facts: version, source and category. */
-async function renderFacts(): Promise<HTMLElement[]> {
+async function renderFacts() {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => `[${key}]` }));
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (value: unknown) => value,
+    processI18n: (value: string) => value,
   }));
   const app = createSSRApp({
     render: () =>
@@ -40,10 +40,10 @@ async function renderFacts(): Promise<HTMLElement[]> {
   const version = [...document.querySelectorAll("span")].find(
     (span) => span.textContent?.trim() === "v0.5.0",
   );
-  return [...(version?.parentElement?.children ?? [])] as HTMLElement[];
+  return [...(version?.parentElement?.children ?? [])];
 }
 
-function textOf(element: HTMLElement): string {
+function textOf(element: Element): string {
   return element.textContent?.replace(/\s+/g, " ").trim() ?? "";
 }
 

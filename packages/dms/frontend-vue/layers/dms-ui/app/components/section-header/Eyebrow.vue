@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import { keepHyphenatedWords } from "../../build/utils/eyebrow";
 
@@ -23,7 +23,7 @@ interface EyebrowProps {
 }
 
 interface EyebrowSlots {
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<EyebrowProps>(), {

@@ -5,8 +5,9 @@ import { DmsLink } from "#dms/frontend-module";
 import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGridBlock.vue";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { stubBlockRuntime } from "./helpers/block-runtime";
+import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
 
-const page = (fullId: string, extra: Record<string, unknown> = {}) => ({
+const page = (fullId: string, extra: Partial<SiteLayoutTree> = {}) => ({
   fullId,
   displayName: fullId,
   fullSlug: `/${fullId.replaceAll(".", "/")}`,
@@ -17,7 +18,9 @@ const page = (fullId: string, extra: Record<string, unknown> = {}) => ({
 let pages: ReturnType<typeof page>[];
 let app: App | undefined;
 
-function mountGrid(props: Record<string, unknown>): HTMLElement {
+function mountGrid(
+  props: Partial<InstanceType<typeof NavCardGridBlock>["$props"]>,
+): HTMLElement {
   app = createApp({
     render: () =>
       h(NavCardGridBlock, {

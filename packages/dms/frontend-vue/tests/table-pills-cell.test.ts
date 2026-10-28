@@ -4,17 +4,12 @@
  * pills, and the pill items a server styles per row in their own tone and
  * variant.
  */
-import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
+import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => VNodeChild;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
 const registered = new Map<string, DataType["formatter"]>();
 
@@ -42,13 +37,11 @@ function stubLayerGlobals() {
 
 let app: App | undefined;
 
-function renderPills(value: unknown, options: unknown = {}): HTMLElement {
-  const content = (registered.get("pills")!.default as Formatter)(
-    value,
-    "en",
-    options,
-    {},
-  );
+function renderPills(
+  value: Parameters<Formatter>[0],
+  options: Parameters<Formatter>[2] = {},
+): HTMLElement {
+  const content = registered.get("pills")!.default(value, "en", options, {});
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => () => content }));
   app.component("UIcon", defineComponent({ render: () => h("i") }));

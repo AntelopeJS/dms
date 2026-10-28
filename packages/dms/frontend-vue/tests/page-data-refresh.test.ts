@@ -9,7 +9,11 @@
  */
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import type {
+  RealtimeEvent,
+  RealtimeSnapshotEvent,
+  RealtimeTopicHandler,
+} from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   refreshLivePageBlocks,
@@ -48,9 +52,14 @@ function subscribe(topic: string, handler: RealtimeTopicHandler) {
   handlers.get(topic)!.add(handler);
   return () => handlers.get(topic)?.delete(handler);
 }
-function publish(topic: string, event: object): void {
-  for (const handler of handlers.get(topic) ?? [])
+function publish(
+  topic: string,
+  event: Omit<RealtimeEvent, "ts"> | RealtimeSnapshotEvent,
+): void {
+  for (const handler of handlers.get(topic) ?? []) {
+    // SAFETY: Page refresh observes the event kind, never its timestamp; these fixtures intentionally omit ts.
     handler(event as Parameters<RealtimeTopicHandler>[0]);
+  }
 }
 
 const mounted: App[] = [];

@@ -30,7 +30,8 @@ const swatchValue = computed(() =>
 );
 
 const handlePickerInput = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
   modelValue.value = target.value;
   emitFormChange();
 };

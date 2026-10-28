@@ -1,3 +1,5 @@
+import { isFunction, isString } from "#dms-core/app/utils/type-check";
+
 /**
  * An icon-only button in the dashboard header. Either `onSelect` runs on
  * click, or `sidePanelId` makes the button toggle that side panel: the DMS then
@@ -38,10 +40,9 @@ function actionOrder(action: HeaderAction): number {
 
 function isActionRenderable(action: HeaderAction): boolean {
   const isSelectable =
-    typeof action.onSelect === "function" ||
-    typeof action.sidePanelId === "string";
+    isFunction(action.onSelect) || isString(action.sidePanelId);
   if (!isSelectable) return false;
-  if (typeof action.isVisible !== "function") return true;
+  if (!isFunction(action.isVisible)) return true;
   return action.isVisible();
 }
 

@@ -1,18 +1,37 @@
-import * as vue from "vue";
+import {
+  computed,
+  defineComponent,
+  effectScope,
+  h,
+  inject,
+  nextTick,
+  onMounted,
+  onScopeDispose,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowReactive,
+  shallowRef,
+  toValue,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from "vue";
 import { vi } from "vitest";
 import { engine } from "./api-data-runtime";
 import { useMultiAccount } from "../../layers/dms-core/app/composables/auth/useMultiAccount";
 import { getAppTranslation } from "../../layers/dms-core/app/composables/translation/useTranslation";
 
-export const PinInput = vue.defineComponent({
+export const PinInput = defineComponent({
   props: { modelValue: Array },
   emits: ["update:modelValue", "complete"],
   setup:
     (_, { emit }) =>
     () =>
-      vue.h("input", {
+      h("input", {
         "data-testid": "code",
         onInput: (event: Event) => {
+          // SAFETY: This handler is attached only to the input rendered immediately above.
           const digits = (event.target as HTMLInputElement).value.split("");
           emit("update:modelValue", digits);
           if (digits.length === 6) emit("complete");
@@ -22,27 +41,27 @@ export const PinInput = vue.defineComponent({
 
 export function installAuthSettingsRuntime(): void {
   const app = {
-    runWithContext: (callback: () => unknown) => callback(),
+    runWithContext: <Result>(callback: () => Result) => callback(),
     $i18n: { t: (key: string) => key },
   };
-  for (const name of [
-    "computed",
-    "ref",
-    "reactive",
-    "watch",
-    "watchEffect",
-    "onMounted",
-    "onUnmounted",
-    "onScopeDispose",
-    "nextTick",
-    "effectScope",
-    "inject",
-    "shallowReactive",
-    "shallowRef",
-    "useTemplateRef",
-    "toValue",
-  ] as const)
-    vi.stubGlobal(name, vue[name]);
+  for (const [name, value] of Object.entries({
+    computed,
+    ref,
+    reactive,
+    watch,
+    watchEffect,
+    onMounted,
+    onUnmounted,
+    onScopeDispose,
+    nextTick,
+    effectScope,
+    inject,
+    shallowReactive,
+    shallowRef,
+    useTemplateRef,
+    toValue,
+  }))
+    vi.stubGlobal(name, value);
   for (const [name, value] of Object.entries({
     useDmsState: engine.useDmsState,
     useDmsApp: () => app,

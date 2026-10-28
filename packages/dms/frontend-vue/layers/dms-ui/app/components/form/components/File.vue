@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useId } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 import DmsFieldError from "../../field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
@@ -65,7 +66,7 @@ const initializeFromModelValue = (
 ) => {
   if (!val) {
     uploadedKeys.value = [];
-  } else if (typeof val === "string") {
+  } else if (isString(val)) {
     uploadedKeys.value = val ? [val] : [];
   } else {
     uploadedKeys.value = val;
@@ -83,7 +84,7 @@ const openFile = async (resourceKey: string) => {
 watch(
   () => props.modelValue,
   (val) => {
-    const newKeys = !val ? [] : typeof val === "string" ? [val] : val;
+    const newKeys = !val ? [] : isString(val) ? [val] : val;
     if (newKeys.join(",") !== uploadedKeys.value.join(",")) {
       uploadedKeys.value = newKeys;
     }

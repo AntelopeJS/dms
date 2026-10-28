@@ -30,7 +30,9 @@ const SETTLE_MS = 50;
 const settle = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 const mounted: Array<{ unmount: () => void }> = [];
 
-function render(props: Record<string, unknown>): HTMLElement {
+function render(
+  props: Partial<InstanceType<typeof KeyValueListBlock>["$props"]>,
+): HTMLElement {
   const root = document.createElement("div");
   const app = createApp(KeyValueListBlock, { card: false, ...props });
   app.component("UIcon", defineComponent({ render: () => h("i") }));

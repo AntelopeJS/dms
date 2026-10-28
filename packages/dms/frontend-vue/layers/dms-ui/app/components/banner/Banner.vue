@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
 import {
   BANNER_TONE_ICONS,
@@ -27,11 +27,11 @@ interface BannerEmits {
 
 interface BannerSlots {
   /** Rich description body (overrides the `description` prop). */
-  description?: () => unknown;
+  description?: () => ReturnType<Slot>;
   /** Optional inset command/CLI box rendered under the description. */
-  cli?: () => unknown;
+  cli?: () => ReturnType<Slot>;
   /** Right-aligned actions, vertically centred. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<BannerProps>(), {

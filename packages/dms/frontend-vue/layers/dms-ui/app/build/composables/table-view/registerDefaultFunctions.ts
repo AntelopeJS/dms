@@ -13,6 +13,11 @@ export interface FormSuccessRoute {
   params?: Record<string, string>;
 }
 
+interface FormSuccessTarget {
+  path: string;
+  query?: RouteQuery;
+}
+
 /**
  * Where a page-mode form sends the user on submit: the page carrying the table
  * view. Its URL holds a `{{params.X}}` token per placeholder of that page's
@@ -22,7 +27,7 @@ export interface FormSuccessRoute {
 export function resolveFormSuccessTarget(
   { url, preserveQuery }: FormSuccessParams,
   route: FormSuccessRoute,
-): { path: string; query?: RouteQuery } {
+): FormSuccessTarget {
   const path = resolveLinkVariables(url, {
     routeParams: route.params,
     routeQuery: route.query,
@@ -35,7 +40,9 @@ export function resolveFormSuccessTarget(
     }
   }
 
-  return { path, ...(Object.keys(query).length > 0 ? { query } : {}) };
+  const target: FormSuccessTarget = { path };
+  if (Object.keys(query).length > 0) target.query = query;
+  return target;
 }
 
 export function registerDefaultFunctions() {
@@ -46,6 +53,7 @@ export function registerDefaultFunctions() {
   registerFunction(
     TableViewFunctions.CUSTOM_PAGE_FORM_SUCCESS,
     (event: CustomEvent) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CustomEvent does not declare the function registry's params extension. Its owner supplies no typed event contract; validation would change malformed-event behavior.
       const { params } = event as CustomEvent & { params: FormSuccessParams };
 
       navigateDms(

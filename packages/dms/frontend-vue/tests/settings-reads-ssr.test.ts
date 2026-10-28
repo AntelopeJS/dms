@@ -21,11 +21,12 @@ import { useSecurityOverview } from "../layers/dms-layout/app/build/composables/
 import { useNotificationPreferences } from "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences";
 import { useNotificationCatalog } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import type { I18nTranslate } from "../layers/dms-core/app/composables/translation/useTranslation";
 
 const NOW = new Date("2026-10-15T12:00:00Z").getTime();
 const MINUTE = 60_000;
 
-const ANSWERS: Record<string, unknown> = {
+const ANSWERS = {
   "/dms/pages/settings/user/security": {
     activeSessions: 2,
     attention: ["two_factor_off"],
@@ -56,7 +57,7 @@ const ANSWERS: Record<string, unknown> = {
 
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   if (options?.method === "PATCH") return undefined;
-  return structuredClone(ANSWERS[url]);
+  return structuredClone(new Map(Object.entries(ANSWERS)).get(url));
 });
 const reads = () =>
   authFetch.mock.calls
@@ -95,7 +96,7 @@ beforeEach(() => {
     t: (key: string) => key,
     te: () => false,
   }));
-  stubApiData(authFetch as never);
+  stubApiData(authFetch);
 });
 
 afterEach(() => {
@@ -135,7 +136,7 @@ describe("Security", () => {
     );
     vi.stubGlobal("useI18n", () => ({
       locale: ref("en"),
-      t: (key: string, named?: Record<string, unknown>) =>
+      t: (key: string, named?: Parameters<I18nTranslate>[1]) =>
         named ? `${key}(${Object.values(named).join()})` : key,
       te: () => false,
     }));

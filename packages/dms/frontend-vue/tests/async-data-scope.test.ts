@@ -43,10 +43,15 @@ const Root = defineComponent({
 
 const mounted: App[] = [];
 
-function start(app: App, runtime: DmsFrontendRuntime, session: object) {
+function start(
+  app: App,
+  runtime: DmsFrontendRuntime,
+  session: typeof ACCOUNT_A,
+) {
   engine.provideDmsFrontendRuntime(app, runtime);
   app.runWithContext(() => {
     engine.useDmsState("dms-session", () => null).value = session;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin uses injected runtime state, not context fields; a full app context would be unused fixture data.
     void asyncDataScopePlugin({} as never);
   });
 }
@@ -151,6 +156,7 @@ describe("the async data scope", () => {
     });
     await engine.installDmsPlugins(
       app,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only the locale and message setter are used in this no-translation plugin fixture.
       { locale: { value: "en" }, setLocaleMessage() {} } as never,
       browser,
       async () => ({}),

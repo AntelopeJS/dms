@@ -1,3 +1,6 @@
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isObject } from "#dms-core/app/utils/type-check";
+
 /** How many labels a multi-value relation cell shows before collapsing. */
 export const MAX_RELATION_BADGES = 3;
 
@@ -7,9 +10,12 @@ export interface RelationBadges {
   hidden: string[];
 }
 
-function readRelationLabel(item: unknown, labelKey: string): string {
-  if (typeof item === "object" && item !== null) {
-    const label = (item as Record<string, unknown>)[labelKey];
+function readRelationLabel(
+  item: Parameters<DataTypeFormatter>[0],
+  labelKey: string,
+): string {
+  if (isObject(item) && item !== null) {
+    const label = item[labelKey];
     return label === undefined || label === null ? "" : String(label);
   }
   return item === undefined || item === null ? "" : String(item);

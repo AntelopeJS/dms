@@ -28,6 +28,8 @@ import {
 } from "../layers/dms-ui/app/utils/blockRefresh";
 import type { PageToolbarSize } from "../layers/dms-ui/app/build/composables/page-toolbar/pageToolbarContext";
 import { usePageToolbarSize } from "../layers/dms-ui/app/composables/page-toolbar/usePageToolbarSize";
+import type PageToolbarComponent from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
+import type LiveToggleComponent from "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -37,8 +39,8 @@ const t = (key: string, params?: { count?: number }) =>
   params?.count === undefined ? key : `${key}:${params.count}`;
 
 interface ToolbarSetup {
-  toolbar?: Record<string, unknown>;
-  toggle?: Record<string, unknown> | false;
+  toolbar?: Partial<InstanceType<typeof PageToolbarComponent>["$props"]>;
+  toggle?: Partial<InstanceType<typeof LiveToggleComponent>["$props"]> | false;
   /** Drawn by hand in a component, without block ids. */
   isBare?: boolean;
 }

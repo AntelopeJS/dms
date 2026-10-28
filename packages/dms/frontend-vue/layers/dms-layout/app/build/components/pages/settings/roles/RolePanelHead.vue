@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Slot } from "vue";
 interface RolePanelHeadProps {
   icon: string;
   /** Id of the heading, named by the panel's `aria-labelledby`. */
@@ -13,7 +14,7 @@ const props = withDefaults(defineProps<RolePanelHeadProps>(), {
 
 interface RolePanelHeadSlots {
   /** The role's name, and what follows it (a lock). */
-  default: () => unknown;
+  default: Slot;
 }
 
 defineSlots<RolePanelHeadSlots>();

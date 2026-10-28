@@ -53,6 +53,7 @@ usePageHeaderActions(() =>
     size: "xs",
     ariaLabel: t("page.settings.shortcuts.layout_label"),
     "onUpdate:modelValue": (value: string | number | undefined) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Segmented's event type is wider than KeyboardPlatform. This existing unchecked assignment also accepts malformed emitted values; validating them would change behavior.
       if (value !== undefined) platform.value = value as KeyboardPlatform;
     },
   }),

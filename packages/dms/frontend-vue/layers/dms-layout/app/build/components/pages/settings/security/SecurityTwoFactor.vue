@@ -144,7 +144,10 @@ const removeDescription = computed(() => {
     : t("page.settings.security.two_factor.remove_turns_off");
 });
 
-function fail(error: unknown, fallbackKey: string): void {
+function fail(
+  error: Parameters<typeof errorMessage>[0],
+  fallbackKey: string,
+): void {
   toast.add({ title: errorMessage(error, fallbackKey), color: "error" });
 }
 
@@ -158,14 +161,16 @@ function showCodes(
 }
 
 /** Whether the API refused the typed code itself (not the request). */
-function isCodeError(error: unknown): boolean {
+function isCodeError(error: Parameters<typeof resolveFieldErrors>[0]): boolean {
   return (
     resolveFieldErrors(error, { fields: ["code"], codes: CODE_ERRORS }).fields
       .length > 0
   );
 }
 
-function isPasswordError(error: unknown): boolean {
+function isPasswordError(
+  error: Parameters<typeof resolveFieldErrors>[0],
+): boolean {
   return (
     resolveFieldErrors(error, {
       fields: ["currentPassword"],
@@ -177,7 +182,7 @@ function isPasswordError(error: unknown): boolean {
 /** A refusal of what the open dialog asked for, shown in that dialog. */
 interface FieldRefusal {
   error: Ref<string | undefined>;
-  matches: (error: unknown) => boolean;
+  matches: (error: Parameters<typeof resolveFieldErrors>[0]) => boolean;
   messageKey: string;
 }
 

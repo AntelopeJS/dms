@@ -33,7 +33,7 @@ const KIND_STEPS: Record<StoreOperationKind, StoreOperationStep[]> = {
   apply: ["load"],
 };
 
-const STEP_ICONS: Record<string, string> = {
+const STEP_ICONS = {
   done: "i-ph-check-circle-fill",
   running: "i-ph-circle-notch",
   todo: "i-ph-circle",
@@ -71,7 +71,7 @@ const steps = computed(() => {
   );
   return kindSteps.map((step) => {
     const index = PROGRESS_STEPS.indexOf(step);
-    const state =
+    const state: keyof typeof STEP_ICONS =
       index < current ? "done" : index === current ? "running" : "todo";
     return { step, state };
   });

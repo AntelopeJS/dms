@@ -1,4 +1,4 @@
-import { onScopeDispose, ref, type Ref } from "vue";
+import { onScopeDispose, ref } from "vue";
 
 /** How long a copy button says "Copied" before it offers to copy again. */
 const COPIED_FEEDBACK_MS = 1600;
@@ -26,7 +26,7 @@ export interface CopyFeedback<Key> {
 export function useCopyFeedback<Key = true>(
   feedbackMs: number = COPIED_FEEDBACK_MS,
 ): CopyFeedback<Key> {
-  const copiedKey = ref<Key | null>(null) as Ref<Key | null>;
+  const copiedKey = ref<Key | null>(null);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   function reset(): void {

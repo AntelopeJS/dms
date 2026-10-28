@@ -39,6 +39,7 @@ export interface LiveSubscription {
    * reaching several blocks counts once in the page's `missedCount`; its
    * `payload.ids` or `payload.count` say how many rows it stands for.
    */
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Event identity is any object; payload-less events and arbitrary publisher objects must remain accepted.
   trigger(event?: object): void;
   /** Rows and events the block received while paused or held, not read yet. */
   readonly missed: Readonly<Ref<number>>;
@@ -308,13 +309,19 @@ class PageLive implements PageLiveController {
     }
   }
 
-  private trigger(state: SubscriberState, event: object | undefined): void {
+  private trigger(
+    state: SubscriberState,
+    event: Parameters<LiveSubscription["trigger"]>[0],
+  ): void {
     if (this.paused.value) this.countMissed(state, event, true);
     else if (state.isHeld) this.countMissed(state, event, false);
     else this.triggerDirect(state, event);
   }
 
-  private triggerDirect(state: SubscriberState, event: object | undefined) {
+  private triggerDirect(
+    state: SubscriberState,
+    event: Parameters<LiveSubscription["trigger"]>[0],
+  ) {
     if (state.timer) {
       state.pendingEvents.push(event);
       return;
@@ -353,7 +360,7 @@ class PageLive implements PageLiveController {
 
   private countMissed(
     state: SubscriberState,
-    event: object | undefined,
+    event: Parameters<LiveSubscription["trigger"]>[0],
     isPageMissed: boolean,
   ): void {
     state.tally.add(event);

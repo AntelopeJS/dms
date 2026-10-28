@@ -13,7 +13,7 @@ import { buildInitialColumnVisibility } from "./utils/columnVisibility";
 import type { TableViewFormPages } from "./utils/formTexts";
 
 const BUILTIN_DISPLAYS: Record<
-  string,
+  TableViewDisplayConfig["id"],
   Pick<TableViewDisplayConfig, "selfManagedData" | "capabilities">
 > = {
   [TABLE_DISPLAY_ID]: { capabilities: { columnManagement: true } },

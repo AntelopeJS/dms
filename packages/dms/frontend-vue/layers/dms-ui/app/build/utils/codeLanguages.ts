@@ -1,7 +1,10 @@
 /** The language a snippet is shown as written in. */
 export const PLAIN_CODE_LANGUAGE = "text";
 
-const LANGUAGE_ALIASES: Record<string, string> = {
+const LANGUAGE_ALIASES: Record<
+  NonNullable<Parameters<typeof resolveCodeLanguage>[0]>,
+  ReturnType<typeof resolveCodeLanguage>
+> = {
   js: "javascript",
   ts: "typescript",
   bash: "shell",
@@ -9,7 +12,10 @@ const LANGUAGE_ALIASES: Record<string, string> = {
   plain: PLAIN_CODE_LANGUAGE,
 };
 
-const CODE_LANGUAGE_LABELS: Record<string, string> = {
+const CODE_LANGUAGE_LABELS: Record<
+  Parameters<typeof codeLanguageLabel>[0],
+  ReturnType<typeof codeLanguageLabel>
+> = {
   json: "JSON",
   sql: "SQL",
   html: "HTML",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import type { ButtonProps } from "@nuxt/ui";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
@@ -34,11 +34,11 @@ interface EmptyStateProps {
 
 interface EmptyStateSlots {
   /** Rich description, replaces `description`. */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Under the text, above the actions: a snippet to start with. */
-  content?: () => unknown;
+  content?: () => ReturnType<Slot>;
   /** Buttons or links under the text. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<EmptyStateProps>(), {

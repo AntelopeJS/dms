@@ -28,6 +28,7 @@ const { useTableCountsData, useTableListData } = await import(
 );
 
 const FETCH_URL = "/api/log/route?route={{query.route}}";
+// SAFETY: These row-source tests only consume column ids and accessor keys, not rendering or input metadata.
 const COLUMNS = [{ id: "path", accessorKey: "path" }] as TableViewColumn[];
 const TAB_QUERIES = [{ id: "get", query: { filter_method: "is:GET" } }];
 const ROUTE_VALUE = "GET /api/search?q=shoes&page=2";
@@ -37,10 +38,11 @@ const ENCODED_URL =
 type Api = Parameters<typeof useTableRows>[0]["api"];
 
 const requests: string[] = [];
+// SAFETY: The row-source test only calls the list endpoint; generic fetch helpers are not used by this fixture.
 const api = (async (url: string) => {
   requests.push(url);
   return { results: [{ _id: "a", path: "/api/search" }], total: 1 };
-}) as unknown as Api;
+}) as Api;
 
 let runtime: DmsFrontendRuntime;
 const mounted: App[] = [];

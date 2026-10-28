@@ -1,3 +1,5 @@
+import type { AsyncComponentLoader } from "vue";
+
 function collectFromComponentInfo(
   info: ComponentInfo | undefined,
   names: Set<string>,
@@ -33,19 +35,19 @@ export function collectPageLayoutComponentNames(
   return [...names];
 }
 
-interface AsyncComponentLoader {
-  __asyncLoader?: () => Promise<unknown>;
+interface AsyncComponentWithLoader {
+  __asyncLoader?: AsyncComponentLoader;
 }
 
-function loadPageLayoutComponents(
-  layout: PageLayout | null | undefined,
-): Promise<unknown> {
+function loadPageLayoutComponents(layout: PageLayout | null | undefined) {
   return Promise.all(
-    collectPageLayoutComponentNames(layout).map((name) =>
-      (
-        resolveDmsComponent(name) as AsyncComponentLoader | undefined
-      )?.__asyncLoader?.(),
-    ),
+    collectPageLayoutComponentNames(layout).map((name) => {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- resolveDmsComponent exposes Vue's public Component union, not its optional internal loader; the loader's callable type comes from Vue and access remains unchecked for custom components.
+      const component = resolveDmsComponent(name) as
+        | AsyncComponentWithLoader
+        | undefined;
+      return component?.__asyncLoader?.();
+    }),
   );
 }
 

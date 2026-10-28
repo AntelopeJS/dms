@@ -55,6 +55,7 @@ const EDITOR_PACKAGES = [
 ];
 
 beforeAll(async () => {
+  // SAFETY: With build.write false and no watch or multiple-output configuration, Vite returns one RollupOutput.
   const output = (await build({
     configFile: false,
     root: ROOT,

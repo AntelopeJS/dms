@@ -29,12 +29,12 @@ function isExternal(to: string): boolean {
   return EXTERNAL_LINK_PATTERN.test(to);
 }
 
-async function onLocaleChange(code: unknown) {
+async function onLocaleChange(code: Parameters<typeof changeLanguage>[0]) {
   if (isLoggedIn.value) {
-    await changeLanguage(code as string);
+    await changeLanguage(code);
     return;
   }
-  await setLocale(code as typeof locale.value);
+  await setLocale(code);
 }
 </script>
 

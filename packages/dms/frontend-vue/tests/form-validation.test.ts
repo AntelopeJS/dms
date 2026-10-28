@@ -18,6 +18,7 @@ const translate = (key: string) => `t(${key})`;
 
 async function issuesOf(
   schema: z.ZodTypeAny,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validation must receive unparsed inputs, including missing fields.
   value: unknown,
 ): Promise<Array<{ message: string; path?: PropertyKey[] }>> {
   const result = await localizeSchema(schema, translate)["~standard"].validate(
@@ -149,7 +150,7 @@ describe("focusFirstFormError", () => {
 
 describe("useLiveFormErrors", () => {
   it("re-checks a field in error as soon as it changes, only that one", async () => {
-    const state = reactive<Record<string, unknown>>({ email: "", name: "" });
+    const state = reactive({ email: "", name: "" });
     const validate = vi.fn(async () => undefined);
     const errors = new Set(["email"]);
     const form = ref({

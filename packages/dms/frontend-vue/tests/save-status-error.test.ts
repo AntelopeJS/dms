@@ -1,18 +1,17 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
+import { createI18n } from "vue-i18n";
 import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import SaveStatus from "../layers/dms-ui/app/components/save-bar/SaveStatus.vue";
 import InstantSaveBadge from "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue";
 
-type Messages = Record<string, unknown>;
-
-const translate = (key: string) =>
-  String(
-    key
-      .split(".")
-      .reduce<unknown>((node, part) => (node as Messages)?.[part], uiEn) ?? key,
-  );
+const i18n = createI18n({
+  legacy: false,
+  locale: "en",
+  messages: { en: uiEn },
+});
+const translate = (key: string) => i18n.global.t(key);
 
 const ButtonStub = defineComponent({
   props: { label: String },

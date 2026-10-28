@@ -5,10 +5,6 @@
  */
 export type PageArrivalKind = "load" | "visit" | "history";
 
-interface InertiaBeforeDetail {
-  visit: { prefetch?: boolean };
-}
-
 let arrivalKind: PageArrivalKind = "load";
 let isTracking = false;
 
@@ -22,7 +18,7 @@ export function trackPageArrivals(): void {
   isTracking = true;
 
   document.addEventListener("inertia:before", (event) => {
-    const { visit } = (event as CustomEvent<InertiaBeforeDetail>).detail;
+    const { visit } = event.detail;
     if (!visit.prefetch) arrivalKind = "visit";
   });
   window.addEventListener("popstate", () => {

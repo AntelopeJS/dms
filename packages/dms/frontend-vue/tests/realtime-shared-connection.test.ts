@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick, ref, watch, type Ref } from "vue";
 import type {
   RealtimeEvent,
+  RealtimeTopicHandler,
   UserRealtimeApi,
 } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import {
@@ -25,7 +26,7 @@ interface Tab {
   api: UserRealtimeApi;
   loggedIn: Ref<boolean>;
   browserTab: FakeTab;
-  received: RealtimeEvent[];
+  received: Parameters<RealtimeTopicHandler>[0][];
 }
 
 const settle = async (): Promise<void> => {
@@ -54,8 +55,8 @@ const openTab = async (userId = USER_ID): Promise<Tab> => {
     "../layers/dms-core/app/composables/realtime/useUserRealtime"
   );
   const api = module.useUserRealtime();
-  const received: RealtimeEvent[] = [];
-  api.subscribe(TOPIC, (event) => received.push(event as RealtimeEvent));
+  const received: Parameters<RealtimeTopicHandler>[0][] = [];
+  api.subscribe(TOPIC, (event) => received.push(event));
   const tab = { api, loggedIn, browserTab, received };
   tabs.push(tab);
   await settle();
@@ -89,9 +90,7 @@ beforeEach(() => {
   vi.stubEnv("SSR", false);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
-    ref(init()),
-  );
+  vi.stubGlobal("useDmsState", <T>(_key: string, init: () => T) => ref(init()));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));

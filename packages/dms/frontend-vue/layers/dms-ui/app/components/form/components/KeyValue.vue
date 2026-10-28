@@ -24,7 +24,9 @@ interface KeyValueProps {
 }
 
 const props = defineProps<KeyValueProps>();
-const model = defineModel<Record<string, unknown> | null | undefined>();
+const model = defineModel<
+  Record<string, KeyValueRow["value"]> | null | undefined
+>();
 const { t } = useI18n();
 const { report } = useControlError();
 
@@ -76,6 +78,6 @@ function onRows(next: KeyValueRow[] | null | undefined): void {
     :columns="columns"
     :add-label="props.addLabel"
     :disabled="props.disabled"
-    @update:model-value="onRows($event as KeyValueRow[] | null | undefined)"
+    @update:model-value="onRows($event)"
   />
 </template>

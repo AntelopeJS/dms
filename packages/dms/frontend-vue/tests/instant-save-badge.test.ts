@@ -5,16 +5,15 @@ import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
 import { providePageHeaderActions } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
 
-type Messages = Record<string, unknown>;
+type Messages = typeof uiEn | typeof uiFr;
 
 const translator = (messages: Messages) => (key: string) =>
   String(
-    key
-      .split(".")
-      .reduce<unknown>(
-        (node, part) => (node as Messages | undefined)?.[part],
-        messages,
-      ) ?? key,
+    key.split(".").reduce<unknown>(
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type, anti-slop/require-safety-comment-for-type-assertion -- A dotted translation path walks nested JSON nodes before reaching a string. Inference and the concrete locale owners cannot index arbitrary path segments; this preserves the existing optional lookup without prevalidating it.
+      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+      messages,
+    ) ?? key,
   );
 
 const IconStub = defineComponent({
@@ -74,7 +73,7 @@ describe("DmsInstantSaveBadge", () => {
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
     );
-    const icons: Record<string, string> = {
+    const icons = {
       idle: "i-ph-lightning",
       saving: "i-ph-circle-notch",
       saved: "i-ph-check",

@@ -1,6 +1,14 @@
 /** @vitest-environment jsdom */
 import "./helpers/table-runtime";
-import { computed, createApp, defineComponent, h, ref, type App } from "vue";
+import {
+  computed,
+  createApp,
+  defineComponent,
+  h,
+  ref,
+  type App,
+  type ExtractPropTypes,
+} from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import {
@@ -11,10 +19,7 @@ import {
   cardSubtitle,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/card";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
-import type {
-  TableViewCardProps,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types/display";
+import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 const rows = [
   { _id: "t1", name: "Write the docs" },
@@ -23,7 +28,8 @@ const rows = [
 
 function createContext() {
   const selected = ref<string[]>(["t2"]);
-  const opened: unknown[] = [];
+  const opened: (typeof rows)[number][] = [];
+  // SAFETY: These card tests exercise only the supplied selection, pagination, and default-open operations.
   const context = {
     items: rows,
     columns: [],
@@ -44,9 +50,9 @@ function createContext() {
     },
     actions: {
       canAdd: false,
-      open: (item: unknown) => opened.push(item),
+      open: (item: (typeof rows)[number]) => opened.push(item),
     },
-  } as unknown as TableViewDisplayContext<(typeof rows)[number]>;
+  } as TableViewDisplayContext<(typeof rows)[number]>;
   return { context, selected, opened };
 }
 
@@ -70,21 +76,22 @@ describe("table view card props", () => {
 
 describe("cards display with a custom card", () => {
   let app: App | undefined;
-  const received: TableViewCardProps[] = [];
+  const cardProps = {
+    row: Object,
+    rowId: String,
+    columns: Array,
+    labelKey: String,
+    actions: Object,
+    selected: Boolean,
+    select: Function,
+    open: Function,
+  };
+  const received: ExtractPropTypes<typeof cardProps>[] = [];
 
   const TaskCard = defineComponent({
-    props: {
-      row: Object,
-      rowId: String,
-      columns: Array,
-      labelKey: String,
-      actions: Object,
-      selected: Boolean,
-      select: Function,
-      open: Function,
-    },
+    props: cardProps,
     setup: (props) => () => {
-      received.push({ ...props } as unknown as TableViewCardProps);
+      received.push({ ...props });
       return h("button", { onClick: () => props.open?.() }, props.rowId);
     },
   });
@@ -178,6 +185,7 @@ describe("the default cards", () => {
     expect(container.querySelector("img")).toBeNull();
     app.unmount();
 
+    // SAFETY: The identity renderer reads only the id, accessorKey, and display fields supplied here.
     context.columns = [
       {
         id: "name",
@@ -216,6 +224,7 @@ describe("the default cards", () => {
 });
 
 describe("card subtitle and avatar", () => {
+  // SAFETY: cardIdentity reads only accessorKey and display from this deliberately partial column.
   const identityColumn = {
     id: "name",
     accessorKey: "name",
@@ -286,6 +295,7 @@ describe("card fields", () => {
     "tags",
   ].map(
     (key) =>
+      // SAFETY: cardFieldColumns reads only id, accessorKey, and listable from these columns.
       ({
         id: key,
         accessorKey: key,

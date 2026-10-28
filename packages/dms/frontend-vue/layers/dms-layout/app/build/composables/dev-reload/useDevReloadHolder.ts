@@ -156,7 +156,7 @@ function runRefresh(
     deps.setReloading(false);
   }, RELOAD_FLAG_MAX_MS);
   const started: Promise<boolean> = softRefresh(path, deadline, deps, deps)
-    .catch((err: unknown) => {
+    .catch((err) => {
       console.error("[dms-dev-reload] Soft refresh failed:", err);
       return false;
     })
@@ -279,6 +279,12 @@ interface DevReloadHolder {
   reloading: Ref<boolean>;
 }
 
+declare module "#dms/frontend-module" {
+  interface DmsAppContext {
+    [DEV_RELOAD_HOLDER_KEY]?: DevReloadHolder;
+  }
+}
+
 /**
  * The app-wide coordinator. Held on the DMS app rather than in a per-call ref:
  * every caller has to see the same in-flight refresh, or they would each run
@@ -288,8 +294,8 @@ interface DevReloadHolder {
  * Core-internal — module frontends use {@link useDevReload}.
  */
 export function useDevReloadHolder(): DevReloadHolder {
-  const dmsApp = useDmsApp() as unknown as Record<PropertyKey, unknown>;
-  const existing = dmsApp[DEV_RELOAD_HOLDER_KEY] as DevReloadHolder | undefined;
+  const dmsApp = useDmsApp();
+  const existing = dmsApp[DEV_RELOAD_HOLDER_KEY];
   if (existing) return existing;
 
   const reloading = import.meta.env.DEV ? useDevReloading() : ref(false);

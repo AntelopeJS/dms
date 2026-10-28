@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsIconWell, {
   type IconWellTone,
 } from "../../../components/icon-well/IconWell.vue";
@@ -44,9 +44,9 @@ interface StatCellProps {
 
 interface StatCellSlots {
   /** Replaces the value (a figure split from its unit). */
-  value?: () => unknown;
+  value?: () => ReturnType<Slot>;
   /** `md` only: the right-hand column (trend, sparkline). */
-  aside?: () => unknown;
+  aside?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<StatCellProps>(), {

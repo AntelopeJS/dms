@@ -10,6 +10,7 @@ import {
   onMounted,
   provide,
   ref,
+  type VNode,
 } from "vue";
 import {
   formFieldInjectionKey,
@@ -29,14 +30,14 @@ const ROLE_OPTIONS = {
 };
 
 const fieldError = ref<string | undefined>();
-const formState = ref<Record<string, unknown>>({});
+const formState = ref<{ isTenantOwner?: boolean }>({});
 const model = ref<string[] | null | undefined>([]);
 const authFetch = vi.fn();
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
-const translate = (key: string, named?: Record<string, unknown>) =>
+const translate = (key: string, named?: import("vue-i18n").NamedValue) =>
   named ? `${key} ${Object.values(named).join("/")}` : key;
 
 async function flush(): Promise<void> {
@@ -44,7 +45,7 @@ async function flush(): Promise<void> {
 }
 
 /** The picker inside a UFormField named `roleIds`, as a form renders it. */
-async function mountPicker(props: Record<string, unknown> = {}) {
+async function mountPicker(props: NonNullable<VNode["props"]> = {}) {
   const { default: MemberRolePicker } = await import(
     "../layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue"
   );
@@ -56,7 +57,7 @@ async function mountPicker(props: Record<string, unknown> = {}) {
           name: "roleIds",
           error: fieldError.value,
           ariaId: "field-roles",
-        })) as never,
+        })),
       );
       provide(
         formStateInjectionKey,

@@ -32,7 +32,7 @@ const LANGUAGES: LanguageRow[] = [
 const COLUMNS = [
   { id: "name", accessorKey: "name" },
   { id: "coverage", accessorKey: "coverage" },
-] as TableViewColumn[];
+] satisfies TableViewColumn[];
 
 const BASE = { field: "isBase", equals: true };
 
@@ -96,7 +96,8 @@ describe("rows a route sorts", () => {
     );
     const api = vi.fn(async () => ({ results: sortedByRoute, total: 4 }));
     const rows = useTableRows<LanguageRow>({
-      api: api as unknown as Api,
+      // SAFETY: list requests only this fixture's row page; the generic API also describes unrelated endpoints.
+      api: api as Api,
       location: "/api/languages",
       source: { fetchUrl: "/api/languages", capabilities: { sort: true } },
       columns: COLUMNS,
@@ -115,7 +116,8 @@ describe("rows a route sorts", () => {
     }));
     let pinned: typeof BASE | undefined = BASE;
     const rows = useTableRows<LanguageRow>({
-      api: api as unknown as Api,
+      // SAFETY: list requests only this fixture's row page, not arbitrary generic API responses.
+      api: api as Api,
       location: "/api/languages",
       columns: COLUMNS,
       pinnedRows: () => pinned,
@@ -141,7 +143,7 @@ describe("the rows a paging table shows, pinned page by page", () => {
   }));
 
   const SHOWN = ["a1", "a3", "a0", "a2", "a6", "a7", "a4", "a5", "a8", "a9"];
-  const idsOf = (rows: Record<string, unknown>[]) => rows.map((row) => row._id);
+  const idsOf = (rows: { _id: string }[]) => rows.map((row) => row._id);
 
   function controllerRows() {
     const api = vi.fn(
@@ -153,7 +155,8 @@ describe("the rows a paging table shows, pinned page by page", () => {
       }),
     );
     const rows = useTableRows({
-      api: api as unknown as Api,
+      // SAFETY: list requests this fixture's numeric paging query and receives its row page.
+      api: api as Api,
       location: "/api/customers",
       columns: COLUMNS,
       pinnedRows: () => VIP,

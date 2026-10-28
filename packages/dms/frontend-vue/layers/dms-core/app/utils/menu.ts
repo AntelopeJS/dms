@@ -1,5 +1,6 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { parseLinkQuery, stripQueryAndHash } from "./routePath";
+import { isString } from "./type-check";
 
 export const MENU_STATUS_TEXT_CLASSES: Record<MenuItemStatus, string> = {
   success: "text-success",
@@ -41,8 +42,9 @@ export const shouldExpandMenuItem = (
   matchedFullId: string | null,
 ): boolean => {
   if (!matchedFullId) return false;
-  const fullId = (item as DmsMenuItem).fullId;
-  if (typeof fullId !== "string" || fullId === "") return false;
+  const dmsItem: DmsMenuItem = item;
+  const fullId = dmsItem.fullId;
+  if (!isString(fullId) || fullId === "") return false;
   return matchedFullId === fullId || matchedFullId.startsWith(`${fullId}.`);
 };
 
@@ -59,11 +61,12 @@ const matchesRoutePrefix = (currentPath: string, to: string): boolean => {
 const resolveItemTarget = (
   to: NavigationMenuItem["to"],
 ): MenuItemTarget | null => {
-  if (typeof to === "string") {
+  if (isString(to)) {
     return { path: stripQueryAndHash(to), query: parseLinkQuery(to) };
   }
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the base's unchecked menu projection without widening its public string query contract to router query arrays.
   const target = to as MenuItemTarget | undefined;
-  if (target && typeof target.path === "string") {
+  if (target && isString(target.path)) {
     return { path: target.path, query: target.query };
   }
   return null;
@@ -74,7 +77,7 @@ const hasQuery = (target: MenuItemTarget | null): boolean =>
 
 const queryMatches = (
   declared: MenuItemTarget["query"],
-  currentQuery: Record<string, unknown>,
+  currentQuery: MenuRouteState["query"],
 ): boolean => {
   if (!declared) return true;
   return Object.entries(declared).every(
@@ -98,7 +101,8 @@ export const isMenuItemActive = (
         normalizeRoutePath(target.path)
       : matchesRoutePrefix(currentRoute.path, target.path);
   if (matchesRoute) return true;
-  const fullId = (item as DmsMenuItem).fullId;
+  const dmsItem: DmsMenuItem = item;
+  const fullId = dmsItem.fullId;
   return matchedFullId !== null && fullId === matchedFullId;
 };
 
@@ -167,7 +171,7 @@ export const applyMenuRouteState = (
 const collectExpandedIds = (items: NavigationMenuItem[]): string[] => {
   const ids: string[] = [];
   for (const item of items) {
-    if (typeof item.id === "string" && item.defaultOpen) {
+    if (isString(item.id) && item.defaultOpen) {
       ids.push(item.id);
     }
     if (item.children) ids.push(...collectExpandedIds(item.children));

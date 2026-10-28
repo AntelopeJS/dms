@@ -10,6 +10,7 @@ import {
   shallowRef,
   type App,
   type Ref,
+  type ExtractPropTypes,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaginationState } from "@tanstack/vue-table";
@@ -28,7 +29,7 @@ import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
 import { useTableViewEmptyState } from "../layers/dms-ui/app/composables/table-view/useTableViewEmptyState";
 import type { TableViewEmptyStatesConfig } from "../layers/dms-ui/app/composables/table-view/types";
 
-const pinnedStatus = (value: unknown): TableFilter => ({
+const pinnedStatus = (value: TableFilter["value"]): TableFilter => ({
   accessorKey: "status",
   mode: "is",
   value,
@@ -302,14 +303,15 @@ describe("table empty state", () => {
   });
 
   it("hands a custom state a clear for the search and one for the filters", async () => {
-    const received: Record<string, unknown>[] = [];
+    const customProps = {
+      state: String,
+      clearSearch: Function,
+      clearFilters: Function,
+    };
+    const received: ExtractPropTypes<typeof customProps>[] = [];
     vi.stubGlobal("resolveDmsComponent", () =>
       defineComponent({
-        props: {
-          state: String,
-          clearSearch: Function,
-          clearFilters: Function,
-        },
+        props: customProps,
         setup: (props) => () => {
           received.push({ ...props });
           return h("p", "custom");
@@ -325,12 +327,12 @@ describe("table empty state", () => {
     });
     const props = received.at(-1)!;
     expect(props.state).toBe("filtered");
-    (props.clearSearch as () => void)();
+    props.clearSearch!();
     await nextTick();
     expect(state.globalFilter.value).toBe("");
     expect(state.columnFilters.value).toEqual([dueDate]);
     expect(received.at(-1)!.clearSearch).toBeUndefined();
-    (received.at(-1)!.clearFilters as () => void)();
+    received.at(-1)!.clearFilters!();
     expect(state.columnFilters.value).toEqual([]);
   });
 

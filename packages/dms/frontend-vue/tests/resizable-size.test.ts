@@ -39,9 +39,8 @@ function memoryStorage(initial?: number): ResizeStorage & {
 }
 
 const pointer = (clientX: number, clientY = 0) =>
-  ({ clientX, clientY, preventDefault: () => {} }) as PointerEvent;
-const key = (name: string) =>
-  ({ key: name, preventDefault: () => {} }) as KeyboardEvent;
+  new PointerEvent("pointermove", { clientX, clientY });
+const key = (name: string) => new KeyboardEvent("keydown", { key: name });
 
 function resizable(
   side: ResizeSide,

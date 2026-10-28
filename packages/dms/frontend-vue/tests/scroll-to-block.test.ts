@@ -16,11 +16,13 @@ import {
   ref,
   type App,
   type ComponentPublicInstance,
+  type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerBlockAnchor } from "../layers/dms-ui/app/build/composables/page/blockAnchors";
 import { scrollToBlock } from "../layers/dms-ui/app/utils/scrollToBlock";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import type { ResolvedComponentInfo } from "../layers/dms-layout/app/types/page";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -48,19 +50,30 @@ const Split = defineComponent({
       ]),
 });
 
-const resolvedChild = (id: string, component: unknown, slot?: string) => ({
-  id,
-  component,
-  options: {},
-  children: [],
-  ...(slot ? { slot } : {}),
-});
+const resolvedChild = (
+  id: string,
+  component: Component,
+  slot?: string,
+): ResolvedComponentInfo => {
+  const child: ResolvedComponentInfo = {
+    id,
+    component,
+    options: {},
+    children: [],
+  };
+  if (slot) child.slot = slot;
+  return child;
+};
 
 async function mountPage(showSecond = ref(true)) {
   const { default: RecursiveComponent } = await import(
     "../layers/dms-ui/app/components/RecursiveComponent.vue"
   );
-  const block = (id: string, component: unknown, children: unknown[] = []) =>
+  const block = (
+    id: string,
+    component: Component,
+    children: ReturnType<typeof resolvedChild>[] = [],
+  ) =>
     h(RecursiveComponent, {
       component: { ...resolvedChild(id, component), children },
       pageId: "routes",
@@ -95,7 +108,9 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.append(host);
   scrolled.length = 0;
-  Element.prototype.scrollIntoView = function (options?: unknown) {
+  Element.prototype.scrollIntoView = function (
+    options?: Parameters<Element["scrollIntoView"]>[0],
+  ) {
     scrolled.push({ element: this, options });
   };
 });
@@ -146,10 +161,12 @@ describe("scrollToBlock", () => {
 
 describe("registerBlockAnchor", () => {
   it("leaves an anchor to the block that took it over", () => {
+    // SAFETY: The first instance is only an identity token and is replaced before its subtree could be read.
     const first = {} as ComponentPublicInstance;
+    // SAFETY: blockAnchorElement reads only $.subTree.el, supplied by this fixture.
     const second = {
       $: { subTree: { el: document.createElement("div") } },
-    } as unknown as ComponentPublicInstance;
+    } as ComponentPublicInstance;
     registerBlockAnchor("chart", first);
     registerBlockAnchor("chart", second);
     registerBlockAnchor("chart", null, first);

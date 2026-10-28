@@ -10,7 +10,7 @@
  * suites (table-live-hold, page-data-refresh), `usePageLiveRefresh` too
  * (page-live-refresh).
  */
-import { type App, createApp, defineComponent, h } from "vue";
+import { createApp, defineComponent, h } from "vue";
 import {
   afterAll,
   afterEach,
@@ -49,11 +49,9 @@ const { useApiData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"
 );
 
-const { default: livePauseSourcePlugin } = (await import(
+const { default: livePauseSourcePlugin } = await import(
   "../layers/dms-ui/app/plugins/live-pause-source"
-)) as unknown as {
-  default: (context: { vueApp: App }) => void;
-};
+);
 
 const TOPIC = "orders:events";
 const CARD_URL = "/api/orders/kpi";
@@ -89,7 +87,8 @@ function mount(setup: () => void): void {
     }),
   );
   browserRuntime(app);
-  livePauseSourcePlugin({ vueApp: app });
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This plugin reads only vueApp; other app-context services are intentionally absent from the polling fixture.
+  livePauseSourcePlugin({ vueApp: app } as never);
   app.mount(document.createElement("div"));
   mounted.push(app);
 }

@@ -21,7 +21,10 @@ const props = defineProps<InputPercentageProps>();
 const emits = defineEmits<InputNumberEmits>();
 defineSlots<InputNumberSlots>();
 
-const displayValue = computed({
+const displayValue = computed<
+  InputNumberProps["modelValue"],
+  InputNumberEmits["update:modelValue"][0]
+>({
   get: () => {
     const value = props.modelValue;
     return isNumber(value) ? value * PERCENTAGE_MULTIPLIER : value;
@@ -30,7 +33,7 @@ const displayValue = computed({
     if (isNumber(newValue)) {
       emits("update:modelValue", newValue / PERCENTAGE_MULTIPLIER);
     } else {
-      emits("update:modelValue", newValue as unknown as number);
+      emits("update:modelValue", newValue);
     }
   },
 });

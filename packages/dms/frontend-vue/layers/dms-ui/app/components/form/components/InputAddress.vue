@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type { SelectMenuItem } from "@nuxt/ui";
 import { refDebounced } from "@vueuse/core";
 import {
@@ -105,6 +106,7 @@ const {
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
 
+// SAFETY: defaultAddress is the local literal above, contains only AddressValue keys and is never assigned extra properties.
 const PARTS = Object.keys(defaultAddress) as Array<keyof AddressValue>;
 const FIRST_PART: keyof AddressValue = "streetName";
 
@@ -160,8 +162,8 @@ function partState(part: keyof AddressValue) {
 const root = useTemplateRef<HTMLElement>("root");
 
 function onFocusOut(event: FocusEvent) {
-  const next = event.relatedTarget as Node | null;
-  if (next && root.value?.contains(next)) return;
+  const next = event.relatedTarget;
+  if (next instanceof Node && root.value?.contains(next)) return;
   emitFormBlur();
 }
 
@@ -185,9 +187,9 @@ const patchFields = (patch: Partial<AddressValue>) => {
 };
 
 const staticCountryOptions = computed(() => {
-  const countries = tm("country") as Record<string, unknown>;
+  const countries = tm("country");
 
-  if (!countries || typeof countries !== "object") {
+  if (!countries || !isObject(countries)) {
     return [];
   }
 
@@ -215,8 +217,8 @@ const mapCountryData = (item: Record<string, string>) => {
   const valueKey = props.keyMapping?.value || "value";
 
   return {
-    label: item[labelKey] as string,
-    value: item[valueKey] as string,
+    label: item[labelKey],
+    value: item[valueKey],
   };
 };
 
@@ -333,9 +335,7 @@ const isStreetFocused = ref(false);
 
 const BOX_KEYWORD = /\s+(?:bo[iî]te|bus|box|bte)\s*\.?\s*/i;
 
-const splitHouseNumber = (
-  raw?: string,
-): { houseNumber: string; boxNumber: string } => {
+const splitHouseNumber = (raw?: string) => {
   const value = (raw ?? "").trim();
   if (!value) return { houseNumber: "", boxNumber: "" };
 

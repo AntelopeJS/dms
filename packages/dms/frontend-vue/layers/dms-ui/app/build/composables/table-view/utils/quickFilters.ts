@@ -38,8 +38,9 @@ interface ColumnInputOptions {
 const ARRAY_MODE: TableViewQuickFilterMode = "array_contains_string";
 const SCALAR_MODE: TableViewQuickFilterMode = "is";
 
-const inputOptions = (column: TableViewColumn | undefined) =>
-  (column?.type?.inputComponent?.options ?? {}) as ColumnInputOptions;
+const inputOptions = (
+  column: TableViewColumn | undefined,
+): ColumnInputOptions => column?.type?.inputComponent?.options ?? {};
 
 /**
  * The compare mode a quick filter applies: the declared one, else "contains"
@@ -106,7 +107,7 @@ export function relationQuickFilterSource(
 
 /** Rows of a relation's `select` route as quick filter values. */
 export function relationQuickFilterItems(
-  rows: Array<Record<string, unknown>>,
+  rows: Array<Parameters<typeof relationRowValue>[1]>,
   source: DataTypeSelectSource,
 ): QuickFilterItem[] {
   return rows.flatMap((row) => {

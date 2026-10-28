@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import enGB from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 import {
@@ -9,13 +10,16 @@ import {
   isAccountMenuRoute,
 } from "../layers/dms-layout/app/utils/account-menu";
 
-function lookup(messages: unknown, key: string): unknown {
+type Messages = import("vue-i18n").LocaleMessage<
+  import("vue-i18n").VueMessageType
+>;
+
+function lookup(messages: Messages, key: string): Messages[string] | undefined {
   return key
     .split(".")
-    .reduce<unknown>(
-      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-      messages,
-    );
+    .reduce<
+      Messages[string] | undefined
+    >((node, part) => node?.[part], messages);
 }
 
 describe("account menu entries", () => {
@@ -36,7 +40,7 @@ describe("account menu entries", () => {
     )!;
     expect(lookup(messages, entry.labelKey)).toBe(label);
     ACCOUNT_MENU_ENTRIES.forEach((item) =>
-      expect(typeof lookup(messages, item.labelKey)).toBe("string"),
+      expect(isString(lookup(messages, item.labelKey))).toBe(true),
     );
   });
 

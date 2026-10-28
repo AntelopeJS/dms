@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Slot } from "vue";
+
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 
 interface Props {
@@ -14,13 +16,13 @@ interface Props {
 }
 
 interface Slots {
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Replaces the head content (title and count). */
-  header?: () => unknown;
+  header?: () => ReturnType<Slot>;
   /** Right-aligned head actions. */
-  actions?: () => unknown;
+  actions?: () => ReturnType<Slot>;
   /** Muted footer band. */
-  footer?: () => unknown;
+  footer?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<Props>(), {

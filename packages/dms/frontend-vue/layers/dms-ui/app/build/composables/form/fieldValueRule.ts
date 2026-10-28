@@ -1,8 +1,11 @@
+import type { WatchAction } from "#dms-core/app/types/watch";
+import { isString, isNumber, isBoolean } from "#dms-core/app/utils/type-check";
+
 /** What a `SetFieldValue` watch writes, and where. */
 export interface SetFieldValueParams {
   targetField: string;
   value?: unknown;
-  valueMap?: Record<string, unknown>;
+  valueMap?: NonNullable<WatchAction["params"]>;
 }
 
 /** The payload of a form's `FieldChange` event. */
@@ -18,8 +21,8 @@ export type FieldValueWrite = { value: unknown } | undefined;
 
 type MapKey = string | number | boolean;
 
-function isMapKey(value: unknown): value is MapKey {
-  return ["string", "number", "boolean"].includes(typeof value);
+function isMapKey(value: FieldChangePayload["value"]): value is MapKey {
+  return isString(value) || isNumber(value) || isBoolean(value);
 }
 
 /**
@@ -50,8 +53,11 @@ export function resolveFieldValueWrite(
  * coming back to that value is a change too.
  */
 export function createStartingValueTracker(
-  isStartingValue: (fieldId: string, value: unknown) => boolean,
-): (fieldId: string, value: unknown) => boolean {
+  isStartingValue: (
+    fieldId: string,
+    value: FieldChangePayload["value"],
+  ) => boolean,
+): (fieldId: string, value: FieldChangePayload["value"]) => boolean {
   const changedFieldIds = new Set<string>();
   return (fieldId, value) => {
     if (changedFieldIds.has(fieldId)) return false;

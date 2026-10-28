@@ -55,6 +55,7 @@ const ServerLivePage = defineComponent({
 /** A page's controller as the browser has it once the page has read once. */
 function pollingController(): PageLiveController {
   const value = <T>(initial: T) => computed(() => shallowRef(initial).value);
+  // SAFETY: usePageLive only reads these six controller state refs; controller actions are not invoked by this hydration fixture.
   return {
     isPaused: value(false),
     pauseReason: value(null),
@@ -62,7 +63,7 @@ function pollingController(): PageLiveController {
     missedCount: value(0),
     missedDetail: value(null),
     isPolling: value(true),
-  } as unknown as PageLiveController;
+  } as PageLiveController;
 }
 
 let warn: ReturnType<typeof vi.spyOn>;

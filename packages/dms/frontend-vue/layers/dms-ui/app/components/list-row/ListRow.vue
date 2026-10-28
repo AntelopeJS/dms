@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, resolveComponent, useSlots } from "vue";
+import { type Slot, computed, resolveComponent, useSlots } from "vue";
 import { tv } from "tailwind-variants";
 import DmsIconWell, {
   type IconWellSize,
@@ -67,14 +67,14 @@ interface ListRowProps {
 
 interface ListRowSlots {
   /** Title content (badges inline after the text). */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Replaces the icon well. */
-  leading?: () => unknown;
-  description?: () => unknown;
+  leading?: () => ReturnType<Slot>;
+  description?: () => ReturnType<Slot>;
   /** Meta entries: direct `<span>` children are joined by "·". */
-  meta?: () => unknown;
+  meta?: () => ReturnType<Slot>;
   /** Right column: actions, a status, a time. */
-  trailing?: () => unknown;
+  trailing?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<ListRowProps>(), {

@@ -1,5 +1,7 @@
+import type { ApexOptions } from "apexcharts";
 import type { UseApexChartInput } from "./useApexChart.types";
 import type { ChartType } from "./types";
+import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import {
   readThemeDimmed,
   readThemeHighlighted,
@@ -25,7 +27,8 @@ const CENTER_VALUE_FONT_WEIGHT = 650;
 const HEATMAP_RADIUS = 4;
 const HEATMAP_DEFAULT_INTENSITY = 0.6;
 
-type PlotBuilder = (props: UseApexChartInput) => Record<string, unknown>;
+type PlotOptions = NonNullable<ApexOptions["plotOptions"]>;
+type PlotBuilder = (props: UseApexChartInput) => PlotOptions;
 
 function widthValue(
   width: number | undefined,
@@ -37,7 +40,7 @@ function widthValue(
 function buildBarPlotOptions(
   input: UseApexChartInput,
   isHorizontal: boolean,
-): Record<string, unknown> {
+): PlotOptions {
   const widthKey = isHorizontal ? "barHeight" : "columnWidth";
   const widthInput = isHorizontal ? input.barWidth : input.columnWidth;
   return {
@@ -63,7 +66,7 @@ export function ringFitsSliceLabels(input: UseApexChartInput): boolean {
 }
 
 /** v2 donut centre: mono eyebrow over a 20px value. */
-function centerLabelStyles(): Record<string, Record<string, unknown>> {
+function centerLabelStyles() {
   return {
     name: {
       fontFamily: readThemeMonoFont(),
@@ -79,7 +82,7 @@ function centerLabelStyles(): Record<string, Record<string, unknown>> {
   };
 }
 
-function buildDonutPlot(props: UseApexChartInput): Record<string, unknown> {
+function buildDonutPlot(props: UseApexChartInput): PlotOptions {
   const styles = centerLabelStyles();
   return {
     pie: {
@@ -102,7 +105,7 @@ function buildDonutPlot(props: UseApexChartInput): Record<string, unknown> {
   };
 }
 
-function buildRadialBarPlot(props: UseApexChartInput): Record<string, unknown> {
+function buildRadialBarPlot(props: UseApexChartInput): PlotOptions {
   return {
     radialBar: {
       hollow: { size: props.hollowSize || DEFAULT_RADIAL_HOLE },
@@ -117,7 +120,7 @@ function buildRadialBarPlot(props: UseApexChartInput): Record<string, unknown> {
   };
 }
 
-function buildHeatmapPlot(props: UseApexChartInput): Record<string, unknown> {
+function buildHeatmapPlot(props: UseApexChartInput): PlotOptions {
   return {
     heatmap: {
       shadeIntensity: props.shadeIntensity ?? HEATMAP_DEFAULT_INTENSITY,
@@ -135,8 +138,6 @@ const PLOT_BUILDERS: Partial<Record<ChartType, PlotBuilder>> = {
   heatmap: buildHeatmapPlot,
 };
 
-export function buildPlotOptions(
-  input: UseApexChartInput,
-): Record<string, unknown> {
+export function buildPlotOptions(input: UseApexChartInput): RawOptionSection {
   return PLOT_BUILDERS[input.type]?.(input) ?? {};
 }

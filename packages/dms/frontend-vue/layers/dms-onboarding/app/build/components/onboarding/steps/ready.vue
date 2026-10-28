@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "vue";
 import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/build/utils/tileRow";
 import type { KeyValueItem } from "#dms-ui/app/components/key-value-list/KeyValueList.vue";
 import StageCard from "../../../../../../dms-layout/app/build/components/layout/StageCard.vue";
@@ -91,7 +92,9 @@ const recapItems = computed<KeyValueItem[]>(() => [
   },
 ]);
 
-function actionAttributes(action: NextAction): Record<string, unknown> {
+function actionAttributes(
+  action: NextAction,
+): AnchorHTMLAttributes | ButtonHTMLAttributes {
   if (action.isExternal) {
     return { href: action.to, ...EXTERNAL_LINK_ATTRIBUTES };
   }

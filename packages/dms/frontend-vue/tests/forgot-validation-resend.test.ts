@@ -77,7 +77,7 @@ function installRuntime() {
   }));
   vi.stubGlobal("useToast", () => ({ add: toastAdd }));
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <Result>(fn: () => Result) => fn(),
   }));
   vi.stubGlobal("useDmsRoute", () => ({
     query: { email: "member@local.test" },

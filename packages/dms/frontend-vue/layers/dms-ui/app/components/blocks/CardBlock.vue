@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
@@ -26,9 +26,9 @@ interface CardBlockProps extends Partial<DefaultComponentProps> {
 }
 
 interface CardBlockSlots {
-  default?: () => unknown;
-  actions?: () => unknown;
-  footer?: () => unknown;
+  default?: () => ReturnType<Slot>;
+  actions?: () => ReturnType<Slot>;
+  footer?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<CardBlockProps>(), {

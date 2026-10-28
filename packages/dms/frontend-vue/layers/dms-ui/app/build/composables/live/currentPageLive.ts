@@ -65,7 +65,7 @@ export function isServerPageLive(): boolean {
 /** @internal */
 export interface LiveGate {
   /** An event behind the block arrived: refetch, now or later, or count it. */
-  trigger(event?: object): void;
+  trigger(...args: Parameters<LiveSubscription["trigger"]>): void;
   /** Events the block missed while the page is paused. */
   missed: ComputedRef<number>;
   /** When the block last read through the gate (ms), 0 before or without `live`. */

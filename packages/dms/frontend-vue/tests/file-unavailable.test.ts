@@ -9,7 +9,6 @@ import {
   ref,
   shallowReactive,
   watch,
-  type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import File from "../layers/dms-ui/app/components/form/components/File.vue";
@@ -26,7 +25,7 @@ const passthrough = defineComponent({
       h("span", slots.default?.()),
 });
 
-function mountFile(): { app: App; container: HTMLElement } {
+function mountFile() {
   const app = createApp({
     render: () => h(File, { modelValue: STORED_KEY }),
   });

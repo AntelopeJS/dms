@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import DmsEyebrow from "./Eyebrow.vue";
 
@@ -24,12 +24,12 @@ interface SectionHeaderProps {
 }
 
 interface SectionHeaderSlots {
-  title?: () => unknown;
+  title?: () => ReturnType<Slot>;
   /** Inline after the title and the count (badge, tag, tooltip…). */
-  badge?: () => unknown;
-  description?: () => unknown;
+  badge?: () => ReturnType<Slot>;
+  description?: () => ReturnType<Slot>;
   /** Right-aligned actions; they wrap under the heading on narrow screens. */
-  trailing?: () => unknown;
+  trailing?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<SectionHeaderProps>(), {

@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-type Middleware = (to: unknown) => Promise<unknown>;
+type Middleware = (
+  to: typeof privateRoute,
+) => ReturnType<
+  typeof import("../layers/dms-auth/app/middleware/auth").default
+>;
 
+// SAFETY: The initial value is null, a member of the nullable error state used by these fixtures.
 const pageError = { value: null as { statusCode: number } | null };
 const navigateDms = vi.fn();
 
@@ -26,6 +31,7 @@ afterEach(() => {
 
 async function loadMiddleware(): Promise<Middleware> {
   const module = await import("../layers/dms-auth/app/middleware/auth");
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- The identity middleware stub accepts the partial route fixture used here. The router-owned signature requires unrelated normalized route fields and incompatible matched-record metadata; inference cannot model that deliberately incomplete test boundary.
   return module.default as unknown as Middleware;
 }
 

@@ -43,7 +43,7 @@ const columnsStyle = computed(() => ({
   "--dms-choice-columns": String(Math.max(1, Math.round(props.columns))),
 }));
 
-const items = computed(() => props.items as unknown as RadioGroupItem[]);
+const items = computed<RadioGroupItem[]>(() => props.items);
 const pickedMany = computed<ChoiceValue[]>({
   get: () => (Array.isArray(model.value) ? model.value : []),
   set: (value) => (model.value = value),

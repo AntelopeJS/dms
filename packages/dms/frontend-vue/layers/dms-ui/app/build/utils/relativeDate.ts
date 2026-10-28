@@ -1,3 +1,4 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import { formatRelativeDistance } from "#dms-core/app/utils/formatter";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 
@@ -45,6 +46,6 @@ export function formatDayMonth(
 }
 
 /** First word of a name, for "Sep 27 · by Camille". */
-export function firstNameOf(name: unknown): string {
-  return typeof name === "string" ? (name.trim().split(/\s+/)[0] ?? "") : "";
+export function firstNameOf(name: Parameters<typeof isString>[0]): string {
+  return isString(name) ? (name.trim().split(/\s+/)[0] ?? "") : "";
 }

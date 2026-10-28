@@ -150,6 +150,6 @@ describe("TableView bulk action confirmations", () => {
       Object.keys(messages.dms.table).filter((key) =>
         /_confirm_|_rows$|row_selection_count/.test(key),
       );
-    expect(keys(fr as typeof en).sort()).toEqual(keys(en).sort());
+    expect(keys(fr).sort()).toEqual(keys(en).sort());
   });
 });

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isString } from "#dms-core/app/utils/type-check";
+
 interface Props {
   note?: string;
 }
@@ -14,9 +16,9 @@ const providers = computed(() => config.public.dms.oauthProviders ?? []);
 function appendQueryParam(
   query: URLSearchParams,
   key: string,
-  value: unknown,
+  value: ReturnType<typeof useDmsRoute>["query"][string],
 ): void {
-  if (typeof value === "string" && value) {
+  if (isString(value) && value) {
     query.set(key, value);
   }
 }

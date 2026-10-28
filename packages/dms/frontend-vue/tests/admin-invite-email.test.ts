@@ -19,7 +19,7 @@ function passthrough(tag: string) {
 }
 
 async function renderInvite(
-  props: Record<string, unknown>,
+  props: Partial<InstanceType<typeof AdminInvite>["$props"]>,
   locale = "en",
 ): Promise<string> {
   vi.stubGlobal("useDmsAppConfig", () => ({}));

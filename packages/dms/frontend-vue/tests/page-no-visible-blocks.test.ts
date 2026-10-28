@@ -32,7 +32,7 @@ const EMPTY_TITLE_KEY = "page.no_visible_blocks.title";
 const EMPTY_DESCRIPTION_KEY = "page.no_visible_blocks.description";
 
 const pageLayout = ref<PageLayoutFixture | null>(null);
-const siteLayoutTree = ref<Record<string, unknown> | undefined>(undefined);
+const siteLayoutTree = ref<ReturnType<typeof treeWithNestedPage>>();
 const navigateDms = vi.fn();
 
 const EmptyState: FunctionalComponent<{
@@ -52,7 +52,7 @@ PageComponent.props = ["componentId"];
 
 function installRuntime(): void {
   const metadata = { fullId: "examples.overview", hasAccess: true };
-  const runtime: Record<string, unknown> = {
+  const runtime = {
     computed,
     inject,
     onMounted,

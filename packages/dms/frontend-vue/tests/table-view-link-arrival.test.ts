@@ -21,7 +21,7 @@ const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
 const QUERY_PARAM_FILTERS = { customer: { field: "customerId" } };
 
 const arrival = (
-  query: Record<string, unknown>,
+  query: TableLinkArrival["query"],
   rememberedTab = "all",
   keptLinkScope?: string,
   overrides: Partial<TableLinkArrival> = {},
@@ -131,7 +131,7 @@ describe("urlFilterScope", () => {
 });
 
 describe("linkedArrivalPreferences", () => {
-  const kept: Record<string, unknown> = {
+  const kept = {
     activeView: "unassigned",
     activeTab: "closed",
     columnFilters: [{ accessorKey: "status", mode: "is", value: "x" }],
@@ -142,8 +142,11 @@ describe("linkedArrivalPreferences", () => {
   };
   const written: Array<[string, unknown]> = [];
   const preferences: TablePreferences = {
+    // SAFETY: This fixture implements the preference API's generic read; callers request the value type stored under each field.
     get: <V>(field: string, fallback: V) =>
-      (field in kept ? kept[field] : fallback) as V,
+      (field in kept
+        ? new Map(Object.entries(kept)).get(field)
+        : fallback) as V,
     set: (field, value) => {
       written.push([field, value]);
     },
@@ -257,7 +260,7 @@ describe("isLinkedVisit", () => {
   });
 
   it("follows a row's link only for what changes the listing", () => {
-    const rowLink = (query: Record<string, unknown>) =>
+    const rowLink = (query: TableLinkVisit["query"]) =>
       visit({
         query: { record: "r2", ...query },
         previousQuery: { customer: "c1" },
@@ -374,11 +377,12 @@ describe("linkFollowingPreferences", () => {
 
 describe("a link to the kept tab, reloads and the user's pick", () => {
   const keptStore = (): TablePreferences & {
-    kept: Record<string, unknown>;
+    kept: Record<string, Parameters<TablePreferences["set"]>[1]>;
   } => {
-    const kept: Record<string, unknown> = {};
+    const kept: Record<string, Parameters<TablePreferences["set"]>[1]> = {};
     return {
       kept,
+      // SAFETY: The preference API correlates a generic read with the value previously stored under that field; these tests keep those field types consistent.
       get: <V>(field: string, fallback: V) =>
         (field in kept ? kept[field] : fallback) as V,
       set: (field, value) => {

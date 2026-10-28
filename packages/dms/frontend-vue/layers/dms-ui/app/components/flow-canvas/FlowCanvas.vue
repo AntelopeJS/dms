@@ -31,7 +31,9 @@ interface FlowNode {
   id: string;
   type?: string;
   position: { x: number; y: number };
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumer node renderers own this unparsed payload; VueFlow's generic data owner has no shared schema and its default any would weaken this object contract.
   data?: Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumers forward arbitrary node extensions; VueFlow's closed Node fields would exclude existing extension keys.
   [key: string]: unknown;
 }
 
@@ -42,6 +44,7 @@ interface FlowEdge {
   sourceHandle?: string | null;
   targetHandle?: string | null;
   type?: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Consumers forward arbitrary edge extensions; VueFlow's closed Edge fields would exclude existing extension keys.
   [key: string]: unknown;
 }
 
@@ -133,7 +136,7 @@ const flow = useVueFlow(flowId);
 const slots = useSlots();
 
 const isPanelSlot = (name: string): name is PanelPosition =>
-  (PANEL_POSITIONS as readonly string[]).includes(name);
+  PANEL_POSITIONS.some((position) => position === name);
 
 const activePanelPositions = computed(() =>
   PANEL_POSITIONS.filter((position) => slots[position]),

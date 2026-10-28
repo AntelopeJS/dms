@@ -18,6 +18,7 @@ interface KanbanDisplayOptions {
 }
 
 const options = computed(
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Backend display options are not validated here; preserve their current forwarding and fallback behavior.
   () => (props.context.options ?? {}) as KanbanDisplayOptions,
 );
 
@@ -59,9 +60,9 @@ defineExpose({ refresh: () => kanbanBoardRef.value?.refresh() });
     :page-id="context.pageId"
     :edit-action="bridge?.editAction"
     :delete-action="bridge?.deleteAction"
-    @card-click="(item) => onCardClick(item as T)"
+    @card-click="(item) => onCardClick(item)"
     @card-delete="(item) => onCardDelete(item as T)"
     @moved="bridge?.onCardMoved?.()"
-    @rows-shown="(items) => context.setShownRows?.(items as T[])"
+    @rows-shown="(items) => context.setShownRows?.(items)"
   />
 </template>

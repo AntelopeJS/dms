@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const MIN_NAME_LENGTH = 2;
 
@@ -29,7 +30,10 @@ interface ClosedInvitationNotice {
   description: string;
 }
 
-const CLOSED_INVITATION_CODES: Record<string, ClosedInvitation> = {
+const CLOSED_INVITATION_CODES: Record<
+  ReturnType<typeof resolveApiErrorMessage>,
+  ClosedInvitation
+> = {
   "error.invalid_token": "invalid",
   "error.invite_expired": "expired",
   "error.invite_revoked": "revoked",
@@ -68,7 +72,9 @@ const CLOSED_INVITATION_NOTICES: Record<
   },
 };
 
-function closedInvitationOf(error: unknown): ClosedInvitation | undefined {
+function closedInvitationOf(
+  error: Parameters<typeof resolveApiErrorMessage>[0],
+): ClosedInvitation | undefined {
   return CLOSED_INVITATION_CODES[resolveApiErrorMessage(error)];
 }
 
@@ -80,12 +86,12 @@ const { formError, clearFormError, showError } = useAuthFormError();
 const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
-const queryToken = computed(() => route.query.token as string);
-const queryEmail = computed(() => route.query.email as string);
-const queryName = computed(() => route.query.name as string | undefined);
+const queryToken = computed(() => route.query.token);
+const queryEmail = computed(() => route.query.email);
+const queryName = computed(() => route.query.name);
 
 const hasInvitationToken = computed(
-  () => typeof queryToken.value === "string" && queryToken.value !== "",
+  () => isString(queryToken.value) && queryToken.value !== "",
 );
 
 const invitationCheck = useApiData(
@@ -106,7 +112,8 @@ const invitationState = computed<InvitationState>(() => {
 });
 const closedInvitation = computed(() =>
   invitationState.value in CLOSED_INVITATION_NOTICES
-    ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
+    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing in lookup includes inherited keys; stronger own-key validation would change malformed error-code handling, and TypeScript does not narrow the key here.
+      CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
     : undefined,
 );
 

@@ -8,7 +8,6 @@ import { selectedRowIds } from "../../composables/table-view/utils/bulkActions";
 import { isAllMatchingAction } from "../../composables/actions/bulkSelection";
 import type { CustomRowAction } from "../../../types/row-action";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 const theme = tv({
   slots: {
@@ -44,7 +43,8 @@ interface TableRowSelectionProps {
 
 const props = defineProps<TableRowSelectionProps>();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableRowSelection: Partial<typeof theme> };
 };
 
@@ -136,7 +136,7 @@ const formattedTotal = computed(() =>
 
 const uiTableRowSelectionVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableRowSelection || {}),
+  ...appConfig.ui?.tableRowSelection,
 });
 const uiTableRowSelection = computed(() =>
   uiTableRowSelectionVariant({ archived: !!props.archived }),

@@ -2,7 +2,10 @@
 import type { Component } from "vue";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import type { ModalSize } from "../../../../types/modal";
-import type { ContainerColor } from "../../../../composables/containers/types";
+import type {
+  ContainerColor,
+  ContainerInstance,
+} from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
   CLOSING_OVERLAY_CLASS,
@@ -17,17 +20,19 @@ interface DynamicModalProps {
   size?: ModalSize;
   containerId: string;
   component: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy component-prop boundary accepts arbitrary values for every string key without validation.
   componentOptions?: Record<string, unknown>;
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy header-prop boundary accepts arbitrary values for every string key without validation.
   headerComponentOptions?: Record<string, unknown>;
   icon?: string;
   color?: ContainerColor;
 }
 
 interface DynamicModalEmits {
-  (e: "close", result?: unknown): void;
+  (e: "close", result?: Parameters<ContainerInstance["close"]>[0]): void;
 }
 
 const props = withDefaults(defineProps<DynamicModalProps>(), {
@@ -123,7 +128,7 @@ watch(
   },
 );
 
-function handleSuccess(result?: unknown) {
+function handleSuccess(result?: Parameters<ContainerInstance["close"]>[0]) {
   clearGuards(props.containerId);
   isOpen.value = false;
   emit("close", result);

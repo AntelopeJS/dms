@@ -7,8 +7,18 @@
  * A read-only array field shows its rows and nothing to change them with.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as vue from "vue";
-import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
+import {
+  createApp,
+  defineComponent,
+  h,
+  nextTick,
+  ref,
+  inject,
+  computed,
+  watch,
+  onBeforeUnmount,
+  type App,
+} from "vue";
 import {
   formBusInjectionKey,
   formFieldInjectionKey,
@@ -43,17 +53,17 @@ const Button = defineComponent({
 });
 
 async function mount(
-  rows: Record<string, unknown>[],
+  rows: { name?: string }[],
   options: { sortable?: boolean; disabled?: boolean } = {},
 ) {
-  for (const name of [
-    "inject",
-    "computed",
-    "ref",
-    "watch",
-    "onBeforeUnmount",
-  ]) {
-    vi.stubGlobal(name, vue[name as keyof typeof vue]);
+  for (const [name, value] of Object.entries({
+    inject,
+    computed,
+    ref,
+    watch,
+    onBeforeUnmount,
+  })) {
+    vi.stubGlobal(name, value);
   }
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
 
@@ -75,14 +85,24 @@ async function mount(
         ],
         modelValue: model.value,
         ...options,
-        "onUpdate:modelValue": (next: Record<string, unknown>[]) =>
-          (model.value = next),
+        "onUpdate:modelValue": (next: typeof rows) => (model.value = next),
       }),
   });
+  // SAFETY: Repeater only emits field events through this bus; no other emitter methods are used.
   app.provide(formBusInjectionKey, {
     emit: (event: { type: string }) => events.push(event.type),
   } as never);
-  app.provide(formFieldInjectionKey, ref({ name: "contacts" }) as never);
+  // SAFETY: Repeater reads only the field ref's name; this fixture does not require the computed ref's internal metadata.
+  app.provide(
+    formFieldInjectionKey,
+    ref({
+      name: "contacts",
+    }) as typeof formFieldInjectionKey extends import("vue").InjectionKey<
+      infer Field
+    >
+      ? Field
+      : never,
+  );
   app.component("UButton", Button);
   app.component("UIcon", Button);
   app.mount(host);

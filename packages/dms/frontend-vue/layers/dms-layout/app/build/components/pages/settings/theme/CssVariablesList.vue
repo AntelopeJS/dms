@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CSSProperties } from "vue";
 import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
@@ -73,7 +74,8 @@ function categoryOf(name: string): VariableCategory {
 
 function collectNames(rules: CSSRuleList, names: Set<string>): void {
   for (const rule of Array.from(rules)) {
-    if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
+    if ("cssRules" in rule && rule.cssRules) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CSSOM rules with cssRules include keyframes, not only CSSGroupingRule; retain the rule-list projection.
       collectNames((rule as CSSGroupingRule).cssRules, names);
     }
     if (rule instanceof CSSStyleRule) {
@@ -141,7 +143,7 @@ const shown = computed(() => {
   );
 });
 
-function swatchStyle(variable: CSSVariable): Record<string, string> {
+function swatchStyle(variable: CSSVariable): CSSProperties {
   if (COLOR_CATEGORIES.has(variable.category)) {
     return { background: `var(${variable.name})` };
   }

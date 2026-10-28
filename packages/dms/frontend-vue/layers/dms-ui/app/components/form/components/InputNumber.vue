@@ -124,7 +124,9 @@ let typedText: string | null = null;
 let settledValue: number | null | undefined;
 
 function onTyped(event: Event): void {
-  typedText = (event.target as HTMLInputElement).value;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  typedText = input.value;
   settledValue = undefined;
 }
 
@@ -141,7 +143,8 @@ async function settle(event: Event): Promise<void> {
   if (typedText === null) return;
   const text = typedText;
   typedText = null;
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   await nextTick();
   const typed = parseTypedNumber(text, props.locale ?? locale.value);
   const kept = settledValue === undefined ? props.modelValue : settledValue;

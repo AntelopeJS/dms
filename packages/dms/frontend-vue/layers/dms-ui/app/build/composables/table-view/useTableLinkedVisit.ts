@@ -4,12 +4,13 @@ import type { QueryParamFilters } from "../../../composables/table-view/types/co
 import { isLinkedVisit } from "./utils/linkedArrival";
 import { queryOfUrl } from "./utils/urlFilters";
 import type { TableUrlScope } from "./utils/views";
+import type { LocationQuery } from "#dms/frontend-module";
 
 const URL_BASE = "http://dms.invalid";
 
 /** What `useTableLinkedVisit` reads a visit against, and what it calls. */
 export interface TableLinkedVisitOptions {
-  route: { path: string; query: Record<string, unknown> };
+  route: { path: string; query: LocationQuery };
   urlScope: TableUrlScope;
   queryParamFilters: QueryParamFilters | undefined;
   activeView: () => string | undefined;
@@ -17,7 +18,7 @@ export interface TableLinkedVisitOptions {
   canOpenView: (id: string) => boolean;
   canOpenTab: (id: string) => boolean;
   /** Opens the table on what the visit's link names, as an arrival would. */
-  follow: (query: Record<string, unknown>) => void;
+  follow: (query: LocationQuery) => void;
 }
 
 /**
@@ -31,7 +32,7 @@ export interface TableLinkedVisitOptions {
  */
 export function useTableLinkedVisit(options: TableLinkedVisitOptions): void {
   const pathname = options.route.path;
-  let previousQuery: Record<string, unknown> = { ...options.route.query };
+  let previousQuery: LocationQuery = { ...options.route.query };
 
   let followedVisitId: string | undefined;
   const stops: Array<() => void> = [];

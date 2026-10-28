@@ -28,7 +28,6 @@ import {
   type TableStyleSlots,
 } from "./useTableColumns";
 import { useTableStates } from "./useTableStates";
-import type { TableColumnMeta } from "./types";
 import {
   ALWAYS_PINNED_LEFT_COLUMN_IDS,
   ALWAYS_PINNED_RIGHT_COLUMN_IDS,
@@ -140,30 +139,30 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
 
     ...stateHandlers,
 
-    ...(props.tableProps.globalFilterOptions || {}),
-    ...(props.tableProps.orderOptions || {}),
-    ...(props.tableProps.columnFiltersOptions || {}),
+    ...props.tableProps.globalFilterOptions,
+    ...props.tableProps.orderOptions,
+    ...props.tableProps.columnFiltersOptions,
     getFilteredRowModel: isManualFiltering ? undefined : getFilteredRowModel(),
 
-    ...(props.tableProps.rowSelectionOptions || {}),
+    ...props.tableProps.rowSelectionOptions,
 
-    ...(props.tableProps.sortingOptions || {}),
+    ...props.tableProps.sortingOptions,
     getSortedRowModel: isManualSorting ? undefined : getSortedRowModel(),
 
-    ...(props.tableProps.expandedOptions || {}),
+    ...props.tableProps.expandedOptions,
     getExpandedRowModel: getExpandedRowModel(),
 
-    ...(props.tableProps.paginationOptions || {}),
+    ...props.tableProps.paginationOptions,
     getPaginationRowModel: getPaginationRowModel(),
 
     columnResizeMode: "onChange" as const,
 
     enableColumnResizing: props.columnMenus !== false,
-    ...(props.tableProps.sizingOptions || {}),
+    ...props.tableProps.sizingOptions,
 
     state: stateGetters,
 
-    getRowId: (row: unknown) => get(row as Record<string, unknown>, rowIdKey),
+    getRowId: (row: T) => get(row, rowIdKey),
 
     getCoreRowModel: getCoreRowModel(),
   });
@@ -191,10 +190,10 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     return table
       .getAllColumns()
       .map((col) => ({
-        label: (col.columnDef.meta as TableColumnMeta)?.label,
+        label: col.columnDef.meta?.label,
         column: col,
       }))
-      .filter((col) => col.label) as LabeledColumn<T>[];
+      .filter((col): col is LabeledColumn<T> => !!col.label);
   });
 
   return {

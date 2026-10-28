@@ -65,7 +65,7 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 interface CascaderResponse {
-  results: Record<string, unknown>[];
+  results: Parameters<typeof buildCascaderTree>[0];
   total: number;
 }
 
@@ -320,7 +320,7 @@ function activateHighlighted() {
   handleColumnNodeClick(node, highlighted.value.column);
 }
 
-const keyHandlers: Record<string, () => void> = {
+const keyHandlers: Record<KeyboardEvent["key"], () => void> = {
   ArrowDown: () => moveHighlight(1),
   ArrowUp: () => moveHighlight(-1),
   ArrowRight: enterChildren,

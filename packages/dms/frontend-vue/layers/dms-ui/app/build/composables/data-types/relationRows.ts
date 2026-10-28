@@ -1,4 +1,9 @@
-import type { DataTypeSelectSource } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+  DataTypeSelectSource,
+} from "#dms-core/app/composables/data-types/useDataType";
+import { isString } from "#dms-core/app/utils/type-check";
 import { pageRequestUrl } from "../page/pageUrlValues";
 import { relationIdsQuery } from "./relationValue";
 
@@ -6,7 +11,7 @@ import { relationIdsQuery } from "./relationValue";
 export const RELATION_LABEL_KEY = "label";
 export const RELATION_VALUE_KEY = "value";
 
-type RelationRow = Record<string, unknown>;
+type RelationRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
 
 interface RelationSelectResponse {
   results?: RelationRow[];
@@ -22,10 +27,11 @@ interface RelationSourceOptions {
  * mapping: the relation data type's {@link DataTypeSelectSource}.
  */
 export function relationSelectSource(
-  options: unknown,
+  options: Parameters<NonNullable<DataType["selectSource"]>>[0],
 ): DataTypeSelectSource | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin contract erases options; only searchUrl is checked below, not keyMapping or the whole asserted shape.
   const opts = options as RelationSourceOptions | undefined;
-  if (typeof opts?.searchUrl !== "string") return undefined;
+  if (!isString(opts?.searchUrl)) return undefined;
   return { searchUrl: opts.searchUrl, keyMapping: opts.keyMapping };
 }
 
@@ -33,7 +39,7 @@ export function relationSelectSource(
 export function relationRowValue(
   source: DataTypeSelectSource,
   row: RelationRow,
-): unknown {
+): RelationRow[string] {
   return row[source.keyMapping?.value || RELATION_VALUE_KEY];
 }
 
@@ -41,7 +47,7 @@ export function relationRowValue(
 export function relationRowLabel(
   source: DataTypeSelectSource,
   row: RelationRow,
-): unknown {
+): RelationRow[string] {
   return row[source.keyMapping?.label || RELATION_LABEL_KEY];
 }
 

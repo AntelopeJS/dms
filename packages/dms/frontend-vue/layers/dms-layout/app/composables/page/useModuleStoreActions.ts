@@ -1,3 +1,4 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import type { Ref, VNode } from "vue";
 import ModuleStoreDependencyPicker from "../../build/components/pages/modules/ModuleStoreDependencyPicker.vue";
 import {
@@ -50,9 +51,11 @@ export const useModuleStoreActions = (
   const toast = useToast();
   const { confirm } = useConfirm();
 
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Store requests can reject with arbitrary JavaScript values; the store's Promise contract has no rejection owner type.
   function resolveStoreError(error: unknown): string {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This existing unchecked optional-property view is not validation of a StoreRequestError; inference cannot establish that rejected values have this shape, and parsing would change malformed-error behavior.
     const details = error as StoreRequestError | undefined;
-    const key = typeof details?.data === "string" ? details.data : undefined;
+    const key = isString(details?.data) ? details.data : undefined;
     if (!key) return details?.message ?? "";
     return t(`modules.store.errors.${key.replace("error.", "")}`);
   }

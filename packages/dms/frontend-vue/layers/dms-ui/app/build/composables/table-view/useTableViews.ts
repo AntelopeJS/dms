@@ -4,6 +4,7 @@ import type {
   VisibilityState,
 } from "@tanstack/vue-table";
 import type { Ref } from "vue";
+import type { LocationQuery } from "#dms/frontend-module";
 import type {
   TableViewViewConfig,
   TableViewViewsConfig,
@@ -70,14 +71,14 @@ const VIEW_NAME_FIELD = "label";
  */
 export function useTableViews(options: TableViewsOptions) {
   const { views, defaults, state, preferences, urlScope } = options;
-  const { user } = useDmsUserSession();
+  const { user } = useDmsUserSession<User>();
   const { t } = useI18n();
   const { processI18n } = useTranslation();
   const toast = useToast();
   const { confirm } = useConfirm();
   const route = useDmsRoute();
 
-  const userId = computed(() => user.value?._id as string | undefined);
+  const userId = computed(() => user.value?._id);
 
   const storedUserViews = ref<UserTableView[]>([]);
   preferences.restore("userViews", storedUserViews, Array.isArray);
@@ -157,7 +158,7 @@ export function useTableViews(options: TableViewsOptions) {
    * reads it: the view it names, else the default view, else the table's
    * default listing state under the reader's own presentation.
    */
-  const openLinkedView = (query: Record<string, unknown>) => {
+  const openLinkedView = (query: LocationQuery) => {
     const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
     const view = named.isCleared
       ? undefined

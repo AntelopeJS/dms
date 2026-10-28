@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 import type { InputProps } from "@nuxt/ui/components/Input.vue";
 
 interface PasswordInputProps {
@@ -36,7 +37,7 @@ const INVALID_BINDINGS = {
 
 const attrs = useAttrs();
 const controlledId = computed(() =>
-  typeof attrs.id === "string" ? attrs.id : undefined,
+  isString(attrs.id) ? attrs.id : undefined,
 );
 const { t } = useI18n();
 

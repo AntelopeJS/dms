@@ -14,6 +14,13 @@ interface PageLayoutRequest {
   promise: Promise<PageLayout>;
 }
 
+declare module "#dms/frontend-module" {
+  interface DmsAppContext {
+    [IN_FLIGHT_SITE_LAYOUT_KEY]?: Promise<boolean> | null;
+    [IN_FLIGHT_PAGE_LAYOUTS_KEY]?: Map<string, PageLayoutRequest>;
+  }
+}
+
 interface MatchRouteOptions {
   includeCategories: boolean;
 }
@@ -51,7 +58,7 @@ const OCCURRENCE_KEY_SEPARATOR = ":";
 const occurrenceKey = (name: string, occurrence: number): string =>
   `${name}${OCCURRENCE_KEY_SEPARATOR}${occurrence}`;
 
-function countByName(names: string[]): Record<string, number> {
+function countByName(names: string[]) {
   const totals: Record<string, number> = {};
   for (const name of names) {
     totals[name] = (totals[name] ?? 0) + 1;
@@ -59,10 +66,7 @@ function countByName(names: string[]): Record<string, number> {
   return totals;
 }
 
-function buildParamBag(
-  names: string[],
-  values: string[],
-): Record<string, string> {
+function buildParamBag(names: string[], values: string[]) {
   const totals = countByName(names);
   const seen: Record<string, number> = {};
   const params: Record<string, string> = {};
@@ -107,7 +111,7 @@ export function extractRouteParams(
  */
 function reloadSiteLayoutAndPage(): Promise<void> {
   return new Promise((resolve, reject) => {
-    let failure: unknown;
+    let failure: Error | undefined;
     inertiaRouter.reload({
       only: ["shared", "page"],
       onHttpException: (response) => {
@@ -186,14 +190,13 @@ export const useSiteLayout = () => {
     () => ({}),
   );
 
-  const dmsApp = useDmsApp() as unknown as Record<PropertyKey, unknown>;
+  const dmsApp = useDmsApp();
   const pageLayoutPromises =
-    (dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] as Map<string, PageLayoutRequest>) ??
-    new Map<string, PageLayoutRequest>();
+    dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] ?? new Map<string, PageLayoutRequest>();
   dmsApp[IN_FLIGHT_PAGE_LAYOUTS_KEY] = pageLayoutPromises;
   const loadingPromise = {
     get value(): Promise<boolean> | null {
-      return (dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] as Promise<boolean>) ?? null;
+      return dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] ?? null;
     },
     set value(promise: Promise<boolean> | null) {
       dmsApp[IN_FLIGHT_SITE_LAYOUT_KEY] = promise;
@@ -204,6 +207,7 @@ export const useSiteLayout = () => {
   const UNKNOWN_SITE_LAYOUT_ERROR = "Unknown error loading siteLayout";
   const HTTP_INTERNAL_ERROR = 500;
 
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch rejection values have no shared owner schema; an Error-only input would exclude malformed thrown values that intentionally use the fallback message.
   const handleSiteLayoutError = (error: unknown) => {
     const errorMessage =
       error instanceof Error ? error.message : UNKNOWN_SITE_LAYOUT_ERROR;
@@ -391,6 +395,7 @@ export const useSiteLayout = () => {
     const layout = siteLayout.value;
     if (!layout) return null;
 
+    // SAFETY: includeCategories false skips the category branch, so every non-null match takes metadata directly from layout.pages.
     return matchRoute(path, layout, {
       includeCategories: false,
     }) as ReturnType<typeof findMatchingRoute>;

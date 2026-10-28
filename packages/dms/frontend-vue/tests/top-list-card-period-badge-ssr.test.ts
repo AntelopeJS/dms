@@ -104,13 +104,10 @@ const mounted: App[] = [];
 
 async function hydrate(
   children: Component[],
-  { html, payload }: { html: string; payload: unknown },
+  { html, payload }: Awaited<ReturnType<typeof serverRender>>,
 ) {
   const browser = engine.createDmsFrontendRuntime(undefined, {});
-  engine.restoreDmsPayload(
-    browser,
-    structuredClone(payload) as Parameters<typeof engine.restoreDmsPayload>[1],
-  );
+  engine.restoreDmsPayload(browser, structuredClone(payload));
   const container = document.createElement("div");
   container.innerHTML = html;
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

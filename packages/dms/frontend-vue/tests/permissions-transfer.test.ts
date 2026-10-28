@@ -92,6 +92,7 @@ const { defineDmsPageMeta } = engine;
 
 /** A runtime whose app carries the DMS app context, as the real app's does. */
 function attach(app: App, runtime: DmsFrontendRuntime): void {
+  // SAFETY: This test uses the app context only as an identity token, never its members.
   const context = {} as DmsFrontendRuntime["appContext"];
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;

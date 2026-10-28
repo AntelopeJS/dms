@@ -9,14 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AxeOrientation } from "../layers/dms-core/app/types/orientation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { Size } from "../layers/dms-core/app/types/size";
-import { TabVariant } from "../layers/dms-ui/app/composables/tab/types/props";
+import {
+  TabVariant,
+  type TabProps,
+} from "../layers/dms-ui/app/composables/tab/types/props";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
-interface TabsUi {
-  list?: unknown;
-  trigger?: unknown;
-}
+type TabsUi = NonNullable<import("@nuxt/ui").TabsProps["ui"]>;
 
 let received: TabsUi = {};
 let app: vue.App | undefined;
@@ -30,10 +30,10 @@ const Tabs = vue.defineComponent({
   },
 });
 
-const classesOf = (value: unknown): string =>
+const classesOf = (value: TabsUi["list"]): string =>
   [value].flat(Infinity).filter(Boolean).join(" ");
 
-async function mount(props: Record<string, unknown>): Promise<TabsUi> {
+async function mount(props: Partial<TabProps>): Promise<TabsUi> {
   const { default: Tab } = await import(
     "../layers/dms-ui/app/components/tab/Tab.vue"
   );

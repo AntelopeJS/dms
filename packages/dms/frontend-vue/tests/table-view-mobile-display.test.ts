@@ -17,9 +17,16 @@ const OFFERED = new Set(["table", "cards"]);
 const mounted: Array<{ unmount: () => void }> = [];
 
 function setViewport(isPhone: boolean) {
-  window.matchMedia = vi.fn((query: string) => ({
-    matches: isPhone && query === PHONE_VIEWPORT_QUERY,
-  })) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi.fn(
+    (query: string): MediaQueryList =>
+      Object.assign(new EventTarget(), {
+        matches: isPhone && query === PHONE_VIEWPORT_QUERY,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+      }),
+  );
 }
 
 function mountTable(

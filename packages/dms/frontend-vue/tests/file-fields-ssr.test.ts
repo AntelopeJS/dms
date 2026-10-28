@@ -10,6 +10,7 @@ import {
   type Component,
   computed,
   type FunctionalComponent,
+  type VNode,
   h,
   inject,
   nextTick,
@@ -27,7 +28,7 @@ import FilePreview from "../layers/dms-ui/app/components/table-view/FilePreview.
 import ImagePreview from "../layers/dms-ui/app/components/table-view/ImagePreview.vue";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 
-const METADATA: Record<string, Record<string, unknown>> = {
+const METADATA = {
   "documents/brief.pdf": {
     resourceKey: "documents/brief.pdf",
     filename: "brief.pdf",
@@ -44,9 +45,11 @@ const METADATA: Record<string, Record<string, unknown>> = {
   },
 };
 
+const metadataByKey = new Map(Object.entries(METADATA));
+
 const authFetch = vi.fn(
   async (_url: string, options: { query: { resourceKey: string } }) =>
-    METADATA[options.query.resourceKey],
+    metadataByKey.get(options.query.resourceKey),
 );
 const mounted: App[] = [];
 
@@ -78,7 +81,7 @@ beforeEach(() => {
   vi.stubGlobal("shallowReactive", shallowReactive);
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  stubApiData(authFetch as never);
+  stubApiData(authFetch);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
@@ -91,7 +94,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
+    <Value>(_key: string, options: { default: () => Value }) =>
       ref(options.default()),
   );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -104,7 +107,7 @@ afterEach(() => {
   authFetch.mockClear();
 });
 
-it.each<[string, Component, Record<string, unknown>, string]>([
+it.each<[string, Component, NonNullable<VNode["props"]>, string]>([
   ["a file field", File, { modelValue: "documents/brief.pdf" }, "brief.pdf"],
   [
     "an image field",

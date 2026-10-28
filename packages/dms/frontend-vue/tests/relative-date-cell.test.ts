@@ -5,7 +5,7 @@
  * at, so a date on a minute's edge hydrates as the server wrote it, and a
  * later render follows the clock.
  */
-import { defineComponent, h, type VNodeChild } from "vue";
+import { defineComponent, h } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
@@ -16,16 +16,11 @@ import {
   serverRender,
 } from "./helpers/api-data-runtime";
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => unknown;
+type Formatter = NonNullable<DataType["formatter"]>["default"];
 
-const formatters = new Map<string, Formatter>();
+const formatters = new Map<string, Formatter | undefined>();
 const register = (dataType: DataType) =>
-  formatters.set(dataType.id, dataType.formatter?.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter?.default);
 
 function stubLayerGlobals() {
   vi.stubGlobal("h", h);
@@ -68,12 +63,7 @@ const BROWSER_AT = DATE.getTime() + 211 * SECOND;
 
 const Cell = defineComponent({
   setup: () => () =>
-    formatters.get("relative_date")!(
-      DATE.toISOString(),
-      "en-GB",
-      {},
-      {},
-    ) as VNodeChild,
+    formatters.get("relative_date")!(DATE.toISOString(), "en-GB", {}, {}),
 });
 const Row = { render: () => h("div", [h(Cell)]) };
 
@@ -120,12 +110,7 @@ describe("relative date cell, day style", () => {
   const DayCell = (value: string) =>
     defineComponent({
       setup: () => () =>
-        formatters.get("relative_date")!(
-          value,
-          "en-GB",
-          { style: "day" },
-          {},
-        ) as VNodeChild,
+        formatters.get("relative_date")!(value, "en-GB", { style: "day" }, {}),
     });
   const shown = (value: string) => {
     const { app, container } = mountInBrowser(DayCell(value));

@@ -18,11 +18,15 @@ import {
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
 
-const response = ref<Record<string, unknown> | null>(null);
+type CardResponse =
+  import("../layers/dms-ui/app/composables/chart/types").KpiCardResponse;
+const response = ref<CardResponse | null>(null);
 const requests: string[] = [];
 const TREND = /\d[.,]\d\s?%/;
 
-async function render(props: Record<string, unknown> = {}) {
+async function render(
+  props: Partial<InstanceType<typeof KpiCard>["$props"]> = {},
+) {
   const app = createSSRApp({
     render: () =>
       h(KpiCard, {

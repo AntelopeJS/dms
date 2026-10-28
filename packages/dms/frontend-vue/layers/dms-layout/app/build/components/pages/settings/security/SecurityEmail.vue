@@ -117,7 +117,9 @@ function resetForm(): void {
 }
 
 /** Shows a field-level API error under its field and focuses it. */
-async function flagField(error: unknown): Promise<boolean> {
+async function flagField(
+  error: Parameters<typeof resolveFieldErrors>[0],
+): Promise<boolean> {
   const [refused] = resolveFieldErrors(error, {
     fields: ["email", "currentPassword"],
     codes: FIELD_CODES,
@@ -187,7 +189,9 @@ async function submit(): Promise<void> {
   }
 }
 
-function isCodeRefusal(error: unknown): boolean {
+function isCodeRefusal(
+  error: Parameters<typeof resolveFieldErrors>[0],
+): boolean {
   return (
     resolveFieldErrors(error, { fields: ["code"], codes: CODE_ERRORS }).fields
       .length > 0

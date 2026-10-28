@@ -17,6 +17,7 @@ import {
   ref,
   type App,
   type FunctionalComponent,
+  type VNode,
 } from "vue";
 import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
 import {
@@ -32,9 +33,11 @@ import {
 } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { stubMiscActions } from "./helpers/misc-runtime";
+import type { LocationQuery } from "#dms/frontend-module";
+import type { NamedValue } from "vue-i18n";
 
 const LAYOUT_URL = "/modules/lang/queue/pagelayout";
-const route = reactive<{ path: string; query: Record<string, unknown> }>({
+const route = reactive<{ path: string; query: LocationQuery }>({
   path: "/modules/lang/queue/de",
   query: {},
 });
@@ -87,7 +90,7 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (value: string) => value,
-    processI18n: (value: string, params?: Record<string, unknown>) =>
+    processI18n: (value: string, params?: NamedValue) =>
       value.replace(/\{(\w+)\}/g, (_, name: string) =>
         String(params?.[name] ?? `{${name}}`),
       ),
@@ -114,7 +117,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mount(path: string, props: Record<string, unknown>) {
+async function mount(path: string, props: NonNullable<VNode["props"]>) {
   const { default: component } = await import(path);
   app = createApp({ render: () => h(component, props) });
   app.component("UButton", ButtonStub);

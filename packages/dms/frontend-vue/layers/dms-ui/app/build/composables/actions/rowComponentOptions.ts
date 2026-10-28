@@ -3,8 +3,10 @@ import {
   interpolateUrl,
   namesRowField,
 } from "#dms-core/app/utils/url-interpolation";
+import { isString } from "#dms-core/app/utils/type-check";
 
-type Options = Record<string, unknown>;
+type Options = NonNullable<ComponentInfo<Data>["options"]>;
+type OptionValue = Options[string];
 
 const URL_OPTION = /(?:url|^to|^href)$/i;
 
@@ -13,12 +15,12 @@ const OWN_ROW_OPTIONS: ReadonlySet<string> = new Set([
   "fetchRowUrl",
 ]);
 
-const isPlainObject = (value: unknown): value is Options =>
+const isPlainObject = (value: OptionValue): value is Options =>
   Object.prototype.toString.call(value) === "[object Object]";
 
-function fillValue(value: unknown, key: string, row: Options): unknown {
+function fillValue(value: OptionValue, key: string, row: Options): OptionValue {
   if (OWN_ROW_OPTIONS.has(key)) return value;
-  if (typeof value === "string") {
+  if (isString(value)) {
     if (!namesRowField(value)) return value;
     return URL_OPTION.test(key)
       ? interpolateUrl(value, row)
@@ -38,7 +40,10 @@ function fillValue(value: unknown, key: string, row: Options): unknown {
  * read through the table's `rowIdKey`. Filled anew for each row shown; a
  * nested table's row actions keep theirs for their own rows.
  */
-export function fillRowOptions(options: Options, row: Options): Options {
+export function fillRowOptions(
+  options: NonNullable<ComponentInfo["options"]>,
+  row: Options,
+): Options {
   return Object.fromEntries(
     Object.entries(options).map(([key, value]) => [
       key,
@@ -61,7 +66,7 @@ export function fillRowChildren(
     component: {
       ...child.component,
       options: child.component.options
-        ? fillRowOptions(child.component.options as Options, row)
+        ? fillRowOptions(child.component.options, row)
         : child.component.options,
       children: child.component.children
         ? fillRowChildren(child.component.children, row)

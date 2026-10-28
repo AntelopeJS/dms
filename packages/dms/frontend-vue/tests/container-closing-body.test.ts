@@ -30,6 +30,7 @@ import {
   type App,
   type Component,
   type Ref,
+  type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -41,6 +42,7 @@ import { DialogRoot as LayerDialogRoot } from "reka-ui";
 
 const nuxtUiDir = realpathSync(join(process.cwd(), "node_modules/@nuxt/ui"));
 const nuxtUiRequire = createRequire(join(nuxtUiDir, "package.json"));
+// SAFETY: The resolved module is Nuxt UI's installed reka-ui entry and exports the DialogContent and DialogRoot declared by reka-ui.
 const { DialogContent, DialogRoot } = (await import(
   pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
 )) as typeof import("reka-ui");
@@ -103,7 +105,7 @@ const passThroughStub = defineComponent({
 
 async function mountContainer(
   container: Component,
-  props: Record<string, unknown> = {},
+  props: NonNullable<VNode["props"]> = {},
 ): Promise<void> {
   const isOpen = ref(true);
   app = createApp({
@@ -121,7 +123,7 @@ async function mountContainer(
   app.component("UDrawer", ContainerStub);
   app.component("UModal", ContainerStub);
   app.component("UContainer", passThroughStub);
-  app.component("UButton", (buttonProps: Record<string, unknown>) =>
+  app.component("UButton", (buttonProps: NonNullable<VNode["props"]>) =>
     h("button", { ...buttonProps }),
   );
   app.component("USkeleton", () => h("span"));
@@ -188,7 +190,9 @@ const loadModal: ContainerLoader = () =>
     "../layers/dms-ui/app/build/components/containers/modal/DynamicModal.vue"
   );
 
-const CONTAINERS: Array<[string, ContainerLoader, Record<string, unknown>]> = [
+const CONTAINERS: Array<
+  [string, ContainerLoader, NonNullable<VNode["props"]>]
+> = [
   ["side drawer", loadDrawer, { direction: "right" }],
   ["bottom drawer", loadDrawer, { direction: "bottom" }],
   ["modal", loadModal, {}],

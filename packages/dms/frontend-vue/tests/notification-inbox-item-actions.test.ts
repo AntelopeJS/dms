@@ -18,17 +18,29 @@ interface ButtonUi {
 let app: App | undefined;
 const buttons: { label?: string; ui?: ButtonUi; emit: () => void }[] = [];
 
-function mount(component: Component, props: Record<string, unknown>) {
+function mount(
+  component: Component,
+  props: {
+    notification: Pick<
+      InstanceType<typeof NotificationInboxItem>["$props"]["notification"],
+      "_id" | "title" | "isRead" | "createdAt"
+    >;
+    time: string;
+  },
+) {
   app = createApp(defineComponent({ setup: () => () => h(component, props) }));
   app.component(
     "UButton",
     defineComponent({
-      props: { label: String, ui: Object },
+      props: {
+        label: String,
+        ui: Object,
+      },
       emits: ["click"],
       setup: (props, { emit }) => {
         buttons.push({
           label: props.label,
-          ui: props.ui as ButtonUi,
+          ui: props.ui,
           emit: () => emit("click"),
         });
         return () => h("button", props.label);
@@ -67,7 +79,7 @@ afterEach(() => {
 
 describe("notification inbox row actions", () => {
   it("keeps the labels laid out on hover, so no button moves under the pointer", () => {
-    mount(NotificationInboxItem as Component, {
+    mount(NotificationInboxItem, {
       notification: {
         _id: "n1",
         title: "Deploy",

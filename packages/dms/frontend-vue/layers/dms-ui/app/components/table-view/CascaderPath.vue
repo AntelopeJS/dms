@@ -78,7 +78,7 @@ const pathRows = computed(() => [
 
 const notFound = computed(() => new Set(data.value?.notFound));
 
-function badgeOf(item: unknown): CascaderBadge | undefined {
+function badgeOf(item: CascaderPathProps["value"]): CascaderBadge | undefined {
   const id = cascaderValueId(item, keyMapping.value);
   if (id !== undefined && notFound.value.has(id)) {
     return {

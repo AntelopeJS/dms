@@ -16,7 +16,9 @@ beforeEach(() => {
   );
 });
 
-async function mountCanvas(props: Record<string, unknown>) {
+async function mountCanvas(
+  props: Partial<InstanceType<typeof FlowCanvas>["$props"]>,
+) {
   const deleted: string[][] = [];
   app = createApp({
     render: () =>
@@ -42,7 +44,7 @@ async function mountCanvas(props: Record<string, unknown>) {
   document.body.append(container);
   app.mount(container);
   await nextTick();
-  return { root: container.firstElementChild as HTMLElement, deleted };
+  return { root: container.firstElementChild!, deleted };
 }
 
 afterEach(() => {

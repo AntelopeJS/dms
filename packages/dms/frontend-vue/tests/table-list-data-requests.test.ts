@@ -21,21 +21,23 @@ const { useTableCountsData, useTableListData } = await import(
 );
 
 const LOCATION = "/api/orders";
+// SAFETY: The request harness only lists and counts rows; it never renders columns or constructs their form controls.
 const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
 
 interface Call {
   url: string;
-  query?: Record<string, unknown>;
+  query?: Parameters<ReturnType<typeof useTableRows>["list"]>[0];
   signal?: AbortSignal;
 }
 
 const calls: Call[] = [];
+// SAFETY: The table calls only this fetch function for lists and counts, whose fixture responses match each URL.
 const api = (async (url: string, options: Omit<Call, "url"> = {}) => {
   calls.push({ url, ...options });
   return url.endsWith("/count/batch")
     ? { all: 1 }
     : { results: [], total: 0, offset: 0, limit: 10 };
-}) as never;
+}) as Parameters<typeof useTableRows>[0]["api"];
 
 const unmounts: Array<() => void> = [];
 
@@ -145,7 +147,7 @@ describe("a source table's requests", () => {
           api,
           location: LOCATION,
           columns: COLUMNS,
-          source: filterable as never,
+          source: filterable,
         });
         const keys = { componentId: "report", pageId: "stats", rows };
         const archiveQuery = computed(() => ({}));
@@ -187,11 +189,12 @@ describe("a source table's requests", () => {
   function pendingApi() {
     let answer: () => void = () => undefined;
     const answered = new Promise<void>((resolve) => (answer = resolve));
+    // SAFETY: This source only lists the held fixture response via the callable fetch interface.
     const held = (async (url: string, options: Omit<Call, "url"> = {}) => {
       calls.push({ url, ...options });
       await answered;
       return { results: [{ total: 1 }], total: 1 };
-    }) as never;
+    }) as Parameters<typeof useTableRows>[0]["api"];
     return { held, answer };
   }
 
@@ -201,7 +204,7 @@ describe("a source table's requests", () => {
       api: held,
       location: LOCATION,
       columns: COLUMNS,
-      source: source as never,
+      source,
     });
     const listing = new AbortController();
     const counting = new AbortController();
@@ -222,7 +225,7 @@ describe("a source table's requests", () => {
       api: held,
       location: LOCATION,
       columns: COLUMNS,
-      source: source as never,
+      source,
     });
     const listing = new AbortController();
     const counting = new AbortController();

@@ -18,7 +18,9 @@ import {
   watch,
   type App,
   type Component,
+  type InjectionKey,
   type Ref,
+  type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -28,6 +30,18 @@ import {
 } from "../layers/dms-ui/app/build/composables/containers/drawerSize";
 
 import { DialogRoot } from "reka-ui";
+import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
+import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables/useFormField";
+
+type FieldInjection =
+  typeof FormFieldKey extends InjectionKey<infer Value> ? Value : never;
+type DrawerProps = NonNullable<VNode["props"]>;
+
+interface BodyInjections {
+  explorer?: string | null;
+  containerId?: string;
+  formField?: FieldInjection | null;
+}
 
 const SIZE_VARIABLE = "--dms-drawer-size";
 
@@ -35,7 +49,7 @@ let app: App | undefined;
 let host: HTMLDivElement;
 let cookies: Map<string, Ref<unknown>>;
 
-let renderedRect: { width: number; height: number };
+let renderedRect = { width: 600, height: 320 };
 
 const rendered = reactive<{
   ui?: Record<string, string>;
@@ -45,9 +59,10 @@ const rendered = reactive<{
 
 function useDmsCookie<T>(
   name: string,
-  options: { default?: () => unknown } = {},
+  options: { default?: () => T } = {},
 ): Ref<T> {
   if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This cookie double stores unvalidated values including null; it mirrors the generic cookie API rather than claiming the stored value was validated as T.
   return cookies.get(name) as Ref<T>;
 }
 
@@ -64,11 +79,10 @@ const DrawerStub = defineComponent({
   },
   setup(props, { slots }) {
     return () => {
-      rendered.ui = props.ui as Record<string, string> | undefined;
+      rendered.ui = props.ui;
       rendered.handle = props.handle;
       rendered.dismissible = props.dismissible;
-      const style = (props.content as { style?: Record<string, string> })
-        ?.style;
+      const style = props.content?.style;
       return h(DialogRoot, null, () =>
         h("div", { "data-slot": "content", style }, [
           slots.header?.(),
@@ -79,7 +93,7 @@ const DrawerStub = defineComponent({
   },
 });
 
-async function mountDrawer(props: Record<string, unknown>): Promise<void> {
+async function mountDrawer(props: DrawerProps): Promise<void> {
   app?.unmount();
   host.replaceChildren();
   const { default: DynamicDrawer } = await import(
@@ -129,6 +143,7 @@ beforeEach(() => {
   cookies = new Map();
   renderedRect = { width: 600, height: 320 };
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This geometry double intentionally returns only width and height, the fields resizing reads; it is not a complete DOMRect.
     () => ({ ...renderedRect }) as DOMRect,
   );
   window.innerWidth = 1600;
@@ -299,30 +314,28 @@ describe("a bottom drawer's height", () => {
 });
 
 describe("a drawer opened through useDrawer", () => {
-  const SetupEditor = defineComponent({
+  const editorOptions = {
     name: undefined,
     __name: "KeyEditor",
     render: () => null,
-  } as never);
+  };
+  const SetupEditor = defineComponent(editorOptions);
 
-  async function openThroughUseDrawer(
-    options: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const create = vi.fn(() => ({
-      open: () => new Promise(() => {}),
-      close: vi.fn(),
-      patch: vi.fn(),
-    }));
+  async function openThroughUseDrawer(options: Partial<DrawerOptions>) {
+    const create = vi.fn(
+      (_component: Component, _options: { props: DrawerOptions }) => ({
+        open: () => new Promise(() => {}),
+        close: vi.fn(),
+        patch: vi.fn(),
+      }),
+    );
     vi.stubGlobal("useOverlay", () => ({ create }));
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     const { useDrawer } = await import(
       "../layers/dms-ui/app/composables/containers/useDrawer"
     );
     useDrawer().open({ title: "Key", component: SetupEditor, ...options });
-    const [, createOptions] = create.mock.calls[0] as unknown as [
-      unknown,
-      { props: Record<string, unknown> },
-    ];
+    const [, createOptions] = create.mock.calls[0];
     return createOptions.props;
   }
 
@@ -351,9 +364,7 @@ describe("a drawer opened through useDrawer", () => {
 
   it("names no key for an anonymous or async-wrapped component", () => {
     expect(componentSizeKey({ render: () => null })).toBeUndefined();
-    expect(
-      componentSizeKey({ name: "AsyncComponentWrapper" } as never),
-    ).toBeUndefined();
+    expect(componentSizeKey({ name: "AsyncComponentWrapper" })).toBeUndefined();
     expect(componentSizeKey({ name: "JsonCellEditor" })).toBe(
       "component:JsonCellEditor",
     );
@@ -409,11 +420,11 @@ describe("a drawer's body", () => {
 });
 
 describe("a drawer opened through useDrawer, and its caller's provides", () => {
-  const EXPLORER_KEY = Symbol("explorer");
+  const EXPLORER_KEY: InjectionKey<string> = Symbol("explorer");
 
   async function injectedByBody(
-    wrap: (options: Record<string, unknown>) => Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+    wrap: (options: DrawerOptions) => DrawerOptions,
+  ) {
     const { default: DynamicDrawer } = await import(
       "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
     );
@@ -423,11 +434,11 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     const { formFieldInjectionKey } = await import(
       "@nuxt/ui/runtime/composables/useFormField.js"
     );
-    const opened = shallowRef<Record<string, unknown>>();
+    const opened = shallowRef<DrawerProps>();
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     vi.stubGlobal("useOverlay", () => ({
-      create: (_component: unknown, { props }: { props: object }) => {
-        opened.value = props as Record<string, unknown>;
+      create: (_component: Component, { props }: { props: DrawerProps }) => {
+        opened.value = props;
         return {
           open: () => new Promise(() => {}),
           close: vi.fn(),
@@ -438,7 +449,7 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     const { useDrawer } = await import(
       "../layers/dms-ui/app/composables/containers/useDrawer"
     );
-    const injected: Record<string, unknown> = {};
+    const injected: BodyInjections = {};
     const Body: Component = {
       setup() {
         injected.explorer = inject(EXPLORER_KEY, null);
@@ -455,13 +466,14 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
         provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately malformed outer form field must never reach the drawer body; it is not a computed Nuxt form-field context.
         provide(formFieldInjectionKey, { name: "outer-field" } as never);
         drawer.open(
           wrap({
             title: "Details",
             component: Body,
             containerId: "inner",
-          }) as never,
+          }),
         );
         return () => null;
       },
@@ -505,9 +517,9 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
   });
 });
 
-const PassThrough: Component = {
+const PassThrough = defineComponent({
   setup:
-    (_props: unknown, { slots }: { slots: { default?: () => unknown } }) =>
+    (_props, { slots }) =>
     () =>
-      h("div", slots.default?.() as never),
-};
+      h("div", slots.default?.()),
+});

@@ -54,7 +54,9 @@ function preferences(): SidePanelPreferences {
   return readSidePanelPreferences(useDmsCookie(SIDE_PANEL_COOKIE).value);
 }
 
-function storePreferences(value: unknown): void {
+function storePreferences(
+  value: Parameters<typeof readSidePanelPreferences>[0],
+): void {
   useDmsCookie(SIDE_PANEL_COOKIE).value = value;
 }
 
@@ -195,6 +197,7 @@ describe("side panel registry", () => {
     const { default: plugin } = await import(
       "../layers/dms-layout/app/plugins/side-panel-host"
     );
+    // SAFETY: This plugin's setup closes over useAppOverlay and never reads the app-context argument.
     (plugin as () => void)();
     expect(useDmsState(OVERLAYS_STATE_KEY).value).toEqual(["DmsSidePanelHost"]);
   });

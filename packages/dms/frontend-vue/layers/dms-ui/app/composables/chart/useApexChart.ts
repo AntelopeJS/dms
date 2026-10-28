@@ -1,10 +1,26 @@
 import { computed } from "vue";
+import type { ApexOptions } from "apexcharts";
+import {
+  injectRawOptions,
+  type RawOptionSection,
+} from "../../build/composables/chart/apexRawOptions";
+import {
+  applyComparisonStyle,
+  applyFillWithComparison,
+  applySeriesStroke,
+  buildComparisonContext,
+  buildFill,
+  buildStroke,
+  type ComparisonContext,
+} from "../../build/composables/chart/apexSeriesStyle";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
-import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
-import { heatmapRangeColors, isDarkSurface } from "./heatmapColors";
-import { thinnedCategoryFormatter } from "./apexCategoryLabels";
+import { buildXAxis, buildYAxis } from "../../build/composables/chart/apexAxes";
+import {
+  applyHeatmapThemeMode,
+  applyValueBasedColorScale,
+} from "../../build/composables/chart/apexHeatmap";
 import {
   bucketAxisFormatter,
   bucketTooltipFormatter,
@@ -14,7 +30,6 @@ import {
 } from "./apexDatetimeBuckets";
 import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
-  axisLabelStyle,
   buildDataLabels,
   dataLabelOffset,
   buildGrid,
@@ -22,22 +37,13 @@ import {
   buildMarkers,
   buildTooltip,
   readApexThemeColors,
-  type ApexThemeColors,
 } from "../../build/composables/chart/apexTheme";
 import {
   resolveChartColor,
   resolveChartColors,
-  readThemeBorderAccented,
-  readThemeHighlighted,
   readThemeMuted,
-  readThemeSurface,
 } from "./useChartTheme";
-import type {
-  ChartSeries,
-  ChartType,
-  ComparisonStyle,
-  DonutRecord,
-} from "./types";
+import type { ChartSeries, ChartType, DonutRecord } from "./types";
 import type {
   MixedSeriesDef,
   UseApexChartInput,
@@ -45,25 +51,10 @@ import type {
 } from "./useApexChart.types";
 
 const DEFAULT_HEIGHT = 320;
-const DASHED_DASH_LENGTH = 5;
-const DIMMED_OPACITY = 0.4;
-const FULL_OPACITY = 1;
-const PRIMARY_STROKE_WIDTH = 2.5;
-const COMPARISON_STROKE_WIDTH = 1.75;
-const AREA_PRIMARY_FROM = 0.26;
-const AREA_PRIMARY_TO = 0;
-
-const AREA_COMPARISON_OPACITY = 0.7;
-const AREA_GRADIENT_STOPS = [0, 100];
-const RADAR_FILL_DEFAULT = 0.4;
-const RANGE_AREA_FILL_DEFAULT = 0.28;
 const ANIMATION_SPEED_MS = 300;
 const HEIGHT_NUMBER_REGEX = /[^0-9]/g;
-const CROSSHAIR_DASH = 3;
-const STACKED_SEGMENT_GAP = 1.5;
 const COMPARISON_LINE_TYPE = "line";
 const LINE_LEAD_TYPES: ChartType[] = ["line", "area"];
-const STACKED_GAP_TYPES: ChartType[] = ["bar", "column"];
 
 function parseHeight(height?: string): number {
   if (!height) return DEFAULT_HEIGHT;
@@ -105,52 +96,6 @@ function buildCircularLabels(
   };
 }
 
-interface ComparisonContext {
-  enabled: boolean;
-  startIndex: number;
-  totalSeries: number;
-}
-
-function buildComparisonContext(
-  totalSeries: number,
-  comparisonCount: number | undefined,
-  isCircular: boolean,
-): ComparisonContext {
-  if (isCircular || !comparisonCount || comparisonCount <= 0) {
-    return { enabled: false, startIndex: totalSeries, totalSeries };
-  }
-  const safeCount = Math.min(comparisonCount, totalSeries);
-  return {
-    enabled: safeCount > 0 && safeCount < totalSeries,
-    startIndex: totalSeries - safeCount,
-    totalSeries,
-  };
-}
-
-interface ComparisonStyleResult {
-  dashArray: number[];
-  opacities: number[];
-}
-
-function applyComparisonStyle(
-  context: ComparisonContext,
-  style: ComparisonStyle | undefined,
-): ComparisonStyleResult {
-  const styleValue = style ?? "dashed";
-  return {
-    dashArray: Array.from({ length: context.totalSeries }, (_, index) =>
-      index >= context.startIndex && styleValue === "dashed"
-        ? DASHED_DASH_LENGTH
-        : 0,
-    ),
-    opacities: Array.from({ length: context.totalSeries }, (_, index) =>
-      index >= context.startIndex && styleValue === "dimmed"
-        ? DIMMED_OPACITY
-        : FULL_OPACITY,
-    ),
-  };
-}
-
 function resolveSeriesColors(
   series: ChartSeries[],
   fallback: string[],
@@ -171,216 +116,6 @@ function isDistributedPaletteType(input: UseApexChartInput): boolean {
   return false;
 }
 
-const FILL_BUILDERS: Partial<
-  Record<
-    ChartType,
-    (
-      props: UseApexChartInput,
-      comparison: ComparisonContext,
-    ) => Record<string, unknown>
-  >
-> = {
-  area: (props, comparison) => buildAreaFill(props, comparison),
-  radar: (props) => ({ opacity: props.fillOpacity ?? RADAR_FILL_DEFAULT }),
-  rangeArea: (props) => ({
-    opacity: props.fillOpacity ?? RANGE_AREA_FILL_DEFAULT,
-  }),
-};
-
-/**
- * Only the main series gets the fading area; the comparison is a line series
- * whose solid "fill" sets its stroke opacity.
- */
-function buildAreaFill(
-  props: UseApexChartInput,
-  comparison: ComparisonContext,
-): Record<string, unknown> {
-  const gradient = {
-    shadeIntensity: 1,
-    type: "vertical",
-    opacityFrom: props.fillOpacity ?? AREA_PRIMARY_FROM,
-    opacityTo: AREA_PRIMARY_TO,
-    stops: AREA_GRADIENT_STOPS,
-  };
-  if (!comparison.enabled) return { type: "gradient", gradient };
-  const isComparison = (index: number) => index >= comparison.startIndex;
-  return {
-    type: Array.from({ length: comparison.totalSeries }, (_, index) =>
-      isComparison(index) ? "solid" : "gradient",
-    ),
-    opacity: Array.from({ length: comparison.totalSeries }, (_, index) =>
-      isComparison(index) ? AREA_COMPARISON_OPACITY : FULL_OPACITY,
-    ),
-    gradient,
-  };
-}
-
-function buildFill(
-  input: UseApexChartInput,
-  comparison: ComparisonContext,
-): Record<string, unknown> | null {
-  return FILL_BUILDERS[input.type]?.(input, comparison) ?? null;
-}
-
-function buildStrokeWidths(
-  input: UseApexChartInput,
-  comparison: ComparisonContext,
-  defaultWidth: number | undefined,
-): number | number[] {
-  if (input.strokeWidth !== undefined) return input.strokeWidth;
-  if (!comparison.enabled) return defaultWidth ?? PRIMARY_STROKE_WIDTH;
-  const primaryWidth = defaultWidth ?? PRIMARY_STROKE_WIDTH;
-  return Array.from({ length: comparison.totalSeries }, (_, index) =>
-    index >= comparison.startIndex ? COMPARISON_STROKE_WIDTH : primaryWidth,
-  );
-}
-
-function buildStroke(
-  input: UseApexChartInput,
-  config: (typeof APEX_TYPE_CONFIGS)[ChartType],
-  comparisonDashArray: number[] | undefined,
-  comparison: ComparisonContext,
-  surface: string,
-): Record<string, unknown> {
-  const stroke: Record<string, unknown> = { ...config.defaultStroke };
-  if (input.smooth === false && stroke.curve) stroke.curve = "straight";
-  if (input.curve) stroke.curve = input.curve;
-  stroke.width = buildStrokeWidths(input, comparison, stroke.width as number);
-  stroke.lineCap = "round";
-  if (comparisonDashArray) stroke.dashArray = comparisonDashArray;
-  applySegmentGap(stroke, input, config, surface);
-  return stroke;
-}
-
-/**
- * Donut slices and stacked segments are separated by a card-coloured stroke,
- * which reads as a gap in both themes (Apex defaults it to white).
- */
-function applySegmentGap(
-  stroke: Record<string, unknown>,
-  input: UseApexChartInput,
-  config: (typeof APEX_TYPE_CONFIGS)[ChartType],
-  surface: string,
-): void {
-  const isStackedBar =
-    !!input.stacked && STACKED_GAP_TYPES.includes(input.type);
-  if (!config.isCircular && !isStackedBar) return;
-  stroke.colors = [surface];
-  if (isStackedBar && input.strokeWidth === undefined) {
-    stroke.width = STACKED_SEGMENT_GAP;
-  }
-}
-
-function applySeriesStroke(
-  options: Record<string, unknown>,
-  series: ChartSeries[],
-): void {
-  const stroke = options.stroke as Record<string, unknown>;
-  const properties = {
-    strokeWidth: "width",
-    strokeDashArray: "dashArray",
-  } as const;
-  for (const property of Object.keys(properties) as Array<
-    keyof typeof properties
-  >) {
-    if (!series.some((entry) => entry[property] !== undefined)) continue;
-    const key = properties[property];
-    const fallback = stroke[key] as number | number[] | undefined;
-    stroke[key] = series.map(
-      (entry, index) =>
-        entry[property] ??
-        (Array.isArray(fallback) ? fallback[index] : fallback) ??
-        0,
-    );
-  }
-}
-
-const HIGH_CONTRAST_YAXIS_TYPES: ChartType[] = ["radar"];
-/**
- * Charts whose Y axis lists categories (a heatmap's rows: its series names)
- * rather than values: a card's value format would write each name as NaN.
- * Their values are still formatted, in the tooltip.
- */
-const CATEGORY_YAXIS_TYPES: ChartType[] = ["heatmap"];
-
-function buildYAxis(
-  input: UseApexChartInput,
-  theme: ApexThemeColors,
-): Record<string, unknown> {
-  const labelColor = HIGH_CONTRAST_YAXIS_TYPES.includes(input.type)
-    ? readThemeHighlighted()
-    : theme.dimmed;
-  const yaxis: Record<string, unknown> = {
-    ...buildAutoYRange(input),
-    labels: { style: axisLabelStyle(labelColor, theme) },
-  };
-  if (input.yRange) {
-    yaxis.min = input.yRange.min;
-    yaxis.max = input.yRange.max;
-  }
-  const valueFormatter = CATEGORY_YAXIS_TYPES.includes(input.type)
-    ? undefined
-    : input.yAxisFormatter;
-  (yaxis.labels as Record<string, unknown>).formatter =
-    valueFormatter ?? formatPlainAxisValue;
-  return yaxis;
-}
-
-/**
- * Charts whose category labels ApexCharts never thins, whatever
- * `hideOverlappingLabels` says: the chart thins them itself.
- */
-const SELF_THINNED_XAXIS_TYPES: ChartType[] = ["heatmap"];
-
-function thinsOwnXLabels(input: UseApexChartInput): boolean {
-  const settings = input.xAxis;
-  return (
-    SELF_THINNED_XAXIS_TYPES.includes(input.type) &&
-    (input.xaxisType ?? "category") === "category" &&
-    settings?.hideOverlappingLabels !== false &&
-    settings?.tickAmount === undefined &&
-    !settings?.rotate
-  );
-}
-
-function xLabelFormatter(input: UseApexChartInput): unknown {
-  if (thinsOwnXLabels(input))
-    return thinnedCategoryFormatter(input.xAxisFormatter);
-  return input.xAxisFormatter;
-}
-
-function buildXAxis(
-  input: UseApexChartInput,
-  theme: ApexThemeColors,
-): Record<string, unknown> {
-  const settings = input.xAxis;
-  const formatter = xLabelFormatter(input);
-  const xaxis: Record<string, unknown> = {
-    type: input.xaxisType ?? "category",
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-    tooltip: { enabled: false },
-    labels: {
-      style: axisLabelStyle(theme.dimmed, theme),
-      datetimeUTC: false,
-
-      rotate: settings?.rotate ?? 0,
-      hideOverlappingLabels: settings?.hideOverlappingLabels ?? true,
-      ...(input.xaxisType === "datetime" &&
-      settings?.datetimeFormat !== undefined
-        ? { format: settings.datetimeFormat }
-        : {}),
-      ...(formatter ? { formatter } : {}),
-    },
-    crosshairs: {
-      stroke: { color: readThemeBorderAccented(), dashArray: CROSSHAIR_DASH },
-    },
-  };
-  if (settings?.tickAmount !== undefined)
-    xaxis.tickAmount = settings.tickAmount;
-  return xaxis;
-}
-
 function applyMixedSeriesDefs(
   series: ChartSeries[],
   seriesDefs: MixedSeriesDef[] | undefined,
@@ -398,56 +133,15 @@ function applyMixedSeriesDefs(
   });
 }
 
-const RAW_OPTION_PATH_SEPARATOR = ".";
-
-function parseRawOptionValue(value: string): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
-
-function isOptionSection(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Set `value` at a dotted path ("markers.size"), copying each section on the
- * way so the generated options are not mutated. A key without a dot replaces
- * its whole section, as it always has.
- */
-function setOptionPath(
-  options: Record<string, unknown>,
-  path: string[],
-  value: unknown,
-): Record<string, unknown> {
-  const [head, ...rest] = path;
-  if (head === undefined) return options;
-  if (rest.length === 0) return { ...options, [head]: value };
-  const section = isOptionSection(options[head]) ? options[head] : {};
-  return { ...options, [head]: setOptionPath(section, rest, value) };
-}
-
-function injectRawOptions(
-  options: Record<string, unknown>,
-  rawOptions: Array<{ key: string; value: string }> | undefined,
-): Record<string, unknown> {
-  return (rawOptions ?? []).reduce(
-    (merged, entry) =>
-      setOptionPath(
-        merged,
-        entry.key.split(RAW_OPTION_PATH_SEPARATOR),
-        parseRawOptionValue(entry.value),
-      ),
-    options,
-  );
-}
-
 const RANGE_AREA_APEX_TYPE = "rangeArea";
 
-function resolveApexType(input: UseApexChartInput): string {
-  const baseType = APEX_TYPE_CONFIGS[input.type].apexType;
+function resolveApexType(
+  input: UseApexChartInput,
+): NonNullable<NonNullable<ApexOptions["chart"]>["type"]> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public configuration accepts arbitrary chart strings; inference and ApexOptions reject that existing unchecked Apex boundary.
+  const baseType = APEX_TYPE_CONFIGS[input.type].apexType as NonNullable<
+    NonNullable<ApexOptions["chart"]>["type"]
+  >;
   if (input.type !== "mixed") return baseType;
   const hasRangeBand = input.seriesDefs?.some(
     (def) => def.type === RANGE_AREA_APEX_TYPE,
@@ -456,7 +150,7 @@ function resolveApexType(input: UseApexChartInput): string {
 }
 
 function applySyncGroup(
-  chartConfig: Record<string, unknown>,
+  chartConfig: NonNullable<ApexOptions["chart"]>,
   input: UseApexChartInput,
 ): void {
   if (!input.syncGroup) return;
@@ -467,9 +161,9 @@ function applySyncGroup(
 function buildChartConfig(
   input: UseApexChartInput,
   muted: string,
-): Record<string, unknown> {
+): NonNullable<ApexOptions["chart"]> {
   const heightPx = parseHeight(input.height);
-  const chartConfig: Record<string, unknown> = {
+  const chartConfig: NonNullable<ApexOptions["chart"]> = {
     type: resolveApexType(input),
     height: heightPx,
     parentHeightOffset: AXIS_CHART_BOTTOM_OFFSET,
@@ -498,7 +192,7 @@ function buildBaseOptions(
   seriesColors: string[],
   comparisonDashArray: number[] | undefined,
   comparison: ComparisonContext,
-): Record<string, unknown> {
+) {
   const theme = readApexThemeColors(readThemeMuted());
   return {
     chart: buildChartConfig(input, theme.muted),
@@ -526,134 +220,8 @@ function buildBaseOptions(
   };
 }
 
-function applyFillWithComparison(
-  baseOptions: Record<string, unknown>,
-  fill: Record<string, unknown> | null,
-  comparisonStyling: { opacities: number[] } | undefined,
-  comparisonStyle: ComparisonStyle | undefined,
-): void {
-  const isDimmed = comparisonStyling && comparisonStyle === "dimmed";
-  if (fill) {
-    baseOptions.fill = isDimmed
-      ? { ...fill, opacity: comparisonStyling.opacities }
-      : fill;
-    return;
-  }
-  if (isDimmed) baseOptions.fill = { opacity: comparisonStyling.opacities };
-}
-
-const VALUE_SCALED_TYPES: ChartType[] = ["heatmap"];
-const VALUE_SCALED_PLOT_KEY: Record<string, string> = {
-  heatmap: "heatmap",
-};
-
-function extractNumericValues(series: ChartSeries[]): number[] {
-  const values: number[] = [];
-  for (const entry of series) {
-    for (const point of entry.data) {
-      if (typeof point === "number") {
-        values.push(point);
-        continue;
-      }
-      if (point && typeof point === "object" && "y" in point) {
-        const y = (point as { y: unknown }).y;
-        if (typeof y === "number") values.push(y);
-      }
-    }
-  }
-  return values;
-}
-
-interface ColorScaleRange {
-  from: number;
-  to: number;
-  name: string;
-  color: string;
-}
-
-function formatRangeBound(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function buildValueBasedRanges(
-  values: number[],
-  palette: string[],
-): ColorScaleRange[] {
-  if (values.length === 0 || palette.length === 0) return [];
-  const min = Math.floor(Math.min(...values));
-  const max = Math.ceil(Math.max(...values));
-  if (min === max) {
-    return [
-      {
-        from: min,
-        to: max,
-        name: formatRangeBound(min),
-        color: palette[palette.length - 1]!,
-      },
-    ];
-  }
-  const step = (max - min) / palette.length;
-  return palette.map((color, index) => {
-    const from = Math.round(min + step * index);
-    const to =
-      index === palette.length - 1 ? max : Math.round(min + step * (index + 1));
-    return {
-      from,
-      to,
-      name: `${formatRangeBound(from)} – ${formatRangeBound(to)}`,
-      color,
-    };
-  });
-}
-
-/**
- * Several colours split a heatmap's values into ranges, one colour each,
- * laid over the card surface from faint to full: low values fade into the
- * card in either theme. Apex's own shading is off there, as it would lighten
- * each range towards white again.
- */
-function applyValueBasedColorScale(
-  plotOptions: Record<string, unknown>,
-  input: UseApexChartInput,
-  series: ChartSeries[],
-  palette: string[],
-): void {
-  if (!VALUE_SCALED_TYPES.includes(input.type)) return;
-  if (input.distributed) return;
-  if (palette.length < 2) return;
-  const subKey = VALUE_SCALED_PLOT_KEY[input.type]!;
-  const subOptions =
-    (plotOptions[subKey] as Record<string, unknown> | undefined) ?? {};
-  const colors = heatmapRangeColors(
-    palette,
-    readThemeSurface(),
-    Number(subOptions.shadeIntensity ?? 1),
-  );
-  const ranges = buildValueBasedRanges(extractNumericValues(series), colors);
-  if (ranges.length === 0) return;
-  subOptions.colorScale = { ranges };
-  subOptions.enableShades = false;
-  plotOptions[subKey] = subOptions;
-}
-
-/**
- * A heatmap with one colour, or one per row (`distributed`), is shaded by
- * Apex: towards white unless told the theme is dark, where it shades towards
- * black, the side of a dark card. Only the shading reads this mode: every
- * colour Apex would take from it is set explicitly.
- */
-function applyHeatmapThemeMode(
-  baseOptions: Record<string, unknown>,
-  input: UseApexChartInput,
-): void {
-  if (!VALUE_SCALED_TYPES.includes(input.type)) return;
-  baseOptions.theme = {
-    mode: isDarkSurface(readThemeSurface()) ? "dark" : "light",
-  };
-}
-
 function applyOptionalSections(
-  baseOptions: Record<string, unknown>,
+  baseOptions: ApexOptions,
   input: UseApexChartInput,
   isCircular: boolean,
   series: ChartSeries[],
@@ -696,25 +264,30 @@ function projectSeries(
  * whole bucket.
  */
 function applyDatetimeBuckets(
-  options: Record<string, unknown>,
+  options: ReturnType<typeof buildBaseOptions>,
   input: UseApexChartInput,
   buckets: DatetimeBuckets | null,
 ): void {
   if (!buckets) return;
-  const xaxis = options.xaxis as Record<string, unknown>;
-  const { format: _datetimeFormat, ...labels } = xaxis.labels as Record<
-    string,
-    unknown
-  >;
+  const xaxis = options.xaxis;
+  const { format: _datetimeFormat, ...labels } = xaxis.labels;
   options.xaxis = {
     ...xaxis,
     type: "category",
     labels: { ...labels, formatter: bucketAxisFormatter(buckets, input) },
   };
-  const tooltip = options.tooltip as Record<string, unknown>;
+  const tooltip = options.tooltip;
   options.tooltip = {
     ...tooltip,
-    x: { formatter: bucketTooltipFormatter(buckets, input) },
+    x: {
+      // SAFETY: The public formatter stringifies its input before reading it, so Apex's numeric input follows the same conversion without widening the public callback contract.
+      formatter: bucketTooltipFormatter(buckets, input) as ReturnType<
+        typeof bucketTooltipFormatter
+      > &
+        NonNullable<
+          NonNullable<NonNullable<ApexOptions["tooltip"]>["x"]>["formatter"]
+        >,
+    },
   };
 }
 
@@ -798,7 +371,7 @@ function buildChartOptions(
   cfg: (typeof APEX_TYPE_CONFIGS)[ChartType],
   finalSeries: ChartSeries[],
   buckets: DatetimeBuckets | null,
-): Record<string, unknown> {
+): RawOptionSection {
   void value.themeRevision;
   const ctx = buildChartOptionsContext(value, cfg, finalSeries);
 
@@ -836,7 +409,7 @@ export function useApexChart(
     projectSeries(input(), config.value.isCircular, buckets.value),
   );
 
-  const series = computed<unknown>(() => {
+  const series = computed(() => {
     const value = input();
     if (config.value.isCircular) {
       return buildCircularLabels(value.donutData).series;
@@ -844,7 +417,7 @@ export function useApexChart(
     return finalSeries.value;
   });
 
-  const options = computed<Record<string, unknown>>(() =>
+  const options = computed(() =>
     buildChartOptions(input(), config.value, finalSeries.value, buckets.value),
   );
 

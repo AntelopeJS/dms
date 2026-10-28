@@ -7,20 +7,13 @@
  * shows "1020 → 1,000" without remounting the field.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type App,
-  type Component,
-  createApp,
-  defineComponent,
-  h,
-  nextTick,
-  ref,
-} from "vue";
+import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import {
   numberAdjustment,
   parseTypedNumber,
 } from "../layers/dms-ui/app/build/utils/numberAdjustment";
 import type { InputNumberAdjustment } from "../layers/dms-ui/app/types/input-number";
+import type InputNumber from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import { NumberFieldInput, NumberFieldRoot } from "reka-ui";
 
 let app: App | undefined;
@@ -37,6 +30,7 @@ const NumberField = defineComponent({
   },
   emits: ["update:modelValue", "blur"],
   setup(props, { emit }) {
+    const input = ref<HTMLInputElement>();
     const apply = (input: HTMLInputElement) => {
       const typed = Number(input.value.replace(/,/g, ""));
       const bounded = Math.min(
@@ -52,25 +46,26 @@ const NumberField = defineComponent({
     };
     return () =>
       h("input", {
+        ref: input,
         onBlur: (event: FocusEvent) => {
-          apply(event.target as HTMLInputElement);
+          apply(input.value!);
           emit("blur", event);
         },
         onKeydown: (event: KeyboardEvent) => {
-          if (event.key === "Enter") apply(event.target as HTMLInputElement);
+          if (event.key === "Enter") apply(input.value!);
         },
       });
   },
 });
 
-async function mount(props: Record<string, unknown>) {
-  const value = ref<number | undefined>(props.modelValue as number);
+async function mount(
+  props: Partial<InstanceType<typeof InputNumber>["$props"]>,
+) {
+  const value = ref(props.modelValue);
   const adjustments: InputNumberAdjustment[] = [];
-  const field = (
-    await import(
-      "../layers/dms-ui/app/components/form/components/InputNumber.vue"
-    )
-  ).default as Component;
+  const { default: field } = await import(
+    "../layers/dms-ui/app/components/form/components/InputNumber.vue"
+  );
   app = createApp({
     render: () =>
       h(field, {

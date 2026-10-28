@@ -10,7 +10,6 @@ import {
   ref,
   type App,
   type Component,
-  type PropType,
 } from "vue";
 import {
   getCoreRowModel,
@@ -50,7 +49,7 @@ const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
 const TicketCard = defineComponent({
   props: {
     rowId: String,
-    rowActions: Object as PropType<Component>,
+    rowActions: Object,
   },
   setup: (props) => () =>
     h("article", { "data-id": props.rowId }, [
@@ -68,7 +67,8 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
 }
 
 function createContext(table?: Table<Row>, componentName?: string) {
-  const opened: unknown[] = [];
+  const opened: Row[] = [];
+  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
   const context = reactive({
     items: rows,
     columns: [],
@@ -78,9 +78,9 @@ function createContext(table?: Table<Row>, componentName?: string) {
     options: componentName ? { card: { component: { componentName } } } : {},
     pagination: { pageIndex: 0, pageSize: 10, total: 2 },
     selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: (item: unknown) => opened.push(item) },
+    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
     table,
-  }) as unknown as TableViewDisplayContext<Row>;
+  }) as TableViewDisplayContext<Row>;
   return { context, opened };
 }
 
@@ -171,7 +171,7 @@ describe("the row actions of the cards display", () => {
     );
     const received: Component[] = [];
     const Spy = defineComponent({
-      props: { rowId: String, rowActions: Object as PropType<Component> },
+      props: { rowId: String, rowActions: Object },
       setup: (props) => () => {
         if (props.rowActions) received.push(props.rowActions);
         return h(TicketCard, props);
@@ -184,7 +184,7 @@ describe("the row actions of the cards display", () => {
     expect(edited).toEqual(["t1"]);
     expect(opened).toEqual([]);
     const first = received.slice(0, 2);
-    (context as { loading: boolean }).loading = true;
+    context.loading = true;
     context.items = [...rows];
     await nextTick();
     expect(received.length).toBeGreaterThan(2);

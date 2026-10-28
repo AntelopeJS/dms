@@ -62,7 +62,7 @@ function inScope(entry: UnsavedChangesEntry, scope: LeaveScope): boolean {
 export function registerUnsavedChanges(
   source: UnsavedChangesSource,
   prompt: DiscardPrompt,
-): { entry: UnsavedChangesEntry; unregister: () => void } {
+) {
   const entry: UnsavedChangesEntry = { ...source, prompt, released: false };
   entries.add(entry);
   return { entry, unregister: () => entries.delete(entry) };
@@ -113,7 +113,7 @@ export interface BrowserLeaveGuardsOptions {
   /** The path the page shows. */
   path: () => string;
   /** Runs a page visit again once the user chose to leave. */
-  revisit: (href: string) => unknown;
+  revisit: (href: string) => void;
 }
 
 /** The part of a router visit the guard reads (Inertia's `inertia:before`). */
@@ -131,12 +131,12 @@ interface TraverseEvent extends Event {
 }
 
 interface NavigationLike extends EventTarget {
-  traverseTo: (key: string) => unknown;
+  traverseTo: (key: string) => void;
 }
 
 let browserGuardsInstalled = false;
 let currentPath: () => string = () => window.location.pathname;
-let revisit: (href: string) => unknown = (href) => {
+let revisit: BrowserLeaveGuardsOptions["revisit"] = (href) => {
   window.location.href = href;
 };
 
@@ -173,8 +173,7 @@ export function installBrowserLeaveGuards(
   browserGuardsInstalled = true;
 
   document.addEventListener("inertia:before", (event) => {
-    const visit = (event as CustomEvent<{ visit?: PendingVisit }>).detail
-      ?.visit;
+    const visit = event.detail?.visit;
     if (!isLeavingVisit(visit, currentPath())) return;
     if (!hasUnsavedChanges()) return;
     event.preventDefault();
@@ -191,10 +190,10 @@ export function installBrowserLeaveGuards(
     event.returnValue = "";
   });
 
-  const navigation = (window as unknown as { navigation?: NavigationLike })
-    .navigation;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Window's DOM declaration omits the optional Navigation API; retain the unchecked property read and unsupported-browser fallback.
+  const navigation = (window as { navigation?: NavigationLike }).navigation;
   navigation?.addEventListener("navigate", (event) => {
-    const traverse = event as TraverseEvent;
+    const traverse: TraverseEvent = event;
     const destination = traverse.destination;
     if (traverse.navigationType !== "traverse" || !destination) return;
     if (isTraversing) {

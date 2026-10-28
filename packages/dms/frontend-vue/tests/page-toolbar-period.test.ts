@@ -46,7 +46,7 @@ function toolbarPeriod(
 ): PeriodSelectorProps {
   const serialized = pageToolbar({ live: false, period }).serializeSync();
   const child = serialized.children?.find((entry) => entry.id === "period");
-  return child?.component.options as PeriodSelectorProps;
+  return child?.component.options;
 }
 
 async function mountPeriod(period: PageToolbarOptions["period"]) {

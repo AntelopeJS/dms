@@ -39,7 +39,7 @@ const PILL_CLASS =
 const emit = defineEmits<{ show: [] }>();
 
 const { t } = useI18n();
-const translate = t as ConfirmTranslate;
+const translate: ConfirmTranslate = t;
 
 const REASON_KEYS: Record<TableLiveHoldReason, string> = {
   rowOpen: "dms.live.held_row_open",

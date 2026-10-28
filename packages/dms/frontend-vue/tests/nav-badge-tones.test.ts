@@ -19,17 +19,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
 import SettingsNav from "../layers/dms-layout/app/build/components/pages/settings/shell/SettingsNav.vue";
-import {
-  type NavBadge,
-  useNavBadges,
-} from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
+import type { SiteLayoutTree } from "../layers/dms-layout/app/types/page";
+import { useNavBadges } from "../layers/dms-ui/app/build/composables/navigation/useNavBadges";
 
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 
+// SAFETY: useNavBadges owns this state key and initializes it to the NavBadge dictionary read by these assertions.
 const liveBadges = () =>
-  state.get("dms-nav-badges") as Ref<Record<string, NavBadge>> | undefined;
+  state.get("dms-nav-badges") as
+    | ReturnType<typeof useNavBadges>["badges"]
+    | undefined;
 
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", () => {});
@@ -38,7 +39,7 @@ beforeEach(() => {
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -120,6 +121,7 @@ describe("NavigationMenu badges", () => {
   const MenuStub = defineComponent({
     props: {
       items: {
+        // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
         type: Array as PropType<NavigationMenuItem[][]>,
         required: true,
       },
@@ -149,7 +151,7 @@ describe("NavigationMenu badges", () => {
     },
   });
 
-  const ITEMS: NavigationMenuItem[] = [
+  const ITEMS = [
     { label: "Plain", fullId: "pages.plain", to: "/plain", badge: "7" },
     {
       label: "Security",
@@ -165,7 +167,7 @@ describe("NavigationMenu badges", () => {
       badge: "4",
       badgeTone: "primary",
     },
-  ];
+  ] satisfies NavigationMenuItem[];
 
   const badgeOf = (fullId: string) =>
     host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
@@ -215,7 +217,7 @@ describe("NavigationMenu badges", () => {
     vi.stubGlobal("$fetch", fetch);
     mount();
     for (const item of ITEMS)
-      expect(badgeOf(item.fullId as string).prefetch).toBe("true");
+      expect(badgeOf(item.fullId).prefetch).toBe("true");
     host
       .querySelector("nav")!
       .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
@@ -267,7 +269,7 @@ describe("NavigationMenu badges", () => {
 });
 
 describe("SettingsNav badges", () => {
-  const page = (id: string, extra: Record<string, unknown> = {}) => ({
+  const page = (id: string, extra: Partial<SiteLayoutTree> = {}) => ({
     id,
     fullId: `settings.user.${id}`,
     displayName: id,
@@ -318,7 +320,7 @@ describe("SettingsNav badges", () => {
   });
 
   const trailBadge = (to: string) =>
-    host.querySelector(`[data-to="${to}"] span:last-child`) as HTMLElement;
+    host.querySelector<HTMLElement>(`[data-to="${to}"] span:last-child`)!;
 
   function mount(): void {
     vi.stubGlobal("useSiteLayout", () => ({ siteLayoutTree: tree }));

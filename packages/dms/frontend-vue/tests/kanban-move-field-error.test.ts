@@ -68,7 +68,12 @@ const authFetch = vi.fn(
 
 const addToast = vi.fn();
 
-const translate = (key: string, params?: Record<string, unknown>) =>
+const translate = (
+  key: string,
+  params?: Parameters<
+    (typeof import("../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts"))["resolveConfirmText"]
+  >[1],
+) =>
   key === "dms.field_errors.named_required"
     ? `${String(params?.field)} est obligatoire.`
     : key;
@@ -112,6 +117,7 @@ async function mountBoard() {
   app = createApp({
     render: () =>
       h(Suspense, null, {
+        // SAFETY: The imported SFC is a Vue component; mounting it does not require preserving its generic row signature.
         default: () =>
           h(KanbanBoard as Component, {
             groupByField: "stage",
@@ -138,10 +144,14 @@ describe("a card dropped on a column the server refuses", () => {
     expect(lists).toHaveLength(2);
     const [source, target] = lists;
     const item = source!.el.children[0]!;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
     source!.option("onStart")!({ item, oldIndex: 0 } as never);
     target!.el.append(item);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
     target!.option("onAdd")!({ item, newIndex: 0 } as never);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
     source!.option("onRemove")!({ item, oldIndex: 0 } as never);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
     source!.option("onEnd")!({} as never);
     await flushPromises();
     await flushPromises();

@@ -20,7 +20,7 @@ const layout = {
       urlTransparent: true,
     },
   },
-} as unknown as SiteLayout;
+} satisfies SiteLayout;
 
 describe("the category a URL resolves to", () => {
   it("is the one owning the slug, by its full slug", () => {
@@ -32,7 +32,7 @@ describe("the category a URL resolves to", () => {
     const transparentOnly = {
       pages: {},
       categories: { "projects.reports": layout.categories["projects.reports"] },
-    } as unknown as SiteLayout;
+    } satisfies SiteLayout;
     expect(findNavigableCategory(transparentOnly, "/projects")).toBeUndefined();
   });
 });

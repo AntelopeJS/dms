@@ -2,9 +2,11 @@ import {
   createReconnector,
   joinSharedRealtimeConnection,
   recoverFromError,
+  type SharedRealtimeConnectionOptions,
   type StreamRecovery,
 } from "../../build/utils/sharedRealtimeConnection";
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
+import { isObject, isString } from "../../utils/type-check";
 
 const REALTIME_CONNECTION_PATH = "/api/realtime/connection";
 const REALTIME_SESSION_PATH = "/api/realtime/session";
@@ -22,9 +24,14 @@ const SESSION_ENDED_EVENT = "session-ended";
 /** Frames held while a session is being opened, every tab's included. */
 const MAX_BUFFERED_FRAMES = 256;
 
+type RealtimeFrameData = Parameters<
+  SharedRealtimeConnectionOptions["onFrame"]
+>[2];
+
 export interface RealtimeEvent {
   topic: string;
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Backend realtime/broker.ts owns the same arbitrary payload contract; topic-specific schemas cannot narrow this public event interface.
   payload?: Record<string, unknown>;
   actorId?: string;
   ts: number;
@@ -127,40 +134,33 @@ const dispatchToHandlers = (
 
 const isSnapshotEvent = (
   eventName: string,
-  data: unknown,
+  data: RealtimeFrameData,
 ): data is RealtimeSnapshotEvent =>
-  eventName === SNAPSHOT_EVENT &&
-  !!data &&
-  typeof data === "object" &&
-  "topic" in (data as Record<string, unknown>);
+  eventName === SNAPSHOT_EVENT && !!data && isObject(data) && "topic" in data;
 
-const isRealtimeEvent = (data: unknown): data is RealtimeEvent =>
-  !!data &&
-  typeof data === "object" &&
-  typeof (data as Record<string, unknown>).topic === "string" &&
-  typeof (data as Record<string, unknown>).type === "string";
-
-const readMenuTopics = (data: object): string[] => {
-  const { menuTopics } = data as { menuTopics?: unknown };
-  if (!Array.isArray(menuTopics)) return [];
-  return menuTopics.filter(
-    (topic): topic is string => typeof topic === "string",
-  );
-};
+const isRealtimeEvent = (data: RealtimeFrameData): data is RealtimeEvent =>
+  !!data && isObject(data) && isString(data.topic) && isString(data.type);
 
 /** Takes the session a greeting names, with the menu topics it announces. */
-const handleHello = (state: UserRealtimeState, data: unknown): void => {
-  if (!data || typeof data !== "object" || !("sessionId" in data)) return;
-  state.sessionId.value = String((data as { sessionId: unknown }).sessionId);
-  state.menuTopics.value = readMenuTopics(data);
-  const { devReloadTopic } = data as { devReloadTopic?: unknown };
-  state.devReloadTopic.value =
-    typeof devReloadTopic === "string" ? devReloadTopic : undefined;
+const handleHello = (
+  state: UserRealtimeState,
+  data: RealtimeFrameData,
+): void => {
+  if (!data || !isObject(data) || !("sessionId" in data)) return;
+  state.sessionId.value = String(data.sessionId);
+  const { menuTopics } = data;
+  state.menuTopics.value = Array.isArray(menuTopics)
+    ? menuTopics.filter((topic): topic is string => isString(topic))
+    : [];
+  const { devReloadTopic } = data;
+  state.devReloadTopic.value = isString(devReloadTopic)
+    ? devReloadTopic
+    : undefined;
 };
 
 const handleEvent =
   (state: UserRealtimeState) =>
-  (eventName: string, data: unknown): void => {
+  (eventName: string, data: RealtimeFrameData): void => {
     if (isSnapshotEvent(eventName, data)) {
       state.snapshots.set(data.topic, data);
       dispatchToHandlers(state, data.topic, data);
@@ -185,14 +185,14 @@ interface SessionGreeting {
 interface BufferedFrame {
   sessionId: string;
   eventName: string;
-  data: unknown;
+  data: RealtimeFrameData;
 }
 
 const readGreeting = async (
   response: Response,
 ): Promise<SessionGreeting | null> => {
   try {
-    return (await response.json()) as SessionGreeting | null;
+    return await response.json();
   } catch {
     return null;
   }
@@ -273,7 +273,7 @@ const connectTab = (
     const greeting = response.ok ? await readGreeting(response) : null;
     const sessionId = greeting?.sessionId;
     if (!isCurrent()) {
-      if (typeof sessionId === "string") {
+      if (isString(sessionId)) {
         closeStraySession(forConnection, sessionId);
       }
       return;
@@ -287,7 +287,7 @@ const connectTab = (
       return;
     }
 
-    if (typeof sessionId !== "string") {
+    if (!isString(sessionId)) {
       buffered = undefined;
       retries.schedule(() => {
         if (isCurrent()) connection.reopen(forConnection);
@@ -356,13 +356,13 @@ interface PageSubscriptionAnswer {
 const readPageTopics = async (response: Response): Promise<string[]> => {
   let answer: PageSubscriptionAnswer | null;
   try {
-    answer = (await response.json()) as PageSubscriptionAnswer | null;
+    answer = await response.json();
   } catch {
     return [];
   }
   const topics = answer?.topics;
   return Array.isArray(topics)
-    ? topics.filter((topic): topic is string => typeof topic === "string")
+    ? topics.filter((topic): topic is string => isString(topic))
     : [];
 };
 
@@ -374,7 +374,7 @@ const callPageEndpoint = async (
 ): Promise<string[]> => {
   const sessionId = state.sessionId.value;
   if (!sessionId) return [];
-  const headers: Record<string, string> = { [SESSION_HEADER]: sessionId };
+  const headers = { [SESSION_HEADER]: sessionId };
   const url = pageId
     ? `${baseUrl}${REALTIME_SUBSCRIBE_PATH_PREFIX}${pageId}`
     : `${baseUrl}${REALTIME_UNSUBSCRIBE_PATH}`;
@@ -459,7 +459,7 @@ const buildApi = (): UserRealtimeApi => {
     SessionScopeFields
   >();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
-  const baseUrl = config.public.dms.baseURL as string;
+  const baseUrl = config.public.dms.baseURL;
 
   if (!import.meta.env.SSR) {
     watch(

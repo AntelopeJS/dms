@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableFiltersRow from "../layers/dms-ui/app/build/components/table/FiltersRow.vue";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
 import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const SEARCH_URL = "/api/customers/select";
 
@@ -37,14 +38,19 @@ const RELATION_TYPE = {
   },
 };
 
-const ROWS: Record<string, { _id: string; name: string }> = {
-  "cust-060": { _id: "cust-060", name: "Acme" },
-  "cust-061": { _id: "cust-061", name: "Globex" },
-};
+const ROWS = new Map(
+  Object.entries({
+    "cust-060": { _id: "cust-060", name: "Acme" },
+    "cust-061": { _id: "cust-061", name: "Globex" },
+  }),
+);
 
 const authFetch = vi.fn(
   async (_url: string, options: { params: { ids: string[] } }) => ({
-    results: options.params.ids.flatMap((id) => (ROWS[id] ? [ROWS[id]] : [])),
+    results: options.params.ids.flatMap((id) => {
+      const row = ROWS.get(id);
+      return row ? [row] : [];
+    }),
   }),
 );
 
@@ -120,7 +126,7 @@ beforeEach(() => {
         : undefined,
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("resolveDmsComponent", () => undefined);
 });
 

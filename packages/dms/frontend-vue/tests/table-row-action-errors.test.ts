@@ -11,17 +11,19 @@ import { useEventedAction } from "../layers/dms-core/app/composables/useEventedA
 import {
   ConfirmActionError,
   type ConfirmOptions,
+  type ConfirmValues,
 } from "../layers/dms-ui/app/composables/confirm/types";
 import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 
-type Messages = Record<string, unknown>;
+type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
     target[key] =
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale trees contain string leaves and nested message branches; only branches are merged recursively.
       current && typeof current === "object" && typeof value === "object"
-        ? merge({ ...(current as Messages) }, value as Messages)
+        ? merge({ ...current }, value)
         : value;
   }
   return target;
@@ -32,9 +34,9 @@ const i18n = createI18n({
   locale: "en",
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: merge(merge({}, core), ui) as never },
+  messages: { en: merge(merge({}, core), ui) },
 });
-const t = i18n.global.t as (...args: unknown[]) => string;
+const t = i18n.global.t;
 
 const toast = { add: vi.fn() };
 const refresh = vi.fn();
@@ -45,7 +47,7 @@ const dialogs: {
   outcome?: unknown;
   error?: unknown;
 }[] = [];
-let dialogValues: Record<string, unknown> = {};
+let dialogValues: ConfirmValues = {};
 const confirm = vi.fn(async (options: ConfirmOptions) => {
   const dialog: (typeof dialogs)[number] = { options };
   dialogs.push(dialog);
@@ -59,7 +61,7 @@ const confirm = vi.fn(async (options: ConfirmOptions) => {
   }
 });
 
-function fetchError(status: number | undefined, data?: unknown) {
+function fetchError(status: number | undefined, data?: string) {
   return Object.assign(new Error(`[PUT] "/api/task": ${status}`), {
     name: "FetchError",
     statusCode: status,
@@ -79,8 +81,10 @@ async function rowActions() {
     "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
-    api: api as never,
+    // SAFETY: Row action tests only call the configured fetch function, never its raw/create helpers.
+    api: api as Parameters<typeof useTableRowActions>[0]["api"],
     location: "/api/task",
+    columns: [],
     componentId: "table",
     pageId: "tasks",
     formComponents: {},
@@ -90,7 +94,7 @@ async function rowActions() {
 }
 
 beforeEach(() => {
-  const globals: Record<string, unknown> = {
+  const globals = {
     ref,
     Color,
     HttpMethod,
@@ -141,7 +145,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Sent",
         },
         confirm: { title: "Resend?", description: "" },
-      } as never,
+      },
       { _id: "i1" },
     );
     await vi.waitFor(() => expect(dialogs).toHaveLength(1));
@@ -151,7 +155,7 @@ describe("Table row actions: refusals", () => {
       method: HttpMethod.post,
     });
 
-    expect((dialogs[0]!.error as { statusCode: number }).statusCode).toBe(404);
+    expect(dialogs[0]!.error).toHaveProperty("statusCode", 404);
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -171,7 +175,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Copied",
           copy: "url",
         },
-      } as never,
+      },
       { _id: "i1" },
     );
     await vi.waitFor(() => expect(toast.add).toHaveBeenCalled());
@@ -215,9 +219,12 @@ describe("Table row actions: refusals", () => {
     const done = await deleteRows(["1", "2"], true);
 
     expect(done).toBe(false);
-    const error = dialogs[0]!.error as ConfirmActionError;
+    const error = dialogs[0]!.error;
     expect(error).toBeInstanceOf(ConfirmActionError);
-    expect(error.message).toBe("These 2 items couldn’t be deleted.");
+    expect(error).toHaveProperty(
+      "message",
+      "These 2 items couldn’t be deleted.",
+    );
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -227,7 +234,7 @@ describe("Table row actions: refusals", () => {
     const { archiveRows } = await rowActions();
 
     expect(await archiveRows(["1"], true)).toBe(false);
-    expect((dialogs[0]!.error as Error).name).toBe("FetchError");
+    expect(dialogs[0]!.error).toHaveProperty("name", "FetchError");
     expect(toast.add).not.toHaveBeenCalled();
   });
 
@@ -269,7 +276,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Banned",
         },
         confirm: { title: "Ban {name}?", fields: [] },
-      } as never,
+      },
       { _id: "u1", name: "Ada" },
     );
     await vi.waitFor(() => expect(api).toHaveBeenCalled());

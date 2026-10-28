@@ -40,12 +40,13 @@ const props = withDefaults(defineProps<ProfileSummaryRowProps>(), {
 
 const PLACEHOLDER_CHARACTERS = /[\p{L}\p{N}]/gu;
 const PLACEHOLDER_GLYPH = "x";
-const shape = computed(() =>
+const placeholderText = computed(() =>
   props.placeholder.replace(PLACEHOLDER_CHARACTERS, PLACEHOLDER_GLYPH),
 );
 
 defineSlots<{
   /** The summary, after the lead. */
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
   default?: () => unknown;
 }>();
 
@@ -83,7 +84,7 @@ const { t } = useI18n();
         aria-hidden="true"
         class="bg-transparent bg-[linear-gradient(var(--dms-skeleton),var(--dms-skeleton))] box-decoration-clone bg-size-[100%_12px] bg-center bg-no-repeat text-transparent select-none"
       >
-        {{ shape }}
+        {{ placeholderText }}
       </USkeleton>
       <slot v-else />
     </div>

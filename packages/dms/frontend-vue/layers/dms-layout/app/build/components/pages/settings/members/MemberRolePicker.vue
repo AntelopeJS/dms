@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inject } from "vue";
+import { isObject } from "#dms-core/app/utils/type-check";
 import {
   formFieldInjectionKey,
   formStateInjectionKey,
@@ -137,9 +138,7 @@ const hint = computed(() => {
 function toRoleIds(value: unknown[] | null | undefined): string[] {
   const idKey = props.keyMapping?.value ?? "_id";
   return (value ?? []).map((item) =>
-    item !== null && typeof item === "object"
-      ? String((item as Record<string, unknown>)[idKey])
-      : String(item),
+    item !== null && isObject(item) ? String(item[idKey]) : String(item),
   );
 }
 

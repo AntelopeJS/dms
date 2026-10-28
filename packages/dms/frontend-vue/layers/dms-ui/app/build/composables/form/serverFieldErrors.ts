@@ -1,3 +1,5 @@
+import type { validateFormState } from "./formValidation";
+
 /**
  * A server error as UForm holds it once placed: on the field, or on the part
  * of it the error names (`address.street`).
@@ -15,14 +17,16 @@ export interface KeptServerError {
 }
 
 /** The value of a field as a kept error compares it. */
-export function serverErrorValue(value: unknown): string {
+export function serverErrorValue(
+  value: Parameters<typeof validateFormState>[1][string],
+): string {
   return JSON.stringify(value) ?? "";
 }
 
 /** The fields whose value moved off the one their kept error was raised against. */
 export function changedServerErrorFields(
   kept: ReadonlyMap<string, KeptServerError>,
-  state: Readonly<Record<string, unknown>>,
+  state: Readonly<Parameters<typeof validateFormState>[1]>,
 ): string[] {
   return [...kept]
     .filter(([name, entry]) => serverErrorValue(state[name]) !== entry.value)
@@ -39,7 +43,7 @@ export function changedServerErrorFields(
  */
 export function keptServerErrors(
   kept: ReadonlyMap<string, KeptServerError>,
-  state: Readonly<Record<string, unknown>>,
+  state: Readonly<Parameters<typeof validateFormState>[1]>,
   isSubmitting: boolean,
 ): PlacedServerError[] {
   if (isSubmitting) return [];

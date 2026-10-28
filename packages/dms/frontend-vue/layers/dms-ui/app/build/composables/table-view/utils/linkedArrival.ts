@@ -1,4 +1,5 @@
 import { nextTick } from "vue";
+import type { LocationQuery } from "#dms/frontend-module";
 import {
   hashText,
   type TableField,
@@ -40,7 +41,7 @@ const TAB_URL_KEY = "tab";
  * (`?view=`), or `undefined` when it names none.
  */
 const namedView = (
-  query: Record<string, unknown>,
+  query: LocationQuery,
   urlScope: TableUrlScope,
 ): string | undefined => {
   const reading = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
@@ -49,7 +50,7 @@ const namedView = (
 
 /** What the URL a table arrives on may name, and how it was reached. */
 export interface TableLinkArrival {
-  query: Record<string, unknown>;
+  query: LocationQuery;
   urlScope: TableUrlScope;
   queryParamFilters: QueryParamFilters | undefined;
   /** The page was reached through a visit, not loaded or gone back to. */
@@ -63,7 +64,7 @@ export interface TableLinkArrival {
 }
 
 const namesUrlFilter = (
-  query: Record<string, unknown>,
+  query: LocationQuery,
   queryParamFilters: QueryParamFilters | undefined,
   isNamed: (param: string) => boolean,
 ): boolean =>
@@ -76,7 +77,7 @@ const namesUrlFilter = (
  * when it carries none: what a kept state chosen under them is tied to.
  */
 export function urlFilterScope(
-  query: Record<string, unknown>,
+  query: LocationQuery,
   queryParamFilters: QueryParamFilters | undefined,
 ): string | undefined {
   const values = Object.keys(queryParamFilters ?? {})
@@ -92,7 +93,7 @@ export function urlFilterScope(
  * none of them: a URL spelling a key short or prefixed reads the same.
  */
 export function linkKeyScope(
-  query: Record<string, unknown>,
+  query: LocationQuery,
   urlScope: TableUrlScope,
   queryParamFilters: QueryParamFilters | undefined,
 ): string | undefined {
@@ -160,14 +161,14 @@ export function linkedArrivalPreferences(
 
 /** A visit to the page the table is already shown on. */
 export interface TableLinkVisit {
-  query: Record<string, unknown>;
+  query: LocationQuery;
   /**
    * A link pushed on the page (one clicked, a notification): it is followed
    * even when it names what the table shows.
    */
   isLinkClick: boolean;
   /** The query of the visit the table was last reached through. */
-  previousQuery: Record<string, unknown>;
+  previousQuery: LocationQuery;
   urlScope: TableUrlScope;
   queryParamFilters: QueryParamFilters | undefined;
   /** The view and the tab the table shows. */
@@ -192,12 +193,14 @@ export interface TableLinkVisit {
  */
 export function isLinkedVisit(visit: TableLinkVisit): boolean {
   const { query, previousQuery, urlScope, isLinkClick } = visit;
-  const read = (from: Record<string, unknown>, key: string) =>
+  const read = (from: LocationQuery, key: string) =>
     readTableUrlKey(from, urlScope, key).value;
 
   const isRowLink = read(query, RECORD_URL_KEY) !== undefined;
-  const isNew = (value: unknown, current: unknown) =>
-    (isLinkClick && !isRowLink) || value !== current;
+  const isNew = (
+    value: LocationQuery[string] | undefined,
+    current: LocationQuery[string] | undefined,
+  ) => (isLinkClick && !isRowLink) || value !== current;
   const view = namedView(query, urlScope);
   if (view === "" && isNew(undefined, visit.activeView)) return true;
   if (view && isNew(view, visit.activeView) && visit.canOpenView(view)) {

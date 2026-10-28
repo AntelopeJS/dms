@@ -18,11 +18,14 @@ dataTypes.set("code_name", {
 const getDataType = (id: string) => dataTypes.get(id);
 
 const columns = [
-  { value: "tags", label: "Tags", type: { id: "tags" } as DataTypeConfig },
-  { value: "code", label: "Code", type: { id: "code_name" } as DataTypeConfig },
+  { value: "tags", label: "Tags", type: { id: "tags" } },
+  { value: "code", label: "Code", type: { id: "code_name" } },
 ];
 
-const format = (accessorKey: string, value: unknown) =>
+const format = (
+  accessorKey: string,
+  value: Parameters<typeof formatFilterValue>[0]["value"],
+) =>
   formatFilterValue(
     { accessorKey, mode: "array_contains_string", value },
     columns,

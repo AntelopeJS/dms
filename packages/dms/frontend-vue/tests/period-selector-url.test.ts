@@ -27,9 +27,10 @@ import {
 } from "vitest";
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
+import type { RememberedPeriods } from "../layers/dms-ui/app/build/composables/period/periodQuery";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
-const preferences = new Map<string, unknown>();
+const preferences = new Map<string, RememberedPeriods>();
 
 vi.stubGlobal("useDmsRoute", () => route);
 
@@ -44,9 +45,10 @@ function followInertiaPage({
 }
 const inertiaReplace = vi.spyOn(inertiaRouter, "replace");
 vi.stubGlobal("usePreferences", () => ({
-  getPreference: <T>(key: string, fallback?: T) =>
-    (preferences.get(key) as T | undefined) ?? fallback,
-  setPreference: (key: string, value: unknown) => preferences.set(key, value),
+  getPreference: (key: string, fallback?: RememberedPeriods) =>
+    preferences.get(key) ?? fallback,
+  setPreference: (key: string, value: RememberedPeriods) =>
+    preferences.set(key, value),
 }));
 
 const { usePeriod } = await import(
@@ -253,11 +255,10 @@ describe("a change of period", () => {
     expect(search().get("page.period")).toBe("last-7-days");
     expect(search().get("page.compare")).toBe("previous-period");
     expect(window.history.length).toBe(entries);
-    expect(
-      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
-        `${PAGE_ID}#page`
-      ],
-    ).toEqual({ period: "last-7-days", compare: "previous-period" });
+    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+      period: "last-7-days",
+      compare: "previous-period",
+    });
   });
 
   it("swaps the preset key for the custom range keys", async () => {
@@ -384,10 +385,8 @@ describe("a link framing a window no preset matches", () => {
     });
     period.setComparison("previous-period");
     await nextTick();
-    expect(
-      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
-        `${PAGE_ID}#page`
-      ],
-    ).toEqual({ period: "last-7-days" });
+    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+      period: "last-7-days",
+    });
   });
 });

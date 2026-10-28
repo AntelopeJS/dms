@@ -119,7 +119,7 @@ interface KeyMove {
   direction: StepFn;
 }
 
-const KEY_MOVES: Record<string, KeyMove> = {
+const KEY_MOVES: Record<KeyboardEvent["key"], KeyMove> = {
   ArrowRight: { target: NEXT, direction: NEXT },
   ArrowDown: { target: NEXT, direction: NEXT },
   ArrowLeft: { target: PREVIOUS, direction: PREVIOUS },

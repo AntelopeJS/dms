@@ -117,8 +117,7 @@ describe("the size of a table's state in the preferences cookie", () => {
       visitTypicalTable(...tableIds(index));
     }
     expect(cookieBytes()).toBeLessThanOrEqual(MAX_PREFERENCES_COOKIE_BYTES);
-    const tables = storedTree().tables as Record<string, unknown>;
-    expect(Object.keys(tables)).toHaveLength(TYPICAL_TABLES);
+    expect(Object.keys(storedTree().tables)).toHaveLength(TYPICAL_TABLES);
     expect(
       useTablePreferences(...tableIds(0)).get("sorting", DEFAULT_SORT),
     ).toEqual([{ id: "name", desc: true }]);

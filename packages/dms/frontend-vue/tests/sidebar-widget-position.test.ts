@@ -7,6 +7,7 @@ import {
   useSidebarWidgets,
 } from "../layers/dms-layout/app/composables/useSidebarWidgets";
 
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately supplies an invalid serialized position to exercise the fallback.
 const UNKNOWN_POSITION = "top" as SidebarWidgetPosition;
 
 const widget = (extra: Partial<SidebarWidget> = {}): SidebarWidget => ({

@@ -19,6 +19,7 @@ import {
   isCompactNumberInput,
   isCompactTextInput,
 } from "../layers/dms-ui/app/build/utils/inputWidth";
+import { isNumber } from "../layers/dms-core/app/utils/type-check";
 
 const COMPACT_CLASS = "sm:max-w-44";
 
@@ -38,7 +39,10 @@ const Control = (tag: string) =>
       },
   });
 
-async function mount(component: Component, props: Record<string, unknown>) {
+async function mount(
+  component: Component,
+  props: Parameters<typeof createApp>[1],
+) {
   app = createApp({
     render: () => h(component, { class: "w-full", ...props }),
   });
@@ -48,9 +52,9 @@ async function mount(component: Component, props: Record<string, unknown>) {
   await nextTick();
 }
 
-const load = async (name: string) =>
+const load = async (name: string): Promise<Component> =>
   (await import(`../layers/dms-ui/app/components/form/components/${name}.vue`))
-    .default as Component;
+    .default;
 
 const control = () => host.querySelector("[data-control]")!;
 
@@ -59,7 +63,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
-  vi.stubGlobal("isNumber", (value: unknown) => typeof value === "number");
+  vi.stubGlobal("isNumber", isNumber);
   host = document.createElement("div");
   document.body.append(host);
 });

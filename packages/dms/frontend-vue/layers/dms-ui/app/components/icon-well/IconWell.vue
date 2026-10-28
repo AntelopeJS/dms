@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import { DMS_TONE_WELL } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
@@ -32,7 +32,7 @@ interface IconWellProps {
 
 interface IconWellSlots {
   /** Replaces the icon (initials, a glyph, a spinner…). */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<IconWellProps>(), {

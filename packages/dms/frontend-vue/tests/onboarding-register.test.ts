@@ -10,7 +10,6 @@ import {
   onMounted,
   type App,
   type Component,
-  type PropType,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Register from "../layers/dms-onboarding/app/components/onboarding/steps/register.vue";
@@ -19,7 +18,6 @@ import {
   passwordSchema,
   usePasswordStrength,
 } from "../layers/dms-ui/app/composables/usePasswordStrength";
-import type { LocalizedSchema } from "../layers/dms-core/app/composables/useFormValidation";
 import { mountInBrowser } from "./helpers/api-data-runtime";
 
 const register = vi.fn();
@@ -44,7 +42,7 @@ function registerUi(app: App) {
     defineComponent({
       props: {
         schema: {
-          type: Object as PropType<LocalizedSchema<unknown>>,
+          type: Object,
           required: true,
         },
         state: { type: Object, required: true },
@@ -208,7 +206,7 @@ beforeEach(() => {
   vi.stubGlobal("$fetch", login);
   vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
   vi.stubGlobal("useDmsApp", () => ({
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <T>(fn: () => T) => fn(),
   }));
   vi.stubGlobal("useSiteLayout", () => ({ siteLayoutTree: ref(undefined) }));
   vi.stubGlobal("setOnboardingComplete", complete);

@@ -8,16 +8,17 @@
 import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 import Sortable from "sortablejs";
-
-interface SortableOptions {
-  disabled?: boolean;
-  [name: string]: unknown;
-}
+import type { SortableListChange } from "../layers/dms-ui/app/build/components/sortable/SortableList.vue";
 
 interface FakeSortable {
   el: HTMLElement;
-  options: SortableOptions;
+  options: Sortable.Options;
 }
+
+type DragReplay = Partial<
+  Pick<Sortable.SortableEvent, "item" | "from" | "oldIndex" | "newIndex">
+>;
+type DragCallback = "onStart" | "onUpdate" | "onEnd" | "onAdd" | "onRemove";
 
 const instances: FakeSortable[] = [];
 
@@ -38,7 +39,7 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-type Change = Record<string, { element: Card } & Record<string, number>>;
+type Change = SortableListChange<Card>;
 
 /** Lists of one group, each bound with `v-model:list`. */
 function mountLists(columns: Card[][], changes: Change[][]) {
@@ -49,7 +50,7 @@ function mountLists(columns: Card[][], changes: Change[][]) {
     render: () =>
       lists.map((list, index) =>
         h(
-          SortableList as never,
+          SortableList<Card>,
           {
             list,
             "onUpdate:list": (next: Card[]) => (lists[index] = next),
@@ -82,7 +83,7 @@ function moveElement(
   to: HTMLElement,
   newIndex: number,
 ) {
-  const item = from.children[oldIndex] as HTMLElement;
+  const item = from.querySelectorAll<HTMLElement>(":scope > *")[oldIndex]!;
   item.remove();
   to.insertBefore(item, to.children[newIndex] ?? null);
   return item;
@@ -97,10 +98,14 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [sortable] = instances;
-    const call = (name: string, event: object) =>
-      (sortable!.options[name] as (event: object) => void)(event);
+    const call = (name: DragCallback, event: DragReplay) =>
+      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
+      (sortable!.options[name] as (event: DragReplay) => void)(event);
 
-    call("onStart", { item: sortable!.el.children[0], oldIndex: 0 });
+    call("onStart", {
+      item: sortable!.el.querySelectorAll<HTMLElement>(":scope > *")[0],
+      oldIndex: 0,
+    });
     const item = moveElement(sortable!.el, 0, sortable!.el, 2);
     call("onUpdate", { from: sortable!.el, item, oldIndex: 0, newIndex: 2 });
     call("onEnd", {});
@@ -121,10 +126,18 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [source, target] = instances;
-    const call = (sortable: FakeSortable, name: string, event: object) =>
-      (sortable.options[name] as (event: object) => void)(event);
+    const call = (
+      sortable: FakeSortable,
+      name: DragCallback,
+      event: DragReplay,
+    ) =>
+      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
+      (sortable.options[name] as (event: DragReplay) => void)(event);
 
-    call(source!, "onStart", { item: source!.el.children[1], oldIndex: 1 });
+    call(source!, "onStart", {
+      item: source!.el.querySelectorAll<HTMLElement>(":scope > *")[1],
+      oldIndex: 1,
+    });
     const item = moveElement(source!.el, 1, target!.el, 0);
 
     call(target!, "onAdd", {

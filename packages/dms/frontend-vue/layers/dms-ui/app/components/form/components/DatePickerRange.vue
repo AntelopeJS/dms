@@ -41,9 +41,7 @@ function emitRange(start: string | undefined, end: string | undefined) {
 
 const { t } = useI18n();
 
-const { color: fieldColor } = useFormField(
-  props as Parameters<typeof useFormField>[0],
-);
+const { color: fieldColor } = useFormField<DatePickerRangeProps>(props);
 const pickerColor = computed(() =>
   fieldColor.value === "error" ? "error" : undefined,
 );

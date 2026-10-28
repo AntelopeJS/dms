@@ -23,12 +23,14 @@ import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-eva
 import * as colors from "../layers/dms-core/app/types/color";
 import * as buttons from "../layers/dms-core/app/types/button";
 import * as sizes from "../layers/dms-core/app/types/size";
+import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
+import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-type Row = Record<string, unknown>;
+type Row = { _id: string; name: string; code: string };
 
-const ROW: Row = { _id: "fr", name: "Français", code: "fr" };
+const ROW = { _id: "fr", name: "Français", code: "fr" };
 
-const translateKey = (key: string, params: Record<string, unknown> = {}) =>
+const translateKey = (key: string, params: Record<string, string> = {}) =>
   Object.keys(params).length > 0 ? `${key}(${JSON.stringify(params)})` : key;
 
 const mounted: App[] = [];
@@ -47,9 +49,9 @@ beforeEach(() => {
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("watchEffect", watchEffect);
   vi.stubGlobal("shallowRef", shallowRef);
-  vi.stubGlobal("isFunction", (value: unknown) => typeof value === "function");
+  vi.stubGlobal("isFunction", isFunction);
   vi.stubGlobal("h", h);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("useI18n", () => ({ t: translateKey }));
   vi.stubGlobal("useDmsRouter", () => ({ push: vi.fn() }));
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -57,7 +59,7 @@ beforeEach(() => {
     ui: { icons: { ellipsis: "i-ellipsis" } },
   }));
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (key: string, params?: Record<string, unknown>) =>
+    processI18n: (key: string, params?: Parameters<typeof translateKey>[1]) =>
       key.startsWith("$") ? translateKey(key.slice(1), params ?? {}) : key,
   }));
   vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn() }));
@@ -71,8 +73,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+type LabelAction = Omit<CustomRowAction, "target"> & {
+  target: Pick<
+    Extract<CustomRowAction["target"], { type: "api" | "page" }>,
+    "type" | "url"
+  >;
+};
+
 interface ActionsCellOptions {
-  custom: Array<Record<string, unknown>>;
+  custom: LabelAction[];
   menuLabel?: string;
   labelKey?: string;
 }
@@ -89,15 +98,25 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
       details: false,
       duplicate: false,
       edit: false,
-      custom: custom as never,
+      // SAFETY: These label/menu tests never select an action; their API targets omit the unused successMessage.
+      custom: custom as CustomRowAction[],
       menuLabel,
     },
     labelKey,
-    emits: (() => undefined) as never,
-    ui: computed(() => ({ rowAction: () => "" }) as never),
+    emits: () => undefined,
+    // SAFETY: This actions-cell probe uses only rowAction; no header or selection cell is rendered.
+    ui: computed(
+      () =>
+        ({ rowAction: () => "" }) as Parameters<
+          typeof useTableColumns<Row>
+        >[0]["ui"]["value"],
+    ),
   });
   const column = columns.value.find((entry) => entry.id === "actions");
-  const cell = column?.cell as (context: unknown) => VNode;
+  // SAFETY: The actions column installs a cell callback that only reads row.original and row.id.
+  const cell = column?.cell as (context: {
+    row: { original: Row; id: string };
+  }) => VNode;
   return cell({ row: { original: ROW, id: "fr" } });
 }
 
@@ -110,13 +129,16 @@ function renderCell(cell: VNode) {
   return host;
 }
 
-function menuButtonProps(cell: VNode): Record<string, unknown> {
+function menuButtonProps(cell: VNode) {
   const button = renderCell(cell).querySelector('[aria-haspopup="menu"]');
   expect(button).not.toBeNull();
   return { "aria-label": button?.getAttribute("aria-label") };
 }
 
-const MENU_ACTION = { label: "Remove", target: { type: "api", url: "/x" } };
+const MENU_ACTION = {
+  label: "Remove",
+  target: { type: "api", url: "/x" },
+} satisfies LabelAction;
 
 it("names the ⋯ button after the row's label field by default", () => {
   const cell = actionsCell({ custom: [MENU_ACTION], labelKey: "name" });

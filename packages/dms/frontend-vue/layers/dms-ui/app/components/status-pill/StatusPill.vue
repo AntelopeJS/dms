@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 import {
   DMS_TONE_OUTLINE,
@@ -42,7 +42,7 @@ interface StatusPillProps {
 }
 
 interface StatusPillSlots {
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<StatusPillProps>(), {

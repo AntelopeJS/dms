@@ -28,7 +28,10 @@ const readWith =
   (code, highlighter, put) =>
     highlightTree(parser.parse(code), highlighter, put);
 
-const READERS: Record<string, () => Promise<RangeReader>> = {
+const READERS: Record<
+  Parameters<typeof loadCodeHighlighter>[0],
+  () => Promise<RangeReader>
+> = {
   json: async () => readWith((await import("@lezer/json")).parser),
   javascript: async () => readWith((await import("@lezer/javascript")).parser),
   typescript: async () =>

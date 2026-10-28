@@ -4,7 +4,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 
-const items = ref<Array<Record<string, unknown>>>([]);
+type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
+const items = ref<FeedProps["items"]>([]);
 
 const Slot = defineComponent({
   props: { title: { type: String, default: undefined } },
@@ -14,7 +15,7 @@ const Slot = defineComponent({
       h("div", attrs, [props.title, slots.default?.()]),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(props: FeedProps): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(ActivityFeed, {

@@ -22,11 +22,7 @@ const i18n = createI18n({
   locale: "en",
   messages: { en: { lang: { download: "Download {file}" } } },
 });
-const t = i18n.global.t as (
-  key: string,
-  params: Record<string, unknown>,
-  plural?: number,
-) => string;
+const t = i18n.global.t;
 
 describe("a confirmation's secondary action, resolved", () => {
   it("fills its label, URL and file name with the row and the params", async () => {
@@ -175,7 +171,9 @@ describe("ConfirmModal secondary action", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
     app = createApp({
       render: () =>
         h(DialogRoot, null, () =>

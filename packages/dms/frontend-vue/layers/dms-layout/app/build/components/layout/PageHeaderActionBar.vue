@@ -24,6 +24,7 @@ import {
   findServedQuickAction,
 } from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
 import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "../../../composables/layout/usePageHeaderActions";
+import { isString } from "#dms-core/app/utils/type-check";
 
 /**
  * A button of the page header as the server serves it (`DefaultLayout({
@@ -88,16 +89,13 @@ function pressComponentButton(componentId: string, buttonId?: string) {
     ? { kind: "button", button: buttonId }
     : { kind: "add" };
   if (runMountedQuickAction(route.path, componentId, intent)) return;
-  void router.replace({
-    query: {
-      ...route.query,
-      [QUICK_ACTION_QUERY_KEY]: buttonId
-        ? QUICK_ACTION_BUTTON
-        : QUICK_ACTION_ADD,
-      [QUICK_ACTION_COMPONENT_KEY]: componentId,
-      ...(buttonId ? { [QUICK_ACTION_BUTTON_KEY]: buttonId } : {}),
-    },
-  });
+  const query: typeof route.query = {
+    ...route.query,
+    [QUICK_ACTION_QUERY_KEY]: buttonId ? QUICK_ACTION_BUTTON : QUICK_ACTION_ADD,
+    [QUICK_ACTION_COMPONENT_KEY]: componentId,
+  };
+  if (buttonId) query[QUICK_ACTION_BUTTON_KEY] = buttonId;
+  void router.replace({ query });
 }
 
 const defaultVariant = (
@@ -108,7 +106,7 @@ const defaultVariant = (
 const orderOf = (action: LayoutHeaderAction): number =>
   action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
-function labelParams(): Record<string, unknown> {
+function labelParams() {
   const { routeParams, routeQuery } = pageUrlValues.value;
   return { ...routeParams, ...routeQuery };
 }
@@ -128,11 +126,12 @@ type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
 type UrlTarget = Extract<ActionTarget, { url: string }>;
 
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
-  typeof (target as Partial<UrlTarget>).url === "string";
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ActionTarget variants without url are still probed for it at runtime, including malformed variants. A discriminant-only guard would change that behavior.
+  isString((target as Partial<UrlTarget>).url);
 
 const pageUrlValues = computed(() => ({
   routeParams: siteLayout.findMatchingRoute(route.path)?.params,
-  routeQuery: route.query as Record<string, unknown>,
+  routeQuery: route.query,
 }));
 
 function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
@@ -166,6 +165,7 @@ const LINK_TARGETS: Partial<
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dispatch table correlates its page/external keys with LinkTarget, which indexed access cannot infer. A discriminant rewrite would alter the existing prototype-key lookup for malformed types.
   return LINK_TARGETS[target.type]?.(target as LinkTarget);
 }
 
@@ -185,7 +185,8 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? handleCustomButton(action as CustomButton)
+          ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- LayoutHeaderAction permits missing label and wider color/variant values than CustomButton. The existing action executor receives the original object; synthesizing a valid CustomButton would change malformed input behavior.
+            handleCustomButton(action as CustomButton)
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -222,6 +223,7 @@ function resolveAction(
     button: {
       ...base,
       ...(linkProps(action) ?? {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout action's optional label and ButtonProps styling do not satisfy CustomButton. This unchecked existing handoff preserves the original object instead of inventing defaults or narrowing the public prop.
         onClick: () => handleCustomButton(action as CustomButton),
       }),
     },

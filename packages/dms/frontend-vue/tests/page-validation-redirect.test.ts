@@ -39,7 +39,9 @@ class HttpError extends Error {
 }
 
 const navigateDms = vi.fn(async () => {});
-const pageQuery = ref<Record<string, unknown>>({});
+const pageQuery = ref<
+  Parameters<typeof pageValidationRedirect>[2]["routeQuery"]
+>({});
 const validation = ref<PageValidation | undefined>(undefined);
 
 const PageComponent: FunctionalComponent<{ componentId: string }> = (props) =>
@@ -51,7 +53,7 @@ function installRuntime(): void {
     layout: { options: {} },
     components: { report: { componentName: "FunnelReport" } },
   });
-  const runtime: Record<string, unknown> = {
+  const runtime = {
     computed,
     inject,
     onMounted,

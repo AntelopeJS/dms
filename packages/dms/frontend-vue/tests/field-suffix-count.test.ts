@@ -28,7 +28,7 @@ const Control = (tag: string) =>
     setup:
       (props, { slots, attrs }) =>
       () => {
-        ui.push(props.ui as { base?: unknown } | undefined);
+        ui.push(props.ui);
         return h("div", { "data-control": tag }, [
           h(tag, { ...attrs }),
           slots.trailing?.(),
@@ -36,7 +36,10 @@ const Control = (tag: string) =>
       },
   });
 
-async function mount(component: Component, props: Record<string, unknown>) {
+async function mount(
+  component: Component,
+  props: Parameters<typeof createApp>[1],
+) {
   app = createApp({ render: () => h(component, props) });
   app.component("UInput", Control("input"));
   app.component("UTextarea", Control("textarea"));
@@ -45,9 +48,9 @@ async function mount(component: Component, props: Record<string, unknown>) {
   await nextTick();
 }
 
-const load = async (name: string) =>
+const load = async (name: string): Promise<Component> =>
   (await import(`../layers/dms-ui/app/components/form/components/${name}.vue`))
-    .default as Component;
+    .default;
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
@@ -124,7 +127,7 @@ describe("a number field's unit", () => {
 
   it("makes room for the unit at the end of the value", async () => {
     await mount(await load("InputNumber"), { modelValue: 30, suffix: "h" });
-    const wrapper = host.firstElementChild as HTMLElement;
+    const wrapper = host.querySelector<HTMLElement>(":scope > *")!;
     expect(wrapper.style.getPropertyValue("--dms-field-suffix-width")).toBe(
       "1ch",
     );

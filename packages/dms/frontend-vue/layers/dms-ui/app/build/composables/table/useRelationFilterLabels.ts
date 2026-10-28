@@ -16,7 +16,8 @@ export interface RelationFilterSource extends DataTypeSelectSource {
 const labelKey = (searchUrl: string, id: string) => `${searchUrl}\n${id}`;
 
 const NO_LABELS: ReadonlySet<string> = new Set();
-const idsOf = (value: unknown) => unlabeledRelationIds(value, NO_LABELS);
+const idsOf = (value: Parameters<typeof unlabeledRelationIds>[0]) =>
+  unlabeledRelationIds(value, NO_LABELS);
 
 /** How a chip names one id of a relation filter. */
 export interface RelationFilterLabel {

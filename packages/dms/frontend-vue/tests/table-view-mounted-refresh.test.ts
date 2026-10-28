@@ -16,6 +16,7 @@ import {
 import { usePageLiveRefresh } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth/useAuthFetch";
+import type { TableCountQuery } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
 import type {
   TableViewConfig,
   TableViewDisplayContext,
@@ -39,7 +40,7 @@ beforeEach(async () => {
     async (
       url: string,
       options?: {
-        query?: Record<string, unknown>;
+        query?: TableCountQuery["query"];
         body?: { queries: Array<{ id: string }> };
       },
     ) => {
@@ -203,7 +204,7 @@ it.each(["table", "kanban"])(
 );
 
 const ActionDisplay: FunctionalComponent<{
-  context: TableViewDisplayContext<Record<string, unknown>>;
+  context: TableViewDisplayContext;
 }> = (props) =>
   h(
     "button",

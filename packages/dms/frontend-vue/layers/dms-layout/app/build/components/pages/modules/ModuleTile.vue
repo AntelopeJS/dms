@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
+import type { Slot } from "vue";
 import { DmsLink } from "#dms/frontend-module";
 import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
@@ -28,15 +29,15 @@ interface ModuleTileProps {
 
 interface ModuleTileSlots {
   /** Under the description (a live readout). */
-  readout?: () => unknown;
+  readout?: Slot;
   /** Under the description (an install command). */
-  default?: () => unknown;
+  default?: Slot;
   /**
    * The footer band's content. The band wraps: a facts group (version,
    * source, category) kept whole, then actions pushed to the end with
    * `ms-auto`, which drop to a second line when both do not fit.
    */
-  footer: () => unknown;
+  footer: Slot;
 }
 
 const props = withDefaults(defineProps<ModuleTileProps>(), {

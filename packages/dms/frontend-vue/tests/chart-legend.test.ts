@@ -6,7 +6,7 @@
  * heading its single series, until the card asks for it with
  * `showSeriesLegend`: no raw Apex `legend` option is needed for either.
  */
-import { createApp, defineComponent, h, ref, type PropType } from "vue";
+import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
@@ -15,21 +15,17 @@ import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/u
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 import { engine } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
+import type { ApexOptions } from "apexcharts";
 
 const SERIES: ChartSeries[] = [
   { name: "Average", data: [{ x: "10:00", y: 42 }] },
   { name: "p95", data: [{ x: "10:00", y: 96 }] },
 ];
 
-interface LegendOptions {
-  show: boolean;
-  position: string;
-}
-
 const LegendProbe = defineComponent({
   props: {
     options: {
-      type: Object as PropType<{ legend: LegendOptions }>,
+      type: Object,
       required: true,
     },
   },
@@ -53,10 +49,13 @@ function legendOf(input: Partial<UseApexChartInput>) {
     series: SERIES,
     ...input,
   }));
-  return chart.options.value.legend as Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Apex options are stored as raw sections rather than a typed legend. Inference and that owner contract cannot expose the generated legend fields without this existing unchecked projection.
+  return chart.options.value.legend as NonNullable<ApexOptions["legend"]>;
 }
 
-async function renderCard(cardProps: Record<string, unknown>) {
+async function renderCard(
+  cardProps: Partial<InstanceType<typeof ChartCard>["$props"]>,
+) {
   const authFetch = vi.fn().mockResolvedValue({ value: 42, series: SERIES });
   await stubBlockRuntime(authFetch);
   vi.stubGlobal("useI18n", () => ({
@@ -121,6 +120,7 @@ describe("chart legend", () => {
   it("is drawn in the dashboard's theme", () => {
     const legend = legendOf({});
     expect(legend.show).toBe(true);
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- ApexCharts owns the public marker option named shape; renaming the asserted property would change the legend contract under test.
     expect(legend.markers).toMatchObject({ shape: "square", strokeWidth: 0 });
     expect(legend.labels).toHaveProperty("colors");
   });

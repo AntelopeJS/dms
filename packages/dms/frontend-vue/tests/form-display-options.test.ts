@@ -2,6 +2,7 @@
 import { computed, createApp, h, useAttrs } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Display from "../layers/dms-ui/app/components/form/components/Display.vue";
+import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 interface StatusOptions {
   onlineLabel?: string;
@@ -11,8 +12,7 @@ interface StatusOptions {
 const statusType = {
   id: "status",
   formatter: {
-    default: (value: unknown, _locale: string, options?: unknown) => {
-      const opts = options as StatusOptions | undefined;
+    default: (value: boolean, _locale: string, opts?: StatusOptions) => {
       return value
         ? (opts?.onlineLabel ?? "Online")
         : (opts?.offlineLabel ?? "Offline");
@@ -21,7 +21,10 @@ const statusType = {
 };
 
 /** A read-only field as a form renders it: its options spread on it. */
-function mountDisplay(modelValue: unknown, options: Record<string, unknown>) {
+function mountDisplay(
+  modelValue: InstanceType<typeof Display>["$props"]["modelValue"],
+  options: Parameters<typeof createApp>[1],
+) {
   const app = createApp({
     render: () => h(Display, { modelValue, type: "status", ...options }),
   });
@@ -62,12 +65,12 @@ it("words a read-only status with the labels its column sets", () => {
 });
 
 it("hands the formatter the field's label and its record", () => {
-  const seen: unknown[][] = [];
+  const seen: Parameters<DataTypeFormatter>[] = [];
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: () => ({
       id: "url",
       formatter: {
-        default: (...args: unknown[]) => {
+        default: (...args: Parameters<DataTypeFormatter>) => {
           seen.push(args);
           return "photo";
         },
@@ -82,7 +85,7 @@ it("hands the formatter the field's label and its record", () => {
     row: record,
   });
 
-  const [[, , options, row]] = seen as [unknown[]];
+  const [, , options, row] = seen[0]!;
   expect(options).toEqual({ preview: "avatar", fieldLabel: "Photo" });
   expect(row).toBe(record);
   app.unmount();

@@ -36,7 +36,9 @@ let host: HTMLDivElement;
 /** Stands in for Nuxt UI's button: its kbds, and its tooltip's while collapsed. */
 const SearchButton = defineComponent({
   props: {
+    // SAFETY: Sidebar passes the search button's keyboard labels as strings.
     kbds: { type: Array as PropType<string[]>, default: () => [] },
+    // SAFETY: Sidebar supplies the tooltip's keyboard labels in its kbds property.
     tooltip: { type: Object as PropType<{ kbds?: string[] }>, default: null },
   },
   setup: (props) => () =>
@@ -48,7 +50,7 @@ const SearchButton = defineComponent({
     ]),
 });
 
-function installRuntime(initialCookies: Record<string, unknown>) {
+function installRuntime(initialCookies: Record<string, string>) {
   cookies = new Map(
     Object.entries(initialCookies).map(([key, value]) => [key, ref(value)]),
   );
@@ -65,13 +67,13 @@ function installRuntime(initialCookies: Record<string, unknown>) {
     processI18n: (value: string) => value,
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+  vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
 
   vi.stubGlobal(
     "useDmsCookie",
-    (key: string, options: { default: () => unknown }) => {
+    <T>(key: string, options: { default: () => T }) => {
       if (!cookies.has(key)) cookies.set(key, ref(options.default()));
       return cookies.get(key);
     },

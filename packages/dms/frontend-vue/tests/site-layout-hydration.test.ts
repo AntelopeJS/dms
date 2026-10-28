@@ -9,7 +9,7 @@ beforeEach(() => {
   state.clear();
   const app = {};
   vi.stubGlobal("useDmsApp", () => app);
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 it("deduplicates consumers but never writes an old account response into a new cache", async () => {
-  let finish!: (value: unknown) => void;
+  let finish!: (value: { components: { secret: object } }) => void;
   authFetch.mockReturnValueOnce(
     new Promise((resolve) => {
       finish = resolve;
@@ -46,7 +46,9 @@ it("deduplicates consumers but never writes an old account response into a new c
 });
 
 it("does not overwrite an Inertia site payload with a pre-navigation fetch", async () => {
-  let finish!: (value: unknown) => void;
+  let finish!: (value: {
+    siteLayout: { pages: { secret: object }; categories: object };
+  }) => void;
   authFetch.mockReturnValueOnce(
     new Promise((resolve) => {
       finish = resolve;
@@ -64,7 +66,7 @@ it("does not overwrite an Inertia site payload with a pre-navigation fetch", asy
 });
 
 it("does not show a stale request error after successful Inertia navigation", async () => {
-  let fail!: (error: unknown) => void;
+  let fail!: (error: Error) => void;
   authFetch.mockReturnValueOnce(
     new Promise((_, reject) => {
       fail = reject;

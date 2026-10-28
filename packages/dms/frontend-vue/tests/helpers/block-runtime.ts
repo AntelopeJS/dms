@@ -1,4 +1,14 @@
-import * as vue from "vue";
+import {
+  computed,
+  ref,
+  watch,
+  onMounted,
+  onUnmounted,
+  onBeforeUnmount,
+  onScopeDispose,
+  toValue,
+  useTemplateRef,
+} from "vue";
 import { vi } from "vitest";
 import { engine, stubApiData } from "./api-data-runtime";
 import { useWatch } from "../../layers/dms-core/app/composables/watch/useWatch";
@@ -14,18 +24,18 @@ import { isNumber, isString } from "../../layers/dms-core/app/utils/type-check";
 export async function stubBlockRuntime(
   authFetch: Parameters<typeof stubApiData>[0],
 ): Promise<void> {
-  for (const name of [
-    "computed",
-    "ref",
-    "watch",
-    "onMounted",
-    "onUnmounted",
-    "onBeforeUnmount",
-    "onScopeDispose",
-    "toValue",
-    "useTemplateRef",
-  ] as const) {
-    vi.stubGlobal(name, vue[name]);
+  for (const [name, value] of Object.entries({
+    computed,
+    ref,
+    watch,
+    onMounted,
+    onUnmounted,
+    onBeforeUnmount,
+    onScopeDispose,
+    toValue,
+    useTemplateRef,
+  })) {
+    vi.stubGlobal(name, value);
   }
   const { useDefinedFunctions } = await import(
     "../../layers/dms-core/app/composables/functions/useDefinedFunction"

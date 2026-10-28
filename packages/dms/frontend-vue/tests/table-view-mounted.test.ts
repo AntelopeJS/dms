@@ -13,10 +13,11 @@ import type {
 } from "../layers/dms-ui/app/composables/table-view/types";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
+import type { TableCountQuery } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
 
 const apps: Array<{ unmount: () => void }> = [];
 const requests: string[] = [];
-const queries: Array<Record<string, unknown>> = [];
+const queries: Array<TableCountQuery["query"]> = [];
 let total = 0;
 
 async function mount(
@@ -83,7 +84,7 @@ beforeEach(async () => {
   queries.length = 0;
   total = 0;
   await tableViewRuntime(
-    async (url: string, options?: { query?: Record<string, unknown> }) => {
+    async (url: string, options?: { query?: TableCountQuery["query"] }) => {
       requests.push(url);
       if (url.endsWith("/list")) queries.push(options?.query ?? {});
       return { results: [], total, offset: 0, limit: 10 };
@@ -150,12 +151,13 @@ it("starts list, tab counts and footer requests before any answer settles", asyn
 it.each([500, 404])(
   "hides a settled %i while its retry is pending, then shows the new rows",
   async (statusCode) => {
+    const recovered = { results: [{ _id: "r1", name: "Recovered" }], total: 1 };
     let retry = false;
-    let answer = (_value: unknown) => {};
+    let answer = (_value: typeof recovered) => {};
     await tableViewRuntime((url: string) => {
       if (!url.endsWith("/list")) return {};
       if (!retry) throw { statusCode, data: { message: "Missing workspace" } };
-      return new Promise((resolve) => {
+      return new Promise<typeof recovered>((resolve) => {
         answer = resolve;
       });
     });
@@ -174,7 +176,7 @@ it.each([500, 404])(
     expect(host.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(
       10,
     );
-    answer({ results: [{ _id: "r1", name: "Recovered" }], total: 1 });
+    answer(recovered);
     await refreshed;
     await settleTable();
     expect(host.textContent).toContain("Recovered");

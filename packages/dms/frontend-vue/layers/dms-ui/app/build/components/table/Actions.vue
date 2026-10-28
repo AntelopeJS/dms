@@ -2,10 +2,9 @@
 import { injectLocal, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { nextTick, type ShallowRef } from "vue";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 import TableMenu from "./Menu.vue";
-import type { Data, TableSharedData } from "./Table.vue";
+import type { Data, TableFilter, TableSharedData } from "./Table.vue";
 import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import { useTableContext } from "../../composables/table/useTableContext";
@@ -152,7 +151,8 @@ const showSortControl = computed(
     hasSortableColumns.value,
 );
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableActions: Partial<typeof theme> };
 };
 
@@ -164,7 +164,7 @@ const addRowLabel = computed(() =>
 const addRowIcon = computed(() => props.addIcon ?? appConfig.ui.icons.plus);
 
 const searchActive = ref(false);
-const searchInputRef = ref<HTMLInputElement>();
+const searchInputRef = ref<{ $el: HTMLElement }>();
 const searchSectionRef = ref<HTMLElement>();
 
 const { focused: searchAreaFocused } = useFocusWithin(searchSectionRef);
@@ -198,9 +198,7 @@ const focusSearchBar = () => {
   const host = isSearchField.value
     ? searchFieldRef.value
     : searchInputRef.value;
-  (host as unknown as { $el: HTMLElement } | undefined)?.$el
-    ?.querySelector("input")
-    ?.focus();
+  host?.$el?.querySelector("input")?.focus();
 };
 
 const openSearch = async () => {
@@ -287,7 +285,10 @@ const hasCustomFilterConfig = computed(() => {
   });
 });
 
-const areEqualValues = (a: unknown, b: unknown): boolean => {
+const areEqualValues = (
+  a: TableFilter["value"],
+  b: TableFilter["value"],
+): boolean => {
   if (a === b) return true;
   if (a == null && b == null) return true;
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -356,7 +357,7 @@ const hasTrailingButtons = computed(
 
 const uiTableActionsVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableActions || {}),
+  ...appConfig.ui?.tableActions,
 });
 const uiTableActions = computed(() => uiTableActionsVariant());
 </script>

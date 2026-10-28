@@ -1,6 +1,7 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { computed } from "vue";
 import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
+import { isString } from "#dms-core/app/utils/type-check";
 import type {
   TableViewColumn,
   TableViewListResponse,
@@ -18,6 +19,7 @@ import {
   usePeriodScope,
 } from "#dms-core/app/composables/period/usePeriodScope";
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Source plugins and data controllers own different query keys and values. TableQueryParams excludes plugin extensions and malformed query handling; retain the open request contract.
 type Query = Record<string, unknown>;
 
 /** One count of a batch: its id and its list query. */
@@ -100,7 +102,7 @@ export function processSourceRows<T extends Record<string, unknown>>(
   pinnedRows?: RowActionRule,
 ): TableViewListResponse<T> {
   let processed = rows;
-  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const search = isString(query.search) ? query.search.trim() : "";
   if (!capabilities.search && search) {
     const needle = search.toLocaleLowerCase();
     const keys = columns.map((column) => column.accessorKey);
@@ -110,7 +112,7 @@ export function processSourceRows<T extends Record<string, unknown>>(
       ),
     );
   }
-  const sortKey = typeof query.sortKey === "string" ? query.sortKey : "";
+  const sortKey = isString(query.sortKey) ? query.sortKey : "";
   if (!capabilities.sort && sortKey) {
     const direction = query.sortDirection === DESCENDING ? -1 : 1;
     processed = [...processed].sort(

@@ -19,6 +19,7 @@ export function useVisitNavBadges(): void {
   const inertiaPage = useDmsInertiaPage();
   const { applyCountedNavBadges } = useNavBadges();
   watch(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The renderer page contract does not declare this optional module extension. Inference cannot expose it; validating badges here would change existing pass-through behavior for malformed pages.
     () => (inertiaPage.props.page as CountedPage | undefined)?.navBadges,
     applyCountedNavBadges,
     { immediate: true },

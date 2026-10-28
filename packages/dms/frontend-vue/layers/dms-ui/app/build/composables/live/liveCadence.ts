@@ -1,7 +1,7 @@
 import type { PageLiveOptions, PageLivePeriod } from "../../../types/live";
 
 const MS_PER_SECOND = 1000;
-const MS_PER_UNIT: Record<string, number> = {
+const MS_PER_UNIT = {
   m: 60 * MS_PER_SECOND,
   h: 60 * 60 * MS_PER_SECOND,
   d: 24 * 60 * 60 * MS_PER_SECOND,
@@ -18,7 +18,8 @@ export function livePeriodMs(period: PageLivePeriod | string): number | null {
   const match = PERIOD_PATTERN.exec(period);
   if (!match) return null;
   const [, amount, unit] = match;
-  return Number(amount) * (MS_PER_UNIT[unit!] ?? 0) || null;
+  const units: Readonly<Record<RegExpExecArray[number], number>> = MS_PER_UNIT;
+  return Number(amount) * (units[unit ?? ""] ?? 0) || null;
 }
 
 /**

@@ -50,7 +50,7 @@ vi.stubGlobal("useDmsPagedData", engine.useDmsPagedData);
 
 interface Sent {
   url: string;
-  query?: Record<string, unknown>;
+  query?: { page?: number };
   headers: Headers;
   signal?: AbortSignal;
 }
@@ -59,10 +59,11 @@ const sent: Sent[] = [];
 let failNextWith: number | undefined;
 
 /** The transport under `$fetch`: what reaches the backend. */
+// SAFETY: These cases request only { url, page }; the transport invokes the auth hook with normalized headers before answering.
 const transport = (async (
   url: string,
   options: {
-    query?: Record<string, unknown>;
+    query?: { page?: number };
     headers?: HeadersInit;
     signal?: AbortSignal;
     onRequest?: (context: { options: { headers: Headers } }) => void;
@@ -80,7 +81,7 @@ const transport = (async (
     });
   }
   return { url, page: options.query?.page ?? null };
-}) as never;
+}) as Parameters<typeof engine.createDmsFrontendRuntime>[0];
 
 const mounted: App[] = [];
 

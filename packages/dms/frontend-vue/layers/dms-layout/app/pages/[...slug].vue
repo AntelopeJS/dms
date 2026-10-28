@@ -7,6 +7,8 @@ import { usePageDataRefresh } from "#dms-ui/app/build/composables/live/usePageDa
 import { usePageRecordDeletion } from "../composables/page/usePageRecordDeletion";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
+import { isFunction } from "#dms-core/app/utils/type-check";
+import type { ValidationRouteContext } from "#dms-core/app/utils/query-validation";
 
 defineOptions({ inheritAttrs: false });
 
@@ -91,8 +93,8 @@ async function recheckAccessWithFreshSession(): Promise<void> {
 
 function isPageValid(
   metadata: PageInfo | undefined,
-  query: Record<string, unknown>,
-  params: Record<string, unknown>,
+  query: ValidationRouteContext["query"],
+  params: ValidationRouteContext["params"],
 ): boolean {
   if (!metadata?.validation) {
     return true;
@@ -107,6 +109,7 @@ function isPageValid(
   );
 
   const getValidationFunction = (id: string) =>
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The registry owner erases callback signatures. Metadata selects the validation convention without runtime validation; inference cannot restore its boolean return and adding a check would alter malformed registrations.
     getFunction(id) as ValidationFunction | undefined;
 
   const isCustomValid = runCustomValidation(
@@ -122,7 +125,7 @@ const isLeavingPage = ref(false);
 
 async function enforcePageValidation(): Promise<void> {
   const metadata = pagelayoutMetadata.value;
-  const query = route.query as Record<string, unknown>;
+  const query = route.query;
   if (isPageValid(metadata, query, routeParams.value)) {
     return;
   }
@@ -242,6 +245,7 @@ function buildPageSetupContext(
     },
     on(component, event, handler) {
       const listener = (e: Event) => {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The component bus convention supplies CustomEvent detail, but window can receive unrelated events. The existing component comparison remains the only filter; owner Event inference cannot prove the payload and validation would change behavior.
         const detail = (e as CustomEvent<ComponentEventData>).detail;
         if (!detail || detail.component !== component) {
           return;
@@ -274,9 +278,7 @@ async function runPageSetup() {
     return;
   }
   const { getFunction } = useDefinedFunctions();
-  const setupFn = getFunction(metadata.setupId) as
-    | PageSetupFunction
-    | undefined;
+  const setupFn = getFunction(metadata.setupId);
   if (!setupFn) {
     console.warn(
       `[dms] page setup function "${metadata.setupId}" is not registered`,
@@ -286,7 +288,7 @@ async function runPageSetup() {
   const context = buildPageSetupContext(metadata, pageSetupCleanups);
   try {
     const result = await setupFn(context);
-    if (typeof result === "function") {
+    if (isFunction(result)) {
       pageSetupReturned = result;
     }
   } catch (err) {
@@ -295,7 +297,7 @@ async function runPageSetup() {
 }
 
 function tearDownPageSetup() {
-  if (typeof pageSetupReturned === "function") {
+  if (isFunction(pageSetupReturned)) {
     try {
       pageSetupReturned();
     } catch (err) {
@@ -340,7 +342,7 @@ const components = computed(() =>
       children: componentInfo?.children
         ? resolveComponentChildren(componentInfo.children)
         : [],
-    } as ResolvedComponentInfo;
+    } satisfies ResolvedComponentInfo;
   }),
 );
 

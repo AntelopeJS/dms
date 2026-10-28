@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
@@ -39,7 +39,7 @@ interface HeatmapOptions {
 
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<HeatmapOptions>, required: true },
+    options: { type: Object, required: true },
   },
   setup: (props) => () => h("output", JSON.stringify(props.options)),
 });
@@ -51,7 +51,7 @@ const Slot = defineComponent({
 });
 
 async function heatmapOptions(
-  props: Record<string, unknown>,
+  props: Partial<InstanceType<typeof Chart>["$props"]>,
 ): Promise<HeatmapOptions> {
   clearChartColorCache();
   const app = createSSRApp({

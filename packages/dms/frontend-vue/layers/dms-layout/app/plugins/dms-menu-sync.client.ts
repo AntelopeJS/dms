@@ -37,7 +37,7 @@ export default defineDmsPlugin(() => {
           permissions.fetchPermissions(),
         ]);
       })
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error("[dms-menu-sync] Menu resync failed:", error);
       });
 

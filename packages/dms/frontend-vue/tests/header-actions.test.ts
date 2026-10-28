@@ -34,11 +34,13 @@ let sharedState: Map<string, Ref<unknown>>;
 let app: App | undefined;
 
 interface CookieOptions {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The cookie stub stores heterogeneous defaults and has no single value schema.
   default?: () => unknown;
 }
 
 function useDmsState<T>(key: string, init?: () => T): Ref<T> {
   if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
+  // SAFETY: Each state key is initialized once by its caller and reused with that caller's value type.
   return sharedState.get(key) as Ref<T>;
 }
 
@@ -68,7 +70,7 @@ const SlotsStub = defineComponent({
 });
 
 function installRuntime(): void {
-  const runtime: Record<string, unknown> = {
+  const runtime = {
     computed,
     FormEvents,
     ref,

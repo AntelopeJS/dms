@@ -1,18 +1,13 @@
-import type { ChartSeries, DonutRecord } from "./types";
+import { isNumber } from "../../../../dms-core/app/utils/type-check";
+import type { ChartSeries, ChartSeriesPoint, DonutRecord } from "./types";
 
 type ChartSeriesEntry = ChartSeries["data"][number];
 
-interface LabelledPoint {
-  label?: string;
-  x?: unknown;
-  y?: unknown;
-}
-
 function toDonutRecord(entry: ChartSeriesEntry): DonutRecord {
-  if (typeof entry === "number") {
+  if (isNumber(entry)) {
     return { label: String(entry), value: entry };
   }
-  const point = entry as LabelledPoint;
+  const point: typeof entry & Pick<ChartSeriesPoint, "label"> = entry;
   return {
     label: point.label ?? String(point.x ?? ""),
     value: Number(point.y ?? 0),

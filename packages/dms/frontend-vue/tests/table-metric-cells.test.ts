@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
+import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { formatDuration } from "../layers/dms-core/app/utils/formatter";
@@ -13,16 +13,11 @@ import {
   registerMetricCellTypes,
 } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
 
-type Formatter = (
-  value: unknown,
-  locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => VNodeChild;
+type DataTypeFormatter = NonNullable<DataType["formatter"]>["default"];
 
-const formatters = new Map<string, Formatter>();
+const formatters = new Map<string, DataTypeFormatter>();
 registerMetricCellTypes((dataType: DataType) => {
-  formatters.set(dataType.id, dataType.formatter!.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter!.default);
 });
 
 describe("metric cell formats", () => {
@@ -60,7 +55,7 @@ describe("metric cells", () => {
   const copiedValues: string[] = [];
   const toast = vi.fn();
 
-  const render = (content: VNodeChild): HTMLElement => {
+  const render = (content: ReturnType<DataTypeFormatter>): HTMLElement => {
     const container = document.createElement("div");
     app = createApp(defineComponent({ setup: () => () => content }));
     app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
@@ -117,7 +112,7 @@ describe("metric cells", () => {
 
   it("tones a status pill by the row's tone field before the column's map", () => {
     const options = { tones: { "404": "info" }, toneField: "statusTone" };
-    const pill = (row: Record<string, unknown>) =>
+    const pill = (row: Parameters<DataTypeFormatter>[3]) =>
       render(formatters.get("status_pill")!(404, "en-GB", options, row))
         .innerHTML;
 

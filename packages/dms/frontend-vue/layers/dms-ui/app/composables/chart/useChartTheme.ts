@@ -1,3 +1,5 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
+import type { ChartSeries } from "./types";
 const DEFAULT_COLOR_NAME = "primary";
 const SAFE_HEX_FALLBACK = "#7c3aed";
 const MUTED_FALLBACK = "#6b7280";
@@ -24,7 +26,12 @@ const DEFAULT_PALETTE = [
   "--dms-chart-5",
 ];
 
-const COLOR_NAME_TO_VAR: Record<string, string> = {
+type CssVariableName = Parameters<typeof readCssVariable>[0];
+
+const COLOR_NAME_TO_VAR: Record<
+  NonNullable<ChartSeries["color"]>,
+  CssVariableName
+> = {
   primary: "--ui-primary",
   secondary: "--ui-secondary",
   success: "--ui-success",
@@ -130,11 +137,13 @@ export function resolveChartColor(value: string | undefined): string {
 }
 
 /** Resolve a supplied color list or the unchanged default semantic palette. */
-export function resolveChartColors(value: unknown): string[] {
+export function resolveChartColors(
+  value: Parameters<typeof isString>[0],
+): string[] {
   if (Array.isArray(value)) {
     return value.map((entry) => resolveChartColor(String(entry)));
   }
-  if (typeof value === "string") return [resolveChartColor(value)];
+  if (isString(value)) return [resolveChartColor(value)];
   return DEFAULT_PALETTE.map((name) => resolveChartColor(name));
 }
 

@@ -22,6 +22,7 @@ let host: HTMLDivElement;
 
 const Navigation = defineComponent({
   props: {
+    // SAFETY: Sidebar supplies navigation items to this array prop, as the real menu does.
     items: { type: Array as PropType<NavigationMenuItem[]>, required: true },
   },
   setup: (props) => () =>
@@ -55,13 +56,12 @@ function installRuntime() {
     processI18n: (value: string) => value,
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+  vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
-      ref(options.default()),
+    <T>(_key: string, options: { default: () => T }) => ref(options.default()),
   );
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),

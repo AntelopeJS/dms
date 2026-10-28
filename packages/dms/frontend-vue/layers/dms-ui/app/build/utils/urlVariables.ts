@@ -1,4 +1,6 @@
+import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { MenuRouteState } from "#dms-core/app/types/menu";
 
 const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
 
@@ -16,7 +18,8 @@ const TOKEN_OPENING = "{{";
 
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
-  routeQuery: Record<string, unknown>;
+  routeQuery: MenuRouteState["query"];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Response bodies retain arbitrary nested values for path lookup; the core JSON contract would exclude existing non-JSON inputs.
   response?: Record<string, unknown>;
 }
 
@@ -56,20 +59,18 @@ function fillRouteTokens(
     })
     .replace(QUERY_TOKEN, (match, key) => {
       const value = context.routeQuery[key];
-      return typeof value === "string" ? encoding.query(value) : match;
+      return isString(value) ? encoding.query(value) : match;
     });
 }
 
 function fillResponseTokens(
   text: string,
-  response: Record<string, unknown> | undefined,
+  response: ReplaceUrlVariablesContext["response"],
 ): string {
   if (!response) return text;
   return text.replace(RESPONSE_TOKEN, (match, key: string) => {
     const value: unknown = get(response, key);
-    return typeof value === "string" || typeof value === "number"
-      ? String(value)
-      : match;
+    return isString(value) || isNumber(value) ? String(value) : match;
   });
 }
 

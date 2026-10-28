@@ -39,7 +39,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{ change: [change: SortableListChange<Item>] }>();
 
-defineSlots<{ item(props: { element: Item; index: number }): unknown }>();
+defineSlots<{
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
+  item(props: { element: Item; index: number }): unknown;
+}>();
 
 /** What this list reads of SortableJS's events. */
 interface SortableEvent {
@@ -97,6 +100,7 @@ const { option } = useSortable(root, list, {
     emit("change", { moved: { element, oldIndex, newIndex } });
   },
   onAdd: (event: SortableEvent) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- A group can join independently typed lists; this existing cast does not validate the source item's type.
     const element = sharedDragged.get(draggedKey()) as Item | undefined;
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;

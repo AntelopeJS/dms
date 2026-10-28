@@ -28,9 +28,8 @@ vi.stubGlobal("useTranslation", () => ({
 vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
 
 const LOCATION = "/api/orders";
-const COLUMNS = [
-  { id: "total", accessorKey: "total" },
-] as unknown as TableViewColumn[];
+// SAFETY: This SSR data-fetch fixture uses only column ids and accessor keys; it does not render column inputs.
+const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
 const DELAY_MS = 20;
 
 interface Request {
@@ -51,6 +50,7 @@ async function answer<T>(url: string, value: T): Promise<T> {
   return value;
 }
 
+// SAFETY: The table requests only the list and count responses supplied here; this fixture does not implement fetch's generic helper methods.
 const api = (async (url: string) =>
   url.endsWith("/count/batch")
     ? answer(url, { all: 2, open: 1 })
@@ -102,7 +102,7 @@ const Table = defineComponent({
       location: LOCATION,
       query: computed(() => ({})),
       dataKey: "table-view-orders-sales",
-    } as never);
+    });
     return () =>
       h("p", [
         `rows:${list.data.value?.total ?? "-"}`,
@@ -153,12 +153,7 @@ describe("a table view's data in a server render", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const browser = engine.createDmsFrontendRuntime(undefined, {});
-    engine.restoreDmsPayload(
-      browser,
-      structuredClone(payload) as Parameters<
-        typeof engine.restoreDmsPayload
-      >[1],
-    );
+    engine.restoreDmsPayload(browser, structuredClone(payload));
     const container = document.createElement("div");
     container.innerHTML = html;
     const app = createSSRApp(Table);

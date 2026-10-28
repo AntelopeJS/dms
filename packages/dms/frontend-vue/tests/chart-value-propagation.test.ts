@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartRuntime } from "./helpers/charts-runtime";
@@ -10,23 +10,9 @@ import type { ValuePrecision } from "../layers/dms-ui/app/composables/chart/type
 
 const AMOUNT = 9.391;
 
-interface ValueFormatter {
-  formatter: (value: number) => string;
-}
-interface FormattedAxis {
-  labels: ValueFormatter;
-}
-interface FormattedTooltip {
-  y: ValueFormatter;
-}
-interface ChartOptions {
-  yaxis: FormattedAxis;
-  tooltip: FormattedTooltip;
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ChartOptions>, required: true },
+    options: { type: Object, required: true },
   },
   setup: (props) => () =>
     h("output", [

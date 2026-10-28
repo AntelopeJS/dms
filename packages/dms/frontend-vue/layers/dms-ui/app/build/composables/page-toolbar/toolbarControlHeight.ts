@@ -25,5 +25,8 @@ export const PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES: Record<
  * @internal
  */
 export function toolbarControlHeightClass(size: string): string {
-  return PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[size as PageToolbarSize] ?? "";
+  const heights: Readonly<
+    Record<Parameters<typeof toolbarControlHeightClass>[0], string>
+  > = PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES;
+  return heights[size] ?? "";
 }

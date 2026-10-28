@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 
-const response = ref<Record<string, unknown> | null>(null);
+type CardResponse =
+  import("../layers/dms-ui/app/composables/chart/types").ChartCardResponse;
+const response = ref<CardResponse | null>(null);
 
 const Slot = defineComponent({
   setup:
@@ -16,7 +18,9 @@ const Slot = defineComponent({
 const GOOD_TONE = "text-success";
 const BAD_TONE = "text-error";
 
-async function render(props: Record<string, unknown> = {}) {
+async function render(
+  props: Partial<InstanceType<typeof ChartCard>["$props"]> = {},
+) {
   const app = createSSRApp({
     render: () =>
       h(ChartCard, {

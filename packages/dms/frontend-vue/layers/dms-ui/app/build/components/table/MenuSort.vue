@@ -1,10 +1,9 @@
 <script setup lang="ts" generic="T extends Data">
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 
-import type { TableSharedData, Data, TableColumn } from "./Table.vue";
+import type { TableSharedData, Data } from "./Table.vue";
 import {
   sortDirectionLabelKey,
   sortValueKind,
@@ -37,7 +36,8 @@ const tableSharedData =
 
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuSort: Partial<typeof theme> };
 };
 
@@ -53,9 +53,7 @@ const columns = computed<SortableColumnItem[]>(() =>
     .map((col) => ({
       id: col.column.id,
       label: col.label,
-      kind: sortValueKind(
-        (col.column.columnDef as TableColumn<T>).type?.id as string | undefined,
-      ),
+      kind: sortValueKind(col.column.columnDef.type?.id),
     })),
 );
 
@@ -131,7 +129,7 @@ function resetToDefault() {
 
 const uiTableMenuSortVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuSort || {}),
+  ...appConfig.ui?.tableMenuSort,
 });
 const uiTableMenuSort = computed(() => uiTableMenuSortVariant());
 </script>

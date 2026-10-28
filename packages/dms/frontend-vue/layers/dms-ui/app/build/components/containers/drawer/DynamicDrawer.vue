@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getCurrentInstance, type Component } from "vue";
+import { getCurrentInstance, type AppContext, type Component } from "vue";
 import {
   formBusInjectionKey,
   formErrorsInjectionKey,
@@ -14,6 +14,7 @@ import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import { useWindowSize } from "@vueuse/core";
 import type {
   ContainerColor,
+  ContainerInstance,
   DrawerDirection,
 } from "../../../../composables/containers/types";
 import type { ModalSize } from "../../../../types/modal";
@@ -40,10 +41,12 @@ interface DynamicDrawerProps {
   description?: string;
   containerId: string;
   component: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy component-prop boundary accepts arbitrary values for every string key without validation.
   componentOptions?: Record<string, unknown>;
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy header-prop boundary accepts arbitrary values for every string key without validation.
   headerComponentOptions?: Record<string, unknown>;
   direction?: DrawerDirection;
   /**
@@ -63,7 +66,7 @@ interface DynamicDrawerProps {
 }
 
 interface DynamicDrawerEmits {
-  (e: "close", result?: unknown): void;
+  (e: "close", result?: Parameters<ContainerInstance["close"]>[0]): void;
 }
 
 const props = withDefaults(defineProps<DynamicDrawerProps>(), {
@@ -80,7 +83,7 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
 });
 const emit = defineEmits<DynamicDrawerEmits>();
 
-const NUXT_UI_FORM_KEYS = [
+const NUXT_UI_FORM_KEYS: symbol[] = [
   formOptionsInjectionKey,
   formBusInjectionKey,
   formStateInjectionKey,
@@ -90,11 +93,14 @@ const NUXT_UI_FORM_KEYS = [
   formLoadingInjectionKey,
   formErrorsInjectionKey,
 ];
-const drawerInstance = getCurrentInstance() as { provides: object } | null;
+// SAFETY: Vue initializes every component instance's hidden provides from its parent or app context.
+const drawerInstance = getCurrentInstance() as {
+  provides: AppContext["provides"];
+} | null;
 if (drawerInstance && props.callerProvides) {
   drawerInstance.provides = Object.create(props.callerProvides);
 
-  for (const key of NUXT_UI_FORM_KEYS) provide(key as symbol, undefined);
+  for (const key of NUXT_UI_FORM_KEYS) provide(key, undefined);
 }
 
 const SIDE_DRAWER_CONTENT = "w-[440px]";
@@ -190,6 +196,7 @@ function renderedSize(handle: Element): number | undefined {
 }
 
 function startHandleDrag(event: PointerEvent): void {
+  // SAFETY: This handler is registered on the drawer's HTMLElement resize grip, and runs synchronously while currentTarget is set.
   const handle = event.currentTarget as HTMLElement;
   handle.setPointerCapture?.(event.pointerId);
   const rendered = renderedSize(handle) || resizedSize.value;
@@ -197,6 +204,7 @@ function startHandleDrag(event: PointerEvent): void {
 }
 
 function resizeHandleFromKey(event: KeyboardEvent): void {
+  // SAFETY: This handler is registered on the drawer's HTMLElement resize grip, and runs synchronously while currentTarget is set.
   resizeFromKey(event, renderedSize(event.currentTarget as HTMLElement));
 }
 
@@ -254,7 +262,7 @@ watch(
   },
 );
 
-function handleSuccess(result?: unknown) {
+function handleSuccess(result?: Parameters<ContainerInstance["close"]>[0]) {
   clearGuards(props.containerId);
   isOpen.value = false;
   emit("close", result);

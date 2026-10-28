@@ -8,6 +8,7 @@ import type {
   ComposedTextParam,
 } from "#dms-core/app/types/composed-text";
 import type { Tone } from "../../../types/tone";
+import { isString } from "#dms-core/app/utils/type-check";
 
 /** One entry of an activity feed, as a page declares it or a source answers. */
 export interface ActivityFeedItem {
@@ -66,11 +67,12 @@ export function formatShortDate(date: Date, now: Date, locale: string): string {
   const sameYear =
     regionalDayKey(date).slice(0, YEAR_KEY_LENGTH) ===
     regionalDayKey(now).slice(0, YEAR_KEY_LENGTH);
-  return regionalDateTimeFormat(locale, {
+  const options: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+  };
+  if (!sameYear) options.year = "numeric";
+  return regionalDateTimeFormat(locale, options).format(date);
 }
 
 /** How far back a day is, in the coarse buckets of a feed. */
@@ -150,7 +152,7 @@ export function formatActivityTime(date: string, locale: string): string {
 }
 
 const isTextKey = (value: ComposedTextParam): value is string =>
-  typeof value === "string" && value.startsWith("$");
+  isString(value) && value.startsWith("$");
 
 /**
  * The values an entry's title and details interpolate, as composed-text

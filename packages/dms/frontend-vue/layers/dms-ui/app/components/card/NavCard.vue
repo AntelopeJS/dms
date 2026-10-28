@@ -63,6 +63,7 @@ const theme = tv({
 });
 
 const ui = theme();
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue attrs expose unknown class values; inference and the theme's ClassValue owner cannot prove this pass-through input without validating or transforming it.
 const rootClass = computed(() => ui.root({ class: attrs.class as string }));
 const passthrough = computed(() => {
   const { class: _class, ...rest } = attrs;

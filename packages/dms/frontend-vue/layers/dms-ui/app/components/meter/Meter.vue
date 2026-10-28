@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
-import { computed } from "vue";
+import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
 
 /**
@@ -60,7 +60,7 @@ interface MeterProps {
 
 interface MeterSlots {
   /** Extra legend content, pushed right (a "Manage" link). */
-  "legend-end"?: () => unknown;
+  "legend-end"?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<MeterProps>(), {

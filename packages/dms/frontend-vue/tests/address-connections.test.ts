@@ -14,7 +14,7 @@ async function mountAddress() {
     tm: () => ({}),
     locale: i18n.global.locale,
   }));
-  const fetch = vi.fn<() => Promise<unknown>>();
+  const fetch = vi.fn<() => Promise<typeof places>>();
   vi.stubGlobal("$fetch", fetch);
   const { default: Address } = await import(
     "../layers/dms-ui/app/components/form/components/InputAddress.vue"
@@ -51,7 +51,7 @@ function typeStreet(value: string) {
 
 it("rejects street suggestions reopened by an answer arriving after focus left", async () => {
   const fetch = await mountAddress();
-  let answer: (value: unknown) => void = () => {};
+  let answer: (value: typeof places) => void = () => {};
   fetch.mockImplementation(
     () =>
       new Promise((resolve) => {

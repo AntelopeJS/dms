@@ -8,6 +8,7 @@ import {
   nextTick,
   ref,
 } from "vue";
+import type PasswordInputComponent from "../layers/dms-ui/app/build/components/form/PasswordInput.vue";
 
 interface InputStubProps {
   modelValue?: string;
@@ -45,7 +46,9 @@ Button.inheritAttrs = false;
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown> = {}) {
+async function mount(
+  props: Partial<InstanceType<typeof PasswordInputComponent>["$props"]> = {},
+) {
   const { default: PasswordInput } = await import(
     "../layers/dms-ui/app/build/components/form/PasswordInput.vue"
   );

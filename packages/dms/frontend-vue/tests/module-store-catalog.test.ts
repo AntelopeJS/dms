@@ -5,7 +5,6 @@ import {
   moduleCategoryOptions,
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
-  type ModuleStoreEntry,
   STORE_SCOPES,
   filterByScope,
   isAwaitingFrontend,
@@ -29,80 +28,24 @@ import {
   parseDependencyConfig,
   validateDependencyDraft,
 } from "../layers/dms-layout/app/build/utils/module-store-install";
-import type {
-  MissingInterface,
-  StoreListingEntry,
-} from "../layers/dms-layout/app/types/module-store";
+import type { StoreListingEntry } from "../layers/dms-layout/app/types/module-store";
 import catalogDocument from "../../data/module-store/catalog.json";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
-
-type Messages = Record<string, unknown>;
-
-function lookup(messages: Messages, key: string): unknown {
-  return key
-    .split(".")
-    .reduce<unknown>(
-      (node, part) =>
-        node && typeof node === "object" ? (node as Messages)[part] : undefined,
-      messages,
-    );
-}
-
-const resolve = (value: string): string => {
-  if (!value.startsWith("$")) return value;
-  const text = lookup(en, value.slice(1));
-  return typeof text === "string" ? text : value;
-};
-
-function listingEntry(
-  id: string,
-  overrides: Partial<StoreListingEntry> = {},
-): StoreListingEntry {
-  return {
-    id,
-    package: `@antelopejs/dms-${id}`,
-    icon: "i-ph-cube",
-    category: "data",
-    title: id[0].toUpperCase() + id.slice(1),
-    description: `${id} description`,
-    state: "available",
-    updateAvailable: false,
-    compatible: true,
-    frontend: "none",
-    missingInterfaces: [],
-    dependents: [],
-    ...overrides,
-  };
-}
-
-function storeEntry(
-  id: string,
-  overrides: Partial<ModuleStoreEntry> = {},
-): ModuleStoreEntry {
-  return {
-    ...toModuleStoreEntry(listingEntry(id)),
-    catalogCategory: "Data",
-    ...overrides,
-  };
-}
-
-const catalog = [
-  storeEntry("media", {
-    catalogCategory: "Content",
-    description: "Asset library",
-  }),
-  storeEntry("database", { state: "active", installedVersion: "0.1.2" }),
-  storeEntry("lang", { title: "Translations", catalogCategory: "Content" }),
-  storeEntry("ai", {
-    catalogCategory: "AI",
-    state: "disabled",
-    installedVersion: "0.2.1",
-  }),
-];
-
-const actionKinds = (entry: StoreListingEntry) =>
-  storeActions(entry).map((action) => action.kind);
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import {
+  actionKinds,
+  catalog,
+  categoryInstalledFixture,
+  FRONTEND_REQUIREMENT,
+  listingEntry,
+  lookup,
+  QUEUE,
+  REDIS,
+  resolve,
+  storeEntry,
+  versionDetailsFixture,
+} from "./helpers/module-store-catalog-fixtures";
 
 describe("module store catalog", () => {
   it("uses the registered module title for display, search and sorting", () => {
@@ -357,34 +300,7 @@ describe("module store catalog", () => {
   });
 
   it("fills the version and category an installed module does not register", () => {
-    const installed = [
-      {
-        id: "media",
-        title: "Media",
-        description: "",
-        icon: "i-ph-image",
-        hasAccess: true,
-        landingSlug: "/modules/media",
-      },
-      {
-        id: "api",
-        title: "API",
-        description: "",
-        icon: "i-ph-plug",
-        hasAccess: true,
-        landingSlug: "/modules/api",
-        version: "0.4.1",
-        catalogCategory: "$api.category",
-      },
-    ];
-    const store = [
-      listingEntry("media", {
-        category: "content",
-        installedVersion: "0.5.0",
-        source: "npm",
-      }),
-      listingEntry("api", { installedVersion: "0.9.0", source: "github" }),
-    ];
+    const { installed, store } = versionDetailsFixture();
     const [media, api] = withStoreDetails(installed, store);
     expect(media.version).toBe("0.5.0");
     expect(media.source).toBe("npm");
@@ -401,25 +317,7 @@ describe("module store catalog", () => {
   });
 
   it("files a module under one category on its installed and store tiles", () => {
-    const installed = [
-      {
-        id: "mailing",
-        title: "Mailing",
-        description: "",
-        icon: "i-ph-envelope-simple",
-        hasAccess: true,
-        landingSlug: "/modules/mailing",
-        catalogCategory: "$dms_mailing.catalog_category",
-      },
-      {
-        id: "media",
-        title: "Media",
-        description: "",
-        icon: "i-ph-image",
-        hasAccess: true,
-        landingSlug: "/modules/media",
-      },
-    ];
+    const installed = categoryInstalledFixture();
     const listing = [
       listingEntry("mailing", {
         category: "growth",
@@ -443,26 +341,6 @@ describe("module store catalog", () => {
     expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
   });
 });
-
-const REDIS: MissingInterface = {
-  interfacePackage: "@antelopejs/interface-redis",
-  candidates: [
-    { name: "redis", package: "@antelopejs/redis" },
-    { name: "valkey", package: "@antelopejs/valkey" },
-  ],
-};
-const QUEUE: MissingInterface = {
-  interfacePackage: "@antelopejs/interface-queue",
-  candidates: [],
-};
-
-const FRONTEND_REQUIREMENT = {
-  range: ">=0.7.0",
-  running: "0.6.0",
-  target: "0.7.2",
-  command: "pnpm add @antelopejs/dms-frontend@0.7.2",
-  breaks: [],
-};
 
 describe("module store blocked actions", () => {
   const released = (overrides: Partial<StoreListingEntry> = {}) =>
@@ -627,7 +505,7 @@ describe("bundled module catalog", () => {
           `$modules.store.catalog.${entry.id}.description`,
           entry.catalogCategory,
         ]) {
-          expect(typeof lookup(messages, key.slice(1)), key).toBe("string");
+          expect(isString(lookup(messages, key.slice(1))), key).toBe(true);
         }
       }
     }

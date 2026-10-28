@@ -13,7 +13,10 @@ import {
   createPageLiveController,
   type PageLiveController,
 } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
-import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+import {
+  currentPageLive,
+  setCurrentPageLive,
+} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 import {
   bindPageLiveEnvironment,
   usePageLiveHost,
@@ -24,7 +27,6 @@ import {
 } from "../layers/dms-ui/app/build/composables/live/liveCadence";
 import { MissedTally } from "../layers/dms-ui/app/build/composables/live/missedTally";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
-import { currentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
 const realtime = liveShellRuntime();
 
@@ -39,7 +41,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
 
-function publish(payload?: Record<string, unknown>, topic = TOPIC) {
+function publish(
+  payload?: Parameters<typeof realtime.publish>[1],
+  topic = TOPIC,
+) {
   return realtime.publish(topic, payload);
 }
 

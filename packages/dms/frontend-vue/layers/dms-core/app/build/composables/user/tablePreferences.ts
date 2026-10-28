@@ -1,4 +1,5 @@
-import { isBranch } from "./preferencesCookie";
+import { isBranch, type PreferencesTree } from "./preferencesCookie";
+import { isNumber, isString } from "../../../utils/type-check";
 
 /**
  * @internal
@@ -35,7 +36,7 @@ export type LocalTableField =
 export type TableField = ServerTableField | LocalTableField;
 
 /** @internal A table's entry in the cookie, by short field key. */
-export type CompactTableEntry = Record<string, unknown>;
+export type CompactTableEntry = PreferencesTree;
 
 /** @internal The collection of the preferences tree holding table entries. */
 export const TABLES_PREFERENCE_KEY = "tables";
@@ -44,7 +45,7 @@ export const TABLES_PREFERENCE_KEY = "tables";
 export const LOCAL_TABLE_KEY_PREFIX = "dms-table-preferences:v1:";
 
 const TABLE_ID_LENGTH = 8;
-const HASH_SEEDS = [0xdeadbeef, 0x41c6ce57];
+const HASH_SEEDS: [number, number] = [0xdeadbeef, 0x41c6ce57];
 const HASH_MULTIPLIERS = [2654435761, 1597334677];
 const HASH_MIX = [2246822507, 3266489909];
 const HASH_RADIX = 36;
@@ -62,7 +63,7 @@ const FIRST_PAGE_INDEX = 0;
  * and in the browser.
  */
 export const hashText = (text: string): string => {
-  let [first, second] = HASH_SEEDS as [number, number];
+  let [first, second] = HASH_SEEDS;
   for (let index = 0; index < text.length; index += 1) {
     const code = text.charCodeAt(index);
     first = Math.imul(first ^ code, HASH_MULTIPLIERS[0]!);
@@ -116,20 +117,28 @@ interface PaginationEntry {
  */
 export interface ServerFieldCodec {
   key: string;
-  encode: (value: unknown, defaultValue: unknown) => unknown;
-  decode: (stored: unknown, defaultValue: unknown) => unknown;
+  encode: (
+    value: PreferencesTree[string],
+    defaultValue: PreferencesTree[string],
+  ) => PreferencesTree[string];
+  decode: (
+    stored: PreferencesTree[string],
+    defaultValue: PreferencesTree[string],
+  ) => PreferencesTree[string];
 }
 
-const encodeSorting = (value: unknown): unknown => {
-  const sorts = (Array.isArray(value) ? value : []) as SortEntry[];
+const encodeSorting: ServerFieldCodec["encode"] = (value) => {
+  const sorts = Array.isArray(value) ? value : [];
   const tokens = sorts.map(
     (sort) => `${sort.desc ? DESCENDING_PREFIX : ""}${sort.id}`,
   );
   return tokens.length === 1 ? tokens[0] : tokens;
 };
 
-const decodeSorting = (stored: unknown): SortEntry[] => {
-  const tokens = typeof stored === "string" ? [stored] : stored;
+const decodeSorting = (
+  stored: Parameters<ServerFieldCodec["decode"]>[0],
+): SortEntry[] => {
+  const tokens = isString(stored) ? [stored] : stored;
   if (!Array.isArray(tokens)) throw new TypeError("sorting");
   return tokens.map((token: string) => ({
     id: token.startsWith(DESCENDING_PREFIX) ? token.slice(1) : token,
@@ -137,11 +146,13 @@ const decodeSorting = (stored: unknown): SortEntry[] => {
   }));
 };
 
-const isSameValue = (left: unknown, right: unknown): boolean =>
-  JSON.stringify(left) === JSON.stringify(right);
+const isSameValue = (
+  left: Parameters<ServerFieldCodec["encode"]>[0],
+  right: Parameters<ServerFieldCodec["encode"]>[0],
+): boolean => JSON.stringify(left) === JSON.stringify(right);
 
-const encodeFilters = (value: unknown): unknown =>
-  ((Array.isArray(value) ? value : []) as FilterEntry[])
+const encodeFilters: ServerFieldCodec["encode"] = (value) =>
+  (Array.isArray(value) ? value : [])
     .filter(
       (filter) =>
         !filter.pinned || !isSameValue(filter.value, filter.initialValue),
@@ -152,19 +163,21 @@ const encodeFilters = (value: unknown): unknown =>
         : [filter.accessorKey, filter.value ?? null, filter.mode],
     );
 
-const decodeFilters = (stored: unknown): FilterEntry[] => {
+const decodeFilters = (
+  stored: Parameters<ServerFieldCodec["decode"]>[0],
+): FilterEntry[] => {
   if (!Array.isArray(stored)) throw new TypeError("columnFilters");
   return stored.map(([accessorKey, value, mode]: unknown[]) => ({
     accessorKey: String(accessorKey),
     value,
-    mode: typeof mode === "string" ? mode : DEFAULT_FILTER_MODE,
+    mode: isString(mode) ? mode : DEFAULT_FILTER_MODE,
   }));
 };
 
-const visibilityOf = (value: unknown): Record<string, boolean> =>
-  isBranch(value) ? (value as Record<string, boolean>) : {};
+const visibilityOf = (value: Parameters<ServerFieldCodec["encode"]>[0]) =>
+  isBranch(value) ? value : {};
 
-const encodeVisibility = (value: unknown, defaultValue: unknown): unknown => {
+const encodeVisibility: ServerFieldCodec["encode"] = (value, defaultValue) => {
   const defaults = visibilityOf(defaultValue);
   return Object.entries(visibilityOf(value))
     .filter(([column, isShown]) => isShown !== (defaults[column] ?? true))
@@ -174,7 +187,7 @@ const encodeVisibility = (value: unknown, defaultValue: unknown): unknown => {
     );
 };
 
-const decodeVisibility = (stored: unknown, defaultValue: unknown): unknown => {
+const decodeVisibility: ServerFieldCodec["decode"] = (stored, defaultValue) => {
   if (!Array.isArray(stored)) throw new TypeError("columnVisibility");
   const changes = stored.map((token: string) => [
     token.slice(1),
@@ -183,16 +196,19 @@ const decodeVisibility = (stored: unknown, defaultValue: unknown): unknown => {
   return { ...visibilityOf(defaultValue), ...Object.fromEntries(changes) };
 };
 
-const encodePagination = (value: unknown): unknown => {
+const encodePagination: ServerFieldCodec["encode"] = (value) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The codec contract accepts unknown and does not validate pagination. Inference cannot justify this legacy assertion; adding a guard would change malformed-input behavior.
   const { pageIndex, pageSize } = value as PaginationEntry;
   return pageIndex === FIRST_PAGE_INDEX ? pageSize : [pageSize, pageIndex];
 };
 
-const decodePagination = (stored: unknown): PaginationEntry => {
+const decodePagination = (
+  stored: Parameters<ServerFieldCodec["decode"]>[0],
+): PaginationEntry => {
   const [pageSize, pageIndex] = Array.isArray(stored)
     ? stored
     : [stored, FIRST_PAGE_INDEX];
-  if (typeof pageSize !== "number" || typeof pageIndex !== "number") {
+  if (!isNumber(pageSize) || !isNumber(pageIndex)) {
     throw new TypeError("pagination");
   }
   return { pageIndex, pageSize };
@@ -239,9 +255,9 @@ export const isServerTableField = (
  */
 export const encodeServerField = (
   field: ServerTableField,
-  value: unknown,
-  defaultValue: unknown,
-): unknown => {
+  value: Parameters<ServerFieldCodec["encode"]>[0],
+  defaultValue: Parameters<ServerFieldCodec["encode"]>[1],
+): ReturnType<ServerFieldCodec["encode"]> => {
   const codec = SERVER_TABLE_FIELDS[field];
   if (value === undefined) return undefined;
   const encoded = codec.encode(value, defaultValue);
@@ -262,6 +278,7 @@ export const decodeServerField = <T>(
   const stored = entry?.[codec.key];
   if (stored === undefined) return defaultValue;
   try {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is caller-selected, not validated by the codec. Deriving its return type would widen the existing generic API; preserve the unchecked contract.
     return codec.decode(stored, defaultValue) as T;
   } catch {
     return defaultValue;
@@ -270,8 +287,8 @@ export const decodeServerField = <T>(
 
 /** @internal Whether `value` is the field's default, not to be written. */
 export const isDefaultValue = (
-  value: unknown,
-  defaultValue: unknown,
+  value: Parameters<ServerFieldCodec["encode"]>[0],
+  defaultValue: Parameters<ServerFieldCodec["encode"]>[1],
 ): boolean => value === undefined || isSameValue(value, defaultValue);
 
 const localKey = (id: string): string => `${LOCAL_TABLE_KEY_PREFIX}${id}`;
@@ -284,7 +301,7 @@ const browserStorage = (): Storage | undefined =>
  * The browser-only state of a table; empty on the server, or when the
  * storage is unavailable or holds something else.
  */
-export const readLocalTableEntry = (id: string): Record<string, unknown> => {
+export const readLocalTableEntry = (id: string): PreferencesTree => {
   try {
     const stored = browserStorage()?.getItem(localKey(id));
     const entry: unknown = stored ? JSON.parse(stored) : {};
@@ -301,7 +318,7 @@ export const readLocalTableEntry = (id: string): Record<string, unknown> => {
  */
 export const writeLocalTableEntry = (
   id: string,
-  entry: Record<string, unknown>,
+  entry: PreferencesTree,
 ): void => {
   // prettier-ignore
   try {

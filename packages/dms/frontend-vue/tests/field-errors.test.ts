@@ -238,7 +238,10 @@ describe("describeApiError", () => {
 });
 
 describe("resolveApiMessage", () => {
-  const translate = (key: string, params: Record<string, unknown>) =>
+  const translate = (
+    key: string,
+    params: Parameters<Parameters<typeof resolveApiMessage>[0]>[1],
+  ) =>
     key === "page.error.budget_max" ? `At most ${String(params.max)}` : key;
 
   it("fills the translation's placeholders with the params", () => {

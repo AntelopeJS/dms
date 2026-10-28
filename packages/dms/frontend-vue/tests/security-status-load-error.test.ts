@@ -9,7 +9,9 @@ import {
   onMounted,
   ref,
   type App,
+  type PropType,
 } from "vue";
+import type DmsEmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 
@@ -22,17 +24,21 @@ const StatGroup = defineComponent({
 });
 
 const EmptyState = defineComponent({
-  props: { title: String, actions: { type: Array, default: () => [] } },
+  props: {
+    title: String,
+    actions: {
+      // SAFETY: Vue validates Array at runtime; DmsEmptyState's caller supplies its declared actions prop.
+      type: Array as PropType<
+        NonNullable<InstanceType<typeof DmsEmptyState>["$props"]["actions"]>
+      >,
+      default: () => [],
+    },
+  },
   setup: (props) => () =>
     h("div", [
       props.title,
-      ...(props.actions as { label: string; onClick: () => void }[]).map(
-        (action) =>
-          h(
-            "button",
-            { type: "button", onClick: action.onClick },
-            action.label,
-          ),
+      ...props.actions.map((action) =>
+        h("button", { type: "button", onClick: action.onClick }, action.label),
       ),
     ]),
 });

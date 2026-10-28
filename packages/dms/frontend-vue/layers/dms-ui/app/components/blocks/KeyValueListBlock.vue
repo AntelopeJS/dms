@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isString } from "../../../../dms-core/app/utils/type-check";
 import { computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsKeyValueList, {
@@ -78,10 +79,10 @@ const { items, isPending, hasError, notFound, refresh } =
 
 function resolveValue(item: KeyValueListBlockItem): KeyValueItem["value"] {
   if (isComposedText(item.value)) return processText(item.value);
-  if (typeof item.value === "string" && TRANSLATED_TYPES.has(item.type)) {
+  if (isString(item.value) && TRANSLATED_TYPES.has(item.type)) {
     return processText(item.value);
   }
-  return item.value as KeyValueItem["value"];
+  return item.value;
 }
 
 const resolvedItems = computed<KeyValueItem[]>(() =>

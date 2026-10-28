@@ -10,12 +10,14 @@ import { CHART_EVENT_NAMES } from "../layers/dms-ui/app/composables/chart/events
 import type { ChartClickPayload } from "../layers/dms-ui/app/composables/chart/events";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 
-const MESSAGES: Record<string, string> = {
-  "my_module.sends": "Sends",
-  "my_module.sends_before": "Sends, previous period",
-  "my_module.domain": "Top domain",
-  "my_module.domain_sends": "Sends to this domain",
-};
+const MESSAGES = new Map<string, string>(
+  Object.entries({
+    "my_module.sends": "Sends",
+    "my_module.sends_before": "Sends, previous period",
+    "my_module.domain": "Top domain",
+    "my_module.domain_sends": "Sends to this domain",
+  }),
+);
 
 const LITERAL_TITLE = "example.test";
 const CHART_ID = "plot";
@@ -40,7 +42,7 @@ const response = {
 const componentEvents: unknown[] = [];
 
 function stubNuxt() {
-  const translate = (key: string) => MESSAGES[key] ?? key;
+  const translate = (key: string) => MESSAGES.get(key) ?? key;
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: translate }));
   const window = new EventTarget();
   window.addEventListener(CHART_EVENT_NAMES.pointClick, (event) => {
@@ -53,16 +55,12 @@ interface ApexClickOptions {
   dataPointIndex: number;
   seriesIndex: number;
 }
-interface ApexProbeOptions {
-  chart: {
-    events?: { dataPointSelection?: (...args: unknown[]) => void };
-  };
-}
 
 /** Renders each series name and fires Apex's click hook so the payload is observable. */
 const SeriesProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ApexProbeOptions>, required: true },
+    options: { type: Object, required: true },
+    // SAFETY: Chart passes its resolved ChartSeries array to this Apex host replacement.
     series: { type: Array as PropType<ChartSeries[]>, required: true },
   },
   setup: (props) => () => {

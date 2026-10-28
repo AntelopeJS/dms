@@ -8,7 +8,7 @@ import { chartRuntime } from "./helpers/charts-runtime";
 
 type LabelFormatter = (
   value: string,
-  timestamp?: unknown,
+  timestamp?: number,
   opts?: { dateFormatter?: unknown; w?: unknown },
 ) => string;
 
@@ -16,7 +16,9 @@ interface ProbedOptions {
   chart: {
     events?: {
       dataPointSelection?: (
+        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The vendor event argument is opaque and unused; preserve the callback's raw input contract.
         event: unknown,
+        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The vendor chart context is opaque and unused by point selection.
         context: unknown,
         opts: { seriesIndex: number; dataPointIndex: number },
       ) => void;
@@ -35,7 +37,9 @@ let probed: Probed | null = null;
 
 const PlotProbe = defineComponent({
   props: {
+    // SAFETY: The chart host supplies the options whose formatter and events this probe exercises.
     options: { type: Object as PropType<ProbedOptions>, required: true },
+    // SAFETY: The chart host supplies the ChartSeries array captured by this probe.
     series: { type: Array as PropType<ChartSeries[]>, required: true },
   },
   setup: (props) => () => {
@@ -59,7 +63,7 @@ function stacked(dates: string[]): ChartSeries[] {
 
 async function draw(
   dates: string[],
-  props: Record<string, unknown> = {},
+  props: Partial<InstanceType<typeof Chart>["$props"]> = {},
 ): Promise<Probed> {
   probed = null;
   const app = createSSRApp({
@@ -86,6 +90,7 @@ async function draw(
 function axisLabels(chart: Probed): string[] {
   const format = chart.options.xaxis.labels.formatter!;
   return chart.series[0]!.data.map((point) =>
+    // SAFETY: stacked() supplies string x coordinates; datetime gap filling also emits string x coordinates.
     format((point as { x: string }).x),
   );
 }
@@ -113,6 +118,7 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
     ]);
     expect(chart.options.xaxis.type).toBe("category");
     expect(
+      // SAFETY: stacked() supplies string x coordinates and this case checks their UTC normalization.
       chart.series[0]!.data.map((point) => (point as { x: string }).x),
     ).toEqual(["2026-08-01", "2026-09-01"]);
   });

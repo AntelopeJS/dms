@@ -51,9 +51,11 @@ afterEach(() => vi.unstubAllGlobals());
 describe("TopListCard period badge", () => {
   it("prints the preset of a selector set up before it", async () => {
     const html = await render(() => {
+      const state = { preset: "last_30_days" };
       registerPeriodScope(
         "dashboard-period",
-        computed(() => ({ preset: "last_30_days" }) as PeriodState),
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately supplies a legacy preset outside PeriodPreset and omits unused state fields.
+        computed(() => state as PeriodState),
       );
     });
     expect(html).toContain("dms.period.presets.last_30_days");

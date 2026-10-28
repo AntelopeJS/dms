@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
@@ -20,14 +20,10 @@ const ROUTE_SERIES: ChartSeries[] = [
   },
 ];
 
-interface ProbeOptions {
-  labels?: string[];
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ProbeOptions>, required: true },
-    series: { type: Array as PropType<unknown[]>, required: true },
+    options: { type: Object, required: true },
+    series: { type: Array, required: true },
   },
   setup: (props) => () =>
     h("output", [
@@ -69,7 +65,10 @@ function nested(type: ChartType) {
   );
 }
 
-function bare(type: ChartType, props: Record<string, unknown> = {}) {
+function bare(
+  type: ChartType,
+  props: Partial<InstanceType<typeof Chart>["$props"]> = {},
+) {
   return render(() =>
     h(Chart, { type, componentId: "plot", pageId: "p", ...props }),
   );

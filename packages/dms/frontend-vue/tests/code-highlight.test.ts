@@ -32,14 +32,16 @@ const joined = (tokens: CodeToken[]) =>
 const highlight = async (code: string, language: string) =>
   (await loadCodeHighlighter(language))(code);
 
-const EDITOR_PARSERS: Record<string, Parser> = {
+const EDITOR_PARSERS = {
   json: jsonLanguage.parser,
   javascript: javascriptLanguage.parser,
   typescript: typescriptLanguage.parser,
   html: htmlLanguage.parser,
   sql: StandardSQL.language.parser,
   shell: StreamLanguage.define(shellParser).parser,
-};
+} satisfies Record<string, Parser>;
+
+const editorParsers = new Map(Object.entries(EDITOR_PARSERS));
 
 const PALETTE_HIGHLIGHTER = tagHighlighter(
   CODE_PALETTE.map((entry, index) => ({ tag: entry.tag, class: `${index}` })),
@@ -49,7 +51,7 @@ function editorTokens(code: string, language: string): CodeToken[] {
   const tokens: CodeToken[] = [];
   let cursor = 0;
   highlightTree(
-    EDITOR_PARSERS[language].parse(code),
+    editorParsers.get(language)!.parse(code),
     PALETTE_HIGHLIGHTER,
     (from, to, classes) => {
       if (from > cursor) tokens.push({ text: code.slice(cursor, from) });
@@ -62,7 +64,7 @@ function editorTokens(code: string, language: string): CodeToken[] {
   return tokens;
 }
 
-const SAMPLES: Record<string, string> = {
+const SAMPLES = {
   json: '{\n  "name": "media",\n  "size": 42,\n  "tags": ["a", null, true],\n  "nested": { "ratio": -1.5e3 }\n}',
   javascript: [
     "// load the rows",
@@ -115,10 +117,9 @@ describe("read-only code highlighting", () => {
     expect(joined(await highlight(code, "json"))).toBe(code);
   });
 
-  it.each(Object.keys(SAMPLES))(
+  it.each(Object.entries(SAMPLES))(
     "colours %s exactly like the editor's language",
-    async (language) => {
-      const code = SAMPLES[language];
+    async (language, code) => {
       const tokens = await highlight(code, language);
       expect(joined(tokens)).toBe(code);
       expect(tokens).toEqual(editorTokens(code, language));

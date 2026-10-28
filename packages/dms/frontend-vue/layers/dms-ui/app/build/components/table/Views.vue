@@ -2,7 +2,6 @@
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
 import { toneTextClass } from "../../utils/tone";
 import TableTabs, { type TableTabItem } from "./Tabs.vue";
@@ -67,12 +66,13 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableViews: Partial<typeof theme> };
 };
 const uiVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableViews || {}),
+  ...appConfig.ui?.tableViews,
 });
 const ui = computed(() => uiVariant({ divided: props.divided }));
 

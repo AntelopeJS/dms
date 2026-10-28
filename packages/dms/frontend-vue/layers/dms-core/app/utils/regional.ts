@@ -1,3 +1,5 @@
+import { isString } from "./type-check";
+
 /** `h23`: 24-hour clock (14:05); `h12`: 12-hour clock (2:05 PM). */
 export type TimeFormatPreference = "h23" | "h12";
 
@@ -39,9 +41,9 @@ export interface RegionalOptionsSettings {
 type PreferencesSource = () => RegionalPreferences;
 type ReaderTimeZoneSource = () => string | null | undefined;
 
-const WEEK_STARTS: readonly number[] = [0, 1, 6];
-const TIME_FORMATS: readonly string[] = ["h23", "h12"];
-const DATE_FORMATS: readonly string[] = ["numeric", "text"];
+const WEEK_STARTS: readonly WeekStartPreference[] = [0, 1, 6];
+const TIME_FORMATS: readonly TimeFormatPreference[] = ["h23", "h12"];
+const DATE_FORMATS: readonly DateFormatPreference[] = ["numeric", "text"];
 const TEXT_MONTHS: readonly string[] = ["long", "short", "narrow"];
 const NUMERIC_MONTHS: readonly string[] = ["numeric", "2-digit"];
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,18 +55,24 @@ const DAYS_PER_WEEK = 7;
  * texts are British English and French of France (`core-en-GB.json`,
  * `core-fr-FR.json`), while the interface language is the bare tag.
  */
-const DMS_TEXT_LOCALES: Record<string, string> = {
+const DMS_TEXT_LOCALES: Record<
+  Parameters<typeof regionalFormatLocale>[0],
+  ReturnType<typeof regionalFormatLocale>
+> = {
   en: "en-GB",
   fr: "fr-FR",
 };
 
 /** `timeStyle` as the fields it stands for, when a date format replaces `dateStyle`. */
-const TIME_STYLE_FIELDS: Record<string, Intl.DateTimeFormatOptions> = {
+const TIME_STYLE_FIELDS = {
   full: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
   long: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
   medium: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
   short: { hour: "2-digit", minute: "2-digit" },
-};
+} satisfies Record<
+  NonNullable<Intl.DateTimeFormatOptions["timeStyle"]>,
+  Intl.DateTimeFormatOptions
+>;
 
 const NUMERIC_DATE: Intl.DateTimeFormatOptions = {
   day: "2-digit",
@@ -95,8 +103,10 @@ export function browserTimeZone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-const pickFrom = <T>(allowed: readonly unknown[], value: unknown) =>
-  allowed.includes(value) ? (value as T) : undefined;
+const pickFrom = <T>(
+  allowed: readonly T[],
+  value: RegionalPreferenceFields[keyof RegionalPreferenceFields],
+) => allowed.find((candidate) => candidate === value);
 
 /**
  * Keeps the regional preferences of a session user that this runtime can
@@ -107,7 +117,7 @@ export function readRegionalPreferences(
 ): RegionalPreferences {
   if (!fields) return {};
   const timeZone =
-    typeof fields.timeZone === "string" && isKnownTimeZone(fields.timeZone)
+    isString(fields.timeZone) && isKnownTimeZone(fields.timeZone)
       ? fields.timeZone
       : undefined;
   return {
@@ -181,7 +191,7 @@ function toNumericDate(
     return {
       ...rest,
       ...NUMERIC_DATE,
-      ...(timeStyle ? TIME_STYLE_FIELDS[timeStyle] : {}),
+      ...(timeStyle && TIME_STYLE_FIELDS[timeStyle]),
     };
   }
   if (isFullDate(options) && TEXT_MONTHS.includes(options.month ?? "")) {
@@ -304,7 +314,7 @@ type LocaleWithWeekInfo = Intl.Locale & {
 export function localeWeekStart(locale: string): number {
   // prettier-ignore
   try {
-    const info = new Intl.Locale(locale) as LocaleWithWeekInfo;
+    const info: LocaleWithWeekInfo = new Intl.Locale(locale);
     if (!info.region) return MONDAY;
     const weekInfo = info.getWeekInfo?.() ?? info.weekInfo;
     if (weekInfo) return weekInfo.firstDay % DAYS_PER_WEEK;

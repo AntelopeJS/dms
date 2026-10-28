@@ -1,4 +1,4 @@
-import { getCurrentInstance } from "vue";
+import { getCurrentInstance, type AppContext } from "vue";
 import DynamicDrawer from "../../build/components/containers/drawer/DynamicDrawer.vue";
 import DmsRowHeader from "../../build/components/containers/row/RowHeader.vue";
 import { drawerRowHeaderProps } from "../../build/components/containers/row/drawerRowHeader";
@@ -18,12 +18,12 @@ const DRAWER_ID_PREFIX = "drawer";
 /** What `useDrawer` hands the drawer besides its options. */
 interface DrawerCallerContext {
   /** The provides of the component that called `useDrawer` (see DynamicDrawer). */
-  callerProvides?: object;
+  callerProvides?: AppContext["provides"];
 }
 
 /** The part of a component instance holding what it and its ancestors provide. */
 interface InstanceProvides {
-  provides?: object;
+  provides: AppContext["provides"];
 }
 
 /**
@@ -34,6 +34,7 @@ interface InstanceProvides {
 export function useDrawer() {
   const overlay = useOverlay();
 
+  // SAFETY: Vue initializes every component instance's hidden provides from its parent or app context.
   const caller = getCurrentInstance() as InstanceProvides | null;
 
   function open<Result = unknown>(

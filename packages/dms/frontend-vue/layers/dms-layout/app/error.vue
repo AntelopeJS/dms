@@ -13,7 +13,10 @@ interface ErrorConfig {
   tone: StageCardTone;
 }
 
-const ERROR_CONFIGS: Record<number, ErrorConfig> = {
+const ERROR_CONFIGS: Record<
+  NonNullable<DmsErrorData["statusCode"]>,
+  ErrorConfig
+> = {
   404: {
     icon: "i-ph-magnifying-glass",
     titleKey: "error.404.title",

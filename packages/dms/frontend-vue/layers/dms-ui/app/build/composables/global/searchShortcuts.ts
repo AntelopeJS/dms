@@ -1,3 +1,5 @@
+import type { buildPageSearchShortcuts } from "../../../composables/global/searchShortcuts";
+
 export {
   buildPageSearchShortcuts,
   PAGE_SEARCH_SHORTCUTS,
@@ -25,7 +27,7 @@ export function pageSearchAriaKeyshortcuts(macOS: boolean): string {
 /** `defineShortcuts` map focusing the navigation search on "/". */
 export function buildNavSearchShortcuts(
   focus: () => void,
-): Record<string, () => void> {
+): ReturnType<typeof buildPageSearchShortcuts> {
   return { [NAV_SEARCH_SHORTCUT]: focus };
 }
 

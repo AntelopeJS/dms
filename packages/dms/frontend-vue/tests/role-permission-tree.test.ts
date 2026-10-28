@@ -11,77 +11,23 @@ import {
   ref,
 } from "vue";
 import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
+import type * as RolePermissionHelpers from "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { TREE } from "./helpers/role-permission-tree-fixture";
 
 Object.assign(globalThis, {
   computed,
   ref,
 
   useI18n: () => ({
-    t: (key: string, named?: unknown) =>
-      named && typeof named === "object"
+    t: (key: string, named?: Record<string, string | number>) =>
+      named && isObject(named)
         ? `${key} ${Object.values(named).join("/")}`
         : key,
   }),
   useTranslation: () => ({ processI18n: (label: string) => label }),
 });
-
-const TREE: RolePermissionNode[] = [
-  {
-    id: "pages",
-    label: "Pages",
-    children: [
-      {
-        id: "pages.form",
-        label: "Form",
-        children: [
-          {
-            id: "pages.form.simple",
-            label: "Simple form",
-            children: [{ id: "pages.form.simple.form", label: "Form" }],
-          },
-          {
-            id: "pages.form.table",
-            label: "Table page",
-            children: [
-              {
-                id: "pages.form.table.table",
-                label: "Table",
-                children: [
-                  {
-                    id: "pages.form.table.table.add",
-                    label: "Add",
-                    children: [
-                      { id: "pages.form.table.table.add.form", label: "Form" },
-                    ],
-                  },
-                  { id: "pages.form.table.table.list", label: "List" },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    children: [
-      {
-        id: "settings.user",
-        label: "User settings",
-        children: [
-          {
-            id: "settings.user.profile",
-            label: "Profile",
-            children: [{ id: "settings.user.profile.profile", label: "Info" }],
-          },
-        ],
-      },
-    ],
-  },
-];
 
 const stub = (tag: string) =>
   defineComponent({
@@ -110,7 +56,7 @@ const CheckboxStub = defineComponent({
 
 let RolePermissionTree: Component;
 let RoleEditor: Component;
-let helpers: typeof import("../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions");
+let helpers: typeof RolePermissionHelpers;
 let app: App | undefined;
 
 beforeAll(async () => {
@@ -264,6 +210,7 @@ const InputStub = defineComponent({
     () =>
       h("input", {
         value: props.modelValue,
+        // SAFETY: This listener is attached to the input itself and the test dispatches input events on it.
         onInput: (event: Event) =>
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       }),

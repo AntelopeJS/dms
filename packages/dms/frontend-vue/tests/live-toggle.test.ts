@@ -22,9 +22,15 @@ let live: PageLiveController | undefined;
 const t = (key: string, params?: { count?: number }) =>
   params?.count === undefined ? key : `${key}:${params.count}`;
 
+type ToggleProps = Partial<
+  InstanceType<
+    typeof import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue").default
+  >["$props"]
+>;
+
 async function createToggle(
   target: HTMLElement,
-  props: Record<string, unknown> = {},
+  props: ToggleProps = {},
 ): Promise<App> {
   const { default: LiveToggleBlock } = await import(
     "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"
@@ -42,7 +48,7 @@ async function createToggle(
   return toggle;
 }
 
-async function mountToggle(props: Record<string, unknown> = {}) {
+async function mountToggle(props: ToggleProps = {}) {
   app = await createToggle(host, props);
 }
 

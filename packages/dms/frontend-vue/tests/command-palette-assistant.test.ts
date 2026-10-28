@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import type { CommandPaletteGroup } from "@nuxt/ui";
+import type { NamedValue } from "vue-i18n";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -11,7 +12,6 @@ import {
   watch,
   type App,
   type FunctionalComponent,
-  type PropType,
   type Ref,
 } from "vue";
 import DashboardSearch from "../layers/dms-layout/app/components/layout/DashboardSearch.vue";
@@ -54,7 +54,7 @@ let answerOutcome: Promise<void>;
 const EchoAnswer = defineComponent({
   props: {
     prompt: { type: String, required: true },
-    close: { type: Function as PropType<() => void>, required: true },
+    close: { type: Function, required: true },
   },
   async setup(props) {
     await answerOutcome;
@@ -69,7 +69,7 @@ function deferAnswer(): void {
   });
 }
 
-function translate(key: string, params?: Record<string, unknown>): string {
+function translate(key: string, params?: NamedValue): string {
   return params ? `${key}:${Object.values(params).join(",")}` : key;
 }
 
@@ -78,7 +78,7 @@ function installRuntime(): void {
   Object.entries({ computed, ref, watch }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <Value>(key: string, initial: () => Value) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -201,10 +201,12 @@ describe("command palette assistant registry", () => {
   });
 
   it("ignores an entry whose suggestions were stripped by the SSR payload", () => {
+    type Suggestions = CommandPaletteAssistant["suggestions"];
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- SSR strips function values; deliberately model that invalid hydrated registry entry without claiming it is a valid callback.
+    const suggestions = undefined as unknown as Suggestions;
     registerCommandPaletteAssistant({
       ...ASSISTANT,
-      suggestions:
-        undefined as unknown as CommandPaletteAssistant["suggestions"],
+      suggestions,
     });
     expect(useCommandPaletteAssistant().assistant.value).toBeUndefined();
   });

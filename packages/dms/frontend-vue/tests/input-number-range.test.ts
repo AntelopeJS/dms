@@ -9,7 +9,7 @@ import { formFieldInjectionKey } from "@nuxt/ui/composables/useFormField";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type App,
-  type Component,
+  type SetupContext,
   computed,
   createApp,
   defineComponent,
@@ -18,6 +18,7 @@ import {
   ref,
 } from "vue";
 import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
+import type InputNumberField from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import {
   ABOVE_MAX_MESSAGE,
   BELOW_MIN_MESSAGE,
@@ -27,7 +28,7 @@ import {
 
 let app: App | undefined;
 let host: HTMLDivElement;
-let inputAttrs: Record<string, unknown> = {};
+let inputAttrs: SetupContext["attrs"] = {};
 const reported = new Map<string, string | undefined>();
 
 const InputNumberStub = defineComponent({
@@ -40,12 +41,12 @@ const InputNumberStub = defineComponent({
     },
 });
 
-async function mount(props: Record<string, unknown>) {
-  const InputNumber = (
-    await import(
-      "../layers/dms-ui/app/components/form/components/InputNumber.vue"
-    )
-  ).default as Component;
+async function mount(
+  props: Partial<InstanceType<typeof InputNumberField>["$props"]>,
+) {
+  const { default: InputNumber } = await import(
+    "../layers/dms-ui/app/components/form/components/InputNumber.vue"
+  );
   const value = ref(props.modelValue);
   app = createApp({
     render: () => h(InputNumber, { ...props, modelValue: value.value }),
@@ -53,7 +54,7 @@ async function mount(props: Record<string, unknown>) {
   app.component("UInputNumber", InputNumberStub);
   app.provide(
     formFieldInjectionKey,
-    computed(() => ({ name: "budget" })) as never,
+    computed(() => ({ name: "budget", ariaId: "budget" })),
   );
   app.provide(FORM_CONTROL_ERRORS_KEY, {
     report: (fieldId: string, message: string | undefined) =>

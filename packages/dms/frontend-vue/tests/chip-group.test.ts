@@ -11,7 +11,13 @@ const ITEMS = [
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown>) {
+async function mount(
+  props: Partial<
+    InstanceType<
+      (typeof import("../layers/dms-ui/app/build/components/form/ChipGroup.vue"))["default"]
+    >["$props"]
+  >,
+) {
   const { default: ChipGroup } = await import(
     "../layers/dms-ui/app/build/components/form/ChipGroup.vue"
   );

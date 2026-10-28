@@ -31,7 +31,9 @@ const Button = defineComponent({
     ),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(
+  props: Partial<InstanceType<typeof TopListCard>["$props"]>,
+): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(TopListCard, {

@@ -27,7 +27,10 @@ interface FetchFailure extends Error {
 let route: ReturnType<typeof useRealDataEngine>["route"];
 const answers = new Map<string, unknown>();
 
-function failure(statusCode: number, data?: unknown): FetchFailure {
+function failure(
+  statusCode: number,
+  data?: FetchFailure["data"],
+): FetchFailure {
   return Object.assign(new Error(`${statusCode}`), {
     name: "FetchError",
     statusCode,
@@ -70,7 +73,7 @@ const probe = (run: () => void) => mount({ render: () => h(Probe, { run }) });
 function mount(component: Component): HTMLElement {
   const app = createApp(component);
   for (const name of ["UIcon", "UButton", "DmsLink"]) {
-    app.component(name, (props: Record<string, unknown>) =>
+    app.component(name, (props: NonNullable<Parameters<typeof h>[1]>) =>
       h("i", { "data-stub": name, "data-label": props.label }),
     );
   }
@@ -188,7 +191,9 @@ describe("useBlockItems on a 404", () => {
 });
 
 describe("BlockStatus not-found", () => {
-  const render = (notFound: unknown) =>
+  const render = (
+    notFound: InstanceType<typeof BlockStatus>["$props"]["notFound"],
+  ) =>
     mount({
       render: () => h(BlockStatus, { state: "not-found", notFound }),
     }).textContent;

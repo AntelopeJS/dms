@@ -42,7 +42,7 @@ describe("preview state parameter", () => {
   });
 
   it("refuses garbage, a missing tree and an unknown theme", () => {
-    const encode = (value: unknown) =>
+    const encode = <Value>(value: Value) =>
       Buffer.from(JSON.stringify(value)).toString("base64url");
     expect(decodePreviewState("%%%")).toBeUndefined();
     expect(decodePreviewState(encode({ theme: "dark" }))).toBeUndefined();

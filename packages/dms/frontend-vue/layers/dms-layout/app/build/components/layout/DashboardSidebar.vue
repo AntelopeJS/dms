@@ -58,6 +58,7 @@ watch(
 
 function closeOnLinkClick(event: MouseEvent): void {
   if (!sidebarOpen.value) return;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM target is typed EventTarget; keep the existing unchecked closest call, including throws for synthetic non-element targets, instead of adding a filtering guard.
   if ((event.target as Element | null)?.closest("a[href]")) {
     closeMobileSidebar();
   }
@@ -226,23 +227,22 @@ const footerItems = computed((): NavigationMenuItem[] => {
   }
 
   if (isOwner.value) {
-    result.push({
+    const moduleItem: NavigationMenuItem = {
       fullId: MODULES_FULL_ID,
       label: t("menu.modules"),
       to: MODULES_PATH,
       icon: MODULES_ICON,
       exact: true,
-      ...(moduleCount.value > 0
-        ? {
-            badge: {
-              label: String(moduleCount.value),
-              color: "neutral",
-              variant: "subtle",
-              size: "sm",
-            },
-          }
-        : {}),
-    });
+    };
+    if (moduleCount.value > 0) {
+      moduleItem.badge = {
+        label: String(moduleCount.value),
+        color: "neutral",
+        variant: "subtle",
+        size: "sm",
+      };
+    }
+    result.push(moduleItem);
   }
 
   return result;

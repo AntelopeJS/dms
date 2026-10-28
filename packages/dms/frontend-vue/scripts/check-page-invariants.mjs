@@ -169,9 +169,9 @@ async function checkShortcutTranslations() {
         GLOBAL_META_SLASH_METADATA,
       ]) {
         for (const item of [metadata, metadata.condition]) {
-          assert.equal(
-            typeof lookup(item.descriptionKey),
-            "string",
+          assert.match(
+            lookup(item.descriptionKey),
+            /^/,
             `${locale} ${item.descriptionKey}`,
           );
         }
@@ -180,14 +180,10 @@ async function checkShortcutTranslations() {
         .shortcuts.groups;
       for (const { component } of registry) {
         const group = groups[component.toLowerCase()];
-        assert.equal(
-          typeof group?.title,
-          "string",
-          `${locale} ${component} title`,
-        );
-        assert.equal(
-          typeof group?.description,
-          "string",
+        assert.match(group?.title, /^/, `${locale} ${component} title`);
+        assert.match(
+          group?.description,
+          /^/,
           `${locale} ${component} description`,
         );
       }

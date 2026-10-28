@@ -2,6 +2,7 @@ import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const authFetch = vi.fn();
 const toastAdd = vi.fn();
@@ -14,7 +15,7 @@ function readRecord() {
       pageId: "page-1",
       fields: [],
       fetchUrl: "/api/plans/get?id=pro",
-    } as never),
+    }),
   )!;
   return form.fetchData();
 }
@@ -27,7 +28,7 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
@@ -44,7 +45,11 @@ beforeEach(() => {
   vi.stubGlobal("useEventedAction", () => ({ execute: vi.fn() }));
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial }),
     }),

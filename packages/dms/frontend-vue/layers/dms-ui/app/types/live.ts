@@ -34,7 +34,9 @@ export type PageLiveNoteTone = "neutral" | "warning" | "error";
  */
 export interface PageLiveNote {
   text: string;
-  params?: Record<string, unknown>;
+  params?: Parameters<
+    import("#dms-core/app/composables/translation/useTranslation").I18nTranslate
+  >[1];
   tone?: PageLiveNoteTone;
 }
 

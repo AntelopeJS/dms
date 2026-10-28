@@ -1,7 +1,13 @@
+/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- The decoded cookie has no validated field contract; this open property lookup implements per-field fallback without rejecting the entire cookie or changing inherited-field access. */
 /**
  * `auto` follows the operating system's `prefers-reduced-motion`; `on` and
  * `off` pin the choice whatever the system says.
  */
+import {
+  isObject,
+  isString,
+  isFunction,
+} from "../../../../dms-core/app/utils/type-check";
 export type ReduceMotionPreference = "auto" | "on" | "off";
 
 export interface AccessibilityPreferences {
@@ -37,13 +43,18 @@ const REDUCE_MOTION_PREFERENCES: ReduceMotionPreference[] = [
   "off",
 ];
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function isRecord(
+  value: Parameters<typeof isObject>[0],
+): value is Record<string, unknown> {
+  return isObject(value) && value !== null && !Array.isArray(value);
 }
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 /** The cookie as a value: already parsed, or the raw (URI-encoded) JSON. */
-function decodeCookieValue(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+function decodeCookieValue(
+  raw: Parameters<typeof isString>[0],
+): Parameters<typeof isRecord>[0] {
+  if (!isString(raw)) return raw;
   try {
     return JSON.parse(decodeURIComponent(raw));
   } catch {
@@ -54,7 +65,7 @@ function decodeCookieValue(raw: unknown): unknown {
 function isReduceMotionPreference(
   value: unknown,
 ): value is ReduceMotionPreference {
-  return REDUCE_MOTION_PREFERENCES.includes(value as ReduceMotionPreference);
+  return REDUCE_MOTION_PREFERENCES.some((preference) => preference === value);
 }
 
 /**
@@ -63,7 +74,7 @@ function isReduceMotionPreference(
  * version never breaks the page.
  */
 export function parseAccessibilityPreferences(
-  raw: unknown,
+  raw: Parameters<typeof decodeCookieValue>[0],
 ): AccessibilityPreferences {
   const value = decodeCookieValue(raw);
   const source = isRecord(value) ? value : {};
@@ -123,8 +134,7 @@ export function isReducedMotionActive(): boolean {
   const classList = globalThis.document?.documentElement?.classList;
   if (!classList) return false;
   const systemPrefersReduced =
-    typeof matchMedia === "function" &&
-    matchMedia(REDUCED_MOTION_QUERY).matches;
+    isFunction(matchMedia) && matchMedia(REDUCED_MOTION_QUERY).matches;
   return resolveReducedMotion(
     reduceMotionFromClasses(classList),
     systemPrefersReduced,

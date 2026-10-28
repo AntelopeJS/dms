@@ -27,7 +27,9 @@ afterEach(() => {
 });
 
 function mountTable(url: string, shown: { view?: string; tab: string }) {
-  const followed: Array<Record<string, unknown>> = [];
+  const followed: Array<
+    Parameters<Parameters<typeof useTableLinkedVisit>[0]["follow"]>[0]
+  > = [];
   const app = createApp(
     defineComponent({
       setup() {

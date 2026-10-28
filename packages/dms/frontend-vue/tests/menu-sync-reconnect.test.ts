@@ -1,7 +1,7 @@
 import { nextTick, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
 const { watchRealtimeReconnects } = await import(
   "../layers/dms-layout/app/plugins/dms-menu-sync.client"
 );

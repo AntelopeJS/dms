@@ -7,6 +7,7 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
 import DmsRepeaterTable from "./RepeaterTable.vue";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 
 /** A field of the rows: one column. */
 interface RepeaterColumn {
@@ -17,7 +18,7 @@ interface RepeaterColumn {
   required?: boolean;
 }
 
-type RepeaterRow = Record<string, unknown>;
+type RepeaterRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
 
 interface RepeaterProps {
   id?: string;
@@ -65,7 +66,8 @@ const canRemove = computed(
 );
 
 const FLUID_COLUMN = "minmax(0,1fr)";
-const COLUMN_WIDTHS: Record<string, string> = { boolean: "20px" };
+type ColumnWidths = Record<NonNullable<RepeaterColumn["type"]>, string>;
+const COLUMN_WIDTHS: ColumnWidths = { boolean: "20px" };
 const HANDLE_COLUMN = "20px";
 const REMOVE_COLUMN = "28px";
 
@@ -103,7 +105,11 @@ function emitRows(next: RepeaterRow[], shouldValidate = true): void {
   if (shouldValidate) emitFormChange();
 }
 
-function setCell(index: number, column: string, value: unknown): void {
+function setCell(
+  index: number,
+  column: string,
+  value: RepeaterRow[string],
+): void {
   emitRows(
     rows.value.map((row, at) =>
       at === index ? { ...row, [column]: value } : row,
@@ -131,7 +137,8 @@ function moveRow(from: number, to: number): void {
   emitRows(next);
 }
 
-const MOVE_KEYS: Record<string, number> = { ArrowUp: -1, ArrowDown: 1 };
+type MoveKeys = Record<KeyboardEvent["key"], number>;
+const MOVE_KEYS: MoveKeys = { ArrowUp: -1, ArrowDown: 1 };
 
 function onHandleKeydown(event: KeyboardEvent, index: number): void {
   const step = MOVE_KEYS[event.key];

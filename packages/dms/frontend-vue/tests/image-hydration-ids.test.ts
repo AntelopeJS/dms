@@ -48,12 +48,12 @@ beforeEach(() => {
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  stubApiData((async () => ({
+  stubApiData(async () => ({
     resourceKey: STORED_IMAGE.key,
     filename: "cover.png",
     size: 10,
     url: "https://files.test/cover.png",
-  })) as never);
+  }));
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
@@ -65,7 +65,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
-    (_key: string, options: { default: () => unknown }) =>
+    <Value>(_key: string, options: { default: () => Value }) =>
       ref(options.default()),
   );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));

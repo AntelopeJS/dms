@@ -29,7 +29,7 @@ export interface ClearableTableFilters {
   search: boolean;
 }
 
-const sameValue = (a: unknown, b: unknown): boolean =>
+const sameValue = (a: TableFilter["value"], b: TableFilter["value"]): boolean =>
   JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**

@@ -60,7 +60,10 @@ const UNMOUNT_AUTOFOCUS_EVENT = "focusScope.autoFocusOnUnmount";
  */
 export const UNCOVERED_ATTRIBUTE = "data-dms-uncovered";
 
-function isClosing(mutation: MutationRecord): boolean {
+function isClosing(
+  mutation: MutationRecord,
+): mutation is MutationRecord & { target: Element } {
+  // SAFETY: The only caller observes attributes with attributeFilter; DOM attribute mutations always target Elements.
   const target = mutation.target as Element;
   return (
     target.getAttribute("data-state") === "closed" &&
@@ -96,14 +99,12 @@ function isClosing(mutation: MutationRecord): boolean {
  * @internal
  */
 export function watchClosingLayers(root: Document): () => void {
-  const openBeforeClosing = new WeakMap<Element, Set<Element>>();
+  const openBeforeClosing = new WeakMap<EventTarget, Set<Element>>();
   const openLayers = () => [...root.querySelectorAll(OPEN_LAYER_SELECTOR)];
   const uncovering = watchUncovered(root);
 
   const observer = new MutationObserver((mutations) => {
-    const closing = mutations
-      .filter(isClosing)
-      .map(({ target }) => target as Element);
+    const closing = mutations.filter(isClosing).map(({ target }) => target);
     if (closing.length === 0) return;
     const open = openLayers();
     for (const target of closing) {
@@ -123,7 +124,7 @@ export function watchClosingLayers(root: Document): () => void {
   });
 
   const onUnmountAutoFocus = (event: Event): void => {
-    const before = openBeforeClosing.get(event.target as Element);
+    const before = event.target && openBeforeClosing.get(event.target);
     if (!before) return;
     if (openLayers().some((layer) => !before.has(layer))) {
       event.preventDefault();
