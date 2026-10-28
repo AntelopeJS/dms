@@ -82,6 +82,7 @@ export function PageToolbar(
  * `PeriodSelector`), besides the control's options: the child id roles and
  * permissions name it by, and the metadata the roles editor shows for it.
  */
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published default allows application component options; a concrete schema belongs to each child component.
 export interface PageToolbarChildOptions<P = Record<string, unknown>> {
   /**
    * The child id under the toolbar. Defaults to `live` for the toggle and

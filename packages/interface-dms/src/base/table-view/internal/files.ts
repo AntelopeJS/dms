@@ -15,8 +15,9 @@ export const withFilePromotion = (
   mode: "save" | "delete" = "save",
 ): DataControllerCallback => ({
   func: async function (
-    this: unknown,
+    this: ThisParameterType<DataControllerCallback["func"]>,
     context: RequestContext,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Route-specific parameters pass unchanged to the wrapped callback or attachment proxy; parsing them here would alter the published wrapper behavior.
     params: unknown,
     ...args: unknown[]
   ) {

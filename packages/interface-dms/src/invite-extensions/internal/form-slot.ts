@@ -56,7 +56,8 @@ const INVITE_EDIT_FORM_HOST: InviteFormHost = {
 };
 
 interface JsonSchemaObject {
-  properties?: Record<string, unknown>;
+  $schema?: NonNullable<FormPropsSerialized["schema"]>["$schema"];
+  properties?: InviteFieldContribution["properties"];
   required?: string[];
 }
 
@@ -75,13 +76,15 @@ function flattenSerializedFields(
 function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
   const params = { ...watch.params };
   for (const param of WATCH_FIELD_PARAMS) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Watch params are heterogeneous; only string field references receive the invitation prefix.
     if (typeof params[param] === "string") {
-      params[param] = inviteExtensionFieldId(key, params[param] as string);
+      params[param] = inviteExtensionFieldId(key, params[param]);
     }
   }
   const conditions = watch.onParam
     ? [watch.onParam].flat().map((condition) =>
         condition.key === WATCH_FIELD_CONDITION_KEY &&
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions support nonstring operands; remap only string field references without validating unrelated watch values.
         typeof condition.value === "string"
           ? {
               ...condition,
@@ -98,10 +101,10 @@ function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
 
 function prefixSchemaEntries(
   key: string,
-  schema: unknown,
+  schema: FormPropsSerialized["schema"],
 ): Pick<InviteFieldContribution, "properties" | "requiredProperties"> {
-  const source = (schema ?? {}) as JsonSchemaObject;
-  const properties: Record<string, unknown> = {};
+  const source: JsonSchemaObject = schema ?? {};
+  const properties: InviteFieldContribution["properties"] = {};
   for (const [fieldId, definition] of Object.entries(source.properties ?? {})) {
     properties[inviteExtensionFieldId(key, fieldId)] = definition;
   }
@@ -117,7 +120,7 @@ async function buildContribution(
   info: InviteExtensionInfo,
 ): Promise<InviteFieldContribution | undefined> {
   const serialized = await info.component.serialize();
-  const options = serialized.options as FormPropsSerialized | undefined;
+  const options = serialized.options;
   const fields = flattenSerializedFields(options?.fields ?? []);
 
   if (fields.length === 0) {
@@ -138,10 +141,9 @@ async function buildContribution(
     })),
   };
 
-  const watchActions = (
-    (options as { watchActions?: WatchAction[] } | undefined)?.watchActions ??
-    []
-  ).map((watch) => prefixWatchAction(info.key, watch));
+  const watchActions = (options?.watchActions ?? []).map((watch) =>
+    prefixWatchAction(info.key, watch),
+  );
 
   return {
     key: info.key,
@@ -158,13 +160,11 @@ async function buildContribution(
 function contributionOf(
   entry: InviteExtensionEntry,
 ): Promise<InviteFieldContribution | undefined> {
-  entry.contribution ??= buildContribution(entry.info).catch(
-    (error: unknown) => {
-      logInviteExtensionFailure(entry.info.key, "serialize its form", error);
-      entry.contribution = undefined;
-      return undefined;
-    },
-  );
+  entry.contribution ??= buildContribution(entry.info).catch((error) => {
+    logInviteExtensionFailure(entry.info.key, "serialize its form", error);
+    entry.contribution = undefined;
+    return undefined;
+  });
   return entry.contribution;
 }
 
@@ -296,11 +296,12 @@ function assembleFields(
 }
 
 function mergeSchema(
-  own: unknown,
+  own: FormPropsSerialized["schema"],
   contributions: InviteFieldContribution[],
-): unknown {
+) {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This slot leaves nonobject schema representations untouched and only augments object schemas, preserving the opaque form schema contract.
   if (!own || typeof own !== "object") return own;
-  const source = own as JsonSchemaObject;
+  const source: JsonSchemaObject = own;
 
   return {
     ...source,
@@ -328,16 +329,15 @@ async function resolveInviteFormSlot(
   );
   if (contributions.length === 0) return resolved;
 
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- SlotOptions erases the form shape; this invite-form resolver reads its serialized fields and watches.
-  const form = options as unknown as FormPropsSerialized & {
+  const form: Partial<FormPropsSerialized> & {
     watchActions?: WatchAction[];
-  };
+  } = options;
   const watchActions = [
     ...(form.watchActions ?? []),
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
-  const merged: Record<string, unknown> = {
+  const merged: SlotOptions = {
     ...resolved,
     fields: assembleFields(
       form.fields ?? [],
@@ -347,7 +347,7 @@ async function resolveInviteFormSlot(
     schema: mergeSchema(form.schema, contributions),
   };
   if (watchActions.length > 0) merged.watchActions = watchActions;
-  return merged as SlotOptions;
+  return merged;
 }
 
 RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>

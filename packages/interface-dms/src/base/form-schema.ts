@@ -36,7 +36,7 @@ export interface FieldValidationOptions {
   fallbackLocale?: string;
 }
 
-function isFilledText(value: unknown): boolean {
+function isFilledText(value: z.output<z.ZodTypeAny>): boolean {
   return typeof value === "string" ? value.trim() !== "" : value != null;
 }
 
@@ -46,9 +46,8 @@ function withFallbackLocale(
   fallbackLocale: string,
 ): z.ZodTypeAny {
   return schema.superRefine((value, context) => {
-    const languages = value as Record<string, unknown>;
-    const isAnyFilled = Object.values(languages).some(isFilledText);
-    if (!isAnyFilled || isFilledText(languages[fallbackLocale])) return;
+    const isAnyFilled = Object.values(value).some(isFilledText);
+    if (!isAnyFilled || isFilledText(value[fallbackLocale])) return;
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: REQUIRED_MESSAGE,
@@ -95,14 +94,14 @@ export function isAcceptanceField(field: FormField): boolean {
 }
 
 function addFieldToSchema(
-  shape: Record<string, z.ZodTypeAny>,
+  properties: Record<string, z.ZodTypeAny>,
   field: FormField,
 ): void {
   const baseSchema =
     field.required && isAcceptanceField(field)
       ? z.literal(true)
       : field.type.getValidation();
-  shape[field.id] = adaptFieldValidationSchema(baseSchema, {
+  properties[field.id] = adaptFieldValidationSchema(baseSchema, {
     localized: field.localized,
     required: field.required,
     fallbackLocale: field.fallbackLocale,
@@ -112,35 +111,34 @@ function addFieldToSchema(
 export function buildFormSchema(
   fields: FormFieldOrGroup[],
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  const shape: Record<string, z.ZodTypeAny> = {};
+  const properties: Record<string, z.ZodTypeAny> = {};
 
   for (const item of fields) {
     if (isFieldGroup(item)) {
       for (const field of item.fields) {
-        addFieldToSchema(shape, field);
+        addFieldToSchema(properties, field);
       }
     } else {
-      addFieldToSchema(shape, item);
+      addFieldToSchema(properties, item);
     }
   }
 
-  return z.object(shape);
+  return z.object(properties);
 }
 
 const FIELDS_KEY = "fields";
 
-function isFormBuilder(source: unknown): source is FormBuilder {
+function isFormBuilder(source: FormSchemaSource): source is FormBuilder {
   return source instanceof ComponentBuilder && FIELDS_KEY in source;
 }
 
 const SECTIONS_KEY = "sections";
 
-function isFormProps(source: unknown): source is FormProps {
+function isFormProps(source: FormSchemaSource): source is FormProps {
   if (typeof source !== "object" || source === null) return false;
-  const props = source as FormProps;
   return (
-    (FIELDS_KEY in props && Array.isArray(props.fields)) ||
-    (SECTIONS_KEY in props && Array.isArray(props.sections))
+    (FIELDS_KEY in source && Array.isArray(source.fields)) ||
+    (SECTIONS_KEY in source && Array.isArray(source.sections))
   );
 }
 

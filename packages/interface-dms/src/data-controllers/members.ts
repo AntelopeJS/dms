@@ -61,7 +61,8 @@ async function describeEditRoute(
 ): Promise<MemberChange[]> {
   const member = await model.get(String(params.id));
   if (!member) return [];
-  return describeMemberEdit(member, parseGuardBody(body) as MemberEdit);
+  const edit: MemberEdit = parseGuardBody(body);
+  return describeMemberEdit(member, edit);
 }
 
 async function describeDeleteRoute(

@@ -17,6 +17,7 @@ import {
   type ComponentInfoSerialized,
 } from "../component";
 import { ResolveComponentSlots } from "../internal/component-slots";
+import type { SlotOptions } from "../component-slots";
 import { RoleModel, TenantMemberModel } from "../db";
 import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
 import {
@@ -32,7 +33,7 @@ import { AssertTenantAccess } from "../tenant-access";
 import { gateAllowsSurface } from "../internal/tenant-access";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import { SignUploadToken, internal as uploadInternal } from "../uploads";
-// oxlint-disable import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the category proxies after evaluation.
+// oxlint-disable import/no-cycle -- Category reads are deferred.
 import { internal, isInsideModule } from "./categories";
 import {
   resolveCategoryInfo,
@@ -95,12 +96,15 @@ const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 interface UploadFieldNode {
   type: string;
   disabled?: boolean;
-  component: { options?: Record<string, unknown> };
+  component: { options?: SlotOptions };
 }
 
-function isNativeUploadField(value: unknown): value is UploadFieldNode {
+function isNativeUploadField(
+  value: SlotOptions[string],
+): value is UploadFieldNode {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized input.
   if (!value || typeof value !== "object") return false;
-  const node = value as Record<string, unknown>;
+  const node: Partial<Pick<SlotOptions, keyof UploadFieldNode>> = value;
   return (
     typeof node.type === "string" &&
     NATIVE_UPLOAD_FIELD_TYPES.has(node.type) &&
@@ -110,10 +114,12 @@ function isNativeUploadField(value: unknown): value is UploadFieldNode {
 }
 
 function readUploadConstraints(
-  options: Record<string, unknown>,
+  options: SlotOptions,
 ): UploadConstraints | undefined {
-  const declared = options.constraints as UploadConstraints | undefined;
-  if (!declared || typeof declared !== "object") return undefined;
+  const raw = options.constraints;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized input.
+  if (!raw || typeof raw !== "object") return undefined;
+  const declared: UploadConstraints = raw;
   const constraints: UploadConstraints = {};
   if (typeof declared.maxSize === "number")
     constraints.maxSize = declared.maxSize;
@@ -131,14 +137,13 @@ function resolveWritePermission(
 ): string | undefined {
   if (componentName !== "dms-table-view")
     return component.getAction("submit")?.permissionId;
-  const action = { new: "add", edit: "edit" };
-  const mode = Object.keys(action).find((key) => path.includes(key));
-  if (mode)
-    return (
-      component.getAction(action[mode as keyof typeof action])?.permissionId ??
-      "__native_upload_disabled__"
-    );
-  return "__native_upload_disabled__";
+  const match = Object.entries({ new: "add", edit: "edit" }).find(([mode]) =>
+    path.includes(mode),
+  );
+  return (
+    (match && component.getAction(match[1])?.permissionId) ??
+    "__native_upload_disabled__"
+  );
 }
 
 function hiddenComponentsFlag(
@@ -362,7 +367,7 @@ export class PageMetadata {
   public Dispose(): void {
     this.detached = true;
     this.releaseOwnComponentsGate();
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot before deletion.
     for (const info of [...this.extensionEntries.keys()]) {
       this.dropExtension(info);
     }
@@ -450,7 +455,7 @@ export class PageMetadata {
       ? []
       : (pageExtensions.get(this.pageInfo?.fullId ?? "") ?? []);
     const desired = new Set(infos);
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before dropExtension deletes entries from the same map.
+    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot before deletion.
     for (const info of [...this.extensionEntries.keys()]) {
       if (!desired.has(info)) {
         this.dropExtension(info);
@@ -696,7 +701,7 @@ export class PageMetadata {
   }
 
   private async bindUploadOptions(
-    value: unknown,
+    value: SlotOptions[string],
     componentName: string,
     componentId: string,
     path: string[],

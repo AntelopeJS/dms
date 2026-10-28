@@ -126,8 +126,7 @@ function buildExtensionComponents(
  */
 export const RegisterPageExtension = MakeClassDecorator(
   (cl, targetPageId: string) => {
-    const extensionName =
-      (cl as ControllerClass).name || "anonymous page extension";
+    const extensionName = cl.name || "anonymous page extension";
     if (!targetPageId.trim()) {
       throw new Error(
         `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.workspace.members".`,
@@ -165,7 +164,7 @@ function assertHasCategoryOrModule(
 
 const LIVE_PERIOD_PATTERN = /^[1-9]\d*[mhd]$/;
 
-function assertPositiveRate(id: string, name: string, rate: unknown): void {
+function assertPositiveRate(id: string, name: string, rate: number): void {
   if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) return;
   throw new Error(
     `Page "${id}" declares ${name} ${String(rate)}: it must be a positive number of seconds.`,

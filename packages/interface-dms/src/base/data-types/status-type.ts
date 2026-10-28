@@ -2,7 +2,6 @@ import type { ComponentInfoSerialized } from "../../component";
 import { z } from "zod";
 import { FormComponents } from "../form-schema";
 import { DataType, RegisterDataType } from "./core";
-// oxlint-disable-next-line import/no-cycle -- StatusType uses the registered built-in comparator classes when instances are constructed.
 import { DefaultDataCompareTypes } from "./compare-types";
 
 @RegisterDataType("status")
@@ -23,7 +22,7 @@ export class StatusType extends DataType {
     super(
       [DefaultDataCompareTypes.Is, DefaultDataCompareTypes.IsNot],
       DefaultDataCompareTypes.Is,
-      options as Record<string, unknown>,
+      options,
     );
   }
 

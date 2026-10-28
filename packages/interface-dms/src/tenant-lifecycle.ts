@@ -16,8 +16,10 @@ interface StatusCarrier {
  * because the refusal can come from another module's copy of the API
  * interface (a dms-saas seat limit raised from a hook, for instance).
  */
-function isDeliberateRefusal(error: unknown): boolean {
+function isDeliberateRefusal(error: Error["cause"]): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
   const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
   if (typeof getStatus !== "function") return false;
   const status = getStatus.call(error);
   return status >= HTTP_CLIENT_ERROR_MIN && status < HTTP_SERVER_ERROR_MIN;

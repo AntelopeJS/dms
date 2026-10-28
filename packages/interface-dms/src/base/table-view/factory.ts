@@ -192,6 +192,7 @@ export function TableView<T extends ControllerClass>(
       archiveMode: options.archiveMode,
       archivedCountLabel: options.archivedCountLabel,
       defaultSort: options.defaultSort,
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published serialized table options erase the module row generic; pinned-row rule values are not validated during serialization.
       pinnedRows: options.pinnedRows as RowActionRule | undefined,
       queryParamFilters: options.queryParamFilters,
       routeParamFilters: options.routeParamFilters,
@@ -293,7 +294,7 @@ export function TableView<T extends ControllerClass>(
         const texts = resolveFormPageTexts(kind, customPages);
 
         const FormController = class extends parentPage.target {};
-        const formMeta = new PageMetadata(FormController as ControllerClass);
+        const formMeta = new PageMetadata(FormController);
         formMeta.SetInfo(
           id,
           fullSlug,

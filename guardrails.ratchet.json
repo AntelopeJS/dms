@@ -1,26 +1,19 @@
 {
   "rules": {
     "antelopejs/no-comments": 74,
-    "anti-slop/no-chained-type-assertions": 1,
-    "anti-slop/no-conditional-empty-object-spread": 1,
-    "anti-slop/no-known-value-widening": 29,
-    "anti-slop/no-object-parameters": 1,
-    "anti-slop/no-runtime-typeof": 102,
-    "anti-slop/no-shape-in-symbol-names": 63,
-    "anti-slop/no-unknown-parameters": 79,
-    "anti-slop/no-unknown-returns": 21,
-    "anti-slop/no-unsafe-dictionary-type": 133,
-    "anti-slop/require-safety-comment-for-type-assertion": 262,
+    "anti-slop/no-runtime-typeof": 11,
+    "anti-slop/no-unsafe-dictionary-type": 11,
+    "anti-slop/require-safety-comment-for-type-assertion": 11,
     "eslint/max-lines-per-function": 1
   },
   "oversizeFiles": {
     "packages/dms/skills/dms-project/scripts/dms-dev.sh": 21056,
-    "packages/interface-dms/src/base/data-types/default-types.ts": 46358,
-    "packages/interface-dms/src/base/form-schema.ts": 24660,
-    "packages/interface-dms/src/base/table-view/internal/factory-helpers.ts": 22992,
+    "packages/interface-dms/src/base/data-types/default-types.ts": 46322,
+    "packages/interface-dms/src/base/form-schema.ts": 24626,
+    "packages/interface-dms/src/base/table-view/internal/factory-helpers.ts": 22983,
     "packages/interface-dms/src/base/table-view/options.ts": 47006,
-    "packages/interface-dms/src/component.ts": 23293,
-    "packages/interface-dms/src/page/controllers.ts": 20667,
-    "packages/interface-dms/src/page/metadata.ts": 34286
+    "packages/interface-dms/src/component.ts": 23253,
+    "packages/interface-dms/src/page/controllers.ts": 20639,
+    "packages/interface-dms/src/page/metadata.ts": 34253
   }
 }

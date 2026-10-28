@@ -33,7 +33,9 @@ export interface DataCompareMode {
     context: RequestContext,
     proxy: ValueProxy<unknown>,
     key: string,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published comparator extension point accepts values interpreted by each registered mode.
     value: unknown,
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean>;
 }
@@ -42,6 +44,7 @@ export abstract class DataType {
   constructor(
     public readonly compareModes: Class<DataCompareMode>[] = [],
     public readonly defaultCompareMode?: Class<DataCompareMode>,
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published data-type options are interpreted by application-defined subclasses.
     public readonly options?: Record<string, unknown>,
   ) {}
 
@@ -52,6 +55,7 @@ export abstract class DataType {
     key: string,
     value: string,
     mode: string,
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
     const compareMode = dataCompareModes[mode];
@@ -125,6 +129,7 @@ export abstract class DataType {
    * @param descriptor Property descriptor
    */
   public decorateField?(
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published decorator hook receives arbitrary application prototypes; narrowing changes subclass contracts.
     target: unknown,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
@@ -169,6 +174,7 @@ export const RegisterDataCompareMode: (
  * @param options - The options for the data type
  * @returns The data type instance
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published factory forwards options to the registered application class, which owns their interpretation.
 export function CreateDataType(id: string, options?: unknown) {
   const cls = dataTypes[id];
   assert(cls, `Unknown type ${id}`);
@@ -198,14 +204,14 @@ export function serializeType(
     if (id) {
       const compareModes = instance.compareModes
         .map((modeClass) => dataCompareModesMetadata.get(modeClass)?.id)
-        .filter(Boolean) as string[];
+        .filter((modeId): modeId is string => Boolean(modeId));
 
       const defaultCompareMode = instance.defaultCompareMode
         ? dataCompareModesMetadata.get(instance.defaultCompareMode)?.id
         : undefined;
 
       const inputComponents = instance.filterComponents();
-      const filteredInputComponents: Record<string, FilterComponent> = {
+      const filteredInputComponents: DataTypeSerialized["filterComponents"] = {
         ...inputComponents,
       };
 

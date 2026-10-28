@@ -38,6 +38,7 @@ export function getInviteExtension(
 export function logInviteExtensionFailure(
   key: string,
   action: string,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published logging seam forwards arbitrary contributor exceptions to Logging.Error without imposing an error representation.
   error: unknown,
 ): void {
   Logging.Error(`[dms] invite extension "${key}" failed to ${action}:`, error);

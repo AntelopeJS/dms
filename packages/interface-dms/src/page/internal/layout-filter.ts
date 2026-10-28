@@ -67,6 +67,7 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
   recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic helper trusts layout options to carry optional header actions; validating or constraining T would change its current contract.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
   const { record: _record, headerActions: buttons = [], ...frame } = options;
@@ -95,6 +96,7 @@ export async function filterLayoutHeaderActions<T>(
     servedOptions.headerActionsParams = context.params ?? {};
   }
   if (declaresRecord) servedOptions.recordStatus = recordStatus;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Filtering rebuilds layout options with transport-only fields; the public generic return promises T although arbitrary T is not runtime-validated.
   return { ...layout, options: servedOptions as T };
 }
 
@@ -114,7 +116,7 @@ function componentHeaderButtons(
   componentId: string,
   component: ComponentInfoSerialized,
 ): PageHeaderButtonSerialized[] {
-  const options = (component.options ?? {}) as HeaderPlacingOptions;
+  const options: HeaderPlacingOptions = component.options ?? {};
   const buttons: PageHeaderButtonSerialized[] = (options.customButtons ?? [])
     .filter((button) => button.placement === HEADER_PLACEMENT)
     .map(
@@ -126,6 +128,7 @@ function componentHeaderButtons(
       }),
     );
   const add = options.rowActions?.add;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The declared add-action union uses a boolean or button options; only the object variant can declare header placement.
   if (typeof add === "object" && add.placement === HEADER_PLACEMENT) {
     if (add.isEnabled === false) return buttons;
     buttons.push({
@@ -174,11 +177,12 @@ export function withComponentHeaderButtons<T>(
     treeHeaderButtons(id, component),
   );
   if (!layout || placed.length === 0) return layout;
-  const options = (layout.options ?? {}) as {
+  const options: {
     headerActions?: PageHeaderButtonSerialized[];
-  };
+  } = layout.options ?? {};
   return {
     ...layout,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic return retains T after adding header actions, even though arbitrary layout T is not validated at this augmentation boundary.
     options: {
       ...options,
       headerActions: [...(options.headerActions ?? []), ...placed],

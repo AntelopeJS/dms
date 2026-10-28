@@ -65,6 +65,7 @@ export function combineNavBadgeCounts(
   values: Array<number | NavBadgeCount>,
 ): NavBadgeCount {
   const counts = values.map((value) =>
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public count union uses a number for neutral counts and an object for counts carrying tone.
     typeof value === "number" ? { count: value } : value,
   );
   const nonZero = counts.filter(({ count }) => count > 0);

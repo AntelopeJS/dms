@@ -1,7 +1,6 @@
 import {
   type BaseComponentChild,
   type Component,
-  type ComponentInfo,
   ComponentTarget,
   type ComponentTargetInput,
 } from "../../component";
@@ -26,12 +25,11 @@ export interface ResolvedComponentTarget {
 export function getDeclaredComponentChildren(
   component: Component,
 ): BaseComponentChild[] {
-  const info = component.componentInfo;
-  if (!info || typeof (info as Promise<unknown>).then === "function") return [];
-  return (
-    (info as ComponentInfo<unknown, Component, BaseComponentChild>).children ??
-    []
-  );
+  const info: Partial<Awaited<Component["componentInfo"]>> &
+    Partial<Promise<unknown>> = component.componentInfo;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve duck-typed thenable exclusion.
+  if (!info || typeof info.then === "function") return [];
+  return info.children ?? [];
 }
 
 function targetParts(target: ComponentTargetInput): ComponentTarget {

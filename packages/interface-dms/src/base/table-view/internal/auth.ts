@@ -63,12 +63,14 @@ function isGateBypassableAction(
 
 /** @internal */
 export async function authorizeAction(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published authorization helper accepts a dispatcher-bound controller receiver without a class validation step.
   thisObj: unknown,
   actionId: string,
   user: User,
   tenantId: string,
 ): Promise<Set<string> | undefined> {
   const meta = GetMetadata(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published unknown receiver does not prove its constructor is a ControllerClass; route dispatch owns that unchecked binding.
     (thisObj as { constructor: ControllerClass }).constructor,
     TableViewMeta,
   );
@@ -115,14 +117,14 @@ export function withActionCheck<T extends DataControllerCallback>(
   return {
     method: baseRoute.method,
     args: [...baseRoute.args, AuthUser()],
-    func: async function (this: unknown, ...allArgs: unknown[]) {
-      const user = allArgs.pop() as User;
-      const ctx = allArgs[0] as RequestContext;
+    func: async function (
+      this: ThisParameterType<DataControllerCallback["func"]>,
+      ...allArgs: Parameters<DataControllerCallback["func"]>
+    ) {
+      const user: User = allArgs.pop();
+      const ctx: RequestContext = allArgs[0];
       await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
-      return (baseRoute.func as (...a: unknown[]) => unknown).apply(
-        this,
-        allArgs,
-      );
+      return baseRoute.func.apply(this, allArgs);
     },
   };
 }

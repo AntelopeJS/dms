@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-chained-type-assertions -- A direct cast compiles; keep the chain through unknown unchanged so this link stays comment-only. */
 import type { RequestContext } from "@antelopejs/interface-api";
 import type {
   ValueProxy,
@@ -10,7 +9,6 @@ import {
 } from "../../utils/internal/value-parser";
 import { isNumber } from "../../utils/internal/type-check";
 import { whenValueSet } from "./internal/compare-types";
-// oxlint-disable-next-line import/no-cycle -- Built-in comparator decorators register through the shared core registry before column serialization.
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
 
 export namespace DefaultDataCompareTypes {
@@ -21,16 +19,16 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
       assertPrimitiveValue(parsedValue);
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.eq(parsedValue.getTime());
+        return proxy.eq(parsedValue.getTime());
       }
-      return dbVal.eq(parsedValue);
+      return proxy.eq(parsedValue);
     }
   }
 
@@ -41,16 +39,16 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
       assertPrimitiveValue(parsedValue);
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return dbVal.ne(parsedValue.getTime());
+        return proxy.ne(parsedValue.getTime());
       }
-      return dbVal.ne(parsedValue);
+      return proxy.ne(parsedValue);
     }
   }
 
@@ -61,21 +59,22 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
           `Value must be a number or Date for greater than comparison. Got: ${typeof parsedValue}`,
         );
       }
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return whenValueSet(proxy, dbVal.gt(parsedValue.getTime()));
+        return whenValueSet(proxy, proxy.gt(parsedValue.getTime()));
       }
-      return whenValueSet(proxy, dbVal.gt(parsedValue));
+      return whenValueSet(proxy, proxy.gt(parsedValue));
     }
   }
 
@@ -86,21 +85,22 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
           `Value must be a number or Date for less than comparison. Got: ${typeof parsedValue}`,
         );
       }
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return whenValueSet(proxy, dbVal.lt(parsedValue.getTime()));
+        return whenValueSet(proxy, proxy.lt(parsedValue.getTime()));
       }
-      return whenValueSet(proxy, dbVal.lt(parsedValue));
+      return whenValueSet(proxy, proxy.lt(parsedValue));
     }
   }
 
@@ -111,21 +111,22 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
           `Value must be a number or Date for greater than or equal to comparison. Got: ${typeof parsedValue}`,
         );
       }
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return whenValueSet(proxy, dbVal.ge(parsedValue.getTime()));
+        return whenValueSet(proxy, proxy.ge(parsedValue.getTime()));
       }
-      return whenValueSet(proxy, dbVal.ge(parsedValue));
+      return whenValueSet(proxy, proxy.ge(parsedValue));
     }
   }
 
@@ -136,21 +137,22 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
           `Value must be a number or Date for less than or equal to comparison. Got: ${typeof parsedValue}`,
         );
       }
 
-      const dbVal = proxy as unknown as ValueProxy<number>;
       if (parsedValue instanceof Date) {
-        return whenValueSet(proxy, dbVal.le(parsedValue.getTime()));
+        return whenValueSet(proxy, proxy.le(parsedValue.getTime()));
       }
-      return whenValueSet(proxy, dbVal.le(parsedValue));
+      return whenValueSet(proxy, proxy.le(parsedValue));
     }
   }
 
@@ -161,10 +163,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       _value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const dbVal = proxy as unknown as ValueProxy<string>;
-      return dbVal.default(null).eq(null);
+      return proxy.default(null).eq(null);
     }
   }
 
@@ -175,10 +177,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       _value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const dbVal = proxy as unknown as ValueProxy<string>;
-      return dbVal.default(null).ne(null);
+      return proxy.default(null).ne(null);
     }
   }
 
@@ -189,12 +191,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const parsedArray = value.split(",").map((v) => parseValue(v.trim())) as [
-        number | Date,
-        number | Date,
-      ];
+      const parsedArray = value.split(",").map((v) => parseValue(v.trim()));
 
       if (
         parsedArray.length !== 2 ||
@@ -207,17 +207,14 @@ export namespace DefaultDataCompareTypes {
         );
       }
       const [min, max] = parsedArray;
-      const dbVal = proxy as unknown as ValueProxy<number>;
 
-      return whenValueSet(
-        proxy,
-        dbVal.ge(min as number).and(dbVal.le(max as number)),
-      );
+      return whenValueSet(proxy, proxy.ge(min).and(proxy.le(max)));
     }
   }
 
   function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
-    return (proxy as unknown as ValueProxy<unknown[]>).default([]);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish an array field; inclusion modes delegate that assumption to the database.
+    return (proxy as ValueProxy<unknown[]>).default([]);
   }
 
   @RegisterDataCompareMode("include")
@@ -227,6 +224,7 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
@@ -243,6 +241,7 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
       const parsedValue = parseValue(value);
@@ -265,9 +264,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const dbVal = proxy as ValueProxy<string>;
+      const dbVal = proxy;
       const escapedValue = escapeRegex(value);
       return dbVal.match(`(?i)${escapedValue}`);
     }
@@ -280,9 +280,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      const dbVal = proxy as ValueProxy<string>;
+      const dbVal = proxy;
       const escapedValue = escapeRegex(value);
       return dbVal.match(`(?i)${escapedValue}`).not();
     }
@@ -295,8 +296,10 @@ export namespace DefaultDataCompareTypes {
       proxy: ValueProxy<unknown>,
       _key: string,
       value: string,
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish string elements; the existing mode delegates array matching to the database.
       const dbVal = proxy as ValueProxy<string[]>;
       const escapedValue = escapeRegex(value);
 

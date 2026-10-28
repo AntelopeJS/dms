@@ -49,8 +49,10 @@ export interface PageSetupContext {
   on(
     component: string,
     event: string,
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The public event bus carries contributor-defined event data; narrowing it would break handlers for arbitrary event payloads.
     handler: (data: unknown) => void,
   ): () => void;
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The public event bus forwards arbitrary contributor payloads without imposing a shared event schema.
   emit(component: string, event: string, data?: unknown): void;
 }
 

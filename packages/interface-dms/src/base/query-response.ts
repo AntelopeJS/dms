@@ -189,6 +189,7 @@ export function kpiCardData(
  */
 function groupTitle(key: number | string): string {
   if (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Group keys are already a number-or-string domain; only numeric epoch buckets get date formatting.
     typeof key !== "number" ||
     !Number.isInteger(key) ||
     key < BUCKET_EPOCH_FIRST ||

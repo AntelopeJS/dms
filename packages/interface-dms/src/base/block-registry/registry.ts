@@ -50,10 +50,11 @@ function describe(definition: BlockTypeDefinition): BlockTypeDescriptor {
  * shared instance unwritable for every other consumer of the schema.
  */
 function deepFreeze<T>(value: T): T {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Freezing arbitrary defaults must preserve primitive values without schema validation or coercion.
   if (typeof value !== "object" || value === null || Object.isFrozen(value)) {
     return value;
   }
-  for (const entry of Object.values(value as Record<string, unknown>)) {
+  for (const entry of Object.values(value)) {
     deepFreeze(entry);
   }
   return Object.freeze(value);
@@ -126,6 +127,7 @@ export type BlockValidation = BlockValidationOk | BlockValidationFailed;
  */
 export function ValidateBlockOptions(
   type: string,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published parser boundary receives raw options and delegates validation to the registered block schema.
   options: unknown,
 ): BlockValidation {
   if (!DEFINITIONS.has(type)) {

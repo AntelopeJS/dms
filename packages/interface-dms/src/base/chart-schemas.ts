@@ -85,7 +85,7 @@ const mixedSeriesDefSchema = z.object({
   color: narrowString<ChartColorValue>().optional(),
 }) satisfies BlockOptionsFor<MixedChartSeriesDef>;
 
-const baseChartShape = {
+const baseChartOptions = {
   title: ui(z.string().optional(), { label: "Title", group: "content" }),
   description: ui(z.string().optional(), {
     label: "Description",
@@ -126,6 +126,7 @@ const baseChartShape = {
     label: "Data source",
     group: "data",
     widget: "dataSource",
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published BlockOptionUi property controls source compatibility and cannot be renamed.
     responseShape: "series",
     periodOption: "periodScope",
   }),
@@ -151,8 +152,8 @@ const baseChartShape = {
   }),
 };
 
-const xyChartShape = {
-  ...baseChartShape,
+const xyChartOptions = {
+  ...baseChartOptions,
   showGrid: ui(z.boolean().default(true), {
     label: "Show grid",
     group: "appearance",
@@ -202,8 +203,8 @@ const xyChartShape = {
   }),
 };
 
-const circularChartShape = {
-  ...baseChartShape,
+const circularChartOptions = {
+  ...baseChartOptions,
   staticDataset: ui(z.array(donutRecordSchema).optional(), {
     label: "Static values",
     group: "advanced",
@@ -237,7 +238,7 @@ const roundedCornersOption = () =>
 
 /** The options `ChartLine` accepts; the factory supplies `type`. */
 export const ChartLineSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   strokeWidth: ui(z.number().optional(), {
     label: "Stroke width",
     group: "appearance",
@@ -248,20 +249,20 @@ export const ChartLineSchema = z.object({
 
 /** The options `ChartArea` accepts; the factory supplies `type`. */
 export const ChartAreaSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   fillOpacity: fillOpacityOption(),
   stacked: stackedOption(),
 }) satisfies BlockOptionsFor<Omit<AreaChartProps, "type">>;
 
 /** The options `ChartRangeArea` accepts; the factory supplies `type`. */
 export const ChartRangeAreaSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   fillOpacity: fillOpacityOption(),
 }) satisfies BlockOptionsFor<Omit<RangeAreaChartProps, "type">>;
 
 /** The options `ChartBar` accepts; the factory supplies `type`. */
 export const ChartBarSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   stacked: stackedOption(),
   barWidth: ui(z.number().optional(), {
     label: "Bar width",
@@ -278,7 +279,7 @@ export const ChartBarSchema = z.object({
 
 /** The options `ChartColumn` accepts; the factory supplies `type`. */
 export const ChartColumnSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   stacked: stackedOption(),
   columnWidth: ui(z.number().optional(), {
     label: "Column width",
@@ -290,7 +291,7 @@ export const ChartColumnSchema = z.object({
 
 /** The options `ChartScatter` accepts; the factory supplies `type`. */
 export const ChartScatterSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   pointSize: ui(z.number().optional(), {
     label: "Point size",
     group: "appearance",
@@ -306,7 +307,7 @@ export const ChartScatterSchema = z.object({
 
 /** The options `ChartMixed` accepts; the factory supplies `type`. */
 export const ChartMixedSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   seriesDefs: ui(z.array(mixedSeriesDefSchema).optional(), {
     label: "Series types",
     group: "data",
@@ -316,18 +317,18 @@ export const ChartMixedSchema = z.object({
 
 /** The options `ChartRadar` accepts; the factory supplies `type`. */
 export const ChartRadarSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
   fillOpacity: fillOpacityOption(),
 }) satisfies BlockOptionsFor<Omit<RadarChartProps, "type">>;
 
 /** The options `ChartCandlestick` accepts; the factory supplies `type`. */
 export const ChartCandlestickSchema = z.object({
-  ...xyChartShape,
+  ...xyChartOptions,
 }) satisfies BlockOptionsFor<Omit<CandlestickChartProps, "type">>;
 
 /** The options `ChartDonut` accepts; the factory supplies `type`. */
 export const ChartDonutSchema = z.object({
-  ...circularChartShape,
+  ...circularChartOptions,
   centralLabel: ui(z.string().optional(), {
     label: "Central label",
     group: "content",
@@ -345,12 +346,12 @@ export const ChartDonutSchema = z.object({
 
 /** The options `ChartPie` accepts; the factory supplies `type`. */
 export const ChartPieSchema = z.object({
-  ...circularChartShape,
+  ...circularChartOptions,
 }) satisfies BlockOptionsFor<Omit<PieChartProps, "type">>;
 
 /** The options `ChartRadialBar` accepts; the factory supplies `type`. */
 export const ChartRadialBarSchema = z.object({
-  ...circularChartShape,
+  ...circularChartOptions,
   hollowSize: ui(z.string().optional(), {
     label: "Hollow size",
     group: "appearance",
@@ -364,7 +365,7 @@ export const ChartRadialBarSchema = z.object({
 
 /** The options `ChartHeatmap` accepts; the factory supplies `type`. */
 export const ChartHeatmapSchema = z.object({
-  ...baseChartShape,
+  ...baseChartOptions,
   staticDataset: ui(z.array(chartSeriesSchema).optional(), {
     label: "Static series",
     group: "advanced",

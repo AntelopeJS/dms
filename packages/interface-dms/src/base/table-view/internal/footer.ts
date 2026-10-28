@@ -27,13 +27,14 @@ const LEGEND_TYPE_ID = "select";
 export function ruleFields<T extends Record<string, unknown>>(
   rule: RowActionRule<T>,
 ): string[] {
-  const record = rule as Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published generic rule union has field and logical variants; this traversal reads their operator keys without imposing a row-value schema.
+  const record: Record<string, unknown> = rule;
   if (FIELD_KEY in record) return [String(record[FIELD_KEY])];
   return LOGICAL_OPERATOR_KEYS.flatMap((key) => {
     const nested = record[key];
     if (!nested) return [];
     const rules = Array.isArray(nested) ? nested : [nested];
-    return rules.flatMap((entry) => ruleFields(entry as RowActionRule));
+    return rules.flatMap((entry) => ruleFields(entry));
   });
 }
 
@@ -87,7 +88,7 @@ export function serializeFooter<T extends Record<string, unknown>>(
     ...texts,
     summary: summary.map(({ where: _where, ...entry }, index) => ({
       ...entry,
-      id: ids[index]!,
+      id: ids[index],
     })),
   };
 }

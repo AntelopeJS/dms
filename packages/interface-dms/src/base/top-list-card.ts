@@ -128,6 +128,7 @@ export function TopListCard(
 ): ComponentBuilder<TopListCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
       .options({ ...options } as TopListCardProps)
       .meta({
         name: options?.title || "Top list",
@@ -165,6 +166,7 @@ export const TopListCardSchema = z.object({
     label: "Data source",
     group: "data",
     widget: "dataSource",
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published BlockOptionUi property controls source compatibility and cannot be renamed.
     responseShape: "items",
     periodOption: "periodScope",
   }),

@@ -63,6 +63,7 @@ export interface InviteFieldContribution {
   order: number;
   editable: boolean;
   group: FieldGroupSerialized;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This published contribution contract carries opaque schema definitions from each extension; tightening it changes wildcard declarations.
   properties: Record<string, unknown>;
   requiredProperties: string[];
   watchActions: WatchAction[];

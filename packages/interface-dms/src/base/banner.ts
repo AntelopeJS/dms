@@ -137,6 +137,7 @@ export function Banner(options?: BannerProps): ComponentBuilder<BannerProps> {
   const builder = new ComponentBuilder<BannerProps>(BANNER_COMPONENT_NAME)
     .options({ ...BANNER_DEFAULTS, ...options })
     .meta({
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Metadata uses only string titles; preserve the published builder's fallback for malformed runtime input.
       name: (typeof options?.title === "string" && options.title) || "Banner",
       icon: options?.icon || BANNER_ICON,
     });
