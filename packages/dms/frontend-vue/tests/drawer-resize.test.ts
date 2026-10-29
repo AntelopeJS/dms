@@ -51,6 +51,20 @@ let cookies: Map<string, Ref<unknown>>;
 
 let renderedRect = { width: 600, height: 320 };
 
+function domRect(width: number, height: number): DOMRect {
+  return {
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: width,
+    bottom: height,
+    width,
+    height,
+    toJSON: () => ({ width, height }),
+  };
+}
+
 const rendered = reactive<{
   ui?: Record<string, string>;
   handle?: boolean;
@@ -143,8 +157,7 @@ beforeEach(() => {
   cookies = new Map();
   renderedRect = { width: 600, height: 320 };
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This geometry double intentionally returns only width and height, the fields resizing reads; it is not a complete DOMRect.
-    () => ({ ...renderedRect }) as DOMRect,
+    () => domRect(renderedRect.width, renderedRect.height),
   );
   window.innerWidth = 1600;
   window.innerHeight = 1000;

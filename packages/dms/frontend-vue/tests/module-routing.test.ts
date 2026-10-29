@@ -10,6 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 import { MODULE_URL_PREFIX } from "../layers/dms-core/app/types/page";
 
 interface TreeNode {
@@ -22,15 +23,16 @@ interface TreeNode {
   childrenOrders: string[];
 }
 
-interface GuardedRoute {
-  path: string;
-  fullPath: string;
+function routeAt(fullPath: string): DmsRoute {
+  return {
+    path: fullPath.replace(/[?#].*$/, ""),
+    fullPath,
+    query: {},
+    params: {},
+    meta: {},
+    matched: [],
+  };
 }
-
-type Middleware = (
-  to: GuardedRoute,
-  from?: GuardedRoute,
-) => Promise<string | false | void>;
 
 const navigateDms = vi.fn();
 
@@ -85,18 +87,16 @@ function stubSiteLayout(moduleRoot: TreeNode, landingPage?: string) {
 }
 
 async function enter(fullPath: string, drawnThere = false) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The identity defineDmsMiddleware stub exposes the handler with only the path fields this middleware reads, not complete router records.
-  const middleware = (
-    await import("../layers/dms-layout/app/middleware/module-routing.global")
-  ).default as Middleware;
-  const path = fullPath.replace(/[?#].*$/, "");
-  const to = { path, fullPath };
-  return middleware(to, drawnThere ? to : { path: "/home", fullPath: "/home" });
+  const { default: middleware } = await import(
+    "../layers/dms-layout/app/middleware/module-routing.global"
+  );
+  const to = routeAt(fullPath);
+  return middleware(to, drawnThere ? to : routeAt("/home"));
 }
 
 beforeEach(() => {
   vi.resetModules();
-  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
+  vi.stubGlobal("defineDmsMiddleware", (handler: DmsMiddleware) => handler);
   vi.stubGlobal("MODULE_URL_PREFIX", MODULE_URL_PREFIX);
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useHomepage", () => "/dashboard");

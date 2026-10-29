@@ -16,7 +16,11 @@ import {
 } from "vue";
 import { CalendarDate } from "@internationalized/date";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
+import {
+  isFunction,
+  isObject,
+  isString,
+} from "../layers/dms-core/app/utils/type-check";
 import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
 
 let app: App | undefined;
@@ -46,10 +50,12 @@ const Popover = defineComponent({
 const Calendar = defineComponent({
   inheritAttrs: false,
   setup(_, { attrs }) {
-    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unknown-parameters -- Vue attrs do not type event listeners. Inference and the DatePicker prop owner cannot describe this raw callback forwarding boundary, which must keep intermediate picker values untouched.
-    pick = (value) =>
-      (attrs["onUpdate:modelValue"] as (value: unknown) => void)(value);
-    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unknown-parameters
+    pick = (value) => {
+      const listener = attrs["onUpdate:modelValue"];
+      if (!isFunction(listener))
+        throw new Error("The picker received no update listener");
+      listener(value);
+    };
     return () => h("div");
   },
 });

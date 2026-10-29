@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
@@ -15,8 +16,7 @@ function mountTargets(rowIdKey?: string) {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These page-target tests never call api; a Vitest callable cannot implement ofetch's generic callable and raw/create members required by the owner.
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),
