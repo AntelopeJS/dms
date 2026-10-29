@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"Sales\"",
+  "baseUrl": "http://127.0.0.1:36163"
+}

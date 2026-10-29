@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "body": {
+    "requires_tenant_assignment": true,
+    "tenant_assignment_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY0MWY0OGM1LTljZmYtNGVlNC05MDk1LTcyMjljMjFmYWJhZCIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI3MDA2OCwiZXhwIjoxNzkzMjcwOTY4fQ.iM6z8DwC9R3JFviAghaL-0OpthEZmkAQ57A3fzo1bW8",
+    "user": {
+      "_id": "f41f48c5-9cff-4ee4-9095-7229c21fabad",
+      "createdAt": "2026-10-29T10:34:22.031Z",
+      "updatedAt": "2026-10-29T10:34:22.073Z",
+      "name": "Hank",
+      "email": "hank+20261029t103313-6d541f-remove-member-shows-impact@verify.local",
+      "isValidated": true,
+      "owner": false,
+      "language": "en",
+      "_instance": null,
+      "lastActiveAt": "2026-10-29T10:34:22.073Z"
+    }
+  },
+  "error": null
+}

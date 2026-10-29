@@ -1,0 +1,94 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System" [expanded]
+      - region "System":
+        - list:
+          - listitem:
+            - button "Notifications"
+          - listitem:
+            - link "Realtime":
+              - /url: /realtime
+          - listitem:
+            - link "Hooks & invites":
+              - /url: /hooks
+          - listitem:
+            - link "Permissions":
+              - /url: /permissions
+          - listitem:
+            - link "Tenancy":
+              - /url: /tenancy
+          - listitem:
+            - link "Emails":
+              - /url: /emails
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t103313-6d541f@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Tenancy":
+          - /url: /tenancy
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "Tenancy" [level=1]
+- paragraph: "Demonstrates: RegisterTenantAccessGate, CheckTenantAccess and the tenant guards. Suspend the workspace from the header, then browse: most pages refuse you until you restore it here."
+- button "Suspend / restore the workspace"
+- text: Tenant access, for you
+- term: Workspace
+- definition: default
+- term: CheckTenantAccess
+- definition: Allowed
+- text: What takes part
+- term: RegisterTenantAccessGate
+- definition: playground-gate-demo Refuses a suspended workspace with a code of its own.
+- term: "AuthTenantOwner({ bypassTenantAccessGate })"
+- definition: POST …/gate-demo/toggle Only the owner may press it, and it still answers while suspended.
+- term: AuthTenantMember + CheckTenantAccess
+- definition: GET …/gate-demo/status The block above, which reads the gate's answer without failing on it.
+- term: MenuOptions.bypassTenantAccessGate
+- definition: This page, and Gate Bypass Recovery surfaces stay reachable while the gate refuses.
+- term: Recovery table views
+- definition:
+  - link "Open Gate Bypass":
+    - /url: /table-view/table-view-gate-bypass
+  - text: One table bypasses the gate, the other answers an explicit error.
+- term: Component layout banner
+- definition: isTenantAccessDenied A banner shows on every page while the workspace is suspended.
+- region "Notifications (F8)":
+  - list

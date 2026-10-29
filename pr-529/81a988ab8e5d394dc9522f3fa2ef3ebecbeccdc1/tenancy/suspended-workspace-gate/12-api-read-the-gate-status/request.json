@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:38243/api/playground/gate-demo/status",
+  "authenticated": true,
+  "body": null
+}

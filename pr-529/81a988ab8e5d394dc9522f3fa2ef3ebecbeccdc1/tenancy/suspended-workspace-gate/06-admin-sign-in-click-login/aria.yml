@@ -1,0 +1,206 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t103313-6d541f@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- paragraph: Demo pages
+- paragraph: "140"
+- paragraph: Plus 24 built-in
+- paragraph: Generated record pages
+- paragraph: "59"
+- paragraph: View, new and edit
+- paragraph: Block types
+- paragraph: "41"
+- paragraph: From the backend
+- paragraph: Custom Vue components
+- paragraph: "51"
+- paragraph: In the playground
+- text: Looking for one feature? The feature index lists every DMS feature with the API that turns it on and the page that shows it. Ctrl K finds them too.
+- link "Open the feature index":
+  - /url: /examples/features
+- heading "What you can explore" [level=2]
+- paragraph: Each area of the sidebar shows one part of the DMS. A card opens a representative demo.
+- 'link "Design system The themed Nuxt UI primitives and the DMS foundations: the Vue components every screen is made of. Primitives · Foundations"':
+  - /url: /foundations/foundations-labels
+  - heading "Design system" [level=3]
+  - paragraph: "The themed Nuxt UI primitives and the DMS foundations: the Vue components every screen is made of."
+  - text: Primitives · Foundations
+- 'link "Blocks The display blocks a page places from the backend: stat groups, key-value lists, feeds, meters, banners and more. Stats · Lists · Feedback · Live"':
+  - /url: /blocks/blocks-stat-group
+  - heading "Blocks" [level=3]
+  - paragraph: "The display blocks a page places from the backend: stat groups, key-value lists, feeds, meters, banners and more."
+  - text: Stats · Lists · Feedback · Live
+- link "Layout Grid and stack layouts, tabs, drawers and modals, a flow canvas and pages that combine several components. Grid · Stack · Tabs · Drawer & Modal":
+  - /url: /grid/layout-grid-simple
+  - heading "Layout" [level=3]
+  - paragraph: Grid and stack layouts, tabs, drawers and modals, a flow canvas and pages that combine several components.
+  - text: Grid · Stack · Tabs · Drawer & Modal
+- link "Table view Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions. Displays · Editing · Relations":
+  - /url: /table-view/table-view-users
+  - heading "Table view" [level=3]
+  - paragraph: Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions.
+  - text: Displays · Editing · Relations
+- link "Forms Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type. Field types · Layout · Saving":
+  - /url: /form/form-simple
+  - heading "Forms" [level=3]
+  - paragraph: Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type.
+  - text: Field types · Layout · Saving
+- link "Charts A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them. Cards · Charts · Period":
+  - /url: /charts/chart-dashboard
+  - heading "Charts" [level=3]
+  - paragraph: A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.
+  - text: Cards · Charts · Period
+- heading "The dashboard around them" [level=2]
+- paragraph: What a page is made of besides its blocks, the dashboard around it and the backend services, then modules and settings.
+- link "Pages & navigation Header buttons that follow the URL, dynamic menu entries, page validation, access options and page extensions. Page header · Dynamic navigation · Page access":
+  - /url: /page-header/page-header-actions
+  - heading "Pages & navigation" [level=3]
+  - paragraph: Header buttons that follow the URL, dynamic menu entries, page validation, access options and page extensions.
+  - text: Page header · Dynamic navigation · Page access
+- link "Dashboard chrome Layout banners under the dashboard header, and quick actions run from the command palette. Layout banners · Quick actions":
+  - /url: /layout-banners
+  - heading "Dashboard chrome" [level=3]
+  - paragraph: Layout banners under the dashboard header, and quick actions run from the command palette.
+  - text: Layout banners · Quick actions
+- 'link "Frontend modules What a module adds from its own Vue code: header actions, widgets, the side panel, links and custom components. Dashboard chrome · Custom components"':
+  - /url: /custom-components/custom-slots
+  - heading "Frontend modules" [level=3]
+  - paragraph: "What a module adds from its own Vue code: header actions, widgets, the side panel, links and custom components."
+  - text: Dashboard chrome · Custom components
+- link "System Notifications, realtime, hooks and invites, permissions, tenancy and emails, each with a button to try it. Notifications · Realtime · Hooks · Permissions":
+  - /url: /notification/notification-test
+  - heading "System" [level=3]
+  - paragraph: Notifications, realtime, hooks and invites, permissions, tenancy and emails, each with a button to try it.
+  - text: Notifications · Realtime · Hooks · Permissions
+- link "Modules The module catalog and the pages a demo module and a plain module contribute. Demo module · Plain module":
+  - /url: /modules
+  - heading "Modules" [level=3]
+  - paragraph: The module catalog and the pages a demo module and a plain module contribute.
+  - text: Demo module · Plain module
+- link "Settings Profile, security, notifications, members, invitations and roles with Preview as role, plus the playground's own workspace page. Profile · Workspace · Roles":
+  - /url: /settings
+  - heading "Settings" [level=3]
+  - paragraph: Profile, security, notifications, members, invitations and roles with Preview as role, plus the playground's own workspace page.
+  - text: Profile · Workspace · Roles
+- heading "How to use it" [level=2]
+- paragraph: A few habits that get the most out of the playground.
+- text: 1. Look a feature up
+- paragraph: The feature index lists every DMS feature, the API that turns it on and the page that shows it.
+- text: 2. Browse the sidebar
+- paragraph: Each entry is a live demo of one feature, with sample data you can change freely.
+- text: 3. Open the source next to the page
+- paragraph: "Every page is a class under packages/dms/playground/src/<area>/: /table-view/table-view-users, for example, is table-view/users/page.ts."
+- text: 4. Jump anywhere with the command palette
+- paragraph: "Ctrl K (⌘K on macOS) opens the command palette: search pages, actions, settings and the features of the feature index."
+- text: 5. Switch theme and language
+- paragraph: Open the user menu at the bottom of the sidebar to change the theme or the dashboard language.
+- text: 6. See the dashboard as a role
+- paragraph: In Settings › Roles, Preview as role shows the pages and actions that role is allowed to see, without signing out.
+- text: 7. Sign in with your own account
+- paragraph: "Use your own account: its roles decide which pages and actions you see."
+- heading "How it's built" [level=2]
+- paragraph: "No page here was drawn by hand: the backend describes it, the DMS frontend renders it."
+- paragraph: A page is a class
+- paragraph: The whole Users demo, declared in TypeScript.
+- link "Open the page":
+  - /url: /table-view/table-view-users
+- paragraph: From class to screen
+- text: 1. The backend registers the class
+- paragraph: "@RegisterPage() files it under its category in the sidebar; its id is also its permission id."
+- text: 2. The DMS serves its layout
+- paragraph: Each static field becomes a block of the page layout, sent as JSON and filtered by the user's permissions.
+- text: 3. The frontend draws it
+- paragraph: Each block maps to a Vue component of a frontend layer. CustomComponent mounts your own, like the hero above.
+- paragraph: Where things live
+- paragraph: Paths from packages/dms.
+- link "Frontend layers":
+  - /url: https://dms.antelopejs.com/docs/building/frontend-layer
+- term: Page classes
+- definition: playground/src/<area>/
+- term: Sidebar sections
+- definition: playground/src/sections.ts
+- term: Custom components
+- definition: playground/frontend-vue/app/components/
+- term: DMS frontend layers
+- definition: frontend-vue/layers/
+- term: Block builders
+- definition: ../interface-dms/src/base/
+- term: Frontend layers guide
+- definition:
+  - link "dms.antelopejs.com":
+    - /url: https://dms.antelopejs.com/docs/building/frontend-layer
+- heading "Run it locally & contribute" [level=2]
+- paragraph: "The playground is the DMS repository's own test bed: run it, add a demo, send a pull request."
+- paragraph: Run it locally
+- paragraph: Clone, install, then start the backend and the frontend.
+- link "Quickstart":
+  - /url: https://dms.antelopejs.com/docs/getting-started/quickstart
+- text: "Add a demo: create a page class under playground/src/<area>/ and export it from that area's index.ts."
+- paragraph: Contribute
+- paragraph: Small, focused pull requests are the easiest to review.
+- term: Report a bug
+- definition:
+  - link "GitHub issues":
+    - /url: https://github.com/AntelopeJS/dms/issues
+- term: Propose a change
+- definition:
+  - link "Pull requests":
+    - /url: https://github.com/AntelopeJS/dms/pulls
+- term: Commit titles
+- definition:
+  - link "Conventional Commits":
+    - /url: https://www.conventionalcommits.org/
+- term: Checks
+- definition: pnpm lint · pnpm typecheck · pnpm test
+- term: Contributing guide
+- definition:
+  - link "CONTRIBUTING.md":
+    - /url: https://github.com/AntelopeJS/dms/blob/main/CONTRIBUTING.md
+- term: Talk to the team
+- definition:
+  - link "Discord":
+    - /url: https://discord.gg/kxzZMWqdFU
+- text: "Discuss larger changes in an issue first. Pull requests are squashed: the PR title becomes the commit on main."
+- region "Notifications (F8)":
+  - list

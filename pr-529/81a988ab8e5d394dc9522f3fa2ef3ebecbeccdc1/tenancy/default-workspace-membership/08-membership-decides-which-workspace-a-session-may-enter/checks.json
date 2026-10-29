@@ -1,0 +1,22 @@
+[
+  {
+    "name": "HTTP 403",
+    "pass": true,
+    "detail": "status 403: \"error.not_a_member\""
+  },
+  {
+    "name": "error",
+    "pass": true,
+    "detail": "expected \"error.not_a_member\", got \"error.not_a_member\""
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZkOWMzZDVkLTAzYjAtNGYyMS05MDI1LTQ4OTA2OTU4ZDZhNSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjY4N2ViZjVhLTRhODQtNDI2Ni1iOTE5LTQ3MTliMWRkYWM5YyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNzAwNzUsImV4cCI6MTc5MzI3MzY3"
+  },
+  {
+    "name": "new tokens for the default workspace",
+    "pass": true,
+    "detail": "token_type, access_token, expires_in, refresh_token"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "admin signs in and leaves /auth",
+    "pass": true,
+    "detail": "http://127.0.0.1:36163/examples/overview"
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"memberId\":\"default:f41f48c5-9cff-4ee4-9095-7229c21fabad\",\"name\":\"Hank\",\"email\":\"hank+20261029t103313-6d541f-remove-member-shows-impact@verify.local\",\"roles\":[\"Viewer e28cb2\"],\"isTenantOwner\":false,\"isLastOwner\":false,\"isSelf\":false}"
+  },
+  {
+    "name": "roles",
+    "pass": true,
+    "detail": "expected [\"Viewer e28cb2\"], got [\"Viewer e28cb2\"]"
+  },
+  {
+    "name": "last owner",
+    "pass": true,
+    "detail": "expected false, got false"
+  }
+]

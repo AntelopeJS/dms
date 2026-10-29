@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:df419328-b06d-4d5b-a6d1-32575d643265",
+        "userId": "df419328-b06d-4d5b-a6d1-32575d643265",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t103313-6d541f@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T10:34:14.058Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:34:14.014Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:f41f48c5-9cff-4ee4-9095-7229c21fabad",
+        "userId": "f41f48c5-9cff-4ee4-9095-7229c21fabad",
+        "name": "Hank",
+        "avatar": null,
+        "email": "hank+20261029t103313-6d541f-remove-member-shows-impact@verify.local",
+        "roleIds": [
+          {
+            "_id": "fa1252b1-fbe0-48fa-b19a-7e4a7665be6d",
+            "name": "Viewer e28cb2"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T10:34:22.073Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:34:22.042Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

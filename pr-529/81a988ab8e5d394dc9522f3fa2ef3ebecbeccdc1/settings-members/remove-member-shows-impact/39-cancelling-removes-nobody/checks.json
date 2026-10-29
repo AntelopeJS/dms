@@ -1,0 +1,12 @@
+[
+  {
+    "name": "cell \"/Hank/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:36163/settings/workspace/members"
+  },
+  {
+    "name": "still a member",
+    "pass": true,
+    "detail": "hank+20261029t103313-6d541f-remove-member-shows-impact@verify.local"
+  }
+]

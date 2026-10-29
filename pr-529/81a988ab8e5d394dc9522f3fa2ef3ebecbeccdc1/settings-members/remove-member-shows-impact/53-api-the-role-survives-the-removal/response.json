@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "fa1252b1-fbe0-48fa-b19a-7e4a7665be6d",
+        "name": "Viewer e28cb2",
+        "permissions": [
+          "settings",
+          "settings.workspace",
+          "settings.workspace.members",
+          "settings.workspace.members.table",
+          "settings.workspace.members.table.list"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

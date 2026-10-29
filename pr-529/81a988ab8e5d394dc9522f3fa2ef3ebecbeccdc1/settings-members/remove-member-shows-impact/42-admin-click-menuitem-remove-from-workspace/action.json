@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "menuitem \"Remove from workspace…\"",
+  "baseUrl": "http://127.0.0.1:36163"
+}

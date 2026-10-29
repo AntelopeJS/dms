@@ -1,0 +1,42 @@
+{
+  "doors": {
+    "none": "the diff adds a bin, a skill and checks; it removes no route, export, config key, env var or stored field",
+    "rows": [],
+    "falsePositives": [
+      {
+        "kind": "contract",
+        "location": "packages/dms/bin/dms-control.mjs",
+        "reason": "a new bin, an addition; nothing existing is removed or changed"
+      },
+      {
+        "kind": "contract",
+        "location": "packages/dms/package.json",
+        "reason": "adds the bin field and bin/ to files; no existing field changes"
+      },
+      {
+        "kind": "publish",
+        "location": "packages/dms/package.json",
+        "reason": "same package name, same registry; only bin/ is added to the published files"
+      },
+      {
+        "kind": "publish",
+        "location": ".github/workflows/release.yml",
+        "reason": "the validate step imports the same rule from checks/release-range.mjs; diffed against the old inline code, 0 disagreements on 500k random inputs"
+      },
+      {
+        "kind": "publish",
+        "location": "checks/release-range.mjs",
+        "reason": "the rule moved verbatim out of release.yml"
+      }
+    ]
+  },
+  "docs": [],
+  "notVerified": [
+    "Exhaustive TLA+ configurations not rerun; no formal file changed this round.",
+    "Seeded breaks: only block-preview rerun against an unpatched control this round (caught); 4 of 11 were rerun at ff0240d3; no break or journey changed since."
+  ],
+  "attention": [
+    "This verdict fails only on formal-release-range recorded findings F1-F4: checks/release-range.mjs and release.yml are touched by a verbatim move. Whether a pure move of a rule with recorded findings should FAIL is for Antony."
+  ],
+  "verifier": "fresh H6 verifier of AntelopeJS/dms#529 (a separate thread; it did not write the change), re-verifying the fix round"
+}

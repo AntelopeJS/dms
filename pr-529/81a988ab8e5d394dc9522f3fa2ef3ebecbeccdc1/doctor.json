@@ -1,0 +1,107 @@
+[
+  {
+    "check": "run is ready",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f"
+  },
+  {
+    "check": "mongod pid 25415 alive",
+    "ok": true,
+    "detail": "/home/antony/.cache/mongodb-binaries/mongod-x64-void-8.0.8 --dbpath /home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f/mongo --port 43361 --bind_ip 127.0.0.1"
+  },
+  {
+    "check": "port 43361 held by the run",
+    "ok": true,
+    "detail": "listening pids 25415"
+  },
+  {
+    "check": "mail pid 25539 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/bin/dms-control.mjs serve-mail /home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f"
+  },
+  {
+    "check": "port 35541 held by the run",
+    "ok": true,
+    "detail": "listening pids 25539"
+  },
+  {
+    "check": "backend pid 32600 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/node_modules/.pnpm/@antelopejs+core@1.17.0/node_modules/@antelopejs/core/dist/core/cli/index.js project start -e docs --refresh-config"
+  },
+  {
+    "check": "port 38243 held by the run",
+    "ok": true,
+    "detail": "listening pids 32600"
+  },
+  {
+    "check": "frontend pid 1177 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/node_modules/.pnpm/@antelopejs+dms-frontend@0.9.1_@antelopejs+core@1.17.0/node_modules/@antelopejs/dms-frontend/dist/index.js start -e docs -b http://127.0.0.1:38243 -p 36163"
+  },
+  {
+    "check": "port 36163 held by the run",
+    "ok": true,
+    "detail": "listening pids 1221"
+  },
+  {
+    "check": "backend answers",
+    "ok": true,
+    "detail": "http://127.0.0.1:38243/api/onboarding/informations"
+  },
+  {
+    "check": "frontend answers",
+    "ok": true,
+    "detail": "http://127.0.0.1:36163/dms-preview"
+  },
+  {
+    "check": "frontend -b is this run's backend",
+    "ok": true,
+    "detail": "http://127.0.0.1:38243"
+  },
+  {
+    "check": "versions",
+    "ok": true,
+    "detail": "module 0.11.1 (/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms), @antelopejs/core 1.17.0, @antelopejs/dms-frontend 0.9.1"
+  },
+  {
+    "check": "module dist newer than src",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/dist"
+  },
+  {
+    "check": "playground dist newer than src",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/playground/dist"
+  },
+  {
+    "check": "frontend build newer than frontend-vue",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f/root/packages/dms/playground/.dms-frontend/dist"
+  },
+  {
+    "check": "database is the run's",
+    "ok": true,
+    "detail": "mongodb://127.0.0.1:43361/verify_20261029T103313_6d541f"
+  },
+  {
+    "check": "checkout HEAD unchanged since up",
+    "ok": true,
+    "detail": "up at 81a988ab8e5d394dc9522f3fa2ef3ebecbeccdc1, now 81a988ab8e5d394dc9522f3fa2ef3ebecbeccdc1"
+  },
+  {
+    "check": "playground copy is the run's",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f/root/packages/dms/playground"
+  },
+  {
+    "check": "module copy links the checkout",
+    "ok": true,
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T103313-6d541f/root"
+  },
+  {
+    "check": "admin session",
+    "ok": true,
+    "detail": "not onboarded yet"
+  }
+]

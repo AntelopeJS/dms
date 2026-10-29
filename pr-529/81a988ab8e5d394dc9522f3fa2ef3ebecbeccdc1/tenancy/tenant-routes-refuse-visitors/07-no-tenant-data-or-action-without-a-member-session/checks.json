@@ -1,0 +1,22 @@
+[
+  {
+    "name": "members refused",
+    "pass": true,
+    "detail": "401"
+  },
+  {
+    "name": "status refused",
+    "pass": true,
+    "detail": "401"
+  },
+  {
+    "name": "toggle refused",
+    "pass": true,
+    "detail": "401"
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"results\":[{\"_id\":\"default:15a85b70-5a25-487b-872e-c1c11e0fd36a\",\"userId\":\"15a85b70-5a25-487b-872e-c1c11e0fd36a\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t103313-6d541f@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T10:34:50.421Z\",\"twoFactorMethods\":nul"
+  }
+]

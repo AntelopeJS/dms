@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Create my account\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:36163/page-access/access-public"
+  }
+]

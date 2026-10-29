@@ -1,0 +1,12 @@
+[
+  {
+    "name": "an email reached the invitee",
+    "pass": true,
+    "detail": "1 messages captured"
+  },
+  {
+    "name": "it links to /auth/signup with a token",
+    "pass": true,
+    "detail": "[\"http://127.0.0.1:36163/auth/signup?token=a8P6nLqT8WawQfKEWNI3MyaNBiluq3HH1bLm0XoCWEtiVIupQ1jWnm0kTo6yw7Nl&email=member%2B20261029t103313-6d541f-smoke%40verify.local&lang=en\"]"
+  }
+]
