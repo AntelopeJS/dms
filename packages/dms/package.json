@@ -21,9 +21,13 @@
     "directory": "packages/dms"
   },
   "main": "dist/index.js",
+  "bin": {
+    "dms-control": "bin/dms-control.mjs"
+  },
   "types": "dist/index.d.ts",
   "dmsFrontend": "dist/frontend-module.js",
   "files": [
+    "bin",
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",
