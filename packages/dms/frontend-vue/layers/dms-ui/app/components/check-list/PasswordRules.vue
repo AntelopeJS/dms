@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef } from "vue";
+import { type Slot, computed, toRef } from "vue";
 import DmsCheckList, { type CheckListItem } from "./CheckList.vue";
 
 export type PasswordRulesVariant = "meter" | "summary";
@@ -19,7 +19,7 @@ interface PasswordRulesProps {
 
 interface PasswordRulesSlots {
   /** `summary` head text; defaults to "{met} of {total} met". */
-  head?: (props: { met: number; total: number }) => unknown;
+  head?: (props: { met: number; total: number }) => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<PasswordRulesProps>(), {
@@ -42,13 +42,15 @@ const VERDICT_KEYS = [
   "dms.password_rules.verdict.strong",
 ];
 
-const TONE_TEXT: Record<string, string> = {
+type PasswordColor = ReturnType<typeof usePasswordStrength>["color"]["value"];
+
+const TONE_TEXT: Partial<Record<PasswordColor, string>> = {
   error: "text-error",
   warning: "text-warning",
   success: "text-success",
 };
 
-const TONE_BAR: Record<string, string> = {
+const TONE_BAR: Partial<Record<PasswordColor, string>> = {
   error: "bg-error",
   warning: "bg-warning",
   success: "bg-success",
@@ -64,7 +66,7 @@ const total = computed(() => strength.value.length);
 const items = computed<CheckListItem[]>(() =>
   strength.value.map((rule, index) => ({
     label: rule.text,
-    // The summary lists unmet rules as "not yet", never as failures.
+
     state: rule.met ? "ok" : isSummary.value ? "pending" : "error",
     wide: isSummary.value && index === strength.value.length - 1,
   })),

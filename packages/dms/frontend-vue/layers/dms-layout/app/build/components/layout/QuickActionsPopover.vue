@@ -1,20 +1,17 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
-import { quickActionKey } from "#dms-core/app/build/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
+import { quickActionKey } from "#dms-core/app/entries/utils/permission-preview";
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 const { categoryGroups } = useQuickActions();
 
-// v2 quick actions menu: a plain title over mono-eyebrow category groups.
 const TITLE_GROUP_CLASS =
   "font-sans text-[13px] font-semibold text-highlighted normal-case tracking-normal px-2.5 pt-1.5 pb-2";
 
-// "Preview as role": an action the role would not be served stays listed,
-// hatched and locked. Never outside a preview.
 const preview = usePermissionPreview();
 const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
 

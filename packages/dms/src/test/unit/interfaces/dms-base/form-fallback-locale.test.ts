@@ -20,7 +20,11 @@ import {
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { adaptFieldValidationSchema } from "@antelopejs/interface-dms/base/form-schema";
-import type { FormField } from "@antelopejs/interface-dms/base/form-types";
+import {
+  type FormField,
+  type FormFieldOrGroup,
+  isFieldGroup,
+} from "@antelopejs/interface-dms/base/form-types";
 import {
   Column,
   TableViewMeta,
@@ -68,10 +72,15 @@ class RangeAPI extends DataController(
   declare code: string;
 }
 
+function ungrouped(entry: FormFieldOrGroup): FormField {
+  if (isFieldGroup(entry)) throw new Error("expected an ungrouped field");
+  return entry;
+}
+
 function formFields(): Map<string, FormField> {
-  const fields = GetMetadata(RangeAPI, TableViewMeta).getFormFields(
-    "new",
-  ) as FormField[];
+  const fields = GetMetadata(RangeAPI, TableViewMeta)
+    .getFormFields("new")
+    .map(ungrouped);
   return new Map(fields.map((field) => [field.id, field]));
 }
 

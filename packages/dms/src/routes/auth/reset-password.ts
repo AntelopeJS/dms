@@ -3,9 +3,9 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { revokeAllSessions } from "../../pages/settings/users/account-credentials";
-import { notifyPasswordReset } from "../../utils/account-notifications";
-import { authSchema } from "../../validation/auth.schema";
+import { revokeAllSessions } from "../../pages/account";
+import { notifyPasswordReset } from "../../utils";
+import { authSchema } from "../../validation";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { assertResetCode } from "./reset-code";
 
@@ -16,7 +16,7 @@ import { assertResetCode } from "./reset-code";
 export async function resetPassword(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.reset.parse>[0],
 ): Promise<void> {
   const { email, token, password } = assertValidation(body, (v) =>
     authSchema.reset.parse(v),

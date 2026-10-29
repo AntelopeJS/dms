@@ -25,7 +25,6 @@ import {
   Column,
   TableView,
   TableViewMeta,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
@@ -83,7 +82,7 @@ const optionsOf = (options: PaymentOptions) =>
     realtime: false,
     rowActions: READ_ONLY,
     ...options,
-  }).serializeSync().options as TableViewOptionsSerialized;
+  }).serializeSync().options!;
 
 describe("[unit] interfaces/dms-base — table view footer and empty states", () => {
   it("serves the summaries by id, keeping their rule on the server", () => {
@@ -130,7 +129,8 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
             {
               label: "Bad",
               op: "count",
-              where: { not: { field: "nope" as "note", equals: "x" } },
+              // @ts-expect-error Unknown column deliberately exercises registration validation.
+              where: { not: { field: "nope", equals: "x" } },
             },
           ],
         },
@@ -139,6 +139,24 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     expect(() => optionsOf({ footer: { legend: "note" } })).to.throw(
       /must name a SelectType column/,
     );
+  });
+
+  it("refuses a malformed where rule at declaration instead of failing a request later", () => {
+    const declare = (json: string) =>
+      optionsOf({
+        footer: {
+          summary: [{ label: "Bad", op: "count", where: JSON.parse(json) }],
+        },
+      });
+    expect(() => declare('{"field":"amount","equals":41,"and":123}')).to.throw(
+      /footer summary "Bad".*where\.and must be an array of rules/,
+    );
+    expect(() => declare('{"field":"amount","notIn":[41],"in":123}')).to.throw(
+      /footer summary "Bad".*where\.in must be an array/,
+    );
+    expect(() =>
+      declare('{"not":{"or":[{"field":"amount","in":"x"}]}}'),
+    ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
   });
 
   it("serializes the empty states, a component included", () => {

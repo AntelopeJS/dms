@@ -48,7 +48,6 @@ let engine: Engine;
 let app: App | undefined;
 
 beforeEach(async () => {
-  // A fresh renderer: the browser keeps one ref per cookie for the page's life.
   vi.resetModules();
   engine = await import("#dms/frontend-module");
   vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
@@ -194,8 +193,6 @@ describe("keyboard hints through a server render and its hydration", () => {
       const result = await visit(cookie, "mac");
       expect(result.serverHints).toEqual(["Ctrl V", "Ctrl V"]);
       expect(result.warnings).toEqual([]);
-      // The layout's hint has mounted and switched to ⌘ before the page's
-      // hydrates; the page's still draws the server's label first.
       expect(result.hydrated.indexOf("layout:⌘V")).toBeGreaterThan(-1);
       expect(result.hydrated.indexOf("layout:⌘V")).toBeLessThan(
         result.hydrated.findIndex((label) => label.startsWith("page:")),

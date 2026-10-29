@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   relationFilterParams,
   resolveRelationPick,
-} from "../layers/dms-ui/app/build/composables/data-types/relationFilter";
+} from "../layers/dms-ui/app/entries/composables/data-types/relationFilter";
 
 const BY_CUSTOMER = { field: "customer", from: "customer" };
 

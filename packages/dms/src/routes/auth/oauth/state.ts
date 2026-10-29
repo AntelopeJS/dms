@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import { sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../../config";
+import { isJwtClaims } from "../../../utils";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL_ERROR = 500;
@@ -65,11 +66,13 @@ function isSameState(state: string, cookieState: string): boolean {
 
 function decodeState(state: string): OAuthStateClaims | undefined {
   try {
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    return verify(state, getStateSecret()) as unknown as OAuthStateClaims;
+    const claims = verify(state, getStateSecret());
+    if (!isJwtClaims(claims)) return undefined;
+    return {
+      provider: claims.provider,
+      nonce: claims.nonce,
+      purpose: claims.purpose,
+    };
   } catch {
     return undefined;
   }

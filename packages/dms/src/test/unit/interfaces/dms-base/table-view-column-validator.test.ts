@@ -1,5 +1,3 @@
-// The data-api entry first: `components` and the entry require each other,
-// and loading `components` first leaves the entry reading it half built.
 import { DataController } from "@antelopejs/interface-data-api";
 import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
@@ -18,9 +16,6 @@ import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Column } from "@antelopejs/interface-dms/base/table-view";
-
-// A `@Column` validates a written value with its data type's schema and hands
-// the data API the parsed value, which is what gets stored.
 
 const TABLE = "column-validator-events";
 

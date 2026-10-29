@@ -3,6 +3,7 @@ import type {
   CommandPaletteItem,
   DashboardSearchProps,
 } from "@nuxt/ui";
+import { isFunction } from "#dms-core/app/utils/type-check";
 
 /**
  * A contributor of command-palette (Ctrl/Cmd+K) groups. Like
@@ -75,7 +76,7 @@ function isSearchTextMatch(match: CommandPaletteSearchMatch): boolean {
 function withoutSearchTextMatches(
   item: CommandPaletteItem,
 ): CommandPaletteItem {
-  const matches = item.matches as CommandPaletteSearchMatch[] | undefined;
+  const matches: CommandPaletteSearchMatch[] | undefined = item.matches;
   if (!matches?.some(isSearchTextMatch)) {
     return item;
   }
@@ -109,7 +110,7 @@ function sourceOrder(source: CommandPaletteSource): number {
 }
 
 function isSourceRenderable(source: CommandPaletteSource): boolean {
-  return typeof source.groups === "function";
+  return isFunction(source.groups);
 }
 
 function useCommandPaletteSourceState() {

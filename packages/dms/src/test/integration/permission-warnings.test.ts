@@ -3,15 +3,11 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
-import type { InviteRoleOptions } from "../../pages/settings/users/member-role-options";
-import type { RoleEditorPermissionNode } from "../../pages/settings/users/role-editor";
+import type { InviteRoleOptions } from "../../pages/members";
+import type { RoleEditorPermissionNode } from "../../pages/permissions";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-
-// Managing members, invitations or roles lets the holder make themselves an
-// owner. That is intended, so the roles editor and the role pickers warn
-// about it, from the warnings the pages declare on those permissions.
 
 const EDITOR_TREE = pageRoutePath("/settings/workspace/roles", "/editor-tree");
 const MEMBER_ROLE_OPTIONS = pageRoutePath(
@@ -21,14 +17,14 @@ const MEMBER_ROLE_OPTIONS = pageRoutePath(
 const WARNINGS = "$page.settings.roles.warning";
 const HTTP_OK = 200;
 
-const EXPECTED_WARNINGS: Record<string, string> = {
+const EXPECTED_WARNINGS = {
   "settings.workspace.members.table.edit": `${WARNINGS}.members`,
   "settings.workspace.members.table.add": `${WARNINGS}.invites`,
   "settings.workspace.invites.table.edit": `${WARNINGS}.invites`,
   "settings.workspace.roles.table.edit": `${WARNINGS}.roles`,
   "settings.workspace.roles.table.add": `${WARNINGS}.roles_add`,
   "settings.workspace.roles.table.delete": `${WARNINGS}.roles_delete`,
-};
+} satisfies Record<string, string>;
 
 function warningsById(
   nodes: RoleEditorPermissionNode[],

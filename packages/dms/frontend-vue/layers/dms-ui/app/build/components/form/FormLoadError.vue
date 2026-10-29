@@ -4,9 +4,6 @@ import DmsEmptyState, {
 } from "../../../components/empty-state/EmptyState.vue";
 import type { FormLoadFailure } from "../../composables/form/formRecordLoad";
 
-// What a form shows instead of its fields when the record it edits did not
-// load: empty fields would read as the record, and a save from them would
-// replace values the form never showed.
 interface FormLoadErrorProps {
   failure: FormLoadFailure;
   /** Set while the record is being loaded again. */
@@ -30,8 +27,7 @@ const VARIANTS: Record<FormLoadFailure, EmptyStateVariant> = {
   not_found: "no-result",
   error: "error",
 };
-// A record the address names none of, or one that does not exist, is not
-// read again by trying.
+
 const RETRIES = new Set<FormLoadFailure>(["forbidden", "error"]);
 </script>
 

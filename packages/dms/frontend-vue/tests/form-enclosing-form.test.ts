@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * What a `Form` offers a custom field through `useEnclosingForm`: submitting
  * the form as its save button does, a validator that can stop a submit and
@@ -11,7 +11,7 @@ import {
   FORM_HANDLE_KEY,
   type FormHandle,
   linkedFieldId,
-} from "../layers/dms-ui/app/build/composables/form/enclosingForm";
+} from "../layers/dms-ui/app/entries/composables/form/enclosingForm";
 import {
   type EnclosingForm,
   useEnclosingForm,

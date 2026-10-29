@@ -89,8 +89,6 @@ export class PageBlocksMeters extends PageController(
           }),
         )
         .child(
-          // Reads `{ value }` for the period of the selector above, again on
-          // each event of the quota topic.
           "periodQuota",
           Meter({
             card: true,

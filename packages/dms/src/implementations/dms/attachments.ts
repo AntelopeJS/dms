@@ -1,5 +1,5 @@
-import { SaveTableViewAttachments } from "../../attachments/table-view";
+import { SaveTableViewAttachments } from "../../attachments";
 
 export const internal = { SaveTableViewAttachments };
-export { SaveComponentFiles } from "../../attachments/save";
-export { GetAttachmentValidationMetadata } from "../../attachments/uploads";
+export { SaveComponentFiles } from "../../attachments";
+export { GetAttachmentValidationMetadata } from "../../attachments";

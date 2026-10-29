@@ -3,23 +3,15 @@
  * `count` its route answers) and a soft badge before its actions; each entry
  * may add a third, dimmed mono line under its details.
  */
-import { computed, createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import { chartRuntime } from "./helpers/charts-runtime";
 
-const items = ref<Array<Record<string, unknown>>>([]);
+type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
+const items = ref<FeedProps["items"]>([]);
 const fetchedCount = ref<number | undefined>(undefined);
-
-vi.mock("../layers/dms-ui/app/build/composables/blocks/useBlockItems", () => ({
-  useBlockItems: () => ({
-    items: computed(() => items.value),
-    count: computed(() => fetchedCount.value),
-    isPending: computed(() => false),
-    hasError: computed(() => false),
-    refresh: async () => {},
-  }),
-}));
 
 const Card = defineComponent({
   props: {
@@ -53,7 +45,7 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-async function render(props: Record<string, unknown>): Promise<string> {
+async function render(props: FeedProps): Promise<string> {
   const app = createSSRApp({
     render: () =>
       h(ActivityFeed, {
@@ -70,6 +62,7 @@ async function render(props: Record<string, unknown>): Promise<string> {
   for (const name of ["UIcon", "USkeleton", "UButton", "ULink", "NuxtLink"]) {
     app.component(name, Slot);
   }
+  await chartRuntime(app, { items: items.value, count: fetchedCount.value });
   return renderToString(app);
 }
 
@@ -84,9 +77,6 @@ beforeEach(() => {
   ];
   fetchedCount.value = undefined;
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
-  }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -110,7 +100,6 @@ describe("ActivityFeed head", () => {
   });
 
   it("draws a translated badge in the head", async () => {
-    // `t` is stubbed as String: a translated key reads as the bare key.
     const html = await render({ badge: "$api.overview.last_24h" });
     expect(html).toMatch(
       /<span data-badge[^>]*>api\.overview\.last_24h<\/span>/,

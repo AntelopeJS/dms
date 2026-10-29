@@ -1,3 +1,5 @@
+import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
+
 export interface UseTabReturn {
   activeTab: Ref<string>;
   nextTab: () => void;
@@ -8,5 +10,5 @@ export interface UseTabReturn {
   goToLastTab: () => void;
   resetTabs: () => void;
   loading: Ref<boolean>;
-  watchState: Ref<Record<string, unknown>>;
+  watchState: ReturnType<typeof useWatch>["state"];
 }

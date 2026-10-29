@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import {
@@ -49,7 +49,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       }),
     );
   } catch (error: unknown) {
-    // A refused address shows under its field; anything else above the form.
     await showError(error, "page.forgot.error_title", {
       fields: ["email"],
       form,

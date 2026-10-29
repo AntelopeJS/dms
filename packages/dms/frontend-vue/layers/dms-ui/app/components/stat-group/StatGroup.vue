@@ -3,7 +3,7 @@ import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
-import type { Tone } from "../../types/tone";
+import type { Tone } from "#dms-core/app/types/tone";
 
 export type StatGroupLayout = "joined" | "cards";
 
@@ -75,12 +75,7 @@ const props = withDefaults(defineProps<StatGroupProps>(), {
 const MIN_COLUMNS = 1;
 const MAX_COLUMNS = 6;
 
-// Literal class strings (Tailwind extracts them). The columns follow the
-// group's own width (container queries on the root), not the viewport: in a
-// narrow settings column at 1024px a four-cell group keeps two columns
-// instead of four cramped ones. The joined group carries a detail line, so it
-// drops to one column when narrow; the compact cards keep two.
-const JOINED_COLUMNS: Record<number, string> = {
+const JOINED_COLUMNS: Record<NonNullable<StatGroupProps["columns"]>, string> = {
   1: "grid-cols-1",
   2: "grid-cols-1 @sm:grid-cols-2",
   3: "grid-cols-1 @xl:grid-cols-3",
@@ -88,7 +83,7 @@ const JOINED_COLUMNS: Record<number, string> = {
   5: "grid-cols-1 @sm:grid-cols-2 @4xl:grid-cols-5",
   6: "grid-cols-1 @lg:grid-cols-3 @5xl:grid-cols-6",
 };
-const CARD_COLUMNS: Record<number, string> = {
+const CARD_COLUMNS: Record<NonNullable<StatGroupProps["columns"]>, string> = {
   1: "grid-cols-1",
   2: "grid-cols-2",
   3: "grid-cols-1 @xl:grid-cols-3",
@@ -97,7 +92,6 @@ const CARD_COLUMNS: Record<number, string> = {
   6: "grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6",
 };
 
-// `columnsFrom`: every column from that container size, literal for Tailwind.
 const COLUMNS_FROM: Record<StatGroupColumnsFrom, Record<number, string>> = {
   sm: {
     2: "@sm:grid-cols-2",
@@ -129,9 +123,6 @@ const COLUMNS_FROM: Record<StatGroupColumnsFrom, Record<number, string>> = {
   },
 };
 
-// Every joined cell draws its top and start hairlines; the grid is pulled 1px
-// up and left under the card's clipping edge, so the first row and the first
-// column lose theirs at any column count and on every breakpoint.
 const JOINED_HAIRLINES = "border-muted border-s border-t";
 
 const isJoined = computed(() => props.layout === "joined");
@@ -147,7 +138,7 @@ const columnClass = computed(() => {
   const from =
     props.columnsFrom && COLUMNS_FROM[props.columnsFrom][columnCount.value];
   if (!from) return steps;
-  // The narrow count of the usual steps, then every column from the size.
+
   return `${steps.split(" ")[0]} ${from}`;
 });
 const showPlaceholders = computed(
@@ -162,11 +153,6 @@ function keyOf(item: StatGroupItem, index: number): string {
 function wellTone(item: StatGroupItem): IconWellTone {
   return item.tone ?? (isJoined.value ? "muted" : "primary");
 }
-// Two layouts of the same DmsStatCell: joined (v2 .cs-status, one card with
-// cells split by hairlines, `sm` cells) and cards (v2 .mc-summary, one
-// compact `md` card per item, the KPI card's stat look). The template keeps
-// no root-level comment, so a parent's class still falls through in dev
-// builds.
 </script>
 
 <template>

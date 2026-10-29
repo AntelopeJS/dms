@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { jsonSchemaToZod, type JsonSchema } from "json-schema-to-zod";
+import { jsonSchemaToZod } from "json-schema-to-zod";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   formIssueMessage,
   isBlankValue,
@@ -12,15 +13,12 @@ import {
   type FormValidationIssue,
   unwrapUnionIssue,
   validateFormState,
-} from "../layers/dms-ui/app/build/composables/form/formValidation";
+} from "../layers/dms-ui/app/entries/composables/form/formValidation";
 
-// The client rebuilds the schema the backend serializes (see useForm's
-// createBaseValidationSchema): the same round trip here, so each case reads
-// what the form really validates with.
 function roundTrip(
-  shape: Record<string, z.ZodTypeAny>,
+  fields: Record<string, z.ZodTypeAny>,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  const json = zodToJsonSchema(z.object(shape)) as unknown as JsonSchema;
+  const json = zodToJsonSchema(z.object(fields));
   const code = jsonSchemaToZod(json, { module: "none" }).replace(
     /\.strict\(\)$/,
     ".passthrough()",
@@ -28,29 +26,23 @@ function roundTrip(
   return new Function("z", `"use strict"; return (${code})`)(z);
 }
 
-// The backend's adaptFieldValidationSchema: optional is nullable+optional,
-// required makes a text or a list non-empty.
 function optional(schema: z.ZodTypeAny): z.ZodTypeAny {
   return schema.nullable().optional();
 }
 
-// DefaultDataTypes.DateType: an ISO date string or a Date.
 function date(): z.ZodTypeAny {
   return z
     .union([
       z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/),
       z.date(),
     ])
-    .transform((value) =>
-      typeof value === "string" ? new Date(value) : value,
-    );
+    .transform((value) => (isString(value) ? new Date(value) : value));
 }
 
 function dateRange(): z.ZodTypeAny {
   return z.union([z.array(date()), z.object({ start: date(), end: date() })]);
 }
 
-// DefaultDataTypes.AddressType.
 function address(): z.ZodTypeAny {
   return z.object({
     streetName: z.string().min(1),
@@ -62,7 +54,7 @@ function address(): z.ZodTypeAny {
 }
 
 const REQUIRED = "This field is required.";
-// What the form's error map does with a blank part: the required wording.
+
 const errorMap: z.ZodErrorMap = (issue, context) => ({
   message:
     formIssueMessage(issue, context.data) === REQUIRED_MESSAGE
@@ -71,11 +63,11 @@ const errorMap: z.ZodErrorMap = (issue, context) => ({
 });
 
 async function issuesOf(
-  shape: Record<string, z.ZodTypeAny>,
+  fieldsById: Record<string, z.ZodTypeAny>,
   fields: FormValidationField[],
-  state: Record<string, unknown>,
+  state: Parameters<typeof validateFormState>[1],
 ): Promise<FormValidationIssue[]> {
-  const result = await validateFormState(roundTrip(shape), state, {
+  const result = await validateFormState(roundTrip(fieldsById), state, {
     fields,
     requiredMessage: REQUIRED,
     locale: "en",
@@ -85,11 +77,11 @@ async function issuesOf(
 }
 
 async function valueOf(
-  shape: Record<string, z.ZodTypeAny>,
+  fieldsById: Record<string, z.ZodTypeAny>,
   fields: FormValidationField[],
-  state: Record<string, unknown>,
-): Promise<Record<string, unknown> | undefined> {
-  const result = await validateFormState(roundTrip(shape), state, {
+  state: Parameters<typeof validateFormState>[1],
+) {
+  const result = await validateFormState(roundTrip(fieldsById), state, {
     fields,
     requiredMessage: REQUIRED,
     locale: "en",
@@ -208,15 +200,15 @@ describe("validateFormState: a required field left empty", () => {
       fallbackLocale: "fr",
       required: false,
     };
-    const shape = { title: z.record(z.string(), z.string()).optional() };
+    const fieldsById = { title: z.record(z.string(), z.string()).optional() };
     expect(
-      await issuesOf(shape, [field], { title: { en: "Range", fr: " " } }),
+      await issuesOf(fieldsById, [field], { title: { en: "Range", fr: " " } }),
     ).toEqual([{ message: REQUIRED, path: ["title", "fr"] }]);
     expect(
-      await valueOf(shape, [field], { title: { en: "", fr: "Gamme" } }),
+      await valueOf(fieldsById, [field], { title: { en: "", fr: "Gamme" } }),
     ).toEqual({ title: { en: "", fr: "Gamme" } });
     expect(
-      await valueOf(shape, [field], { title: { en: "", fr: "" } }),
+      await valueOf(fieldsById, [field], { title: { en: "", fr: "" } }),
     ).toBeDefined();
   });
 
@@ -429,15 +421,15 @@ describe("validateFormState: errors a control reports", () => {
 
 describe("validateFormState: a box to tick", () => {
   it("is missing until ticked when required", async () => {
-    const shape = { terms: z.literal(true) };
+    const fieldsById = { terms: z.literal(true) };
     const field = { ...required("terms", "boolean"), acceptance: true };
-    expect(await issuesOf(shape, [field], { terms: false })).toEqual([
+    expect(await issuesOf(fieldsById, [field], { terms: false })).toEqual([
       { message: REQUIRED, path: ["terms"] },
     ]);
-    expect(await issuesOf(shape, [field], {})).toEqual([
+    expect(await issuesOf(fieldsById, [field], {})).toEqual([
       { message: REQUIRED, path: ["terms"] },
     ]);
-    expect(await valueOf(shape, [field], { terms: true })).toEqual({
+    expect(await valueOf(fieldsById, [field], { terms: true })).toEqual({
       terms: true,
     });
   });

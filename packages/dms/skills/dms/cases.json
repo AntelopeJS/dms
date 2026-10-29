@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "dms-overview-page-to-screen",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Give me the big picture of the AntelopeJS DMS: how does a page described in backend TypeScript end up as a screen in the dashboard?",
+      "expect": {
+        "skills": ["dms"],
+        "acceptable": ["dms-pages", "dms-best-practices", "antelopejs"],
+        "mustMention": ["PageController", "RegisterPage"]
+      }
+    },
+    {
+      "id": "dms-whats-the-dms-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "whats the dms in antelopejs, do i have to write vue for every admin screen?",
+      "expect": {
+        "skills": ["dms"],
+        "acceptable": ["dms-pages", "dms-best-practices", "antelopejs"]
+      }
+    },
+    {
+      "id": "dms-route-url-for-page-route",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "dms: i declared a @Get on my page class, what do i put in the block fetchUrl so it hits it",
+      "expect": {
+        "skills": ["dms", "dms-pages"],
+        "acceptable": ["dms-best-practices"],
+        "mustMention": ["pageRoutePath"]
+      }
+    },
+    {
+      "id": "dms-not-core-interfaces",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "In a plain AntelopeJS module with no DMS involved, how does the core choose which implementation serves an interface that several modules provide?",
+      "expect": {
+        "skills": ["antelopejs"],
+        "acceptable": [
+          "ajs-consume-interface",
+          "ajs-author-interface",
+          "core-interface"
+        ],
+        "avoid": ["dms"]
+      }
+    }
+  ]
+}

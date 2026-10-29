@@ -1,4 +1,9 @@
 import type { SortingState } from "@tanstack/vue-table";
+import {
+  isNumber,
+  isObject as hasObjectType,
+  isString,
+} from "#dms-core/app/utils/type-check";
 
 /** The part of a column config sorting depends on. */
 interface SortableColumnLike {
@@ -48,7 +53,7 @@ export const sanitizeSorting = (
   sortable: ReadonlySet<string>,
 ): SortingState => {
   const [first] = Array.isArray(sorting) ? sorting : [];
-  if (!first || typeof first.id !== "string" || !sortable.has(first.id)) {
+  if (!first || !isString(first.id) || !sortable.has(first.id)) {
     return [];
   }
   return [{ id: first.id, desc: first.desc === true }];
@@ -170,24 +175,24 @@ export const sortDirectionLabelKey = (
   desc: boolean,
 ): string => `dms.sort.direction.${kind}.${desc ? "desc" : "asc"}`;
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- This error parser accepts arbitrary thrown values, including non-ofetch objects and inherited fields. No common error schema owns these values; validating a FetchError would change which errors match. */
+const isObject = (
+  value: Parameters<typeof isUnsortableFieldError>[0],
+): value is Record<string, unknown> => hasObjectType(value) && value !== null;
 
 const statusOf = (error: Record<string, unknown>): number | undefined => {
   const response = isObject(error.response) ? error.response : undefined;
   const status = error.statusCode ?? error.status ?? response?.status;
-  return typeof status === "number" ? status : undefined;
+  return isNumber(status) ? status : undefined;
 };
 
 const messagesOf = (error: Record<string, unknown>): string[] => {
   const { data } = error;
   return [
-    typeof data === "string" ? data : undefined,
-    isObject(data) && typeof data.message === "string"
-      ? data.message
-      : undefined,
-    typeof error.statusMessage === "string" ? error.statusMessage : undefined,
-    typeof error.message === "string" ? error.message : undefined,
+    isString(data) ? data : undefined,
+    isObject(data) && isString(data.message) ? data.message : undefined,
+    isString(error.statusMessage) ? error.statusMessage : undefined,
+    isString(error.message) ? error.message : undefined,
   ].filter((message): message is string => !!message);
 };
 
@@ -196,6 +201,7 @@ const messagesOf = (error: Record<string, unknown>): string[] => {
  * not sortable.`): a sort the route never accepted, or a column whose
  * `@Sortable()` was removed since the page was loaded.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Any JavaScript value may be thrown. FetchError is not the owner of every rejection; inference cannot narrow the input without excluding existing false-result cases.
 export const isUnsortableFieldError = (error: unknown): boolean => {
   if (!isObject(error)) return false;
   const status = statusOf(error);
@@ -204,3 +210,4 @@ export const isUnsortableFieldError = (error: unknown): boolean => {
     UNSORTABLE_FIELD_PATTERN.test(message),
   );
 };
+/* oxlint-enable anti-slop/no-unsafe-dictionary-type */

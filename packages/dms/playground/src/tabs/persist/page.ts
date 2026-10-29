@@ -41,7 +41,6 @@ export class PageTabsPersist extends PageController("tabs-persist", {
     .child("componentsPanel", componentsPanel(), { slot: "persistent2" })
     .child("databasePanel", databasePanel(), { slot: "persistent3" });
 
-  // No stateKey: the selected slot goes to ?tab=.
   static tabsDefaultKey = Tab({
     persistState: true,
     variant: TabVariant.pill,

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The bell's counts after a change of the feed: a write (mark read or
  * unread, delete) answers them and its realtime event carries them, so the
@@ -22,7 +22,10 @@ interface Counts {
   unread: number;
   unreadTone?: Tone;
 }
-type StreamEvent = { type: string; payload?: Record<string, unknown> };
+type StreamEvent = {
+  type: string;
+  payload?: { ids?: string[]; counts?: Counts };
+};
 
 const TONE_ORDER: Tone[] = ["error", "warning", "primary", "neutral"];
 const feed: Row[] = [];
@@ -37,7 +40,7 @@ function countsOf(): Counts {
 }
 
 const requests: string[] = [];
-// A write's answer can be held, to deliver its echo first.
+
 let holdWrites: Promise<void> | undefined;
 let failWrites = false;
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
@@ -55,15 +58,15 @@ const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   return { success: true, counts };
 });
 
-let streamHandler: ((event: unknown) => void) | undefined;
-stubApiData(authFetch as never);
+let streamHandler: ((event: StreamEvent) => void) | undefined;
+stubApiData(authFetch);
 vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
 vi.stubGlobal("useDmsUserSession", () => ({
   user: ref({ _id: "u1" }),
   loggedIn: ref(true),
 }));
 vi.stubGlobal("useUserRealtime", () => ({
-  subscribe: (_topic: string, handler: (event: unknown) => void) => {
+  subscribe: (_topic: string, handler: (event: StreamEvent) => void) => {
     streamHandler = handler;
     return () => {
       streamHandler = undefined;
@@ -88,7 +91,8 @@ function openTab(): HTMLElement {
   const Tab = defineComponent({
     setup() {
       bell = useNotifications();
-      (notificationStream as unknown as () => void)();
+      // SAFETY: defineDmsPlugin is stubbed above to return the setup callback unchanged.
+      (notificationStream as () => void)();
       return () =>
         h("span", `${bell.unreadCount.value}:${bell.unreadTone.value ?? "-"}`);
     },
@@ -135,7 +139,7 @@ it("takes the counts a write answers, and reads nothing for its echo after the a
   await bell.markAsRead("risk");
   await settle();
   expect(bell.unreadCount.value).toBe(1);
-  // The next most important unread one gives the tone: only the server knows it.
+
   expect(bell.unreadTone.value).toBe("warning");
 
   streamHandler!(echo("notification:read", ["risk"]));

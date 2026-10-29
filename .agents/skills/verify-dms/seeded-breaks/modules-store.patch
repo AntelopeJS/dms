@@ -1,0 +1,12 @@
+diff --git a/packages/dms/src/routes/store.ts b/packages/dms/src/routes/store.ts
+index eb16e334..2c0daa3c 100644
+--- a/packages/dms/src/routes/store.ts
++++ b/packages/dms/src/routes/store.ts
+@@ -62,7 +62,6 @@ export class ModuleStoreController extends Controller("/dms/store") {
+ 
+   @Get("/listing")
+   async listing(): Promise<StoreListing> {
+-    await this.assertOwner();
+     return buildStoreListing();
+   }
+ 

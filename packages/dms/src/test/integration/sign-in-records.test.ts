@@ -1,13 +1,7 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { UserKnownDevicesModel } from "../../db/models/userKnownDevices.model";
+import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
 import { resetDatabase } from "../helpers/db";
-
-// The two CORE tables behind sign-in monitoring, on the real database: the
-// row id of a known device and of an alert claim derives from what it records,
-// so instances racing on the same one meet on the primary key, and the
-// adapter's conflict reaches the model as a lost race, never as an error.
 
 const USER_ID = "sign-in-records-user";
 const FINGERPRINT = "browser-on-system";

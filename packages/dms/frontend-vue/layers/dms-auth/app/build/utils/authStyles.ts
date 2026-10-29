@@ -1,4 +1,4 @@
-import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
+import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
 
 /**
  * v2 .au-link: the accent text link of the auth cards. Below `sm` an invisible

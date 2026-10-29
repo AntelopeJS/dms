@@ -1,5 +1,6 @@
+import { isString } from "../../../../../dms-core/app/utils/type-check";
 import { computed, shallowRef, type ComputedRef } from "vue";
-import type { PageLiveNote, PageLiveNoteInput } from "../../../types/live";
+import type { PageLiveNote, PageLiveNoteInput } from "#dms-core/app/types/live";
 
 interface HoldEntry {
   note: PageLiveNote;
@@ -13,7 +14,7 @@ interface HoldEntry {
  * @internal
  */
 export function toLiveNote(input: PageLiveNoteInput): PageLiveNote {
-  return typeof input === "string" ? { text: input } : input;
+  return isString(input) ? { text: input } : input;
 }
 
 /**

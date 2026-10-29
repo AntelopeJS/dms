@@ -21,49 +21,20 @@ concurrency:
 # once, then sets DMS_PREBUILT so the package scripts and the test harness use
 # that build rather than compiling it again.
 jobs:
-  static:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      DMS_PREBUILT: "1"
-    steps:
-      - uses: actions/checkout@v4
-      # `dms lint` runs the Vue layer's ESLint too.
-      - uses: ./.github/actions/setup
-        with:
-          interface: "true"
-
-      - uses: AntelopeJS/tooling-configs/actions/docs@310e3d861b2da2244902854379176c91e1ebc68e
-        with:
-          files: |
-            README.md
-            packages/dms/README.md
-            packages/dms/docs
-            packages/interface-dms/README.md
-            packages/interface-dms/docs
-          typescript-project: packages/interface-dms/docs/tsconfig.json
-
-      - run: pnpm --dir packages/interface-dms lint
-      - run: pnpm --dir packages/interface-dms typecheck
-      - run: pnpm --dir packages/interface-dms knip
-      # Node does not fall back to a directory index inside an exports map, so
-      # a new interface folder is unreachable until the map lists it.
-      - run: pnpm --dir packages/interface-dms check:exports
-      # ImplementInterface binds only the proxies a subpath exports, and an
-      # unbound one never answers.
-      - run: pnpm --dir packages/interface-dms check:proxies
-
-      - run: pnpm --dir packages/dms lint
-      # oxlint's type-aware pass degrades to `any` on a broken tsconfig
-      # without failing, so the typecheck is what catches it.
-      - run: pnpm --dir packages/dms typecheck
-      # Unused dependencies only. `pnpm knip:all` also reports dead files and
-      # exports, which the interface architecture makes noisy enough to need a
-      # human, so they stay out of the gate.
-      - run: pnpm --dir packages/dms knip
-      # The docs site builds its block reference from the committed catalog,
-      # so a block option changed without regenerating it fails here.
-      - run: pnpm --dir packages/dms docs:catalog:check
+  checks:
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    with:
+      docs-files: |
+        README.md
+        packages/dms/README.md
+        packages/dms/docs
+        packages/interface-dms/README.md
+        packages/interface-dms/docs
+      docs-typescript-project: packages/interface-dms/docs/tsconfig.json
+      extra-commands: |
+        pnpm --dir packages/interface-dms check:exports
+        pnpm --dir packages/interface-dms check:proxies
+        pnpm --dir packages/dms docs:catalog:check
 
   backend:
     runs-on: ubuntu-latest
@@ -125,7 +96,11 @@ jobs:
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
+  # GitOps deploys on a successful `ci` push run on main, so this gate has to
+  # run there. Its six-minute Docker build kept every pull request waiting, so
+  # pull requests skip it.
   docs-playground:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -161,13 +136,64 @@ jobs:
           echo "The built playground did not become ready" >&2
           exit 1
 
-  # The one check branch protection requires was the single job's name, so it
-  # stays: green only when every job above is.
-  ubuntu:
-    if: always()
-    needs: [static, backend, frontend-test, frontend-verify, docs-playground]
+  verify-map:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node packages/dms/bin/dms-control.mjs map
+
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [formal-onboarding-bootstrap, formal-realtime-tabs]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/antelopejs-formal
+          key: tla2tools-1.7.4
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+
+  # The one check branch protection requires was the single job's name, so it
+  # stays: green only when every job above is. docs-playground may be skipped
+  # on a pull request only.
+  ubuntu:
+    if: always()
+    needs:
+      [
+        checks,
+        backend,
+        frontend-test,
+        frontend-verify,
+        docs-playground,
+        verify-map,
+        formal,
+      ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - if: >-
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          needs.checks.result == 'skipped' ||
+          needs.backend.result == 'skipped' ||
+          needs.frontend-test.result == 'skipped' ||
+          needs.frontend-verify.result == 'skipped' ||
+          needs.verify-map.result == 'skipped' ||
+          needs.formal.result == 'skipped' ||
+          (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
         run: exit 1

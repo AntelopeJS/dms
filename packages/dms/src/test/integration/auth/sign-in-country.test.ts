@@ -1,15 +1,11 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { getAuthConfig, type SignInCountryConfig } from "../../../config";
-import { resetCountryLookup } from "../../../utils/sign-in-country";
+import { resetCountryLookup } from "../../../utils";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-
-// The "New sign-in" check reads a sign-in's country through the proxy header
-// the deployment names: the same browser and system from another country is
-// a new sign-in, and its notice names the country, not the address.
 
 const COUNTRY_HEADER = "CF-IPCountry";
 const CHROME_ON_WINDOWS =
@@ -48,16 +44,15 @@ describe("[integration] auth/sign-in country", () => {
   };
 
   const newSignInNotices = async (): Promise<StoredNotification[]> => {
-    const response = await owner.get(
+    const response = await owner.get<StoredNotification[]>(
       pageRoutePath("/settings/user/notifications", "/list"),
     );
     expect(response.status).to.equal(HTTP_OK);
-    return (response.data as StoredNotification[]).filter(
+    return response.data.filter(
       (notification) => notification.title === NEW_LOGIN_TITLE,
     );
   };
 
-  // The notice is sent in the background of the sign-in.
   const waitForNotices = async (count: number) => {
     for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
       const notices = await newSignInNotices();

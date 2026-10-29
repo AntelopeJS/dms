@@ -3,10 +3,7 @@ import { expect } from "chai";
 import { LiveToggle } from "@antelopejs/interface-dms/base/live-toggle";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import {
-  TableView,
-  type TableViewOptionsSerialized,
-} from "@antelopejs/interface-dms/base/table-view";
+import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import {
   PageController,
   PageMetadata,
@@ -77,7 +74,7 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
       columns: { path: { name: "Path", type: STRING } },
       realtimeTopic: "api:requests",
       liveHold: true,
-    }).serializeSync().options as TableViewOptionsSerialized;
+    }).serializeSync().options!;
     expect(options.liveHold).to.equal(true);
     expect(options.realtimeTopic).to.equal("api:requests");
   });
@@ -96,14 +93,20 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
   });
 
   it("refuses a slower cadence it cannot read, and an empty remember key", () => {
-    const declare = (id: string, live: Record<string, unknown>) => () =>
-      PageController(id, {
-        displayName: "Live page",
-        category: pagesCategory,
-        live,
-      });
+    const declare =
+      (
+        id: string,
+        live: NonNullable<Parameters<typeof PageController>[1]>["live"],
+      ) =>
+      () =>
+        PageController(id, {
+          displayName: "Live page",
+          category: pagesCategory,
+          live,
+        });
     expect(
       declare("live-slow-period", {
+        // @ts-expect-error Invalid period deliberately exercises runtime validation.
         slowRateAfter: { period: "a week", maxRate: 60 },
       }),
     ).to.throw(/live\.slowRateAfter\.period/);
@@ -142,7 +145,7 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
       columns: { path: { name: "Path", type: STRING } },
       realtimeTopic: "api:requests",
       liveHold: { whileRowOpen: true, whileScrolled: true },
-    }).serializeSync().options as TableViewOptionsSerialized;
+    }).serializeSync().options!;
     expect(options.liveHold).to.deep.equal({
       whileRowOpen: true,
       whileScrolled: true,

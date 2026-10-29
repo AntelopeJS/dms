@@ -37,6 +37,7 @@ async function verifyRequestTenantId(
     const data = await internal.IfAuthUserAuthenticator(token);
     if (!data) return DEFAULT_TENANT_ID;
     const user = await internal.AuthRawUserValidator(data);
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published validator can return a boolean sentinel rather than an authenticated user.
     if (!user || typeof user === "boolean") return DEFAULT_TENANT_ID;
     const tenantId = data.tenantId || DEFAULT_TENANT_ID;
     bindVerifiedRequestPrincipal(ctx, { userId: user._id, tenantId });
@@ -59,6 +60,7 @@ export async function resolveRequestTenantId(
   if (bound) return bound;
   const header = ctx.rawRequest?.headers?.authorization;
   const token =
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string authorization header can carry a bearer token for tenant verification.
     typeof header === "string" ? header.match(BEARER_SCHEME)?.[1] : undefined;
   if (!token) return DEFAULT_TENANT_ID;
   const request = ctx.rawRequest;

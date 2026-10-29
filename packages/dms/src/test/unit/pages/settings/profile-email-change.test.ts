@@ -1,7 +1,7 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { assertEmailAvailable } from "../../../../pages/settings/users/profile-helpers";
+import { assertEmailAvailable } from "../../../../pages/account";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -12,13 +12,14 @@ const FREE_EMAIL = "free@acme.dev";
 const OWN_EMAIL = "mine@acme.dev";
 
 function modelHolding(accounts: Record<string, string>): UserModel {
+  // SAFETY: assertEmailAvailable calls only getByEmail and reads only the returned _id; omitted model methods and user fields are never used.
   return {
-    // Mirrors `UserModel.getByEmail`, which normalizes before it looks up.
     getByEmail: async (lookup: string) => {
       const id = accounts[lookup.trim().toLowerCase()];
-      return id ? ({ _id: id } as unknown as User) : undefined;
+      // SAFETY: The availability check compares only _id, so this lookup deliberately omits unrelated user fields.
+      return id ? ({ _id: id } as User) : undefined;
     },
-  } as unknown as UserModel;
+  } as UserModel;
 }
 
 async function attempt(
@@ -41,10 +42,9 @@ describe("[unit] profile — e-mail change is refused for an address another acc
 
   it("refuses another account's address, whatever its casing", async () => {
     const result = await attempt(userModel, " Holder@ACME.dev ");
-    expect(result).to.be.instanceOf(HTTPResult);
-    const refusal = result as HTTPResult;
-    expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
-    expect(refusal.getBody()).to.equal(EMAIL_TAKEN);
+    assert.instanceOf(result, HTTPResult);
+    expect(result.getStatus()).to.equal(HTTP_CONFLICT);
+    expect(result.getBody()).to.equal(EMAIL_TAKEN);
   });
 
   it("accepts a free address, normalized", async () => {

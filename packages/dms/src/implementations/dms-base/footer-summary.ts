@@ -12,23 +12,31 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { rowRuleProblem } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import type { FooterSummaryValues } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
 import type {
   TableViewFooterSummary,
   TableViewSummaryOperation,
+  summarizeWithSearch as SummarizeDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
-import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
+import type {
+  FieldEqualsRule,
+  FieldInRule,
+  RowActionRule,
+} from "@antelopejs/interface-dms/base/types/row-action";
+import type { evaluateRowActionRule } from "../../utils";
 import { buildFilteredQuery } from "./search-route";
 
-type Row = ValueProxy<Record<string, unknown>>;
+type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
+type SummaryReceiver = globalThis.Parameters<typeof SummarizeDeclaration>[0];
+type Row = ValueProxy<RuleRow>;
 type Condition = ValueProxyOrValue<boolean>;
 type FieldReader = (field: string) => ValueProxy<unknown>;
 
 const isLiteral = (condition: Condition): condition is boolean =>
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database conditions are either literal booleans or query proxies; retain the existing distinction before invoking proxy operators.
   typeof condition === "boolean";
 
-// Rules combine in the database: a literal is folded away rather than asked
-// for an operator it does not have.
 function both(a: Condition, b: Condition): Condition {
   if (isLiteral(a)) return a ? b : false;
   if (isLiteral(b)) return b ? a : false;
@@ -45,59 +53,80 @@ function negate(condition: Condition): Condition {
   return isLiteral(condition) ? !condition : condition.not();
 }
 
-const anyOf = (value: ValueProxy<unknown>, operands: unknown[]): Condition =>
-  operands
-    .map((operand) => value.eq(operand) as Condition)
-    .reduce(either, false);
+const anyOf = (
+  value: ValueProxy<unknown>,
+  operands: FieldInRule["in"],
+): Condition =>
+  operands.map((operand): Condition => value.eq(operand)).reduce(either, false);
 
 type FieldComparison = (
   value: ValueProxy<unknown>,
-  operand: unknown,
+  operand: FieldEqualsRule["equals"],
 ) => Condition;
 
-const FIELD_COMPARISONS: Record<string, FieldComparison> = {
+// SAFETY: compileRowRule rejects a rule whose dispatched in/notIn operand is no array (rowRuleProblem) before this table runs, so the operand is an array.
+const FIELD_COMPARISONS = {
   equals: (value, operand) => value.eq(operand),
   notEquals: (value, operand) => value.ne(operand),
-  in: (value, operands) => anyOf(value, operands as unknown[]),
-  notIn: (value, operands) => negate(anyOf(value, operands as unknown[])),
-};
+  in: (value, operands) => anyOf(value, operands as FieldInRule["in"]),
+  notIn: (value, operands) =>
+    negate(anyOf(value, operands as FieldInRule["in"])),
+} satisfies Record<string, FieldComparison>;
 
-type RuleCompiler = (rule: unknown, read: FieldReader) => Condition;
+type RuleCompiler = (
+  rule: RowActionRule | RowActionRule[],
+  read: FieldReader,
+) => Condition;
 
-const LOGICAL_COMPILERS: Record<string, RuleCompiler> = {
+// SAFETY: compileRowRule rejects a rule whose dispatched logical operand is no array of rules (and/or) or no rule (not) (rowRuleProblem) before this table runs.
+const LOGICAL_COMPILERS = {
   and: (rules, read) =>
     (rules as RowActionRule[])
-      .map((rule) => compileRowRule(rule, read))
+      .map((rule) => compileChecked(rule, read))
       .reduce(both, true),
   or: (rules, read) =>
     (rules as RowActionRule[])
-      .map((rule) => compileRowRule(rule, read))
+      .map((rule) => compileChecked(rule, read))
       .reduce(either, false),
-  not: (rule, read) => negate(compileRowRule(rule as RowActionRule, read)),
-};
+  not: (rule, read) => negate(compileChecked(rule as RowActionRule, read)),
+} satisfies Record<string, RuleCompiler>;
 
-/**
- * A row rule as a database condition: the same grammar the row actions
- * evaluate in the browser (`equals`, `notEquals`, `in`, `notIn`, `and`, `or`,
- * `not`), on the row's stored fields.
- */
-export function compileRowRule(
-  rule: RowActionRule,
-  read: FieldReader,
-): Condition {
-  const record = rule as Record<string, unknown>;
+function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
+  const record: RuleRow = rule;
   const logical = Object.keys(LOGICAL_COMPILERS).find((key) => key in record);
-  if (logical) return LOGICAL_COMPILERS[logical]!(record[logical], read);
+  if (logical) {
+    // SAFETY: Object.keys identifies a handler-table key and rowRuleProblem has checked its operand shape, array of rules for and/or and a rule for not.
+    return LOGICAL_COMPILERS[logical as keyof typeof LOGICAL_COMPILERS](
+      record[logical] as RowActionRule | RowActionRule[],
+      read,
+    );
+  }
   const operator = Object.keys(FIELD_COMPARISONS).find((key) => key in record);
   if (!operator) return true;
-  return FIELD_COMPARISONS[operator]!(
+  // SAFETY: operator was selected from Object.keys of this same handler table.
+  return FIELD_COMPARISONS[operator as keyof typeof FIELD_COMPARISONS](
     read(String(record.field)),
     record[operator],
   );
 }
 
+/**
+ * A row rule as a database condition: the same grammar the row actions
+ * evaluate in the browser (`equals`, `notEquals`, `in`, `notIn`, `and`, `or`,
+ * `not`), on the row's stored fields. A rule whose operator operand has the
+ * wrong shape, nested ones included, throws an `Error` naming it.
+ */
+export function compileRowRule(
+  rule: RowActionRule,
+  read: FieldReader,
+): Condition {
+  const problem = rowRuleProblem(rule);
+  if (problem) throw new Error(`Malformed row rule: ${problem}`);
+  return compileChecked(rule, read);
+}
+
 type SummaryReader = (
-  rows: Stream<Record<string, unknown>>,
+  rows: Stream<RuleRow>,
   field: string | undefined,
 ) => Datum<number>;
 
@@ -107,28 +136,22 @@ const SUMMARY_OPERATIONS: Record<TableViewSummaryOperation, SummaryReader> = {
 };
 
 function fieldReader(
-  thisObj: unknown,
+  thisObj: SummaryReceiver,
   meta: DataAPIMeta,
   row: Row,
 ): FieldReader {
   return (field) =>
-    Validation.UnlockRequest<Record<string, unknown>, string>(
-      thisObj,
-      meta,
-      row,
-      field,
-    ) as ValueProxy<unknown>;
+    Validation.UnlockRequest<RuleRow, string>(thisObj, meta, row, field);
 }
 
 /**
  * The footer summaries over every row the request's filters, search and
  * archive view list, each narrowed by its own `where` rule.
  */
-// A published contract: the runtime receives the interface's arguments
-// positionally.
-// oxlint-disable-next-line eslint/max-params
+
+// oxlint-disable-next-line eslint/max-params -- The interface invokes this implementation positionally with receiver, request, filters, summaries, user and permission arguments.
 export async function summarizeWithSearch(
-  thisObj: unknown,
+  thisObj: SummaryReceiver,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   summaries: Record<string, TableViewFooterSummary>,

@@ -6,7 +6,6 @@ const props = defineProps<{
   storage?: string;
 }>();
 
-// Read with the page: the server renders the file's name and link.
 const files = useFileMetadata(props.storage);
 watch(
   () => props.resourceKey,

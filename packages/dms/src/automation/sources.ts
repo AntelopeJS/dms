@@ -40,8 +40,6 @@ const onMemberRemoved: HookHandler<Hook.MEMBER_REMOVED> = (payload) => {
   return undefined;
 };
 
-// The INVITE_CREATED hook payload also carries the invite token; it is a
-// signup credential, so it is deliberately not exposed to procedure runs.
 const onInviteCreated: HookHandler<Hook.INVITE_CREATED> = (payload) => {
   const event: InviteCreatedEvent = {
     tenantId: payload.tenantId,

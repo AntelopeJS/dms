@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pageLink } from "../../composables/page/pageUrlValues";
+import { isObject } from "#dms-core/app/utils/type-check";
 import type {
   FormField,
   FormFieldReadonly,
@@ -23,11 +24,10 @@ const { state, initialValues, loading } = context;
 const { processI18n } = useTranslation();
 
 const isDisabled = computed(() => context.isFieldDisabled(props.field));
-// A list of rows reads best as its rows, its own control disabled: the
-// display of a cell only counts them. An empty one still reads "empty".
+
 const READS_AS_CONTROL = new Set(["array", "key_value"]);
-const hasRows = (value: unknown): boolean =>
-  !!value && typeof value === "object" && Object.keys(value).length > 0;
+const hasRows = (value: (typeof state)["value"][string]): boolean =>
+  !!value && isObject(value) && Object.keys(value).length > 0;
 const showsDisplay = computed(
   () =>
     isDisabled.value &&
@@ -41,22 +41,19 @@ const component = computed(() => {
   const name = props.field.component.componentName;
   return name ? resolveDmsComponent(name) || name : null;
 });
-// The hint under the control, which describes it (`aria-describedby`): a
-// read-only field has no control to fill, and no hint telling how.
+
 const hint = computed(() =>
   props.field.hint && !isDisabled.value
     ? processI18n(props.field.hint)
     : undefined,
 );
-// UFormField shows its error slot whenever one is given, in the hint's
-// place: it gets one only while the field holds an error.
+
 const formErrors = inject(formErrorsInjectionKey, null);
 const hasError = computed(() => {
   const pattern = fieldErrorPattern(props.field.id);
   return !!formErrors?.value.some((error) => pattern.test(error.name ?? ""));
 });
-// A read-only relation shows the row the server joined (its label, its
-// avatar), as a table cell does, rather than the id its state holds.
+
 const { getDataType } = useDataTypes();
 const readonlyValue = computed(() =>
   readonlyFieldValue(
@@ -66,9 +63,9 @@ const readonlyValue = computed(() =>
     props.field.component.options,
   ),
 );
-// What a read-only field shows beside its value: a pill, a link.
+
 const readonly = computed<FormFieldReadonly>(() =>
-  typeof props.field.readonly === "object" ? props.field.readonly : {},
+  isObject(props.field.readonly) ? props.field.readonly : {},
 );
 </script>
 
@@ -78,7 +75,7 @@ const readonly = computed<FormFieldReadonly>(() =>
   <div class="grid min-w-0 grid-cols-1 gap-1.5">
     <DmsLocalizedField
       v-if="field.localized"
-      v-model="state[field.id] as Record<string, string> | undefined"
+      v-model="state[field.id]"
       :field
       :initial-values="initialValues"
       :loading

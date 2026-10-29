@@ -67,7 +67,6 @@ type SizeStep = (size: number, bounds: ResizeBounds) => number;
 const grow: SizeStep = (size) => size + RESIZE_KEYBOARD_STEP_PX;
 const shrink: SizeStep = (size) => size - RESIZE_KEYBOARD_STEP_PX;
 
-// The arrow pointing away from the sheet's edge grows it.
 const KEYBOARD_STEPS: Record<ResizeSide, Record<string, SizeStep>> = {
   right: { ArrowLeft: grow, ArrowRight: shrink },
   left: { ArrowRight: grow, ArrowLeft: shrink },
@@ -75,10 +74,10 @@ const KEYBOARD_STEPS: Record<ResizeSide, Record<string, SizeStep>> = {
   top: { ArrowDown: grow, ArrowUp: shrink },
 };
 
-const BOUND_KEYS: Record<string, SizeStep> = {
+const BOUND_KEYS = {
   Home: (_, bounds) => bounds.minSize,
   End: (_, bounds) => bounds.maxSize,
-};
+} satisfies Record<string, SizeStep>;
 
 interface PointerAxis {
   coordinate: (event: PointerEvent) => number;
@@ -114,7 +113,10 @@ export function clampSize(size: number, bounds: ResizeBounds): number {
 export function useResizableSize(options: ResizableSizeOptions): ResizableSize {
   const { storage } = options;
   const axis = POINTER_AXES[options.side];
-  const keySteps = { ...KEYBOARD_STEPS[options.side], ...BOUND_KEYS };
+  const keySteps: (typeof KEYBOARD_STEPS)[ResizeSide] = {
+    ...KEYBOARD_STEPS[options.side],
+    ...BOUND_KEYS,
+  };
   const liveSize = options.liveSize ?? ref<number | null>(null);
   const bounds = computed(() => toValue(options.bounds));
   const size = computed(() => {

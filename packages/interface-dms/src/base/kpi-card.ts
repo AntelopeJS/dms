@@ -82,6 +82,7 @@ export function KpiCard(
 ): ComponentBuilder<KpiCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
       .options({ ...options } as KpiCardProps)
       .meta({
         name: options?.title || "KPI card",
@@ -119,6 +120,7 @@ export const KpiCardSchema = z.object({
       label: "Data source",
       group: "data",
       widget: "dataSource",
+      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published BlockOptionUi property controls source compatibility and cannot be renamed.
       responseShape: "value",
       periodOption: "periodScope",
     },

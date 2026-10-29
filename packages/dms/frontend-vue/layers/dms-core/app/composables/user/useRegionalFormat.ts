@@ -22,7 +22,10 @@ type DateInput = Date | string | number | undefined | null;
  */
 export interface RegionalNumberFormatter {
   (value: number, options?: Intl.NumberFormatOptions): string;
-  (value: unknown, options?: Intl.NumberFormatOptions): unknown;
+  (
+    value: Parameters<typeof formatNumber>[0],
+    options?: Intl.NumberFormatOptions,
+  ): ReturnType<typeof formatNumber>;
 }
 
 /**
@@ -33,19 +36,25 @@ export interface RegionalNumberFormatter {
  */
 export type RegionalFormatLocale = "interface" | "format";
 
-type NumberFormat = (
-  value: unknown,
-  locale: string,
-  options?: Intl.NumberFormatOptions,
-) => unknown;
+type NumberFormat = typeof formatNumber;
 
 /** `format` bound to the locale `locale()` answers at each call. */
 function numberFormatter(
   format: NumberFormat,
   locale: () => string,
 ): RegionalNumberFormatter {
-  return ((value: unknown, options?: Intl.NumberFormatOptions) =>
-    format(value, locale(), options)) as RegionalNumberFormatter;
+  function formatIn(value: number, options?: Intl.NumberFormatOptions): string;
+  function formatIn(
+    value: Parameters<NumberFormat>[0],
+    options?: Intl.NumberFormatOptions,
+  ): ReturnType<NumberFormat>;
+  function formatIn(
+    value: Parameters<NumberFormat>[0],
+    options?: Intl.NumberFormatOptions,
+  ): ReturnType<NumberFormat> {
+    return format(value, locale(), options);
+  }
+  return formatIn;
 }
 
 export interface RegionalFormatOptions {
@@ -95,8 +104,10 @@ export function useRegionalFormat(options: RegionalFormatOptions = {}) {
       settings?: RegionalOptionsSettings,
     ) => regionalDateTimeFormat(writeIn(), dateOptions, settings),
     /** A date ("1 October 2026" in `en-GB`), `null` when it is not one. */
-    formatDate: (date: unknown, dateOptions?: Intl.DateTimeFormatOptions) =>
-      formatDate(date, writeIn(), dateOptions),
+    formatDate: (
+      date: Parameters<typeof formatDate>[0],
+      dateOptions?: Intl.DateTimeFormatOptions,
+    ) => formatDate(date, writeIn(), dateOptions),
     /** A time ("14:05:00" in `en-GB`), `null` when it is not a date. */
     formatTime: (date: DateInput, dateOptions?: Intl.DateTimeFormatOptions) =>
       formatTime(date, writeIn(), dateOptions),

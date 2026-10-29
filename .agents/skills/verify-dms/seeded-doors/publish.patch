@@ -1,0 +1,11 @@
+diff --git a/packages/dms/package.json b/packages/dms/package.json
+index 1b46fb3c..9bf6ac91 100644
+--- a/packages/dms/package.json
++++ b/packages/dms/package.json
+@@ -1,5 +1,5 @@
+ {
+-  "name": "@antelopejs/dms",
++  "name": "@antelopejs/dms-runtime",
+   "version": "0.11.1",
+   "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
+   "keywords": [

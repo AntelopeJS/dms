@@ -3,7 +3,7 @@ import { computed } from "vue";
 import type { TableLiveHoldReason } from "../../composables/table-view/useTableLiveHold";
 import type { ConfirmTranslate } from "../../composables/confirm/confirmDialogTexts";
 import { missedRowsText, showLiveNote } from "../../composables/live/liveNotes";
-import type { PageLiveNote } from "../../../types/live";
+import type { PageLiveNote } from "#dms-core/app/types/live";
 
 /**
  * The strip of a `liveHold` table: "N new · Show" once events came in while
@@ -31,9 +31,6 @@ const props = withDefaults(
   { reason: null, missedLabel: undefined, detail: null, floating: false },
 );
 
-// Literal class strings (Tailwind extracts them). The pill is opaque and
-// lifted by the theme's pop shadow (deeper in dark), so the rows under it
-// stay apart from it.
 const STRIP_CLASS =
   "border-b border-(--dms-info-line) bg-(--dms-info-tint) py-[7px] ps-[18px] pe-3.5 text-[13px]";
 const PILL_CLASS =
@@ -42,7 +39,7 @@ const PILL_CLASS =
 const emit = defineEmits<{ show: [] }>();
 
 const { t } = useI18n();
-const translate = t as ConfirmTranslate;
+const translate: ConfirmTranslate = t;
 
 const REASON_KEYS: Record<TableLiveHoldReason, string> = {
   rowOpen: "dms.live.held_row_open",

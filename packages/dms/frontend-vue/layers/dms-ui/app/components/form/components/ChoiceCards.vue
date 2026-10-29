@@ -34,9 +34,6 @@ const props = withDefaults(defineProps<ChoiceCardsProps>(), {
 });
 const model = defineModel<ChoiceValue | ChoiceValue[] | null | undefined>();
 
-// Nuxt UI's choice cards, as the v2 theme draws them: the options side by
-// side, wrapping, each with its description. The column count is a custom
-// property, so any `columns` needs no class of its own.
 const CARDS_UI = {
   fieldset:
     "grid gap-2.5 @min-[480px]:grid-cols-[repeat(var(--dms-choice-columns),minmax(0,1fr))]",
@@ -46,7 +43,7 @@ const columnsStyle = computed(() => ({
   "--dms-choice-columns": String(Math.max(1, Math.round(props.columns))),
 }));
 
-const items = computed(() => props.items as unknown as RadioGroupItem[]);
+const items = computed<RadioGroupItem[]>(() => props.items);
 const pickedMany = computed<ChoiceValue[]>({
   get: () => (Array.isArray(model.value) ? model.value : []),
   set: (value) => (model.value = value),

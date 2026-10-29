@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { stripStagingPrefix } from "@antelopejs/interface-file-storage";
-import { AttachmentModel } from "../db/models/attachments.model";
+import { AttachmentModel } from "../db/models";
 
 export const PRIVATE_LINK_TTL_SECONDS = 60;
 const FORBIDDEN = 403;

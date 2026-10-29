@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/pages/settings/users/member-management.ts b/packages/dms/src/pages/settings/users/member-management.ts
+index 19e82562..870daca2 100644
+--- a/packages/dms/src/pages/settings/users/member-management.ts
++++ b/packages/dms/src/pages/settings/users/member-management.ts
+@@ -149,7 +149,7 @@ export async function buildMemberRemovalImpact(
+     memberId: member._id,
+     name: user?.name ?? "",
+     email: user?.email ?? "",
+-    roles: await roleNames(tenantId, member.roleIds ?? []),
++    roles: await roleNames(tenantId, (member.roleIds ?? []).slice(1)),
+     isTenantOwner: member.isTenantOwner === true,
+     isLastOwner: member.isTenantOwner === true && otherOwners === 0,
+     isSelf: member.userId === requesterUserId,

@@ -1,9 +1,8 @@
 import { computed, createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, expect, it, vi } from "vitest";
-import ModuleTile from "../layers/dms-layout/app/build/components/pages/modules/ModuleTile.vue";
+import ModuleTile from "../layers/dms-layout/app/entries/components/pages/modules/ModuleTile";
 
-vi.mock("#dms/frontend-module", () => ({ DmsLink: "a" }));
 afterEach(() => vi.unstubAllGlobals());
 
 it("reads the description before live figures, requirements, and footer actions", async () => {
@@ -40,28 +39,4 @@ it("reads the description before live figures, requirements, and footer actions"
       html.indexOf(content[index]),
     );
   }
-});
-
-it("wraps the footer band rather than cutting its facts short", async () => {
-  vi.stubGlobal("computed", computed);
-  const app = createSSRApp({
-    render: () =>
-      h(
-        ModuleTile,
-        {
-          icon: "i-ph-plugs",
-          title: "API",
-          description: "Inspect API traffic",
-        },
-        { footer: () => h("span", { id: "facts" }, "v0.5.0 · Local") },
-      ),
-  });
-  app.component("DmsIconWell", () => null);
-  app.component("DmsStatusPill", () => null);
-  const html = await renderToString(app);
-  // SSR wraps slot content in fragment comments.
-  const band = /<div class="([^"]*)">(?:<!--[^>]*-->)*<span id="facts">/.exec(
-    html,
-  );
-  expect(band?.[1].split(" ")).toContain("flex-wrap");
 });

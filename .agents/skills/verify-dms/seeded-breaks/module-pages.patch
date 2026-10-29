@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/realtime/table-view.ts b/packages/dms/src/realtime/table-view.ts
+index 6b7e0848..b6c5e100 100644
+--- a/packages/dms/src/realtime/table-view.ts
++++ b/packages/dms/src/realtime/table-view.ts
+@@ -23,7 +23,7 @@ export async function publishTableViewMutation({
+   tenantId,
+ }: RealtimeMutationContext): Promise<void> {
+   await getRealtimeBroker().publish({
+-    topic: tableViewRowTopic(controllerLocation),
++    topic: tableViewRowTopic(`${controllerLocation}/`),
+     type: eventType,
+     payload: { ids },
+     actorId: actor?.id,

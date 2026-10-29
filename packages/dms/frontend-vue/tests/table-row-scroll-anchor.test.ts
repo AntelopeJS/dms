@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Rows added above the ones the reader scrolled to (a live list's new rows)
  * do not push them down: the table scrolls as far as they moved, in the same
@@ -10,7 +10,7 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 import {
   ROW_ID_ATTRIBUTE,
   useRowScrollAnchor,
-} from "../layers/dms-ui/app/build/composables/table/useRowScrollAnchor";
+} from "../layers/dms-ui/app/entries/composables/table/useRowScrollAnchor";
 
 const ROW_HEIGHT = 40;
 const VIEW_HEIGHT = 200;
@@ -21,8 +21,6 @@ let scrollTop = 0;
 const ids = ref<string[]>([]);
 const boundingRect = Element.prototype.getBoundingClientRect;
 
-// jsdom lays nothing out: each row stands ROW_HEIGHT under the one before
-// it, the whole list moved up by the scroller's scroll.
 function layOut(): void {
   Object.defineProperty(scroller, "scrollTop", {
     configurable: true,
@@ -39,11 +37,11 @@ function layOut(): void {
     configurable: true,
     get: () => VIEW_HEIGHT,
   });
-  scroller.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+  scroller.getBoundingClientRect = () => new DOMRect();
   const rowTop = (row: Element) =>
     [...scroller.querySelectorAll("tr")].indexOf(row) * ROW_HEIGHT - scrollTop;
   Element.prototype.getBoundingClientRect = function (this: Element) {
-    return { top: rowTop(this) } as DOMRect;
+    return new DOMRect(0, rowTop(this));
   };
 }
 

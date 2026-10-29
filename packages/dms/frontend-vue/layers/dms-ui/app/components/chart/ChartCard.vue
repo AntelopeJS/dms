@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, provide, reactive, watchEffect } from "vue";
+import { computed, provide, reactive } from "vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
-// Imported rather than resolved from the registry: a registered component is
-// a lazy chunk of its own, fetched only when the data first shows it, so the
-// trend would pop in a beat after the value.
+
 import DmsTrendBadge from "./internal/TrendBadge.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import {
@@ -45,9 +43,6 @@ interface Props extends DefaultComponentProps {
   comparisonLabel?: string;
 }
 
-// The comparison series takes palette step 2 (v2 violet), re-resolved on
-// theme changes via useThemeRevision so it tracks light/dark mode. Its legend
-// key reads the same token in CSS.
 const COMPARISON_COLOR_TOKEN = "--dms-chart-2";
 const themeRevision = useThemeRevision();
 const comparisonColor = computed(() => {
@@ -84,8 +79,6 @@ const { data, isLoading } = useChartFetch<ChartCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-// With no comparison selected on the scope, whatever comparison the data
-// still carries is not drawn: no change, no "vs" figure, no second series.
 const comparison = usePeriodComparisonDisplay(props.periodScope);
 const value = computed(() => data.value?.value);
 const previousValue = computed(() =>
@@ -95,9 +88,6 @@ const delta = computed(() =>
   comparison.isOff.value ? null : (data.value?.delta ?? null),
 );
 
-// ApexCharts prints names, categories and slice labels verbatim, so a
-// route's `$` keys are resolved here, before the array reaches the nested
-// chart and the default slot.
 function localized(entry: ChartSeries): ChartSeries {
   return localizeSeries(entry, processI18n);
 }
@@ -143,35 +133,24 @@ const previousFormatted = computed(() =>
 
 const hasComparison = computed(() => cardComparisonSeries.value.length > 0);
 
-const nestedContext = reactive<NestedChartContext>({
-  cardSeries: [],
-  cardComparisonSeries: [],
-  isLoading: false,
-  hideLegend: !props.showSeriesLegend,
-  valueFormat: props.valueFormat,
-  currencyCode: props.currencyCode,
-  valuePrecision: props.valuePrecision,
+const nestedContext: NestedChartContext = reactive({
+  cardSeries,
+  cardComparisonSeries,
+  isLoading,
+  hideLegend: computed(() => !props.showSeriesLegend),
+  valueFormat: computed(() => props.valueFormat),
+  currencyCode: computed(() => props.currencyCode),
+  valuePrecision: computed(() => props.valuePrecision),
 });
 
 provide(NESTED_CHART_INJECT_KEY, nestedContext);
-
-watchEffect(() => {
-  nestedContext.cardSeries = cardSeries.value;
-  nestedContext.cardComparisonSeries = cardComparisonSeries.value;
-  nestedContext.isLoading = isLoading.value;
-  nestedContext.hideLegend = !props.showSeriesLegend;
-  nestedContext.valueFormat = props.valueFormat;
-  nestedContext.currencyCode = props.currencyCode;
-  nestedContext.valuePrecision = props.valuePrecision;
-});
 
 const primaryLegendLabel = computed(() =>
   props.primaryLabel
     ? processI18n(props.primaryLabel)
     : t(DEFAULT_PRIMARY_LABEL_KEY, "Period"),
 );
-// The comparison the scope selects names its series ("Previous year"),
-// unless the card names it itself.
+
 const comparisonLegendLabel = computed(() =>
   props.comparisonLabel
     ? processI18n(props.comparisonLabel)
@@ -180,8 +159,7 @@ const comparisonLegendLabel = computed(() =>
 );
 
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
-// New inputs (a period applied) are on their way: the figures on screen still
-// belong to the previous ones, so they dim like the KPI values do.
+
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 
 const showTrend = computed(() => props.showDelta && delta.value !== null);

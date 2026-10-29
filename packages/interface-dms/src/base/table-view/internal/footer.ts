@@ -1,7 +1,3 @@
-// The footer band and the empty states of a table view: the figures the
-// `summary` route computes over the listed rows, the legend, and what an
-// empty body says.
-
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
@@ -12,6 +8,7 @@ import {
 } from "../../types/row-action-operators";
 import type { RowActionRule } from "../../types/row-action";
 import { TableViewMeta } from "../meta";
+import { rowRuleProblem } from "./row-rule-shape";
 import { servesRoute } from "./tabs";
 import type {
   TableViewEmptyStates,
@@ -31,13 +28,14 @@ const LEGEND_TYPE_ID = "select";
 export function ruleFields<T extends Record<string, unknown>>(
   rule: RowActionRule<T>,
 ): string[] {
-  const record = rule as Record<string, unknown>;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published generic rule union has field and logical variants; this traversal reads their operator keys without imposing a row-value schema.
+  const record: Record<string, unknown> = rule;
   if (FIELD_KEY in record) return [String(record[FIELD_KEY])];
   return LOGICAL_OPERATOR_KEYS.flatMap((key) => {
     const nested = record[key];
     if (!nested) return [];
     const rules = Array.isArray(nested) ? nested : [nested];
-    return rules.flatMap((entry) => ruleFields(entry as RowActionRule));
+    return rules.flatMap((entry) => ruleFields(entry));
   });
 }
 
@@ -50,6 +48,8 @@ function assertSummary<T extends Record<string, unknown>>(
   if (summary.op === "sum" && !summary.field) {
     throw new Error(`${where} sums no field: give it a field`);
   }
+  const problem = summary.where && rowRuleProblem(summary.where, "where");
+  if (problem) throw new Error(`${where} has a malformed rule: ${problem}`);
   const fields = [
     ...(summary.field ? [summary.field] : []),
     ...(summary.where ? ruleFields(summary.where) : []),
@@ -91,7 +91,7 @@ export function serializeFooter<T extends Record<string, unknown>>(
     ...texts,
     summary: summary.map(({ where: _where, ...entry }, index) => ({
       ...entry,
-      id: ids[index]!,
+      id: ids[index],
     })),
   };
 }

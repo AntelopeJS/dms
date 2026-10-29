@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A cascader cell names its value by its path ("Electronics / Audio"), read
  * by `?ids=` for the picked rows the list did not join and the ancestors,
@@ -22,6 +22,7 @@ import CascaderPath from "../layers/dms-ui/app/components/table-view/CascaderPat
 const SEARCH_URL = "/api/categories/select";
 const KEY_MAPPING = { label: "name", value: "_id", parent: "parent" };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- The fake route accepts arbitrary ids including misses; inference cannot index them, and own-key filtering would change inherited-key lookup.
 const ROWS: Record<string, { _id: string; name: string; parent?: string }> = {
   electronics: { _id: "electronics", name: "Electronics" },
   audio: { _id: "audio", name: "Audio", parent: "electronics" },
@@ -36,20 +37,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountCell(value: unknown) {
+async function mountCell(
+  value: InstanceType<typeof CascaderPath>["$props"]["value"],
+) {
   vi.stubGlobal("computed", vue.computed);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   const reads: unknown[] = [];
   vi.stubGlobal("useAuthFetch", () => ({
-    $authFetch: vi.fn(async (url: string, options: { params: unknown }) => {
-      reads.push({ url, params: options.params });
-      const { ids } = options.params as { ids: string[] };
-      return { results: ids.flatMap((id) => (ROWS[id] ? [ROWS[id]] : [])) };
-    }),
+    $authFetch: vi.fn(
+      async (
+        url: string,
+        options: { params: { ids: Array<(typeof ROWS)[string]["_id"]> } },
+      ) => {
+        reads.push({ url, params: options.params });
+        const { ids } = options.params;
+        return { results: ids.flatMap((id) => (ROWS[id] ? [ROWS[id]] : [])) };
+      },
+    ),
   }));
   vi.stubGlobal(
     "useDmsAsyncData",
-    async (key: unknown, read: () => Promise<unknown>) => {
+    async <T>(key: Parameters<typeof toValue>[0], read: () => Promise<T>) => {
       toValue(key);
       const data = ref<unknown>();
       void read().then((result) => (data.value = result));

@@ -1,35 +1,37 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type App, createApp, h, ref } from "vue";
+import { type App, type VNode, createApp, h, ref } from "vue";
+import { isFunction } from "../layers/dms-core/app/utils/type-check";
+import { browserRuntime } from "./helpers/api-data-runtime";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
-const data = ref<Record<string, unknown> | null>(null);
-const error = ref<unknown>(null);
-const isLoading = ref(false);
-const fetchOptions = vi.fn();
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: unknown) => {
-    fetchOptions(options);
-    return { data, isLoading, error, refresh: async () => {} };
-  },
-}));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- The transport double passes unparsed responses to the block's real boundary; a CodeBlock-only return type would misrepresent the shared network helper.
+const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
 
 let app: App | undefined;
+let runtime: ReturnType<typeof browserRuntime> | undefined;
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 let host: HTMLDivElement;
 
-type MountProps = Record<string, unknown> | (() => Record<string, unknown>);
+type ComponentProps = NonNullable<VNode["props"]>;
+type MountProps = ComponentProps | (() => ComponentProps);
 
-// Props given as a getter are read on each render: a test changes them live.
-async function mount(path: string, props: MountProps) {
-  const { default: component } = await import(path);
-  const read = typeof props === "function" ? props : () => props;
+const loaders = {
+  "../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue": () =>
+    import("../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue"),
+  "../layers/dms-ui/app/components/blocks/CodeBlock.vue": () =>
+    import("../layers/dms-ui/app/components/blocks/CodeBlock.vue"),
+  "../layers/dms-ui/app/components/blocks/EmptyStateBlock.vue": () =>
+    import("../layers/dms-ui/app/components/blocks/EmptyStateBlock.vue"),
+};
+
+async function mount(path: keyof typeof loaders, props: MountProps) {
+  const { default: component } = await loaders[path]();
+  const read = isFunction(props) ? props : () => props;
   app = createApp({ setup: () => () => h(component, read()) });
+  runtime?.scope.stop();
+  runtime = browserRuntime(app);
   for (const name of ["UIcon", "USkeleton", "UButton"]) {
     app.component(name, (_, { attrs }) =>
       h("i", { ...attrs, "data-stub": name }),
@@ -43,7 +45,7 @@ async function mount(path: string, props: MountProps) {
 
 const mountSnippet = (props: MountProps) =>
   mount("../layers/dms-ui/app/components/code-snippet/CodeSnippet.vue", props);
-const mountBlock = (props: Record<string, unknown>) =>
+const mountBlock = (props: ComponentProps) =>
   mount("../layers/dms-ui/app/components/blocks/CodeBlock.vue", {
     componentId: "code",
     pageId: "page",
@@ -53,19 +55,17 @@ const mountBlock = (props: Record<string, unknown>) =>
 const pre = () => host.querySelector("pre")!;
 const copyButton = () => host.querySelector("button");
 
-beforeEach(() => {
-  data.value = null;
-  error.value = null;
-  isLoading.value = false;
-  fetchOptions.mockClear();
+beforeEach(async () => {
+  authFetch.mockReset().mockResolvedValue(null);
+  await stubBlockRuntime(authFetch);
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   host = document.createElement("div");
   document.body.append(host);
 });
 
 afterEach(() => {
   app?.unmount();
+  runtime?.scope.stop();
   host.remove();
   vi.unstubAllGlobals();
 });
@@ -160,31 +160,43 @@ describe("CodeBlock", () => {
   });
 
   it("replaces the code and the language with what its route answers", async () => {
-    data.value = { code: "echo hi", language: "shell" };
+    authFetch.mockResolvedValue({ code: "echo hi", language: "shell" });
     await mountBlock({
       code: "old",
       language: "json",
       fetchUrl: "/api/snippet",
     });
-    expect(fetchOptions).toHaveBeenCalledWith(
-      expect.objectContaining({ fetchUrl: "/api/snippet" }),
-    );
+    expect(authFetch).toHaveBeenCalledWith("/api/snippet", expect.any(Object));
     expect(pre().textContent).toBe("echo hi");
     expect(pre().dataset.language).toBe("shell");
   });
 
   it("draws placeholder lines until the first answer", async () => {
-    isLoading.value = true;
+    let answer = (
+      _value: Parameters<typeof authFetch.mockResolvedValue>[0],
+    ) => {};
+    authFetch.mockImplementation(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
     await mountBlock({ fetchUrl: "/api/snippet" });
     expect(host.querySelector("pre")).toBeNull();
     expect(host.querySelector("[aria-busy]")).not.toBeNull();
+    answer({ code: "loaded" });
+    await flushPromises();
+    expect(pre().textContent).toBe("loaded");
+    expect(host.querySelector("[aria-busy]")).toBeNull();
   });
 
   it("offers a retry when the first load fails", async () => {
-    error.value = new Error("network");
+    authFetch.mockRejectedValueOnce(new Error("network"));
     await mountBlock({ fetchUrl: "/api/snippet" });
     expect(host.querySelector("pre")).toBeNull();
     expect(host.textContent).toContain("dms.blocks.load_error");
+    authFetch.mockResolvedValue({ code: "retried" });
+    host.querySelector<HTMLElement>('[data-stub="UButton"]')!.click();
+    await flushPromises();
+    expect(authFetch).toHaveBeenCalledTimes(2);
+    expect(pre().textContent).toBe("retried");
   });
 });
 

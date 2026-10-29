@@ -1,4 +1,1 @@
-export {
-  buildTenantExportArchive,
-  startTenantExportJob,
-} from "../../utils/tenant-export-archive";
+export { buildTenantExportArchive, startTenantExportJob } from "../../utils";

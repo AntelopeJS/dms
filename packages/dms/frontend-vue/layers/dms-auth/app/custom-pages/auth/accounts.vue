@@ -2,8 +2,8 @@
 import {
   TILE_ROW_CLASS,
   TILE_ROW_INTERACTIVE_CLASS,
-} from "#dms-ui/app/build/utils/tileRow";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+} from "#dms-ui/app/entries/utils/tileRow";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 
 const ACCOUNT_SKELETON_ROWS = 2;
 

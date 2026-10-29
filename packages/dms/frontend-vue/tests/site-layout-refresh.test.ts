@@ -11,9 +11,7 @@ import { describe, expect, it, vi } from "vitest";
  */
 function createSiteLayoutRefresher(
   fetchLayout: () => Promise<void>,
-  // The composable parks the in-flight fetch on the DMS app, so every caller
-  // of useSiteLayout coordinates through one holder; passing it in mirrors
-  // that, and lets a test act as a second instance.
+
   holder: { loadingPromise: Promise<void> | null } = { loadingPromise: null },
 ) {
   const state = holder;
@@ -47,7 +45,7 @@ function createSiteLayoutRefresher(
 
 function deferred() {
   let resolve!: () => void;
-  let reject!: (error: unknown) => void;
+  let reject!: (error: Error) => void;
   const promise = new Promise<void>((res, rej) => {
     resolve = () => res();
     reject = rej;
@@ -67,7 +65,6 @@ describe("useSiteLayout refresh", () => {
     first.resolve();
     await refreshed;
 
-    // The in-flight answer cannot hold the change, so a second one is fetched.
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
 
@@ -82,7 +79,6 @@ describe("useSiteLayout refresh", () => {
     first.resolve();
     await Promise.all(refreshes);
 
-    // Three refreshes over one in-flight fetch: one relaunch, not three.
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
 
@@ -100,14 +96,13 @@ describe("useSiteLayout refresh", () => {
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
 
-  // Two instances of the composable write the same shared layout state, so
-  // they have to share the in-flight fetch: otherwise the older answer can
-  // land last and overwrite the fresher menu.
   it("shares the in-flight fetch between instances", async () => {
     const first = deferred();
     const answers = [first.promise, Promise.resolve()];
     const fetchLayout = vi.fn(() => answers.shift() ?? Promise.resolve());
-    const holder = { loadingPromise: null as Promise<void> | null };
+    const holder: Parameters<typeof createSiteLayoutRefresher>[1] = {
+      loadingPromise: null,
+    };
     const instanceA = createSiteLayoutRefresher(fetchLayout, holder);
     const instanceB = createSiteLayoutRefresher(fetchLayout, holder);
 
@@ -116,7 +111,6 @@ describe("useSiteLayout refresh", () => {
     first.resolve();
     await refreshed;
 
-    // B saw A's fetch and relaunched once, rather than racing it.
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
 

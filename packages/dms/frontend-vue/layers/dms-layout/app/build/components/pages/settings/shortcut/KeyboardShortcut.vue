@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// v2 .kbd-combo: the keys of a combination side by side, without separators.
 interface Props {
   keys: string[];
 }

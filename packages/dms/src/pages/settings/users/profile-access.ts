@@ -1,7 +1,3 @@
-// What the profile's "Your access" row says: the roles the signed-in user
-// holds in the workspace being viewed, and whether they own it or the
-// platform. Read for the user themselves only, like the account export.
-
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";

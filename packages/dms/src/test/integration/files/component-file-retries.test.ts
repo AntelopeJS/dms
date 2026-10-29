@@ -2,12 +2,12 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { RequestContext } from "@antelopejs/interface-api";
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
-import { SaveComponentFiles } from "../../../attachments/save";
+import { SaveComponentFiles } from "../../../attachments";
 import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 import { nativeUploadToken, uploadAttachment } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -57,6 +57,7 @@ async function fixture(field = "file"): Promise<Fixture> {
     token,
   });
   const request: AttachmentSaveRequest = {
+    // SAFETY: File access resolves the principal and tenant from the raw request's authorization header only, which the fixture supplies.
     context: {
       rawRequest: { headers: { authorization: `Bearer ${user.accessToken}` } },
     } as RequestContext,
@@ -93,7 +94,7 @@ async function assertFinal(f: Fixture): Promise<void> {
 
 async function persist(
   f: Fixture,
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<string>["document"],
 ): Promise<AttachmentSaveResult<string>> {
   expect(document.file).to.equal(f.canonical);
   const response = await f.client.post(`${LOCATION}/new`, {
@@ -139,7 +140,7 @@ class PromotionBarrier {
 }
 
 type SaveCallback = (
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<string>["document"],
 ) => Promise<AttachmentSaveResult<string>>;
 
 function startSave(
@@ -166,7 +167,7 @@ async function assertCommittedSave(
   await assertFinal(f);
 }
 
-async function concurrentSaves(f: Fixture, failing: SaveOrder): Promise<void> {
+async function concurrentSaves(f: Fixture, failing: SaveOrder) {
   const promotion = new PromotionBarrier(f.staged);
   const firstPromoted = barrier();
   const finishFirst = barrier();
@@ -195,14 +196,11 @@ async function concurrentSaves(f: Fixture, failing: SaveOrder): Promise<void> {
       finishFirst.release();
     }
     const results = { first: await first, second: await second };
-    expect(results[failing]).to.deep.equal({
-      status: "rejected",
-      reason: SAVE_FAILURE,
-    });
     await assertCommittedSave(
       f,
       results[failing === "first" ? "second" : "first"],
     );
+    return results[failing];
   } finally {
     promotion.restore();
     finishFirst.release();
@@ -215,7 +213,11 @@ describe("[integration] native canonical file retries", () => {
 
   for (const failing of ["first", "second"] as const) {
     it(`keeps committed bytes when the ${failing} promoter fails after the other save commits`, async () => {
-      await concurrentSaves(await fixture(), failing);
+      const result = await concurrentSaves(await fixture(), failing);
+      expect(result).to.deep.equal({
+        status: "rejected",
+        reason: SAVE_FAILURE,
+      });
     });
   }
 

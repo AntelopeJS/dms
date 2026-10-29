@@ -21,7 +21,10 @@ const props = defineProps<InputPercentageProps>();
 const emits = defineEmits<InputNumberEmits>();
 defineSlots<InputNumberSlots>();
 
-const displayValue = computed({
+const displayValue = computed<
+  InputNumberProps["modelValue"],
+  InputNumberEmits["update:modelValue"][0]
+>({
   get: () => {
     const value = props.modelValue;
     return isNumber(value) ? value * PERCENTAGE_MULTIPLIER : value;
@@ -30,7 +33,7 @@ const displayValue = computed({
     if (isNumber(newValue)) {
       emits("update:modelValue", newValue / PERCENTAGE_MULTIPLIER);
     } else {
-      emits("update:modelValue", newValue as unknown as number);
+      emits("update:modelValue", newValue);
     }
   },
 });
@@ -50,9 +53,9 @@ const forwardedProps = computed(() => {
     ...bounds.value,
     modelValue: displayValue.value,
     step: props.step ?? 0.01,
-    // The step drives the steppers only: a stored 12.345 % stays as it is.
+
     stepSnapping: props.stepSnapping ?? false,
-    // The wrapper takes the caller's class, so the field fills it.
+
     class: "w-full",
     ui: { ...props.ui, base: ["pe-7", props.ui?.base] },
   };

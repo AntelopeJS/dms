@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -13,16 +13,8 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
-import TableActions from "../layers/dms-ui/app/build/components/table/Actions.vue";
-import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Menu.vue", () => ({
-  default: { render: () => null },
-}));
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: { render: () => null },
-}));
+import TableActions from "../layers/dms-ui/app/entries/components/table/Actions";
+import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 
 const PassThrough = defineComponent({
   setup:
@@ -38,7 +30,6 @@ const ButtonStub = defineComponent({
       h("button", slots.default?.()),
 });
 
-// A real UInput wraps its field: the toolbar focuses the input inside it.
 const InputStub = defineComponent({
   inheritAttrs: false,
   setup:

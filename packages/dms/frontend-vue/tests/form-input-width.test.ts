@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A short single-line input sizes itself for its value instead of filling
  * the row: asked for with `width: "compact"`, or by itself when its bounds
@@ -18,14 +18,14 @@ import {
 import {
   isCompactNumberInput,
   isCompactTextInput,
-} from "../layers/dms-ui/app/build/utils/inputWidth";
+} from "../layers/dms-ui/app/entries/utils/inputWidth";
+import { isNumber } from "../layers/dms-core/app/utils/type-check";
 
 const COMPACT_CLASS = "sm:max-w-44";
 
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// The Nuxt UI control: its root takes the class, the input the rest.
 const Control = (tag: string) =>
   defineComponent({
     inheritAttrs: false,
@@ -39,7 +39,10 @@ const Control = (tag: string) =>
       },
   });
 
-async function mount(component: Component, props: Record<string, unknown>) {
+async function mount(
+  component: Component,
+  props: Parameters<typeof createApp>[1],
+) {
   app = createApp({
     render: () => h(component, { class: "w-full", ...props }),
   });
@@ -49,9 +52,18 @@ async function mount(component: Component, props: Record<string, unknown>) {
   await nextTick();
 }
 
-const load = async (name: string) =>
-  (await import(`../layers/dms-ui/app/components/form/components/${name}.vue`))
-    .default as Component;
+const loaders = {
+  InputText: () =>
+    import("../layers/dms-ui/app/components/form/components/InputText.vue"),
+  InputPercentage: () =>
+    import(
+      "../layers/dms-ui/app/components/form/components/InputPercentage.vue"
+    ),
+  InputNumber: () =>
+    import("../layers/dms-ui/app/components/form/components/InputNumber.vue"),
+};
+const load = async (name: keyof typeof loaders): Promise<Component> =>
+  (await loaders[name]()).default;
 
 const control = () => host.querySelector("[data-control]")!;
 
@@ -60,7 +72,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
-  vi.stubGlobal("isNumber", (value: unknown) => typeof value === "number");
+  vi.stubGlobal("isNumber", isNumber);
   host = document.createElement("div");
   document.body.append(host);
 });

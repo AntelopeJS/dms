@@ -13,11 +13,6 @@ import {
   useKeyboardPlatform,
 } from "../../../composables/global/keyboardPlatform";
 
-// The one search field of the DMS (settings menu, pages, lists, tables): a
-// UInput with the magnifier, named by its placeholder, and the keys that
-// focus it as a hint. Attributes (`id`, `size`, `class`, listeners) go to
-// the UInput.
-
 /**
  * The keys that focus the field: `nav` is "/" (the navigation search, one
  * per page), `page` is ⌘ / or Ctrl / (a page's own search).

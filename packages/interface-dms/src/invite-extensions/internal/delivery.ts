@@ -28,8 +28,10 @@ import type { InviteDeliveryOptions } from "./types";
  * @internal
  */
 export function CollectInviteExtensionPayloads(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published submission boundary accepts arbitrary bodies; each extension slice is validated below without replacing its stored input.
   body: unknown,
 ): InviteExtensionPayloads {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- This legacy boundary treats any non-null body as an enumerable form dictionary without validation; the published unknown-input contract and current behavior must stay intact.
   const source = (body ?? {}) as Record<string, unknown>;
   const payloads: InviteExtensionPayloads = {};
 

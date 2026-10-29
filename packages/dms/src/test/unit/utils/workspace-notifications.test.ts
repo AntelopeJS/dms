@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
+import { notifyRolePermissionsChanged } from "../../../hooks";
 
 const DATABASE_DOWN = "connection reset by peer";
 
@@ -20,8 +20,6 @@ describe("[unit] utils/workspace-notifications", () => {
       );
     });
 
-    // The roles editor fires it after answering: a rejection would be
-    // unhandled, and the runtime exits the process on one.
     it("settles without rejecting when the database fails", async () => {
       let ownersRequested = false;
       TenantMemberModel.prototype.listOwners = () => {
@@ -36,7 +34,7 @@ describe("[unit] utils/workspace-notifications", () => {
         actor: { id: "actor", name: "Actor" },
       }).then(
         () => "resolved",
-        (error: unknown) => `rejected: ${String(error)}`,
+        (error) => `rejected: ${String(error)}`,
       );
 
       expect(ownersRequested).to.equal(true);

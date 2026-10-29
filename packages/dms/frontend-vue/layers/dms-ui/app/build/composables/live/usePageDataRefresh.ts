@@ -7,7 +7,6 @@ import {
 } from "../../../utils/blockRefresh";
 import { useRefreshTriggers } from "../blocks/useRefreshTriggers";
 
-// One frame: the events of one burst (a bulk edit) read the data once.
 const BURST_WINDOW_MS = 16;
 
 /** What the page's data refresh listens to. */
@@ -30,12 +29,11 @@ export interface PageDataRefreshSource {
 export function usePageDataRefresh(source: PageDataRefreshSource): void {
   const { refresh, cancel } = burstRefresh();
   const gate = useRefreshTriggers(undefined, () => void refresh());
-  // The gate's own listener reads at once on the same event: this call joins
-  // the same burst, and hands its promise to the caller.
+
   const stopWaiting = onPageBlocksRefresh((event) =>
     waitForPageBlocksRefresh(event, refresh()),
   );
-  // Presence snapshots ride the same topics: they carry no `type`.
+
   const onEvent: RealtimeTopicHandler = (event) => {
     if ("type" in event) gate.trigger(event);
   };

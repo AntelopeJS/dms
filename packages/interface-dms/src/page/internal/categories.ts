@@ -1,16 +1,12 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { ComponentInfo } from "../../component";
+import { Action, type ComponentInfo } from "../../component";
 import {
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
 } from "../../permissions";
-// Categories resolve controller classes through their PageMetadata, and the
-// metadata module registers pages through the proxies declared in
-// ../categories: the cycle stays safe because none of these modules
-// dereferences another while it evaluates — only from inside function bodies.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the proxies declared in categories.
 import { PageMetadata } from "../metadata";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { fireAndForget } from "../../utils/fire-and-forget";
@@ -30,11 +26,10 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "../types";
+import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
-// The proxies and isInsideModule are only read inside function bodies; see
-// the matching import in ../categories.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
 import { internal, isInsideModule } from "../categories";
 
 /**
@@ -51,6 +46,7 @@ export function resolveCategoryInfo(
     return undefined;
   }
 
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published category union distinguishes controller constructors from CategoryInfo objects by callability.
   if (typeof category === "function") {
     const meta = GetMetadata(category, PageMetadata);
     if (!meta.pageInfo) {
@@ -82,12 +78,10 @@ export function resolveInheritedLayout(
   return undefined;
 }
 
-// Unlike resolveCategoryInfo, a parent class that is not a registered page
-// ends the walk instead of throwing: the page declaring it reports that when
-// it registers, not while its layout is being chosen.
 function findCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The category union represents a controller constructor or resolved metadata, not unparsed input.
   if (typeof category !== "function") return category;
   return GetMetadata(category, PageMetadata).pageInfo;
 }
@@ -153,9 +147,6 @@ function resolveCategoryFromOptions(
         `"${id}" references unknown module "${options.module}". Make sure RegisterModule was called before registration.`,
       );
     }
-    // Loose pages attach to the module's default category when one is declared,
-    // so they render under a controllable heading instead of the generic
-    // "Pages" group. Otherwise they sit directly under the module root.
     return moduleDefaultCategories.get(options.module) ?? moduleRoot;
   }
   return undefined;
@@ -180,10 +171,6 @@ function validateExplicitCategoryMatchesModule(
   }
 }
 
-// The settings root is compared by its stable fullId, not through the
-// `settingsCategory` object: that object lives in the bootstrap module, which
-// this module underpins — importing it back would make the graph circular for
-// a check that only needs the id.
 const SETTINGS_ROOT_FULL_ID = "settings";
 
 /** @internal */
@@ -213,20 +200,16 @@ export function createCategoryFunction(
   id: string,
   options: MenuOptions | RootCategoryOptions,
 ): CategoryInfo {
-  const hasModuleField =
-    "module" in options && (options as MenuOptions).module !== undefined;
+  const hasModuleField = "module" in options && options.module !== undefined;
   const effectiveOptions = hasModuleField
-    ? applyModuleResolution(id, options as MenuOptions)
+    ? applyModuleResolution(id, options)
     : options;
 
   const category = effectiveOptions.category;
   const resolvedCategory = resolveCategoryInfo(category);
 
   if (hasModuleField) {
-    validateNotInsideSettings(
-      (effectiveOptions as MenuOptions).module,
-      resolvedCategory,
-    );
+    validateNotInsideSettings(effectiveOptions.module, resolvedCategory);
   }
 
   const parentFullId = resolvedCategory?.fullId || "";
@@ -248,34 +231,27 @@ export function createCategoryFunction(
   };
 
   internal.RegisterCategory.register(categoryInfo);
-  // Left exactly as it was, and it is wrong: when `permission` is an Action,
-  // the spread copies the action's `id` and `definition` over the category's
-  // own and leaves the permission with no title, so the category registers
-  // under the action's short id while `resolvePagePermissionId` later looks it
-  // up under the full one.
-  //
-  // Not fixed here. registerPagePermission converts through `toPermission()`
-  // and skips registration when it succeeds, but it runs at page-registration
-  // time; a category is built at import time, before `permissionMap` holds the
-  // component, so `toPermission()` returns undefined and the same spread runs
-  // anyway. Making this right means deciding when a category's permission is
-  // resolved, which is a design question and not a lint pass.
   const categoryPermission: Permission = {
     id: categoryInfo.fullId,
     title: categoryInfo.displayName,
     icon: categoryInfo.icon,
     defaultGranted:
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread
-    ...categoryInfo.permission,
+    ...ownPermission(categoryInfo.permission),
   };
   if (isInsideModule(categoryInfo)) {
-    MarkModuleScopedPermission(categoryPermission.id);
-  } else {
+    MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
+  } else if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
   return categoryInfo;
+}
+
+function ownPermission(
+  permission: CategoryInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */
@@ -313,8 +289,6 @@ export function applyPageExtension(info: PageExtensionInfo): void {
 export function revokePageExtension(info: PageExtensionInfo): void {
   const registered = pageExtensions.get(info.targetFullId);
   if (!registered) return;
-  // By token: the implementation hands the extension back as a view of
-  // itself, and dropping it by reference would revoke nothing.
   const remaining = registered.filter(
     (entry) => !pageExtensionIdentity.isSame(entry, info),
   );

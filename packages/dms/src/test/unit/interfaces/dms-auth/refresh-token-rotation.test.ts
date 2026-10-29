@@ -29,7 +29,9 @@ interface FakeTable {
 }
 
 interface FakeQuery {
-  filter: (predicate: unknown) => FakeQuery;
+  filter: (
+    predicate: Parameters<SessionModel["table"]["filter"]>[0],
+  ) => FakeQuery;
   update: (update: RotationUpdate) => FakeQuery;
   run: () => Promise<number>;
 }
@@ -40,6 +42,7 @@ function sha256(token: string): string {
 
 /** A session whose current refresh token is `refreshToken`. */
 function createSession(refreshToken: string): Session {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rotation reads only the token fields of this deliberately partial session, not the remaining persisted session columns.
   return { _id: "session", refreshTokenHash: sha256(refreshToken) } as Session;
 }
 
@@ -52,8 +55,9 @@ function matchesPresented(session: Session, presentedHash: string): boolean {
 }
 
 function createModel(): FakeModel {
-  const model = Object.create(SessionModel.prototype) as FakeModel;
+  const model: FakeModel = Object.create(SessionModel.prototype);
   let update: RotationUpdate;
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fake replaces the database query builder with its CAS simulation; it deliberately does not implement the full database table contract.
   const tableHolder = model as unknown as FakeTableHolder;
   tableHolder.table = {
     getAll: () => {
@@ -179,13 +183,11 @@ describe("refresh token rotation", () => {
   });
 
   it("keeps no refresh token in plaintext once rotated", async () => {
-    // Long enough that the random sealed text cannot contain it by chance,
-    // as it did with a two-character token about once in a hundred runs.
     const rotated = "rotated-refresh-token-in-plaintext";
     const model = createModel();
     model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", rotated, committedAt);
-    const session = model.currentSession as Session;
+    const session = model.currentSession;
 
     expect(session.refreshTokenHash).to.equal(sha256(rotated));
     expect(session.sealedRefreshToken).to.be.a("string");
@@ -210,9 +212,8 @@ describe("refresh token rotation", () => {
     const model = createModel();
     model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
-    // Forge the predecessor check so only the seal stands in the way.
-    (model.currentSession as Session).previousRefreshTokenHash =
-      sha256("forged");
+
+    model.currentSession.previousRefreshTokenHash = sha256("forged");
 
     expect(
       await model.rotateRefreshToken("session", "forged", "loser", committedAt),
@@ -221,16 +222,17 @@ describe("refresh token rotation", () => {
 
   it("stores only the hash on replacement", async () => {
     const model = createModel();
-    model.currentSession = createSession("T0");
+    const stored = createSession("T0");
+    model.currentSession = stored;
     Object.defineProperty(model, "update", {
       value: async (_id: string, update: Partial<Session>) => {
-        Object.assign(model.currentSession as Session, update);
+        Object.assign(stored, update);
         return 1;
       },
     });
 
     await model.replaceRefreshToken("session", "replacement");
-    const session = model.currentSession as Session;
+    const session = model.currentSession;
 
     expect(session.sealedRefreshToken).to.equal(null);
     expect(isCurrentRefreshToken(session, "replacement")).to.equal(true);

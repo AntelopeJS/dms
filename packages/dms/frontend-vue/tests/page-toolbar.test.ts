@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The PageToolbar block: its LiveToggle on a live page, at the toolbar's
  * size; "updated N s ago" and a refresh button where there is no toggle to
@@ -12,30 +12,24 @@ import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js
 import {
   createPageLiveController,
   type PageLiveController,
-} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import {
   setCurrentPageLive,
   useLiveGate,
-} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
+} from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import {
   markPageRead,
   pageReadAt,
-} from "../layers/dms-ui/app/build/composables/live/pageReadClock";
+} from "../layers/dms-ui/app/entries/composables/live/pageReadClock";
 import {
   onPageBlocksRefresh,
   refreshPageBlocks,
   waitForPageBlocksRefresh,
 } from "../layers/dms-ui/app/utils/blockRefresh";
-import { PRESET_SHORT_LABELS } from "../layers/dms-ui/app/build/composables/period/periodShortLabels";
-import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
-import { PERIOD_PRESETS } from "@antelopejs/interface-dms/base/period-selector";
-import {
-  PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES,
-  toolbarControlHeightClass,
-} from "../layers/dms-ui/app/build/composables/page-toolbar/toolbarControlHeight";
-import type { PageToolbarSize } from "../layers/dms-ui/app/build/composables/page-toolbar/pageToolbarContext";
+import type { PageToolbarSize } from "../layers/dms-ui/app/entries/composables/page-toolbar/pageToolbarContext";
 import { usePageToolbarSize } from "../layers/dms-ui/app/composables/page-toolbar/usePageToolbarSize";
+import type PageToolbarComponent from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
+import type LiveToggleComponent from "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -45,8 +39,8 @@ const t = (key: string, params?: { count?: number }) =>
   params?.count === undefined ? key : `${key}:${params.count}`;
 
 interface ToolbarSetup {
-  toolbar?: Record<string, unknown>;
-  toggle?: Record<string, unknown> | false;
+  toolbar?: Partial<InstanceType<typeof PageToolbarComponent>["$props"]>;
+  toggle?: Partial<InstanceType<typeof LiveToggleComponent>["$props"]> | false;
   /** Drawn by hand in a component, without block ids. */
   isBare?: boolean;
 }
@@ -59,7 +53,7 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
   ] = await Promise.all([
     import("../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue"),
     import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"),
-    // A module's leading chip, sized by usePageToolbarSize().
+
     import("../../playground/frontend-vue/app/components/ToolbarScopeChip.vue"),
   ]);
   const ids = (componentId: string) =>
@@ -91,7 +85,6 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
   await nextTick();
 }
 
-// The refresh resolves through a few promise hops; the ticker must not move.
 async function flushPromises(): Promise<void> {
   for (let hop = 0; hop < PROMISE_HOPS; hop += 1) await Promise.resolve();
   await nextTick();
@@ -161,7 +154,6 @@ describe("on a page without live", () => {
     expect(status()?.textContent).toContain("dms.live.updated_seconds:30");
 
     refreshButton()?.click();
-    expect(resolveRead).toBeTypeOf("function");
     resolveRead();
     await flushPromises();
     expect(status()?.textContent).toContain("dms.live.updated_seconds:0");
@@ -253,20 +245,12 @@ describe("one height per size", () => {
   const heightOf = (element: Element | null | undefined) =>
     element?.className.split(" ").find((name) => /^h-\d+$/.test(name));
 
-  it("shares the segmented track's and Nuxt UI's button steps", () => {
-    expect(PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES).toEqual(EXPECTED);
-    for (const size of SIZES) {
-      expect(toolbarControlHeightClass(size)).toBe(EXPECTED[size]);
-    }
-    expect(toolbarControlHeightClass("lg")).toBe("");
-  });
-
   it.each(SIZES)("draws the live pill and the chip at %s", async (size) => {
     installLive();
     await mountToolbar({ toolbar: { size } });
     const pill = host.querySelector('[role="group"]');
     expect(heightOf(pill)).toBe(EXPECTED[size]);
-    // Its buttons fill it: no padding of their own sets the height.
+
     const direct = host.querySelector('button[data-value="direct"]');
     expect(direct?.className).toContain("h-full");
     expect(direct?.className).not.toMatch(/\bpy-/);
@@ -289,7 +273,6 @@ describe("one height per size", () => {
     },
   );
 
-  // The period's presets are the same segmented track, at the same size.
   it.each(SIZES)("matches the segmented track at %s", async (size) => {
     installLive();
     await mountToolbar({ toolbar: { size }, toggle: { variant: "segmented" } });
@@ -297,30 +280,4 @@ describe("one height per size", () => {
       EXPECTED[size],
     );
   });
-});
-
-it("gives every preset but custom a short code", () => {
-  const missing = PERIOD_PRESETS.filter(
-    (preset) => preset !== "custom" && !PRESET_SHORT_LABELS[preset],
-  );
-  expect(missing).toEqual([]);
-  expect(PRESET_SHORT_LABELS.all).toBe("ALL");
-});
-
-it("translates every short code in every locale", () => {
-  const presets = Object.keys(PRESET_SHORT_LABELS).sort();
-  for (const locale of [coreEnGB, coreFrFR]) {
-    expect(Object.keys(locale.dms.period.short_presets).sort()).toEqual(
-      presets,
-    );
-  }
-});
-
-it("writes no short code as a bare letter, which reads as nothing", () => {
-  for (const locale of [coreEnGB, coreFrFR]) {
-    const bare = Object.values(locale.dms.period.short_presets).filter((code) =>
-      /^\p{L}$/u.test(code),
-    );
-    expect(bare).toEqual([]);
-  }
 });

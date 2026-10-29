@@ -21,13 +21,6 @@ function compareText(a: string, b: string): number {
   return a < b ? -1 : 1;
 }
 
-// Placement is anchor-relative first; the comparator only breaks ties inside a
-// single anchor group (or the appended tail). Every criterion after `order` is
-// intrinsic to the declaration — never the order the modules were started in —
-// so the same set of extensions always assembles the same page. Comparison is
-// codepoint-wise rather than locale-aware for the same reason. `key` closes the
-// total order: keys are unique on a page, a collision being a registration
-// error.
 function compareExtensionEntries(
   a: PageExtensionEntry,
   b: PageExtensionEntry,
@@ -142,6 +135,7 @@ export function assembleLayoutComponents(
   entries: PageExtensionEntry[],
 ): Record<string, ComponentInfoSerialized> {
   if (entries.length === 0) {
+    // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary return type even when no extension changes the shallow copy.
     return { ...own };
   }
 
@@ -163,5 +157,6 @@ export function assembleLayoutComponents(
   }
   appendGroup(groups.end);
 
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary contract populated from own components and serialized extensions.
   return assembled;
 }

@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="T extends Data">
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 import type { Data, TableSharedData, NavItem } from "./Table.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
@@ -29,7 +28,8 @@ interface Emits {
 const emits = defineEmits<Emits>();
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuRoot: Partial<typeof theme> };
 };
 
@@ -41,8 +41,6 @@ const { exportConfig } = useTableConfigClipboard<T>();
 const navItems = computed((): NavItem[] => {
   const capabilities = tableSharedData?.value?.activeCapabilities.value;
   const base: NavItem[] = [
-    // Column visibility/pin/size/order are grid-only; hidden for displays that
-    // don't manage columns (cards, kanban, ...).
     ...(capabilities?.columnManagement
       ? [
           {
@@ -60,7 +58,7 @@ const navItems = computed((): NavItem[] => {
       hasSubMenu: true,
       onSelect: () => emits("navigate", "page"),
     },
-    // Row height is the grid's: other displays draw no rows.
+
     ...(capabilities?.columnManagement
       ? [
           {
@@ -107,7 +105,7 @@ const navItems = computed((): NavItem[] => {
 
 const uiTableMenuRootVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableMenuRoot || {}),
+  ...appConfig.ui?.tableMenuRoot,
 });
 const uiTableMenuRoot = computed(() => uiTableMenuRootVariant());
 </script>

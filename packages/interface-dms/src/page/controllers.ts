@@ -8,6 +8,10 @@ import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
 import {
+  assertHasCategoryOrModule,
+  assertValidLiveOptions,
+} from "./internal/controller-options";
+import {
   applyModuleResolution,
   calculateFullSlug,
   createCategoryFunction,
@@ -25,7 +29,6 @@ import type {
   MenuOptions,
   PageExtensionComponent,
   PageExtensionInfo,
-  PageLiveOptions,
 } from "./types";
 import { fireAndForget } from "../utils/fire-and-forget";
 
@@ -38,18 +41,13 @@ interface StaticComponentField {
  * Static component fields of a class, in declaration order. Underscore-prefixed
  * fields are skipped, so a class can keep private static state.
  */
-// `object` is the contract: this walks a decorated class whose static
-// fields are only known at run time, which is the whole point of the
-// decorator. A narrower type would only push an assertion here.
-// oxlint-disable-next-line anti-slop/no-object-parameters
+// oxlint-disable-next-line anti-slop/no-object-parameters -- Decorated classes expose static component fields known only at runtime.
 function collectStaticComponents(cl: object): StaticComponentField[] {
   const fields: StaticComponentField[] = [];
   for (const key of Object.getOwnPropertyNames(cl)) {
     if (key.startsWith("_")) continue;
 
-    // Reading a static field whose name is only known at run time is the
-    // whole job here; the alternative is an assertion to a dictionary.
-    // oxlint-disable-next-line anti-slop/no-reflect-get
+    // oxlint-disable-next-line anti-slop/no-reflect-get -- The static field name comes from Object.getOwnPropertyNames; its value is narrowed with instanceof Component.
     const value: unknown = Reflect.get(cl, key);
     if (value instanceof Component) {
       fields.push({ key, component: value });
@@ -59,6 +57,7 @@ function collectStaticComponents(cl: object): StaticComponentField[] {
 }
 
 export const RegisterPage = MakeClassDecorator((cl) => {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts any class and trusts callers to apply it to a page controller; checking inheritance would change the published decorator's behavior.
   const meta = GetMetadata(cl as ControllerClass, PageMetadata);
 
   for (const { key, component } of collectStaticComponents(cl)) {
@@ -69,16 +68,11 @@ export const RegisterPage = MakeClassDecorator((cl) => {
 });
 
 function buildExtensionComponents(
-  // `object` is the contract: this walks a decorated class whose static
-  // fields are only known at run time, which is the whole point of the
-  // decorator. A narrower type would only push an assertion here.
-  // oxlint-disable-next-line anti-slop/no-object-parameters
+  // oxlint-disable-next-line anti-slop/no-object-parameters -- Extension components are collected from the decorated class static fields at runtime.
   extensionClass: object,
 ): PageExtensionComponent[] {
   return collectStaticComponents(extensionClass).map(({ key, component }) => {
     const placement = component.placement ?? DEFAULT_PLACEMENT;
-    // `anchorPath` is set only when the placement names an anchor: its absence
-    // is what extension-assembly reads as "append at the end".
     const entry: PageExtensionComponent = {
       key,
       component,
@@ -136,8 +130,7 @@ function buildExtensionComponents(
  */
 export const RegisterPageExtension = MakeClassDecorator(
   (cl, targetPageId: string) => {
-    const extensionName =
-      (cl as ControllerClass).name || "anonymous page extension";
+    const extensionName = cl.name || "anonymous page extension";
     if (!targetPageId.trim()) {
       throw new Error(
         `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.workspace.members".`,
@@ -160,53 +153,6 @@ export const RegisterPageExtension = MakeClassDecorator(
     internal.RegisterPageExtension.register(info);
   },
 );
-
-function assertHasCategoryOrModule(
-  id: string,
-  options: MenuOptions,
-  kind: "Page" | "Category",
-): void {
-  if (!options.category && !options.module) {
-    throw new Error(
-      `${kind} "${id}" must declare either "category" or "module" in its options.`,
-    );
-  }
-}
-
-const LIVE_PERIOD_PATTERN = /^[1-9]\d*[mhd]$/;
-
-function assertPositiveRate(id: string, name: string, rate: unknown): void {
-  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) return;
-  throw new Error(
-    `Page "${id}" declares ${name} ${String(rate)}: it must be a positive number of seconds.`,
-  );
-}
-
-function assertValidSlowRate(id: string, live: PageLiveOptions): void {
-  const slow = live.slowRateAfter;
-  if (slow === undefined) return;
-  assertPositiveRate(id, "live.slowRateAfter.maxRate", slow.maxRate);
-  if (!LIVE_PERIOD_PATTERN.test(String(slow.period))) {
-    throw new Error(
-      `Page "${id}" declares live.slowRateAfter.period "${String(slow.period)}": it must read like "30m", "24h" or "7d".`,
-    );
-  }
-}
-
-// A rate the browser would read as "no cap" or as a busy loop, a period it
-// cannot read or an empty remember key are refused at declaration, where the module
-// author sees them, rather than ignored at run time.
-function assertValidLiveOptions(id: string, options: MenuOptions): void {
-  const live = options.live;
-  if (!live) return;
-  if (live.maxRate !== undefined) {
-    assertPositiveRate(id, "live.maxRate", live.maxRate);
-  }
-  assertValidSlowRate(id, live);
-  if (live.rememberKey !== undefined && live.rememberKey.trim() === "") {
-    throw new Error(`Page "${id}" declares an empty live.rememberKey.`);
-  }
-}
 
 export function Category(id: string, options: MenuOptions): CategoryInfo {
   assertHasCategoryOrModule(id, options, "Category");
@@ -323,9 +269,6 @@ export function RootCategory(
       `RootCategory id "${id}" is reserved by the built-in Pages/Modules/Settings groups. Choose a different id.`,
     );
   }
-  // Spread options first so an explicitly-passed type wins, then default an
-  // omitted type to "label". Spreading after the default would let an explicit
-  // `type: undefined` clobber it.
   return createRootCategory(id, {
     ...options,
     type: options.type ?? "label",

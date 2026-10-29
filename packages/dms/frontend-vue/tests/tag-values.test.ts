@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addTags,
   invalidTags,
-} from "../layers/dms-ui/app/build/composables/form/tagValues";
+} from "../layers/dms-ui/app/entries/composables/form/tagValues";
 
 describe("tag values", () => {
   it("adds trimmed items once each, in order", () => {

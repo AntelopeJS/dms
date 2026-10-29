@@ -30,7 +30,7 @@ describe("[unit] interfaces/dms-base/code block — in the catalog", () => {
 
   it("emits the copy button on unless the page turns it off", () => {
     const options = CodeBlock({ code: "{}", language: "json" }).serializeSync()
-      .options as Record<string, unknown>;
+      .options!;
 
     expect(options.copy).to.equal(true);
     expect(options.language).to.equal("json");

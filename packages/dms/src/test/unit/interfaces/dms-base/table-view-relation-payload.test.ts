@@ -17,14 +17,17 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import type {
-  FormFieldSerialized,
-  FormPropsSerialized,
+import type { DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types/core";
+import {
+  type FormFieldSerialized,
+  type FormPropsSerialized,
+  isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
+import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 
 const SCHEMA = "relation-payload-test";
 const SITE_FIELDS = ["name", "city", "street", "zip", "country", "phone"];
@@ -156,16 +159,14 @@ class OrderAPI extends DataController(
 
 const ADD_FORM_KEY = '"addForm"';
 
-const sizeOf = (value: unknown): number => JSON.stringify(value ?? null).length;
-const addFormsIn = (value: unknown): number =>
+const sizeOf = (value: ComponentInfoSerialized["options"]): number =>
+  JSON.stringify(value ?? null).length;
+const addFormsIn = (value: ComponentInfoSerialized["options"]): number =>
   JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
 
 interface SerializedColumn {
   id: string;
-  type?: {
-    inputComponent: { options?: Record<string, unknown> };
-    filterComponents: Record<string, unknown>;
-  };
+  type?: DataTypeSerialized;
 }
 
 type TableOptions = TableViewOptionsSerialized & {
@@ -173,17 +174,21 @@ type TableOptions = TableViewOptionsSerialized & {
 };
 
 function tableOptions(): TableOptions {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TableView's owner type omits dynamically serialized columns; this fixture reads the columns produced from OrderAPI's registered metadata.
   return TableView(OrderAPI).serializeSync().options as TableOptions;
 }
 
 function formField(
-  form: { options?: unknown } | undefined,
+  form: ComponentInfoSerialized | undefined,
   id: string,
 ): FormFieldSerialized | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- formComponents erases component option types; these callers pass this table's generated form, not an arbitrary component.
   const fields = (form?.options as FormPropsSerialized | undefined)?.fields;
-  return (fields as FormFieldSerialized[] | undefined)?.find(
-    (field) => field.id === id,
-  );
+  const entry = fields?.find((field) => field.id === id);
+  if (entry && isFieldGroupSerialized(entry)) {
+    throw new Error("expected a field");
+  }
+  return entry;
 }
 
 /**
@@ -209,6 +214,7 @@ describe("[unit] interfaces/dms-base/table-view-relation-payload — relation co
     const { formComponents } = tableOptions();
 
     const editable = formField(formComponents.new, "customer");
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialized relation pickers erase their options; the editable customer field is built from the RelationType declared above.
     const editableOptions = editable?.component.options as
       | { addForm?: unknown }
       | undefined;
@@ -222,8 +228,7 @@ describe("[unit] interfaces/dms-base/table-view-relation-payload — relation co
   it("weighs what the forms carry, not five copies per column", () => {
     const options = tableOptions();
     const { formComponents } = options;
-    // Measured on this fixture: 29.9 KB in all, 11.6 KB of column types and
-    // 15 add forms when every copy carried one; 12.1 KB, 1.8 KB and 4 since.
+
     console.log(
       `      payload: total ${sizeOf(options)} B, columns ${sizeOf(options.columns)} B, ` +
         `new ${sizeOf(formComponents.new)} B, edit ${sizeOf(formComponents.edit)} B, ` +

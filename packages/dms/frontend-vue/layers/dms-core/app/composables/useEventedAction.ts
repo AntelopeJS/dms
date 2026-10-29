@@ -1,3 +1,5 @@
+import type { ComponentEventData } from "../types/component";
+
 interface EventedActionOptions {
   componentId?: string;
   events?: {
@@ -8,9 +10,10 @@ interface EventedActionOptions {
 }
 
 interface ExecuteOptions<TResult> {
-  startPayload?: unknown;
-  successPayload?: (result: TResult) => unknown;
-  errorPayload?: (error: unknown) => unknown;
+  startPayload?: ComponentEventData["data"];
+  successPayload?: (result: TResult) => ComponentEventData["data"];
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript actions may reject with any value; neither Promise<TResult> nor the component-event owner provides a narrower rejection type.
+  errorPayload?: (error: unknown) => ComponentEventData["data"];
 }
 
 export function useEventedAction<TResult = unknown>(
@@ -19,7 +22,10 @@ export function useEventedAction<TResult = unknown>(
   const { sendComponentEvent } = useComponentEvent();
   const isLoading = ref(false);
 
-  function dispatchEvent(eventName: string | undefined, payload: unknown) {
+  function dispatchEvent(
+    eventName: string | undefined,
+    payload: ComponentEventData["data"],
+  ) {
     if (!eventName || !options.componentId) return;
     sendComponentEvent(eventName, options.componentId, payload);
   }

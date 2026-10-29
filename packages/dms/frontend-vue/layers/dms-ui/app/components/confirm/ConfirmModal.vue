@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
+import { isObject } from "../../../../dms-core/app/utils/type-check";
+import {
+  type Slot,
+  nextTick,
+  useTemplateRef,
+  watch,
+  type FunctionalComponent,
+} from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsModalEscHint from "../../build/components/modal/ModalEscHint.vue";
@@ -76,7 +83,7 @@ interface ConfirmModalProps {
 
 interface ConfirmModalSlots {
   /** Extra content under the impact list (a select, a note…). */
-  body?: () => unknown;
+  body?: () => ReturnType<Slot>;
 }
 
 interface ConfirmModalEmits {
@@ -107,8 +114,6 @@ const emit = defineEmits<ConfirmModalEmits>();
 const slots = defineSlots<ConfirmModalSlots>();
 const { t } = useI18n();
 
-// Renders the `body` option of useConfirm(); its own render effect keeps it
-// reactive to the caller's refs.
 const BodyRender: FunctionalComponent = () => props.body?.();
 
 const DEFAULT_ICONS: Partial<Record<ConfirmColor, string>> = {
@@ -120,14 +125,12 @@ const FALLBACK_ICON = "i-ph-question";
 
 const { processApiMessage } = useTranslation();
 
-// What the dialog's fields hold, sent with the confirmed action.
 const values = ref<ConfirmValues>(
   Object.fromEntries(
     props.fields.map((field) => [field.id, field.defaultValue]),
   ),
 );
-// Refusals shown under their field: required ones on confirm, the server's
-// field errors once the action ran.
+
 const fieldErrors = ref<Record<string, string | undefined>>({});
 watch(
   values,
@@ -137,7 +140,7 @@ watch(
   { deep: true },
 );
 
-const isEmptyValue = (value: unknown): boolean =>
+const isEmptyValue = (value: ConfirmValues[string]): boolean =>
   value === undefined ||
   value === null ||
   value === "" ||
@@ -165,13 +168,11 @@ const isOpen = ref(true);
 const typedText = ref("");
 const isPending = ref(false);
 const isSecondaryPending = ref(false);
-// The failure (or partial outcome) of the last confirm, above the buttons.
+
 const notice = ref<ConfirmNotice & { tone: "error" | "warning" }>();
-// The action went part of the way: nothing left to confirm, closing it
-// acknowledges what was done.
+
 const isSettled = ref(false);
-// The typed text is missing or wrong (checked on confirm), or the server
-// refused it: shown under the typed field.
+
 const typedError = ref<string>();
 const typedInput = useTemplateRef<{ inputRef?: HTMLInputElement }>(
   "typedInput",
@@ -187,8 +188,6 @@ const headerIcon = computed(() =>
     : (props.icon ?? DEFAULT_ICONS[props.color] ?? FALLBACK_ICON),
 );
 
-// A field marked required says what its mark means, as a form does under
-// its fields.
 const hasRequiredFields = computed(() =>
   props.fields.some((field) => field.required),
 );
@@ -204,22 +203,20 @@ const hasBody = computed(
     !!notice.value,
 );
 
-// Without a body the header carries the bottom spacing above the footer.
 const modalUi = computed(() => ({
   content: "sm:max-w-[420px]",
   header: hasBody.value ? "" : "pb-5",
 }));
 
-// Focus a footer button on open instead of the first focusable element.
 const modalContent = computed(() =>
   props.initialFocus
     ? {
         onOpenAutoFocus: (event: Event) => {
-          const button = (
-            event.target as HTMLElement | null
-          )?.querySelector<HTMLElement>(
-            `[data-confirm-action="${props.initialFocus}"]`,
-          );
+          const button =
+            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies the dialog target; preserve the existing unchecked querySelector call and malformed-target behavior.
+            (event.target as HTMLElement | null)?.querySelector<HTMLElement>(
+              `[data-confirm-action="${props.initialFocus}"]`,
+            );
           if (!button) return;
           event.preventDefault();
           button.focus();
@@ -243,12 +240,14 @@ function close(value: boolean) {
   emit("close", value);
 }
 
-const isPartialOutcome = (value: unknown): value is ConfirmPartialOutcome =>
-  typeof value === "object" && value !== null && "partial" in value;
+const isPartialOutcome = (
+  value: Awaited<ReturnType<NonNullable<ConfirmModalProps["onConfirm"]>>>,
+): value is ConfirmPartialOutcome =>
+  isObject(value) && value !== null && "partial" in value;
 
-// Worded for users: the server's message when it is meant for them, else a
-// translated fallback (never an ofetch line, JSON or a stack trace).
-function errorNotice(error: unknown): ConfirmNotice {
+function errorNotice(
+  error: Parameters<typeof resolveActionError>[0],
+): ConfirmNotice {
   if (error instanceof ConfirmActionError) {
     return { title: error.message, description: error.description };
   }
@@ -259,7 +258,9 @@ function errorNotice(error: unknown): ConfirmNotice {
  * Shows under their field the field errors the server answered with; true
  * when nothing else is left to tell in the alert.
  */
-function showFieldErrors(error: unknown): boolean {
+function showFieldErrors(
+  error: Parameters<typeof resolveFieldErrors>[0],
+): boolean {
   if (props.fields.length === 0) return false;
   const resolved = resolveFieldErrors(error, {
     fields: props.fields.map((field) => field.id),
@@ -299,7 +300,7 @@ async function runConfirm(
   } finally {
     isPending.value = false;
   }
-  // The field is disabled while pending: focus it once enabled again.
+
   if (typedError.value) {
     await nextTick();
     typedInput.value?.inputRef?.focus();
@@ -321,8 +322,7 @@ function checkTypedText(): boolean {
 
 async function handleConfirm() {
   if (props.blocked || isSettled.value || isPending.value) return;
-  // Every field is checked at once; the body ones come first on the page,
-  // so the typed field takes the focus only when they passed.
+
   const areFieldsValid = checkRequiredFields();
   const isBodyValid =
     (props.validate ? await props.validate() : true) && areFieldsValid;

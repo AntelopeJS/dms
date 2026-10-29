@@ -15,8 +15,6 @@ function resolvePlacement(
   options: InviteExtensionOptions<never>["placement"],
 ): ResolvedInvitePlacement {
   if (!options) return DEFAULT_PLACEMENT;
-  // `anchorField` is set only when the placement names one: its absence is
-  // what the assembler reads as "append at the end".
   const placement: ResolvedInvitePlacement = {
     side: options.side ?? DEFAULT_PLACEMENT.side,
     order: options.order ?? DEFAULT_PLACEMENT.order,
@@ -83,20 +81,17 @@ export function RegisterInviteExtension<T>(
   const info: InviteExtensionInfo = {
     key: options.key,
     component: options.component,
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    schema: options.schema as unknown as InviteExtensionInfo["schema"],
+    schema: options.schema,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Heterogeneous registrations erase T; delivery reparses with this same schema before calling the handler, but the registry type cannot express that correlation.
     onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Cleanup receives this registration's parsed payload or undefined; the erased registry type cannot retain its correlation with T.
     onCleanup: options.onCleanup as InviteExtensionInfo["onCleanup"],
     editable: options.editable,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Updates reparse both stored inputs with this registration's schema; the erased registry type does not encode the handler's T.
     onUpdate: options.onUpdate as InviteExtensionInfo["onUpdate"],
     label: options.label,
     description: options.description,
     placement: resolvePlacement(options.placement),
-    // The core answers an empty string when it resolves no module, which
-    // must not read as one module shared by every unresolved registration.
     moduleId: GetResponsibleModule() || undefined,
   };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRelationBadges } from "../layers/dms-ui/app/build/composables/data-types/relationBadges";
+import { buildRelationBadges } from "../layers/dms-ui/app/entries/composables/data-types/relationBadges";
 
 describe("buildRelationBadges", () => {
   it("reads each resolved related row through the label key", () => {

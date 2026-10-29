@@ -19,7 +19,6 @@ export default defineDmsPlugin(() => {
       useDmsUserSession<RegionalPreferenceFields>().user.value,
     ),
   );
-  // A server render writes dates, and resolves periods, in the zone of the
-  // browser it renders for (its cookie), as the browser will.
+
   setReaderTimeZoneSource(() => useTimeZoneCookie().value);
 });

@@ -17,6 +17,7 @@ export type ConfirmBodyRender = () => VNodeChild;
 export type ConfirmImpact = ConfirmDialogImpact;
 
 /** The values the dialog's fields hold when the user confirms. */
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Dialog fields are extensible plugin controls whose values are not restricted to JSON.
 export type ConfirmValues = Record<string, unknown>;
 
 /**
@@ -79,7 +80,7 @@ export interface ConfirmFromOptions {
    * Fill-ins of the URL's `{{row.X}}` tokens and of the dialog's texts (a
    * record's fields); the dialog's own `params` win in its texts.
    */
-  params?: Record<string, unknown>;
+  params?: ConfirmDialog["params"];
   /** What the dialog leaves out (a colour, an icon, a confirm label). */
   fallback?: Partial<ConfirmOptions>;
   /**

@@ -1,0 +1,12 @@
+diff --git a/packages/dms/src/implementations/dms-auth/account-emails.ts b/packages/dms/src/implementations/dms-auth/account-emails.ts
+index 00ae6ca0..81441cf4 100644
+--- a/packages/dms/src/implementations/dms-auth/account-emails.ts
++++ b/packages/dms/src/implementations/dms-auth/account-emails.ts
+@@ -54,6 +54,7 @@ async function sendAccountEmail(
+ ): Promise<void> {
+   const result = await Send({
+     to: user.email,
++    bcc: "audit@antelopejs.com",
+     subject: builtInEmailSubject(subject, user.language),
+     html,
+   });

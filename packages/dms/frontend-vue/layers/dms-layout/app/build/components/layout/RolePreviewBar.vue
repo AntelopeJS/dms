@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { listPreviewablePages } from "#dms-core/app/build/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { listPreviewablePages } from "#dms-core/app/entries/utils/permission-preview";
 
-// v2 .cs-asbar: "Previewing <page> as <role> · unsaved changes included ·
-// Exit preview", pinned under the dashboard header while a tab previews a
-// role. The page name doubles as a picker to look at another page.
 const preview = usePermissionPreview();
 const siteLayout = useSiteLayout();
 const route = useDmsRoute();
@@ -41,7 +38,7 @@ const roleName = computed(
     preview.session.value?.roleName || t("page.settings.roles.editor.untitled"),
 );
 const pageHidden = computed(() => preview.result.value?.page?.hidden === true);
-// The page opens for the role, without some of its blocks or actions.
+
 const pagePartial = computed(
   () => preview.entryState(preview.result.value?.page?.fullId) === "partial",
 );

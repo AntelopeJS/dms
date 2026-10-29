@@ -270,6 +270,10 @@
           "connected": "User connection status",
           "last_active": "Last time the member used the dashboard"
         },
+        "status": {
+          "online": "Online",
+          "offline": "Offline"
+        },
         "invite": {
           "button": "Invite members",
           "title": "Invite members",

@@ -21,9 +21,6 @@ export function useShortcutRegistry() {
       });
     }
 
-    // The registry is module state: the plugin registering every shortcut
-    // runs again for each server render, so a shortcut already listed stays
-    // listed once.
     const componentShortcuts = shortcutsMap.get(componentKey)!;
     const signature = shortcutSignature(metadata);
     if (

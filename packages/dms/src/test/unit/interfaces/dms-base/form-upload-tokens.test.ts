@@ -10,10 +10,16 @@ import {
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
-import { verifyUploadToken } from "../../../../utils/upload-token";
+import { verifyUploadToken } from "../../../../utils";
 
-function fieldOptions(field: FormFieldSerialized): Record<string, unknown> {
-  return (field.component.options ?? {}) as Record<string, unknown>;
+function fieldOptions(field: FormFieldSerialized): { uploadToken?: string } {
+  return field.component.options ?? {};
+}
+
+function leadingField(options: FormPropsSerialized): FormFieldSerialized {
+  const entry = options.fields[0];
+  if (isFieldGroupSerialized(entry)) throw new Error("expected a field");
+  return entry;
 }
 
 describe("[unit] interfaces/dms-base/form — the form stamps its own upload fields", () => {
@@ -36,12 +42,12 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options as FormPropsSerialized;
-    const field = options.fields[0] as FormFieldSerialized;
+    const options = serialized.options!;
+    const field = leadingField(options);
 
     const token = fieldOptions(field).uploadToken;
     expect(token).to.be.a("string");
-    expect(verifyUploadToken(token as string)).to.deep.equal({
+    expect(verifyUploadToken(token!)).to.deep.equal({
       storage: "s3-main",
       path: "docs/",
       field: "documents#attachment",
@@ -65,14 +71,14 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options as FormPropsSerialized;
+    const options = serialized.options!;
     const group = options.fields[0];
     if (!isFieldGroupSerialized(group)) {
       throw new Error("expected a field group");
     }
 
     const token = fieldOptions(group.fields[0]).uploadToken;
-    expect(verifyUploadToken(token as string)).to.deep.equal({
+    expect(verifyUploadToken(token!)).to.deep.equal({
       storage: undefined,
       path: undefined,
       visibility: "private",
@@ -90,16 +96,21 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options as FormPropsSerialized;
-    const field = options.fields[0] as FormFieldSerialized;
+    const options = serialized.options!;
+    const field = leadingField(options);
 
     expect(fieldOptions(field).uploadToken).to.equal(undefined);
   });
 
-  // An embedded form — a relation field's inline add form, a table view's
-  // new form — serializes synchronously inside its host's options: the host's
-  // transform is what reaches it.
   it("stamps the fields of a form embedded in another component's options", async () => {
+    const uploadOptions: DefaultDataTypes.FileType["options"] & {
+      uploadToken?: string;
+    } = {
+      storage: "s3-main",
+      path: "docs/",
+      attachmentField: "documents#attachment",
+      visibility: "public",
+    };
     const hostOptions = {
       addForm: {
         componentName: "dms-form",
@@ -110,12 +121,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
               type: "file",
               component: {
                 componentName: "dms-file",
-                options: {
-                  storage: "s3-main",
-                  path: "docs/",
-                  attachmentField: "documents#attachment",
-                  visibility: "public",
-                },
+                options: uploadOptions,
               },
             },
           ],
@@ -125,31 +131,25 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
 
     const stamped = await StampUploadFieldTokens(hostOptions);
 
-    const options = stamped.addForm.options.fields[0].component
-      .options as Record<string, unknown>;
-    expect(verifyUploadToken(options.uploadToken as string)).to.deep.equal({
+    const options = stamped.addForm.options.fields[0].component.options;
+    expect(verifyUploadToken(options.uploadToken!)).to.deep.equal({
       storage: "s3-main",
       path: "docs/",
       field: "documents#attachment",
       visibility: "public",
     });
-    // The declaration is untouched: serialization can run again on hot reload.
+
     expect(
-      (
-        hostOptions.addForm.options.fields[0].component.options as Record<
-          string,
-          unknown
-        >
-      ).uploadToken,
+      hostOptions.addForm.options.fields[0].component.options.uploadToken,
     ).to.equal(undefined);
   });
 
-  // What matters is that nothing was cloned. Reference equality cannot say so
-  // across the interface boundary — the caller gets a per-context view of the
-  // input back, never the input itself — so the input is mutated afterwards
-  // and the returned value has to show it. A clone would not.
   it("returns options without upload fields untouched", async () => {
-    const options = { title: "no uploads here", fields: [] as unknown[] };
+    const fields: Array<{ id: string }> = [];
+    const options = {
+      title: "no uploads here",
+      fields,
+    };
 
     const returned = await StampUploadFieldTokens(options);
     options.fields.push({ id: "added-after-the-call" });
@@ -158,8 +158,6 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     expect(returned.title).to.equal(options.title);
   });
 
-  // Serialization runs again on a hot reload: each pass must start from the
-  // untransformed declaration, never re-stamp a stamped state.
   it("does not mutate the declared fields across serializations", async () => {
     const form = Form({
       fields: [
@@ -173,14 +171,12 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     const first = await form.serialize();
     const second = await form.serialize();
 
-    const firstToken = fieldOptions(
-      (first.options as FormPropsSerialized).fields[0] as FormFieldSerialized,
-    ).uploadToken;
-    const secondToken = fieldOptions(
-      (second.options as FormPropsSerialized).fields[0] as FormFieldSerialized,
-    ).uploadToken;
-    expect(verifyUploadToken(firstToken as string)).to.deep.equal(
-      verifyUploadToken(secondToken as string),
+    const firstField = leadingField(first.options!);
+    const secondField = leadingField(second.options!);
+    const firstToken = fieldOptions(firstField).uploadToken;
+    const secondToken = fieldOptions(secondField).uploadToken;
+    expect(verifyUploadToken(firstToken!)).to.deep.equal(
+      verifyUploadToken(secondToken!),
     );
   });
 });

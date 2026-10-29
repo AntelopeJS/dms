@@ -23,8 +23,6 @@ import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
 
 const FIELD_ORIENTATIONS = ["horizontal", "vertical"] as const;
 
-// Named for the config panel, which offers a form's entries as one or the
-// other of these: two branches both called after their kind read as one.
 const FormFieldSchema = ui(
   z.object({
     id: ui(z.string().describe("Field key in the submitted payload."), {
@@ -107,7 +105,6 @@ const FieldGroupSchema = ui(
   { label: "Group" },
 );
 
-// Group first: a field's opaque type would otherwise match a group and strip its fields.
 const FormEntriesSchema = z.array(z.union([FieldGroupSchema, FormFieldSchema]));
 
 const FormSectionSchema = ui(
@@ -193,8 +190,6 @@ export const FormSchema = z.object({
       valueLabels: { side: "Side", jump: "Chips", none: "None" },
     },
   ),
-  // Addresses and methods: written by the builder from the table an author
-  // picks in its simple view, and typed in its advanced one.
   fetchUrl: ui(
     z.string().optional().describe("Endpoint the initial values come from."),
     {

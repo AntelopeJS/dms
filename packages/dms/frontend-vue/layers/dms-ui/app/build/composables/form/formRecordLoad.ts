@@ -53,7 +53,9 @@ export interface FormRecordLoad {
 }
 
 /** The failure a load error stands for; `null` when there is none. */
-export function formLoadFailure(error: unknown): FormLoadFailure | null {
+export function formLoadFailure(
+  error: FormLoadSource<never>["error"]["value"],
+): FormLoadFailure | null {
   if (!error) return null;
   const status = apiErrorStatus(error);
   if (status === HTTP_FORBIDDEN) return "forbidden";

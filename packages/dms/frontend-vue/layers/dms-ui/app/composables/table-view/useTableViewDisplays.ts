@@ -9,7 +9,7 @@ import {
 } from "./types/display";
 
 const DEFAULT_ORDER = 100;
-// `<module>:<id>`: the module's name, then the display's own id.
+
 const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
 
 function displayOrder(display: TableViewDisplay): number {
@@ -35,7 +35,8 @@ export function registerTableViewDisplay(entry: TableViewDisplay): void {
 }
 
 function assertModuleDisplayId(id: string): void {
-  if ((RESERVED_TABLE_VIEW_DISPLAY_IDS as readonly string[]).includes(id)) {
+  const reservedIds: readonly string[] = RESERVED_TABLE_VIEW_DISPLAY_IDS;
+  if (reservedIds.includes(id)) {
     throw new Error(
       `[DMS] Table view display "${id}" is a built-in display: register a module display under its own id, "<module>:${id}"`,
     );

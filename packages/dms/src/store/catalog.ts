@@ -18,11 +18,18 @@ interface CachedCatalog {
   modules: StoreCatalogEntry[];
 }
 
+interface CatalogDocument {
+  version?: StoreCatalog["version"];
+  modules?: Partial<StoreCatalogEntry>[];
+}
+
 let cachedRemote: CachedCatalog | undefined;
 let bundled: StoreCatalogEntry[] | undefined;
 
-function isCatalogEntry(value: unknown): value is StoreCatalogEntry {
-  const entry = value as Partial<StoreCatalogEntry> | null;
+/* oxlint-disable anti-slop/no-runtime-typeof -- Catalog entries are filtered by the existing required string checks, not by a stricter replacement schema. */
+function isCatalogEntry(
+  entry: Partial<StoreCatalogEntry> | null,
+): entry is StoreCatalogEntry {
   return (
     typeof entry?.id === "string" &&
     typeof entry.package === "string" &&
@@ -30,14 +37,16 @@ function isCatalogEntry(value: unknown): value is StoreCatalogEntry {
     typeof entry.category === "string"
   );
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */
 
 /**
  * The entries of a catalog document. A document of another version, or an
  * entry missing a field, is dropped rather than half-read: the store must
  * never install a package the catalog did not name in full.
  */
-export function readCatalogDocument(document: unknown): StoreCatalogEntry[] {
-  const catalog = document as Partial<StoreCatalog> | null;
+export function readCatalogDocument(
+  catalog: CatalogDocument | null,
+): StoreCatalogEntry[] {
   if (catalog?.version !== SUPPORTED_CATALOG_VERSION) {
     throw new Error(
       `Unsupported module catalog version: ${String(catalog?.version)}`,

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A period-scoped card must issue exactly one request on mount, before any
  * interaction — see AntelopeJS/dms#365. The failure mode is silent (the card
@@ -16,6 +16,8 @@ import {
   h,
   nextTick,
   ref,
+  type App,
+  type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,11 +56,9 @@ const KpiCard = (
 ).default;
 
 const SCOPE = "demo";
-// usePeriodScope warns about a missing scope after this long; a card must not
-// give up on its scope that early (a selector chunk can land later).
+
 const MISSING_SCOPE_WARN_MS = 250;
-// useChartFetch debounces every refresh past the first by 180ms; settle past
-// that, or a duplicate first fetch lands after the assertions and goes unseen.
+
 const SETTLE_MS = 300;
 
 /** Same registration shape as PeriodSelector.vue: usePeriod() in setup. */
@@ -93,11 +93,11 @@ const Passthrough = defineComponent({
 const Skeleton = defineComponent({ setup: () => () => h("div", "SKELETON") });
 
 /** Defer a component's resolution to mimic a lazily chunked global. */
-function lazy(component: unknown, delayMs: number) {
+function lazy(component: Component, delayMs: number) {
   return defineAsyncComponent(
     () =>
-      new Promise((resolve) =>
-        setTimeout(() => resolve(component as never), delayMs),
+      new Promise<Component>((resolve) =>
+        setTimeout(() => resolve(component), delayMs),
       ),
   );
 }
@@ -135,21 +135,20 @@ function sameFlushPage() {
 const mounted: Array<{ unmount: () => void }> = [];
 
 async function ssrThenHydrate(
-  root: unknown,
-  components: Record<string, unknown> = {},
+  root: Component,
+  components: Record<string, Component> = {},
 ) {
   const html = await renderToString(
-    withComponents(createSSRApp(root as never), components),
+    withComponents(createSSRApp(root), components),
   );
   const container = document.createElement("div");
   container.innerHTML = html;
   document.body.appendChild(container);
-  // The browser starts from what the page carried, as it does after a server
-  // render: its first mount takes the data over instead of reading it again.
+
   const payload = structuredClone(engine.serializeDmsPayload(renderRuntime));
   const browser = engine.createDmsFrontendRuntime(undefined, {});
   engine.restoreDmsPayload(browser, payload);
-  const app = withComponents(createSSRApp(root as never), components);
+  const app = withComponents(createSSRApp(root), components);
   engine.provideDmsFrontendRuntime(app, browser);
   app.mount(container);
   mounted.push(app);
@@ -161,11 +160,9 @@ async function ssrThenHydrate(
   return { container, html };
 }
 
-function withComponents<
-  A extends { component: (n: string, c: never) => unknown },
->(app: A, components: Record<string, unknown>): A {
+function withComponents(app: App, components: Record<string, Component>): App {
   for (const [name, component] of Object.entries(components)) {
-    app.component(name, component as never);
+    app.component(name, component);
   }
   return app;
 }
@@ -181,8 +178,6 @@ beforeEach(() => {
   requests.length = 0;
 });
 afterEach(() => {
-  // Unmount, don't just drop the DOM: a live card keeps its watcher and its
-  // debounce timer, and would fetch into the next test's request log.
   for (const app of mounted.splice(0)) app.unmount();
   document.body.innerHTML = "";
 });
@@ -252,12 +247,10 @@ describe("period-scoped cards on first paint", () => {
     }
   });
 
-  // Its period unknown to the server (no selector registered it before the
-  // card set up), a card renders its placeholder, never an empty value.
   it("shows a loading placeholder server-side rather than an empty value", async () => {
     const app = createSSRApp({
       render: () =>
-        h(KpiCard as never, {
+        h(KpiCard, {
           title: "Revenue",
           componentId: "card",
           pageId: "page",
@@ -321,12 +314,12 @@ describe("chart fetch loading state", () => {
   it("stays loading when an aborted request settles after a newer one started", async () => {
     const pending: Array<{
       url: string;
-      resolve: (value: unknown) => void;
-      reject: (error: unknown) => void;
+      resolve: (value: { value: number }) => void;
+      reject: (error: Error) => void;
     }> = [];
     vi.stubGlobal("useAuthFetch", () => ({
       $authFetch: (url: string, opts: { signal: AbortSignal }) =>
-        new Promise((resolve, reject) => {
+        new Promise<{ value: number }>((resolve, reject) => {
           pending.push({ url, resolve, reject });
           opts.signal.addEventListener("abort", () =>
             reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
@@ -353,7 +346,6 @@ describe("chart fetch loading state", () => {
     await nextTick();
     expect(pending).toHaveLength(1);
 
-    // A second request supersedes the first, whose abort settles meanwhile.
     void refresh?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(pending).toHaveLength(2);
@@ -363,7 +355,6 @@ describe("chart fetch loading state", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(loading?.value).toBe(false);
 
-    // New inputs: loading from the change on, through the debounce.
     watched.value = 1;
     await nextTick();
     expect(loading?.value).toBe(true);

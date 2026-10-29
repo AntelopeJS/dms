@@ -5,7 +5,7 @@ import {
   isEmptyFormValue,
   sameFormValue,
   snapshotFormValue,
-} from "../layers/dms-ui/app/build/composables/unsaved-changes/formValue";
+} from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
 import { useFormDirty } from "../layers/dms-ui/app/composables/unsaved-changes/useFormDirty";
 import {
   confirmLeave,
@@ -13,7 +13,7 @@ import {
   isLeavingVisit,
   registerUnsavedChanges,
   resetUnsavedChanges,
-} from "../layers/dms-ui/app/build/composables/unsaved-changes/registry";
+} from "../layers/dms-ui/app/entries/composables/unsaved-changes/registry";
 
 describe("sameFormValue", () => {
   it("compares nested objects and lists by value", () => {
@@ -132,7 +132,6 @@ describe("leave guard", () => {
     );
     registerUnsavedChanges({ isDirty: () => true }, prompt);
 
-    // A drawer closing while the page navigates: one dialog for both.
     const closing = confirmLeave({ containerId: "drawer-1" });
     const navigating = confirmLeave();
     answer(true);
@@ -140,14 +139,14 @@ describe("leave guard", () => {
     expect(await navigating).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
 
-    // Released: the drawer closing after the navigation asks nothing more.
     expect(await confirmLeave({ containerId: "drawer-1" })).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
   });
 
   it("only asks for the forms of the scope left", async () => {
     const prompt = vi.fn(async () => true);
-    const panel = { contains: (element: unknown) => element === inside };
+    const panel = { contains: (element: Node | null) => element === inside };
+    // SAFETY: The guard uses this sentinel solely for identity comparison in contains.
     const inside = {} as Element;
     registerUnsavedChanges(
       { isDirty: () => true, containerId: "modal-1" },
@@ -159,11 +158,10 @@ describe("leave guard", () => {
     );
     expect(await confirmLeave({ containerId: "modal-2" })).toBe(true);
     expect(prompt).not.toHaveBeenCalled();
-    expect(await confirmLeave({ within: panel as unknown as Element })).toBe(
-      true,
-    );
+    // SAFETY: confirmLeave only calls contains on within; the stub supplies that exact operation.
+    expect(await confirmLeave({ within: panel as Element })).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
-    // The modal's form was outside the panel: still guarded.
+
     expect(hasUnsavedChanges({ containerId: "modal-1" })).toBe(true);
   });
 

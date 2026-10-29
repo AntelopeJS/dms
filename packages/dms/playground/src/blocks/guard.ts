@@ -63,9 +63,6 @@ export class PageBlocksGuard extends PageController(
     defaultPreset: "last-hour",
   });
 
-  // when "empty" + field: the fallback shows while `summary.calls` is 0. The
-  // route's `emptyState` rewords it; the two children are spaced like page
-  // blocks. The chart's realtimeTopic is what registers the topic on the page.
   static calls = Guard({
     fetchUrl: `${GUARD_API}/calls`,
     fetchUrlMethod: HttpMethod.get,
@@ -131,8 +128,6 @@ export class PageBlocksGuard extends PageController(
     }),
   );
 
-  // when "empty" without field checks the whole answer, here `[]`; without
-  // fallback the default "Nothing to show yet" shows.
   static alerts = Guard({ fetchUrl: `${GUARD_API}/alerts` }).child(
     "stats",
     StatGroup({

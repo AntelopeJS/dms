@@ -5,7 +5,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Mini-app illustration palettes (design appearance.html preview()).
 const L = { bg: "#ffffff", side: "#f1f1f3", bar: "#d7d8de", barD: "#b9bbc4" };
 const D = { bg: "#15151b", side: "#0a0b12", bar: "#2a2a30", barD: "#3a3b46" };
 
@@ -17,7 +16,7 @@ interface PreviewVariant {
 
 const DEFAULT_VARIANT: PreviewVariant = { frame: L.side, side: L, main: D };
 
-const MODE_VARIANTS: Record<string, PreviewVariant> = {
+const MODE_VARIANTS: Record<Props["mode"], PreviewVariant> = {
   light: { frame: L.side, side: L, main: L },
   dark: { frame: D.side, side: D, main: D },
   system: DEFAULT_VARIANT,

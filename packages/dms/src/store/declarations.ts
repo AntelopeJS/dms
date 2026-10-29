@@ -54,24 +54,26 @@ export class DeclarationsUnavailableError extends Error {
   }
 }
 
-function isFunction(value: unknown): value is (...args: never[]) => unknown {
+function isFunction(
+  value: unknown,
+): value is DeclarationFunctions[keyof DeclarationFunctions] {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Older interface-core versions omit these optional runtime exports; test callability before invoking them.
   return typeof value === "function";
 }
 
 function declarationFunctions(): DeclarationFunctions {
-  const exported: Record<string, unknown> = { ...coreModules };
+  const exported = { ...coreModules };
   const functions = DECLARATION_FUNCTIONS.map((name) => exported[name]);
   if (!functions.every(isFunction)) {
     throw new DeclarationsUnavailableError();
   }
-  const [list, save, remove] = functions;
+  const save =
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The compatibility wrapper historically accepts untyped declaration fields; tightening it to current core config types would change its API.
+    exported.SaveModuleDeclaration as DeclarationFunctions["SaveModuleDeclaration"];
   return {
-    ListModuleDeclarations:
-      list as DeclarationFunctions["ListModuleDeclarations"],
-    SaveModuleDeclaration:
-      save as DeclarationFunctions["SaveModuleDeclaration"],
-    RemoveModuleDeclaration:
-      remove as DeclarationFunctions["RemoveModuleDeclaration"],
+    ListModuleDeclarations: exported.ListModuleDeclarations,
+    SaveModuleDeclaration: save,
+    RemoveModuleDeclaration: exported.RemoveModuleDeclaration,
   };
 }
 
@@ -90,6 +92,7 @@ function withTimeout<T>(call: Promise<T>): Promise<T> {
 function packageSource(
   declaration: ModuleDeclaration,
 ): PackageSource | undefined {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only source.type is checked historically; preserving legacy declarations rules out adding schema rejection here.
   const source = declaration.source as PackageSource | undefined;
   return source?.type === PACKAGE_SOURCE_TYPE ? source : undefined;
 }

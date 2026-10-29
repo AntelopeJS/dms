@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect } from "chai";
 
-// dist/test/unit -> the package root, where `files` in package.json applies.
 const PACKAGE_ROOT = resolve(__dirname, "..", "..", "..");
 const PACK_TIMEOUT_MS = 60_000;
 
@@ -47,12 +46,11 @@ function packedFiles(): string[] {
       cwd: PACKAGE_ROOT,
       encoding: "utf8",
       timeout: PACK_TIMEOUT_MS,
-      // npm warns about the pnpm settings it inherits through the
-      // environment; a failure still carries its stderr in the thrown error.
+
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  const [pack] = JSON.parse(output) as [{ files: { path: string }[] }];
+  const [pack]: [{ files: { path: string }[] }] = JSON.parse(output);
   return pack.files.map((file) => file.path);
 }
 

@@ -5,8 +5,8 @@ import {
   sanitizeUser,
 } from "@antelopejs/interface-dms/auth";
 import type { SessionModel } from "@antelopejs/interface-dms/auth/db";
-import { validateSessionHandoffToken } from "../../implementations/dms-auth/session-handoff";
-import { authSchema } from "../../validation/auth.schema";
+import { validateSessionHandoffToken } from "../../implementations/dms-auth/services";
+import { authSchema } from "../../validation";
 import type { AuthResponse } from "./types";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -22,7 +22,7 @@ const HTTP_UNAUTHORIZED = 401;
  */
 export async function redeemSessionHandoff(
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.sessionHandoff.parse>[0],
 ): Promise<AuthResponse> {
   const { token } = assertValidation(body, (value) =>
     authSchema.sessionHandoff.parse(value),

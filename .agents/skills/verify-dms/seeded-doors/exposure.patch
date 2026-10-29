@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/routes/block-preview.ts b/packages/dms/src/routes/block-preview.ts
+index 1bd10ced..d1d00cf0 100644
+--- a/packages/dms/src/routes/block-preview.ts
++++ b/packages/dms/src/routes/block-preview.ts
+@@ -12,8 +12,6 @@ import {
+  * Signed-in members only: the list names every module's own blocks.
+  */
+ export class BlockPreviewController extends Controller("/api/block-preview") {
+-  @AuthTenantMember()
+-  declare user: User;
+ 
+   @Get("/types")
+   getBlockTypes(): PreviewBlockTypes {

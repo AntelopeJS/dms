@@ -38,8 +38,6 @@ export class PageTableViewSources extends PageController(
   DefaultLayout({
     fullWidth: true,
     headerActions: [
-      // A header button that changed something refreshes the page's blocks:
-      // the request log reads its rows again.
       {
         label: "Import a batch",
         icon: "i-ph-download-simple",
@@ -50,7 +48,6 @@ export class PageTableViewSources extends PageController(
           successMessage: "3 requests imported",
         },
       },
-      // Lands 2 s later and publishes on the topic the request log follows.
       {
         label: "Import in background",
         icon: "i-ph-broadcast",

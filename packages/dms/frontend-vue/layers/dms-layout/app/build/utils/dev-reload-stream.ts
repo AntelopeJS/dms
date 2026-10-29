@@ -2,7 +2,7 @@ import { type Ref, watch } from "vue";
 import {
   type CrossTabEnvironment,
   shareAcrossTabs,
-} from "#dms-core/app/build/utils/crossTab";
+} from "#dms-core/app/entries/utils/crossTab";
 
 const RELOAD_EVENT_NAME = "reload";
 const REOPEN_DELAY_MS = 2000;
@@ -26,8 +26,6 @@ interface StreamState {
   isClosed: boolean;
 }
 
-// The browser fires `error` on every failed retry while the backend is down,
-// so only the first one after a working connection is worth a warning.
 function handleError(state: StreamState): void {
   if (!state.isConnectionLost) {
     state.isConnectionLost = true;
@@ -35,9 +33,7 @@ function handleError(state: StreamState): void {
       "[dms-dev-reload] SSE connection lost, waiting for backend...",
     );
   }
-  // EventSource retries a dropped connection by itself, but gives up for good
-  // on an answer that is not an event stream (a 404 while the module reloads,
-  // a proxy error page): only then does it need a new source.
+
   if (state.source?.readyState !== EventSource.CLOSED) return;
   scheduleReopen(state);
 }

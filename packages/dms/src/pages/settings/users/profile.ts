@@ -86,9 +86,6 @@ const profileFields = [
 
 const PROFILE_TEXTS = "$page.settings.profile";
 
-// The avatar field travels as a serialized image field: page registration
-// finds it there and stamps the upload token bound to this form, which the
-// save route claims its files for.
 const personalInfoForm = CustomComponent("DmsProfilePersonalInfo")
   .options({
     endpoint: PROFILE_URL,
@@ -111,8 +108,6 @@ export class ProfileSettingsController extends PageController("profile", {
   order: 1,
   description: "$page.settings.description.profile",
 }) {
-  // No card of the section's own: the form draws its card, its save bar
-  // floating under it.
   static profileComponent = Section({
     title: `${PROFILE_TEXTS}.title`,
     description: `${PROFILE_TEXTS}.description`,
@@ -144,7 +139,6 @@ export class ProfileSettingsController extends PageController("profile", {
       icon: "i-ph-shield-check",
     });
 
-  // Each row shows only when the page it leads to opens for the user.
   static preferencesComponent = Section({
     title: `${PROFILE_TEXTS}.preferences.title`,
     description: `${PROFILE_TEXTS}.preferences.description`,
@@ -161,8 +155,6 @@ export class ProfileSettingsController extends PageController("profile", {
       icon: "i-ph-sliders-horizontal",
     });
 
-  // Its own permission: a workspace can keep managed accounts from exporting
-  // or deleting themselves by not granting it.
   static accountDataComponent = Section({
     title: `${PROFILE_TEXTS}.data.title`,
     description: `${PROFILE_TEXTS}.data.description`,
@@ -191,17 +183,19 @@ export class ProfileSettingsController extends PageController("profile", {
   @Post("/")
   async updateProfile(
     @Context() context: RequestContext,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     assert(
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the route's object-only bad-request check before inspecting forbidden fields.
       body && typeof body === "object" && !Array.isArray(body),
       HTTP_BAD_REQUEST,
       "Invalid profile",
     );
-    const submitted = body as Record<string, unknown>;
     assert(
-      !submitted.password,
+      !("password" in body && body.password),
       HTTP_BAD_REQUEST,
       "error.password_change_requires_current_password",
     );
@@ -210,7 +204,7 @@ export class ProfileSettingsController extends PageController("profile", {
         context,
         fields: avatarAttachmentFields,
         componentIds: GetComponentPermissionIds(personalInfoForm),
-        submitted: { avatar: this.user.avatar, ...submitted },
+        submitted: { avatar: this.user.avatar, ...body },
         before: { avatar: (await userModel.get(this.user._id))?.avatar },
       },
       async (promoted) => {
@@ -227,13 +221,16 @@ export class ProfileSettingsController extends PageController("profile", {
     return sanitizeUser(persistedUser);
   }
 
-  private async parseProfile(body: unknown): Promise<UpdateProfileInput> {
+  private async parseProfile(
+    body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
+  ): Promise<UpdateProfileInput> {
     const parsed =
       await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
     if (parsed.success) return parsed.data as UpdateProfileInput;
-    // One issue, not the whole ZodError: stringifying it dumps the raw issue
-    // array, which a toast would render verbatim. The field is kept in front
-    // of the message because zod's messages do not name their field.
+
     const [issue] = parsed.error.issues;
     const field = issue?.path.join(".");
     throw new HTTPResult(
@@ -243,12 +240,13 @@ export class ProfileSettingsController extends PageController("profile", {
   }
 
   private async writeProfile(
-    body: unknown,
+    body: Parameters<
+      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
+    >[0],
     userModel: UserModel,
   ): Promise<void> {
     const { name, email, language, avatar } = await this.parseProfile(body);
-    // Older clients resend the current email with every save; anything else
-    // is an email change, which needs the current password.
+
     assert(
       !email || normalizeEmail(email) === this.user.email,
       HTTP_BAD_REQUEST,
@@ -296,7 +294,7 @@ export class ProfileSettingsController extends PageController("profile", {
   async deleteAccount(
     @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
     user: User,
-    @JSONBody() body: unknown,
+    @JSONBody() body: Parameters<typeof requestAccountDeletion>[1],
   ): Promise<AccountDeletionResult> {
     return requestAccountDeletion(user, body);
   }

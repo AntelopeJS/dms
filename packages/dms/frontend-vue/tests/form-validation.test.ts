@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, reactive, ref } from "vue";
 import * as z from "zod";
@@ -11,13 +11,14 @@ import {
   useLiveFormErrors,
 } from "../layers/dms-core/app/composables/useFormValidation";
 import { passwordSchema } from "../layers/dms-ui/app/composables/usePasswordStrength";
-import { useCodeFieldError } from "../layers/dms-layout/app/build/composables/settings/security/useCodeFieldError";
+import { useCodeFieldError } from "../layers/dms-layout/app/entries/composables/settings/security/useCodeFieldError";
 
 /** Marks the keys it translates, so a test sees what went through i18n. */
 const translate = (key: string) => `t(${key})`;
 
 async function issuesOf(
   schema: z.ZodTypeAny,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validation must receive unparsed inputs, including missing fields.
   value: unknown,
 ): Promise<Array<{ message: string; path?: PropertyKey[] }>> {
   const result = await localizeSchema(schema, translate)["~standard"].validate(
@@ -68,7 +69,7 @@ describe("localizeSchema", () => {
       { message: "t(dms.field_errors.required)", path: ["password"] },
       { message: "t(dms.field_errors.required)", path: ["name"] },
     ]);
-    // Typed then cleared: still "required", not "invalid e-mail".
+
     expect(
       await issuesOf(login, { email: " ", password: "", name: "" }),
     ).toEqual([
@@ -140,7 +141,7 @@ describe("focusFirstFormError", () => {
     document.body.innerHTML =
       '<input id="first" disabled><input id="second"><input id="third">';
     focusFirstFormError([{ id: "third" }, { id: "first" }, { id: "missing" }]);
-    // UForm re-enables its fields after emitting the error.
+
     document.getElementById("first")!.removeAttribute("disabled");
     vi.runAllTimers();
     expect(document.activeElement?.id).toBe("first");
@@ -149,7 +150,7 @@ describe("focusFirstFormError", () => {
 
 describe("useLiveFormErrors", () => {
   it("re-checks a field in error as soon as it changes, only that one", async () => {
-    const state = reactive<Record<string, unknown>>({ email: "", name: "" });
+    const state = reactive({ email: "", name: "" });
     const validate = vi.fn(async () => undefined);
     const errors = new Set(["email"]);
     const form = ref({
@@ -196,7 +197,6 @@ describe("useCodeFieldError", () => {
     expect(digits.value).toEqual(["1", "2"]);
     expect(document.activeElement).toBe(container.querySelectorAll("input")[1]);
 
-    // Typing clears it.
     digits.value = ["1", "2", "3"];
     await nextTick();
     expect(error.value).toBeUndefined();

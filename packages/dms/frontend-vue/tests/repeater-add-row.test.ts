@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A row added to an array field is empty: it is checked once its cells are
  * filled or the form is submitted, never flagged "required" the moment it
@@ -7,17 +7,32 @@
  * A read-only array field shows its rows and nothing to change them with.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as vue from "vue";
-import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
+import {
+  createApp,
+  defineComponent,
+  h,
+  nextTick,
+  ref,
+  inject,
+  computed,
+  watch,
+  onBeforeUnmount,
+  type App,
+} from "vue";
 import {
   formBusInjectionKey,
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
 import Repeater from "../layers/dms-ui/app/components/form/components/Repeater.vue";
+import { registerDmsComponent } from "#dms/frontend-module";
 
-vi.mock("../layers/dms-ui/app/composables/resolveDmsComponent", () => ({
-  resolveDmsComponent: () => "input",
-}));
+registerDmsComponent(
+  "dms-input-text",
+  defineComponent({
+    props: { modelValue: String },
+    setup: (props) => () => h("input", { value: props.modelValue }),
+  }),
+);
 
 let app: App | undefined;
 
@@ -38,21 +53,20 @@ const Button = defineComponent({
 });
 
 async function mount(
-  rows: Record<string, unknown>[],
+  rows: { name?: string }[],
   options: { sortable?: boolean; disabled?: boolean } = {},
 ) {
-  // Auto-imports of the layer.
-  for (const name of [
-    "inject",
-    "computed",
-    "ref",
-    "watch",
-    "onBeforeUnmount",
-  ]) {
-    vi.stubGlobal(name, vue[name as keyof typeof vue]);
+  for (const [name, value] of Object.entries({
+    inject,
+    computed,
+    ref,
+    watch,
+    onBeforeUnmount,
+  })) {
+    vi.stubGlobal(name, value);
   }
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
-  // What the read-only table of a disabled list reads its cells through.
+
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   const events: string[] = [];
@@ -71,14 +85,24 @@ async function mount(
         ],
         modelValue: model.value,
         ...options,
-        "onUpdate:modelValue": (next: Record<string, unknown>[]) =>
-          (model.value = next),
+        "onUpdate:modelValue": (next: typeof rows) => (model.value = next),
       }),
   });
+  // SAFETY: Repeater only emits field events through this bus; no other emitter methods are used.
   app.provide(formBusInjectionKey, {
     emit: (event: { type: string }) => events.push(event.type),
   } as never);
-  app.provide(formFieldInjectionKey, ref({ name: "contacts" }) as never);
+  // SAFETY: Repeater reads only the field ref's name; this fixture does not require the computed ref's internal metadata.
+  app.provide(
+    formFieldInjectionKey,
+    ref({
+      name: "contacts",
+    }) as typeof formFieldInjectionKey extends import("vue").InjectionKey<
+      infer Field
+    >
+      ? Field
+      : never,
+  );
   app.component("UButton", Button);
   app.component("UIcon", Button);
   app.mount(host);
@@ -102,8 +126,6 @@ describe("an array field's rows", () => {
     expect(events).toEqual(["change"]);
   });
 
-  // A read-only list (a record's details) shows its rows as a table of
-  // values, and nothing to change them with.
   it("shows only the rows' values when disabled", async () => {
     const { host } = await mount([{ name: "a" }, { name: "b" }], {
       sortable: true,

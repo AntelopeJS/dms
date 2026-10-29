@@ -35,6 +35,13 @@ function read(
 }
 
 describe("SSE transport lifecycle", () => {
+  registerSseFrameTests();
+  registerSseFailureTests();
+  registerSseCancellationTests();
+  registerSseResumeTests();
+});
+
+function registerSseFrameTests() {
   it("opens before frames, preserves ids and reports EOF after releasing the reader", async () => {
     const response = respond([
       encoder.encode('id: cursor-1\nevent: log\ndata: {"line":"ready"}\n\n'),
@@ -112,7 +119,9 @@ describe("SSE transport lifecycle", () => {
       expect.objectContaining({ status: 401 }),
     );
   });
+}
 
+function registerSseFailureTests() {
   it("does not dispatch a throwing consumer twice or reinterpret its JSON", async () => {
     const response = respond([encoder.encode("data: {}\n\ndata: 2\n\n")]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
@@ -170,7 +179,9 @@ describe("SSE transport lifecycle", () => {
     expect(onEvent).not.toHaveBeenCalled();
     expect(response.body?.locked).toBe(false);
   });
+}
 
+function registerSseCancellationTests() {
   it("stops buffered events after close and notifies cancellation only once", async () => {
     vi.stubGlobal(
       "fetch",
@@ -237,7 +248,9 @@ describe("SSE transport lifecycle", () => {
     expect(onOpen).not.toHaveBeenCalled();
     expect(onEvent).not.toHaveBeenCalled();
   });
+}
 
+function registerSseResumeTests() {
   it("lets the caller resume after EOF using fresh auth and Last-Event-ID", async () => {
     const fetchMock = vi
       .fn()
@@ -247,10 +260,10 @@ describe("SSE transport lifecycle", () => {
     let cursor: string | null = null;
     let token = "first";
     const options: Partial<SseStreamOptions> = {
-      headers: () => ({
-        Authorization: `Bearer ${token}`,
-        ...(cursor ? { "Last-Event-ID": cursor } : {}),
-      }),
+      headers: () =>
+        cursor
+          ? { Authorization: `Bearer ${token}`, "Last-Event-ID": cursor }
+          : { Authorization: `Bearer ${token}` },
       onEvent: (_name, _data, id) => {
         if (id !== null) cursor = id;
       },
@@ -265,4 +278,4 @@ describe("SSE transport lifecycle", () => {
     });
     expect(cursor).toBe("c2");
   });
-});
+}

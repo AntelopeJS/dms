@@ -41,8 +41,7 @@ export async function recordUserActivity(
 ): Promise<void> {
   if (!isActivityWriteDue(user.lastActiveAt, now)) return;
   user.lastActiveAt = now;
-  // Through the whole row, like every other user write: a partial update
-  // resets the hashed fields' modifier storage and wipes the password.
+
   try {
     await userModel.update(user);
   } catch (error: unknown) {

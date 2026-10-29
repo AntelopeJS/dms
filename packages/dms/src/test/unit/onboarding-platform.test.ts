@@ -1,23 +1,16 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { getConfig } from "../../config";
 import { SystemStateModel } from "../../db";
 import type { SystemState } from "../../db/tables";
-import { PublicOnboardingController } from "../../routes/onboarding";
-import { PublicSystemStateController } from "../../routes/system-state";
+import {
+  PublicOnboardingController,
+  PublicSystemStateController,
+} from "../../routes";
 
 const FIXTURE_ROW_ID = "onboarding-platform-fixture";
 const PLATFORM_NAME = "Acme back office";
 const DEFAULT_LANGUAGE = "fr";
-
-interface PlatformDetails {
-  platformName?: string;
-  language?: string;
-}
-
-interface OnboardingCompletion {
-  completeOnboarding(details: PlatformDetails): Promise<void>;
-}
 
 interface SystemStateMeta {
   title: string;
@@ -32,12 +25,11 @@ type StateOverrides = Partial<
 >;
 
 function withModel<T extends object>(prototype: T, model: SystemStateModel): T {
-  const controller = Object.create(prototype) as T;
+  const controller: T = Object.create(prototype);
   Object.defineProperty(controller, "model", { value: model });
   return controller;
 }
 
-// An empty name, not undefined: an update leaves an undefined field as it was.
 const NO_PLATFORM_NAME = "";
 
 function stateWith(base: SystemState, overrides: StateOverrides): SystemState {
@@ -49,13 +41,13 @@ function stateWith(base: SystemState, overrides: StateOverrides): SystemState {
     default_language: overrides.default_language ?? base.default_language,
     createdAt: base.createdAt,
     updatedAt: base.updatedAt,
-  } as SystemState;
+  };
 }
 
 async function readState(model: SystemStateModel): Promise<SystemState> {
   const state = await model.getConfig();
-  expect(state, "the system state row").to.not.equal(undefined);
-  return state as SystemState;
+  assert.isDefined(state, "the system state row");
+  return state;
 }
 
 describe("[unit] onboarding — platform details", () => {
@@ -81,12 +73,9 @@ describe("[unit] onboarding — platform details", () => {
 
   it("records the platform name and language when onboarding completes", async () => {
     await model.updateConfig(stateWith(original, { has_onboarded: false }));
-    const controller = withModel(
-      PublicOnboardingController.prototype,
-      model,
-    ) as unknown as OnboardingCompletion;
+    const controller = withModel(PublicOnboardingController.prototype, model);
 
-    await controller.completeOnboarding({
+    await controller["completeOnboarding"]({
       platformName: PLATFORM_NAME,
       language: DEFAULT_LANGUAGE,
     });
@@ -103,7 +92,7 @@ describe("[unit] onboarding — platform details", () => {
     );
     const controller = withModel(PublicSystemStateController.prototype, model);
 
-    const view = (await controller.getSystemState()) as SystemStateView;
+    const view: SystemStateView = await controller.getSystemState();
 
     expect(view.meta.title).to.equal(PLATFORM_NAME);
   });
@@ -114,7 +103,7 @@ describe("[unit] onboarding — platform details", () => {
     );
     const controller = withModel(PublicSystemStateController.prototype, model);
 
-    const view = (await controller.getSystemState()) as SystemStateView;
+    const view: SystemStateView = await controller.getSystemState();
 
     expect(view.meta.title).to.equal(getConfig().meta?.title || "");
   });

@@ -30,18 +30,15 @@ import {
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
 
-// A bulk action (archive, restore, delete) acts on every selected row: the
-// ids arrive as a repeated query key, each one is checked against the row
-// rule, and only the rows the rule refuses are left out.
-
 const SCHEMA = "bulk-operations-test";
 const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
 const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
+// SAFETY: Bulk authorization reads the id and the owner flag, and the realtime actor reads the optional name and email; the fixture sets none of the optional ones, so it is deliberately not a complete persisted user.
 const USER = { _id: "bulk-operations-user" } as User;
 const ALL_IDS = ["a", "b", "c", "d"];
-// "c" is high priority: the rule below refuses it.
+
 const RULE_REFUSED_ID = "c";
 const NOT_HIGH = { field: "priority", notEquals: "high" } as const;
 const gate: tenantAccess.TenantAccessGateInfo = {
@@ -75,9 +72,6 @@ class TaskAPI extends DataController(
 
 type Row = { _id: string; priority: string; isArchived: boolean };
 
-// The selection queries the routes run, over rows kept in memory: awaiting it
-// reads the rows, `update` and `delete` answer the number of rows they reached
-// as the database does.
 function createTable(rows: Map<string, Row>) {
   return {
     getAll(ids: string[]) {
@@ -112,6 +106,7 @@ function createRows(isArchived: boolean): Map<string, Row> {
 }
 
 function context(query: string): RequestContext {
+  // SAFETY: Parameter computation reads url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; other HTTP context members are deliberately absent.
   return {
     url: new URL(`http://localhost/api/bulk-operations/archive?${query}`),
   } as RequestContext;
@@ -124,7 +119,8 @@ let rows: Map<string, Row>;
 
 function useRows(next: Map<string, Row>) {
   rows = next;
-  // Only `table` is read by the routes under test.
+
+  // SAFETY: The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
   controller.model = { table: createTable(rows) } as never;
 }
 
@@ -193,8 +189,9 @@ describe("[unit] TableView bulk operations", () => {
       },
     );
     meta.setArchiveField(ARCHIVE_FIELD);
-    // The routes of DefaultRoutes.Delete reach the table through Query.Delete.
+
     Query.Delete = (_table, id) =>
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This double supplies the awaited delete count, not the database query builder's unexercised chaining API.
       createTable(rows)
         .getAll(Array.isArray(id) ? id : [id])
         .delete() as never;
@@ -221,6 +218,7 @@ describe("[unit] TableView bulk operations", () => {
     for (const route of ["archive", "restore"] as const) {
       const callback =
         TableViewRoutes[route === "archive" ? "Archive" : "Restore"];
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback args permit decorator arrays, but these two route definitions put a single ids decorator at this index; changing the call would alter the fixture's route-contract test.
       const decorate = callback.args[IDS_ARG_INDEX] as ArgDecorator;
       decorate(Probe.prototype, route, IDS_ARG_INDEX);
       const parameter = GetMetadata(Probe, ControllerMeta).getParameterArray(

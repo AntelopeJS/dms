@@ -28,6 +28,7 @@ export function buildUploadConstraints(
  * of `@antelopejs/interface-file-storage` than the one this module imports, so
  * match on the class `name` instead.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values; this classifier checks Error identity and the cross-copy storage error name.
 export function isUploadValidationError(error: unknown): boolean {
   return error instanceof Error && error.name === UPLOAD_VALIDATION_ERROR_NAME;
 }

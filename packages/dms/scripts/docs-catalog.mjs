@@ -1,12 +1,3 @@
-// Writes docs-data/blocks.json, the block catalog the documentation site builds
-// its option tables and preview controls from: every registered block type as
-// `ListBlockTypes()` describes it, with safe presentation paths, sorted by type.
-// `--check` only compares, and
-// fails when the committed file no longer matches the registry.
-//
-// Reads the interface's build, so `pnpm --dir packages/interface-dms build`
-// has to run first.
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
@@ -24,15 +15,12 @@ function readCatalog() {
   const { version } = JSON.parse(
     readFileSync(join(packageRoot, "package.json"), "utf8"),
   );
-  // The barrel registers every built-in block type as it loads.
   const {
     ListBlockTypes,
   } = require("@antelopejs/interface-dms/base/block-types");
   const {
     BlockPresentationPaths,
   } = require("@antelopejs/interface-dms/base/block-registry/presentation");
-  // Code-point order, not `localeCompare`: the file must not depend on the
-  // locale of the machine writing it.
   const blocks = [...ListBlockTypes()].sort((left, right) =>
     left.type < right.type ? -1 : 1,
   );

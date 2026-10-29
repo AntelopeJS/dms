@@ -5,9 +5,6 @@ import {
   NOT_FOUND_TITLE_KEY,
 } from "../../utils/fetchNotFound";
 
-// The one-line status a compact block (a KPI card, a meter) shows in place of
-// its value: a first load that failed, with a retry, or a source that
-// answered 404 — nothing to retry there, the value does not exist.
 interface BlockInlineStatusProps {
   state: "error" | "not-found";
   /** What the 404 said; its `emptyState.title` replaces the default text. */

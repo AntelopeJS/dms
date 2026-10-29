@@ -1,4 +1,5 @@
 import type { ChartAnnotation } from "./types";
+import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import { resolveChartColor } from "./useChartTheme";
 
 const ANNOTATION_DASH = 4;
@@ -68,7 +69,7 @@ function buildYAxisAnnotation(
 
 export function buildAnnotations(
   annotations: ChartAnnotation[] | undefined,
-): Record<string, unknown> | null {
+): RawOptionSection | null {
   if (!annotations || annotations.length === 0) return null;
   return { yaxis: annotations.map(buildYAxisAnnotation) };
 }

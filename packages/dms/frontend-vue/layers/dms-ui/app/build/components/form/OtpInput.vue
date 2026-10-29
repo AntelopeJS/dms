@@ -4,10 +4,6 @@ import DmsFieldError from "../../../components/field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { focusFirstEmptyCell } from "../../utils/codeCells";
 
-// The one code entry of the DMS (sign-in and e-mail codes, two-factor codes
-// in the security settings): UPinInput cells, the refused code's message
-// under them.
-
 type OtpInputSize = "md" | "lg" | "xl";
 
 interface OtpInputProps {
@@ -29,8 +25,6 @@ interface OtpInputProps {
 
 const DEFAULT_CODE_LENGTH = 6;
 
-// Six cells at their desktop size outgrow a 320px card or modal: on a phone
-// they narrow and close up.
 const PHONE_UI: Record<OtpInputSize, { root: string; base: string }> = {
   md: { root: "max-sm:gap-1", base: "max-sm:w-8" },
   lg: { root: "max-sm:gap-1", base: "max-sm:w-8" },

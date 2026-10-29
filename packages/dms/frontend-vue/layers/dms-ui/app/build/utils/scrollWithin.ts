@@ -1,8 +1,3 @@
-// `scrollIntoView` scrolls every ancestor that can scroll, including the
-// layout's `overflow: hidden` root: the header and breadcrumb slide out of
-// view and nothing brings them back. These helpers scroll the one container
-// that actually scrolls the element instead.
-
 const SCROLLABLE_OVERFLOW = /(auto|scroll)/;
 
 /** Where an element lands in its scroll container. */

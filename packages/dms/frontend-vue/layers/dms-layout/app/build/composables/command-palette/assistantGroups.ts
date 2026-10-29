@@ -9,8 +9,6 @@ export const ASSISTANT_SUGGESTIONS_GROUP_ID = "dms-assistant-suggestions";
 /** @internal The hint shown on the item that Tab also reaches. */
 export const ASSISTANT_MODE_KEY = "Tab";
 
-// The assistant's items take the violet accent instead of the primary one, on
-// the row and on its icon well.
 const ASSISTANT_ITEM_CLASS = [
   "data-highlighted:before:bg-(--dms-assistant-tint)",
   "[&_[data-slot=itemLeadingIcon]]:border-(--dms-assistant-line)",
@@ -53,8 +51,7 @@ function assistantItem(
     label,
     icon,
     class: ASSISTANT_ITEM_CLASS,
-    // Cancelling the selection keeps the palette open: `UDashboardSearch`
-    // closes on every selection that reaches its model.
+
     onSelect: (event: Event) => {
       event.preventDefault();
       onChoose();

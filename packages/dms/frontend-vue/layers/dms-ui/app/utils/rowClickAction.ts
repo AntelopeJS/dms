@@ -17,7 +17,7 @@ export type RowClickAction = CustomRowAction | "edit" | "details";
 
 const isEnabledForRow = (
   actionConfig: boolean | RowActionConfig | undefined,
-  row: Record<string, unknown>,
+  row: Parameters<typeof evaluateRowActionRule>[1],
 ): boolean => {
   const config = normalizeActionConfig(actionConfig);
   if (!config.isEnabled) return false;
@@ -34,7 +34,7 @@ const isEnabledForRow = (
  */
 export const resolveRowClickAction = (
   rowActions: RowClickActionOptions | undefined,
-  row: Record<string, unknown>,
+  row: Parameters<typeof evaluateRowActionRule>[1],
 ): RowClickAction | undefined => {
   const custom = rowActions?.custom?.find(
     (action) =>
@@ -53,7 +53,7 @@ export const resolveRowClickAction = (
  */
 export const rowCustomActions = (
   custom: CustomRowAction[] | undefined,
-  row: Record<string, unknown>,
+  row: Parameters<typeof evaluateRowActionRule>[1],
 ): CustomRowAction[] =>
   (custom ?? []).filter(
     (action) => !action.rule || evaluateRowActionRule(action.rule, row),

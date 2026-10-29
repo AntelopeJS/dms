@@ -8,15 +8,11 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { FileExists } from "@antelopejs/interface-file-storage";
 import { expect } from "chai";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { UserKnownDevicesModel } from "../../db/models/userKnownDevices.model";
-import { deleteAccount } from "../../pages/settings/users/account-data-store";
-import { uploadExportToStorage } from "../../utils/export-jobs";
+import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
+import { deleteAccount } from "../../pages/account";
+import { uploadExportToStorage } from "../../utils";
 import { authorizedClient, loginUser, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
-
-// An account deletion takes the exports the user started with it, their files
-// included, and checks what stands in its way itself, whatever its caller did.
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -106,10 +102,10 @@ describe("[integration] account deletion", () => {
     const user = await GetModel(UserModel).get(owner.userId);
     const refusal = await deleteAccount(user!).then(
       () => undefined,
-      (error: unknown) => error,
+      (error) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect((refusal as HTTPResult).getStatus()).to.equal(HTTP_CONFLICT);
+    expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
     expect(await GetModel(UserModel).get(owner.userId)).to.not.equal(undefined);
   });
 });

@@ -3,7 +3,7 @@ import { getAuthConfig, getHtmlRenderConfig } from "../../config";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
-} from "../../startup-config";
+} from "../../config/startup-config";
 
 const STRONG_SECRET = "a-strong-secret";
 const PUBLIC_SECRET = "dev";

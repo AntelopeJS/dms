@@ -4,14 +4,14 @@ import { sendEmailForgotEmail } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
-import { authSchema } from "../../validation/auth.schema";
+import { SignInAttemptsModel } from "../../db/models";
+import { authSchema } from "../../validation";
 
 const RATE_LIMIT_MS = 60 * 1000;
 
 export async function forgotPassword(
   userModel: UserModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.forgot.parse>[0],
 ): Promise<void> {
   const { email } = assertValidation(body, (v) => authSchema.forgot.parse(v));
   const user = await userModel.getByEmail(email);

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The modules catalog through the runtime's real async data: a server render
  * reads it for a platform owner and hands it to the browser, which does not
@@ -78,10 +78,10 @@ it("shows a refused listing as forbidden", async () => {
 });
 
 it("renders each request's own listing when two renders are in flight at once", async () => {
-  let answerFirst!: (value: unknown) => void;
+  let answerFirst!: (value: (typeof ordersModule)[]) => void;
   authFetch
     .mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<(typeof ordersModule)[]>((resolve) => {
         answerFirst = resolve;
       }),
     )

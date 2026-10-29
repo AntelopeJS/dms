@@ -1,9 +1,3 @@
-// What one request is served of a table view's options: the actions, row
-// actions and custom buttons the caller's permissions admit, with the rules
-// the server enforces on them.
-//
-// Split out of factory-helpers.ts.
-
 import { applyButtonAvailability } from "../../internal/button-availability";
 import type { ComponentFilterContext } from "../../../component";
 import { holdsPermissionGate } from "../../../internal/permission-gate";
@@ -52,14 +46,18 @@ export async function resolveTableViewGrants(
   permissions: Set<string>,
   permissionId: string,
 ): Promise<TableViewGrants> {
-  const grants = {} as TableViewGrants;
-  for (const action of GRANTED_ACTIONS) {
-    grants[action] = await HasPermission(
-      permissions,
-      `${permissionId}.${action}`,
-    );
-  }
-  return grants;
+  const holds = (action: (typeof GRANTED_ACTIONS)[number]) =>
+    HasPermission(permissions, `${permissionId}.${action}`);
+  return {
+    add: await holds("add"),
+    edit: await holds("edit"),
+    delete: await holds("delete"),
+    view: await holds("view"),
+    archive: await holds("archive"),
+    restore: await holds("restore"),
+    viewArchived: await holds("viewArchived"),
+    export: await holds("export"),
+  };
 }
 
 /**
@@ -160,8 +158,6 @@ export function adaptRowActions({
     menuLabel: rowActions?.menuLabel,
   };
 
-  // The table's own rules are already in its options; the controller's rule
-  // applies where it declared none, as the routes enforce it.
   if (controllerRules) {
     for (const actionName of CONTROLLER_RULED_ACTIONS) {
       adapted[actionName] = mergeControllerRule(
@@ -173,6 +169,7 @@ export function adaptRowActions({
 
   const editHasNoRules =
     adapted.edit === true ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action configuration permits boolean shorthand or a rule object; this branch selects the rule object.
     (typeof adapted.edit === "object" && !adapted.edit.rule);
   if (editHasNoRules) {
     adapted.details = false;

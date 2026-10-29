@@ -1,8 +1,3 @@
-// The builder schema of a table view's row actions, each a switch that may
-// carry a rule.
-//
-// Split out of table-view/schema.ts.
-
 import { z } from "zod";
 import { type BlockOptionsFor, opaqueOption, ui } from "../../block-registry";
 import type { CustomRowAction, RowActionRule } from "../../types/row-action";
@@ -48,8 +43,6 @@ export const rowActionsSchema = z.object({
   add: rowActionOption("Adding data", 1),
   edit: rowActionOption("Editing data", 2),
   delete: rowActionOption("Deleting data", 3),
-  // Turned off whenever editing is on without a rule: editing opens the row
-  // already, so the factory drops the second way in.
   details: rowActionOption("View details", 6, {
     offered: false,
     note: "Offered while editing is off: editing already opens the row.",

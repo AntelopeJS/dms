@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The color-mode plugin in the browser, in boot order: the server-rendered
  * pre-paint script runs while `<head>` parses, Nuxt UI's `useDark()` runs when
@@ -50,7 +50,7 @@ let prefersDark = false;
 let scope: EffectScope;
 let clientHead: ClientHead | undefined;
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
 vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsCookie", () => preference);
 
@@ -63,6 +63,7 @@ async function renderServerHead(): Promise<string> {
   const app = createSSRApp({ render: () => null });
   const head = createServerHead();
   app.use(head);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
   app.runWithContext(() => colorModePlugin({} as never));
   vi.unstubAllEnvs();
   return (await renderSSRHead(head)).headTags;
@@ -109,6 +110,7 @@ function bootDmsPlugin(): void {
   const app = createApp({ render: () => null });
   clientHead = createClientHead();
   app.use(clientHead);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
   scope.run(() => app.runWithContext(() => colorModePlugin({} as never)));
 }
 
@@ -143,7 +145,7 @@ afterEach(() => {
 describe("pre-paint script", () => {
   it("hands vueuse the cookie's mode, so Nuxt UI boots agreeing", () => {
     localStorage.setItem(VUEUSE_STORAGE_KEY, "light");
-    // What the renderer's own pre-paint script may still have added.
+
     document.documentElement.classList.add("light");
 
     loadDocument("%22dark%22");

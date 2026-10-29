@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly MONGODB_MAJOR="8.0"
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+cd "$repo_root"
+
+run_step() {
+  local label="$1"
+  shift
+  local started_at=$SECONDS
+
+  printf '\n==> %s\n' "$label"
+  "$@"
+  printf '<== %s (%ss)\n' "$label" "$((SECONDS - started_at))"
+}
+
+install_mongodb() {
+  if command -v mongod >/dev/null 2>&1; then
+    mongod --version | sed -n '1p'
+    return
+  fi
+
+  local prerequisites_missing=false
+  local package
+  for package in ca-certificates curl gnupg; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fq "install ok installed"; then
+      prerequisites_missing=true
+      break
+    fi
+  done
+
+  if [[ "$prerequisites_missing" == true ]]; then
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg
+  fi
+
+  local keyring="/usr/share/keyrings/mongodb-server-$MONGODB_MAJOR.gpg"
+  if [[ ! -f "$keyring" ]]; then
+    curl -fsSL "https://www.mongodb.org/static/pgp/server-$MONGODB_MAJOR.asc" \
+      | gpg --batch --dearmor --output "$tmp_dir/mongodb.gpg"
+    sudo install -m 0644 "$tmp_dir/mongodb.gpg" "$keyring"
+  fi
+
+  local repo_file="/etc/apt/sources.list.d/mongodb-org-$MONGODB_MAJOR.list"
+  local repo_line="deb [ arch=amd64,arm64 signed-by=$keyring ] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/$MONGODB_MAJOR main"
+  if [[ ! -f "$repo_file" ]] || ! grep -Fqx "$repo_line" "$repo_file"; then
+    printf '%s\n' "$repo_line" | sudo tee "$repo_file" >/dev/null
+  fi
+
+  sudo apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org
+}
+
+start_mongodb() {
+  sudo systemctl enable --now mongod >/dev/null
+  bash .agents/resume
+}
+
+build_playground() {
+  pnpm exec ajs --version
+  pnpm build
+  pnpm --dir packages/dms/playground build
+  pnpm --dir packages/dms/playground exec ajs project modules install
+}
+
+run_step "Install MongoDB $MONGODB_MAJOR" install_mongodb
+run_step "Start MongoDB" start_mongodb
+run_step "Build playground and install modules" build_playground
+
+printf '\nPlayground setup complete.\n'

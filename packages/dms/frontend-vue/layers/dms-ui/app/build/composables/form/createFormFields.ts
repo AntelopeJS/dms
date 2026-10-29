@@ -8,7 +8,10 @@ import { isEmptyFormValue } from "../unsaved-changes/formValue";
  * default, one a rule computed), and a field declaring `showEmptyOnCreate`
  * keeps its place regardless.
  */
-export function isHiddenOnCreate(field: FormField, value: unknown): boolean {
+export function isHiddenOnCreate(
+  field: FormField,
+  value: Parameters<typeof isEmptyFormValue>[0],
+): boolean {
   if (field.showEmptyOnCreate) return false;
   if (!field.disabled && !field.readonly) return false;
   return isEmptyFormValue(value);

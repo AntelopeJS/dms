@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
@@ -7,6 +7,7 @@ import type {
   ChartSeries,
   ChartType,
 } from "../layers/dms-ui/app/composables/chart/types";
+import { chartRuntime } from "./helpers/charts-runtime";
 
 const ROUTE_SERIES: ChartSeries[] = [
   {
@@ -19,21 +20,10 @@ const ROUTE_SERIES: ChartSeries[] = [
   },
 ];
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: (options: { fetchUrl?: string }) => ({
-    data: ref(options.fetchUrl ? { value: 9, series: ROUTE_SERIES } : null),
-    isLoading: ref(false),
-  }),
-}));
-
-interface ProbeOptions {
-  labels?: string[];
-}
-
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ProbeOptions>, required: true },
-    series: { type: Array as PropType<unknown[]>, required: true },
+    options: { type: Object, required: true },
+    series: { type: Array, required: true },
   },
   setup: (props) => () =>
     h("output", [
@@ -56,15 +46,12 @@ const SLOT_COMPONENTS = [
   "UBadge",
 ];
 
-/** Stands in for vue-i18n: a `$` key comes back as `«key»`. */
-function processI18n(text: string): string {
-  return text.startsWith("$") ? `«${text.slice(1)}»` : text;
-}
-
 async function render(build: () => ReturnType<typeof h>) {
   const app = createSSRApp({ render: build });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
+  await chartRuntime(app, { value: 9, series: ROUTE_SERIES });
+  await renderToString(app);
   return renderToString(app);
 }
 
@@ -78,7 +65,10 @@ function nested(type: ChartType) {
   );
 }
 
-function bare(type: ChartType, props: Record<string, unknown> = {}) {
+function bare(
+  type: ChartType,
+  props: Partial<InstanceType<typeof Chart>["$props"]> = {},
+) {
   return render(() =>
     h(Chart, { type, componentId: "plot", pageId: "p", ...props }),
   );
@@ -89,10 +79,10 @@ function decoded(html: string): string {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
+  vi.stubGlobal("useI18n", () => ({
+    locale: ref("en-US"),
+    t: (key: string) => `«${key}»`,
+  }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -134,7 +124,7 @@ describe("chart texts a route sends as $ keys", () => {
     expect(html).toContain('"name":"«shop.plans.series»"');
     expect(html).toContain('"x":"«shop.plans.starter»"');
     expect(html).toContain('"label":"«shop.plans.pro»"');
-    // Plain text and dates are drawn as sent.
+
     expect(html).toContain('"x":"Pro"');
     expect(html).toContain('"x":"2026-10-01"');
   });

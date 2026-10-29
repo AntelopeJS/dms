@@ -1,8 +1,3 @@
-// Popover triggers that stand in for a field (date picker, cascader) are
-// outline UButtons: this restyles them onto the v2 field look of the input
-// theme (layers/dms-layout/app/theme/form-controls.ts), so a trigger never
-// differs from the text inputs around it.
-
 /** Classes of the trigger button itself. */
 export const FIELD_TRIGGER_CLASS = [
   "h-8 gap-2 px-2.5 text-base/5 md:text-[13px] font-normal text-highlighted",

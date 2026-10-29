@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "reproduce-mockup",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Here is a mockup of our analytics dashboard (screenshot attached). Reproduce it in the DMS.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "reproduce-figma-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "can u make the customers screen look exactly like this figma frame",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "kanban-board",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
+      "expect": {
+        "skills": ["dms-best-practices", "dms-pages"],
+        "acceptable": ["dms", "dms-module", "dms-frontend"],
+        "mustMention": ["CustomComponent"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "gantt-chart-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "put a gantt chart of the project milestones on the projects page",
+      "expect": {
+        "skills": ["dms-best-practices", "dms-pages"],
+        "acceptable": ["dms", "dms-frontend"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "custom-block-role-editor",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my custom block doesnt show up in the role editor, why",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-auth", "dms-pages", "dms"],
+        "mustMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "dms-best-practices-not-data-controller",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Which permission guards the audit-log export route, and how do I register it?",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms", "dms-pages"],
+        "avoid": ["dms-best-practices"]
+      }
+    }
+  ]
+}

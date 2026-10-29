@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/crons/cleanup-user-invites.ts b/packages/dms/src/crons/cleanup-user-invites.ts
+index 07c39628..e5c5e4c4 100644
+--- a/packages/dms/src/crons/cleanup-user-invites.ts
++++ b/packages/dms/src/crons/cleanup-user-invites.ts
+@@ -31,7 +31,7 @@ async function decideExpiredRow(row: UserInvite): Promise<void> {
+ 
+ async function decideExpiredInvites(): Promise<void> {
+   const invites = GetModel(UserInviteModel, CROSS_INSTANCE);
+-  const cutoff = new Date();
++  const cutoff = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+   let cursor = "";
+   while (true) {
+     const rows = await invites.table

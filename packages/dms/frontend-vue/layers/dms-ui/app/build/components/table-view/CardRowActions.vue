@@ -16,8 +16,6 @@ interface CardRowActionsProps {
 
 const props = defineProps<CardRowActionsProps>();
 
-// The core model holds every listed row: the paginated one may not, when the
-// table pages on the client.
 const cell = computed(() =>
   props.table
     ?.getCoreRowModel()

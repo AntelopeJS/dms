@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
-import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+import type { NavigationMenuItem } from "@nuxt/ui";
+import { MENU_STATUS_CHIP_COLORS } from "#dms-core/app/utils/menu";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
+import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
 import {
   applyPreviewEntryStates,
   type PreviewEntryState,
-} from "#dms-core/app/build/utils/permission-preview";
+} from "#dms-core/app/entries/utils/permission-preview";
 
 interface Props {
   items: NavigationMenuItem[] | NavigationMenuItem[][];
@@ -25,9 +27,6 @@ const emit = defineEmits<{
   "update:modelValue": [value: string[]];
 }>();
 
-// When no v-model is bound, leave each AccordionRoot fully uncontrolled —
-// Reka's own defaultOpen handling takes over and we skip the sync component
-// entirely.
 const controlled = computed(() => Array.isArray(props.modelValue));
 
 const isArrayOfArrays = (
@@ -36,8 +35,6 @@ const isArrayOfArrays = (
   return Array.isArray(items[0]);
 };
 
-// Semantic fields declared on a page or by a dynamic menu provider are turned
-// into Nuxt UI item props here, so the registration side never ships classes.
 interface MenuVariantClasses {
   link?: string;
   leadingIcon?: string;
@@ -113,13 +110,11 @@ function buildItemUi(
     : undefined;
 }
 
-// A plain badge value (a page's `badge`) gets the v2 look in its tone; a
-// badge already given as props is the caller's own choice.
 function resolveMenuBadge(
   badge: DmsMenuItem["badge"],
   tone: MenuItemBadgeTone | undefined,
 ): DmsMenuItem["badge"] {
-  if (typeof badge === "string" || typeof badge === "number") {
+  if (isString(badge) || isNumber(badge)) {
     return {
       ...MENU_BADGE_PROPS,
       color: tone ?? DEFAULT_BADGE_TONE,
@@ -129,13 +124,6 @@ function resolveMenuBadge(
   return badge;
 }
 
-// "Preview as role": an entry the previewed role could not open stays in the
-// menu, hatched red and locked, so the preview shows what the role loses
-// instead of a shorter menu; one it opens without all of it (a block or an
-// action of its page, or one of its entries) is hatched orange with the same
-// lock. Labels and parents are drawn too; a parent keeps its trailing slot
-// for the chevron and shows the lock in place of its icon. Outside a preview
-// `entryState` is always null: nothing is ever drawn.
 const preview = usePermissionPreview();
 const { t } = useI18n();
 const PREVIEW_ENTRY_LINK_CLASSES: Record<PreviewEntryState, string> = {
@@ -159,29 +147,26 @@ function drawPreviewEntry(
   const title = t(PREVIEW_ENTRY_TITLES[state], {
     role: preview.session.value?.roleName ?? "",
   });
-  return {
+  const result: DmsMenuItem = {
     ...item,
     previewState: state,
     previewLocked: state === "hidden",
     class: [item.class, PREVIEW_ENTRY_LINK_CLASSES[state]],
     title,
     "aria-label": `${String(item.label ?? "")} · ${title}`,
-    ...(hasChildren
-      ? {}
-      : {
-          trailingIcon: PREVIEW_LOCK_ICON,
-          badge: undefined,
-          ui: {
-            ...UNSET_MENU_ITEM_UI,
-            ...item.ui,
-            linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
-          },
-        }),
   };
+  if (!hasChildren) {
+    result.trailingIcon = PREVIEW_LOCK_ICON;
+    result.badge = undefined;
+    result.ui = {
+      ...UNSET_MENU_ITEM_UI,
+      ...item.ui,
+      linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
+    };
+  }
+  return result;
 }
 
-// The count a table view published for the page (`navBadge`) is fresher than
-// the one the server counted when the menu loaded; `""` stands for none.
 const { badges: navBadges } = useNavBadges();
 
 function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
@@ -191,9 +176,6 @@ function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
   return live.label ? resolveMenuBadge(live.label, live.tone) : undefined;
 }
 
-// A status dot lands in the trailing slot, which a parent entry already uses for
-// its accordion chevron — so it is rendered on leaf entries only, and a badge
-// takes precedence over it.
 function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   const variant = VARIANT_CLASSES[item.variant ?? "default"];
   const hasChildren = (item.children?.length ?? 0) > 0;
@@ -204,22 +186,16 @@ function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
       : undefined;
   const ui = buildItemUi(item, variant, statusClass);
 
-  return {
-    ...item,
-    // Inertia prefetches the page on hover, the way a `DmsLink` does: the
-    // visit then shows it without a request, and its components load early.
-    ...(item.to ? { prefetch: true } : {}),
-    ...(variant.link ? { class: [item.class, variant.link] } : {}),
-    ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
-    badge,
-    ...(ui ? { ui } : {}),
-    children: item.children?.map(decorateMenuItem),
-  };
+  const result: DmsMenuItem = { ...item };
+  if (item.to) result.prefetch = true;
+  if (variant.link) result.class = [item.class, variant.link];
+  if (statusClass) result.trailingIcon = STATUS_DOT_ICON;
+  result.badge = badge;
+  if (ui) result.ui = ui;
+  result.children = item.children?.map(decorateMenuItem);
+  return result;
 }
 
-// Normalized to groups for both renderings: UNavigationMenu wraps a flat list
-// in a single group itself, so one shape serves the expanded and the collapsed
-// branch.
 const groupedItems = computed((): NavigationMenuItem[][] => {
   if (!props.items || props.items.length === 0) {
     return [];
@@ -277,7 +253,7 @@ function onStateChange(id: string, open: boolean): void {
       />
       <UAvatar
         v-if="item.avatar"
-        :size="ui.linkLeadingAvatarSize() as AvatarProps['size']"
+        :size="ui.linkLeadingAvatarSize()"
         v-bind="item.avatar"
         :class="
           ui.linkLeadingAvatar({
@@ -298,6 +274,23 @@ function onStateChange(id: string, open: boolean): void {
           })
         "
       />
+      <UChip
+        v-else-if="item.icon && item.status && item.children?.length"
+        :color="MENU_STATUS_CHIP_COLORS[item.status as MenuItemStatus]"
+        inset
+        size="sm"
+      >
+        <UIcon
+          :name="item.icon"
+          :class="
+            ui.linkLeadingIcon({
+              class: item.ui?.linkLeadingIcon,
+              active,
+              disabled: !!item.disabled,
+            })
+          "
+        />
+      </UChip>
       <UIcon
         v-else-if="item.icon"
         :name="item.icon"

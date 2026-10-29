@@ -1,7 +1,5 @@
 import type { TabItem } from "./item";
 
-// A tab set is also used directly in hand-written pages, outside any
-// registered component: the ids exist only for server-driven ones.
 interface TabComponentProps {
   componentId?: string;
   pageId?: string;

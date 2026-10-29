@@ -1,7 +1,3 @@
-// "Preview as role": what a previewed permission set loses on a page's header
-// and in the quick actions, compared with what the viewer is served. Pure: the
-// layouts and quick actions are resolved by the caller (page.ts).
-
 import { createHash } from "node:crypto";
 import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
 
@@ -14,6 +10,7 @@ export interface ServedQuickActions {
 export function readHeaderActions(
   layout: { options?: unknown } | undefined,
 ): PageHeaderButtonSerialized[] {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Resolved layout options are opaque; inference and PageHeaderButtonSerialized cannot prove a custom layout follows DefaultLayout's headerActions convention, which this extraction already assumes without checking.
   const options = layout?.options as
     | { headerActions?: PageHeaderButtonSerialized[] }
     | undefined;
@@ -40,9 +37,7 @@ function headerActionShown(
   if (!access.headerActions.some((served) => served.id === action.id)) {
     return false;
   }
-  // The browser leaves out a button whose quick action the user was not
-  // served (PageHeaderActionBar.vue): the same rule decides here. A
-  // component's button is served with the component, already filtered.
+
   if (action.target?.type === "quickAction") {
     return servesQuickAction(access.quickActions, action.target.id);
   }
@@ -116,15 +111,12 @@ function aggregateNode(
   if (denied.has(node.fullId)) {
     access = "denied";
   } else if (node.opensPage && universal.has(node.fullId)) {
-    // Every member opens this page whatever their role: the entries under it
-    // carry their own state.
     access = losesInside.has(node.fullId) ? "partial" : "full";
   } else if (
     !node.opensPage &&
     children.length > 0 &&
     children.every((child) => child === "denied")
   ) {
-    // A group whose every entry is refused leaves the set nothing to open.
     access = "denied";
   } else if (
     losesInside.has(node.fullId) ||
@@ -187,25 +179,21 @@ export interface PreviewCacheScope {
   preview: Iterable<string>;
 }
 
-// Neither can appear in a tenant id, a user id or a permission id.
-const KEY_PART_SEPARATOR = "\u0000";
-const KEY_ID_SEPARATOR = "\n";
-
-function sortedIds(ids: Iterable<string>): string {
-  return [...new Set(ids)].sort().join(KEY_ID_SEPARATOR);
+function sortedIds(ids: Iterable<string>): string[] {
+  return [...new Set(ids)].sort();
 }
 
 /** Key of a preview scope: the same viewer and sets give the same key, in any order. */
 export function previewCacheKey(scope: PreviewCacheScope): string {
   return createHash("sha256")
     .update(
-      [
+      JSON.stringify([
         scope.tenantId,
         scope.userId,
-        String(scope.structureVersion),
+        scope.structureVersion,
         sortedIds(scope.real),
         sortedIds(scope.preview),
-      ].join(KEY_PART_SEPARATOR),
+      ]),
     )
     .digest("hex");
 }
@@ -239,7 +227,6 @@ export class PreviewScopeCache<V> {
     }
     const existing = this.entries.get(key);
     if (existing) {
-      // Most recent last: eviction drops the oldest scope first.
       this.entries.delete(key);
       this.entries.set(key, existing);
       return existing.pages;

@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
       - name: Validate release source and package metadata
         env:
           CHANNEL: ${{ inputs.channel }}
@@ -35,25 +38,12 @@ jobs:
             *) exit 1 ;;
           esac
           test "$GITHUB_REF" = "refs/heads/$release_branch"
-          node <<'NODE'
-          const pkg = require('./packages/dms/package.json')
-          const iface = require('./packages/interface-dms/package.json')
-          // The interface sitting in the tree only has to SATISFY the range the
-          // module publishes: a floor that lags it widens what consumers may
-          // install, it does not create a second copy. The module implements
-          // the interface, so it caps it below the next minor
-          // (`>=<floor> <0.<minor+1>.0`): a breaking interface minor must never
-          // reach a DMS that does not implement it.
-          const compare = (a, b) => {
-            const parts = (v) => v.split('-')[0].split('.').map(Number)
-            const [x, y] = [parts(a), parts(b)]
-            return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
-          }
-          const satisfiesImplementedRange = (version, range) => {
-            const match = /^>=(0\.(\d+)\.\d+) <(0\.(\d+)\.0)$/.exec(range ?? '')
-            if (!match || Number(match[4]) !== Number(match[2]) + 1) return false
-            return compare(version, match[1]) >= 0 && compare(version, match[3]) < 0
-          }
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          import { satisfiesImplementedRange } from './checks/release-range.mjs'
+          const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
+          const pkg = readJson('./packages/dms/package.json')
+          const iface = readJson('./packages/interface-dms/package.json')
           if (
             pkg.name !== '@antelopejs/dms' ||
             pkg.private === true ||
@@ -72,9 +62,6 @@ jobs:
       # so a module released against an unpublished interface installs broken. The
       # interface is released by its own workflow; this one only refuses to run
       # before it has landed.
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
       - name: Verify the interface release it will point at
         run: |
           version=$(node -p "require('./packages/interface-dms/package.json').version")

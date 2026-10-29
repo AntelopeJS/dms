@@ -1,16 +1,11 @@
+import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { MenuRouteState } from "#dms-core/app/types/menu";
 
-// Every token is `{{<scope>.<key>}}`, spaces inside the braces allowed, as the
-// server's filter tokens (`{{ user.id }}`) are.
-//
-// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
-// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
-// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
-// table view (see extractRouteParams).
 const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
-// A query key may carry dots and dashes: a period selector writes `<id>.period`.
+
 const QUERY_KEY = String.raw`query\.([\w.-]+)`;
-// A response key is a path into the answered body: `{{response.data.id}}`.
+
 const RESPONSE_KEY = String.raw`response\.([\w.-]+)`;
 
 const tokenPattern = (key: string, flags = "g"): RegExp =>
@@ -23,7 +18,8 @@ const TOKEN_OPENING = "{{";
 
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
-  routeQuery: Record<string, unknown>;
+  routeQuery: MenuRouteState["query"];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Response bodies retain arbitrary nested values for path lookup; the core JSON contract would exclude existing non-JSON inputs.
   response?: Record<string, unknown>;
 }
 
@@ -37,8 +33,6 @@ interface TokenEncoding {
 
 const keepValue: EncodeValue = (value) => value;
 
-// A route parameter is a segment of the page path, which the router keeps
-// percent-encoded: it is decoded first so that it is not encoded twice.
 const encodeParam: EncodeValue = (value) => {
   try {
     return encodeURIComponent(decodeURIComponent(value));
@@ -65,22 +59,18 @@ function fillRouteTokens(
     })
     .replace(QUERY_TOKEN, (match, key) => {
       const value = context.routeQuery[key];
-      return typeof value === "string" ? encoding.query(value) : match;
+      return isString(value) ? encoding.query(value) : match;
     });
 }
 
-// Written as answered: a response may hand back a whole path to open next
-// (`redirectOnSuccess: "{{response.redirectPath}}"`), which encoding would break.
 function fillResponseTokens(
   text: string,
-  response: Record<string, unknown> | undefined,
+  response: ReplaceUrlVariablesContext["response"],
 ): string {
   if (!response) return text;
   return text.replace(RESPONSE_TOKEN, (match, key: string) => {
     const value: unknown = get(response, key);
-    return typeof value === "string" || typeof value === "number"
-      ? String(value)
-      : match;
+    return isString(value) || isNumber(value) ? String(value) : match;
   });
 }
 
@@ -133,8 +123,6 @@ export function resolveTextVariables(
   return hasUrlVariables(resolved) ? undefined : resolved;
 }
 
-// A route token left without a value: `{{params.id}}`, `{{query.workspace}}`,
-// `{{query.sales.period}}` (a query key may carry dots and dashes, as above).
 const ROUTE_KEY = `(?:${PARAM_KEY}|${QUERY_KEY})`;
 const UNRESOLVED_ROUTE_TOKEN = tokenPattern(ROUTE_KEY);
 const UNRESOLVED_ROUTE_VALUE = new RegExp(
@@ -196,7 +184,6 @@ export function resolveLinkVariables(
   return stripTokens(filled, UNRESOLVED_ROUTE_TOKEN, UNRESOLVED_ROUTE_VALUE);
 }
 
-// A row field, `{{row.<path>}}`, as `interpolateUrl` fills it.
 const ROW_KEY = String.raw`row\.[^{}\s]+`;
 const ROW_TOKEN = tokenPattern(ROW_KEY);
 const ROW_VALUE = new RegExp(`^${tokenPattern(ROW_KEY, "").source}$`);

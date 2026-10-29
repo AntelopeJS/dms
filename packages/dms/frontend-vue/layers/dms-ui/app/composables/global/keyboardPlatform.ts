@@ -98,7 +98,7 @@ export function formatKeyboardShortcut(
     .join(platform === "mac" ? "" : " ");
 }
 
-function normalizePlatform(value: unknown): KeyboardPlatform {
+function normalizePlatform(value: KeyboardPlatform): KeyboardPlatform {
   return value === "mac" ? "mac" : "other";
 }
 

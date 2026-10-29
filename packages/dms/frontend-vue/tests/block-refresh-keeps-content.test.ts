@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 /**
  * A data block refreshed (a page refresh, a realtime event, a period change,
  * live resuming) keeps what it shows until the new answer lands: it draws its
@@ -5,38 +6,19 @@
  * in flight, once with an answer already on screen (no skeleton) and once
  * without one (its skeleton).
  */
-import * as vue from "vue";
-import { createSSRApp, defineComponent, h, ref, type Component } from "vue";
-import { renderToString } from "vue/server-renderer";
+import { createApp, defineComponent, h, nextTick, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import {
+  installBlockNetwork,
+  provideBlockRuntime,
+  registerBlockUi,
+} from "./helpers/block-network-runtime";
+import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import { useChartFetch } from "../layers/dms-ui/app/composables/chart/useChartFetch";
 
-// What the block's read holds: the answer on screen, and a read in flight.
-let onScreen: unknown = null;
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref(onScreen),
-    isLoading: ref(true),
-    error: ref(null),
-    refresh: async () => {},
-  }),
-}));
-
-vi.mock("../layers/dms-core/app/composables/watch/useWatch", () => ({
-  useWatch: () => ({ state: ref({}) }),
-}));
-vi.mock(
-  "../layers/dms-core/app/composables/components/useComponentEvent",
-  () => ({ useComponentEvent: () => ({}) }),
-);
-
-vi.mock(
-  "../layers/dms-ui/app/build/composables/actions/useActionTargets",
-  () => ({
-    useActionTargets: () => ({ handleCustomButton: () => {} }),
-  }),
-);
+const pending: Array<(answer: BlockCase["answer"]) => void> = [];
+const mounted: Array<{ unmount: () => void }> = [];
+const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const { default: KpiCard } = await import(
   "../layers/dms-ui/app/components/kpi/KpiCard.vue"
@@ -68,16 +50,6 @@ const { default: BannerBlock } = await import(
 
 const SKELETON_MARK = "data-test-skeleton";
 
-const Slot = defineComponent({
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", slots.default?.()),
-});
-const Skeleton = defineComponent({
-  render: () => h("span", { [SKELETON_MARK]: "" }),
-});
-
 interface BlockCase {
   name: string;
   component: Component;
@@ -91,7 +63,12 @@ interface BlockCase {
 const ITEMS_TEXT = "Pending orders";
 
 const BLOCKS: BlockCase[] = [
-  { name: "KpiCard", component: KpiCard, answer: { value: 4321 }, shows: "4" },
+  {
+    name: "KpiCard",
+    component: KpiCard,
+    answer: { value: 4321 },
+    shows: "4.3K",
+  },
   {
     name: "TopListCard",
     component: TopListCard,
@@ -139,7 +116,6 @@ const BLOCKS: BlockCase[] = [
     shows: ITEMS_TEXT,
   },
   {
-    // Draws nothing, not a skeleton, before its first answer.
     name: "Banner",
     component: BannerBlock,
     answer: { title: ITEMS_TEXT },
@@ -148,9 +124,8 @@ const BLOCKS: BlockCase[] = [
   },
 ];
 
-async function render(block: BlockCase, answer: unknown): Promise<string> {
-  onScreen = answer;
-  const app = createSSRApp({
+async function mount(block: BlockCase) {
+  const app = createApp({
     render: () =>
       h(block.component, {
         componentId: "block",
@@ -159,78 +134,85 @@ async function render(block: BlockCase, answer: unknown): Promise<string> {
         fetchUrl: "/api/orders/block",
       }),
   });
-  for (const name of [
-    "DmsCard",
-    "UCard",
-    "UBadge",
-    "UIcon",
-    "UButton",
-    "UAlert",
-    "UTooltip",
-    "ULink",
-    "UAvatar",
-    "NuxtLink",
-    "DmsLink",
-  ]) {
-    app.component(name, Slot);
-  }
-  app.component("USkeleton", Skeleton);
-  app.config.warnHandler = () => {};
-  return renderToString(app);
+  await provideBlockRuntime(app);
+  registerBlockUi(app);
+  const root = document.createElement("div");
+  app.mount(root);
+  mounted.push(app);
+  return root;
 }
 
-beforeEach(() => useRealDataEngine());
-
-// The Vue auto-imports the components use.
-const VUE_GLOBALS = [
-  "ref",
-  "computed",
-  "watch",
-  "watchEffect",
-  "onMounted",
-  "onBeforeUnmount",
-  "onUnmounted",
-  "nextTick",
-  "toRef",
-  "shallowRef",
-  "inject",
-  "provide",
-  "useSlots",
-] as const;
-
-beforeEach(() => {
-  for (const name of VUE_GLOBALS) vi.stubGlobal(name, vue[name]);
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: String,
-    t: String,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useDefinedFunctions", () => ({
-    getFunction: () => undefined,
-  }));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: async () => null }));
-  vi.stubGlobal("useSiteLayout", () => ({ layout: ref(null) }));
-  vi.stubGlobal("useDmsRoute", () => ({ query: {}, params: {} }));
+beforeEach(async () => {
+  pending.length = 0;
+  await installBlockNetwork(
+    () => new Promise((resolve) => pending.push(resolve)),
+  );
 });
 
 afterEach(() => {
-  onScreen = null;
+  mounted.splice(0).forEach((app) => app.unmount());
   vi.unstubAllGlobals();
 });
 
 describe.each(BLOCKS)("$name refreshed", (block) => {
   it("keeps its answer on screen while the new one is on its way", async () => {
-    const html = await render(block, block.answer);
-    expect(html).not.toContain(SKELETON_MARK);
-    expect(html).toContain(block.shows);
+    const root = await mount(block);
+    await nextTick();
+    expect(pending).toHaveLength(1);
+    pending[0](block.answer);
+    await settle();
+    expect(root.textContent).toContain(block.shows);
+    const refreshing = refreshPageBlocks();
+    await settle();
+    expect(pending).toHaveLength(2);
+    expect(root.innerHTML).not.toContain(SKELETON_MARK);
+    expect(root.textContent).toContain(block.shows);
+    pending[1](block.answer);
+    await refreshing;
+    await nextTick();
+    expect(root.textContent).toContain(block.shows);
   });
 
   it.skipIf(block.hasSkeleton === false)(
     "draws its skeleton before its first answer",
     async () => {
-      expect(await render(block, null)).toContain(SKELETON_MARK);
+      const root = await mount(block);
+      await nextTick();
+      expect(pending).toHaveLength(1);
+      expect(root.innerHTML).toContain(SKELETON_MARK);
     },
   );
+});
+
+it("keeps the newest refresh when an older response arrives last", async () => {
+  const root = document.createElement("div");
+  const app = createApp(
+    defineComponent({
+      setup() {
+        const { data } = useChartFetch<{ value: string }>({
+          fetchUrl: "/api/race",
+        });
+        return () => h("span", data.value?.value);
+      },
+    }),
+  );
+  await provideBlockRuntime(app);
+  app.mount(root);
+  mounted.push(app);
+  await nextTick();
+  pending[0]({ value: "initial" });
+  await settle();
+  const first = refreshPageBlocks();
+  await settle();
+  const second = refreshPageBlocks();
+  await settle();
+  expect(pending).toHaveLength(3);
+  expect(root.textContent).toBe("initial");
+  pending[2]({ value: "newest" });
+  await Promise.all([first, second]);
+  await nextTick();
+  expect(root.textContent).toBe("newest");
+  pending[1]({ value: "stale" });
+  await settle();
+  expect(root.textContent).toBe("newest");
 });

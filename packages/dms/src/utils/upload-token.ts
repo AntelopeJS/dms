@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../config";
+import { isJwtClaims } from "./jwt-claims";
 
 const UPLOAD_TOKEN_PURPOSE = "file-upload";
 const FALLBACK_SECRET_BYTES = 32;
@@ -24,10 +25,7 @@ function getUploadTokenSecret(): string {
     fallbackUploadTokenSecret = crypto
       .randomBytes(FALLBACK_SECRET_BYTES)
       .toString("hex");
-    // Error, not Warn: behind more than one instance this silently rejects
-    // most uploads — the token is signed by one process and verified by
-    // another — and the only symptom is a 403 at presign with nothing tying it
-    // back here. A deployment must see this in its error stream.
+
     Logging.Error(
       "auth.jwtSecret is not configured; upload tokens fall back to a per-process secret. Uploads will break across restarts and, on a multi-instance deployment, for every request that lands on another instance. Configure auth.jwtSecret.",
     );
@@ -86,15 +84,13 @@ export function signUploadToken(claims: Partial<UploadTokenClaims>): string {
  * the token is missing, tampered with, signed with a different secret, or was
  * not minted for uploads. Presign treats a `null` result as a rejection.
  */
+/* oxlint-disable anti-slop/no-runtime-typeof -- Signed JWT claims are still untyped input; string checks preserve omission of malformed optional claims. */
 export function verifyUploadToken(token: string): UploadTokenClaims | null {
   try {
     const payload = verify(token, getUploadTokenSecret(), {
-      // The secret is an HMAC key, so nothing else could verify today — the
-      // pin is what keeps an algorithm-confusion bug in the JWT library from
-      // ever mattering here.
       algorithms: ["HS256"],
-    }) as UploadTokenPayload;
-    if (payload.purpose !== UPLOAD_TOKEN_PURPOSE) {
+    });
+    if (!isJwtClaims(payload) || payload.purpose !== UPLOAD_TOKEN_PURPOSE) {
       return null;
     }
     const claims: UploadTokenClaims = {
@@ -116,3 +112,4 @@ export function verifyUploadToken(token: string): UploadTokenClaims | null {
     return null;
   }
 }
+/* oxlint-enable anti-slop/no-runtime-typeof */

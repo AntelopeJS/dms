@@ -18,8 +18,7 @@ export function useTableViewDisplayState() {
  */
 export function storeTableViewDisplay(entry: TableViewDisplay): void {
   const displays = useTableViewDisplayState();
-  // The registry is reactive state: a component stored in it would be made
-  // reactive too (Vue warns, and pays for it on every render).
+
   const display = entry.component
     ? { ...entry, component: markRaw(entry.component) }
     : entry;

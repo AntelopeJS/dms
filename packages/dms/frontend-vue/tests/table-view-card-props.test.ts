@@ -1,32 +1,25 @@
-// @vitest-environment jsdom
-import { computed, createApp, defineComponent, h, ref, type App } from "vue";
+/** @vitest-environment jsdom */
+import "./helpers/table-runtime";
+import {
+  computed,
+  createApp,
+  defineComponent,
+  h,
+  ref,
+  type App,
+  type ExtractPropTypes,
+} from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import {
   buildCardProps,
   cardAvatar,
   cardFieldColumns,
   cardIdentity,
   cardSubtitle,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/card";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/card";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
-import type {
-  TableViewCardProps,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types/display";
-
-vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({
-    getUrl: (key: string) => `/files/${key}`,
-    resolve: async () => {},
-  }),
-}));
+import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 
 const rows = [
   { _id: "t1", name: "Write the docs" },
@@ -35,7 +28,8 @@ const rows = [
 
 function createContext() {
   const selected = ref<string[]>(["t2"]);
-  const opened: unknown[] = [];
+  const opened: (typeof rows)[number][] = [];
+  // SAFETY: These card tests exercise only the supplied selection, pagination, and default-open operations.
   const context = {
     items: rows,
     columns: [],
@@ -56,9 +50,9 @@ function createContext() {
     },
     actions: {
       canAdd: false,
-      open: (item: unknown) => opened.push(item),
+      open: (item: (typeof rows)[number]) => opened.push(item),
     },
-  } as unknown as TableViewDisplayContext<(typeof rows)[number]>;
+  } as TableViewDisplayContext<(typeof rows)[number]>;
   return { context, selected, opened };
 }
 
@@ -82,21 +76,22 @@ describe("table view card props", () => {
 
 describe("cards display with a custom card", () => {
   let app: App | undefined;
-  const received: TableViewCardProps[] = [];
+  const cardProps = {
+    row: Object,
+    rowId: String,
+    columns: Array,
+    labelKey: String,
+    actions: Object,
+    selected: Boolean,
+    select: Function,
+    open: Function,
+  };
+  const received: ExtractPropTypes<typeof cardProps>[] = [];
 
   const TaskCard = defineComponent({
-    props: {
-      row: Object,
-      rowId: String,
-      columns: Array,
-      labelKey: String,
-      actions: Object,
-      selected: Boolean,
-      select: Function,
-      open: Function,
-    },
+    props: cardProps,
     setup: (props) => () => {
-      received.push({ ...props } as unknown as TableViewCardProps);
+      received.push({ ...props });
       return h("button", { onClick: () => props.open?.() }, props.rowId);
     },
   });
@@ -109,8 +104,6 @@ describe("cards display with a custom card", () => {
       locale: ref("en"),
       t: (key: string) => key,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "TaskCard" ? TaskCard : undefined,
     );
@@ -145,8 +138,6 @@ describe("the default cards", () => {
       locale: ref("en"),
       t: (key: string) => key,
     }));
-    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
-    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   });
 
   afterEach(() => {
@@ -176,7 +167,7 @@ describe("the default cards", () => {
     expect(opened).toEqual([rows[1]]);
   });
 
-  it("show the title column's subtitle and avatar, never the database id", () => {
+  it("show the title column's subtitle and avatar, never the database id", async () => {
     const { context } = createContext();
     context.options = {};
     app = createApp({ render: () => h(CardsDisplay, { context }) });
@@ -194,6 +185,7 @@ describe("the default cards", () => {
     expect(container.querySelector("img")).toBeNull();
     app.unmount();
 
+    // SAFETY: The identity renderer reads only the id, accessorKey, and display fields supplied here.
     context.columns = [
       {
         id: "name",
@@ -219,18 +211,20 @@ describe("the default cards", () => {
     );
     const next = document.createElement("div");
     app.mount(next);
+    await new Promise((resolve) => setTimeout(resolve));
     const [first, second] = [...next.querySelectorAll("article")];
     expect(first!.textContent).toContain("ann@example.com");
     expect(first!.querySelector("img")?.getAttribute("src")).toBe(
       "/files/ann.png",
     );
-    // Without an avatar, the title's initials stand in.
+
     expect(second!.querySelector("img")).toBeNull();
     expect(second!.textContent).toContain("SI");
   });
 });
 
 describe("card subtitle and avatar", () => {
+  // SAFETY: cardIdentity reads only accessorKey and display from this deliberately partial column.
   const identityColumn = {
     id: "name",
     accessorKey: "name",
@@ -259,7 +253,7 @@ describe("card subtitle and avatar", () => {
     expect(cardSubtitle(row, {}, { labelKey: "name", rowIdKey: "code" })).toBe(
       "CH-0155",
     );
-    // The title is the id already: no second line repeats it.
+
     expect(
       cardSubtitle(
         { code: "CH-0155" },
@@ -301,6 +295,7 @@ describe("card fields", () => {
     "tags",
   ].map(
     (key) =>
+      // SAFETY: cardFieldColumns reads only id, accessorKey, and listable from these columns.
       ({
         id: key,
         accessorKey: key,
@@ -326,7 +321,7 @@ describe("card fields", () => {
       "due",
       "size",
     ]);
-    // A kanban card sits in its group's column: the group is not repeated.
+
     expect(
       keys(
         cardFieldColumns(columns, undefined, { ...shown, others: ["status"] }),

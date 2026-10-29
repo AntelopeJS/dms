@@ -1,3 +1,5 @@
+import { isFunction, isString } from "#dms-core/app/utils/type-check";
+
 /**
  * A prompt the assistant mode of the command palette offers before the user
  * types anything ("Try asking").
@@ -81,8 +83,7 @@ const COMMAND_PALETTE_ASSISTANTS_STATE_KEY = "dms:command-palette-assistants";
 
 function isAssistantRenderable(assistant: CommandPaletteAssistant): boolean {
   return (
-    typeof assistant.suggestions === "function" &&
-    typeof assistant.answerComponent === "string"
+    isFunction(assistant.suggestions) && isString(assistant.answerComponent)
   );
 }
 

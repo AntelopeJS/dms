@@ -85,7 +85,6 @@ const JOBS: JobSeed[] = [
 
 const RUNS_PER_JOB = 4;
 
-// A repeatable series per run: the same seed always draws the same line.
 function historyOf(seed: number): number[] {
   return Array.from({ length: HISTORY_LENGTH }, (_, index) =>
     Math.round(40 + 30 * Math.sin((seed + index) / 2) + ((seed * index) % 17)),

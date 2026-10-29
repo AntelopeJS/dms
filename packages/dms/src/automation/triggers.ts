@@ -15,6 +15,17 @@ const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 const TENANT_ID_PROPERTY: JsonSchema = { type: "string" };
 const AT_PROPERTY: JsonSchema = { type: "string" };
 
+/** Drops the listener `activate` returned as the opaque handle, if registered. */
+const removeListener = (
+  event: AutomationEventName,
+): TriggerType["deactivate"] =>
+  async function deactivate(handle) {
+    const listeners = listenersFor(event);
+    for (const listener of listeners) {
+      if (listener === handle) listeners.delete(listener);
+    }
+  };
+
 interface DmsEventTriggerSpec {
   event: AutomationEventName;
   /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
@@ -48,9 +59,7 @@ function createEventTrigger(spec: DmsEventTriggerSpec): TriggerType {
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 
@@ -65,7 +74,9 @@ interface RecordTriggerSpec {
   icon: string;
 }
 
-function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
+function createRecordTrigger(
+  spec: RecordTriggerSpec,
+): TriggerType<RecordTriggerConfig | undefined> {
   return {
     id: spec.event,
     name: nodeText(`triggers.${spec.texts}`, "name"),
@@ -92,10 +103,9 @@ function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
       }),
     },
     async activate(config, emit) {
-      const location = (
-        config as RecordTriggerConfig | undefined
-      )?.location?.trim();
+      const location = config?.location?.trim();
       const listener: AutomationEventListener = (payload) => {
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record trigger subscriptions receive RecordMutationEvent from emitAutomationEvent; the shared listener registry erases the per-event payload type.
         if (location && (payload as RecordMutationEvent).location !== location)
           return;
         emit(payload);
@@ -103,9 +113,7 @@ function createRecordTrigger(spec: RecordTriggerSpec): TriggerType {
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 

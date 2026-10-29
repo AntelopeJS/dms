@@ -1,21 +1,11 @@
 import { Category, RootCategory } from "@antelopejs/interface-dms/page";
 
-// The playground files its demos under its own "Library" root instead of the
-// core `pagesCategory`, whose "Pages" label every DMS project keeps. Like the
-// Pages root it uses `urlSlug: "/"`, so it adds no URL segment. Its id starts
-// the playground pages' permission ids (`library.components.form.form-simple`).
 export const libraryCategory = RootCategory("library", {
   displayName: "Library",
   icon: "i-ph-books",
   order: 1,
   urlSlug: "/",
 });
-
-// Every section of the library is declared here, in reading order: from the
-// building blocks (design system, layout, components) to the page and the
-// dashboard around it, then the backend services. Each one is a heading with
-// `urlSlug: "/"`, so it stays out of page URLs (/grid/layout-grid-simple, not
-// /layout/grid/layout-grid-simple) but is part of their permission ids.
 
 interface LibrarySection {
   displayName: string;

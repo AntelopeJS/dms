@@ -20,8 +20,10 @@ interface ModuleLoadError extends Error {
 let automationInterfacePromise: Promise<AutomationInterface | undefined>;
 const automationLifecycle = new AutomationRegistrationLifecycle();
 
-function isMissingAutomationInterface(error: unknown): boolean {
-  const moduleError = error as ModuleLoadError;
+function isMissingAutomationInterface(
+  error: PromiseRejectedResult["reason"],
+): boolean {
+  const moduleError: ModuleLoadError = error;
   const firstLine = moduleError?.message?.split("\n", 1)[0] ?? "";
   return (
     ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"].includes(
@@ -38,7 +40,7 @@ async function loadAutomationInterface(): Promise<
   AutomationInterface | undefined
 > {
   try {
-    return await import(AUTOMATION_INTERFACE_PACKAGE);
+    return await import("@antelopejs/interface-dms-automation");
   } catch (error) {
     if (isMissingAutomationInterface(error)) return undefined;
     throw error;
@@ -114,3 +116,7 @@ function cleanupAutomationNodes(
   }
   return errors;
 }
+export * from "./actions";
+export * from "./registration-lifecycle";
+export * from "./send-notification";
+export * from "./triggers";

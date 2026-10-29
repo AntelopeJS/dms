@@ -1,6 +1,12 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
+import type {
+  BeforeStateMapper,
+  DataTypeValueComparer,
+} from "#dms-core/app/composables/data-types/useDataType";
+import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 
-const DEFAULT_RELATION_VALUE_KEY = "_id";
+/** The key a related row is referenced by when `keyMapping.value` maps none. */
+export const DEFAULT_RELATION_VALUE_KEY = "_id";
 
 interface RelationKeyMapping {
   value?: string;
@@ -15,35 +21,43 @@ interface RelationValueOptions {
  * The form state of a relation value: the id of each row it references, as
  * the picker holds it, whether the server sent the joined rows or their ids.
  */
-export function mapRelationBeforeState(value: unknown, options: unknown) {
+export function mapRelationBeforeState(
+  value: Parameters<BeforeStateMapper>[0],
+  options: Parameters<BeforeStateMapper>[1],
+) {
   if (!value) return value;
 
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- BeforeStateMapper erases plugin options; relation options are consumed without validation so malformed inputs retain their existing behavior.
   const opts = options as RelationValueOptions | undefined;
   const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
-  if (typeof value === "string" || typeof value === "number") return value;
+  if (isString(value) || isNumber(value)) return value;
 
   if (opts?.multiple && Array.isArray(value)) {
     return value.map((item) =>
-      typeof item === "object" && item !== null
-        ? (item as Record<string, unknown>)[valueKey]
-        : item,
+      isObject(item) && item !== null ? item[valueKey] : item,
     );
   }
 
-  if (typeof value === "object" && value !== null) {
-    return (value as Record<string, unknown>)[valueKey];
+  if (isObject(value) && value !== null) {
+    return value[valueKey];
   }
 
   return value;
 }
 
-function relationIds(value: unknown, options: unknown): unknown[] {
+function relationIds(
+  value: Parameters<BeforeStateMapper>[0],
+  options: Parameters<BeforeStateMapper>[1],
+): ReturnType<BeforeStateMapper>[] {
   const ids = mapRelationBeforeState(value, options);
   return isEmptyFormValue(ids) ? [] : [ids].flat();
 }
 
-function compareIdText(left: unknown, right: unknown): number {
+function compareIdText(
+  left: ReturnType<typeof relationIds>[number],
+  right: ReturnType<typeof relationIds>[number],
+): number {
   return String(left).localeCompare(String(right));
 }
 
@@ -53,12 +67,13 @@ function compareIdText(left: unknown, right: unknown): number {
  * picks of a multiple relation are a set: their order does not count.
  */
 export function sameRelationValue(
-  left: unknown,
-  right: unknown,
-  options: unknown,
+  left: Parameters<DataTypeValueComparer>[0],
+  right: Parameters<DataTypeValueComparer>[1],
+  options: Parameters<DataTypeValueComparer>[2],
 ): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The comparer shares the mapper's erased options contract; this assertion does not validate multiple.
   const isSet = !!(options as RelationValueOptions | undefined)?.multiple;
-  const comparable = (value: unknown) => {
+  const comparable = (value: Parameters<DataTypeValueComparer>[0]) => {
     const ids = relationIds(value, options);
     return isSet ? ids.sort(compareIdText) : ids;
   };
@@ -77,7 +92,7 @@ export interface RelationIdsQuery {
 }
 
 const isIdValue = (value: unknown): value is string | number =>
-  (typeof value === "string" && value !== "") || typeof value === "number";
+  (isString(value) && value !== "") || isNumber(value);
 
 /**
  * The ids a relation value holds that no known row labels yet — a form whose
@@ -85,7 +100,7 @@ const isIdValue = (value: unknown): value is string | number =>
  * labels itself, so only plain ids are returned, each once.
  */
 export function unlabeledRelationIds(
-  value: unknown,
+  value: Parameters<BeforeStateMapper>[0],
   labeledIds: ReadonlySet<string>,
 ): string[] {
   const ids = [value].flat().filter(isIdValue).map(String);
@@ -99,7 +114,7 @@ export function relationIdsQuery(
 ): RelationIdsQuery {
   return {
     ids,
-    ...(keyMapping?.value ? { idKey: keyMapping.value } : {}),
+    ...(keyMapping?.value ? { idKey: keyMapping.value } : undefined),
     limit: ids.length,
   };
 }

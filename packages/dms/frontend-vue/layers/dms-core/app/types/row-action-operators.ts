@@ -1,3 +1,5 @@
+import type { DataTypeFormatter } from "../composables/data-types/useDataType";
+
 type FieldComparatorSingle = <T>(fieldValue: T, ruleValue: T) => boolean;
 type FieldComparatorArray = <T>(fieldValue: T, ruleValue: T[]) => boolean;
 
@@ -52,7 +54,9 @@ export type FieldRule<
 }[keyof T];
 
 export type AnyFieldRule<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends NonNullable<Parameters<DataTypeFormatter>[3]> = NonNullable<
+    Parameters<DataTypeFormatter>[3]
+  >,
 > = {
   [Op in FieldOperatorKey]: FieldRule<T, Op>;
 }[FieldOperatorKey];

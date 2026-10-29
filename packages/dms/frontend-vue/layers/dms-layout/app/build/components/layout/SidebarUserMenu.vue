@@ -36,8 +36,6 @@ const { uniqueLocales } = useUniqueLocales();
 const { changeLanguage } = useUserLanguage();
 const { open: sidebarOpen } = useSidebarState();
 
-// The picture the profile saved, read from the session user: a profile save
-// refreshes that user, so a new picture shows here at once.
 const avatarUrls = useFileReadUrls();
 const avatarKey = computed(() => user.value?.avatar?.key);
 const avatarSrc = computed(() =>
@@ -47,16 +45,12 @@ watch(avatarKey, (key) => key && void avatarUrls.resolve(key), {
   immediate: true,
 });
 
-// The settings have no sidebar entry: their only way in is this menu, so its
-// trigger is drawn active while a settings page is open.
 const isOnSettings = computed(
   () =>
     route.path === SETTINGS_ROUTE ||
     route.path.startsWith(`${SETTINGS_ROUTE}/`),
 );
 
-// v2 user menu: account links, then the per-user preferences as submenus,
-// then logging out.
 const preferenceItems = computed<DropdownMenuItem[]>(() => [
   {
     label: t("page.settings.appearance.theme_title"),
@@ -89,8 +83,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     label: t(entry.labelKey),
     icon: entry.icon,
     to: entry.to,
-    // The menu renders in a portal, outside the sidebar whose link clicks
-    // close the phone drawer: its own entries close it themselves.
+
     onSelect: () => {
       sidebarOpen.value = false;
     },

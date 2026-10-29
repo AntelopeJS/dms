@@ -6,6 +6,7 @@ const NO_LISTENER_LIMIT = 0;
 export interface RealtimeEvent {
   topic: string;
   type: string;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Realtime transports module-defined payloads without interpreting them; changing this exported contract would restrict publishers.
   payload?: Record<string, unknown>;
   actorId?: string;
   /** The tenant the event is about; absent on an event for every tenant. */
@@ -65,21 +66,12 @@ export class InMemoryBroker implements RealtimeBroker {
     this.emitter.setMaxListeners(NO_LISTENER_LIMIT);
   }
 
-  // Delivery is isolated per handler: `emit` would stop at the first listener
-  // that throws and rethrow into the publisher, so one bad subscriber would
-  // both starve the handlers registered after it and fail the request that
-  // published (a table-view mutation awaits its publish after the DB write).
   async publish(event: RealtimeEvent): Promise<void> {
-    // `listeners()` already returns a fresh array, so unsubscribing inside a
-    // handler cannot disturb this loop.
     for (const handler of this.emitter.listeners(event.topic)) {
       try {
-        // A handler is typed `=> void`, which an async function satisfies:
-        // its rejection lands outside the catch and would reach the process
-        // as an unhandled rejection, so the returned value is settled too.
-        const result = (handler as RealtimeEventHandler)(event) as unknown;
+        const result: unknown = handler(event);
         if (result instanceof Promise) {
-          result.catch((error: unknown) =>
+          result.catch((error) =>
             Logging.Error("Realtime: subscriber handler rejected", error),
           );
         }

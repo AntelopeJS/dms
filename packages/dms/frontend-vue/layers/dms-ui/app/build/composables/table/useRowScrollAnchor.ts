@@ -39,7 +39,7 @@ function captureAnchor(
 ): RowAnchor | null {
   if (!root) return null;
   const scroller = findScroller(root);
-  // At the top of the list, new rows land in view: what a live list is for.
+
   if (!scroller || scroller.scrollTop <= 0) return null;
   const viewTop = scroller.getBoundingClientRect().top;
   for (const row of root.querySelectorAll(`tr[${ROW_ID_ATTRIBUTE}]`)) {
@@ -58,8 +58,6 @@ function captureAnchor(
   return null;
 }
 
-// Rows were only added above the anchor (a live list's new rows): a sort, a
-// filter or another page moves the reader on, and is left alone.
 function isPrepend(anchor: RowAnchor, ids: readonly string[]): boolean {
   const index = ids.indexOf(anchor.id);
   if (anchor.index < 0 || index <= anchor.index) return false;

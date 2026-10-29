@@ -17,19 +17,20 @@ function hasRetryHeader(headers: HeadersInit | undefined): boolean {
   );
 }
 
-function withRetryHeader<O>(options: O): O {
-  const source = (options ?? {}) as { headers?: HeadersInit } & Record<
-    string,
-    unknown
-  >;
-  const merged: Record<string, unknown> = { ...source };
+function withRetryHeader(
+  options: Parameters<typeof $fetch>[1],
+): Parameters<typeof $fetch>[1] {
+  const source = options ?? {};
+  const merged = { ...source };
   const headers = new Headers(source.headers ?? undefined);
   headers.set(RETRY_HEADER, "1");
   merged.headers = headers;
-  return merged as O;
+  return merged;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This catch boundary accepts arbitrary rejections; ofetch's FetchError owner would exclude supported non-fetch throws.
 function isUnauthorized(error: unknown): boolean {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked optional access preserves primitive boxing and nested getter behavior; a schema guard would change malformed-input behavior.
   const response = (error as { response?: { status?: number } } | undefined)
     ?.response;
   return response?.status === HTTP_UNAUTHORIZED;
@@ -50,8 +51,6 @@ export const useAuthFetch = () => {
   const baseFetch = $fetch.create({
     baseURL: config.public.dms.baseURL,
     onRequest({ options }) {
-      // Read as each request leaves: a `$authFetch` kept across a language
-      // change asks in the new language. A header the caller sets wins.
       if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
         options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
       }
@@ -90,8 +89,7 @@ export const useAuthFetch = () => {
       try {
         return await invoke(request, options);
       } catch (error) {
-        const headers = (options as { headers?: HeadersInit } | undefined)
-          ?.headers;
+        const headers = options?.headers;
         if (
           !isUnauthorized(error) ||
           hasRetryHeader(headers) ||
@@ -110,12 +108,36 @@ export const useAuthFetch = () => {
     };
   }
 
-  const $authFetch = withSessionRetry((request, options) =>
+  const retryingFetch = withSessionRetry((request, options) =>
     baseFetch(request, options),
-  ) as AuthFetch;
-  $authFetch.raw = withSessionRetry((request, options) =>
+  );
+  const retryingRaw = withSessionRetry((request, options) =>
     baseFetch.raw(request, options),
-  ) as AuthFetch["raw"];
+  );
 
-  return { $authFetch };
+  /**
+   * The session-retrying fetch with `defaults` under each call's options, as
+   * `$fetch.create` merges them, so a retry resends the options of its first
+   * attempt: the call and `raw` retry, `native` is the platform fetch, and
+   * `create` adds defaults to a fetch that retries too.
+   */
+  function withSession(defaults: AuthFetchArgs[1]): AuthFetch {
+    const optionsOf = (options?: AuthFetchArgs[1]) => ({
+      ...defaults,
+      ...options,
+    });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The wrapper forwards each call to baseFetch, whose generic response correlation inference loses; raw, native and create are attached below before it is returned.
+    const authFetch = ((
+      request: AuthFetchArgs[0],
+      options?: AuthFetchArgs[1],
+    ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
+    authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
+      retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
+    authFetch.native = baseFetch.native;
+    authFetch.create = (more) => withSession(optionsOf(more));
+    return authFetch;
+  }
+
+  return { $authFetch: withSession(undefined) };
 };

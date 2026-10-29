@@ -4,9 +4,6 @@ import { Controller, Get } from "@antelopejs/interface-api";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-registry";
 import { GetRegisteredPageIds } from "@antelopejs/interface-dms/page";
 
-// Page ids are the dotted path of their categories. The DMS registers its own
-// pages (settings, sign-in, onboarding, the module home); a TableView in page
-// mode generates a view, a new and an edit page for its records.
 const BUILT_IN_PAGE_PATTERN =
   /^(?:settings(?:\.|$)|modules$|pages\.(?:auth|onboarding)\b)/;
 const GENERATED_PAGE_PATTERN = /\.(?:view|new|edit)$/;

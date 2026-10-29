@@ -4,8 +4,6 @@ import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { dynamicNavigationCategory } from "./category";
 
-// Call-to-action entry: a static page of the same category, ordered after the
-// dynamic ones and rendered in the theme's primary color.
 @RegisterPage()
 export class DynamicNavigationNewProjectPage extends PageController(
   "new-project",

@@ -32,8 +32,14 @@ import {
 } from "../../../helpers/page-access";
 
 const TENANT = "layout-query-tenant";
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
 const MEMBER = { _id: "layout-query-member" } as User;
 const models = stubPageAccessModels(["*"]);
+// SAFETY: buildPagePayload reads the request's url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; the double supplies the url only.
+const requestAt = (url: URL) => ({ url }) as RequestContext;
+// SAFETY: Every suite here installs DefaultLayout on its page, so the options are DefaultLayout's serialized options, of which ServedOptions describes only the headerActions the tests read.
+const headerOptions = (layout: { options?: unknown } | undefined) =>
+  layout?.options as ServedOptions;
 
 interface ServedOptions {
   headerActions: PageHeaderButtonSerialized[];
@@ -99,7 +105,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
       tenantId: TENANT,
       query,
     });
-    return layout.layout?.options as ServedOptions;
+    return headerOptions(layout.layout);
   }
 
   it("enables the button for the query its availability accepts", async () => {
@@ -135,23 +141,25 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
 
   it("resolves the page request's buttons with the page query it carries", async () => {
     const pageRequest = (query: string) =>
-      ({
-        url: new URL(
+      requestAt(
+        new URL(
           `http://dms.test/dms/page?path=${encodeURIComponent(slug)}&shared=false${query}`,
         ),
-      }) as RequestContext;
+      );
     const served = async (query: string) =>
-      (
-        await buildPagePayload(
-          slug,
-          MEMBER,
-          models.memberModel,
-          models.roleModel,
-          TENANT,
-          false,
-          pageRequest(query),
-        )
-      ).layout.layout?.options as ServedOptions;
+      headerOptions(
+        (
+          await buildPagePayload(
+            slug,
+            MEMBER,
+            models.memberModel,
+            models.roleModel,
+            TENANT,
+            false,
+            pageRequest(query),
+          )
+        ).layout.layout,
+      );
 
     const withQuery = await served("&workspace=web");
     expect(withQuery.headerActions[0]).to.not.have.property("disabled");
@@ -221,11 +229,9 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
       models.roleModel,
       TENANT,
       false,
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
+      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
     );
-    return payload.layout.layout?.options as ServedOptions;
+    return headerOptions(payload.layout.layout);
   }
 
   it("serves the button for an existing record, and says which one", async () => {
@@ -255,7 +261,13 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
  */
 describe("[unit] interfaces/dms/page — the page's record, read with its layout", () => {
   const cleanups: Array<() => void> = [];
-  const SITES: Record<string, Record<string, unknown>> = {
+  type SiteRecord = {
+    address: string;
+    owner?: { id: string };
+    locked?: boolean;
+  };
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The concrete SiteRecord fixture is indexed by arbitrary route ids, including missing ids; its lookup must retain the existing undefined result without adding runtime key validation.
+  const SITES: Record<string, SiteRecord> = {
     s1: { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } },
     locked: { address: "Gare", locked: true },
   };
@@ -337,12 +349,9 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       models.roleModel,
       TENANT,
       false,
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
+      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
     );
-    return payload.layout.layout?.options as ServedOptions &
-      Record<string, unknown>;
+    return headerOptions(payload.layout.layout);
   }
 
   const byId = (options: ServedOptions, id: string) =>
@@ -356,8 +365,9 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       "delete",
       "help",
     ]);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The action target owner is a union including drawers; this fixture's directions action is the external URL declared above.
     const directions = byId(options, "directions")?.target as
-      | { url: string }
+      | Extract<PageHeaderButtonSerialized["target"], { url: string }>
       | undefined;
     expect(directions?.url).to.equal(
       `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
@@ -387,8 +397,6 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     }
   });
 
-  // The page leaves a record that went missing under it: a loader that
-  // failed must not read as one that found none.
   it("says whether it found the record, found none, or failed to read it", async () => {
     expect((await served("s1")).recordStatus).to.equal("found");
     expect((await served("missing")).recordStatus).to.equal("missing");

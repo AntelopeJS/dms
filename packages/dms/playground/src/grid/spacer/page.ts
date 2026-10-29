@@ -28,9 +28,6 @@ export class PageGridSpacer extends PageController("grid-spacer", {
   description:
     "Grid rows mixing a Spacer cell and colSpan: empty cells push blocks aside, wide cells span several columns. The first row marks the five columns.",
 }) {
-  // The grid takes as many columns as its longest row has children, whatever
-  // their colSpan: the ruler row of five sets the five tracks the rows below
-  // fill with spacers and wide cells.
   static grid = Grid({ gap: "1rem", minColumnWidth: MIN_COLUMN_WIDTH })
     .child("ruler", rulerRow())
     .child(

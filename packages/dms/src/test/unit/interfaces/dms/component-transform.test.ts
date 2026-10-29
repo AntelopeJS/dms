@@ -37,8 +37,6 @@ describe("[unit] interfaces/dms/component — transformOptions", () => {
     expect(serialized.options?.label).to.equal("abc");
   });
 
-  // Serialization can run more than once — a hot reload re-registers the
-  // page — so each pass must start from the untransformed declaration.
   it("starts from the original options on every serialization", async () => {
     const builder = new ComponentBuilder<DemoOptions>("demo")
       .options({ label: "x" })
@@ -52,9 +50,6 @@ describe("[unit] interfaces/dms/component — transformOptions", () => {
     expect(second.options?.label).to.equal("x!");
   });
 
-  // Synchronous serialization is how a component gets embedded into another
-  // component's options: the host's transform finalizes what it embeds, so
-  // the embedded component's own transforms are deliberately skipped.
   it("skips transforms on synchronous serialization", () => {
     const builder = new ComponentBuilder<DemoOptions>("demo")
       .options({ label: "hello" })

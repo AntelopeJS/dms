@@ -13,6 +13,7 @@ function chartFor(input: Partial<UseApexChartInput> = {}) {
 }
 
 function boundsFor(input: Partial<UseApexChartInput> = {}): AutoBounds {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw options can replace this axis, and Apex allows numeric bounds too; the tests deliberately exercise unchecked auto-range callbacks rather than validate away failures.
   return chartFor({ autoYRange: {}, ...input }).options.value
     .yaxis as AutoBounds;
 }
@@ -53,6 +54,7 @@ describe("annotation-aware auto Y range", () => {
   it("gives zero-only data a nonzero range without changing the series", () => {
     const series = [{ name: "zero", data: [0, 0] }];
     const chart = chartFor({ autoYRange: {}, series });
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
     const bounds = chart.options.value.yaxis as AutoBounds;
     expect(bounds.min(0)).toBe(-0.08);
     expect(bounds.max(0)).toBe(0.08);
@@ -94,9 +96,11 @@ describe("annotation-aware auto Y range", () => {
       annotations: [{ y: 20 }],
     });
     const chart = useApexChart(() => input);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
     expect((chart.options.value.yaxis as AutoBounds).max(10)).toBe(22);
     input.annotations![0]!.y = 40;
     input.autoYRange!.padding = 0.2;
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
     expect((chart.options.value.yaxis as AutoBounds).max(10)).toBe(48);
   });
 
@@ -117,6 +121,7 @@ describe("annotation-aware auto Y range", () => {
   });
 
   it("writes unformatted axis labels without float noise", () => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Apex's formatter is optional and raw output is unchecked; this test intentionally invokes the default formatter without masking a missing callback.
     const labels = chartFor().options.value.yaxis as {
       labels: { formatter: (value: number) => string };
     };
