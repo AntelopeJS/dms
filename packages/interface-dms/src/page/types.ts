@@ -10,7 +10,7 @@ import type {
 import type { RoleModel, TenantMemberModel } from "../db";
 import type { Permission } from "../permissions";
 import type { PermissionsResolverContext } from "../permissions-resolver";
-import type { Tone } from "../base/types/tone";
+import type { Tone } from "../tones";
 import type { MaybePromise } from "../types";
 
 export type { MaybePromise };

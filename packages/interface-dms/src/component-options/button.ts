@@ -1,0 +1,106 @@
+import type { ButtonPermission, ComponentFilterContext } from "../component";
+import type { MaybePromise } from "../types";
+import type { Tone } from "../tones";
+import type { ActionTarget, ActionTargetSerialized } from "./action-target";
+import type { ActionConfirm, ActionConfirmSerialized } from "./confirm-dialog";
+
+export enum ButtonVariant {
+  solid = "solid",
+  outline = "outline",
+  soft = "soft",
+  ghost = "ghost",
+  link = "link",
+}
+
+/** The `color` of a button or an action: one of the semantic tones. */
+export type ButtonColor = Tone;
+
+/** Where a table's button is drawn: its toolbar, or its page's header. */
+export type ButtonPlacement = "toolbar" | "header";
+
+/** Why a button cannot be pressed right now. */
+export interface CustomButtonUnavailability {
+  /**
+   * Shown next to the disabled button: what blocks it, and how to lift the
+   * block when the user can. A `$`-prefixed value resolves as an i18n key.
+   */
+  reason: string;
+}
+
+/**
+ * The button is left out of what a request is served, as if its permission
+ * were missing: for a button that makes no sense in the current scope (an
+ * "Add key" on a read-only workspace), where a disabled one would only be
+ * noise.
+ */
+export interface CustomButtonHidden {
+  hidden: true;
+}
+
+/**
+ * Decides, per request, whether a button can be pressed. Runs server-side
+ * while the page layout is filtered, so the button reaches the client already
+ * disabled, or not at all. Returning `undefined` leaves it enabled, `{ reason
+ * }` disables it with that reason, and `{ hidden: true }` leaves it out.
+ *
+ * In a page header, `context.query` holds the query of the page URL and
+ * `context.params` its route parameters (`:id`), and the header asks again
+ * whenever that query changes: a button can depend on the record `?id=` or
+ * `/:id` names, and hide itself when that record does not exist. A table's
+ * toolbar button gets neither.
+ *
+ * It only shapes the UI: whatever the button triggers must still refuse the
+ * operation on its own.
+ */
+export type CustomButtonAvailability = (
+  context: ComponentFilterContext,
+) => MaybePromise<CustomButtonUnavailability | CustomButtonHidden | undefined>;
+
+export interface CustomButton {
+  /**
+   * Names the button so a quick action can press it (`type: "button"`); the
+   * action then inherits the button's `permission`. Unique within its table.
+   */
+  id?: string;
+  label: string;
+  icon?: string;
+  variant?: ButtonVariant;
+  color?: ButtonColor;
+  target: ActionTarget;
+  /** Asked before the button's target runs: a fixed dialog, or `{ from }`. */
+  confirm?: ActionConfirm;
+  /**
+   * Gate the button behind a permission: one of the owning table's actions by
+   * name (e.g. `"add"`) — in a page header (`DefaultLayout({ headerActions
+   * })`), an action of the page, relative to its permission id — or an
+   * `Action` of any component (e.g. another table's `add`). The button is
+   * stripped from the served options when the caller lacks the permission.
+   */
+  permission?: ButtonPermission;
+  /** Absolute permission id the button requires; wins over `permission`. */
+  permissionId?: string;
+  /**
+   * Disables the button for a request it answers with a reason, or leaves it
+   * out for one it answers `{ hidden: true }`. A button the caller lacks the
+   * permission for is stripped before this runs.
+   */
+  availability?: CustomButtonAvailability;
+  /**
+   * Where the button is drawn: in the table's toolbar (the default), or in
+   * the header of the page carrying the table, which the server adds it to —
+   * the table still runs it. Either way a quick action can press it by `id`.
+   */
+  placement?: ButtonPlacement;
+}
+
+export interface CustomButtonSerialized extends Omit<
+  CustomButton,
+  "target" | "permission" | "permissionId" | "availability" | "confirm"
+> {
+  target: ActionTargetSerialized;
+  confirm?: ActionConfirmSerialized;
+  /** Set when the button's `availability` refused this request. */
+  disabled?: boolean;
+  /** The reason `availability` gave, shown next to the disabled button. */
+  disabledReason?: string;
+}

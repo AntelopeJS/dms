@@ -1,11 +1,11 @@
-import { applyButtonAvailability } from "../../base/internal/button-availability";
+import { applyButtonAvailability } from "../../component-options/internal/button-availability";
 import type {
   DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
   PageHeaderButtonSerialized,
-} from "../../base/internal/layouts";
-import type { CustomButtonSerialized } from "../../base/types/custom-button";
-import type { RowActionConfigSerialized } from "../../base/types/row-action";
+} from "../../component-options/internal/page-layout";
+import type { CustomButtonSerialized } from "../../component-options/button";
+import type { RowActionConfigSerialized } from "../../component-options/row-action";
 import type {
   ComponentInfo,
   ComponentFilterContext,
