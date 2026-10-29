@@ -19,7 +19,7 @@ import {
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
-import { requestContextFixture } from "../../helpers/request-context";
+import { untouchedRequestContext } from "../../helpers/request-context";
 
 const CONTENT = Buffer.from("component-owned file");
 const METADATA = "/api/files/metadata";
@@ -211,7 +211,7 @@ describe("[integration] native component file security", () => {
     let saves = 0;
     const denied = await SaveComponentFiles(
       {
-        context: requestContextFixture(),
+        context: untouchedRequestContext(),
         componentIds: [],
         fields: [{ id: "unclassified#file", key: "file", kind: "file" }],
         before: document,

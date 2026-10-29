@@ -24,3 +24,12 @@ export function requestContextFixture(
     response: new HTTPResult(),
   };
 }
+
+/** A request context that throws on any read, for code that must never touch it. */
+export function untouchedRequestContext(): RequestContext {
+  return new Proxy(requestContextFixture(), {
+    get: () => {
+      throw new Error("The code read the request context");
+    },
+  });
+}

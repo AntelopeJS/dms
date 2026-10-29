@@ -28,7 +28,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
-import { requestContextFixture } from "../../../helpers/request-context";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
 const TABLE = "reorder-features";
 
@@ -351,7 +351,7 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       },
     };
     const controller = new FeatureAPI();
-    await guards?.delete?.call(controller, requestContextFixture(), {
+    await guards?.delete?.call(controller, untouchedRequestContext(), {
       ids: [],
     });
     expect(reached).to.deep.equal([controller.model]);

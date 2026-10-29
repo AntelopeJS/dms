@@ -4,9 +4,9 @@ import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/in
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
-import { requestContextFixture } from "../../../helpers/request-context";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
-const ctx = requestContextFixture();
+const ctx = untouchedRequestContext();
 const DELETE_PARAMS = { id: ["row-1"] };
 
 class GuardedController {}

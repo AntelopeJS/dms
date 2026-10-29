@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataCompareMode } from "@antelopejs/interface-dms/base/data-types/core";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
-import { requestContextFixture } from "../../../helpers/request-context";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
 class Expression {
   constructor(
@@ -38,7 +38,7 @@ function recordingProxy(): ValueProxy<unknown> {
   return proxy as unknown as ValueProxy<unknown>;
 }
 
-const context = requestContextFixture();
+const context = untouchedRequestContext();
 // SAFETY: DateType and these numeric compare modes do not access row members; they only construct comparisons from the provided value proxy.
 const row = {} as Parameters<DataCompareMode["filter"]>[4];
 

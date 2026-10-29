@@ -52,7 +52,6 @@ async function actionsFor(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(
     await withRequiredPermissions(grantedPermissions),
   );
-  // SAFETY: Site layout permission resolution uses only the user id with the provided member and role stubs; no other user fields are read.
   const payload = await buildSiteLayoutPayload(
     userFixture({ _id: "invite-quick-action-member" }),
     memberModel,
