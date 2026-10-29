@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, matchesGlob, relative } from "node:path";
 import { behaviourChange, inWorktree } from "./behaviour.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
@@ -48,59 +48,83 @@ function writeRun(folder, prefix, command, run) {
   writeFileSync(join(folder, `${prefix}exit-code.txt`), `${run.status}\n`);
 }
 
-function baseViolations(skill, check, baseSha, folder) {
+function passingRules(check, output) {
+  return check.passing
+    ? [...new Set([...output.matchAll(check.passing)].map((match) => match[1]))]
+    : [];
+}
+
+function rulesOf(check, run) {
+  return {
+    exitCode: run.status,
+    violated: violatedRules(check, run.status, run.stdout ?? ""),
+    passing: passingRules(check, run.stdout ?? ""),
+  };
+}
+
+function baseRules(skill, check, baseSha, folder) {
   const command = check.baseCommand ?? check.command;
   const run = inWorktree(skill.repo, baseSha, (dir) =>
     runCommand(command, dir),
   );
   writeRun(folder, "base-", command, run);
-  return {
-    exitCode: run.status,
-    violated: violatedRules(check, run.status, run.stdout ?? ""),
-  };
+  return rulesOf(check, run);
 }
 
-function gateFields(skill, check, commits, folder, violated) {
-  const behaviour = behaviourChange(skill, check, commits);
-  if (!behaviour.changed) return { behaviour, base: null, fixed: [] };
-  const base = baseViolations(skill, check, commits.baseSha, folder);
+function gateFields(skill, check, diff, folder, head) {
+  const behaviour = behaviourChange(skill, check, diff);
+  const checkChanged = diff.changed.some((file) =>
+    (check.files ?? []).some((glob) => matchesGlob(file, glob)),
+  );
+  if (!behaviour.changed && !checkChanged)
+    return { behaviour, checkChanged, base: null, fixed: [], missing: [] };
+  const base = baseRules(skill, check, diff.baseSha, folder);
+  const atHead = new Set([...head.violated, ...head.passing]);
   return {
     behaviour,
+    checkChanged,
     base,
-    fixed: base.violated.filter((rule) => !violated.includes(rule)),
+    fixed: base.violated.filter(
+      (rule) => head.passing.includes(rule) && !head.violated.includes(rule),
+    ),
+    missing: base.violated.filter((rule) => !atHead.has(rule)),
   };
 }
 
 /**
  * Runs one formal check from the repository root and writes its command,
  * output, exit code and violated rules under `evidence/formal/<name>/`.
- * When the diff touches the check (`commits` given), it also records
- * whether the diff changed the behaviour of the covered code and, when it
- * did, the rules the base violated that HEAD no longer does (`fixed`).
+ * When the diff touches the check (`diff` given), it also records whether
+ * the diff changed the behaviour of the covered code. When it did, or when
+ * the diff changed the check's own `files`, it runs the check on the base:
+ * `fixed` lists the rules the base broke that HEAD reports passing, and
+ * `missing` the rules the base broke that HEAD reports neither failing nor passing.
  *
  * @param {Record<string, any>} skill The skill
  * @param {Record<string, any>} state The run
  * @param {Record<string, any>} check The check
- * @param {{ baseSha: string, headSha: string } | null} commits The diff's base and head, for a check that covers it
+ * @param {{ baseSha: string, headSha: string, changed: string[] } | null} diff The diff's base, head and changed files, for a check that covers it
  * @returns {Record<string, any>} The result
  */
-export function runFormalCheck(skill, state, check, commits) {
+export function runFormalCheck(skill, state, check, diff) {
   const folder = join(state.evidence, "formal", check.name);
   mkdirSync(folder, { recursive: true });
   const run = runCommand(check.command, skill.repo);
   writeRun(folder, "", check.command, run);
-  const violated = violatedRules(check, run.status, run.stdout ?? "");
+  const head = rulesOf(check, run);
   const result = {
     name: check.name,
     exitCode: run.status,
-    violated,
+    violated: head.violated,
+    passing: head.passing,
     folder: relative(state.evidence, folder),
   };
-  if (commits) {
+  if (diff) {
+    const commits = { baseSha: diff.baseSha, headSha: diff.headSha };
     Object.assign(
       result,
       { commits },
-      gateFields(skill, check, commits, folder, violated),
+      gateFields(skill, check, diff, folder, head),
     );
   }
   writeFileSync(
@@ -114,8 +138,8 @@ export function runFormalCheck(skill, state, check, commits) {
  * How a formal check's result weighs on a verdict whose diff it covers: a
  * non-zero exit (a tool error, or a check that no longer matches its
  * record) fails; recorded findings fail only when the diff changed the
- * covered code's behaviour; rules the base broke and HEAD no longer does
- * are reported as fixed.
+ * covered code's behaviour; a rule the base reported and HEAD no longer
+ * reports fails; rules the base broke that HEAD reports passing are fixed.
  *
  * @param {Record<string, any>} result The recorded result
  * @returns {{ fails: boolean, outcome: string }} The weight and its wording
@@ -127,6 +151,12 @@ export function formalGate(result) {
         ? `the check no longer matches its record: ${result.violated.join(", ")}`
         : "tool error";
     return { fails: true, outcome: `${what}, exit ${result.exitCode}` };
+  }
+  if (result.missing?.length > 0) {
+    return {
+      fails: true,
+      outcome: `rules the base broke are absent at HEAD: ${result.missing.join(", ")}`,
+    };
   }
   const fixed =
     result.fixed?.length > 0 ? `; fixed: ${result.fixed.join(", ")}` : "";

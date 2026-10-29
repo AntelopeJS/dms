@@ -99,10 +99,14 @@ async function commandFormal(dir, values) {
   const plan = planFor(skill, state.baseRef);
   const touched = touchedFormalChecks(skill, plan.changed);
   const checks = values.all ? skill.config.formal : touched;
-  const commits = { baseSha: plan.baseSha, headSha: plan.headSha };
+  const diff = {
+    baseSha: plan.baseSha,
+    headSha: plan.headSha,
+    changed: plan.changed,
+  };
   for (const check of checks) {
     const gate = touched.includes(check);
-    const result = runFormalCheck(skill, state, check, gate ? commits : null);
+    const result = runFormalCheck(skill, state, check, gate ? diff : null);
     const weight = formalGate(result);
     const outcome = gate
       ? weight.fails

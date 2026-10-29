@@ -1,116 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import { git } from "../git.mjs";
-import { PACKAGE_ROOT } from "../stack.mjs";
+import { emitFingerprint } from "./emit.mjs";
 
-const CODE_EXTENSIONS = new Set([
-  ".ts",
-  ".mts",
-  ".cts",
-  ".tsx",
-  ".js",
-  ".mjs",
-  ".cjs",
-  ".jsx",
-]);
 const DETAIL_LIMIT = 5;
-const DETAIL_LENGTH = 160;
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
-
-function loadTypeScript(repo) {
-  for (const folder of [repo, join(repo, "packages", "dms"), PACKAGE_ROOT]) {
-    try {
-      return createRequire(join(folder, "package.json"))("typescript");
-    } catch {
-      continue;
-    }
-  }
-  throw new Error(
-    "dms-control needs the typescript package in the repository to compare covered code",
-  );
-}
-
-function fileAt(repo, sha, path) {
-  const shown = spawnSync("git", ["show", `${sha}:${path}`], {
-    cwd: repo,
-    encoding: "utf8",
-    maxBuffer: OUTPUT_LIMIT,
-  });
-  return shown.status === 0 ? shown.stdout : null;
-}
-
-function scriptStatements(ts, path, source) {
-  const { outputText } = ts.transpileModule(source, {
-    fileName: path,
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ESNext,
-      removeComments: true,
-      experimentalDecorators: true,
-    },
-  });
-  const file = ts.createSourceFile(
-    "emit.js",
-    outputText,
-    ts.ScriptTarget.ES2022,
-    true,
-    ts.ScriptKind.JS,
-  );
-  const printer = ts.createPrinter({ removeComments: true });
-  return file.statements
-    .filter((statement) => !ts.isImportDeclaration(statement))
-    .filter(
-      (statement) =>
-        !(ts.isExportDeclaration(statement) && statement.moduleSpecifier),
-    )
-    .map((statement) =>
-      printer
-        .printNode(ts.EmitHint.Unspecified, statement, file)
-        .replace(/^export (default )?/, ""),
-    );
-}
-
-function vueStatements(ts, path, source) {
-  const scripts = [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)];
-  const template = /<template\b[^>]*>([\s\S]*)<\/template>/.exec(source);
-  return [
-    ...scripts.flatMap(([, body]) => scriptStatements(ts, `${path}.ts`, body)),
-    ...(template
-      ? [`template ${template[1].replace(/\s+/g, " ").trim()}`]
-      : []),
-  ];
-}
-
-function statementsOf(ts, path, source) {
-  if (path.endsWith(".vue")) return vueStatements(ts, path, source);
-  if (CODE_EXTENSIONS.has(extname(path)))
-    return scriptStatements(ts, path, source);
-  return [`file ${source.replace(/\s+/g, " ").trim()}`];
-}
-
-/**
- * What the covered code does at a commit, as the sorted top-level
- * statements of its JavaScript: types, comments, formatting, imports and
- * export keywords left out, so a type-only edit, a comment or a verbatim
- * move between covered files keeps the same fingerprint.
- *
- * @param {string} repo The checkout
- * @param {string} sha The commit
- * @param {string[]} files The covered files
- * @returns {string[]} The fingerprint
- */
-export function emitFingerprint(repo, sha, files) {
-  const ts = loadTypeScript(repo);
-  return files
-    .flatMap((path) => {
-      const source = fileAt(repo, sha, path);
-      return source === null ? [] : statementsOf(ts, path, source);
-    })
-    .sort((left, right) => left.localeCompare(right));
-}
 
 function worktreeAt(repo, sha) {
   const dir = mkdtempSync(join(tmpdir(), "dms-control-behaviour-"));
@@ -156,28 +52,72 @@ function probeFingerprint(repo, command, sha) {
 
 function difference(left, right) {
   const counts = new Map();
-  for (const item of right) counts.set(item, (counts.get(item) ?? 0) + 1);
+  for (const item of right)
+    counts.set(item.structure, (counts.get(item.structure) ?? 0) + 1);
   return left.filter((item) => {
-    const count = counts.get(item) ?? 0;
+    const count = counts.get(item.structure) ?? 0;
     if (count === 0) return true;
-    counts.set(item, count - 1);
+    counts.set(item.structure, count - 1);
     return false;
   });
 }
 
-function summary(lines) {
-  return lines
-    .slice(0, DETAIL_LIMIT)
-    .map((line) =>
-      line.length > DETAIL_LENGTH ? `${line.slice(0, DETAIL_LENGTH)}…` : line,
+function sequenceChanges(path, base, head) {
+  const length = Math.max(base.length, head.length);
+  for (let index = 0; index < length; index += 1) {
+    if (base[index]?.structure !== head[index]?.structure) {
+      return {
+        removed: [
+          `${path} statement ${index + 1}: ${base[index]?.text ?? "(none)"}`,
+        ],
+        added: [
+          `${path} statement ${index + 1}: ${head[index]?.text ?? "(none)"}`,
+        ],
+      };
+    }
+  }
+  return { removed: [], added: [] };
+}
+
+function compareEmit(base, head) {
+  const removed = difference(base.functions, head.functions).map(
+    (item) => `function ${item.text}`,
+  );
+  const added = difference(head.functions, base.functions).map(
+    (item) => `function ${item.text}`,
+  );
+  for (const path of new Set([
+    ...Object.keys(base.files),
+    ...Object.keys(head.files),
+  ])) {
+    const change = sequenceChanges(
+      path,
+      base.files[path] ?? [],
+      head.files[path] ?? [],
     );
+    removed.push(...change.removed);
+    added.push(...change.added);
+  }
+  return { removed, added };
+}
+
+function compareProbe(base, head) {
+  const lines = (list) => list.map((line) => ({ structure: line, text: line }));
+  if (JSON.stringify(base) === JSON.stringify(head))
+    return { removed: [], added: [] };
+  const removed = difference(lines(base), lines(head)).map((item) => item.text);
+  const added = difference(lines(head), lines(base)).map((item) => item.text);
+  return removed.length + added.length > 0
+    ? { removed, added }
+    : { removed: ["(order)"], added: ["(order)"] };
 }
 
 /**
  * Whether a diff changed the behaviour of the code a formal check covers,
- * decided without judgement: the check's `behaviour` probe prints the same
- * lines on the base and on HEAD, or, for `emit`, the covered files keep
- * the same JavaScript statements.
+ * decided without judgement. For `emit`, each covered file keeps its
+ * top-level statements, in order, with the same structure, and the covered
+ * function declarations stay the same wherever they live; for `probe`, the
+ * check's probe prints the same lines on a checkout of the base and of HEAD.
  *
  * @param {Record<string, any>} skill The skill
  * @param {Record<string, any>} check The formal check
@@ -187,18 +127,19 @@ function summary(lines) {
 export function behaviourChange(skill, check, commits) {
   const probe =
     check.behaviour?.kind === "probe" ? check.behaviour.command : null;
-  const fingerprint = (sha) =>
-    probe
-      ? probeFingerprint(skill.repo, probe, sha)
-      : emitFingerprint(skill.repo, sha, check.covers);
-  const base = fingerprint(commits.baseSha);
-  const head = fingerprint(commits.headSha);
-  const removed = difference(base, head);
-  const added = difference(head, base);
+  const change = probe
+    ? compareProbe(
+        probeFingerprint(skill.repo, probe, commits.baseSha),
+        probeFingerprint(skill.repo, probe, commits.headSha),
+      )
+    : compareEmit(
+        emitFingerprint(skill.repo, commits.baseSha, check.covers),
+        emitFingerprint(skill.repo, commits.headSha, check.covers),
+      );
   return {
     method: probe ? `probe ${probe.join(" ")}` : "emit",
-    changed: removed.length + added.length > 0,
-    removed: summary(removed),
-    added: summary(added),
+    changed: change.removed.length + change.added.length > 0,
+    removed: change.removed.slice(0, DETAIL_LIMIT),
+    added: change.added.slice(0, DETAIL_LIMIT),
   };
 }

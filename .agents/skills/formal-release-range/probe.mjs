@@ -4,7 +4,8 @@
  * in a checkout, one line per case: the step's node script, extracted from
  * the workflow wherever the rule lives (inline, or imported from
  * `checks/release-range.mjs`), runs against fixture package manifests built
- * from the checkout's own, and its exit code is the decision. dms-control
+ * from the checkout's own, and its exit code is the decision; a crash also
+ * prints the error's name, so it never reads as a refusal. dms-control
  * runs it on the base and on HEAD: the same lines mean the diff kept the
  * covered behaviour.
  *
@@ -46,7 +47,9 @@ function decide(checkout, step, manifests) {
       writeFileSync(path.join(dir, file), JSON.stringify(value));
     }
     if (existsSync(path.join(checkout, "checks"))) cpSync(path.join(checkout, "checks"), path.join(dir, "checks"), { recursive: true });
-    return spawnSync(process.execPath, step.flags, { cwd: dir, input: step.body, encoding: "utf8" }).status;
+    const run = spawnSync(process.execPath, step.flags, { cwd: dir, input: step.body, encoding: "utf8" });
+    const crash = /^(\w*Error)(?: \[(\w+)\])?/m.exec(run.stderr ?? "");
+    return crash ? `${run.status} ${crash[1]}${crash[2] ? ` ${crash[2]}` : ""}` : `${run.status}`;
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
