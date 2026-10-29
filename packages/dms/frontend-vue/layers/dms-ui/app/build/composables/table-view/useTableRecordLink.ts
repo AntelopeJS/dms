@@ -55,8 +55,10 @@ export function useTableRecordLink<T>(
   const settle = async (id: string) => {
     const found = await options.resolve(id);
     const outcome = deepLinkOutcome(found, action);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- deepLinkOutcome returns a string rather than a row type predicate. DeepLinkedRow keeps row optional; the open outcome guarantees it operationally but neither inference nor its owner expresses that relation.
-    if (outcome === "open") return options.open(found.row as T);
+    if (outcome === "open") {
+      if (found.row) options.open(found.row);
+      return;
+    }
     if (outcome === "missingPanel") return options.showMissing(id);
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;

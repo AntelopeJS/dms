@@ -1,4 +1,4 @@
-import type { ComponentPublicInstance, VNode } from "vue";
+import { isVNode, type ComponentPublicInstance, type VNode } from "vue";
 
 const blocks = new Map<string, ComponentPublicInstance>();
 
@@ -28,8 +28,7 @@ function firstElementOf(vnode: VNode | null | undefined): Element | null {
   if (vnode.component) return firstElementOf(vnode.component.subTree);
   if (!Array.isArray(vnode.children)) return null;
   for (const child of vnode.children) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- VNode child representations can include scalars and arrays; retain the unchecked recursive projection and null fallback.
-    const element = firstElementOf(child as VNode);
+    const element = isVNode(child) ? firstElementOf(child) : null;
     if (element) return element;
   }
   return null;
