@@ -2,6 +2,7 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { decode, sign, verify } from "jsonwebtoken";
+import { isJwtClaims } from "../../utils";
 import { generateSecret } from "./token-secret";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -14,13 +15,6 @@ export interface SessionHandoffClaims {
   user: User;
   tenantId: string;
   sessionId: string;
-}
-
-interface SessionHandoffPayload {
-  id?: unknown;
-  tenantId?: unknown;
-  sessionId?: unknown;
-  purpose?: unknown;
 }
 
 /**
@@ -48,11 +42,7 @@ function refuse(): never {
 function readClaims(token: string, secret: string) {
   try {
     const payload = verify(token, secret, { algorithms: ["HS256"] });
-    // oxfmt-ignore
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT verification returns either text or an open claims object; the existing rejection distinguishes those wire formats.
-    return typeof payload === "string"
-      ? refuse()
-      : payload;
+    return isJwtClaims(payload) ? payload : refuse();
   } catch {
     return refuse();
   }
@@ -66,10 +56,9 @@ function readClaims(token: string, secret: string) {
 export async function validateSessionHandoffToken(
   token: string,
 ): Promise<SessionHandoffClaims> {
-  // SAFETY: Only optional claims are read before their existing string checks; decoding does not authenticate or guarantee any claim.
-  const unverified = decode(token) as SessionHandoffPayload | null;
+  const unverified = decode(token);
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The unverified JWT id can have any JSON type; its existing string check gates the user query.
-  if (typeof unverified?.id !== "string") refuse();
+  if (!isJwtClaims(unverified) || typeof unverified.id !== "string") refuse();
   const user = await GetModel(UserModel).get(unverified.id);
   if (!user) refuse();
   const claims = readClaims(token, generateSecret(user.authKey));

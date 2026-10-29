@@ -35,12 +35,17 @@ const READ_ACTIONS = ["view", "list", "select"];
 const WRITE_ACTIONS = ["add", "edit", "delete", "archive", "restore", "export"];
 const PERMISSION_ID = "tv-gate.invoices";
 const HTTP_FORBIDDEN = 403;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization needs only the id; this fixture intentionally omits unrelated user columns.
-const MEMBER = { _id: "tv-gate-member" } as User;
+
+function userWithId(id: string): User {
+  // SAFETY: Authorization reads only the user id and the owner flag (absent here, so the user is not a platform owner); the fixture deliberately omits the other persisted user columns.
+  return { _id: id } as User;
+}
+
+const MEMBER = userWithId("tv-gate-member");
 
 const gateInfo = denyingTenantGate("tv-gate", DENIED_TENANT, SUSPENDED_CODE);
 
-function tableViewInstance(options: TableViewOptions, permissionId?: string) {
+function tableViewController(options: TableViewOptions, permissionId?: string) {
   class Controller {}
   const meta = GetMetadata(Controller, TableViewMeta);
   meta.setOptions(options);
@@ -48,12 +53,16 @@ function tableViewInstance(options: TableViewOptions, permissionId?: string) {
     meta.setBypassTenantAccessGate();
   }
   if (permissionId) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization calls only getAction on this deliberately partial builder; constructing a real builder would register unrelated components.
+    // SAFETY: Authorization calls only getAction on this deliberately partial builder; constructing a real builder would register unrelated components.
     meta.addComponentBuilder({
       getAction: () => ({ permissionId }),
     } as unknown as ComponentBuilder<TableViewOptionsSerialized>);
   }
-  return new Controller();
+  return Controller;
+}
+
+function tableViewInstance(options: TableViewOptions, permissionId?: string) {
+  return new (tableViewController(options, permissionId))();
 }
 
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
@@ -97,8 +106,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("serves a flagged table view's stamped action while the gate denies the tenant", async () => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization needs only the id, not a complete persisted user.
-    const granted = { _id: "tv-gate-stamped-member" } as User;
+    const granted = userWithId("tv-gate-stamped-member");
     const [roleId] = await GetModel(RoleModel, DENIED_TENANT).insert({
       name: "tv-gate-stamped",
       permissions: [PERMISSION_ID],
@@ -160,8 +168,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
 
   for (const readAction of READ_ACTIONS) {
     it(`serves the "${readAction}" action of a flagged table view`, async () => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization needs only the id, not a complete persisted user.
-      const granted = { _id: `tv-gate-${readAction}-member` } as User;
+      const granted = userWithId(`tv-gate-${readAction}-member`);
       const [roleId] = await GetModel(RoleModel, DENIED_TENANT).insert({
         name: `tv-gate-${readAction}`,
         permissions: [PERMISSION_ID],
@@ -210,8 +217,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("grants a permitted caller its permission set under bypass", async () => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization needs only the id, not a complete persisted user.
-    const granted = { _id: "tv-gate-granted-member" } as User;
+    const granted = userWithId("tv-gate-granted-member");
     const [roleId] = await GetModel(RoleModel, DENIED_TENANT).insert({
       name: "tv-gate-billing",
       permissions: [PERMISSION_ID],
@@ -244,8 +250,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("keeps the bypass when a later registration omits the flag", async () => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization needs only the id, not a complete persisted user.
-    const granted = { _id: "tv-gate-latch-member" } as User;
+    const granted = userWithId("tv-gate-latch-member");
     const [roleId] = await GetModel(RoleModel, DENIED_TENANT).insert({
       name: "tv-gate-latch",
       permissions: [PERMISSION_ID],
@@ -257,21 +262,12 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
       invitedBy: null,
     });
 
-    const instance = tableViewInstance(
+    const Controller = tableViewController(
       { bypassTenantAccessGate: true },
       PERMISSION_ID,
     );
-    /* oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- TypeScript types an instance's constructor as Function, losing the local Controller constructor signature needed by GetMetadata. */
-    const meta = GetMetadata(
-      (
-        instance as {
-          constructor: new () => ReturnType<typeof tableViewInstance>;
-        }
-      ).constructor,
-      TableViewMeta,
-    );
-    /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
-    meta.setOptions({});
+    const instance = new Controller();
+    GetMetadata(Controller, TableViewMeta).setOptions({});
 
     const permissions = await authorizeAction(
       instance,

@@ -222,11 +222,11 @@ describe("refresh token rotation", () => {
 
   it("stores only the hash on replacement", async () => {
     const model = createModel();
-    model.currentSession = createSession("T0");
+    const stored = createSession("T0");
+    model.currentSession = stored;
     Object.defineProperty(model, "update", {
       value: async (_id: string, update: Partial<Session>) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback is installed after currentSession is initialized; TypeScript does not preserve the outer property narrowing in the callback.
-        Object.assign(model.currentSession as Session, update);
+        Object.assign(stored, update);
         return 1;
       },
     });

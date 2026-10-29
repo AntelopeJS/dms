@@ -131,8 +131,6 @@ const constructorExemptions = {
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:86":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
-  "test/unit/interfaces/dms-base/table-view-tenant-gate.test.ts:270":
-    "      ).constructor,",
 };
 const builtinExemptions = {
   "test/unit/interfaces/dms-base/table-view-evaluation-order.fixture.ts:1":

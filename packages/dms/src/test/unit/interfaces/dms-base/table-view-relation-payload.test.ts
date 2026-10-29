@@ -18,9 +18,10 @@ import {
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types/core";
-import type {
-  FormFieldSerialized,
-  FormPropsSerialized,
+import {
+  type FormFieldSerialized,
+  type FormPropsSerialized,
+  isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
@@ -183,10 +184,11 @@ function formField(
 ): FormFieldSerialized | undefined {
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- formComponents erases component option types; these callers pass this table's generated form, not an arbitrary component.
   const fields = (form?.options as FormPropsSerialized | undefined)?.fields;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The form owner permits field groups, but these generated table forms contain the flat relation fields declared above; preserve the existing find operation without adding a new runtime filter.
-  return fields?.find((field) => field.id === id) as
-    | FormFieldSerialized
-    | undefined;
+  const entry = fields?.find((field) => field.id === id);
+  if (entry && isFieldGroupSerialized(entry)) {
+    throw new Error("expected a field");
+  }
+  return entry;
 }
 
 /**

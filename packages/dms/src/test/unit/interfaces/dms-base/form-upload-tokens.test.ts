@@ -7,12 +7,19 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   Form,
   type FormFieldSerialized,
+  type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { verifyUploadToken } from "../../../../utils";
 
 function fieldOptions(field: FormFieldSerialized): { uploadToken?: string } {
   return field.component.options ?? {};
+}
+
+function leadingField(options: FormPropsSerialized): FormFieldSerialized {
+  const entry = options.fields[0];
+  if (isFieldGroupSerialized(entry)) throw new Error("expected a field");
+  return entry;
 }
 
 describe("[unit] interfaces/dms-base/form — the form stamps its own upload fields", () => {
@@ -36,8 +43,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
 
     const serialized = await form.serialize();
     const options = serialized.options!;
-    // SAFETY: This form declares one attachment field and no groups, so its first serialized entry has component options.
-    const field = options.fields[0] as FormFieldSerialized;
+    const field = leadingField(options);
 
     const token = fieldOptions(field).uploadToken;
     expect(token).to.be.a("string");
@@ -91,8 +97,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
 
     const serialized = await form.serialize();
     const options = serialized.options!;
-    // SAFETY: This form declares one title field and no groups, so its first serialized entry has component options.
-    const field = options.fields[0] as FormFieldSerialized;
+    const field = leadingField(options);
 
     expect(fieldOptions(field).uploadToken).to.equal(undefined);
   });
@@ -166,10 +171,8 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     const first = await form.serialize();
     const second = await form.serialize();
 
-    // SAFETY: This form declares one attachment field and no groups; serialization preserves that entry shape on every call.
-    const firstField = first.options!.fields[0] as FormFieldSerialized;
-    // SAFETY: This form declares one attachment field and no groups; serialization preserves that entry shape on every call.
-    const secondField = second.options!.fields[0] as FormFieldSerialized;
+    const firstField = leadingField(first.options!);
+    const secondField = leadingField(second.options!);
     const firstToken = fieldOptions(firstField).uploadToken;
     const secondToken = fieldOptions(secondField).uploadToken;
     expect(verifyUploadToken(firstToken!)).to.deep.equal(

@@ -17,7 +17,11 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import type { FormField } from "@antelopejs/interface-dms/base/form-types";
+import {
+  type FormField,
+  type FormFieldOrGroup,
+  isFieldGroup,
+} from "@antelopejs/interface-dms/base/form-types";
 import {
   Column,
   TableViewMeta,
@@ -86,10 +90,14 @@ class OrderAPI extends DataController(
   declare createdBy: string;
 }
 
+function ungrouped(entry: FormFieldOrGroup): FormField {
+  if (isFieldGroup(entry)) throw new Error("expected an ungrouped field");
+  return entry;
+}
+
 function formFields(mode: "new" | "edit" | "view"): Map<string, FormField> {
   const meta = GetMetadata(OrderAPI, TableViewMeta);
-  // SAFETY: OrderAPI declares only ungrouped columns; getFormFields includes groups in its return type for other controllers.
-  const fields = meta.getFormFields(mode) as FormField[];
+  const fields = meta.getFormFields(mode).map(ungrouped);
   return new Map(fields.map((field) => [field.id, field]));
 }
 

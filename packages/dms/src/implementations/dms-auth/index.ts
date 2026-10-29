@@ -390,24 +390,27 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "twoFactorEmailCodeRequestedAt",
 ];
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- User's owner type cannot describe arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
+type PropertyBag = Record<string, unknown>;
+
+function isPropertyBag(value: unknown): value is PropertyBag {
+  return isObject(value) && value !== null;
+}
+
 function deleteNestedKey(target: User, dottedKey: string) {
   const parts = dottedKey.split(".");
   let current: unknown = target;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (isObject(current) && current !== null && parts[i] in current) {
-      // SAFETY: The object and membership checks establish a property readable as unknown, including inherited fields as before.
-      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference yields object and User has no type for arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
-      current = (current as Record<string, unknown>)[parts[i]];
+    if (isPropertyBag(current) && parts[i] in current) {
+      current = current[parts[i]];
     } else {
       return;
     }
   }
 
-  if (isObject(current) && current !== null && parts.length > 0) {
-    // SAFETY: The object guard excludes primitives and null; deleting a dynamic property requires no assumption about its value.
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference narrows only to object; User's owner type cannot describe arbitrary nested sensitive-key paths, and strict delete must still throw for nonconfigurable properties.
-    delete (current as Record<string, unknown>)[parts[parts.length - 1]];
+  if (isPropertyBag(current) && parts.length > 0) {
+    delete current[parts[parts.length - 1]];
   }
 }
 

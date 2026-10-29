@@ -157,6 +157,13 @@ async function rejectionOf(
   throw new Error("expected a refusal");
 }
 
+function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
+  // SAFETY: Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
+  return { url: new URL(`http://localhost/list?${query}`) } as Parameters<
+    typeof applyArchiveFilter
+  >[1];
+}
+
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   const config = meta.controllerRowActionRules?.[action];
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner contract is a boolean-or-rule union; this branch extracts the rule variant and retains the existing missing-rule failure.
@@ -192,7 +199,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
 
   beforeEach(() => {
     rows = createRows();
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
+    // SAFETY: The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
     controller.model = { table: createTable(rows) } as never;
   });
 
@@ -266,8 +273,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
     it("lists such a row among the active ones", async () => {
       const filters = await applyArchiveFilter(
         controller,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-        { url: new URL("http://localhost/list?showArchived=false") } as never,
+        listContext("showArchived=false"),
         undefined,
         new Set(["*"]),
         {},
@@ -276,8 +282,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
       expect(filters?.isArchived).to.deep.equal([true, "ne"]);
       const archived = await applyArchiveFilter(
         controller,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-        { url: new URL("http://localhost/list?showArchived=true") } as never,
+        listContext("showArchived=true"),
         undefined,
         new Set(["*"]),
         {},
