@@ -20,7 +20,7 @@ import {
   startDetached,
   stopAll,
   waitForOk,
-  waitForPort,
+  waitForOwnPort,
 } from "./processes.mjs";
 import {
   createRunFolders,
@@ -33,6 +33,7 @@ import { newPassword } from "./session.mjs";
 
 const READY_TIMEOUT_MS = 180_000;
 const SECRET_BYTES = 32;
+const MAIL_PORT_ATTEMPTS = 3;
 const COPY_SKIPPED = new Set(["node_modules", ".antelope", ".dms-frontend"]);
 const SHADOW_SKIPPED = new Set([".antelope", ".dms-frontend", ".git"]);
 const SECRET_NAMES = [
@@ -249,7 +250,8 @@ function record(state, processRecord) {
 }
 
 /**
- * Starts the run's mail sink unless it already runs.
+ * Starts the run's mail sink unless it already runs, and waits until it is
+ * the process listening on the run's mail port.
  *
  * @param {Record<string, any>} state The run
  * @returns {Promise<void>} Resolves once it listens
@@ -266,7 +268,19 @@ export async function ensureMail(state) {
     logs: state.logs,
   });
   record(state, { ...mail, port: state.smtpPort });
-  await waitForPort(state.smtpPort, mail, READY_TIMEOUT_MS);
+  await waitForOwnPort(state.smtpPort, mail, READY_TIMEOUT_MS);
+}
+
+async function startFirstMail(state) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await ensureMail(state);
+      return;
+    } catch (error) {
+      if (attempt === MAIL_PORT_ATTEMPTS) throw error;
+      state.smtpPort = await freePort();
+    }
+  }
 }
 
 async function startBackend(state, build) {
@@ -300,7 +314,7 @@ async function buildAndStart(state) {
     state.mongoUrl = mongo.url;
     record(state, mongo.record);
   }
-  await ensureMail(state);
+  await startFirstMail(state);
   await runToEnd(
     spec(state, "project-build", clis.ajs, [
       "project",

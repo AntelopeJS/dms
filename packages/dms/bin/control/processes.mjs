@@ -183,6 +183,28 @@ export async function waitForPort(port, record, timeoutMs) {
   );
 }
 
+/**
+ * Polls until the process itself listens on the port, so a port another
+ * program took after it was picked is not mistaken for ours.
+ *
+ * @param {number} port The port
+ * @param {{ name: string, pid: number, log: string }} record The process that must listen
+ * @param {number} timeoutMs How long to wait
+ * @returns {Promise<void>} Resolves once the process listens
+ * @throws When it exits first (the port was taken) or the timeout passes
+ */
+export async function waitForOwnPort(port, record, timeoutMs) {
+  if (listenersOf(port) === null) return waitForPort(port, record, timeoutMs);
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline && isAlive(record.pid)) {
+    if (listenersOf(port).includes(record.pid)) return;
+    await sleep(POLL_MS);
+  }
+  throw new Error(
+    `${record.name} does not listen on ${port}; see ${record.log}`,
+  );
+}
+
 function procEntries() {
   try {
     return readdirSync("/proc").filter((entry) => /^\d+$/.test(entry));
