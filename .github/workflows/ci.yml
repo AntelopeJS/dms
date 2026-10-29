@@ -136,12 +136,53 @@ jobs:
           echo "The built playground did not become ready" >&2
           exit 1
 
+  verify-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node packages/dms/bin/dms-control.mjs map
+
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [formal-onboarding-bootstrap, formal-realtime-tabs]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/antelopejs-formal
+          key: tla2tools-1.7.4
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job above is. docs-playground may be skipped
   # on a pull request only.
   ubuntu:
     if: always()
-    needs: [checks, backend, frontend-test, frontend-verify, docs-playground]
+    needs:
+      [
+        checks,
+        backend,
+        frontend-test,
+        frontend-verify,
+        docs-playground,
+        verify-map,
+        formal,
+      ]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -152,5 +193,7 @@ jobs:
           needs.backend.result == 'skipped' ||
           needs.frontend-test.result == 'skipped' ||
           needs.frontend-verify.result == 'skipped' ||
+          needs.verify-map.result == 'skipped' ||
+          needs.formal.result == 'skipped' ||
           (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
         run: exit 1
