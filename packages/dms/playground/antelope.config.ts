@@ -2,6 +2,9 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 
 const preferredApiPort = process.env.PORT ?? "5010";
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
+const dmsInstallCommand = process.env.DMS_PREBUILT
+  ? []
+  : ["pnpm build", "pnpm --dir playground build"];
 
 export default defineConfig({
   name: "test",
@@ -16,7 +19,7 @@ export default defineConfig({
         type: "local",
         path: "..",
         watchDir: ["src"],
-        installCommand: ["pnpm build", "pnpm --dir playground build"],
+        installCommand: dmsInstallCommand,
       },
       config: {
         homepage: "/examples/overview",
@@ -30,6 +33,7 @@ export default defineConfig({
         },
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
+          renderEndpoint: dmsClientUrl && `${dmsClientUrl}/api/html/render`,
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,
@@ -81,7 +85,7 @@ export default defineConfig({
         publicBaseUrl: dmsClientUrl,
         cors: {
           allowedOrigins: [
-            "http://localhost:3001",
+            dmsClientUrl ?? "http://localhost:3001",
             /^https:\/\/[a-z0-9-]+\.onamp\.dev$/,
           ],
         },
@@ -116,7 +120,11 @@ export default defineConfig({
       logging: { channelFilter: { "*": "warn" } },
       modules: {
         nodemailer: {
-          config: { ethereal: false, host: "127.0.0.1", port: 9 },
+          config: {
+            ethereal: false,
+            host: "127.0.0.1",
+            port: Number(process.env.DMS_SMTP_PORT ?? "9"),
+          },
         },
       },
     },
