@@ -18,6 +18,7 @@ covers:
   - packages/interface-dms/src/invite-resolution.ts
   - packages/interface-dms/src/tenant-members.ts
   - packages/interface-dms/src/invite-extensions.ts
+  - packages/interface-dms/src/invite-extension-payloads.ts
 docs:
   - packages/dms/docs/03.auth-and-tenancy/02.auth-and-permissions.md
 ---

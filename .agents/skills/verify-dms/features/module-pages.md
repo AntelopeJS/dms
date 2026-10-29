@@ -45,6 +45,10 @@ covers:
   - packages/interface-dms/src/component-slots.ts
   - packages/interface-dms/src/component.ts
   - packages/interface-dms/src/guards.ts
+  - packages/interface-dms/src/component-options/**
+  - packages/interface-dms/src/tones.ts
+  - packages/interface-dms/src/watch-actions.ts
+  - packages/interface-dms/src/export-status.ts
 docs:
   - packages/dms/docs/02.building/03.pages-and-components.md
   - packages/dms/docs/04.components/08.tables/0.index.md
