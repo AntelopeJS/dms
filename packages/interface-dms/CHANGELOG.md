@@ -4,6 +4,13 @@
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.9.1...v0.10.0)
 
+### Upgrade notes
+
+- 16 new modules (11 public, 5 `@internal`) hold the types that pages, components and tables share: `component-options/*` (`action-target`, `button`, `confirm-dialog`, `row-action`, `form-field`, `data-type`, `page-layout`, and their `internal/` counterparts), `tones`, `watch-actions`, `export-status` and `invite-extension-payloads` ([#539](https://github.com/AntelopeJS/dms/pull/539)). Every old subpath still exports the same names, re-exported from the new module, so no import changes.
+- Do not augment `WatchFunctionParamMap` through `watch-actions`: keep augmenting it through `base/types`, as before.
+- Two type-only layer exceptions remain (`component.ts` to `page.ts`, and the `User` table to the default data types). They are removed in the next breaking release ([#531](https://github.com/AntelopeJS/dms/issues/531)).
+- Modules implementing interface-dms move to `>=0.10.0 <0.11.0`; `@antelopejs/dms` implements it.
+
 ### 🚀 Enhancements
 
 - **interface-dms:** Expose stable default data type subpaths ([#475](https://github.com/AntelopeJS/dms/pull/475))
