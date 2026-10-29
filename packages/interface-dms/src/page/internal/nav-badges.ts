@@ -2,7 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { User } from "../../auth/db";
 import type { Component, NavBadgeCount, NavBadgeSource } from "../../component";
-import type { Tone } from "../../base/types/tone";
+import type { Tone } from "../../tones";
 import { getDeclaredComponentChildren } from "./component-target";
 import { PageMetadata } from "../metadata";
 import { pageMetadataByFullId } from "./registry";

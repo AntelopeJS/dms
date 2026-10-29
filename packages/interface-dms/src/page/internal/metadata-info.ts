@@ -1,5 +1,5 @@
 /** @internal @packageDocumentation */
-import { DefaultLayout } from "../../base/layouts";
+import { DefaultLayout } from "../../component-options/page-layout";
 import type { ComponentInfo } from "../../component";
 import type { PageMetadata } from "../metadata";
 import { pageRoutePath } from "../page-routes";

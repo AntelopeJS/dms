@@ -3,7 +3,7 @@ import {
   RunWithResponsibleModule,
 } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { InviteExtensionPayloads } from "./invite-extensions/types";
+import type { InviteExtensionPayloads } from "./invite-extension-payloads";
 import type {
   TenantDataExportContribution,
   TenantExportArchive,

@@ -2,7 +2,8 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
-} from "../../base/internal/layouts";
+  PageRecordStatus,
+} from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
@@ -34,13 +35,7 @@ function valueAt(record: PageRecord, path: string): PageRecord[string] {
   );
 }
 
-/**
- * How the page's record was read for one request: `found`, `missing` when its
- * loader answered none (not found, not the caller's), `error` when it threw.
- * The frontend takes a record going from `found` to `missing` for one that
- * was deleted.
- */
-export type PageRecordStatus = "found" | "missing" | "error";
+export type { PageRecordStatus } from "../../component-options/internal/page-layout";
 
 /** What reading the page's record answered. */
 export interface PageRecordRead {
