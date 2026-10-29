@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/routes/onboarding.ts b/packages/dms/src/routes/onboarding.ts
+index 4e2b31c9..898f2016 100644
+--- a/packages/dms/src/routes/onboarding.ts
++++ b/packages/dms/src/routes/onboarding.ts
+@@ -23,7 +23,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
+   @Model(SystemStateModel)
+   declare model: SystemStateModel;
+ 
+-  @Get("/informations")
++  @Get("/information")
+   async getInformations(@Model(UserModel) userModel: UserModel) {
+     const settings = await this.model.getConfig();
+ 

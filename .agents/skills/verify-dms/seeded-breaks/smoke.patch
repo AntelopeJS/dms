@@ -1,0 +1,11 @@
+diff --git a/packages/dms/src/utils/admin-invite-email.ts b/packages/dms/src/utils/admin-invite-email.ts
+index b7642fc7..1bf0932b 100644
+--- a/packages/dms/src/utils/admin-invite-email.ts
++++ b/packages/dms/src/utils/admin-invite-email.ts
+@@ -89,5 +89,5 @@ export function buildAdminInviteSignupLink(
+   const query = new URLSearchParams({ token, email });
+   if (inviteeName) query.set("name", inviteeName);
+   if (language) query.set("lang", language);
+-  return `${clientBaseUrl}/auth/signup?${query.toString()}`;
++  return `${clientBaseUrl}/auth/sign-up?${query.toString()}`;
+ }

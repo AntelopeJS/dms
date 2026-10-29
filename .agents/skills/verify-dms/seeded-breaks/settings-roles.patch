@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/pages/settings/users/role-editor-store.ts b/packages/dms/src/pages/settings/users/role-editor-store.ts
+index a5e9b6ac..93f682a7 100644
+--- a/packages/dms/src/pages/settings/users/role-editor-store.ts
++++ b/packages/dms/src/pages/settings/users/role-editor-store.ts
+@@ -185,7 +185,7 @@ export async function updateRole(
+   );
+   role.name = input.name;
+   role.description = input.description;
+-  role.permissions = permissions;
++  role.permissions = [...new Set([...(role.permissions ?? []), ...permissions])];
+   role.updatedAt = new Date();
+   await GetModel(RoleModel, actor.tenantId).update(role);
+   return { name: role.name, permissionsChanged };

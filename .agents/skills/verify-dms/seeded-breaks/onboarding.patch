@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/routes/onboarding.ts b/packages/dms/src/routes/onboarding.ts
+index 4e2b31c9..7a3a4467 100644
+--- a/packages/dms/src/routes/onboarding.ts
++++ b/packages/dms/src/routes/onboarding.ts
+@@ -99,7 +99,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
+       // oxlint-disable-next-line typescript/no-misused-spread -- Copy the settings instance's own persisted fields before overriding onboarding details; its prototype methods are not configuration.
+       ...settings,
+       has_onboarded: true,
+-      platform_name: details.platformName ?? settings.platform_name,
++      platform_name: settings.platform_name,
+       default_language: details.language ?? settings.default_language,
+     });
+   }

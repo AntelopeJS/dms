@@ -1,0 +1,12 @@
+diff --git a/packages/dms/frontend-vue/layers/dms-layout/app/composables/favorites/useFavoritePages.ts b/packages/dms/frontend-vue/layers/dms-layout/app/composables/favorites/useFavoritePages.ts
+index 85423731..cfdf28bd 100644
+--- a/packages/dms/frontend-vue/layers/dms-layout/app/composables/favorites/useFavoritePages.ts
++++ b/packages/dms/frontend-vue/layers/dms-layout/app/composables/favorites/useFavoritePages.ts
+@@ -33,7 +33,6 @@ export const useFavoritePages = () => {
+     }
+ 
+     favorites.value.push(page);
+-    syncToCookie();
+     return true;
+   };
+ 
