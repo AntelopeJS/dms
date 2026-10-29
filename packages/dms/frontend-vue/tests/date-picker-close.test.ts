@@ -50,14 +50,12 @@ const Popover = defineComponent({
 const Calendar = defineComponent({
   inheritAttrs: false,
   setup(_, { attrs }) {
-    // oxlint-disable anti-slop/no-unknown-parameters -- Vue attrs do not type event listeners. Inference and the DatePicker prop owner cannot describe this raw callback forwarding boundary, which must keep intermediate picker values untouched.
     pick = (value) => {
       const listener = attrs["onUpdate:modelValue"];
       if (!isFunction(listener))
         throw new Error("The picker received no update listener");
       listener(value);
     };
-    // oxlint-enable anti-slop/no-unknown-parameters
     return () => h("div");
   },
 });
