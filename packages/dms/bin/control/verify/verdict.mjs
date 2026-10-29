@@ -3,7 +3,11 @@ import { join, relative } from "node:path";
 import { git } from "../git.mjs";
 import { loadJourneys } from "../journey.mjs";
 import { flaggedDoors } from "./doors.mjs";
-import { readFormalResult, touchedFormalChecks } from "./formal.mjs";
+import {
+  formalGate,
+  readFormalResult,
+  touchedFormalChecks,
+} from "./formal.mjs";
 import { planFor } from "./map.mjs";
 import { journeysFile } from "./skill.mjs";
 
@@ -146,14 +150,17 @@ function formalSection(skill, state, plan, link) {
         );
       continue;
     }
-    const toolError = result.violated.length === 0 && result.exitCode !== 0;
-    if (gate && (result.violated.length > 0 || toolError)) {
+    if (gate && !result.behaviour && result.exitCode === 0) {
       reasons.push(
-        `formal check ${check.name}: ${result.violated.length > 0 ? `violated ${result.violated.join(", ")}` : `tool error, exit ${result.exitCode}`}`,
+        `formal check ${check.name} covers the diff but its run did not compare the covered behaviour with the base`,
       );
     }
-    const summary =
-      result.violated.length > 0
+    const weight = formalGate(result);
+    if (gate && weight.fails)
+      reasons.push(`formal check ${check.name}: ${weight.outcome}`);
+    const summary = gate
+      ? weight.outcome
+      : result.violated.length > 0
         ? `violated: ${result.violated.join(", ")}`
         : `exit ${result.exitCode}, no violated rule`;
     const role = gate

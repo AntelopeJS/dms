@@ -9,12 +9,31 @@ export interface DoorRule {
   why: string;
 }
 
-/** A formal check: the source files it covers, the command that runs it, and how its output names a violated rule. */
+/**
+ * How the gate decides whether a diff changed what the covered code does:
+ * `emit` compares the JavaScript statements of the covered files on the
+ * base and on HEAD (types, comments, formatting, imports and export
+ * keywords left out); `probe` runs a command on a checkout of each, the
+ * checkout's path as last argument, and compares what it prints.
+ */
+export type Behaviour = { kind: "emit" } | { kind: "probe"; command: string[] };
+
+/**
+ * A formal check: the source files it covers, the check's own files, the
+ * command that runs it, how its output names a violated and a passing rule,
+ * how the gate decides that a diff changed the covered behaviour, and the
+ * command run on the base when it did or when the check's own files changed
+ * (`command` when absent).
+ */
 export interface FormalCheck {
   name: string;
   covers: string[];
+  files: string[];
   command: string[];
+  baseCommand?: string[];
   violation: RegExp | null;
+  passing: RegExp | null;
+  behaviour: Behaviour;
 }
 
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
@@ -164,8 +183,12 @@ const config: VerifyConfig = {
         "packages/dms/src/routes/auth/oauth/config.ts",
         "packages/dms/src/routes/auth/signup.ts",
       ],
+      files: [".agents/skills/formal-onboarding-bootstrap/**", ".agents/formal/**"],
       command: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
+      behaviour: { kind: "emit" },
     },
     {
       name: "formal-realtime-tabs",
@@ -194,14 +217,21 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/dms-ui/app/build/composables/table-view/useTableListData.ts",
         "packages/dms/frontend-vue/layers/dms-layout/app/pages/[...slug].vue",
       ],
+      files: [".agents/skills/formal-realtime-tabs/**", ".agents/formal/**"],
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-realtime-tabs/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
+      behaviour: { kind: "emit" },
     },
     {
       name: "formal-release-range",
       covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", ".github/workflows/release.yml"],
+      files: ["checks/release-range.test.mjs", ".agents/skills/formal-release-range/**"],
       command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs"],
       violation: /^not ok \d+ - (.+?)(?: # TODO.*)?$/gm,
+      passing: /^ok \d+ - (.+?)(?: # TODO.*)?$/gm,
+      behaviour: { kind: "probe", command: ["node", ".agents/skills/formal-release-range/probe.mjs"] },
     },
   ],
 };
