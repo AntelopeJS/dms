@@ -66,6 +66,7 @@ export function installAuthSettingsRuntime(): void {
     useDmsState: engine.useDmsState,
     useDmsApp: () => app,
     useDmsCookie: engine.useDmsCookie,
+    isDmsHydrating: engine.isDmsHydrating,
     useDmsRoute: engine.useDmsRoute,
     useDmsRouter: engine.useDmsRouter,
     useDmsUserSession: engine.useDmsUserSession,

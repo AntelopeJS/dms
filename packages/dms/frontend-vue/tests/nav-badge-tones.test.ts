@@ -35,6 +35,7 @@ const liveBadges = () =>
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", () => {});
   vi.stubGlobal("useDmsCookie", () => ref("other"));
+  vi.stubGlobal("isDmsHydrating", () => false);
   state = new Map();
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
