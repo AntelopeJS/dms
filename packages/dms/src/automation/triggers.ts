@@ -16,9 +16,10 @@ const TENANT_ID_PROPERTY: JsonSchema = { type: "string" };
 const AT_PROPERTY: JsonSchema = { type: "string" };
 
 /** Drops the listener `activate` returned as the opaque handle, if registered. */
-const removeListener =
-  (event: AutomationEventName): TriggerType["deactivate"] =>
-  async (handle) => {
+const removeListener = (
+  event: AutomationEventName,
+): TriggerType["deactivate"] =>
+  async function deactivate(handle) {
     const listeners = listenersFor(event);
     for (const listener of listeners) {
       if (listener === handle) listeners.delete(listener);

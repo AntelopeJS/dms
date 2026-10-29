@@ -35,9 +35,9 @@ const TENANT = "layout-query-tenant";
 // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
 const MEMBER = { _id: "layout-query-member" } as User;
 const models = stubPageAccessModels(["*"]);
-// SAFETY: buildPagePayload reads the request only for its url, which this double supplies.
+// SAFETY: buildPagePayload reads the request's url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; the double supplies the url only.
 const requestAt = (url: URL) => ({ url }) as RequestContext;
-// SAFETY: Every suite here installs DefaultLayout on its page, whose options are the ServedOptions the tests inspect.
+// SAFETY: Every suite here installs DefaultLayout on its page, so the options are DefaultLayout's serialized options, of which ServedOptions describes only the headerActions the tests read.
 const headerOptions = (layout: { options?: unknown } | undefined) =>
   layout?.options as ServedOptions;
 

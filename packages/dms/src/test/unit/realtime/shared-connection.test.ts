@@ -18,9 +18,9 @@ import {
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
 
-// SAFETY: The realtime controller reads only the user's id, name and email, never stored-user methods; this fixture supplies id and email.
+// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
 const USER = { _id: "shared-connection-user", email: "u@example.com" } as User;
-// SAFETY: The realtime controller reads only the user's id, name and email, never stored-user methods; this fixture supplies id and email.
+// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
 const OTHER_USER = {
   _id: "shared-connection-other",
   email: "o@example.com",

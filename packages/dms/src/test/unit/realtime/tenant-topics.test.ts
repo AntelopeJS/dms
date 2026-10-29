@@ -24,7 +24,7 @@ import {
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
 
-// SAFETY: The realtime controller reads only the user's id, name and email, never stored-user methods; this fixture supplies id and email.
+// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
 const USER = { _id: "tenant-topics-user", email: "u@example.com" } as User;
 const PAGE_ID = "tenant-topics-page";
 const TOPIC = "tenant-topics:orders";
