@@ -44,10 +44,11 @@ export async function readAttachment(
   const deadline =
     Date.now() + PRIVATE_LINK_TTL_SECONDS * MILLISECONDS_PER_SECOND;
   const read = await readStoredFile(key, storage);
-  // SAFETY: Number.isFinite rejects undefined and non-numeric values before the comparison is evaluated.
   if (
     claims.visibility !== "public" &&
-    (!Number.isFinite(read.expiresAt) || (read.expiresAt as number) > deadline)
+    (read.expiresAt === undefined ||
+      !Number.isFinite(read.expiresAt) ||
+      read.expiresAt > deadline)
   ) {
     denyAttachment();
   }

@@ -226,15 +226,13 @@ export async function uploadExportToStorage(
   const fileStream = fs.createReadStream(localPath);
   const response = await fetch(
     presign.uploadUrl,
-    // SAFETY: The literal satisfies RequestInit plus Node's duplex option; the assertion hides only that extra property from fetch's DOM declaration.
+    // SAFETY: Node's web readable stream is accepted by fetch with duplex half, which the DOM RequestInit and ReadableStream declarations omit or type differently.
     {
       method: "PUT",
       headers: presign.headers,
-
-      // SAFETY: Node's web readable stream is accepted by fetch with duplex half despite differing Node and DOM stream declarations.
-      body: Readable.toWeb(fileStream) as BodyInit,
+      body: Readable.toWeb(fileStream),
       duplex: "half",
-    } satisfies RequestInit & { duplex: "half" } as RequestInit,
+    } as RequestInit,
   );
 
   if (!response.ok) {

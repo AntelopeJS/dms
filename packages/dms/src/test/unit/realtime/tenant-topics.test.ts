@@ -24,7 +24,8 @@ import {
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
 
-const USER = { _id: "tenant-topics-user", email: "u@example.com" };
+// SAFETY: The realtime controller reads only the user's id, name and email, never stored-user methods; this fixture supplies id and email.
+const USER = { _id: "tenant-topics-user", email: "u@example.com" } as User;
 const PAGE_ID = "tenant-topics-page";
 const TOPIC = "tenant-topics:orders";
 const TENANT_A = "tenant-a";
@@ -65,7 +66,7 @@ const createFakeStream = (tenantId: string): FakeStream => {
 interface SharedFrame {
   sessionId: string;
   event: string;
-  data?: unknown;
+  data: { topic?: string; entries?: Array<{ rowId: string }> };
 }
 
 /** The session frames a shared connection's stream carried. */
@@ -81,8 +82,7 @@ const openSharedConnection = async (stream: FakeStream): Promise<string> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
   const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
   const data = hello?.split("\ndata: ")[1] ?? "{}";
@@ -99,8 +99,7 @@ const openTabOnPage = async (
     undefined,
     createFakeStream(tenantId).ctx,
     connectionId,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
   const sessionId = greeting.sessionId!;
   const isOnPage = await ensureSessionOnPage(sessionId, pageId, {
@@ -285,13 +284,9 @@ describe("[unit] realtime — platform pages see every tenant", () => {
 
     const snapshot = sharedFrames(viewer.stream).find(
       (frame) =>
-        frame.event === "snapshot" &&
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Session frame payloads are unvalidated JSON; this presence test assumes the snapshot payload contract.
-        (frame.data as { topic?: string }).topic === PRESENCE_TOPIC,
+        frame.event === "snapshot" && frame.data.topic === PRESENCE_TOPIC,
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The snapshot payload remains unvalidated; this assertion probes the expected presence entries shape.
-    const entries = (snapshot?.data as { entries?: Array<{ rowId: string }> })
-      ?.entries;
+    const entries = snapshot?.data.entries;
     expect(entries?.map((entry) => entry.rowId)).to.deep.equal(["row-1"]);
   });
 });

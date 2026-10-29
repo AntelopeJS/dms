@@ -15,6 +15,16 @@ const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 const TENANT_ID_PROPERTY: JsonSchema = { type: "string" };
 const AT_PROPERTY: JsonSchema = { type: "string" };
 
+/** Drops the listener `activate` returned as the opaque handle, if registered. */
+const removeListener =
+  (event: AutomationEventName): TriggerType["deactivate"] =>
+  async (handle) => {
+    const listeners = listenersFor(event);
+    for (const listener of listeners) {
+      if (listener === handle) listeners.delete(listener);
+    }
+  };
+
 interface DmsEventTriggerSpec {
   event: AutomationEventName;
   /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
@@ -48,10 +58,7 @@ function createEventTrigger(spec: DmsEventTriggerSpec): TriggerType {
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 
@@ -105,10 +112,7 @@ function createRecordTrigger(
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 
