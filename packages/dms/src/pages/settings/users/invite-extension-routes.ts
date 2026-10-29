@@ -2,6 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import {
   type DataControllerCallback,
+  type DataControllerInstance,
   DefaultRoutes,
 } from "@antelopejs/interface-data-api";
 import {
@@ -46,7 +47,7 @@ async function loadPendingInvite(
 export const inviteGetRoute: DataControllerCallback = {
   ...TableViewRoutes.Get,
   func: async function (
-    this: ThisParameterType<DataControllerCallback["func"]>,
+    this: DataControllerInstance,
     ctx: RequestContext,
     params: Parameters.GetParameters,
     ...rest: unknown[]
@@ -106,7 +107,7 @@ async function editAdmittedPendingInvite(
 const editInviteWithExtensions: DataControllerCallback = {
   ...DefaultRoutes.Edit,
   func: function (
-    this: ThisParameterType<DataControllerCallback["func"]>,
+    this: DataControllerInstance,
     ctx: RequestContext,
     params: Parameters.EditParameters,
     body: Buffer,
