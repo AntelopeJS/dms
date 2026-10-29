@@ -9,6 +9,7 @@ on:
   # secret scanner ran.
   pull_request:
 
+  workflow_dispatch: null
 permissions:
   contents: read
 
@@ -21,7 +22,7 @@ concurrency:
 # once, then sets DMS_PREBUILT so the package scripts and the test harness use
 # that build rather than compiling it again.
 jobs:
-  checks:
+  ci:
     uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
     with:
       docs-files: |
@@ -35,6 +36,9 @@ jobs:
         pnpm --dir packages/interface-dms check:exports
         pnpm --dir packages/interface-dms check:proxies
         pnpm --dir packages/dms docs:catalog:check
+    permissions:
+      contents: write
+      actions: write
 
   backend:
     runs-on: ubuntu-latest
@@ -175,7 +179,7 @@ jobs:
     if: always()
     needs:
       [
-        checks,
+        ci,
         backend,
         frontend-test,
         frontend-verify,
@@ -187,13 +191,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - if: >-
-          contains(needs.*.result, 'failure') ||
-          contains(needs.*.result, 'cancelled') ||
-          needs.checks.result == 'skipped' ||
-          needs.backend.result == 'skipped' ||
-          needs.frontend-test.result == 'skipped' ||
-          needs.frontend-verify.result == 'skipped' ||
-          needs.verify-map.result == 'skipped' ||
-          needs.formal.result == 'skipped' ||
-          (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
+          contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.checks.result == 'skipped' || needs.backend.result == 'skipped' || needs.frontend-test.result == 'skipped' || needs.frontend-verify.result == 'skipped' || needs.verify-map.result == 'skipped' || needs.formal.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
         run: exit 1

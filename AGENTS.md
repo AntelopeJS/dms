@@ -104,9 +104,13 @@ Pass `--probe <file.cjs>` to api-diff when changing receivers, positional calls,
 
 An entry-only rule exempts only its own module. Add a second module entry rather than exempting another importer. A no-upward rule must reject peers in the same tier as well as higher tiers. Probe the rank decision with an import, not just a reading of the configuration.
 
+Moving a method body into a function keeps how it is called: the same receiver, argument count, read order and laziness.
+
+Verify a boundary against the imports a developer or agent would plausibly write: static and dynamic imports, re-exports, Vue `src`, CSS `@import`, and worker or child-process entries in normally named files. A construction only an evasion would write, an edit to resolution configuration (`package.json` `browser`, `exports`, `main` or `imports`, bundler aliases, tsconfig `paths`), and a difference observable only by patching private fields or internal methods go under Attention and never block. Public API and ordinary subclass behaviour stay part of the contract.
+
 ### Suppression budget
 
-`guardrails.suppressions.json` caps the suppressions in authored code: lint directives per rule they name (`*` for none), `@ts-expect-error`, `@ts-ignore` and `SAFETY:` comments. A suppression over its ceiling fails: fix the code, or remove another suppression of the same kind. A rule that keeps needing suppressions should be changed in the preset. Never raise or remove a number in that file: the check fails a ceiling higher than on the pull request base, and only the operator approves a raise. After you remove suppressions, run `pnpm run suppressions:update` and commit the lowered file.
+`guardrails.suppressions.json` caps the suppressions in authored code: lint directives per rule they name (`*` for none), `@ts-expect-error`, `@ts-ignore` and `SAFETY:` comments. A suppression over its ceiling fails: fix the code, or remove another suppression of the same kind. A rule that keeps needing suppressions should be changed in the preset. Never raise or remove a number in that file: the check fails a ceiling higher than on the pull request base, and only the operator approves a raise. A directive disabling `anti-slop/require-safety-comment-for-type-assertion` is burn-down debt: remove the assertion, or, where it holds, replace the directive with `SAFETY: <why it holds>`, which takes over its room without a raise. After you remove suppressions, run `pnpm run suppressions:update` and commit the lowered file.
 
 ### What enforces what
 
@@ -117,6 +121,7 @@ An entry-only rule exempts only its own module. Add a second module entry rather
 | Comments are TSDoc, directives, or `SAFETY:` only                              | `antelopejs/no-comments`                            |
 | Every test asserts                                                             | `antelopejs/require-assertion`                      |
 | Tests read no files outside fixtures, helpers, locales                         | `antelopejs/no-fs-read-in-tests`                    |
+| Tests import the code under test from local source, not their own package name | `antelopejs/no-self-import-in-tests`                |
 | No assertion that restates a constant                                          | `antelopejs/no-constant-value-assertion`            |
 | No test whose only check is "is a function"                                    | `antelopejs/no-typeof-function-only-test`           |
 | Params ≤ 5, function ≤ 120 lines, file ≤ 500 lines, depth ≤ 4, complexity ≤ 20 | `eslint/max-*`, `eslint/complexity`                 |
@@ -124,11 +129,15 @@ An entry-only rule exempts only its own module. Add a second module entry rather
 | Comment-only changes preserve JavaScript emit                                  | `antelopejs-comment-proof <base-ref>`               |
 | PR-body counts come from tracked code files                                    | api-diff and comment-proof tables                   |
 | Receiver, positional and unpublished-module behaviour                          | `antelopejs-api-diff <base-ref> --probe <file.cjs>` |
-| Type suppressions and directive reasons are justified                          | review; no tool                                     |
+| Directive and `SAFETY:` reasons are true of the code                           | review; no tool                                     |
+| Evasion-only and patched-internal findings go under Attention                  | review; no tool                                     |
 | No-upward rules reject same-tier peers                                         | review and import probes                            |
 | No `@ts-ignore`                                                                | `typescript/ban-ts-comment`                         |
 | Files ≤ 20,000 bytes, tests included                                           | `antelopejs-check-size` (pre-commit)                |
 | Suppressions stay within `guardrails.suppressions.json`                        | `antelopejs-suppressions` (pre-commit, checks)      |
+| No added directive disables the `SAFETY:`, comment or test rules               | `antelopejs-suppressions` (pre-commit, checks)      |
+| An added suppression gives a specific reason                                   | `antelopejs-suppressions` (pre-commit, checks)      |
+| A block disable is closed in its file                                          | `antelopejs-suppressions` (pre-commit, checks)      |
 | Types check                                                                    | `tsc` (pre-push)                                    |
 | No dead files, exports, or dependencies                                        | knip                                                |
 | Managed files match the pack                                                   | `antelopejs-sync --check`                           |
