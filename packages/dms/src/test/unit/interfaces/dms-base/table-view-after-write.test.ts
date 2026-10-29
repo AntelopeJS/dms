@@ -1,13 +1,12 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
+import { requestContextFixture } from "../../../helpers/request-context";
 
-// SAFETY: These delete guards only record events; neither they nor the stubbed write access RequestContext members.
-const ctx = {} as RequestContext;
+const ctx = requestContextFixture();
 const DELETE_PARAMS = { id: ["row-1"] };
 
 class GuardedController {}

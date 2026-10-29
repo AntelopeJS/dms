@@ -18,7 +18,6 @@ import {
 import { expect } from "chai";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   archiveRows,
   internal as tableViewInternal,
@@ -29,14 +28,15 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "bulk-operations-test";
 const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
 const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
-// SAFETY: Bulk authorization reads the id and the owner flag, and the realtime actor reads the optional name and email; the fixture sets none of the optional ones, so it is deliberately not a complete persisted user.
-const USER = { _id: "bulk-operations-user" } as User;
+const USER = userFixture({ _id: "bulk-operations-user" });
 const ALL_IDS = ["a", "b", "c", "d"];
 
 const RULE_REFUSED_ID = "c";
@@ -106,10 +106,9 @@ function createRows(isArchived: boolean): Map<string, Row> {
 }
 
 function context(query: string): RequestContext {
-  // SAFETY: Parameter computation reads url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; other HTTP context members are deliberately absent.
-  return {
-    url: new URL(`http://localhost/api/bulk-operations/archive?${query}`),
-  } as RequestContext;
+  return requestContextFixture(
+    new URL(`http://localhost/api/bulk-operations/archive?${query}`),
+  );
 }
 
 const controller = new TaskAPI();

@@ -9,6 +9,7 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { userFixture } from "./user-fixture";
 
 export interface LayoutCaller {
   user: User | undefined;
@@ -24,9 +25,9 @@ export const ANONYMOUS: LayoutCaller = {
 };
 
 export function grantedTo(permissions: string[]): LayoutCaller {
-  // SAFETY: Permission lookup reads only the user id and owner flag (absent here, so the caller is not a platform owner), the member row's role ids and the role rows' permissions; the stubs implement just those reads.
+  // SAFETY: Permission lookup reads only the member row's role ids and the role rows' permissions; the stubs implement just those reads.
   return {
-    user: { _id: "pe-user" } as User,
+    user: userFixture({ _id: "pe-user" }),
     // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Inference and Pick expose a partial member row; authorization only reads its role ids.
     memberModel: {
       getByUser: async () => ({ roleIds: ["pe-role"] }),

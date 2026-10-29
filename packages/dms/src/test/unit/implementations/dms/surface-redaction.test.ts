@@ -21,6 +21,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "redaction-tenant";
 const SECRET_SLUG = "/redaction-secret";
@@ -42,15 +43,13 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
   { name: "anonymous", user: undefined, permissions: [], hasAccess: false },
   {
     name: "denied role",
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [],
     hasAccess: false,
   },
   {
     name: "authorized role",
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [SECRET_FULL_ID, DYNAMIC_FULL_ID],
     hasAccess: true,
   },
@@ -59,8 +58,7 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
 async function pageEntry(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    { _id: "redaction-member" } as User,
+    userFixture({ _id: "redaction-member" }),
     memberModel,
     roleModel,
     TENANT,
@@ -116,8 +114,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -135,8 +132,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -189,8 +185,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([DYNAMIC_FULL_ID]);
     const payload = await buildPagePayload(
       DYNAMIC_PATH,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -220,8 +215,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
   it("redacts the navigation tree the same way", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
     const payload = await buildSiteLayoutPayload(
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,

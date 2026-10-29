@@ -23,13 +23,13 @@ import {
   internal as quickActionsInterface,
 } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
   denyingTenantGate,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "of-denied-tenant";
 const CATEGORY_ID = "of-category";
@@ -80,8 +80,7 @@ class PageOfNested extends PageController("of-nested", {
 async function actionsFor(grantedPermissions: string[], tenantId: string) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
-    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
-    { _id: "of-member" } as User,
+    userFixture({ _id: "of-member" }),
     memberModel,
     roleModel,
     tenantId,

@@ -1,4 +1,4 @@
-import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -28,6 +28,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const TABLE = "reorder-features";
 
@@ -350,8 +351,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       },
     };
     const controller = new FeatureAPI();
-    // SAFETY: This guard only reads this.model and never accesses the request context, so none of RequestContext's members are used.
-    await guards?.delete?.call(controller, {} as RequestContext, { ids: [] });
+    await guards?.delete?.call(controller, requestContextFixture(), {
+      ids: [],
+    });
     expect(reached).to.deep.equal([controller.model]);
   });
 });

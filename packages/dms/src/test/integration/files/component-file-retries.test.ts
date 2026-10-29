@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { RequestContext } from "@antelopejs/interface-api";
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
 import { SaveComponentFiles } from "../../../attachments";
@@ -11,6 +10,7 @@ import { verifyUploadToken } from "../../../utils";
 import { nativeUploadToken, uploadAttachment } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { requestContextFixture } from "../../helpers/request-context";
 
 type StorageInterface = typeof import("@antelopejs/interface-file-storage");
 const storage: StorageInterface = require("@antelopejs/interface-file-storage");
@@ -57,10 +57,7 @@ async function fixture(field = "file"): Promise<Fixture> {
     token,
   });
   const request: AttachmentSaveRequest = {
-    // SAFETY: File access resolves the principal and tenant from the raw request's authorization header only, which the fixture supplies.
-    context: {
-      rawRequest: { headers: { authorization: `Bearer ${user.accessToken}` } },
-    } as RequestContext,
+    context: requestContextFixture(undefined, `Bearer ${user.accessToken}`),
     componentIds: [claims.componentId],
     fields: [
       {

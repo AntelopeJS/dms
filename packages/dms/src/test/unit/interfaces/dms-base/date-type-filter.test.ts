@@ -1,9 +1,9 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataCompareMode } from "@antelopejs/interface-dms/base/data-types/core";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 class Expression {
   constructor(
@@ -38,8 +38,7 @@ function recordingProxy(): ValueProxy<unknown> {
   return proxy as unknown as ValueProxy<unknown>;
 }
 
-// SAFETY: DateType and these numeric compare modes do not access context members; they only construct comparisons from the provided value proxy.
-const context = {} as RequestContext;
+const context = requestContextFixture();
 // SAFETY: DateType and these numeric compare modes do not access row members; they only construct comparisons from the provided value proxy.
 const row = {} as Parameters<DataCompareMode["filter"]>[4];
 

@@ -16,13 +16,13 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const LABEL_ID = "pv-label";
 const LABEL_FULL_ID = `pages.${LABEL_ID}`;
@@ -37,8 +37,7 @@ const MEMBER_PAGE_FULL_ID = "pages.pv-member";
 const MEMBER_CHILD_FULL_ID = `${MEMBER_PAGE_FULL_ID}.pv-member-child`;
 const TENANT = "pv-tenant";
 
-// SAFETY: Preview access consumes this id and owner flag, not persisted-user methods.
-const OWNER = { _id: "pv-owner", owner: true } as User;
+const OWNER = userFixture({ _id: "pv-owner", owner: true });
 
 async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {
   const { memberModel, roleModel } = stubPageAccessModels([]);

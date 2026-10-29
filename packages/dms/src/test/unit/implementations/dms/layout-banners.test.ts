@@ -27,11 +27,11 @@ import {
   denyingTenantGate,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "layout-banner-tenant";
 const DENIED_TENANT = "layout-banner-denied-tenant";
-// SAFETY: Banner/menu access reads this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "layout-banner-member" } as User;
+const MEMBER = userFixture({ _id: "layout-banner-member" });
 const GRANTED_PERMISSION = "pages.layout-banner-page";
 
 const RESOLVER_TIMEOUT_MS = 300;

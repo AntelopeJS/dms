@@ -8,7 +8,6 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import { internal as quickActionsInterface } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
   buildSiteLayoutPayload,
@@ -25,6 +24,7 @@ import {
 } from "../../../../pages/members";
 import { inviteMemberQuickAction } from "../../../../pages/account";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const ACTION_KEY = `${inviteMemberQuickAction.category.id}:${inviteMemberQuickAction.id}`;
 const TENANT_ID = "invite-quick-action-tenant";
@@ -54,7 +54,7 @@ async function actionsFor(grantedPermissions: string[]) {
   );
   // SAFETY: Site layout permission resolution uses only the user id with the provided member and role stubs; no other user fields are read.
   const payload = await buildSiteLayoutPayload(
-    { _id: "invite-quick-action-member" } as User,
+    userFixture({ _id: "invite-quick-action-member" }),
     memberModel,
     roleModel,
     TENANT_ID,

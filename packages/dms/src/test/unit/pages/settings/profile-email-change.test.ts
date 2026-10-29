@@ -1,7 +1,8 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assertEmailAvailable } from "../../../../pages/account";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -16,8 +17,7 @@ function modelHolding(accounts: Record<string, string>): UserModel {
   return {
     getByEmail: async (lookup: string) => {
       const id = accounts[lookup.trim().toLowerCase()];
-      // SAFETY: The availability check compares only _id, so this lookup deliberately omits unrelated user fields.
-      return id ? ({ _id: id } as User) : undefined;
+      return id ? userFixture({ _id: id }) : undefined;
     },
   } as UserModel;
 }

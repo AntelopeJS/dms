@@ -7,7 +7,6 @@ import {
   internal as pageInterfaceInternal,
   RegisterModule,
 } from "@antelopejs/interface-dms/page";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { internal as pageImplInternal } from "../../../implementations/dms/page";
@@ -23,9 +22,9 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
+import { userFixture } from "../../helpers/user-fixture";
 
-// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
-const USER = { _id: "tenant-topics-user", email: "u@example.com" } as User;
+const USER = userFixture({ _id: "tenant-topics-user", email: "u@example.com" });
 const PAGE_ID = "tenant-topics-page";
 const TOPIC = "tenant-topics:orders";
 const TENANT_A = "tenant-a";

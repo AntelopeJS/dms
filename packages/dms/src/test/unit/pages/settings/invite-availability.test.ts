@@ -11,7 +11,6 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { internal as pageImplInternal } from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
@@ -22,12 +21,12 @@ import {
   MembersSettingsController,
 } from "../../../../pages/members";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const FULL_TENANT = "invite-availability-full-tenant";
 const OPEN_TENANT = "invite-availability-open-tenant";
 const SEAT_LIMIT_REASON = "$test.seat_limit_reached";
-// SAFETY: The members layout uses only the inviter's _id; the separate language tests below call resolveInviteLanguage directly.
-const INVITER = { _id: "invite-availability-inviter" } as User;
+const INVITER = userFixture({ _id: "invite-availability-inviter" });
 
 interface MembersTableOptions {
   customButtons?: CustomButtonSerialized[];

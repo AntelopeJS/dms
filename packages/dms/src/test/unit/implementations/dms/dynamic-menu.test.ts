@@ -26,6 +26,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const CATEGORY_ID = "dyn-projects";
 const CATEGORY_FULL_ID = `pages.${CATEGORY_ID}`;
@@ -33,8 +34,7 @@ const PAGE_SLUG = "/dyn-project";
 const PARAM_PAGE_SLUG = "/dyn-projects/:projectId/services";
 const TENANT_A = "dyn-tenant-a";
 const TENANT_B = "dyn-tenant-b";
-// SAFETY: Dynamic-menu access reads this id and owner flag, not persisted-user methods.
-const OWNER = { _id: "dyn-owner", owner: true } as User;
+const OWNER = userFixture({ _id: "dyn-owner", owner: true });
 const RESTRICTED_PERMISSION = "dyn.restricted";
 const DENIED_TENANT = "dyn-denied-tenant";
 const BYPASS_TARGET_ACTION = "pages.dyn-bypass-target.settle";
@@ -229,8 +229,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "dyn-member" } as User;
+    const member = userFixture({ _id: "dyn-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -258,8 +257,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const outsider = { _id: "dyn-outsider" } as User;
+    const outsider = userFixture({ _id: "dyn-outsider" });
     const payload = await buildSiteLayoutPayload(
       outsider,
       memberModel,
@@ -296,8 +294,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "dyn-member" } as User;
+    const member = userFixture({ _id: "dyn-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -356,8 +353,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       BYPASS_TARGET_ACTION,
       RESTRICTED_PERMISSION,
     ]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "dyn-suspended" } as User;
+    const member = userFixture({ _id: "dyn-suspended" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -408,8 +404,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-public-target",
       RESTRICTED_PERMISSION,
     ]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "dyn-suspended-member" } as User;
+    const member = userFixture({ _id: "dyn-suspended-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -460,8 +455,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-kept-target",
       settlePermission,
     ]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag; despite its id, this fixture is not a platform owner.
-    const member = { _id: "dyn-suspended-owner" } as User;
+    const member = userFixture({ _id: "dyn-suspended-owner" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -495,8 +489,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    // SAFETY: Dynamic-menu access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "dyn-plain-member" } as User;
+    const member = userFixture({ _id: "dyn-plain-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
