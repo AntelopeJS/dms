@@ -12,7 +12,7 @@ import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { checkoutOf } from "./git.mjs";
-import { dropRunDatabases, startMongod } from "./mongo.mjs";
+import { dropDatabase, dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
   isAlive,
@@ -371,18 +371,24 @@ export async function restartBackend(state, build) {
 
 /**
  * Restarts the backend on another database of the run, so a journey starts
- * from an empty one: not onboarded, no user, no session.
+ * from an empty one: not onboarded, no user, no session. The previous
+ * journey database is dropped, so a long run does not exhaust mongod's
+ * file handles; its evidence stays.
  *
  * @param {Record<string, any>} state The run
  * @param {string} suffix What tells the database apart, such as `j03`
  * @returns {Promise<string>} The database now in use
  */
 export async function freshDatabase(state, suffix) {
+  const previous = state.database;
   state.database = `${state.databasePrefix}_${suffix}`;
   state.tokens = {};
   state.accounts = {};
   saveRun(state);
   await restartBackend(state);
+  if (previous !== state.databasePrefix && previous !== state.database) {
+    await dropDatabase(state.mongoUrl, previous, resolutionFolders(state));
+  }
   return state.database;
 }
 

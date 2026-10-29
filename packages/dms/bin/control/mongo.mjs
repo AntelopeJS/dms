@@ -135,3 +135,22 @@ export async function dropRunDatabases(url, prefix, from) {
     await client.close();
   }
 }
+
+/**
+ * Drops one database of the run.
+ *
+ * @param {string} url The server URL
+ * @param {string} name The database
+ * @param {string[]} from Folders to resolve the driver from
+ * @returns {Promise<void>} Resolves once dropped
+ */
+export async function dropDatabase(url, name, from) {
+  const { MongoClient } = await mongoDriver(from);
+  const client = new MongoClient(url, { serverSelectionTimeoutMS: 5_000 });
+  try {
+    await client.connect();
+    await client.db(name).dropDatabase();
+  } finally {
+    await client.close();
+  }
+}
