@@ -95,7 +95,6 @@ const buildActor = (user: User): PresenceActor => ({
   displayName: user.name || user.email,
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- This HTTP boundary checks the three presence routing strings before use. */
 const isValidPresenceBody = (
   body: unknown,
 ): body is { pageId: string; topic: string; key: string } => {
@@ -107,7 +106,6 @@ const isValidPresenceBody = (
     typeof candidate.key === "string"
   );
 };
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export const menuTopicsFor = (
   tenantId: string | undefined,

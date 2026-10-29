@@ -16,15 +16,12 @@ export interface UploadFieldNode {
 export function isNativeUploadField(
   value: SlotOptions[string],
 ): value is UploadFieldNode {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native uploads are discovered inside arbitrary serialized component options; this boundary excludes nonobjects before inspecting their transport keys.
   if (!value || typeof value !== "object") return false;
   const node: Partial<Pick<SlotOptions, keyof UploadFieldNode>> = value;
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Upload field tags are read from serialized contributor options, not a common schema shared by all components.
     typeof node.type === "string" &&
     NATIVE_UPLOAD_FIELD_TYPES.has(node.type) &&
     !!node.component &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing component-container check; nested options remain trusted rather than introducing new upload validation.
     typeof node.component === "object"
   );
 }

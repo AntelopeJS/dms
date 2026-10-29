@@ -95,7 +95,7 @@ for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
 }
 
 const constructorExemptions = {
-  "implementations/dms-base/bulk-selection.ts:104":
+  "implementations/dms-base/bulk-selection.ts:103":
     "      (thisObj as ControllerInstance).constructor,",
   "implementations/dms-base/search-route.ts:66":
     "  const columnType = GetMetadata(target.thisObj.constructor, TableViewMeta)",

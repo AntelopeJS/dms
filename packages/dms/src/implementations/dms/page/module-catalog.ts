@@ -108,7 +108,6 @@ export async function runModuleReadoutHook(
     return lines
       .filter(
         (line): line is ModuleReadoutLine =>
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- External module hooks may return malformed readout lines; retain the existing text validation at this boundary.
           !!line && typeof line.text === "string" && line.text.length > 0,
       )
       .slice(0, MODULE_READOUT_MAX_LINES)

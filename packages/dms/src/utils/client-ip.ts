@@ -100,7 +100,6 @@ export function resolveRequestClientIp(
 
 function isProxyCount(value: unknown): value is number {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Configuration can carry a nonnumeric value despite AuthConfig's annotation; this existing check rejects coercible strings before the integer and range checks.
     typeof value === "number" &&
     Number.isSafeInteger(value) &&
     value >= NO_TRUSTED_PROXY

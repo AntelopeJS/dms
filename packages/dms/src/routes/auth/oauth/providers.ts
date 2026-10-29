@@ -61,7 +61,6 @@ interface GoogleUserInfo {
 function isNonEmptyString(
   value: GithubUser["id"] | GithubUser["name"] | GoogleUserInfo["email"],
 ): value is string {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider JSON values have not acquired a string contract; this existing check establishes the nonempty email/name claim.
   return typeof value === "string" && value.length > 0;
 }
 

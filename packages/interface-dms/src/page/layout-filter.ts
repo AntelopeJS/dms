@@ -58,7 +58,6 @@ const isPlainObject = (
   value: ComponentInfoSerialized["options"],
 ): value is Record<string, ComponentInfoSerialized["options"]> =>
   !!value &&
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This boundary excludes primitives before inspecting plain-object prototypes; it does not validate contributor options.
   typeof value === "object" &&
   (Object.getPrototypeOf(value) === Object.prototype ||
     Object.getPrototypeOf(value) === null);

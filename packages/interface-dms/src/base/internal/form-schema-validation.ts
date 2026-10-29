@@ -81,7 +81,6 @@ const SECTIONS_KEY = "sections";
 
 /** @internal */
 export function isFormProps(source: FormSchemaSource): source is FormProps {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing malformed-source rejection at the public formSchema boundary.
   if (typeof source !== "object" || source === null) return false;
   return (
     (FIELDS_KEY in source && Array.isArray(source.fields)) ||

@@ -8,7 +8,6 @@ import type { InviteExtensionInfo } from "./types";
 function isRecord(
   value: Parameters<typeof CollectInviteExtensionEdits>[0],
 ): value is ReturnType<typeof ReadInviteExtensionFields> {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This guard is the raw submission boundary and preserves the existing object-but-not-array classification.
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 

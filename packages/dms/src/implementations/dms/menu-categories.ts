@@ -12,11 +12,9 @@ interface IdentifiedCategory {
 
 function isIdentified<T>(category: T): category is T & IdentifiedCategory {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Category references may be unresolved scalar configuration; retain the existing object check before reading fullId.
     typeof category === "object" &&
     category !== null &&
     // SAFETY: The preceding checks establish a nonnull object; fullId is read as unknown and narrowed by this existing string test.
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- fullId comes from an opaque module-owned category; the guard establishes the string used by serialization.
     typeof (category as { fullId?: unknown }).fullId === "string"
   );
 }

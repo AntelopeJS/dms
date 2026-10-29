@@ -9,7 +9,7 @@
     "anti-slop/no-object-parameters": 6,
     "anti-slop/no-reflect-apply": 2,
     "anti-slop/no-reflect-get": 1,
-    "anti-slop/no-runtime-typeof": 193,
+    "anti-slop/no-runtime-typeof": 167,
     "anti-slop/no-shape-in-symbol-names": 26,
     "anti-slop/no-unknown-parameters": 83,
     "anti-slop/no-unknown-returns": 23,

@@ -20,10 +20,8 @@ function bearerToken(ctx: RequestContext): string | undefined {
 }
 
 function isVerifiedUser(value: unknown): value is { _id: string } {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A custom authenticator validator can return any value; only an object with a string id binds a principal.
   if (typeof value !== "object" || value === null) return false;
   const { _id }: { _id?: unknown } = value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The verified principal requires a string id rather than an arbitrary validator result.
   return typeof _id === "string";
 }
 

@@ -25,7 +25,6 @@ type BulkReceiver = globalThis.Parameters<typeof ResolveBulkDeclaration>[0];
 
 function isBulkRowSource(table: BulkReceiver): table is BulkRowSource {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public input accepts both opaque route receivers and BulkRowSource; the existing object check must precede property membership on arbitrary values.
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&

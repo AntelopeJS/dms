@@ -34,7 +34,6 @@ type Condition = ValueProxyOrValue<boolean>;
 type FieldReader = (field: string) => ValueProxy<unknown>;
 
 const isLiteral = (condition: Condition): condition is boolean =>
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database conditions are either literal booleans or query proxies; retain the existing distinction before invoking proxy operators.
   typeof condition === "boolean";
 
 function both(a: Condition, b: Condition): Condition {

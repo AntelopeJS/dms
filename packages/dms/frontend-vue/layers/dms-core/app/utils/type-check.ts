@@ -4,7 +4,6 @@ type CallableFunction = (...args: any[]) => unknown;
 const createTypeGuard =
   <T>(type: string) =>
   (v: unknown): v is T =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This primitive boundary guard implements JavaScript typeof semantics; owner types cannot classify unparsed values.
     typeof v === type;
 
 export const isString = createTypeGuard<string>("string");

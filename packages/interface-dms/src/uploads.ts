@@ -36,17 +36,14 @@ interface UploadFieldNode {
 function isUploadFieldNode(
   node: Parameters<typeof StampUploadFieldTokens>[0],
 ): node is UploadFieldNode {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Traversal accepts arbitrary serialized option values and only inspects object nodes.
   if (!node || typeof node !== "object") return false;
   const candidate: Partial<
     Record<keyof UploadFieldNode, Parameters<typeof StampUploadFieldTokens>[0]>
   > = node;
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A native upload node must name a file or image field rather than an arbitrary option type.
     typeof candidate.type === "string" &&
     UPLOAD_FIELD_TYPES.has(candidate.type) &&
     !!candidate.component &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the serialized-node shape check before accessing the component's options.
     typeof candidate.component === "object"
   );
 }
