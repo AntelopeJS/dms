@@ -16,6 +16,7 @@ export * from "./client-ip";
 export * from "./email-change-mail";
 export * from "./email-subjects";
 export * from "./failed-sign-ins";
+export * from "./jwt-claims";
 export * from "./login-throttle";
 export * from "./notification-emitter";
 export * from "./notification-registry";

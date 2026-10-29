@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import { sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../../config";
+import { isJwtClaims } from "../../../utils";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL_ERROR = 500;
@@ -65,8 +66,13 @@ function isSameState(state: string, cookieState: string): boolean {
 
 function decodeState(state: string): OAuthStateClaims | undefined {
   try {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- verify authenticates the token but its JwtPayload owner type cannot establish these optional claims; preserving the existing nonce acceptance precludes adding claim validation here.
-    return verify(state, getStateSecret()) as OAuthStateClaims;
+    const claims = verify(state, getStateSecret());
+    if (!isJwtClaims(claims)) return undefined;
+    return {
+      provider: claims.provider,
+      nonce: claims.nonce,
+      purpose: claims.purpose,
+    };
   } catch {
     return undefined;
   }
