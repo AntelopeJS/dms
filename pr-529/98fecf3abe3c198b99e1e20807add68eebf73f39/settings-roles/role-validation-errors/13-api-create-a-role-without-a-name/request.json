@@ -1,0 +1,12 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/dms/pages/settings/workspace/roles/create",
+  "authenticated": true,
+  "body": {
+    "name": "   ",
+    "description": "",
+    "permissions": [
+      "playground.reports.export"
+    ]
+  }
+}

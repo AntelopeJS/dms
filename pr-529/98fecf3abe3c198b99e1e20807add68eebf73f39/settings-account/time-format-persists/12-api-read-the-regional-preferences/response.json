@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "body": {
+    "language": "en",
+    "timeZone": "auto",
+    "weekStart": "auto",
+    "timeFormat": "h23",
+    "dateFormat": "auto"
+  },
+  "error": null
+}

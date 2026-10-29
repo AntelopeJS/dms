@@ -1,0 +1,7 @@
+[
+  {
+    "name": "one row with the name and email",
+    "pass": true,
+    "detail": "[{\"_id\":\"89a7fcad-e4e9-4bff-8d47-4414eff8b998\",\"name\":\"Verify User d91c8b\",\"email\":\"table-user+20261029t055349-77b0cc-table-create-record@verify.local\"}]"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"results\":[{\"_id\":\"default:7199664b-78e1-4eda-97ff-c9a151c5970a\",\"userId\":\"7199664b-78e1-4eda-97ff-c9a151c5970a\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t055349-77b0cc@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T06:10:51.178Z\",\"twoFactorMethods\":nul"
+  },
+  {
+    "name": "table \"Members list\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/members"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "accepted registrations",
+    "pass": true,
+    "detail": "expected 1, got 1"
+  },
+  {
+    "name": "platform owners",
+    "pass": false,
+    "detail": "expected 1, got 2"
+  },
+  {
+    "name": "accounts created by a refused registration",
+    "pass": false,
+    "detail": "expected [], got [\"first+20261029t055349-77b0cc-concurrent-registers-one-owner@verify.local\"]"
+  },
+  {
+    "name": "has_onboarded",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

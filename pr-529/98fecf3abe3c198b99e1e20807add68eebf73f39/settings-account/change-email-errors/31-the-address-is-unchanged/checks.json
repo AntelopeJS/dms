@@ -1,0 +1,17 @@
+[
+  {
+    "name": "email",
+    "pass": true,
+    "detail": "expected \"admin+20261029t055349-77b0cc@verify.local\", got \"admin+20261029t055349-77b0cc@verify.local\""
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIyYmZhMWMyLTk3NzEtNDA1ZC04OWExLTFkNmEzYTZkMmQ5MCIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjQ2NDIyNGZkLThmN2UtNDFjMC05NGM2LTMxODlkMzlmYzUzYiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTM4OTUsImV4cCI6MTc5MzI1NzQ5"
+  },
+  {
+    "name": "HTTP 401",
+    "pass": true,
+    "detail": "status 401: \"error.invalid_credentials\""
+  }
+]

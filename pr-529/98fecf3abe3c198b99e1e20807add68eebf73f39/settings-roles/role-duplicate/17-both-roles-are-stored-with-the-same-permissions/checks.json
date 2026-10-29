@@ -1,0 +1,17 @@
+[
+  {
+    "name": "names",
+    "pass": true,
+    "detail": "expected [\"Support df4325\",\"Support df4325 (copy)\"], got [\"Support df4325\",\"Support df4325 (copy)\"]"
+  },
+  {
+    "name": "permissions",
+    "pass": true,
+    "detail": "expected [[\"playground.reports.export\"],[\"playground.reports.export\"]], got [[\"playground.reports.export\"],[\"playground.reports.export\"]]"
+  },
+  {
+    "name": "option \"/^Support df4325 \\(copy\\)/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+  }
+]

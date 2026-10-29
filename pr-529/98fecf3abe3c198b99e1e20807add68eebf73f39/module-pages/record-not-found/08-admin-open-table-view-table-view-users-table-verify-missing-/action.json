@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "/table-view/table-view-users/table/verify-missing-record/edit",
+  "baseUrl": "http://127.0.0.1:38941"
+}

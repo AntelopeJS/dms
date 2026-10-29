@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "cc1bdeb0-39ae-48b5-88fa-60f81f163067",
+    "name": "Wiz Ard",
+    "email": "wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local",
+    "createdAt": "2026-10-29T05:54:52.021Z",
+    "updatedAt": "2026-10-29T05:54:52.506Z",
+    "isValidated": true,
+    "owner": true,
+    "language": "en",
+    "_instance": null,
+    "lastActiveAt": "2026-10-29T05:54:52.506Z"
+  },
+  "error": null
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "option \"/^Support bf2ab6/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+  },
+  {
+    "name": "link \"Roles 2\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+  }
+]

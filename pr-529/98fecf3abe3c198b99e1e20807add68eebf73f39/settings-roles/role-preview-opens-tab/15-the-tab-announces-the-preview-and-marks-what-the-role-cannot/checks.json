@@ -1,0 +1,17 @@
+[
+  {
+    "name": "the preview bar names the role",
+    "pass": true,
+    "detail": "Previewing Overview as Viewer f9bd62 Page hidden for Viewer f9bd62 Exit preview"
+  },
+  {
+    "name": "Library groups marked hidden for the role",
+    "pass": true,
+    "detail": "expected 1, got 1"
+  },
+  {
+    "name": "the page is hidden for the role",
+    "pass": true,
+    "detail": "Previewing Overview as Viewer f9bd62 Page hidden for Viewer f9bd62 Exit preview"
+  }
+]

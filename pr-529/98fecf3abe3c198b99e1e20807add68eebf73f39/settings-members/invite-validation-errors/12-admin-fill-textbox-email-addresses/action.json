@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email addresses\"",
+  "value": "not-an-email",
+  "baseUrl": "http://127.0.0.1:38941"
+}

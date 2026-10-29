@@ -1,0 +1,180 @@
+{
+  "feature": "settings-account",
+  "journey": "profile-name-persists",
+  "title": "editing the full name shows Profile saved and the new name everywhere it is read back",
+  "entryPoint": "Settings > Profile > Full name",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j041",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/profile-name-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/profile-name-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-profile",
+      "folder": "settings-account/profile-name-persists/08-admin-open-settings-user-profile",
+      "checks": [
+        {
+          "name": "open /settings/user/profile",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/profile"
+        }
+      ]
+    },
+    {
+      "name": "09-the-profile-shows-the-current-name-and-a-read-only-email",
+      "folder": "settings-account/profile-name-persists/09-the-profile-shows-the-current-name-and-a-read-only-email",
+      "checks": [
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Verify Admin\", got \"Verify Admin\""
+        },
+        {
+          "name": "email is editable",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-fill-textbox-full-name",
+      "folder": "settings-account/profile-name-persists/10-admin-fill-textbox-full-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Full name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/profile"
+        }
+      ]
+    },
+    {
+      "name": "11-the-page-offers-to-save-and-names-the-previous-value",
+      "folder": "settings-account/profile-name-persists/11-the-page-offers-to-save-and-names-the-previous-value",
+      "checks": [
+        {
+          "name": "page shows /Unsaved changes/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page shows /Was “Verify Admin”/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-save-changes",
+      "folder": "settings-account/profile-name-persists/12-admin-click-button-save-changes",
+      "checks": [
+        {
+          "name": "click button \"Save changes\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/profile"
+        }
+      ]
+    },
+    {
+      "name": "13-the-profile-is-saved",
+      "folder": "settings-account/profile-name-persists/13-the-profile-is-saved",
+      "checks": [
+        {
+          "name": "page shows /Profile saved/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VR Verify Renamed admin+20261029t055349-77b0cc@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-reload",
+      "folder": "settings-account/profile-name-persists/14-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/profile"
+        }
+      ]
+    },
+    {
+      "name": "15-a-reload-shows-the-new-name-in-the-form-and-in-the-account-m",
+      "folder": "settings-account/profile-name-persists/15-a-reload-shows-the-new-name-in-the-form-and-in-the-account-m",
+      "checks": [
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+        },
+        {
+          "name": "button \"/Verify Renamed/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/profile"
+        }
+      ]
+    },
+    {
+      "name": "18-the-api-and-the-members-list-hold-the-new-name",
+      "folder": "settings-account/profile-name-persists/18-the-api-and-the-members-list-hold-the-new-name",
+      "checks": [
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+        },
+        {
+          "name": "member names",
+          "pass": true,
+          "detail": "expected [\"Verify Renamed\"], got [\"Verify Renamed\"]"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-open-settings",
+      "folder": "settings-account/profile-name-persists/19-admin-open-settings",
+      "checks": [
+        {
+          "name": "open /settings",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "20-the-settings-overview-reads-the-new-name",
+      "folder": "settings-account/profile-name-persists/20-the-settings-overview-reads-the-new-name",
+      "checks": [
+        {
+          "name": "page shows /Verify Renamed/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VR Verify Renamed admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 N…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/profile-name-persists"
+}

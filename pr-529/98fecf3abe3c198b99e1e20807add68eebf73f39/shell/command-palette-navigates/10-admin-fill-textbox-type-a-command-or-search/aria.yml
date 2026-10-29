@@ -1,0 +1,23 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Type a command or search…": Member invitations
+  - button "Close"
+  - listbox:
+    - group "Navigation":
+      - text: Navigation
+      - option "Member invitationsSettings › Workspace"
+      - option "MembersSettings › Workspace"
+      - option "Every memberLibrary › Pages & navigation › Page access › Member access"
+      - option "Relation · DMS Member (tenant)Library › Components › Table View"
+      - option "Hooks & invitesLibrary › System"
+      - option "RolesSettings › Workspace"
+      - option "Tab countsLibrary › Layout › Tabs"
+      - option "Relation · KeyLibrary › Components › Table View"
+      - option "Ops MetricsLibrary › Components › Charts"
+      - option "Realtime UpdatesLibrary › Components › Charts"
+      - option "Banner & empty stateLibrary › Design system › Blocks"
+    - group "Members":
+      - text: Members
+      - option "Invite a member"
+  - text: ↑ ↓ Navigate ↵ Open Esc Close

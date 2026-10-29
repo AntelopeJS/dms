@@ -1,0 +1,31 @@
+- dialog "Invite members":
+  - heading "Invite members" [level=2]
+  - paragraph: They’ll get an email with a link to join. It stays valid for 7 days.
+  - button "Close"
+  - text: Email addresses
+  - paragraph: Paste a list to invite several people with the same roles.
+  - textbox "Email addresses":
+    - /placeholder: Add addresses, separated with a comma
+  - text: Playground onboarding
+  - paragraph: Added by the playground's RegisterInviteExtension
+  - text: Team
+  - combobox "Team"
+  - text: Roles
+  - group "Roles":
+    - button "Viewer 15cd82"
+  - paragraph:
+    - text: Pick at least one role.
+    - link "Compare roles":
+      - /url: /settings/workspace/roles
+  - text: Invitation language
+  - paragraph: The language of the email and of their account.
+  - combobox "Invitation language": English
+  - text: Name
+  - paragraph: Optional. They can change it when they join.
+  - textbox "Name":
+    - /placeholder: Nicolas Petit
+  - text: Make workspace owner Owners have every permission, including billing, roles and removing members. Roles above are ignored. A workspace can have several owners.
+  - switch "Make workspace owner Owners have every permission, including billing, roles and removing members. Roles above are ignored. A workspace can have several owners."
+  - paragraph: Required fields
+  - button "Cancel"
+  - button "Send invitations"

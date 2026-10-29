@@ -1,0 +1,17 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "This invitation was revoked" [level=1]
+  - paragraph: The person who invited you cancelled it. If you still need access, ask them for a new invitation.
+  - link "Login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

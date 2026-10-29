@@ -1,0 +1,22 @@
+[
+  {
+    "name": "dark class kept",
+    "pass": true,
+    "detail": "html has no dark class"
+  },
+  {
+    "name": "Dark checked",
+    "pass": true,
+    "detail": "expected true, got true"
+  },
+  {
+    "name": "Large checked",
+    "pass": true,
+    "detail": "expected true, got true"
+  },
+  {
+    "name": "contrast on",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

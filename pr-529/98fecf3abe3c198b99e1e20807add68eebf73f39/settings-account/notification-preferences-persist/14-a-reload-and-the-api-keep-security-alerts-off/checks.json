@@ -1,0 +1,17 @@
+[
+  {
+    "name": "page shows /4 of 5 on/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+  },
+  {
+    "name": "system:security",
+    "pass": true,
+    "detail": "expected false, got false"
+  },
+  {
+    "name": "system:general",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

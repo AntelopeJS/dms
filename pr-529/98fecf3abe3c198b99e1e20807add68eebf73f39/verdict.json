@@ -1,0 +1,9 @@
+{
+  "result": "FAIL",
+  "headSha": "98fecf3abe3c198b99e1e20807add68eebf73f39",
+  "skillSha": "f1195c6be79844157d62bdcc331f67d5909e5766",
+  "pr": 529,
+  "reasons": [
+    "formal check formal-release-range: violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)"
+  ]
+}

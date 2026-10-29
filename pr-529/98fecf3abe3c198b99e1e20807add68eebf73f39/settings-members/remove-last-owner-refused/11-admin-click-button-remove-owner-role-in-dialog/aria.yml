@@ -1,0 +1,8 @@
+- dialog "Remove Verify Admin’s owner role?":
+  - heading "Remove Verify Admin’s owner role?" [level=2]
+  - paragraph: They keep their roles and lose the permissions only owners have.
+  - button "Close"
+  - alert: Cannot remove the last owner. At least one owner must remain.
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Remove owner role"

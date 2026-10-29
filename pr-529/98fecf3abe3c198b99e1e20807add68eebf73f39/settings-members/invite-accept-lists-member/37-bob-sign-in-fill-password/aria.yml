@@ -1,0 +1,29 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Connect to your account" [level=1]
+  - paragraph: Welcome back. Sign in to the Verify 20261029T055349-77b0cc workspace.
+  - text: Email address
+  - textbox "Email address":
+    - /placeholder: you@company.com
+    - text: bob+20261029t055349-77b0cc-invite-accept-lists-member@verify.local
+  - text: Password
+  - link "Forgot password?":
+    - /url: /auth/forgot
+  - textbox "Password":
+    - /placeholder: ••••••••
+    - text: Vr1!vUxfojKAHJIZ
+  - button "Show password"
+  - checkbox "Keep my active session"
+  - text: Keep my active session
+  - button "Login"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

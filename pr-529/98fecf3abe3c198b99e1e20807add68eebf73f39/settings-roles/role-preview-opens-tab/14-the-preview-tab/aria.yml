@@ -1,0 +1,65 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview · Hidden for Viewer f9bd62":
+        - /url: /examples/overview
+        - text: Overview
+    - listitem:
+      - link "Feature index · Hidden for Viewer f9bd62":
+        - /url: /examples/features
+        - text: Feature index
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system · Hidden for Viewer f9bd62": Design system
+    - listitem:
+      - button "Layout · Hidden for Viewer f9bd62": Layout
+    - listitem:
+      - button "Components · Hidden for Viewer f9bd62": Components
+    - listitem:
+      - button "Pages & navigation · Hidden for Viewer f9bd62": Pages & navigation
+    - listitem:
+      - button "Dashboard chrome · Hidden for Viewer f9bd62": Dashboard chrome
+    - listitem:
+      - button "Frontend modules · Hidden for Viewer f9bd62": Frontend modules
+    - listitem:
+      - button "System · Hidden for Viewer f9bd62": System
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules · Hidden for Viewer f9bd62":
+        - /url: /modules
+        - text: Modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- region "Role preview":
+  - text: Previewing
+  - button "Page to preview": Overview
+  - text: as Viewer f9bd62 Page hidden for Viewer f9bd62
+  - button "Exit preview"
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- status: Hidden for Viewer f9bd62
+- region "Notifications (F8)":
+  - list

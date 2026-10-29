@@ -1,0 +1,15 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/dms/pages/settings/workspace/roles/create",
+  "authenticated": true,
+  "body": {
+    "name": "Viewer f9bd62",
+    "description": "",
+    "permissions": [
+      "settings",
+      "settings.workspace",
+      "settings.workspace.playground",
+      "settings.workspace.playground.form"
+    ]
+  }
+}

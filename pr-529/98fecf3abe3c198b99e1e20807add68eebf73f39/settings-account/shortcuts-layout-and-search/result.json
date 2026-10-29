@@ -1,0 +1,142 @@
+{
+  "feature": "settings-account",
+  "journey": "shortcuts-layout-and-search",
+  "title": "the keyboard layout switches the key labels, and the shortcut search filters or says nothing matches",
+  "entryPoint": "Settings > Shortcuts",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j058",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/shortcuts-layout-and-search/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/shortcuts-layout-and-search/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-shortcuts",
+      "folder": "settings-account/shortcuts-layout-and-search/08-admin-open-settings-user-shortcuts",
+      "checks": [
+        {
+          "name": "open /settings/user/shortcuts",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/shortcuts"
+        }
+      ]
+    },
+    {
+      "name": "09-the-windows-linux-layout-is-detected-here",
+      "folder": "settings-account/shortcuts-layout-and-search/09-the-windows-linux-layout-is-detected-here",
+      "checks": [
+        {
+          "name": "page shows /Open command palette\\s+Ctrl\\s*K/i",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "checked",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-radio-macos",
+      "folder": "settings-account/shortcuts-layout-and-search/10-admin-click-radio-macos",
+      "checks": [
+        {
+          "name": "click radio \"macOS\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/shortcuts"
+        }
+      ]
+    },
+    {
+      "name": "11-choosing-macos-relabels-the-keys",
+      "folder": "settings-account/shortcuts-layout-and-search/11-choosing-macos-relabels-the-keys",
+      "checks": [
+        {
+          "name": "page shows /Open command palette\\s+⌘\\s*K/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page does not show /Open command palette\\s+Ctrl\\s*K/i",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-search-shortcuts",
+      "folder": "settings-account/shortcuts-layout-and-search/12-admin-fill-textbox-search-shortcuts",
+      "checks": [
+        {
+          "name": "fill textbox \"/^Search shortcuts/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/shortcuts"
+        }
+      ]
+    },
+    {
+      "name": "13-a-search-keeps-the-matching-shortcut-only",
+      "folder": "settings-account/shortcuts-layout-and-search/13-a-search-keeps-the-matching-shortcut-only",
+      "checks": [
+        {
+          "name": "page shows /Open command palette/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page does not show /Refresh table data/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-fill-textbox-search-shortcuts",
+      "folder": "settings-account/shortcuts-layout-and-search/14-admin-fill-textbox-search-shortcuts",
+      "checks": [
+        {
+          "name": "fill textbox \"/^Search shortcuts/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/shortcuts"
+        }
+      ]
+    },
+    {
+      "name": "15-a-search-without-a-match-says-so",
+      "folder": "settings-account/shortcuts-layout-and-search/15-a-search-without-a-match-says-so",
+      "checks": [
+        {
+          "name": "page shows /No shortcut matches your search\\./",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/shortcuts-layout-and-search"
+}

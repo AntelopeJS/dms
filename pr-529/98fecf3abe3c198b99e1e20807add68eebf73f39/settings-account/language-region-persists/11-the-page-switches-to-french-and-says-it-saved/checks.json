@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Langue et région\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/user/region"
+  },
+  {
+    "name": "page shows /Enregistré/",
+    "pass": true,
+    "detail": "Rechercher… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Paramètres / Compte / Langue et région 1 Paramètres / Tous les réglages COMPTE …"
+  }
+]

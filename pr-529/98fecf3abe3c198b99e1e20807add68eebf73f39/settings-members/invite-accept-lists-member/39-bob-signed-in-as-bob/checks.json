@@ -1,0 +1,7 @@
+[
+  {
+    "name": "bob signs in and leaves /auth",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/page-access/access-public"
+  }
+]

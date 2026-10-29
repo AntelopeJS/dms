@@ -1,0 +1,1 @@
+http://127.0.0.1:38941/auth/signup?token=AMUzVTKAMKBa68RIU2risOslVHqaJlLiFNHuGHYkPyATTjWGZuEn5h8lmg1oWgW4&email=fred%2B20261029t055349-77b0cc-invite-resend-replaces-link%40verify.local&lang=en

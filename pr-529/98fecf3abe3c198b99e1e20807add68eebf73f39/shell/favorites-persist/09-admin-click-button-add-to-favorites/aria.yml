@@ -1,0 +1,666 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem:
+      - button "Favorites" [expanded]
+      - region "Favorites":
+        - list:
+          - listitem:
+            - link "Feature index":
+              - /url: /examples/features
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Remove from favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem: Examples
+      - listitem:
+        - link "Feature index":
+          - /url: /examples/features
+  - button "Remove from favorites" [pressed]
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "Feature index" [level=1]
+- paragraph: Every DMS feature and the page that shows it. Click a row to open its demo; a demo whose page is gone is flagged missing
+- paragraph: Features
+- paragraph: "633"
+- paragraph: In 5 areas
+- paragraph: Pages linked
+- paragraph: "134"
+- paragraph: Demo pages a feature points to
+- paragraph: Missing demos
+- paragraph: "0"
+- paragraph: Should stay at 0
+- banner:
+  - heading "Features 633" [level=2]
+  - button "Open search"
+  - button "Filters"
+  - button
+  - button "Refresh data"
+  - button
+- navigation:
+  - button "All 633"
+  - button "Blocks & charts 259"
+  - button "Table view 140"
+  - button "Forms 88"
+  - button "Pages & navigation 88"
+  - button "Frontend modules 58"
+- table "Features":
+  - caption: Features
+  - rowgroup:
+    - row "Feature API Demo Since Status":
+      - cell
+      - cell "Feature":
+        - button "Feature"
+        - button
+      - cell "API":
+        - text: API
+        - button
+      - cell "Demo":
+        - text: Demo
+        - button
+      - cell "Since":
+        - button "Since"
+        - button
+      - cell "Status":
+        - button "Status"
+        - button
+      - cell
+  - rowgroup:
+    - 'row "Link buttons on a block (route, #anchor, URL) Blocks & charts actions: [{ label, to, icon }] /blocks/blocks-feedback Copy 0.6.0 shown Actions for Link buttons on a block (route, #anchor, URL)"':
+      - cell
+      - 'cell "Link buttons on a block (route, #anchor, URL) Blocks & charts"'
+      - 'cell "actions: [{ label, to, icon }]"'
+      - cell "/blocks/blocks-feedback Copy":
+        - text: /blocks/blocks-feedback
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - 'cell "Actions for Link buttons on a block (route, #anchor, URL)"':
+        - 'button "Actions for Link buttons on a block (route, #anchor, URL)"'
+    - 'row "Link button variant and colour Blocks & charts actions: [{ variant, color }] /blocks/blocks-feedback Copy 0.6.0 shown Actions for Link button variant and colour"':
+      - cell
+      - cell "Link button variant and colour Blocks & charts"
+      - 'cell "actions: [{ variant, color }]"'
+      - cell "/blocks/blocks-feedback Copy":
+        - text: /blocks/blocks-feedback
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Link button variant and colour":
+        - button "Actions for Link button variant and colour"
+    - row "Items read from a module route Blocks & charts fetchUrl /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Items read from a module route":
+      - cell
+      - cell "Items read from a module route Blocks & charts"
+      - cell "fetchUrl"
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Items read from a module route":
+        - button "Actions for Items read from a module route"
+    - 'row "Request method of a block route Blocks & charts fetchUrlMethod: HttpMethod.get /blocks/blocks-key-value Copy - shown Actions for Request method of a block route"':
+      - cell
+      - cell "Request method of a block route Blocks & charts"
+      - 'cell "fetchUrlMethod: HttpMethod.get"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "-"
+      - cell "shown"
+      - cell "Actions for Request method of a block route":
+        - button "Actions for Request method of a block route"
+    - row "Loading skeleton sized to the answer Blocks & charts skeletonCount /blocks/blocks-key-value Copy 0.6.0 shown Actions for Loading skeleton sized to the answer":
+      - cell
+      - cell "Loading skeleton sized to the answer Blocks & charts"
+      - cell "skeletonCount"
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Loading skeleton sized to the answer":
+        - button "Actions for Loading skeleton sized to the answer"
+    - 'row "Empty text of a fetched list Blocks & charts empty: { title, description } /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Empty text of a fetched list"':
+      - cell
+      - cell "Empty text of a fetched list Blocks & charts"
+      - 'cell "empty: { title, description }"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Empty text of a fetched list":
+        - button "Actions for Empty text of a fetched list"
+    - row "Load error with a Retry button (5xx) Blocks & charts a fetchUrl answering 503 /blocks/blocks-stat-group Copy 0.7.10 shown Actions for Load error with a Retry button (5xx)":
+      - cell
+      - cell "Load error with a Retry button (5xx) Blocks & charts"
+      - cell "a fetchUrl answering 503"
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.7.10"
+      - cell "shown"
+      - cell "Actions for Load error with a Retry button (5xx)":
+        - button "Actions for Load error with a Retry button (5xx)"
+    - 'row "404 drawn as not found, reworded by the route Blocks & charts 404 body { message, emptyState } /blocks/blocks-activity Copy 0.7.10 shown Actions for 404 drawn as not found, reworded by the route"':
+      - cell
+      - cell "404 drawn as not found, reworded by the route Blocks & charts"
+      - 'cell "404 body { message, emptyState }"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.7.10"
+      - cell "shown"
+      - cell "Actions for 404 drawn as not found, reworded by the route":
+        - button "Actions for 404 drawn as not found, reworded by the route"
+    - 'row "Route parameter token in a block URL Blocks & charts fetchUrl: \"/api/x/{{params.id}}\" /blocks/blocks-record Copy 0.6.1 shown Actions for Route parameter token in a block URL"':
+      - cell
+      - cell "Route parameter token in a block URL Blocks & charts"
+      - 'cell "fetchUrl: \"/api/x/{{params.id}}\""'
+      - cell "/blocks/blocks-record Copy":
+        - text: /blocks/blocks-record
+        - button "Copy"
+      - cell "0.6.1"
+      - cell "shown"
+      - cell "Actions for Route parameter token in a block URL":
+        - button "Actions for Route parameter token in a block URL"
+    - 'row "Query token in a block URL, nothing read while unset Blocks & charts fetchUrl: \"/api/x?status={{query.status}}\" /blocks/blocks-record?status=paid Copy 0.6.1 shown Actions for Query token in a block URL, nothing read while unset"':
+      - cell
+      - cell "Query token in a block URL, nothing read while unset Blocks & charts"
+      - 'cell "fetchUrl: \"/api/x?status={{query.status}}\""'
+      - cell "/blocks/blocks-record?status=paid Copy":
+        - text: /blocks/blocks-record?status=paid
+        - button "Copy"
+      - cell "0.6.1"
+      - cell "shown"
+      - cell "Actions for Query token in a block URL, nothing read while unset":
+        - button "Actions for Query token in a block URL, nothing read while unset"
+    - 'row "Unknown record: every block says not found Blocks & charts {{params.id}} route answering 404 /blocks/blocks-record Copy 0.7.10 shown Actions for Unknown record: every block says not found"':
+      - cell
+      - 'cell "Unknown record: every block says not found Blocks & charts"'
+      - 'cell "{{params.id}} route answering 404"'
+      - cell "/blocks/blocks-record Copy":
+        - text: /blocks/blocks-record
+        - button "Copy"
+      - cell "0.7.10"
+      - cell "shown"
+      - 'cell "Actions for Unknown record: every block says not found"':
+        - 'button "Actions for Unknown record: every block says not found"'
+    - row "Page blocks read again after a form saves Blocks & charts .watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE) /blocks/blocks-settings Copy 0.6.1 shown Actions for Page blocks read again after a form saves":
+      - cell
+      - cell "Page blocks read again after a form saves Blocks & charts"
+      - cell ".watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)"
+      - cell "/blocks/blocks-settings Copy":
+        - text: /blocks/blocks-settings
+        - button "Copy"
+      - cell "0.6.1"
+      - cell "shown"
+      - cell "Actions for Page blocks read again after a form saves":
+        - button "Actions for Page blocks read again after a form saves"
+    - row "Page blocks read again on a tab change Blocks & charts .watch(TabEvents.TAB_CHANGE, BlockFunctions.REFRESH_PAGE) /tabs/tabs-basic Copy - shown Actions for Page blocks read again on a tab change":
+      - cell
+      - cell "Page blocks read again on a tab change Blocks & charts"
+      - cell ".watch(TabEvents.TAB_CHANGE, BlockFunctions.REFRESH_PAGE)"
+      - cell "/tabs/tabs-basic Copy":
+        - text: /tabs/tabs-basic
+        - button "Copy"
+      - cell "-"
+      - cell "shown"
+      - cell "Actions for Page blocks read again on a tab change":
+        - button "Actions for Page blocks read again on a tab change"
+    - 'row "Page blocks read again after a header action Blocks & charts headerActions target { type: \"api\" } /blocks/blocks-key-value Copy 0.6.1 shown Actions for Page blocks read again after a header action"':
+      - cell
+      - cell "Page blocks read again after a header action Blocks & charts"
+      - 'cell "headerActions target { type: \"api\" }"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.6.1"
+      - cell "shown"
+      - cell "Actions for Page blocks read again after a header action":
+        - button "Actions for Page blocks read again after a header action"
+    - 'row "StatGroup following a period selector Blocks & charts StatGroup({ periodScope }) /blocks/blocks-stat-group Copy 0.7.2 shown Actions for StatGroup following a period selector"':
+      - cell
+      - cell "StatGroup following a period selector Blocks & charts"
+      - 'cell "StatGroup({ periodScope })"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for StatGroup following a period selector":
+        - button "Actions for StatGroup following a period selector"
+    - 'row "KeyValueList following a period selector Blocks & charts KeyValueList({ periodScope }) /blocks/blocks-key-value Copy 0.7.2 shown Actions for KeyValueList following a period selector"':
+      - cell
+      - cell "KeyValueList following a period selector Blocks & charts"
+      - 'cell "KeyValueList({ periodScope })"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for KeyValueList following a period selector":
+        - button "Actions for KeyValueList following a period selector"
+    - 'row "ActivityFeed following a period selector Blocks & charts ActivityFeed({ periodScope }) /blocks/blocks-activity Copy 0.7.2 shown Actions for ActivityFeed following a period selector"':
+      - cell
+      - cell "ActivityFeed following a period selector Blocks & charts"
+      - 'cell "ActivityFeed({ periodScope })"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for ActivityFeed following a period selector":
+        - button "Actions for ActivityFeed following a period selector"
+    - 'row "Meter following a period selector Blocks & charts Meter({ periodScope }) /blocks/blocks-meters Copy 0.7.2 shown Actions for Meter following a period selector"':
+      - cell
+      - cell "Meter following a period selector Blocks & charts"
+      - 'cell "Meter({ periodScope })"'
+      - cell "/blocks/blocks-meters Copy":
+        - text: /blocks/blocks-meters
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for Meter following a period selector":
+        - button "Actions for Meter following a period selector"
+    - 'row "Guard following a period selector Blocks & charts Guard({ periodScope }) /blocks/blocks-guard Copy 0.7.10 shown Actions for Guard following a period selector"':
+      - cell
+      - cell "Guard following a period selector Blocks & charts"
+      - 'cell "Guard({ periodScope })"'
+      - cell "/blocks/blocks-guard Copy":
+        - text: /blocks/blocks-guard
+        - button "Copy"
+      - cell "0.7.10"
+      - cell "shown"
+      - cell "Actions for Guard following a period selector":
+        - button "Actions for Guard following a period selector"
+    - 'row "KeyValueList refreshed over realtime Blocks & charts KeyValueList({ realtimeTopic }) /blocks/blocks-key-value Copy 0.7.2 shown Actions for KeyValueList refreshed over realtime"':
+      - cell
+      - cell "KeyValueList refreshed over realtime Blocks & charts"
+      - 'cell "KeyValueList({ realtimeTopic })"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for KeyValueList refreshed over realtime":
+        - button "Actions for KeyValueList refreshed over realtime"
+    - 'row "NavCardGrid refreshed over realtime Blocks & charts NavCardGrid({ realtimeTopic }) /blocks/blocks-nav-cards Copy 0.7.2 shown Actions for NavCardGrid refreshed over realtime"':
+      - cell
+      - cell "NavCardGrid refreshed over realtime Blocks & charts"
+      - 'cell "NavCardGrid({ realtimeTopic })"'
+      - cell "/blocks/blocks-nav-cards Copy":
+        - text: /blocks/blocks-nav-cards
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for NavCardGrid refreshed over realtime":
+        - button "Actions for NavCardGrid refreshed over realtime"
+    - 'row "ActivityFeed refreshed over realtime Blocks & charts ActivityFeed({ realtimeTopic }) /blocks/blocks-activity Copy 0.7.2 shown Actions for ActivityFeed refreshed over realtime"':
+      - cell
+      - cell "ActivityFeed refreshed over realtime Blocks & charts"
+      - 'cell "ActivityFeed({ realtimeTopic })"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for ActivityFeed refreshed over realtime":
+        - button "Actions for ActivityFeed refreshed over realtime"
+    - 'row "Meter refreshed over realtime Blocks & charts Meter({ realtimeTopic }) /blocks/blocks-meters Copy 0.7.2 shown Actions for Meter refreshed over realtime"':
+      - cell
+      - cell "Meter refreshed over realtime Blocks & charts"
+      - 'cell "Meter({ realtimeTopic })"'
+      - cell "/blocks/blocks-meters Copy":
+        - text: /blocks/blocks-meters
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for Meter refreshed over realtime":
+        - button "Actions for Meter refreshed over realtime"
+    - 'row "StatGroup refreshed over realtime Blocks & charts StatGroup({ realtimeTopic }) /blocks/blocks-live Copy 0.7.2 shown Actions for StatGroup refreshed over realtime"':
+      - cell
+      - cell "StatGroup refreshed over realtime Blocks & charts"
+      - 'cell "StatGroup({ realtimeTopic })"'
+      - cell "/blocks/blocks-live Copy":
+        - text: /blocks/blocks-live
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for StatGroup refreshed over realtime":
+        - button "Actions for StatGroup refreshed over realtime"
+    - 'row "Banner content refreshed over realtime Blocks & charts Banner({ fetchUrl, realtimeTopic }) /blocks/blocks-feedback Copy 0.7.2 shown Actions for Banner content refreshed over realtime"':
+      - cell
+      - cell "Banner content refreshed over realtime Blocks & charts"
+      - 'cell "Banner({ fetchUrl, realtimeTopic })"'
+      - cell "/blocks/blocks-feedback Copy":
+        - text: /blocks/blocks-feedback
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for Banner content refreshed over realtime":
+        - button "Actions for Banner content refreshed over realtime"
+    - 'row "Tab badges refreshed over realtime Blocks & charts Tab({ badgesUrl, realtimeTopic }) /tabs/tabs-counts Copy 0.7.2 shown Actions for Tab badges refreshed over realtime"':
+      - cell
+      - cell "Tab badges refreshed over realtime Blocks & charts"
+      - 'cell "Tab({ badgesUrl, realtimeTopic })"'
+      - cell "/tabs/tabs-counts Copy":
+        - text: /tabs/tabs-counts
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for Tab badges refreshed over realtime":
+        - button "Actions for Tab badges refreshed over realtime"
+    - 'row "Guard checked again over realtime Blocks & charts Guard({ realtimeTopic }) /blocks/blocks-guard Copy 0.7.10 shown Actions for Guard checked again over realtime"':
+      - cell
+      - cell "Guard checked again over realtime Blocks & charts"
+      - 'cell "Guard({ realtimeTopic })"'
+      - cell "/blocks/blocks-guard Copy":
+        - text: /blocks/blocks-guard
+        - button "Copy"
+      - cell "0.7.10"
+      - cell "shown"
+      - cell "Actions for Guard checked again over realtime":
+        - button "Actions for Guard checked again over realtime"
+    - 'row "Chart refreshed over realtime Blocks & charts ChartArea({ realtimeTopic }) /charts/chart-realtime Copy - shown Actions for Chart refreshed over realtime"':
+      - cell
+      - cell "Chart refreshed over realtime Blocks & charts"
+      - 'cell "ChartArea({ realtimeTopic })"'
+      - cell "/charts/chart-realtime Copy":
+        - text: /charts/chart-realtime
+        - button "Copy"
+      - cell "-"
+      - cell "shown"
+      - cell "Actions for Chart refreshed over realtime":
+        - button "Actions for Chart refreshed over realtime"
+    - 'row "ChartCard refreshed over realtime Blocks & charts ChartCard({ realtimeTopic }) /charts/chart-card-kpi Copy 0.7.13 shown Actions for ChartCard refreshed over realtime"':
+      - cell
+      - cell "ChartCard refreshed over realtime Blocks & charts"
+      - 'cell "ChartCard({ realtimeTopic })"'
+      - cell "/charts/chart-card-kpi Copy":
+        - text: /charts/chart-card-kpi
+        - button "Copy"
+      - cell "0.7.13"
+      - cell "shown"
+      - cell "Actions for ChartCard refreshed over realtime":
+        - button "Actions for ChartCard refreshed over realtime"
+    - 'row "TopListCard refreshed over realtime Blocks & charts TopListCard({ realtimeTopic }) /charts/chart-top-list Copy 0.7.2 shown Actions for TopListCard refreshed over realtime"':
+      - cell
+      - cell "TopListCard refreshed over realtime Blocks & charts"
+      - 'cell "TopListCard({ realtimeTopic })"'
+      - cell "/charts/chart-top-list Copy":
+        - text: /charts/chart-top-list
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for TopListCard refreshed over realtime":
+        - button "Actions for TopListCard refreshed over realtime"
+    - 'row "Text composed in the reader''s language Blocks & charts { key, params } /blocks/blocks-activity Copy 0.6.2 shown Actions for Text composed in the reader''s language"':
+      - cell
+      - cell "Text composed in the reader's language Blocks & charts"
+      - 'cell "{ key, params }"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Text composed in the reader's language":
+        - button "Actions for Text composed in the reader's language"
+    - row "i18n key as a block text Blocks & charts \"$demo.blocks.nav.billing\" /blocks/blocks-nav-cards Copy 0.6.2 shown Actions for i18n key as a block text":
+      - cell
+      - cell "i18n key as a block text Blocks & charts"
+      - cell "\"$demo.blocks.nav.billing\""
+      - cell "/blocks/blocks-nav-cards Copy":
+        - text: /blocks/blocks-nav-cards
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for i18n key as a block text":
+        - button "Actions for i18n key as a block text"
+    - 'row "Money parameter Blocks & charts { type: \"money\", value, currency } /blocks/blocks-stat-group Copy 0.6.2 shown Actions for Money parameter"':
+      - cell
+      - cell "Money parameter Blocks & charts"
+      - 'cell "{ type: \"money\", value, currency }"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Money parameter":
+        - button "Actions for Money parameter"
+    - 'row "Date parameter (day, short) Blocks & charts { type: \"date\", format } /blocks/blocks-nav-cards Copy 0.6.2 shown Actions for Date parameter (day, short)"':
+      - cell
+      - cell "Date parameter (day, short) Blocks & charts"
+      - 'cell "{ type: \"date\", format }"'
+      - cell "/blocks/blocks-nav-cards Copy":
+        - text: /blocks/blocks-nav-cards
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Date parameter (day, short)":
+        - button "Actions for Date parameter (day, short)"
+    - 'row "Datetime parameter (long) Blocks & charts { type: \"datetime\", format: \"long\" } /blocks/blocks-stat-group Copy 0.6.2 shown Actions for Datetime parameter (long)"':
+      - cell
+      - cell "Datetime parameter (long) Blocks & charts"
+      - 'cell "{ type: \"datetime\", format: \"long\" }"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Datetime parameter (long)":
+        - button "Actions for Datetime parameter (long)"
+    - 'row "Relative time parameter Blocks & charts { type: \"relative\", value } /charts/chart-top-list Copy 0.6.2 shown Actions for Relative time parameter"':
+      - cell
+      - cell "Relative time parameter Blocks & charts"
+      - 'cell "{ type: \"relative\", value }"'
+      - cell "/charts/chart-top-list Copy":
+        - text: /charts/chart-top-list
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Relative time parameter":
+        - button "Actions for Relative time parameter"
+    - 'row "Number parameter (percent, compact) Blocks & charts { type: \"number\", format } /blocks/blocks-key-value Copy 0.6.2 shown Actions for Number parameter (percent, compact)"':
+      - cell
+      - cell "Number parameter (percent, compact) Blocks & charts"
+      - 'cell "{ type: \"number\", format }"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Number parameter (percent, compact)":
+        - button "Actions for Number parameter (percent, compact)"
+    - 'row "Count parameter picking the plural form Blocks & charts { type: \"count\", value } /blocks/blocks-activity Copy 0.6.2 shown Actions for Count parameter picking the plural form"':
+      - cell
+      - cell "Count parameter picking the plural form Blocks & charts"
+      - 'cell "{ type: \"count\", value }"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Count parameter picking the plural form":
+        - button "Actions for Count parameter picking the plural form"
+    - 'row "Explicit plural parameter and a nested text Blocks & charts { key, params: { x: { key } }, plural } /blocks/blocks-feedback Copy 0.6.2 shown Actions for Explicit plural parameter and a nested text"':
+      - cell
+      - cell "Explicit plural parameter and a nested text Blocks & charts"
+      - 'cell "{ key, params: { x: { key } }, plural }"'
+      - cell "/blocks/blocks-feedback Copy":
+        - text: /blocks/blocks-feedback
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Explicit plural parameter and a nested text":
+        - button "Actions for Explicit plural parameter and a nested text"
+    - 'row "$-key title with the entry''s params Blocks & charts { title: \"$key\", params } /blocks/blocks-activity Copy 0.7.2 shown Actions for $-key title with the entry''s params"':
+      - cell
+      - cell "$-key title with the entry's params Blocks & charts"
+      - 'cell "{ title: \"$key\", params }"'
+      - cell "/blocks/blocks-activity Copy":
+        - text: /blocks/blocks-activity
+        - button "Copy"
+      - cell "0.7.2"
+      - cell "shown"
+      - cell "Actions for $-key title with the entry's params":
+        - button "Actions for $-key title with the entry's params"
+    - 'row "Joined status strip Blocks & charts StatGroup({ layout: \"joined\" }) /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Joined status strip"':
+      - cell
+      - cell "Joined status strip Blocks & charts"
+      - 'cell "StatGroup({ layout: \"joined\" })"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Joined status strip":
+        - button "Actions for Joined status strip"
+    - 'row "Summary cards Blocks & charts StatGroup({ layout: \"cards\", columns }) /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Summary cards"':
+      - cell
+      - cell "Summary cards Blocks & charts"
+      - 'cell "StatGroup({ layout: \"cards\", columns })"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Summary cards":
+        - button "Actions for Summary cards"
+    - 'row "Accessible group label Blocks & charts StatGroup({ label }) /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Accessible group label"':
+      - cell
+      - cell "Accessible group label Blocks & charts"
+      - 'cell "StatGroup({ label })"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Accessible group label":
+        - button "Actions for Accessible group label"
+    - 'row "Well tones, muted included Blocks & charts items: [{ icon, tone }] /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Well tones, muted included"':
+      - cell
+      - cell "Well tones, muted included Blocks & charts"
+      - 'cell "items: [{ icon, tone }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Well tones, muted included":
+        - button "Actions for Well tones, muted included"
+    - 'row "Eyebrow, value, detail and detail tone Blocks & charts items: [{ eyebrow, value, detail, detailTone }] /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Eyebrow, value, detail and detail tone"':
+      - cell
+      - cell "Eyebrow, value, detail and detail tone Blocks & charts"
+      - 'cell "items: [{ eyebrow, value, detail, detailTone }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Eyebrow, value, detail and detail tone":
+        - button "Actions for Eyebrow, value, detail and detail tone"
+    - 'row "Stat cell as a link Blocks & charts items: [{ to }] /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Stat cell as a link"':
+      - cell
+      - cell "Stat cell as a link Blocks & charts"
+      - 'cell "items: [{ to }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Stat cell as a link":
+        - button "Actions for Stat cell as a link"
+    - 'row "Stable item ids Blocks & charts items: [{ id }] /blocks/blocks-stat-group Copy 0.6.0 shown Actions for Stable item ids"':
+      - cell
+      - cell "Stable item ids Blocks & charts"
+      - 'cell "items: [{ id }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - cell "Actions for Stable item ids":
+        - button "Actions for Stable item ids"
+    - 'row "Long detail wrapping to two lines Blocks & charts items: [{ detail }] /blocks/blocks-stat-group Copy 0.7.6 shown Actions for Long detail wrapping to two lines"':
+      - cell
+      - cell "Long detail wrapping to two lines Blocks & charts"
+      - 'cell "items: [{ detail }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.7.6"
+      - cell "shown"
+      - cell "Actions for Long detail wrapping to two lines":
+        - button "Actions for Long detail wrapping to two lines"
+    - 'row "Composed eyebrow, value and detail Blocks & charts items: [{ value: { key, params } }] /blocks/blocks-stat-group Copy 0.6.2 shown Actions for Composed eyebrow, value and detail"':
+      - cell
+      - cell "Composed eyebrow, value and detail Blocks & charts"
+      - 'cell "items: [{ value: { key, params } }]"'
+      - cell "/blocks/blocks-stat-group Copy":
+        - text: /blocks/blocks-stat-group
+        - button "Copy"
+      - cell "0.6.2"
+      - cell "shown"
+      - cell "Actions for Composed eyebrow, value and detail":
+        - button "Actions for Composed eyebrow, value and detail"
+    - 'row "Value types: text, status, money, date, link, mono Blocks & charts items: [{ type }] /blocks/blocks-key-value Copy 0.6.0 shown Actions for Value types: text, status, money, date, link, mono"':
+      - cell
+      - 'cell "Value types: text, status, money, date, link, mono Blocks & charts"'
+      - 'cell "items: [{ type }]"'
+      - cell "/blocks/blocks-key-value Copy":
+        - text: /blocks/blocks-key-value
+        - button "Copy"
+      - cell "0.6.0"
+      - cell "shown"
+      - 'cell "Actions for Value types: text, status, money, date, link, mono"':
+        - 'button "Actions for Value types: text, status, money, date, link, mono"'
+- navigation "Navigation":
+  - text: 633 items Page size
+  - combobox "Page size": "50"
+  - text: Page 1 of 13
+  - button "First page" [disabled]
+  - button "Previous page" [disabled]
+  - button "Next page"
+  - button "Last page"
+- region "Notifications (F8)":
+  - list

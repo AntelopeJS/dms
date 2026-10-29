@@ -1,0 +1,5 @@
+{
+  "do": "press",
+  "key": "Enter",
+  "baseUrl": "http://127.0.0.1:38941"
+}

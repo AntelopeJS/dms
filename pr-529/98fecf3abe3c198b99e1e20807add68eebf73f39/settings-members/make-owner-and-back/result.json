@@ -1,0 +1,433 @@
+{
+  "feature": "settings-members",
+  "journey": "make-owner-and-back",
+  "title": "making a member owner grants the owner-only pages and removing the owner role takes them away again",
+  "entryPoint": "Members > row menu > Make owner / Remove owner role",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j029",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/make-owner-and-back/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-support-6a074e-exists",
+      "folder": "settings-members/make-owner-and-back/04-the-role-support-6a074e-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"c2a05e89-5033-4a1b-93cf-face88868f95\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-members/make-owner-and-back/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-members",
+      "folder": "settings-members/make-owner-and-back/10-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-invite-members",
+      "folder": "settings-members/make-owner-and-back/11-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-email-addresses",
+      "folder": "settings-members/make-owner-and-back/12-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-members/make-owner-and-back/13-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-combobox-team",
+      "folder": "settings-members/make-owner-and-back/14-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-option-sales",
+      "folder": "settings-members/make-owner-and-back/15-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-button-support-6a074e-in-group-roles",
+      "folder": "settings-members/make-owner-and-back/16-admin-click-button-support-6a074e-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Support 6a074e\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-button-send-invitations",
+      "folder": "settings-members/make-owner-and-back/17-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "19-the-invitation-email-reaches-jack-20261029t055349-77b0cc-mak",
+      "folder": "settings-members/make-owner-and-back/19-the-invitation-email-reaches-jack-20261029t055349-77b0cc-mak",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "20-invitee-open-http-127-0-0-1-38941-auth-signup-token-wjkdro9u",
+      "folder": "settings-members/make-owner-and-back/20-invitee-open-http-127-0-0-1-38941-auth-signup-token-wjkdro9u",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "21-the-link-opens-the-sign-up-form",
+      "folder": "settings-members/make-owner-and-back/21-the-link-opens-the-sign-up-form",
+      "checks": [
+        {
+          "name": "heading \"Create your account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "22-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-members/make-owner-and-back/22-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "23-invitee-fill-textbox-password",
+      "folder": "settings-members/make-owner-and-back/23-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "24-invitee-click-button-create-my-account",
+      "folder": "settings-members/make-owner-and-back/24-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "25-jack-is-signed-in-after-accepting",
+      "folder": "settings-members/make-owner-and-back/25-jack-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "26-invitee-open-settings-workspace-roles",
+      "folder": "settings-members/make-owner-and-back/26-invitee-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "27-before-the-member-is-refused-the-roles-page",
+      "folder": "settings-members/make-owner-and-back/27-before-the-member-is-refused-the-roles-page",
+      "checks": [
+        {
+          "name": "heading \"Forbidden\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "28-admin-open-settings-workspace-members",
+      "folder": "settings-members/make-owner-and-back/28-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "29-admin-click-button-actions-for-jack",
+      "folder": "settings-members/make-owner-and-back/29-admin-click-button-actions-for-jack",
+      "checks": [
+        {
+          "name": "click button \"Actions for Jack\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-click-menuitem-make-owner",
+      "folder": "settings-members/make-owner-and-back/30-admin-click-menuitem-make-owner",
+      "checks": [
+        {
+          "name": "click menuitem \"Make owner…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "31-the-confirmation-names-the-member-and-the-power-it-gives",
+      "folder": "settings-members/make-owner-and-back/31-the-confirmation-names-the-member-and-the-power-it-gives",
+      "checks": [
+        {
+          "name": "dialog \"Make Jack an owner?\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        },
+        {
+          "name": "page shows /including billing, roles and removing members/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "32-admin-click-button-make-owner-in-dialog",
+      "folder": "settings-members/make-owner-and-back/32-admin-click-button-make-owner-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Make owner\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "33-the-owner-role-is-given",
+      "folder": "settings-members/make-owner-and-back/33-the-owner-role-is-given",
+      "checks": [
+        {
+          "name": "page shows /Owner role given/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "34-admin-reload",
+      "folder": "settings-members/make-owner-and-back/34-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "36-invitee-open-settings-workspace-roles",
+      "folder": "settings-members/make-owner-and-back/36-invitee-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "37-after-the-api-shows-an-owner-who-now-opens-roles",
+      "folder": "settings-members/make-owner-and-back/37-after-the-api-shows-an-owner-who-now-opens-roles",
+      "checks": [
+        {
+          "name": "isTenantOwner",
+          "pass": true,
+          "detail": "expected true, got true"
+        },
+        {
+          "name": "heading \"Roles\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "38-admin-open-settings-workspace-members",
+      "folder": "settings-members/make-owner-and-back/38-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "39-admin-click-button-actions-for-jack",
+      "folder": "settings-members/make-owner-and-back/39-admin-click-button-actions-for-jack",
+      "checks": [
+        {
+          "name": "click button \"Actions for Jack\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "40-admin-click-menuitem-remove-owner-role",
+      "folder": "settings-members/make-owner-and-back/40-admin-click-menuitem-remove-owner-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Remove owner role…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "41-admin-click-button-remove-owner-role-in-dialog",
+      "folder": "settings-members/make-owner-and-back/41-admin-click-button-remove-owner-role-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Remove owner role\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "42-the-owner-role-is-removed",
+      "folder": "settings-members/make-owner-and-back/42-the-owner-role-is-removed",
+      "checks": [
+        {
+          "name": "page shows /Owner role removed/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "44-invitee-open-settings-workspace-roles",
+      "folder": "settings-members/make-owner-and-back/44-invitee-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "45-back-the-member-keeps-the-role-and-is-refused-the-roles-page",
+      "folder": "settings-members/make-owner-and-back/45-back-the-member-keeps-the-role-and-is-refused-the-roles-page",
+      "checks": [
+        {
+          "name": "isTenantOwner",
+          "pass": true,
+          "detail": "expected false, got false"
+        },
+        {
+          "name": "roles kept",
+          "pass": true,
+          "detail": "expected 1, got 1"
+        },
+        {
+          "name": "heading \"Forbidden\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/make-owner-and-back"
+}

@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "body": {
+    "success": true,
+    "passwordChangedAt": "2026-10-29T06:05:47.941Z",
+    "signedOutSessions": 2,
+    "sessionHandoff": {
+      "endpoint": "/api/auth/session-handoff",
+      "payload": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjcyMjEwMTczLTU3NWYtNDRkYi1iN2YxLTQxM2FkMjMzNzFkYiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjllNmNiNzkyLTNlMmQtNGZiZS1hYTBkLTEyZjcwOTNjMmQ3YSIsInB1cnBvc2UiOiJzZXNzaW9uLWhhbmRvZmYiLCJpYXQiOjE3OTMyNTM5NDcsImV4cCI6MTc5MzI1NDAwN30.DCt7sjsrDFeCVHvPv9JTT1-fgCL3qUTGktZ6YkJQSoo"
+      }
+    }
+  },
+  "error": null
+}

@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:5a4c9bc6-507c-46af-9571-a9fbc69a999c",
+        "userId": "5a4c9bc6-507c-46af-9571-a9fbc69a999c",
+        "name": "Kim",
+        "avatar": null,
+        "email": "kim+20261029t055349-77b0cc-change-member-roles@verify.local",
+        "roleIds": [
+          {
+            "_id": "6c337467-bd41-4f1e-8d20-5c375bb22a5d",
+            "name": "Writer 669a16"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T06:01:01.436Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:01:01.416Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:8528aa39-8a88-4559-855a-6e938b318a78",
+        "userId": "8528aa39-8a88-4559-855a-6e938b318a78",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t055349-77b0cc@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T06:00:53.704Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:00:53.681Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

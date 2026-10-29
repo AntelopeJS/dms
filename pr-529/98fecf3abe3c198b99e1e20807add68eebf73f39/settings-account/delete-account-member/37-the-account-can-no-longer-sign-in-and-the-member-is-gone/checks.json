@@ -1,0 +1,12 @@
+[
+  {
+    "name": "no access token",
+    "pass": true,
+    "detail": "\"error.invalid_credentials\""
+  },
+  {
+    "name": "members",
+    "pass": true,
+    "detail": "expected [\"admin+20261029t055349-77b0cc@verify.local\"], got [\"admin+20261029t055349-77b0cc@verify.local\"]"
+  }
+]

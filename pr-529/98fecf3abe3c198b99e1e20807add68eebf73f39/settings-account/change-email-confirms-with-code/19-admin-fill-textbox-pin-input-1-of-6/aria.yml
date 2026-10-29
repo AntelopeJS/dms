@@ -1,0 +1,23 @@
+- dialog:
+  - heading [level=2]
+  - paragraph
+  - heading "Confirm your new email" [level=3]
+  - paragraph: Enter the code sent to renamed+20261029t055349-77b0cc-change-email-confirms-with-code@verify.local. Your account keeps its current address until then.
+  - text: Code from the email
+  - group "Code from the email":
+    - textbox "pin input 1 of 6":
+      - /placeholder: ""
+      - text: "8"
+    - textbox "pin input 2 of 6":
+      - /placeholder: ""
+    - textbox "pin input 3 of 6":
+      - /placeholder: ""
+    - textbox "pin input 4 of 6":
+      - /placeholder: ""
+    - textbox "pin input 5 of 6":
+      - /placeholder: ""
+    - textbox "pin input 6 of 6":
+      - /placeholder: ""
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Confirm"

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"pin input 6 of 6\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/auth/recover?token=02CU3S&email=admin%2B20261029t055349-77b0cc%40verify.local"
+  }
+]

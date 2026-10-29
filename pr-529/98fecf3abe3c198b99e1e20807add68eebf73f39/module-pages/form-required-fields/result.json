@@ -1,0 +1,104 @@
+{
+  "feature": "module-pages",
+  "journey": "form-required-fields",
+  "title": "Create with empty required fields names them and stores nothing",
+  "entryPoint": "/table-view/table-view-users/table/new",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j060",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "module-pages/form-required-fields/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "module-pages/form-required-fields/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-open-table-view-table-view-users",
+      "folder": "module-pages/form-required-fields/09-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-button-new-entry",
+      "folder": "module-pages/form-required-fields/10-admin-click-button-new-entry",
+      "checks": [
+        {
+          "name": "click button \"New entry\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-create",
+      "folder": "module-pages/form-required-fields/11-admin-click-button-create",
+      "checks": [
+        {
+          "name": "click button \"Create\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "12-the-form-lists-the-fields-that-need-attention",
+      "folder": "module-pages/form-required-fields/12-the-form-lists-the-fields-that-need-attention",
+      "checks": [
+        {
+          "name": "page shows /fields? needs? your attention/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Table View Drawer Mode Modal Mode Page Mode (Auto URLs) Page Mode (custom URLs) Density & sticky header Compact list Expandable rows Cell displays Views & grouped display URL query filters Sources API request log …"
+        },
+        {
+          "name": "page shows /This field is required/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Table View Drawer Mode Modal Mode Page Mode (Auto URLs) Page Mode (custom URLs) Density & sticky header Compact list Expandable rows Cell displays Views & grouped display URL query filters Sources API request log …"
+        },
+        {
+          "name": "path matches /\\/table\\/new$/",
+          "pass": true,
+          "detail": "/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "14-no-user-was-stored",
+      "folder": "module-pages/form-required-fields/14-no-user-was-stored",
+      "checks": [
+        {
+          "name": "user count",
+          "pass": true,
+          "detail": "expected 15, got 15"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "module-pages/form-required-fields"
+}

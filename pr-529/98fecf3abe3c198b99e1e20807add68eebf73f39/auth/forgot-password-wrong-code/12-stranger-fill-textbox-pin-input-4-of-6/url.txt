@@ -1,0 +1,1 @@
+http://127.0.0.1:38941/auth/forgot-validation?email=admin%2B20261029t055349-77b0cc%40verify.local

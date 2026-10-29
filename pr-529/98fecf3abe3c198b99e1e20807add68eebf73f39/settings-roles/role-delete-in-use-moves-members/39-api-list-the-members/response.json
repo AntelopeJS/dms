@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:b681bcbf-03a0-42a8-a409-e68bd91d5f49",
+        "userId": "b681bcbf-03a0-42a8-a409-e68bd91d5f49",
+        "name": "Noa",
+        "avatar": null,
+        "email": "noa+20261029t055349-77b0cc-role-delete-in-use-moves-members@verify.local",
+        "roleIds": [
+          {
+            "_id": "7a0edde8-9326-4023-864c-50b6fe7323e9",
+            "name": "Heir 524172"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T06:03:17.457Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:03:17.420Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:ed6ba27b-ce2c-4d56-af69-f1e57976a175",
+        "userId": "ed6ba27b-ce2c-4d56-af69-f1e57976a175",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t055349-77b0cc@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T06:03:08.831Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:03:08.795Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

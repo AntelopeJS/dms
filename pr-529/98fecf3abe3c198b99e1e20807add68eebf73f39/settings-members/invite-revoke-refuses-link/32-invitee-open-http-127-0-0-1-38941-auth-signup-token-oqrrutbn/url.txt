@@ -1,0 +1,1 @@
+http://127.0.0.1:38941/auth/signup?token=OQrrutBNfZu47qMwKHS7NaIKcDcZYrBCZe3EHaYc9LW2vofhQ0S3STgATrxqBVxx&email=erin%2B20261029t055349-77b0cc-invite-revoke-refuses-link%40verify.local&lang=en

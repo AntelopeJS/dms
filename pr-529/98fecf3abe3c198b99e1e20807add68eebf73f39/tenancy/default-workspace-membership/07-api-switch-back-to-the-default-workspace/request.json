@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/api/auth/switch-tenant",
+  "authenticated": false,
+  "body": {
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRlZTU2MTZlLTgwMzAtNDUyYi1iYzlkLTZiNTVlNTAyZDM4MCIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjY1MjNiZmRmLTMzNzktNGYwZi04OGM5LTU2MzI5NGUyOTBiYSIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzMjU0MjQzLCJleHAiOjE3OTU4NDYyNDN9.p_p3MEZ0JLGAgJKKUgGaczR2h5uIS6rhGOYGOoyDZSU",
+    "tenantId": "default"
+  }
+}

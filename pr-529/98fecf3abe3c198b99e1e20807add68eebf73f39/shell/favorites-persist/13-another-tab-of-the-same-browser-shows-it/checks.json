@@ -1,0 +1,7 @@
+[
+  {
+    "name": "link \"Feature index\" in region \"Favorites\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/examples/overview"
+  }
+]

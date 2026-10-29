@@ -1,0 +1,19 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - text: Error 500
+  - heading "Server error" [level=1]
+  - paragraph: An unexpected error occurred. Please try again later.
+  - paragraph: "Failed to fetch dynamically imported module:"
+  - button "Go to home"
+  - button "Go back"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

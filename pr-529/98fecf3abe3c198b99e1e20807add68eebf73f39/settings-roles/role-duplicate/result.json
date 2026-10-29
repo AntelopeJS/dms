@@ -1,0 +1,142 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-duplicate",
+  "title": "duplicating a role stores a copy with the same permissions under a new name",
+  "entryPoint": "Settings > Roles > More role actions > Duplicate role",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j038",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-duplicate/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-support-df4325-exists",
+      "folder": "settings-roles/role-duplicate/04-the-role-support-df4325-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"2203e2ad-402d-4b60-976c-4da0ac034fdd\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-duplicate/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-duplicate/10-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-option-support-df4325",
+      "folder": "settings-roles/role-duplicate/11-admin-click-option-support-df4325",
+      "checks": [
+        {
+          "name": "click option \"/^Support df4325/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-more-role-actions",
+      "folder": "settings-roles/role-duplicate/12-admin-click-button-more-role-actions",
+      "checks": [
+        {
+          "name": "click button \"More role actions\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-menuitem-duplicate-role",
+      "folder": "settings-roles/role-duplicate/13-admin-click-menuitem-duplicate-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Duplicate role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "14-the-copy-is-created-and-selected",
+      "folder": "settings-roles/role-duplicate/14-the-copy-is-created-and-selected",
+      "checks": [
+        {
+          "name": "page shows /Role duplicated/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Support df4325 (copy)\", got \"Support df4325 (copy)\""
+        }
+      ]
+    },
+    {
+      "name": "15-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-duplicate/15-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "17-both-roles-are-stored-with-the-same-permissions",
+      "folder": "settings-roles/role-duplicate/17-both-roles-are-stored-with-the-same-permissions",
+      "checks": [
+        {
+          "name": "names",
+          "pass": true,
+          "detail": "expected [\"Support df4325\",\"Support df4325 (copy)\"], got [\"Support df4325\",\"Support df4325 (copy)\"]"
+        },
+        {
+          "name": "permissions",
+          "pass": true,
+          "detail": "expected [[\"playground.reports.export\"],[\"playground.reports.export\"]], got [[\"playground.reports.export\"],[\"playground.reports.export\"]]"
+        },
+        {
+          "name": "option \"/^Support df4325 \\(copy\\)/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-duplicate"
+}

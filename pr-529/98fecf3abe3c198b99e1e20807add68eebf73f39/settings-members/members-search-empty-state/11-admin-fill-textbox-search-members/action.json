@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Search members\"",
+  "value": "nobody 930221",
+  "baseUrl": "http://127.0.0.1:38941"
+}

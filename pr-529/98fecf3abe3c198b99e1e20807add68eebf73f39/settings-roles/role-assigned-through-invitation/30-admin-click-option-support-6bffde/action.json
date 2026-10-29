@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"/^Support 6bffde/\"",
+  "baseUrl": "http://127.0.0.1:38941"
+}

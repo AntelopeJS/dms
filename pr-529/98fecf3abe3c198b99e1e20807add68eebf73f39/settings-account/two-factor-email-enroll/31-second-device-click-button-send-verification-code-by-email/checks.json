@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Send verification code by email\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Y2ZjYzUwLTMzNGUtNGRkNC1iMzliLTJiZDVjM2Y1NTcyNSIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTM5OTAsImV4cCI6MTc5MzI1NDI5MCwianRpIjoiYmM2ODRmMDEtM2MwNS00NmRhLThlOGMtYTBiM2M2OGM5ODY3In0.nOsdwRJf3RNO2FKxPzMvdvf5UEMoSsqGu37r7EU5EXQ&methods=email"
+  }
+]

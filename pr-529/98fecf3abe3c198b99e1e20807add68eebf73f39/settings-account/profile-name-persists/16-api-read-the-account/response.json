@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "2c8bfa11-90ba-44b0-90b5-fbbf86f84126",
+    "name": "Verify Renamed",
+    "email": "admin+20261029t055349-77b0cc@verify.local",
+    "createdAt": "2026-10-29T06:03:30.675Z",
+    "updatedAt": "2026-10-29T06:03:34.407Z",
+    "isValidated": true,
+    "owner": true,
+    "language": "en",
+    "_instance": null,
+    "lastActiveAt": "2026-10-29T06:03:32.477Z",
+    "avatar": null
+  },
+  "error": null
+}

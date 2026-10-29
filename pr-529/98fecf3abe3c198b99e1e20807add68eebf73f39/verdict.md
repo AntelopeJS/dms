@@ -1,0 +1,40 @@
+## Verify: FAIL
+
+**Head** `98fecf3` · **Skill** `verify-dms` @ `f1195c6` (not trusted yet) · **Verifier** harness proof run by the PR author's thread (V2 owner); not a fresh verifier
+
+### One-way doors
+None: The diff adds a bin, a verification skill and checks; it removes no route, export, config key or stored field, sends nothing new and claims no new registry name.
+- Not a door: `packages/dms/bin/dms-control.mjs` matches the contract path rules. A new bin, an addition decided by outer-loop#4 decision 3; additions are not doors.
+- Not a door: `packages/dms/package.json` matches the contract path rules. Adds the bin field and bin to files; nothing is removed or renamed.
+- Not a door: `packages/dms/package.json` matches the publish path rules. The package name, publishConfig and dist-tags are unchanged; only the bin folder joins the published files.
+- Not a door: `.github/workflows/release.yml` matches the publish path rules. The validate step imports the same rule from checks/release-range.mjs; what it accepts is unchanged.
+- Not a door: `checks/release-range.mjs` matches the publish path rules. The release range rule moved out of release.yml unchanged.
+
+### Touched features
+- none
+- smoke: onboard → login → invite a member → reload
+
+### Why it fails
+- formal check formal-release-range: violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)
+
+### Journeys
+| Feature | Entry point | Result | Evidence |
+|---|---|---|---|
+| smoke | `smoke`: POST /api/onboarding/register, then the sign-in form and Settings > Members > Invite members | pass: a fresh platform onboards, its admin signs in, invites a member, and the invitation survives a reload | [smoke/smoke](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/smoke/smoke) |
+
+### Formal checks
+- `formal-onboarding-bootstrap` (does not cover the diff, informational): violated: AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/formal/formal-onboarding-bootstrap)
+- `formal-realtime-tabs` (does not cover the diff, informational): violated: ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/formal/formal-realtime-tabs)
+- `formal-release-range` (covers the diff, gates the verdict): violated: range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/formal/formal-release-range)
+
+### Docs
+- No touched feature links a page.
+
+### Not verified
+- The verify commit status: the available token cannot write commit statuses (publish reports GitHub's answer).
+
+### Attention
+- This run is the PR author's proof of the harness, not an independent verdict.
+- The verdict fails by rule 5: formal-release-range covers checks/release-range.mjs and release.yml, which this PR touches, and its recorded findings F1 to F4 count as violated rules.
+
+Evidence: `verify-evidence` branch, [`pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/`](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-529/98fecf3abe3c198b99e1e20807add68eebf73f39/)

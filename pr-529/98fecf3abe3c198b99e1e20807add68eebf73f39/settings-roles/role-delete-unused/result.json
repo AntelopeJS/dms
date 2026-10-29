@@ -1,0 +1,230 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-delete-unused",
+  "title": "deleting a role nobody holds asks for confirmation, then removes it from the list and the API",
+  "entryPoint": "Settings > Roles > More role actions > Delete role",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j039",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-delete-unused/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-temp-fbb784-exists",
+      "folder": "settings-roles/role-delete-unused/04-the-role-temp-fbb784-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"707f2f10-9de8-4fb6-98a7-b18ac5dc7d14\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-delete-unused/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-delete-unused/10-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-option-temp-fbb784",
+      "folder": "settings-roles/role-delete-unused/11-admin-click-option-temp-fbb784",
+      "checks": [
+        {
+          "name": "click option \"/^Temp fbb784/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-more-role-actions",
+      "folder": "settings-roles/role-delete-unused/12-admin-click-button-more-role-actions",
+      "checks": [
+        {
+          "name": "click button \"More role actions\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-menuitem-delete-role",
+      "folder": "settings-roles/role-delete-unused/13-admin-click-menuitem-delete-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Delete role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "14-the-dialog-says-nobody-holds-the-role",
+      "folder": "settings-roles/role-delete-unused/14-the-dialog-says-nobody-holds-the-role",
+      "checks": [
+        {
+          "name": "dialog \"Delete Temp fbb784?\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        },
+        {
+          "name": "page shows /Nobody holds this role/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-button-cancel",
+      "folder": "settings-roles/role-delete-unused/15-admin-click-button-cancel",
+      "checks": [
+        {
+          "name": "click button \"Cancel\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-reload",
+      "folder": "settings-roles/role-delete-unused/16-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "18-cancelling-keeps-the-role",
+      "folder": "settings-roles/role-delete-unused/18-cancelling-keeps-the-role",
+      "checks": [
+        {
+          "name": "option \"/^Temp fbb784/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        },
+        {
+          "name": "roles stored",
+          "pass": true,
+          "detail": "expected 1, got 1"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-option-temp-fbb784",
+      "folder": "settings-roles/role-delete-unused/19-admin-click-option-temp-fbb784",
+      "checks": [
+        {
+          "name": "click option \"/^Temp fbb784/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-click-button-more-role-actions",
+      "folder": "settings-roles/role-delete-unused/20-admin-click-button-more-role-actions",
+      "checks": [
+        {
+          "name": "click button \"More role actions\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-click-menuitem-delete-role",
+      "folder": "settings-roles/role-delete-unused/21-admin-click-menuitem-delete-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Delete role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-click-button-delete-role-in-dialog",
+      "folder": "settings-roles/role-delete-unused/22-admin-click-button-delete-role-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Delete role\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "23-the-role-is-deleted",
+      "folder": "settings-roles/role-delete-unused/23-the-role-is-deleted",
+      "checks": [
+        {
+          "name": "page shows /Role deleted/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-reload",
+      "folder": "settings-roles/role-delete-unused/24-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "26-it-is-gone-after-a-reload-and-from-the-api",
+      "folder": "settings-roles/role-delete-unused/26-it-is-gone-after-a-reload-and-from-the-api",
+      "checks": [
+        {
+          "name": "option \"/^Temp fbb784/\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        },
+        {
+          "name": "roles stored",
+          "pass": true,
+          "detail": "expected 0, got 0"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-delete-unused"
+}

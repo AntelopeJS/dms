@@ -1,0 +1,12 @@
+[
+  {
+    "name": "name",
+    "pass": true,
+    "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+  },
+  {
+    "name": "button \"/Verify Renamed/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/user/profile"
+  }
+]

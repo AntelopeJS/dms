@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "switch \"Make workspace owner\"",
+  "baseUrl": "http://127.0.0.1:38941"
+}

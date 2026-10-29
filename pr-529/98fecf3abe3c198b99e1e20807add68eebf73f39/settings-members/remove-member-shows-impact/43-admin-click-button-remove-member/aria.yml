@@ -1,0 +1,127 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Settings":
+          - /url: /settings
+      - listitem: Workspace
+      - listitem:
+        - link "Members":
+          - /url: /settings/workspace/members
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "2"
+- navigation "Settings":
+  - heading "Settings" [level=2]
+  - textbox "Search settings"
+  - text: /
+  - link "All settings":
+    - /url: /settings
+  - text: Account
+  - link "Profile":
+    - /url: /settings/user/profile
+  - link "Language & region":
+    - /url: /settings/user/region
+  - link "Security 1":
+    - /url: /settings/user/security
+  - link "Notifications 2":
+    - /url: /settings/user/notifications
+  - link "Appearance":
+    - /url: /settings/user/appearance
+  - link "Shortcuts":
+    - /url: /settings/user/shortcuts
+  - text: Workspace
+  - link "Members 1":
+    - /url: /settings/workspace/members
+  - link "Member invitations":
+    - /url: /settings/workspace/invites
+  - link "Roles 2":
+    - /url: /settings/workspace/roles
+  - link "Playground":
+    - /url: /settings/workspace/playground
+- heading "Members" [level=1]
+- paragraph: People with access to this workspace, their roles, and invitations waiting for an answer.
+- button "Invite members"
+- img
+- text: seatQuota — injected into the DMS members page by the playground
+- banner:
+  - navigation "Members list":
+    - button "Members 1"
+    - link "Invitations 0":
+      - /url: /settings/workspace/invites
+  - textbox "Search members"
+  - button "Role"
+- table "Members list":
+  - caption: Members list
+  - rowgroup:
+    - row "Member Default sort Roles Last active Two-factor Joined":
+      - cell
+      - cell "Member Default sort":
+        - button "Member Default sort"
+      - cell "Roles"
+      - cell "Last active":
+        - button "Last active"
+      - cell "Two-factor"
+      - cell "Joined":
+        - button "Joined"
+      - cell
+  - rowgroup:
+    - row "VA Verify Admin You admin+20261029t055349-77b0cc@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
+      - cell
+      - cell "VA Verify Admin You admin+20261029t055349-77b0cc@verify.local"
+      - cell "Owner"
+      - cell "Active now"
+      - cell "Off"
+      - cell "Oct 29, 2026"
+      - cell "Actions for Verify Admin":
+        - button "Actions for Verify Admin"
+- navigation "Navigation":
+  - text: 1 member Page size
+  - combobox "Page size": "10"
+  - text: Page 1 of 1
+- region "Notifications (F8)":
+  - list:
+    - listitem:
+      - text: Member removed
+      - button "Close"
+      - progressbar "92%"

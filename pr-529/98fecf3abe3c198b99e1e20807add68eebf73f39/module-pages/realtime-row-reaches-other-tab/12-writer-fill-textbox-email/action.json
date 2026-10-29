@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email\"",
+  "value": "realtime-user+20261029t055349-77b0cc-realtime-row-reaches-other-tab@verify.local",
+  "baseUrl": "http://127.0.0.1:38941"
+}

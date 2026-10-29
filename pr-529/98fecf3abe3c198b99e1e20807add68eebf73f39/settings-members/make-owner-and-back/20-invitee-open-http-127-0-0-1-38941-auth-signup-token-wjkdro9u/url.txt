@@ -1,0 +1,1 @@
+http://127.0.0.1:38941/auth/signup?token=WJKdRO9UmvKeZtO66rOwBaZpW0g44OWVjY6qRqxdO0qKdBZ6vv7lQHLmO5oIhZTh&email=jack%2B20261029t055349-77b0cc-make-owner-and-back%40verify.local&lang=en

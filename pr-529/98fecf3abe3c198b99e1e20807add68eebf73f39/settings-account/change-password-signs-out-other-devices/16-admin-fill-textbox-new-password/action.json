@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"New password\"",
+  "value": "Vr1!hsO8bIsqzOmi",
+  "baseUrl": "http://127.0.0.1:38941"
+}

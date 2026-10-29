@@ -1,0 +1,6 @@
+- dialog "You’re the only owner":
+  - heading "You’re the only owner" [level=2]
+  - paragraph: At least one owner must remain. Make another member owner first, then remove this one or their owner role.
+  - button "Close"
+  - text: Esc to cancel
+  - button "Close"

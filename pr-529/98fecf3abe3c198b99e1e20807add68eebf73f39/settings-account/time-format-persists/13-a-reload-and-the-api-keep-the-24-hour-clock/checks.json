@@ -1,0 +1,12 @@
+[
+  {
+    "name": "checked",
+    "pass": true,
+    "detail": "expected true, got true"
+  },
+  {
+    "name": "timeFormat",
+    "pass": true,
+    "detail": "expected \"h23\", got \"h23\""
+  }
+]

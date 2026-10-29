@@ -1,0 +1,7 @@
+[
+  {
+    "name": "open /table-view/table-view-users/table/verify-missing-record/edit",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/table-view/table-view-users/table/verify-missing-record/edit"
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055349-77b0cc/evidence/mail/021.eml",
+    "from": "<>",
+    "to": [
+      "<admin+20261029t055349-77b0cc@verify.local>"
+    ],
+    "subject": "Your verification code",
+    "links": [],
+    "text": "Your verification code Hello Verify Admin, Use this verification code to finish signing in: Your verification code is: 585569 If you did not attempt to sign in, you can safely ignore this email.",
+    "receivedAt": "2026-10-29T06:06:24.210Z"
+  },
+  {
+    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055349-77b0cc/evidence/mail/022.eml",
+    "from": "<>",
+    "to": [
+      "<admin+20261029t055349-77b0cc@verify.local>"
+    ],
+    "subject": "Your verification code",
+    "links": [],
+    "text": "Your verification code Hello Verify Admin, Use this verification code to finish signing in: Your verification code is: 947634 If you did not attempt to sign in, you can safely ignore this email.",
+    "receivedAt": "2026-10-29T06:06:30.938Z"
+  },
+  {
+    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055349-77b0cc/evidence/mail/023.eml",
+    "from": "<>",
+    "to": [
+      "<admin+20261029t055349-77b0cc@verify.local>"
+    ],
+    "subject": "Your verification code",
+    "links": [],
+    "text": "Your verification code Hello Verify Admin, Use this verification code to finish signing in: Your verification code is: 821817 If you did not attempt to sign in, you can safely ignore this email.",
+    "receivedAt": "2026-10-29T06:07:36.847Z"
+  }
+]

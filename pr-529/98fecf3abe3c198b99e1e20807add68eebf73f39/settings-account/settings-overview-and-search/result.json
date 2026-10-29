@@ -1,0 +1,176 @@
+{
+  "feature": "settings-account",
+  "journey": "settings-overview-and-search",
+  "title": "the settings overview summarises the account and links every page, and the settings search filters the menu",
+  "entryPoint": "Settings (/settings), Search settings",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j057",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/settings-overview-and-search/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/settings-overview-and-search/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings",
+      "folder": "settings-account/settings-overview-and-search/08-admin-open-settings",
+      "checks": [
+        {
+          "name": "open /settings",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "09-the-overview-summarises-the-account",
+      "folder": "settings-account/settings-overview-and-search/09-the-overview-summarises-the-account",
+      "checks": [
+        {
+          "name": "page shows /Verify Admin/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+        },
+        {
+          "name": "page shows /admin\\+20261029t055349-77b0cc@verify\\.local/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+        },
+        {
+          "name": "page shows /Owner/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+        },
+        {
+          "name": "page shows /recent account activity/i",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+        },
+        {
+          "name": "page shows /joined default/i",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+        }
+      ]
+    },
+    {
+      "name": "10-it-links-every-account-and-workspace-page",
+      "folder": "settings-account/settings-overview-and-search/10-it-links-every-account-and-workspace-page",
+      "checks": [
+        {
+          "name": "link \"/^Profile/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Language & region/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Security/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Notifications/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Appearance/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Shortcuts/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Members/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"/^Roles/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-search-settings",
+      "folder": "settings-account/settings-overview-and-search/11-admin-fill-textbox-search-settings",
+      "checks": [
+        {
+          "name": "fill textbox \"Search settings\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "12-the-search-keeps-the-matching-page-only",
+      "folder": "settings-account/settings-overview-and-search/12-the-search-keeps-the-matching-page-only",
+      "checks": [
+        {
+          "name": "link \"/^Security/\" in navigation \"Settings\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        },
+        {
+          "name": "link \"Profile\" in navigation \"Settings\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-fill-textbox-search-settings",
+      "folder": "settings-account/settings-overview-and-search/13-admin-fill-textbox-search-settings",
+      "checks": [
+        {
+          "name": "fill textbox \"Search settings\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "14-a-search-without-a-match-says-so",
+      "folder": "settings-account/settings-overview-and-search/14-a-search-without-a-match-says-so",
+      "checks": [
+        {
+          "name": "page shows /No settings match your search\\./",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings 1 Settings / All settings No settings match your search. Settings Your pro…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/settings-overview-and-search"
+}

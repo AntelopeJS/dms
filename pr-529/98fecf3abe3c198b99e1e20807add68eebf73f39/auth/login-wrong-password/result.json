@@ -1,0 +1,104 @@
+{
+  "feature": "auth",
+  "journey": "login-wrong-password",
+  "title": "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
+  "entryPoint": "/auth sign-in form, POST /api/auth/login",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j008",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/login-wrong-password/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "03-stranger-open-auth",
+      "folder": "auth/login-wrong-password/03-stranger-open-auth",
+      "checks": [
+        {
+          "name": "open /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth"
+        }
+      ]
+    },
+    {
+      "name": "04-stranger-fill-textbox-email-address",
+      "folder": "auth/login-wrong-password/04-stranger-fill-textbox-email-address",
+      "checks": [
+        {
+          "name": "fill textbox \"Email address\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth"
+        }
+      ]
+    },
+    {
+      "name": "05-stranger-fill-textbox-password",
+      "folder": "auth/login-wrong-password/05-stranger-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth"
+        }
+      ]
+    },
+    {
+      "name": "06-stranger-click-button-login",
+      "folder": "auth/login-wrong-password/06-stranger-click-button-login",
+      "checks": [
+        {
+          "name": "click button \"Login\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth"
+        }
+      ]
+    },
+    {
+      "name": "07-the-form-says-the-credentials-are-wrong",
+      "folder": "auth/login-wrong-password/07-the-form-says-the-credentials-are-wrong",
+      "checks": [
+        {
+          "name": "page shows /The provided credentials are incorrect/",
+          "pass": true,
+          "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T055349-77b0cc workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+        },
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        }
+      ]
+    },
+    {
+      "name": "09-the-api-answers-401",
+      "folder": "auth/login-wrong-password/09-the-api-answers-401",
+      "checks": [
+        {
+          "name": "HTTP 401",
+          "pass": true,
+          "detail": "status 401: \"error.invalid_credentials\""
+        },
+        {
+          "name": "error",
+          "pass": true,
+          "detail": "expected \"error.invalid_credentials\", got \"error.invalid_credentials\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/login-wrong-password"
+}

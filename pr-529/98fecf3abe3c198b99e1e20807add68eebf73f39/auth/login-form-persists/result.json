@@ -1,0 +1,120 @@
+{
+  "feature": "auth",
+  "journey": "login-form-persists",
+  "title": "the sign-in form opens the dashboard and the session survives a reload and a backend restart",
+  "entryPoint": "/auth sign-in form",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j007",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/login-form-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "auth/login-form-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-the-dashboard-shows-the-signed-in-account",
+      "folder": "auth/login-form-persists/08-the-dashboard-shows-the-signed-in-account",
+      "checks": [
+        {
+          "name": "button \"Verify Admin\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-reload",
+      "folder": "auth/login-form-persists/09-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-a-reload-keeps-the-session",
+      "folder": "auth/login-form-persists/10-a-reload-keeps-the-session",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/examples/overview"
+        },
+        {
+          "name": "button \"Verify Admin\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-open-settings-workspace-members",
+      "folder": "auth/login-form-persists/11-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-the-session-survives-a-backend-restart",
+      "folder": "auth/login-form-persists/12-the-session-survives-a-backend-restart",
+      "checks": [
+        {
+          "name": "path matches /^\\/settings\\/workspace\\/members$/",
+          "pass": true,
+          "detail": "/settings/workspace/members"
+        },
+        {
+          "name": "heading \"Members\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-the-api-reads-back-the-same-account",
+      "folder": "auth/login-form-persists/14-the-api-reads-back-the-same-account",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"_id\":\"7607f10b-b436-46fc-a160-a16ded60f5a5\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t055349-77b0cc@verify.local\",\"createdAt\":\"2026-10-29T05:55:23.861Z\",\"updatedAt\":\"2026-10-29T05:55:25.476Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T05:55:25.4"
+        },
+        {
+          "name": "email",
+          "pass": true,
+          "detail": "expected \"admin+20261029t055349-77b0cc@verify.local\", got \"admin+20261029t055349-77b0cc@verify.local\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/login-form-persists"
+}

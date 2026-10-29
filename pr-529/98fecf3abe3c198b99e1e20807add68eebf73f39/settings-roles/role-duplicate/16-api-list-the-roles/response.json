@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "2203e2ad-402d-4b60-976c-4da0ac034fdd",
+        "name": "Support df4325",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      },
+      {
+        "_id": "a05b5906-fda5-44b4-b93d-ac229a868bfb",
+        "name": "Support df4325 (copy)",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

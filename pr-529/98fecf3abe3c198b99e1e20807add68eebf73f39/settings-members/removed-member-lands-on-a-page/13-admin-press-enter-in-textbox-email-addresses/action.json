@@ -1,0 +1,6 @@
+{
+  "do": "press",
+  "key": "Enter",
+  "target": "textbox \"Email addresses\"",
+  "baseUrl": "http://127.0.0.1:38941"
+}

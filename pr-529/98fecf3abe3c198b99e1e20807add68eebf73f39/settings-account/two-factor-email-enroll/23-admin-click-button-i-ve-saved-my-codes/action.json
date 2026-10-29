@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"I've saved my codes\"",
+  "baseUrl": "http://127.0.0.1:38941"
+}

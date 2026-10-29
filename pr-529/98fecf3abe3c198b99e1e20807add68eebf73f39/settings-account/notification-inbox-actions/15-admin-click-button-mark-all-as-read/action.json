@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Mark all as read\"",
+  "baseUrl": "http://127.0.0.1:38941"
+}

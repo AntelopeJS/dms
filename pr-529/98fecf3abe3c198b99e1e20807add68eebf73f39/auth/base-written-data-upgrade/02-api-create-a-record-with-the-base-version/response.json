@@ -1,0 +1,10 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "7f95afdd-50f4-49a0-860b-ebddd5ee0c13",
+    "name": "Base Record",
+    "email": "base-record+20261029t055349-77b0cc-base-written-data-upgrade@verify.local",
+    "avatar": "https://example.com/avatar.png"
+  },
+  "error": null
+}

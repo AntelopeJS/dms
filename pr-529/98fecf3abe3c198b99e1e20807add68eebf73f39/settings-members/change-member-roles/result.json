@@ -1,0 +1,335 @@
+{
+  "feature": "settings-members",
+  "journey": "change-member-roles",
+  "title": "Change roles swaps a member's role and the new role is what the API and the list show",
+  "entryPoint": "Members > row menu > Change roles",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j030",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/change-member-roles/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-reader-4a5847-exists",
+      "folder": "settings-members/change-member-roles/04-the-role-reader-4a5847-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"86bd5a34-ff14-4700-8c84-1fcf61718e96\"}"
+        }
+      ]
+    },
+    {
+      "name": "06-the-role-writer-669a16-exists",
+      "folder": "settings-members/change-member-roles/06-the-role-writer-669a16-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"6c337467-bd41-4f1e-8d20-5c375bb22a5d\"}"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-signed-in-as-admin",
+      "folder": "settings-members/change-member-roles/11-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-open-settings-workspace-members",
+      "folder": "settings-members/change-member-roles/12-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-button-invite-members",
+      "folder": "settings-members/change-member-roles/13-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-fill-textbox-email-addresses",
+      "folder": "settings-members/change-member-roles/14-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-members/change-member-roles/15-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-combobox-team",
+      "folder": "settings-members/change-member-roles/16-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-option-sales",
+      "folder": "settings-members/change-member-roles/17-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-click-button-reader-4a5847-in-group-roles",
+      "folder": "settings-members/change-member-roles/18-admin-click-button-reader-4a5847-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Reader 4a5847\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-send-invitations",
+      "folder": "settings-members/change-member-roles/19-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "21-the-invitation-email-reaches-kim-20261029t055349-77b0cc-chan",
+      "folder": "settings-members/change-member-roles/21-the-invitation-email-reaches-kim-20261029t055349-77b0cc-chan",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "22-invitee-open-http-127-0-0-1-38941-auth-signup-token-efd5b4uh",
+      "folder": "settings-members/change-member-roles/22-invitee-open-http-127-0-0-1-38941-auth-signup-token-efd5b4uh",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:38941/auth/signup?token=EfD5B4UHrBrlX0J7miLIa9SCD2uD4jGRCwK80GjVzwMrcl7FXure9vzCirNzFy3K&email=kim%2B20261029t055349-77b0cc-change-member-roles%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=EfD5B4UHrBrlX0J7miLIa9SCD2uD4jGRCwK80GjVzwMrcl7FXure9vzCirNzFy3K&email=kim%2B20261029t055349-77b0cc-change-member-roles%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "23-the-link-opens-the-sign-up-form",
+      "folder": "settings-members/change-member-roles/23-the-link-opens-the-sign-up-form",
+      "checks": [
+        {
+          "name": "heading \"Create your account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=EfD5B4UHrBrlX0J7miLIa9SCD2uD4jGRCwK80GjVzwMrcl7FXure9vzCirNzFy3K&email=kim%2B20261029t055349-77b0cc-change-member-roles%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "24-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-members/change-member-roles/24-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=EfD5B4UHrBrlX0J7miLIa9SCD2uD4jGRCwK80GjVzwMrcl7FXure9vzCirNzFy3K&email=kim%2B20261029t055349-77b0cc-change-member-roles%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "25-invitee-fill-textbox-password",
+      "folder": "settings-members/change-member-roles/25-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth/signup?token=EfD5B4UHrBrlX0J7miLIa9SCD2uD4jGRCwK80GjVzwMrcl7FXure9vzCirNzFy3K&email=kim%2B20261029t055349-77b0cc-change-member-roles%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "26-invitee-click-button-create-my-account",
+      "folder": "settings-members/change-member-roles/26-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "27-kim-is-signed-in-after-accepting",
+      "folder": "settings-members/change-member-roles/27-kim-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "28-admin-open-settings-workspace-members",
+      "folder": "settings-members/change-member-roles/28-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "29-admin-click-button-actions-for-kim",
+      "folder": "settings-members/change-member-roles/29-admin-click-button-actions-for-kim",
+      "checks": [
+        {
+          "name": "click button \"Actions for Kim\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-click-menuitem-change-roles",
+      "folder": "settings-members/change-member-roles/30-admin-click-menuitem-change-roles",
+      "checks": [
+        {
+          "name": "click menuitem \"Change roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "31-admin-click-button-reader-4a5847-in-group-roles",
+      "folder": "settings-members/change-member-roles/31-admin-click-button-reader-4a5847-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Reader 4a5847\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "32-admin-click-button-writer-669a16-in-group-roles",
+      "folder": "settings-members/change-member-roles/32-admin-click-button-writer-669a16-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Writer 669a16\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "33-admin-click-button-save-changes",
+      "folder": "settings-members/change-member-roles/33-admin-click-button-save-changes",
+      "checks": [
+        {
+          "name": "click button \"Save changes\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "34-the-change-is-saved",
+      "folder": "settings-members/change-member-roles/34-the-change-is-saved",
+      "checks": [
+        {
+          "name": "page shows /Data has been successfully saved/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "35-admin-reload",
+      "folder": "settings-members/change-member-roles/35-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "37-the-list-and-the-api-show-only-the-new-role",
+      "folder": "settings-members/change-member-roles/37-the-list-and-the-api-show-only-the-new-role",
+      "checks": [
+        {
+          "name": "cell \"Writer 669a16\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        },
+        {
+          "name": "cell \"Reader 4a5847\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/members"
+        },
+        {
+          "name": "roles",
+          "pass": true,
+          "detail": "expected [\"6c337467-bd41-4f1e-8d20-5c375bb22a5d\"], got [\"6c337467-bd41-4f1e-8d20-5c375bb22a5d\"]"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/change-member-roles"
+}

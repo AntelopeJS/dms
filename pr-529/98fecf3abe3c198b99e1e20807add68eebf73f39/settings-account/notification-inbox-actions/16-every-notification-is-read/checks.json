@@ -1,0 +1,7 @@
+[
+  {
+    "name": "button \"Unread 0\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/user/notifications"
+  }
+]

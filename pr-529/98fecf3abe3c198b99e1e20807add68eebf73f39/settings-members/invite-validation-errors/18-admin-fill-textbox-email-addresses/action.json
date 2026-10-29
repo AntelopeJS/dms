@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email addresses\"",
+  "value": "carol+20261029t055349-77b0cc-invite-validation-errors@verify.local",
+  "baseUrl": "http://127.0.0.1:38941"
+}

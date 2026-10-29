@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "body": {
+    "roles": [
+      {
+        "_id": "f4a0ce7d-3086-46f7-820a-f96c97a8972d",
+        "name": "Support 6bffde",
+        "description": "",
+        "permissions": [
+          "playground.reports.export"
+        ],
+        "permissionCount": 1,
+        "memberCount": 0,
+        "members": [],
+        "inviteCount": 1
+      }
+    ],
+    "owners": {
+      "memberCount": 1,
+      "members": [
+        {
+          "userId": "5e592268-03fe-40ab-9a34-894b79a783b7",
+          "name": "Verify Admin"
+        }
+      ]
+    },
+    "totalPermissions": 1259,
+    "grantable": null,
+    "capabilities": {
+      "canAdd": true,
+      "canEdit": true,
+      "canDelete": true
+    }
+  },
+  "error": null
+}

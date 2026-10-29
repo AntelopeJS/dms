@@ -1,0 +1,7 @@
+- dialog "Resend the invitation to fred+20261029t055349-77b0cc-invite-resend-replaces-link@verify.local?":
+  - heading "Resend the invitation to fred+20261029t055349-77b0cc-invite-resend-replaces-link@verify.local?" [level=2]
+  - paragraph: A new link is emailed and the previous one stops working.
+  - button "Close"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Resend"

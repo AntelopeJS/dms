@@ -1,0 +1,14 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/dms/pages/settings/workspace/roles/preview",
+  "authenticated": true,
+  "body": {
+    "permissions": [
+      "settings",
+      "settings.workspace",
+      "settings.workspace.playground",
+      "settings.workspace.playground.form"
+    ],
+    "path": "/settings/workspace/roles"
+  }
+}

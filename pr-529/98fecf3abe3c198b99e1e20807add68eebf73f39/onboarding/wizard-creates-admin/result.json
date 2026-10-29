@@ -1,0 +1,218 @@
+{
+  "feature": "onboarding",
+  "journey": "wizard-creates-admin",
+  "title": "the wizard names the platform, creates the owner, signs it in, and the platform stays onboarded",
+  "entryPoint": "/onboarding wizard (Platform, Administrator, Ready)",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j002",
+  "steps": [
+    {
+      "name": "03-the-empty-platform-reports-it-is-not-onboarded",
+      "folder": "onboarding/wizard-creates-admin/03-the-empty-platform-reports-it-is-not-onboarded",
+      "checks": [
+        {
+          "name": "has_onboarded",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "04-visitor-open",
+      "folder": "onboarding/wizard-creates-admin/04-visitor-open",
+      "checks": [
+        {
+          "name": "open /",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "05-a-fresh-platform-opens-the-setup-wizard",
+      "folder": "onboarding/wizard-creates-admin/05-a-fresh-platform-opens-the-setup-wizard",
+      "checks": [
+        {
+          "name": "path matches /^\\/onboarding/",
+          "pass": true,
+          "detail": "/onboarding"
+        },
+        {
+          "name": "heading \"Welcome to Antelope DMS\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "06-visitor-fill-textbox-platform-name",
+      "folder": "onboarding/wizard-creates-admin/06-visitor-fill-textbox-platform-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Platform name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "07-visitor-click-button-continue-to-administrator",
+      "folder": "onboarding/wizard-creates-admin/07-visitor-click-button-continue-to-administrator",
+      "checks": [
+        {
+          "name": "click button \"Continue to administrator\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "08-visitor-fill-textbox-first-name",
+      "folder": "onboarding/wizard-creates-admin/08-visitor-fill-textbox-first-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "09-visitor-fill-textbox-last-name",
+      "folder": "onboarding/wizard-creates-admin/09-visitor-fill-textbox-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "10-visitor-fill-textbox-work-e-mail",
+      "folder": "onboarding/wizard-creates-admin/10-visitor-fill-textbox-work-e-mail",
+      "checks": [
+        {
+          "name": "fill textbox \"Work e-mail\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "11-visitor-fill-textbox-password",
+      "folder": "onboarding/wizard-creates-admin/11-visitor-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "12-visitor-click-button-create-administrator-account",
+      "folder": "onboarding/wizard-creates-admin/12-visitor-click-button-create-administrator-account",
+      "checks": [
+        {
+          "name": "click button \"Create administrator account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "13-the-ready-step-names-the-platform-and-the-owner",
+      "folder": "onboarding/wizard-creates-admin/13-the-ready-step-names-the-platform-and-the-owner",
+      "checks": [
+        {
+          "name": "heading \"Verify Wizard 95bcfe is ready\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/onboarding"
+        },
+        {
+          "name": "page shows /You're signed in as Wiz Ard, owner of the platform/",
+          "pass": true,
+          "detail": "Platform Administrator 3 Ready Step 2 of 3 STEP 3 OF 3 · READY Verify Wizard 95bcfe is ready You're signed in as Wiz Ard, owner of the platform. Here's what most teams do first. Invite your teammates Give them a role so they only see what they need. Turn on two-factor authentication Recommended for …"
+        }
+      ]
+    },
+    {
+      "name": "14-visitor-click-button-open-the-dashboard",
+      "folder": "onboarding/wizard-creates-admin/14-visitor-click-button-open-the-dashboard",
+      "checks": [
+        {
+          "name": "click button \"Open the dashboard\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "15-the-dashboard-opens-signed-in",
+      "folder": "onboarding/wizard-creates-admin/15-the-dashboard-opens-signed-in",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!onboarding|auth)/",
+          "pass": true,
+          "detail": "/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "18-the-api-reads-back-one-onboarded-owner",
+      "folder": "onboarding/wizard-creates-admin/18-the-api-reads-back-one-onboarded-owner",
+      "checks": [
+        {
+          "name": "has_onboarded",
+          "pass": true,
+          "detail": "expected true, got true"
+        },
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"_id\":\"cc1bdeb0-39ae-48b5-88fa-60f81f163067\",\"name\":\"Wiz Ard\",\"email\":\"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\",\"createdAt\":\"2026-10-29T05:54:52.021Z\",\"updatedAt\":\"2026-10-29T05:54:52.506Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026"
+        },
+        {
+          "name": "the owner's email",
+          "pass": true,
+          "detail": "expected \"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\", got \"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\""
+        },
+        {
+          "name": "the owner flag",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    },
+    {
+      "name": "19-stranger-open-onboarding",
+      "folder": "onboarding/wizard-creates-admin/19-stranger-open-onboarding",
+      "checks": [
+        {
+          "name": "open /onboarding",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth"
+        }
+      ]
+    },
+    {
+      "name": "20-the-wizard-is-closed-and-sign-in-names-the-platform-it-creat",
+      "folder": "onboarding/wizard-creates-admin/20-the-wizard-is-closed-and-sign-in-names-the-platform-it-creat",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        },
+        {
+          "name": "page shows /Sign in to the Verify Wizard 95bcfe workspace/",
+          "pass": true,
+          "detail": "Connect to your account Welcome back. Sign in to the Verify Wizard 95bcfe workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "onboarding/wizard-creates-admin"
+}

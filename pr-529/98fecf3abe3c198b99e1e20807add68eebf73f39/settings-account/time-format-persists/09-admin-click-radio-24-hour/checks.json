@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click radio \"24-hour\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/user/region"
+  }
+]

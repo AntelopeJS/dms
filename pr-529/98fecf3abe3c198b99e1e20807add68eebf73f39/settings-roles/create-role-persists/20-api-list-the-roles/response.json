@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "02967789-2128-4ccb-b221-1cf7f4ab09f7",
+        "name": "Support bf2ab6",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

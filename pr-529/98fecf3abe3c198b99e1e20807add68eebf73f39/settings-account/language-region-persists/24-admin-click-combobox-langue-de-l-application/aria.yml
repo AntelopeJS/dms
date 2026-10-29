@@ -1,0 +1,4 @@
+- listbox:
+  - group:
+    - option "English"
+    - option "Français" [selected]

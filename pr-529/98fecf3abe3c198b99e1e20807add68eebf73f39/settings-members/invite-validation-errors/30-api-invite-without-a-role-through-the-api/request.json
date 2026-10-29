@@ -1,0 +1,12 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/dms/pages/settings/workspace/members/invite",
+  "authenticated": true,
+  "body": {
+    "emails": [
+      "dora+20261029t055349-77b0cc-invite-validation-errors@verify.local"
+    ],
+    "roles_ids": [],
+    "asTenantOwner": false
+  }
+}

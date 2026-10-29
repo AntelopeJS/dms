@@ -1,0 +1,12 @@
+[
+  {
+    "name": "article \"Plain Module\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/modules"
+  },
+  {
+    "name": "article \"Demo Module\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/modules"
+  }
+]

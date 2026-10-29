@@ -1,0 +1,23 @@
+- dialog "Change roles · Kim":
+  - heading "Change roles · Kim" [level=2]
+  - paragraph: Their roles decide what they can see and do. Several roles add up.
+  - button "Close"
+  - text: Member Kim Email
+  - link "kim+20261029t055349-77b0cc-change-member-roles@verify.local":
+    - /url: mailto:kim+20261029t055349-77b0cc-change-member-roles@verify.local
+  - text: Roles
+  - paragraph: Roles assigned to the user
+  - group "Roles":
+    - button "Reader 4a5847" [pressed]
+    - button "Writer 669a16"
+  - paragraph:
+    - text: "Reader 4a5847: 1 of 1259 permissions."
+    - link "Compare roles":
+      - /url: /settings/workspace/roles
+  - text: Owner
+  - paragraph: User has full access
+  - switch "Owner"
+  - text: Joined
+  - paragraph: When the user joined
+  - text: October 29, 2026
+  - button "Cancel"

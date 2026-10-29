@@ -1,0 +1,12 @@
+[
+  {
+    "name": "cell \"Ada Renamed 67bd4b\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+  },
+  {
+    "name": "cell \"Ada Lovelace\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+  }
+]

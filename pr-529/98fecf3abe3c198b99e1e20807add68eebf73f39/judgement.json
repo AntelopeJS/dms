@@ -1,0 +1,42 @@
+{
+  "doors": {
+    "none": "The diff adds a bin, a verification skill and checks; it removes no route, export, config key or stored field, sends nothing new and claims no new registry name.",
+    "rows": [],
+    "falsePositives": [
+      {
+        "kind": "contract",
+        "location": "packages/dms/bin/dms-control.mjs",
+        "reason": "A new bin, an addition decided by outer-loop#4 decision 3; additions are not doors."
+      },
+      {
+        "kind": "contract",
+        "location": "packages/dms/package.json",
+        "reason": "Adds the bin field and bin to files; nothing is removed or renamed."
+      },
+      {
+        "kind": "publish",
+        "location": "packages/dms/package.json",
+        "reason": "The package name, publishConfig and dist-tags are unchanged; only the bin folder joins the published files."
+      },
+      {
+        "kind": "publish",
+        "location": ".github/workflows/release.yml",
+        "reason": "The validate step imports the same rule from checks/release-range.mjs; what it accepts is unchanged."
+      },
+      {
+        "kind": "publish",
+        "location": "checks/release-range.mjs",
+        "reason": "The release range rule moved out of release.yml unchanged."
+      }
+    ]
+  },
+  "docs": [],
+  "notVerified": [
+    "The verify commit status: the available token cannot write commit statuses (publish reports GitHub's answer)."
+  ],
+  "attention": [
+    "This run is the PR author's proof of the harness, not an independent verdict.",
+    "The verdict fails by rule 5: formal-release-range covers checks/release-range.mjs and release.yml, which this PR touches, and its recorded findings F1 to F4 count as violated rules."
+  ],
+  "verifier": "harness proof run by the PR author's thread (V2 owner); not a fresh verifier"
+}

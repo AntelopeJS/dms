@@ -1,0 +1,27 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"7d9bd5ce-d615-431c-9c76-a29999246606\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t055349-77b0cc@verify.local\",\"createdAt\":\"2026-10-29T05:56:37.805Z\",\"updatedAt\":\"2026-10-29T05:56:37.854Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T05:56:37.8"
+  },
+  {
+    "name": "the account behind the base token",
+    "pass": true,
+    "detail": "expected \"admin+20261029t055349-77b0cc@verify.local\", got \"admin+20261029t055349-77b0cc@verify.local\""
+  },
+  {
+    "name": "the base refresh token refreshes",
+    "pass": true,
+    "detail": "200"
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdkOWJkNWNlLWQ2MTUtNDMxYy05Yzc2LWEyOTk5OTI0NjYwNiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6ImY2NjU4ZTAzLTNmOTQtNDkxMi1iNThhLTEyZWExMDcxNDA5MiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTMzOTksImV4cCI6MTc5MzI1Njk5"
+  },
+  {
+    "name": "the record is listed",
+    "pass": true,
+    "detail": "7f95afdd-50f4-49a0-860b-ebddd5ee0c13"
+  }
+]

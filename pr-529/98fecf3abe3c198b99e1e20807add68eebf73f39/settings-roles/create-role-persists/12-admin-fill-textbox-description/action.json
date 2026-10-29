@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Description\"",
+  "value": "Answers tickets",
+  "baseUrl": "http://127.0.0.1:38941"
+}

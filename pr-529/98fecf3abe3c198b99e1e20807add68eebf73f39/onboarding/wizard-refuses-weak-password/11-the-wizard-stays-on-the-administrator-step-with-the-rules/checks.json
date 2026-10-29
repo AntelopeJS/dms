@@ -1,0 +1,17 @@
+[
+  {
+    "name": "page shows /The password doesn’t meet every rule/",
+    "pass": true,
+    "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak f3dd8d Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+  },
+  {
+    "name": "page shows /At least 8 characters\\s+not met/",
+    "pass": true,
+    "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak f3dd8d Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+  },
+  {
+    "name": "heading \"Create the administrator account\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/onboarding"
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:5ac7101f-0b3a-4300-b234-f4de300eccdc",
+        "userId": "5ac7101f-0b3a-4300-b234-f4de300eccdc",
+        "name": "Lena Tester",
+        "avatar": null,
+        "email": "lena+20261029t055349-77b0cc-role-assigned-through-invitation@verify.local",
+        "roleIds": [
+          {
+            "_id": "f4a0ce7d-3086-46f7-820a-f96c97a8972d",
+            "name": "Support 6bffde"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T06:02:03.952Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:02:03.930Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:5e592268-03fe-40ab-9a34-894b79a783b7",
+        "userId": "5e592268-03fe-40ab-9a34-894b79a783b7",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t055349-77b0cc@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T06:01:55.546Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T06:01:55.505Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"pin input 5 of 6\"",
+  "value": "1",
+  "baseUrl": "http://127.0.0.1:38941"
+}

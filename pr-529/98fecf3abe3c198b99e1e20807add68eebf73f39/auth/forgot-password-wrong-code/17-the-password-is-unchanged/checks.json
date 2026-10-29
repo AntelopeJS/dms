@@ -1,0 +1,7 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc0OGQ3NTYwLWVhNmQtNDJjNy05ZTY2LTFhMTllYTgwYjc1YyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjAwZmExOTVlLTJlMjUtNGZjNi04NzUyLTZjOTVhMGRhYjU2ZSIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTMzNzUsImV4cCI6MTc5MzI1Njk3"
+  }
+]

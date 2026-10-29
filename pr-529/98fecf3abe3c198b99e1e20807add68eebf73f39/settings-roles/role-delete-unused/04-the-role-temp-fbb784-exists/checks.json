@@ -1,0 +1,7 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"id\":\"707f2f10-9de8-4fb6-98a7-b18ac5dc7d14\"}"
+  }
+]

@@ -1,0 +1,120 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-search-no-match",
+  "title": "searching the roles for nothing says so, keeps the Owner, and clearing restores the list",
+  "entryPoint": "Settings > Roles > Search roles",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j034",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-search-no-match/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-support-d16d3d-exists",
+      "folder": "settings-roles/role-search-no-match/04-the-role-support-d16d3d-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"23668612-83b3-46fe-ad9f-fa3661d93c05\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-search-no-match/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-search-no-match/10-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-search-roles",
+      "folder": "settings-roles/role-search-no-match/11-admin-fill-textbox-search-roles",
+      "checks": [
+        {
+          "name": "fill textbox \"Search roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "12-a-search-without-a-match-shows-the-message",
+      "folder": "settings-roles/role-search-no-match/12-a-search-without-a-match-shows-the-message",
+      "checks": [
+        {
+          "name": "page shows /No role matches this search\\./",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "option \"/^Support d16d3d/\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        },
+        {
+          "name": "option \"/^Owner/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-fill-textbox-search-roles",
+      "folder": "settings-roles/role-search-no-match/13-admin-fill-textbox-search-roles",
+      "checks": [
+        {
+          "name": "fill textbox \"Search roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "14-a-matching-search-keeps-the-role",
+      "folder": "settings-roles/role-search-no-match/14-a-matching-search-keeps-the-role",
+      "checks": [
+        {
+          "name": "option \"/^Support d16d3d/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+        },
+        {
+          "name": "page does not show /No role matches this search\\./",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-search-no-match"
+}

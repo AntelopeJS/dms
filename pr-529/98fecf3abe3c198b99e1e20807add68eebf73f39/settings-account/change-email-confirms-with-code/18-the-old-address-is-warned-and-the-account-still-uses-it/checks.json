@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a warning reached the old address",
+    "pass": true,
+    "detail": "Confirm your new sign-in email | Your sign-in email is being changed"
+  },
+  {
+    "name": "email before the code",
+    "pass": true,
+    "detail": "expected \"admin+20261029t055349-77b0cc@verify.local\", got \"admin+20261029t055349-77b0cc@verify.local\""
+  }
+]

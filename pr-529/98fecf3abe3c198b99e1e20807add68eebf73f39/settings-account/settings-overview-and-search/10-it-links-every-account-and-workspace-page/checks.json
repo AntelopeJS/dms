@@ -1,0 +1,42 @@
+[
+  {
+    "name": "link \"/^Profile/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Language & region/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Security/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Notifications/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Appearance/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Shortcuts/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Members/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  },
+  {
+    "name": "link \"/^Roles/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings"
+  }
+]

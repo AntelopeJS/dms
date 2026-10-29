@@ -1,0 +1,7 @@
+[
+  {
+    "name": "page shows /Gate toggled/",
+    "pass": true,
+    "detail": "Search… CTRL K VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Tenancy 1 Tenancy Demonstrates: RegisterTenantAccessGate, CheckTenantAccess and the tenant guards. Suspend the workspace from the header, then browse: most pages refuse you until you restore it here. Suspend / restore the wor…"
+  }
+]

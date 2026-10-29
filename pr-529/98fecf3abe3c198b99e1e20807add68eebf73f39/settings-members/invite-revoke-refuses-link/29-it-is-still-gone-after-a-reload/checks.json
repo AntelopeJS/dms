@@ -1,0 +1,7 @@
+[
+  {
+    "name": "cell \"erin+20261029t055349-77b0cc-invite-revoke-refuses-link@verify.local\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+  }
+]

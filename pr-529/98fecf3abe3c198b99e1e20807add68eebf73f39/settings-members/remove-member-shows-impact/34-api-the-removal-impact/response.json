@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "body": {
+    "memberId": "default:6e813ea9-d7fe-4328-b5e0-9de7299aff23",
+    "name": "Hank",
+    "email": "hank+20261029t055349-77b0cc-remove-member-shows-impact@verify.local",
+    "roles": [
+      "Viewer 15cd82"
+    ],
+    "isTenantOwner": false,
+    "isLastOwner": false,
+    "isSelf": false
+  },
+  "error": null
+}

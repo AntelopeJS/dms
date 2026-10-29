@@ -1,0 +1,10 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:36343/api/user/new",
+  "authenticated": true,
+  "body": {
+    "name": "Base Record",
+    "email": "base-record+20261029t055349-77b0cc-base-written-data-upgrade@verify.local",
+    "avatar": "https://example.com/avatar.png"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Search roles\"",
+  "value": "support d16d3d",
+  "baseUrl": "http://127.0.0.1:38941"
+}

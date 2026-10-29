@@ -1,0 +1,22 @@
+[
+  {
+    "name": "dialog \"Remove Hank from the workspace?\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/members"
+  },
+  {
+    "name": "page shows /signed out of the workspace right away/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+  },
+  {
+    "name": "page shows /Roles removed\\s*Viewer 15cd82/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+  },
+  {
+    "name": "page shows /Records they created stay/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+  }
+]

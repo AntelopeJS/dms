@@ -1,0 +1,19 @@
+- button "Changer de thème"
+- banner:
+  - img
+- main:
+  - text: Erreur 500
+  - heading "Erreur serveur" [level=1]
+  - paragraph: Une erreur inattendue s'est produite. Veuillez réessayer plus tard.
+  - paragraph: "Failed to fetch dynamically imported module:"
+  - button "Retour à l'accueil"
+  - button "Retour"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Site web":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Langue": français
+- region "Notifications (F8)":
+  - list

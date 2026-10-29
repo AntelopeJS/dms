@@ -1,0 +1,33 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Create your account" [level=1]
+  - paragraph: You've been invited. Choose your name and a password to join.
+  - text: First and last name
+  - textbox "First and last name"
+  - text: Email address
+  - textbox "Email address" [disabled]: lena+20261029t055349-77b0cc-role-assigned-through-invitation@verify.local
+  - text: Password
+  - textbox "Password"
+  - button "Show password": Show
+  - list:
+    - listitem: At least 8 characters not met yet
+    - listitem: At least one uppercase letter not met yet
+    - listitem: At least one number not met yet
+    - listitem: At least one special character (@$!%*?&) not met yet
+    - listitem: Only letters, digits and allowed special characters not met yet
+  - button "Create my account"
+  - paragraph:
+    - text: Already an account?
+    - link "Login":
+      - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

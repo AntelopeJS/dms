@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Role name*\"",
+  "value": "Support bf2ab6",
+  "baseUrl": "http://127.0.0.1:38941"
+}

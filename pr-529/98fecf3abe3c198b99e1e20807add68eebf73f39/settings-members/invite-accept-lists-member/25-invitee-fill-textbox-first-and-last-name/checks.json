@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"First and last name\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/auth/signup?token=oBJmraUNk6Uu2IfBnsFwZDPB7pn3Jdvhgg9rL6eXiHbwdeEvTHWKJd6nMDyNaIUJ&email=bob%2B20261029t055349-77b0cc-invite-accept-lists-member%40verify.local&lang=en"
+  }
+]

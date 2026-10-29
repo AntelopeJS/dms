@@ -1,0 +1,22 @@
+[
+  {
+    "name": "has_onboarded",
+    "pass": true,
+    "detail": "expected true, got true"
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"cc1bdeb0-39ae-48b5-88fa-60f81f163067\",\"name\":\"Wiz Ard\",\"email\":\"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\",\"createdAt\":\"2026-10-29T05:54:52.021Z\",\"updatedAt\":\"2026-10-29T05:54:52.506Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026"
+  },
+  {
+    "name": "the owner's email",
+    "pass": true,
+    "detail": "expected \"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\", got \"wizard+20261029t055349-77b0cc-wizard-creates-admin@verify.local\""
+  },
+  {
+    "name": "the owner flag",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Open the dashboard\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/examples/overview"
+  }
+]

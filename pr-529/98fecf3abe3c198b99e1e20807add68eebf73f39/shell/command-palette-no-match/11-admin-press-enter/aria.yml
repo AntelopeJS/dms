@@ -1,0 +1,7 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Type a command or search…": qqxzjjwv
+  - button "Close"
+  - listbox: No matching data
+  - text: ↑ ↓ Navigate ↵ Open Esc Close

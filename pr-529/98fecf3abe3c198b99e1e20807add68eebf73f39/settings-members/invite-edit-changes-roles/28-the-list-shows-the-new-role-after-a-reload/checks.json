@@ -1,0 +1,12 @@
+[
+  {
+    "name": "cell \"Writer 1d60f8\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+  },
+  {
+    "name": "cell \"Reader debd10\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+  }
+]

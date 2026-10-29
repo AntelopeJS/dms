@@ -1,0 +1,12 @@
+[
+  {
+    "name": "language",
+    "pass": true,
+    "detail": "expected \"fr\", got \"fr\""
+  },
+  {
+    "name": "preference language",
+    "pass": true,
+    "detail": "expected \"fr\", got \"fr\""
+  }
+]

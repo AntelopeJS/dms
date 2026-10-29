@@ -1,0 +1,36 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Check your inbox" [level=1]
+  - paragraph: We sent a 6-character code to admin+20261029t055349-77b0cc@verify.local. Enter it to choose a new password.
+  - group "Verification code":
+    - textbox "pin input 1 of 6":
+      - /placeholder: ""
+      - text: A
+    - textbox "pin input 2 of 6":
+      - /placeholder: ""
+      - text: A
+    - textbox "pin input 3 of 6":
+      - /placeholder: ""
+      - text: A
+    - textbox "pin input 4 of 6":
+      - /placeholder: ""
+      - text: A
+    - textbox "pin input 5 of 6":
+      - /placeholder: ""
+    - textbox "pin input 6 of 6":
+      - /placeholder: ""
+  - button "Continue"
+  - paragraph: Didn't get it? Request a new code in 0:58
+  - link "Back to login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

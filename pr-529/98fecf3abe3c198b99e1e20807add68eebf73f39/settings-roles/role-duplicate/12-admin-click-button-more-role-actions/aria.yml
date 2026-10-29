@@ -1,0 +1,4 @@
+- menu "More role actions":
+  - group:
+    - menuitem "Duplicate role"
+    - menuitem "Delete role"

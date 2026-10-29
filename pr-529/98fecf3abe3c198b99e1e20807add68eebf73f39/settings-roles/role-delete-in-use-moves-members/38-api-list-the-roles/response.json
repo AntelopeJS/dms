@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "7a0edde8-9326-4023-864c-50b6fe7323e9",
+        "name": "Heir 524172",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

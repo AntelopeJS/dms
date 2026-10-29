@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "707f2f10-9de8-4fb6-98a7-b18ac5dc7d14",
+        "name": "Temp fbb784",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

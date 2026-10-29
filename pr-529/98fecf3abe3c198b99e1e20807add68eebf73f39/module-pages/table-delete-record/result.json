@@ -1,0 +1,127 @@
+{
+  "feature": "module-pages",
+  "journey": "table-delete-record",
+  "title": "Delete from the row menu asks to confirm, then the user is gone from the table and the API",
+  "entryPoint": "row menu > Delete",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j063",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "module-pages/table-delete-record/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "module-pages/table-delete-record/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-table-view-table-view-users",
+      "folder": "module-pages/table-delete-record/08-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-actions-for-grace-hopper",
+      "folder": "module-pages/table-delete-record/09-admin-click-button-actions-for-grace-hopper",
+      "checks": [
+        {
+          "name": "click button \"Actions for Grace Hopper\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-menuitem-delete",
+      "folder": "module-pages/table-delete-record/10-admin-click-menuitem-delete",
+      "checks": [
+        {
+          "name": "click menuitem \"Delete\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "11-a-confirmation-is-asked-first",
+      "folder": "module-pages/table-delete-record/11-a-confirmation-is-asked-first",
+      "checks": [
+        {
+          "name": "dialog \"Delete this item?\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-delete-in-dialog-delete-this-item",
+      "folder": "module-pages/table-delete-record/12-admin-click-button-delete-in-dialog-delete-this-item",
+      "checks": [
+        {
+          "name": "click button \"Delete\" in dialog \"Delete this item?\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-reload",
+      "folder": "module-pages/table-delete-record/13-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "14-the-row-is-gone-after-a-reload",
+      "folder": "module-pages/table-delete-record/14-the-row-is-gone-after-a-reload",
+      "checks": [
+        {
+          "name": "cell \"Grace Hopper\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "16-the-data-api-no-longer-has-the-user",
+      "folder": "module-pages/table-delete-record/16-the-data-api-no-longer-has-the-user",
+      "checks": [
+        {
+          "name": "Grace Hopper is gone",
+          "pass": true,
+          "detail": "Ada Lovelace, Alan Turing, Katherine Johnson, Linus Torvalds, Margaret Hamilton, Tim Berners-Lee, Barbara Liskov, Dennis Ritchie, Hedy Lamarr, Ken Thompson, Frances Allen, Guido van Rossum, Radia Perlman, Donald Knuth"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "module-pages/table-delete-record"
+}

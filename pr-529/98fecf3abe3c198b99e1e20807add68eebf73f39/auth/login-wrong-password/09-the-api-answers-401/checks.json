@@ -1,0 +1,12 @@
+[
+  {
+    "name": "HTTP 401",
+    "pass": true,
+    "detail": "status 401: \"error.invalid_credentials\""
+  },
+  {
+    "name": "error",
+    "pass": true,
+    "detail": "expected \"error.invalid_credentials\", got \"error.invalid_credentials\""
+  }
+]

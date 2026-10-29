@@ -1,0 +1,17 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Password changed" [level=1]
+  - paragraph: Your password has been reset. Sign in with your new password.
+  - link "Sign in":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

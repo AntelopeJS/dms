@@ -1,0 +1,232 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Settings":
+          - /url: /settings
+      - listitem: Workspace
+      - listitem:
+        - link "Roles":
+          - /url: /settings/workspace/roles
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "2"
+- navigation "Settings":
+  - heading "Settings" [level=2]
+  - textbox "Search settings"
+  - text: /
+  - link "All settings":
+    - /url: /settings
+  - text: Account
+  - link "Profile":
+    - /url: /settings/user/profile
+  - link "Language & region":
+    - /url: /settings/user/region
+  - link "Security 1":
+    - /url: /settings/user/security
+  - link "Notifications 2":
+    - /url: /settings/user/notifications
+  - link "Appearance":
+    - /url: /settings/user/appearance
+  - link "Shortcuts":
+    - /url: /settings/user/shortcuts
+  - text: Workspace
+  - link "Members 2":
+    - /url: /settings/workspace/members
+  - link "Member invitations":
+    - /url: /settings/workspace/invites
+  - link "Roles 2":
+    - /url: /settings/workspace/roles
+  - link "Playground":
+    - /url: /settings/workspace/playground
+- heading "Roles" [level=1]
+- paragraph: What each role can see and do. A member with several roles gets every permission from all of them.
+- button "New role"
+- complementary "Roles":
+  - text: Roles 2 Members
+  - textbox "Search roles"
+  - listbox "Roles":
+    - option "Owner VA 1 100 All 1259 · locked":
+      - text: Owner VA 1
+      - meter
+      - text: All 1259 · locked
+    - option "Heir 524172 N 1 0.07942811755361398 1 of 1259 permissions" [selected]:
+      - text: Heir 524172 N 1
+      - meter
+      - text: 1 of 1259 permissions
+  - text: Assign roles from
+  - link "Members":
+    - /url: /settings/workspace/members
+- region "Heir 524172 1 member · Noa":
+  - heading "Heir 524172 1 member · Noa" [level=2]
+  - button "Preview as Heir 524172"
+  - button "More role actions"
+  - text: Role name*
+  - textbox "Role name*":
+    - /placeholder: e.g. Support
+    - text: Heir 524172
+  - text: Description Optional
+  - textbox "Description":
+    - /placeholder: What members with this role do
+  - textbox "Search permissions, e.g. “export”"
+  - button "Expand one level"
+  - button "Collapse one level" [disabled]
+  - status "0 of 8 levels fully open"
+  - meter
+  - text: 1 of 1259 selected
+  - tree "Permissions":
+    - treeitem "Export reports Export reports Registered with RegisterPermission, outside any page playground.reports.export 1 1/1":
+      - checkbox "Export reports" [checked]
+      - button "Export reports Registered with RegisterPermission, outside any page" [disabled]
+      - text: playground.reports.export
+      - meter
+      - text: 1/1
+    - checkbox "Examples"
+    - text: Examples examples 0/39
+    - treeitem "Expand Overview Overview Examples examples.overview 0 0/34":
+      - button "Expand"
+      - checkbox "Overview"
+      - button "Overview Examples"
+      - text: examples.overview
+      - meter
+      - text: 0/34
+    - treeitem "Expand Feature index Feature index Examples examples.features 0 0/4":
+      - button "Expand"
+      - checkbox "Feature index"
+      - button "Feature index Examples"
+      - text: examples.features
+      - meter
+      - text: 0/4
+    - checkbox "Library"
+    - text: Library library 0/1192
+    - treeitem "Expand Design system Design system Library library.design-system 0 0/195":
+      - button "Expand"
+      - checkbox "Design system"
+      - button "Design system Library"
+      - text: library.design-system
+      - meter
+      - text: 0/195
+    - treeitem "Expand Layout Layout Library library.layout 0 0/326":
+      - button "Expand"
+      - checkbox "Layout"
+      - button "Layout Library"
+      - text: library.layout
+      - meter
+      - text: 0/326
+    - treeitem "Expand Components Components Library library.components 0 0/543":
+      - button "Expand"
+      - checkbox "Components"
+      - button "Components Library"
+      - text: library.components
+      - meter
+      - text: 0/543
+    - treeitem "Expand Pages & navigation Pages & navigation Library library.pages 0 0/62":
+      - button "Expand"
+      - checkbox "Pages & navigation"
+      - button "Pages & navigation Library"
+      - text: library.pages
+      - meter
+      - text: 0/62
+    - treeitem "Expand Dashboard chrome Dashboard chrome Library library.chrome 0 0/7":
+      - button "Expand"
+      - checkbox "Dashboard chrome"
+      - button "Dashboard chrome Library"
+      - text: library.chrome
+      - meter
+      - text: 0/7
+    - treeitem "Expand Frontend modules Frontend modules Library library.frontend-modules 0 0/33":
+      - button "Expand"
+      - checkbox "Frontend modules"
+      - button "Frontend modules Library"
+      - text: library.frontend-modules
+      - meter
+      - text: 0/33
+    - treeitem "Expand System System Library library.system 0 0/24":
+      - button "Expand"
+      - checkbox "System"
+      - button "System Library"
+      - text: library.system
+      - meter
+      - text: 0/24
+    - treeitem "Internals Internals Library library.internals 0 0/1":
+      - checkbox "Internals"
+      - button "Internals Library" [disabled]
+      - text: library.internals
+      - meter
+      - text: 0/1
+    - checkbox "Workspace"
+    - text: Workspace settings.workspace 0/27
+    - treeitem "Expand Members Members Workspace settings.workspace.members 0 0/9":
+      - button "Expand"
+      - checkbox "Members"
+      - button "Members Workspace"
+      - text: settings.workspace.members
+      - meter
+      - text: 0/9
+    - treeitem "Expand Member invitations Member invitations Workspace settings.workspace.invites 0 0/7":
+      - button "Expand"
+      - checkbox "Member invitations"
+      - button "Member invitations Workspace"
+      - text: settings.workspace.invites
+      - meter
+      - text: 0/7
+    - treeitem "Expand Roles Roles Workspace settings.workspace.roles 0 0/8":
+      - button "Expand"
+      - checkbox "Roles"
+      - button "Roles Workspace"
+      - text: settings.workspace.roles
+      - meter
+      - text: 0/8
+    - treeitem "Expand Playground Playground Workspace settings.workspace.playground 0 0/2":
+      - button "Expand"
+      - checkbox "Playground"
+      - button "Playground Workspace"
+      - text: settings.workspace.playground
+      - meter
+      - text: 0/2
+- region "Notifications (F8)":
+  - list:
+    - listitem:
+      - text: Role deleted
+      - button "Close"
+      - progressbar "94%"

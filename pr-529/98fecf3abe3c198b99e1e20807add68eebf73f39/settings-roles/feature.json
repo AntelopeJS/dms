@@ -1,0 +1,2382 @@
+[
+  {
+    "feature": "settings-roles",
+    "journey": "roles-empty-state",
+    "title": "a workspace with no role shows only the locked Owner, and the invite dialog says there is no role yet",
+    "entryPoint": "Settings > Roles on a fresh workspace, Invite members > Roles",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j031",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/roles-empty-state/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-roles/roles-empty-state/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/roles-empty-state/08-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "09-only-the-owner-entry-exists-and-it-is-locked",
+        "folder": "settings-roles/roles-empty-state/09-only-the-owner-entry-exists-and-it-is-locked",
+        "checks": [
+          {
+            "name": "option \"/^Owner/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "1 × option",
+            "pass": true,
+            "detail": "found 1"
+          },
+          {
+            "name": "page shows /Owners have every permission/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /1259/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "button \"Save changes\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "button \"More role actions\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-the-roles-table-holds-nothing",
+        "folder": "settings-roles/roles-empty-state/11-the-roles-table-holds-nothing",
+        "checks": [
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [], got []"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-open-settings-workspace-members",
+        "folder": "settings-roles/roles-empty-state/12-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-invite-members",
+        "folder": "settings-roles/roles-empty-state/13-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-the-invite-dialog-points-to-roles-permissions",
+        "folder": "settings-roles/roles-empty-state/14-the-invite-dialog-points-to-roles-permissions",
+        "checks": [
+          {
+            "name": "page shows /No role yet\\. Create one in Roles & permissions\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page shows /Pick at least one role\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/roles-empty-state"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "create-role-persists",
+    "title": "a new role with a permission is listed, survives a reload and is stored with exactly that permission",
+    "entryPoint": "Settings > Roles > New role, POST /dms/pages/settings/workspace/roles/create",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j032",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/create-role-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-roles/create-role-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/create-role-persists/08-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-new-role",
+        "folder": "settings-roles/create-role-persists/09-admin-click-button-new-role",
+        "checks": [
+          {
+            "name": "click button \"New role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-fill-textbox-role-name",
+        "folder": "settings-roles/create-role-persists/10-admin-fill-textbox-role-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Role name*\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-checkbox-export-reports",
+        "folder": "settings-roles/create-role-persists/11-admin-click-checkbox-export-reports",
+        "checks": [
+          {
+            "name": "click checkbox \"Export reports\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-description",
+        "folder": "settings-roles/create-role-persists/12-admin-fill-textbox-description",
+        "checks": [
+          {
+            "name": "fill textbox \"Description\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "13-the-editor-shows-the-draft-as-unsaved-with-one-permission",
+        "folder": "settings-roles/create-role-persists/13-the-editor-shows-the-draft-as-unsaved-with-one-permission",
+        "checks": [
+          {
+            "name": "page shows /Not saved yet/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /1 of 1259 selected/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "option \"/^Support bf2ab6/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-button-save-changes",
+        "folder": "settings-roles/create-role-persists/14-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "15-the-role-is-created",
+        "folder": "settings-roles/create-role-persists/15-the-role-is-created",
+        "checks": [
+          {
+            "name": "page shows /Role created/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /1 of 1259 permissions/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /no member/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/create-role-persists/16-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "17-it-is-listed-after-a-reload",
+        "folder": "settings-roles/create-role-persists/17-it-is-listed-after-a-reload",
+        "checks": [
+          {
+            "name": "option \"/^Support bf2ab6/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "link \"Roles 2\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-click-option-support-bf2ab6",
+        "folder": "settings-roles/create-role-persists/18-admin-click-option-support-bf2ab6",
+        "checks": [
+          {
+            "name": "click option \"/^Support bf2ab6/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "19-its-name-description-and-permission-are-kept",
+        "folder": "settings-roles/create-role-persists/19-its-name-description-and-permission-are-kept",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Support bf2ab6\", got \"Support bf2ab6\""
+          },
+          {
+            "name": "description",
+            "pass": true,
+            "detail": "expected \"Answers tickets\", got \"Answers tickets\""
+          },
+          {
+            "name": "page shows /1 of 1259 selected/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "checkbox \"Export reports\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "21-the-roles-table-holds-the-role-with-its-one-permission",
+        "folder": "settings-roles/create-role-persists/21-the-roles-table-holds-the-role-with-its-one-permission",
+        "checks": [
+          {
+            "name": "names",
+            "pass": true,
+            "detail": "expected [\"Support bf2ab6\"], got [\"Support bf2ab6\"]"
+          },
+          {
+            "name": "permissions",
+            "pass": true,
+            "detail": "expected [\"playground.reports.export\"], got [\"playground.reports.export\"]"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-click-button-new-role",
+        "folder": "settings-roles/create-role-persists/22-admin-click-button-new-role",
+        "checks": [
+          {
+            "name": "click button \"New role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-fill-textbox-role-name",
+        "folder": "settings-roles/create-role-persists/23-admin-fill-textbox-role-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Role name*\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-click-button-save-changes",
+        "folder": "settings-roles/create-role-persists/24-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "26-a-second-role-with-the-same-name-is-refused",
+        "folder": "settings-roles/create-role-persists/26-a-second-role-with-the-same-name-is-refused",
+        "checks": [
+          {
+            "name": "page shows /Another role already has this name\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "roles stored",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/create-role-persists"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-validation-errors",
+    "title": "a role without a name is refused in the form and by the API, and a discarded draft leaves nothing behind",
+    "entryPoint": "Settings > Roles > New role > Save changes, POST /dms/pages/settings/workspace/roles/create",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j033",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-validation-errors/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-validation-errors/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-validation-errors/08-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-new-role",
+        "folder": "settings-roles/role-validation-errors/09-admin-click-button-new-role",
+        "checks": [
+          {
+            "name": "click button \"New role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-checkbox-export-reports",
+        "folder": "settings-roles/role-validation-errors/10-admin-click-checkbox-export-reports",
+        "checks": [
+          {
+            "name": "click checkbox \"Export reports\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-save-changes",
+        "folder": "settings-roles/role-validation-errors/11-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-the-form-asks-for-a-name-and-keeps-the-draft",
+        "folder": "settings-roles/role-validation-errors/12-the-form-asks-for-a-name-and-keeps-the-draft",
+        "checks": [
+          {
+            "name": "page shows /This field is required\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /Not saved yet/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "15-the-api-answers-400-for-a-blank-name-and-for-a-name-over-80-",
+        "folder": "settings-roles/role-validation-errors/15-the-api-answers-400-for-a-blank-name-and-for-a-name-over-80-",
+        "checks": [
+          {
+            "name": "HTTP 400",
+            "pass": true,
+            "detail": "status 400: [{\"code\":\"too_small\",\"minimum\":1,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"$page.settings.roles.error.name_required\",\"path\":[\"name\"]}]"
+          },
+          {
+            "name": "HTTP 400",
+            "pass": true,
+            "detail": "status 400: [{\"code\":\"too_big\",\"maximum\":80,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"String must contain at most 80 character(s)\",\"path\":[\"name\"]}]"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-discard",
+        "folder": "settings-roles/role-validation-errors/16-admin-click-button-discard",
+        "checks": [
+          {
+            "name": "click button \"Discard\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "17-discarding-drops-the-draft-entry",
+        "folder": "settings-roles/role-validation-errors/17-discarding-drops-the-draft-entry",
+        "checks": [
+          {
+            "name": "option \"/Untitled role/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "1 × option",
+            "pass": true,
+            "detail": "found 1"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-reload",
+        "folder": "settings-roles/role-validation-errors/18-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "20-nothing-was-created",
+        "folder": "settings-roles/role-validation-errors/20-nothing-was-created",
+        "checks": [
+          {
+            "name": "1 × option",
+            "pass": true,
+            "detail": "found 1"
+          },
+          {
+            "name": "roles stored",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-validation-errors"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-search-no-match",
+    "title": "searching the roles for nothing says so, keeps the Owner, and clearing restores the list",
+    "entryPoint": "Settings > Roles > Search roles",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j034",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-search-no-match/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-d16d3d-exists",
+        "folder": "settings-roles/role-search-no-match/04-the-role-support-d16d3d-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"23668612-83b3-46fe-ad9f-fa3661d93c05\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-search-no-match/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-search-no-match/10-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-search-roles",
+        "folder": "settings-roles/role-search-no-match/11-admin-fill-textbox-search-roles",
+        "checks": [
+          {
+            "name": "fill textbox \"Search roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-a-search-without-a-match-shows-the-message",
+        "folder": "settings-roles/role-search-no-match/12-a-search-without-a-match-shows-the-message",
+        "checks": [
+          {
+            "name": "page shows /No role matches this search\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "option \"/^Support d16d3d/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "option \"/^Owner/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-fill-textbox-search-roles",
+        "folder": "settings-roles/role-search-no-match/13-admin-fill-textbox-search-roles",
+        "checks": [
+          {
+            "name": "fill textbox \"Search roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "14-a-matching-search-keeps-the-role",
+        "folder": "settings-roles/role-search-no-match/14-a-matching-search-keeps-the-role",
+        "checks": [
+          {
+            "name": "option \"/^Support d16d3d/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "page does not show /No role matches this search\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-search-no-match"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-assigned-through-invitation",
+    "title": "a role chosen on an invitation counts as a pending invite, then as a member once the invitation is accepted",
+    "entryPoint": "Invite members > Roles, Settings > Roles member counts",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j035",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-assigned-through-invitation/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-6bffde-exists",
+        "folder": "settings-roles/role-assigned-through-invitation/04-the-role-support-6bffde-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"f4a0ce7d-3086-46f7-820a-f96c97a8972d\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-assigned-through-invitation/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-roles/role-assigned-through-invitation/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-roles/role-assigned-through-invitation/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-roles/role-assigned-through-invitation/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-roles/role-assigned-through-invitation/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-roles/role-assigned-through-invitation/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-roles/role-assigned-through-invitation/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-6bffde-in-group-roles",
+        "folder": "settings-roles/role-assigned-through-invitation/16-admin-click-button-support-6bffde-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 6bffde\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-roles/role-assigned-through-invitation/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-assigned-through-invitation/18-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "19-the-role-shows-one-pending-invite",
+        "folder": "settings-roles/role-assigned-through-invitation/19-the-role-shows-one-pending-invite",
+        "checks": [
+          {
+            "name": "page shows /1 invite/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "21-the-api-counts-one-invite-and-no-member",
+        "folder": "settings-roles/role-assigned-through-invitation/21-the-api-counts-one-invite-and-no-member",
+        "checks": [
+          {
+            "name": "inviteCount",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          },
+          {
+            "name": "memberCount",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      },
+      {
+        "name": "23-the-invitation-email-reaches-lena-20261029t055349-77b0cc-rol",
+        "folder": "settings-roles/role-assigned-through-invitation/23-the-invitation-email-reaches-lena-20261029t055349-77b0cc-rol",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-open-http-127-0-0-1-38941-auth-signup-token-tkljtwkn",
+        "folder": "settings-roles/role-assigned-through-invitation/24-invitee-open-http-127-0-0-1-38941-auth-signup-token-tkljtwkn",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:38941/auth/signup?token=tKLjTwknBgToR764Okk2g61uQyUwEXnbdyDhwpcEnBnWzrHci2QSSP0zcMWVLlhM&email=lena%2B20261029t055349-77b0cc-role-assigned-through-invitation%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=tKLjTwknBgToR764Okk2g61uQyUwEXnbdyDhwpcEnBnWzrHci2QSSP0zcMWVLlhM&email=lena%2B20261029t055349-77b0cc-role-assigned-through-invitation%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "25-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-roles/role-assigned-through-invitation/25-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=tKLjTwknBgToR764Okk2g61uQyUwEXnbdyDhwpcEnBnWzrHci2QSSP0zcMWVLlhM&email=lena%2B20261029t055349-77b0cc-role-assigned-through-invitation%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-fill-textbox-password",
+        "folder": "settings-roles/role-assigned-through-invitation/26-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=tKLjTwknBgToR764Okk2g61uQyUwEXnbdyDhwpcEnBnWzrHci2QSSP0zcMWVLlhM&email=lena%2B20261029t055349-77b0cc-role-assigned-through-invitation%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "27-invitee-click-button-create-my-account",
+        "folder": "settings-roles/role-assigned-through-invitation/27-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "28-lena-tester-is-signed-in-after-accepting",
+        "folder": "settings-roles/role-assigned-through-invitation/28-lena-tester-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-assigned-through-invitation/29-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-option-support-6bffde",
+        "folder": "settings-roles/role-assigned-through-invitation/30-admin-click-option-support-6bffde",
+        "checks": [
+          {
+            "name": "click option \"/^Support 6bffde/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "31-the-role-now-lists-the-member-and-no-pending-invite",
+        "folder": "settings-roles/role-assigned-through-invitation/31-the-role-now-lists-the-member-and-no-pending-invite",
+        "checks": [
+          {
+            "name": "page shows /1 member/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /Lena Tester/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page does not show /1 invite/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "33-the-member-row-carries-the-role",
+        "folder": "settings-roles/role-assigned-through-invitation/33-the-member-row-carries-the-role",
+        "checks": [
+          {
+            "name": "roleIds",
+            "pass": true,
+            "detail": "expected [\"f4a0ce7d-3086-46f7-820a-f96c97a8972d\"], got [\"f4a0ce7d-3086-46f7-820a-f96c97a8972d\"]"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-assigned-through-invitation"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-edit-changes-access",
+    "title": "a member whose role lacks a permission is refused the page it guards until the role gains it (Exposure: who can see what, before and after)",
+    "entryPoint": "Settings > Roles editor, a guarded settings page opened by a member, POST .../roles/preview",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j036",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-edit-changes-access/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-viewer-fbeb48-exists",
+        "folder": "settings-roles/role-edit-changes-access/04-the-role-viewer-fbeb48-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"8db15a2e-1184-473c-a055-324a55b20fc9\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-edit-changes-access/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-roles/role-edit-changes-access/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-roles/role-edit-changes-access/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-roles/role-edit-changes-access/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-roles/role-edit-changes-access/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-roles/role-edit-changes-access/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-roles/role-edit-changes-access/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-viewer-fbeb48-in-group-roles",
+        "folder": "settings-roles/role-edit-changes-access/16-admin-click-button-viewer-fbeb48-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Viewer fbeb48\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-roles/role-edit-changes-access/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-mia-20261029t055349-77b0cc-role",
+        "folder": "settings-roles/role-edit-changes-access/19-the-invitation-email-reaches-mia-20261029t055349-77b0cc-role",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-invitee-open-http-127-0-0-1-38941-auth-signup-token-lo8jqebu",
+        "folder": "settings-roles/role-edit-changes-access/20-invitee-open-http-127-0-0-1-38941-auth-signup-token-lo8jqebu",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:38941/auth/signup?token=LO8JqebucqkkkWhlCclNtpjrG1kvi1JR6F77Nr13ZrogxMvyUxhFAsaKvyRPqrNb&email=mia%2B20261029t055349-77b0cc-role-edit-changes-access%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=LO8JqebucqkkkWhlCclNtpjrG1kvi1JR6F77Nr13ZrogxMvyUxhFAsaKvyRPqrNb&email=mia%2B20261029t055349-77b0cc-role-edit-changes-access%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "21-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-roles/role-edit-changes-access/21-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=LO8JqebucqkkkWhlCclNtpjrG1kvi1JR6F77Nr13ZrogxMvyUxhFAsaKvyRPqrNb&email=mia%2B20261029t055349-77b0cc-role-edit-changes-access%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-fill-textbox-password",
+        "folder": "settings-roles/role-edit-changes-access/22-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=LO8JqebucqkkkWhlCclNtpjrG1kvi1JR6F77Nr13ZrogxMvyUxhFAsaKvyRPqrNb&email=mia%2B20261029t055349-77b0cc-role-edit-changes-access%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-click-button-create-my-account",
+        "folder": "settings-roles/role-edit-changes-access/23-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "24-mia-is-signed-in-after-accepting",
+        "folder": "settings-roles/role-edit-changes-access/24-mia-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-open-settings-workspace-playground",
+        "folder": "settings-roles/role-edit-changes-access/26-invitee-open-settings-workspace-playground",
+        "checks": [
+          {
+            "name": "open /settings/workspace/playground",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          }
+        ]
+      },
+      {
+        "name": "27-invitee-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/27-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "28-before-the-preview-the-member-and-the-page-agree-the-role-se",
+        "folder": "settings-roles/role-edit-changes-access/28-before-the-preview-the-member-and-the-page-agree-the-role-se",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"hiddenEntries\":[\"modules\",\"modules.store\",\"settings.workspace.members\",\"settings.workspace.invites\",\"settings.workspace.roles\",\"modules.demo.pages.contact\",\"modules.demo.pages.tools.diagnostics\",\"modules.demo.pages.welcome\",\"modules.plain.info\",\"examples.overview\",\"examples.features\",\"library.layo"
+          },
+          {
+            "name": "Roles is hidden in the preview",
+            "pass": true,
+            "detail": "242"
+          },
+          {
+            "name": "Playground is not hidden in the preview",
+            "pass": true,
+            "detail": "242"
+          },
+          {
+            "name": "heading \"Playground\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          },
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/29-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-option-viewer-fbeb48",
+        "folder": "settings-roles/role-edit-changes-access/30-admin-click-option-viewer-fbeb48",
+        "checks": [
+          {
+            "name": "click option \"/^Viewer fbeb48/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "31-admin-click-checkbox-roles",
+        "folder": "settings-roles/role-edit-changes-access/31-admin-click-checkbox-roles",
+        "checks": [
+          {
+            "name": "click checkbox \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "32-the-editor-says-who-the-change-reaches",
+        "folder": "settings-roles/role-edit-changes-access/32-the-editor-says-who-the-change-reaches",
+        "checks": [
+          {
+            "name": "page shows /applies to Mia on their next page load/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /permissions? added/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "33-admin-click-button-save-changes",
+        "folder": "settings-roles/role-edit-changes-access/33-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "34-the-role-is-saved",
+        "folder": "settings-roles/role-edit-changes-access/34-the-role-is-saved",
+        "checks": [
+          {
+            "name": "page shows /Role saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "37-invitee-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/37-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "38-after-the-stored-role-the-preview-and-the-member-s-page-all-",
+        "folder": "settings-roles/role-edit-changes-access/38-after-the-stored-role-the-preview-and-the-member-s-page-all-",
+        "checks": [
+          {
+            "name": "the role stores a Roles permission",
+            "pass": true,
+            "detail": "[\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\",\"settings.workspace.roles\",\"settings.workspace.roles.table\",\"settings.workspace.roles.table.list\",\"settings.workspace.roles.table.add\",\"settings.workspace.roles.table.edit\",\"settings.workspace.roles.table.view\",\"settings.workspace.roles.table.delete\",\"settings.workspace.roles.table.export\"]"
+          },
+          {
+            "name": "Roles is no longer hidden in the preview",
+            "pass": true,
+            "detail": "241"
+          },
+          {
+            "name": "heading \"Roles\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "39-invitee-open-settings-workspace-members",
+        "folder": "settings-roles/role-edit-changes-access/39-invitee-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "40-a-page-the-role-never-gained-stays-refused",
+        "folder": "settings-roles/role-edit-changes-access/40-a-page-the-role-never-gained-stays-refused",
+        "checks": [
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "41-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/41-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "42-admin-click-option-viewer-fbeb48",
+        "folder": "settings-roles/role-edit-changes-access/42-admin-click-option-viewer-fbeb48",
+        "checks": [
+          {
+            "name": "click option \"/^Viewer fbeb48/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "43-admin-click-checkbox-roles",
+        "folder": "settings-roles/role-edit-changes-access/43-admin-click-checkbox-roles",
+        "checks": [
+          {
+            "name": "click checkbox \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "44-the-editor-reports-the-permissions-removed",
+        "folder": "settings-roles/role-edit-changes-access/44-the-editor-reports-the-permissions-removed",
+        "checks": [
+          {
+            "name": "page shows /permissions? removed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "45-admin-click-button-save-changes",
+        "folder": "settings-roles/role-edit-changes-access/45-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "46-the-role-is-saved-without-them",
+        "folder": "settings-roles/role-edit-changes-access/46-the-role-is-saved-without-them",
+        "checks": [
+          {
+            "name": "page shows /Role saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "48-invitee-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/48-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "49-removing-a-permission-takes-the-access-away-again-the-stored",
+        "folder": "settings-roles/role-edit-changes-access/49-removing-a-permission-takes-the-access-away-again-the-stored",
+        "checks": [
+          {
+            "name": "stored permissions",
+            "pass": true,
+            "detail": "expected [\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\"], got [\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\"]"
+          },
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "50-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-edit-changes-access/50-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "51-admin-click-option-viewer-fbeb48",
+        "folder": "settings-roles/role-edit-changes-access/51-admin-click-option-viewer-fbeb48",
+        "checks": [
+          {
+            "name": "click option \"/^Viewer fbeb48/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "52-the-editor-shows-the-roles-permission-unticked-after-a-reloa",
+        "folder": "settings-roles/role-edit-changes-access/52-the-editor-shows-the-roles-permission-unticked-after-a-reloa",
+        "checks": [
+          {
+            "name": "Roles ticked",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-edit-changes-access"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-preview-opens-tab",
+    "title": "Preview as role opens a new tab that shows the dashboard as that role sees it",
+    "entryPoint": "Settings > Roles > Preview as <role>",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j037",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-preview-opens-tab/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-viewer-f9bd62-exists",
+        "folder": "settings-roles/role-preview-opens-tab/04-the-role-viewer-f9bd62-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"93a2f2af-2f0a-4fd2-8265-c5e2bbf06f20\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-preview-opens-tab/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-preview-opens-tab/10-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-option-viewer-f9bd62",
+        "folder": "settings-roles/role-preview-opens-tab/11-admin-click-option-viewer-f9bd62",
+        "checks": [
+          {
+            "name": "click option \"/^Viewer f9bd62/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-preview-as-viewer-f9bd62",
+        "folder": "settings-roles/role-preview-opens-tab/12-admin-click-button-preview-as-viewer-f9bd62",
+        "checks": [
+          {
+            "name": "click button \"Preview as Viewer f9bd62\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "13-a-preview-tab-opens",
+        "folder": "settings-roles/role-preview-opens-tab/13-a-preview-tab-opens",
+        "checks": [
+          {
+            "name": "a new tab opened",
+            "pass": true,
+            "detail": "no new tab"
+          }
+        ]
+      },
+      {
+        "name": "15-the-tab-announces-the-preview-and-marks-what-the-role-cannot",
+        "folder": "settings-roles/role-preview-opens-tab/15-the-tab-announces-the-preview-and-marks-what-the-role-cannot",
+        "checks": [
+          {
+            "name": "the preview bar names the role",
+            "pass": true,
+            "detail": "Previewing Overview as Viewer f9bd62 Page hidden for Viewer f9bd62 Exit preview"
+          },
+          {
+            "name": "Library groups marked hidden for the role",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          },
+          {
+            "name": "the page is hidden for the role",
+            "pass": true,
+            "detail": "Previewing Overview as Viewer f9bd62 Page hidden for Viewer f9bd62 Exit preview"
+          }
+        ]
+      },
+      {
+        "name": "16-exiting-the-preview-ends-it",
+        "folder": "settings-roles/role-preview-opens-tab/16-exiting-the-preview-ends-it",
+        "checks": [
+          {
+            "name": "preview bars left",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-preview-opens-tab"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-duplicate",
+    "title": "duplicating a role stores a copy with the same permissions under a new name",
+    "entryPoint": "Settings > Roles > More role actions > Duplicate role",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j038",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-duplicate/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-df4325-exists",
+        "folder": "settings-roles/role-duplicate/04-the-role-support-df4325-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"2203e2ad-402d-4b60-976c-4da0ac034fdd\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-duplicate/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-duplicate/10-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-option-support-df4325",
+        "folder": "settings-roles/role-duplicate/11-admin-click-option-support-df4325",
+        "checks": [
+          {
+            "name": "click option \"/^Support df4325/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-more-role-actions",
+        "folder": "settings-roles/role-duplicate/12-admin-click-button-more-role-actions",
+        "checks": [
+          {
+            "name": "click button \"More role actions\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-menuitem-duplicate-role",
+        "folder": "settings-roles/role-duplicate/13-admin-click-menuitem-duplicate-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Duplicate role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "14-the-copy-is-created-and-selected",
+        "folder": "settings-roles/role-duplicate/14-the-copy-is-created-and-selected",
+        "checks": [
+          {
+            "name": "page shows /Role duplicated/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Support df4325 (copy)\", got \"Support df4325 (copy)\""
+          }
+        ]
+      },
+      {
+        "name": "15-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-duplicate/15-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "17-both-roles-are-stored-with-the-same-permissions",
+        "folder": "settings-roles/role-duplicate/17-both-roles-are-stored-with-the-same-permissions",
+        "checks": [
+          {
+            "name": "names",
+            "pass": true,
+            "detail": "expected [\"Support df4325\",\"Support df4325 (copy)\"], got [\"Support df4325\",\"Support df4325 (copy)\"]"
+          },
+          {
+            "name": "permissions",
+            "pass": true,
+            "detail": "expected [[\"playground.reports.export\"],[\"playground.reports.export\"]], got [[\"playground.reports.export\"],[\"playground.reports.export\"]]"
+          },
+          {
+            "name": "option \"/^Support df4325 \\(copy\\)/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-duplicate"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-delete-unused",
+    "title": "deleting a role nobody holds asks for confirmation, then removes it from the list and the API",
+    "entryPoint": "Settings > Roles > More role actions > Delete role",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j039",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-delete-unused/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-temp-fbb784-exists",
+        "folder": "settings-roles/role-delete-unused/04-the-role-temp-fbb784-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"707f2f10-9de8-4fb6-98a7-b18ac5dc7d14\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-delete-unused/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-delete-unused/10-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-option-temp-fbb784",
+        "folder": "settings-roles/role-delete-unused/11-admin-click-option-temp-fbb784",
+        "checks": [
+          {
+            "name": "click option \"/^Temp fbb784/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-more-role-actions",
+        "folder": "settings-roles/role-delete-unused/12-admin-click-button-more-role-actions",
+        "checks": [
+          {
+            "name": "click button \"More role actions\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-menuitem-delete-role",
+        "folder": "settings-roles/role-delete-unused/13-admin-click-menuitem-delete-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Delete role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "14-the-dialog-says-nobody-holds-the-role",
+        "folder": "settings-roles/role-delete-unused/14-the-dialog-says-nobody-holds-the-role",
+        "checks": [
+          {
+            "name": "dialog \"Delete Temp fbb784?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "page shows /Nobody holds this role/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-button-cancel",
+        "folder": "settings-roles/role-delete-unused/15-admin-click-button-cancel",
+        "checks": [
+          {
+            "name": "click button \"Cancel\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-reload",
+        "folder": "settings-roles/role-delete-unused/16-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "18-cancelling-keeps-the-role",
+        "folder": "settings-roles/role-delete-unused/18-cancelling-keeps-the-role",
+        "checks": [
+          {
+            "name": "option \"/^Temp fbb784/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "roles stored",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-option-temp-fbb784",
+        "folder": "settings-roles/role-delete-unused/19-admin-click-option-temp-fbb784",
+        "checks": [
+          {
+            "name": "click option \"/^Temp fbb784/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-more-role-actions",
+        "folder": "settings-roles/role-delete-unused/20-admin-click-button-more-role-actions",
+        "checks": [
+          {
+            "name": "click button \"More role actions\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-click-menuitem-delete-role",
+        "folder": "settings-roles/role-delete-unused/21-admin-click-menuitem-delete-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Delete role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-click-button-delete-role-in-dialog",
+        "folder": "settings-roles/role-delete-unused/22-admin-click-button-delete-role-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Delete role\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "23-the-role-is-deleted",
+        "folder": "settings-roles/role-delete-unused/23-the-role-is-deleted",
+        "checks": [
+          {
+            "name": "page shows /Role deleted/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-reload",
+        "folder": "settings-roles/role-delete-unused/24-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "26-it-is-gone-after-a-reload-and-from-the-api",
+        "folder": "settings-roles/role-delete-unused/26-it-is-gone-after-a-reload-and-from-the-api",
+        "checks": [
+          {
+            "name": "option \"/^Temp fbb784/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "roles stored",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-delete-unused"
+  },
+  {
+    "feature": "settings-roles",
+    "journey": "role-delete-in-use-moves-members",
+    "title": "deleting a role members still hold says how many, and moves them to the chosen role (containment of what they lose)",
+    "entryPoint": "Settings > Roles > Delete role > Move them to",
+    "status": "PASS",
+    "database": "verify_20261029T055349_77b0cc_j040",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-roles/role-delete-in-use-moves-members/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-doomed-2ac0ce-exists",
+        "folder": "settings-roles/role-delete-in-use-moves-members/04-the-role-doomed-2ac0ce-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"16559009-f472-4eb7-b9f6-87e234ed9285\"}"
+          }
+        ]
+      },
+      {
+        "name": "06-the-role-heir-524172-exists",
+        "folder": "settings-roles/role-delete-in-use-moves-members/06-the-role-heir-524172-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"7a0edde8-9326-4023-864c-50b6fe7323e9\"}"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-signed-in-as-admin",
+        "folder": "settings-roles/role-delete-in-use-moves-members/11-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-open-settings-workspace-members",
+        "folder": "settings-roles/role-delete-in-use-moves-members/12-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-invite-members",
+        "folder": "settings-roles/role-delete-in-use-moves-members/13-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-email-addresses",
+        "folder": "settings-roles/role-delete-in-use-moves-members/14-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-roles/role-delete-in-use-moves-members/15-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-combobox-team",
+        "folder": "settings-roles/role-delete-in-use-moves-members/16-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-option-sales",
+        "folder": "settings-roles/role-delete-in-use-moves-members/17-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-click-button-doomed-2ac0ce-in-group-roles",
+        "folder": "settings-roles/role-delete-in-use-moves-members/18-admin-click-button-doomed-2ac0ce-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Doomed 2ac0ce\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-button-send-invitations",
+        "folder": "settings-roles/role-delete-in-use-moves-members/19-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "21-the-invitation-email-reaches-noa-20261029t055349-77b0cc-role",
+        "folder": "settings-roles/role-delete-in-use-moves-members/21-the-invitation-email-reaches-noa-20261029t055349-77b0cc-role",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-open-http-127-0-0-1-38941-auth-signup-token-bgtjxyrh",
+        "folder": "settings-roles/role-delete-in-use-moves-members/22-invitee-open-http-127-0-0-1-38941-auth-signup-token-bgtjxyrh",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:38941/auth/signup?token=bgTJxyRHGaL244qDlzBDK6LOb9rFdlHBEFdWdpNhyOGZfoilaOyfPe8vh8jb4e77&email=noa%2B20261029t055349-77b0cc-role-delete-in-use-moves-members%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=bgTJxyRHGaL244qDlzBDK6LOb9rFdlHBEFdWdpNhyOGZfoilaOyfPe8vh8jb4e77&email=noa%2B20261029t055349-77b0cc-role-delete-in-use-moves-members%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-roles/role-delete-in-use-moves-members/23-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=bgTJxyRHGaL244qDlzBDK6LOb9rFdlHBEFdWdpNhyOGZfoilaOyfPe8vh8jb4e77&email=noa%2B20261029t055349-77b0cc-role-delete-in-use-moves-members%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-fill-textbox-password",
+        "folder": "settings-roles/role-delete-in-use-moves-members/24-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/auth/signup?token=bgTJxyRHGaL244qDlzBDK6LOb9rFdlHBEFdWdpNhyOGZfoilaOyfPe8vh8jb4e77&email=noa%2B20261029t055349-77b0cc-role-delete-in-use-moves-members%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "25-invitee-click-button-create-my-account",
+        "folder": "settings-roles/role-delete-in-use-moves-members/25-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "26-noa-is-signed-in-after-accepting",
+        "folder": "settings-roles/role-delete-in-use-moves-members/26-noa-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "27-invitee-open-settings-workspace-playground",
+        "folder": "settings-roles/role-delete-in-use-moves-members/27-invitee-open-settings-workspace-playground",
+        "checks": [
+          {
+            "name": "open /settings/workspace/playground",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          }
+        ]
+      },
+      {
+        "name": "28-before-the-member-reaches-the-page-the-doomed-role-grants",
+        "folder": "settings-roles/role-delete-in-use-moves-members/28-before-the-member-reaches-the-page-the-doomed-role-grants",
+        "checks": [
+          {
+            "name": "heading \"Playground\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-open-settings-workspace-roles",
+        "folder": "settings-roles/role-delete-in-use-moves-members/29-admin-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-option-doomed-2ac0ce",
+        "folder": "settings-roles/role-delete-in-use-moves-members/30-admin-click-option-doomed-2ac0ce",
+        "checks": [
+          {
+            "name": "click option \"/^Doomed 2ac0ce/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "31-admin-click-button-more-role-actions",
+        "folder": "settings-roles/role-delete-in-use-moves-members/31-admin-click-button-more-role-actions",
+        "checks": [
+          {
+            "name": "click button \"More role actions\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "32-admin-click-menuitem-delete-role",
+        "folder": "settings-roles/role-delete-in-use-moves-members/32-admin-click-menuitem-delete-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Delete role\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "33-the-dialog-says-one-member-still-holds-the-role",
+        "folder": "settings-roles/role-delete-in-use-moves-members/33-the-dialog-says-one-member-still-holds-the-role",
+        "checks": [
+          {
+            "name": "dialog \"Delete Doomed 2ac0ce?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          },
+          {
+            "name": "page shows /1 member or pending invite still holds this role/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "combobox \"Move them to\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "34-admin-click-combobox-move-them-to",
+        "folder": "settings-roles/role-delete-in-use-moves-members/34-admin-click-combobox-move-them-to",
+        "checks": [
+          {
+            "name": "click combobox \"Move them to\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "35-admin-click-option-heir-524172",
+        "folder": "settings-roles/role-delete-in-use-moves-members/35-admin-click-option-heir-524172",
+        "checks": [
+          {
+            "name": "click option \"Heir 524172\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "36-admin-click-button-delete-role-in-dialog",
+        "folder": "settings-roles/role-delete-in-use-moves-members/36-admin-click-button-delete-role-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Delete role\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "37-the-role-is-deleted",
+        "folder": "settings-roles/role-delete-in-use-moves-members/37-the-role-is-deleted",
+        "checks": [
+          {
+            "name": "page shows /Role deleted/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "40-invitee-open-settings-workspace-playground",
+        "folder": "settings-roles/role-delete-in-use-moves-members/40-invitee-open-settings-workspace-playground",
+        "checks": [
+          {
+            "name": "open /settings/workspace/playground",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          }
+        ]
+      },
+      {
+        "name": "41-the-role-is-gone-the-member-holds-the-heir-and-the-page-is-r",
+        "folder": "settings-roles/role-delete-in-use-moves-members/41-the-role-is-gone-the-member-holds-the-heir-and-the-page-is-r",
+        "checks": [
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [\"7a0edde8-9326-4023-864c-50b6fe7323e9\"], got [\"7a0edde8-9326-4023-864c-50b6fe7323e9\"]"
+          },
+          {
+            "name": "member roles",
+            "pass": true,
+            "detail": "expected [\"7a0edde8-9326-4023-864c-50b6fe7323e9\"], got [\"7a0edde8-9326-4023-864c-50b6fe7323e9\"]"
+          },
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-roles/role-delete-in-use-moves-members"
+  }
+]

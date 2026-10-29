@@ -1,0 +1,235 @@
+{
+  "feature": "settings-account",
+  "journey": "change-password-signs-out-other-devices",
+  "title": "a new password signs in, the old one is refused, and the account's other sessions are signed out",
+  "entryPoint": "Settings > Security > Change password",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j043",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/change-password-signs-out-other-devices/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/change-password-signs-out-other-devices/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin2-signed-in-as-admin2",
+      "folder": "settings-account/change-password-signs-out-other-devices/12-admin2-signed-in-as-admin2",
+      "checks": [
+        {
+          "name": "admin2 signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-settings-user-security",
+      "folder": "settings-account/change-password-signs-out-other-devices/13-admin-open-settings-user-security",
+      "checks": [
+        {
+          "name": "open /settings/user/security",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-button-change-password",
+      "folder": "settings-account/change-password-signs-out-other-devices/14-admin-click-button-change-password",
+      "checks": [
+        {
+          "name": "click button \"Change password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-fill-textbox-current-password",
+      "folder": "settings-account/change-password-signs-out-other-devices/15-admin-fill-textbox-current-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Current password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-fill-textbox-new-password",
+      "folder": "settings-account/change-password-signs-out-other-devices/16-admin-fill-textbox-new-password",
+      "checks": [
+        {
+          "name": "fill textbox \"New password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-fill-textbox-confirm-new-password",
+      "folder": "settings-account/change-password-signs-out-other-devices/17-admin-fill-textbox-confirm-new-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Confirm new password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "18-the-form-shows-every-rule-met-and-offers-to-update",
+      "folder": "settings-account/change-password-signs-out-other-devices/18-the-form-shows-every-rule-met-and-offers-to-update",
+      "checks": [
+        {
+          "name": "page shows /5 of 5 met/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        },
+        {
+          "name": "button \"Update password\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-update-password",
+      "folder": "settings-account/change-password-signs-out-other-devices/19-admin-click-button-update-password",
+      "checks": [
+        {
+          "name": "click button \"Update password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "20-the-page-confirms-and-says-other-sessions-were-signed-out",
+      "folder": "settings-account/change-password-signs-out-other-devices/20-the-page-confirms-and-says-other-sessions-were-signed-out",
+      "checks": [
+        {
+          "name": "page shows /Password updated/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+        },
+        {
+          "name": "page shows /other sessions? signed out/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-reload",
+      "folder": "settings-account/change-password-signs-out-other-devices/21-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "22-this-device-stays-signed-in-and-the-page-says-the-password-c",
+      "folder": "settings-account/change-password-signs-out-other-devices/22-this-device-stays-signed-in-and-the-page-says-the-password-c",
+      "checks": [
+        {
+          "name": "path matches /^\\/settings\\/user\\/security$/",
+          "pass": true,
+          "detail": "/settings/user/security"
+        },
+        {
+          "name": "page shows /Changed today/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+        }
+      ]
+    },
+    {
+      "name": "23-admin2-open-settings-user-security",
+      "folder": "settings-account/change-password-signs-out-other-devices/23-admin2-open-settings-user-security",
+      "checks": [
+        {
+          "name": "open /settings/user/security",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/auth?redirect=%2Fsettings%2Fuser%2Fsecurity"
+        }
+      ]
+    },
+    {
+      "name": "24-the-other-device-is-sent-back-to-sign-in",
+      "folder": "settings-account/change-password-signs-out-other-devices/24-the-other-device-is-sent-back-to-sign-in",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        }
+      ]
+    },
+    {
+      "name": "27-only-the-new-password-signs-in",
+      "folder": "settings-account/change-password-signs-out-other-devices/27-only-the-new-password-signs-in",
+      "checks": [
+        {
+          "name": "new password accepted",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "HTTP 401",
+          "pass": true,
+          "detail": "status 401: \"error.invalid_credentials\""
+        }
+      ]
+    },
+    {
+      "name": "28-admin-open-settings-user-notifications",
+      "folder": "settings-account/change-password-signs-out-other-devices/28-admin-open-settings-user-notifications",
+      "checks": [
+        {
+          "name": "open /settings/user/notifications",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "29-a-password-changed-alert-is-in-the-inbox",
+      "folder": "settings-account/change-password-signs-out-other-devices/29-a-password-changed-alert-is-in-the-inbox",
+      "checks": [
+        {
+          "name": "page shows /Password changed/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/change-password-signs-out-other-devices"
+}

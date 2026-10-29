@@ -1,0 +1,162 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components" [expanded]
+      - region "Components":
+        - list:
+          - listitem:
+            - button "Table View" [expanded]
+            - region "Table View":
+              - list:
+                - listitem:
+                  - link "Drawer Mode":
+                    - /url: /table-view/table-view-drawer
+                - listitem:
+                  - link "Modal Mode":
+                    - /url: /table-view/table-view-modal
+                - listitem:
+                  - link "Page Mode (Auto URLs)":
+                    - /url: /table-view/table-view-page
+                - listitem:
+                  - link "Page Mode (custom URLs)":
+                    - /url: /table-view/table-view-page-custom-urls
+                - listitem:
+                  - link "Density & sticky header":
+                    - /url: /table-view/table-view-density
+                - listitem:
+                  - link "Compact list":
+                    - /url: /table-view/table-view-compact-list
+                - listitem:
+                  - link "Expandable rows":
+                    - /url: /table-view/table-view-expandable-rows
+                - listitem:
+                  - link "Cell displays":
+                    - /url: /table-view/table-view-cell-displays
+                - listitem:
+                  - link "Views & grouped display":
+                    - /url: /table-view/table-view-views
+                - listitem:
+                  - link "URL query filters":
+                    - /url: /table-view/table-view-query-filters
+                - listitem:
+                  - link "Sources":
+                    - /url: /table-view/table-view-sources
+                - listitem:
+                  - link "API request log (side panel)":
+                    - /url: /table-view/table-view-request-log
+                - listitem:
+                  - link "Filter tabs 92":
+                    - /url: /table-view/table-view-tabs
+                - listitem:
+                  - link "Form field groups":
+                    - /url: /table-view/table-view-grouped
+                - listitem:
+                  - link "Custom Row Actions":
+                    - /url: /table-view/table-view-custom-row-actions
+                - listitem:
+                  - link "Conditional Delete":
+                    - /url: /table-view/table-view-conditional-delete
+                - listitem:
+                  - link "Archive Mode":
+                    - /url: /table-view/table-view-archive
+                - listitem:
+                  - link "Kanban":
+                    - /url: /table-view/table-view-kanban
+                - listitem:
+                  - link "Kanban & cards (no grid)":
+                    - /url: /table-view/table-view-kanban-custom-card
+                - listitem:
+                  - link "Rows ordered by hand":
+                    - /url: /table-view/table-view-reorder
+                - listitem:
+                  - link "Cards (Custom Display)":
+                    - /url: /table-view/table-view-cards-display
+                - listitem:
+                  - link "Relation · Key":
+                    - /url: /table-view/table-view-relation-key
+                - listitem:
+                  - link "Relation · DMS Member (tenant)":
+                    - /url: /table-view/table-view-relation-dms-member
+                - listitem:
+                  - link "Cascader · Categories":
+                    - /url: /table-view/table-view-cascader-categories
+                - listitem:
+                  - link "Cascader · Products":
+                    - /url: /table-view/table-view-cascader-products
+                - listitem:
+                  - link "Users 15":
+                    - /url: /table-view/table-view-users
+                - listitem:
+                  - link "Gate Bypass":
+                    - /url: /table-view/table-view-gate-bypass
+          - listitem:
+            - button "Form"
+          - listitem:
+            - button "Charts"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem: Table View
+      - listitem:
+        - link "Users":
+          - /url: /table-view/table-view-users
+      - listitem:
+        - link "demo.forms.user.new_title":
+          - /url: /table-view/table-view-users/table/new
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "demo.forms.user.new_title" [level=1]
+- paragraph: demo.forms.user.new_description
+- text: Name
+- textbox "Name":
+  - /placeholder: Enter user name
+  - text: Verify User d91c8b
+- text: Email
+- textbox "Email":
+  - /placeholder: Enter email address
+  - text: table-user+20261029t055349-77b0cc-table-create-record@verify.local
+- text: Avatar
+- textbox "Avatar":
+  - /placeholder: Avatar URL
+- paragraph: Required fields
+- button "Cancel"
+- button "Create"
+- region "Notifications (F8)":
+  - list

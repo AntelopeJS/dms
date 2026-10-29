@@ -1,0 +1,202 @@
+{
+  "feature": "settings-account",
+  "journey": "language-region-persists",
+  "title": "choosing French switches the dashboard at once, survives a reload and shows on the account; a 24-hour clock persists too",
+  "entryPoint": "Settings > Language & region",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j047",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/language-region-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/language-region-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-region",
+      "folder": "settings-account/language-region-persists/08-admin-open-settings-user-region",
+      "checks": [
+        {
+          "name": "open /settings/user/region",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-combobox-application-language",
+      "folder": "settings-account/language-region-persists/09-admin-click-combobox-application-language",
+      "checks": [
+        {
+          "name": "click combobox \"Application language\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-option-fran-ais",
+      "folder": "settings-account/language-region-persists/10-admin-click-option-fran-ais",
+      "checks": [
+        {
+          "name": "click option \"Français\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "11-the-page-switches-to-french-and-says-it-saved",
+      "folder": "settings-account/language-region-persists/11-the-page-switches-to-french-and-says-it-saved",
+      "checks": [
+        {
+          "name": "heading \"Langue et région\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        },
+        {
+          "name": "page shows /Enregistré/",
+          "pass": true,
+          "detail": "Rechercher… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Paramètres / Compte / Langue et région 1 Paramètres / Tous les réglages COMPTE …"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-reload",
+      "folder": "settings-account/language-region-persists/12-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "13-a-reload-keeps-french",
+      "folder": "settings-account/language-region-persists/13-a-reload-keeps-french",
+      "checks": [
+        {
+          "name": "heading \"Langue et région\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        },
+        {
+          "name": "combobox \"Langue de l'application\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "16-the-account-and-its-preferences-hold-french",
+      "folder": "settings-account/language-region-persists/16-the-account-and-its-preferences-hold-french",
+      "checks": [
+        {
+          "name": "language",
+          "pass": true,
+          "detail": "expected \"fr\", got \"fr\""
+        },
+        {
+          "name": "preference language",
+          "pass": true,
+          "detail": "expected \"fr\", got \"fr\""
+        }
+      ]
+    },
+    {
+      "name": "21-admin2-signed-in-as-admin2",
+      "folder": "settings-account/language-region-persists/21-admin2-signed-in-as-admin2",
+      "checks": [
+        {
+          "name": "admin2 signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "22-admin2-open-settings",
+      "folder": "settings-account/language-region-persists/22-admin2-open-settings",
+      "checks": [
+        {
+          "name": "open /settings",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "23-another-browser-signed-in-as-the-account-is-in-french-too",
+      "folder": "settings-account/language-region-persists/23-another-browser-signed-in-as-the-account-is-in-french-too",
+      "checks": [
+        {
+          "name": "heading \"Paramètres\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-click-combobox-langue-de-l-application",
+      "folder": "settings-account/language-region-persists/24-admin-click-combobox-langue-de-l-application",
+      "checks": [
+        {
+          "name": "click combobox \"Langue de l'application\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "25-admin-click-option-english",
+      "folder": "settings-account/language-region-persists/25-admin-click-option-english",
+      "checks": [
+        {
+          "name": "click option \"English\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "27-switching-back-restores-english",
+      "folder": "settings-account/language-region-persists/27-switching-back-restores-english",
+      "checks": [
+        {
+          "name": "heading \"Language & region\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:38941/settings/user/region"
+        },
+        {
+          "name": "language",
+          "pass": true,
+          "detail": "expected \"en\", got \"en\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/language-region-persists"
+}

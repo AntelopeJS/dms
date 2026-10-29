@@ -1,0 +1,17 @@
+[
+  {
+    "name": "HTTP 400",
+    "pass": true,
+    "detail": "status 400: \"error.admin_already_set\""
+  },
+  {
+    "name": "error",
+    "pass": true,
+    "detail": "expected \"error.admin_already_set\", got \"error.admin_already_set\""
+  },
+  {
+    "name": "owners",
+    "pass": true,
+    "detail": "expected [\"admin+20261029t055349-77b0cc@verify.local\"], got [\"admin+20261029t055349-77b0cc@verify.local\"]"
+  }
+]

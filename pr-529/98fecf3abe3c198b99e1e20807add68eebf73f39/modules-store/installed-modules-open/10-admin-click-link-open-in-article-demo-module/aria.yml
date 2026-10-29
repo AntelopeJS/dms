@@ -1,0 +1,73 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- text: Demo Module
+- navigation:
+  - list:
+    - listitem: Demo Pages
+    - listitem:
+      - link "Welcome":
+        - /url: /modules/demo/pages/welcome
+    - listitem:
+      - link "Contact Form":
+        - /url: /modules/demo/pages/contact
+    - listitem:
+      - button "Tools"
+- navigation:
+  - list:
+    - listitem:
+      - link "Back":
+        - /url: /modules
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t055349-77b0cc@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Modules":
+          - /url: /modules
+      - listitem:
+        - link "Demo Module":
+          - /url: /modules/demo/pages/contact
+      - listitem: Demo Pages
+      - listitem:
+        - link "Contact Form":
+          - /url: /modules/demo/pages/contact
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "Contact Form" [level=1]
+- paragraph: "Demonstrates: a module page and the module's landingPage: /modules/demo opens here."
+- banner:
+  - heading "Contact Us" [level=2]
+  - paragraph: Send us a message and we'll get back to you
+- text: Full Name
+- paragraph: Your full name
+- textbox "Full Name":
+  - /placeholder: Jane Doe
+- text: Email
+- paragraph: Your email address
+- textbox "Email":
+  - /placeholder: jane@example.com
+- text: Subject
+- paragraph: What is your message about?
+- combobox "Subject": Select a subject...
+- text: Message
+- paragraph: Your message
+- textbox "Message":
+  - /placeholder: Write your message here...
+- text: Subscribe to newsletter
+- paragraph: Receive product news and updates
+- switch "Subscribe to newsletter"
+- paragraph: Required fields
+- button "Send message"
+- region "Notifications (F8)":
+  - list

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"hiddenEntries\":[\"modules\",\"modules.store\",\"settings.workspace.members\",\"settings.workspace.invites\",\"settings.workspace.roles\",\"modules.demo.pages.contact\",\"modules.demo.pages.tools.diagnostics\",\"modules.demo.pages.welcome\",\"modules.plain.info\",\"examples.overview\",\"examples.features\",\"library.layo"
+  },
+  {
+    "name": "Roles is hidden in the preview",
+    "pass": true,
+    "detail": "242"
+  },
+  {
+    "name": "Playground is not hidden in the preview",
+    "pass": true,
+    "detail": "242"
+  },
+  {
+    "name": "heading \"Playground\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/playground"
+  },
+  {
+    "name": "heading \"Forbidden\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/workspace/roles"
+  }
+]

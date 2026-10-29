@@ -1,0 +1,17 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"62dc1136-e591-4bfa-857f-141cd02e7d39\",\"createdAt\":\"2026-10-29T05:57:56.294Z\",\"updatedAt\":\"2026-10-29T05:57:56.316Z\",\"name\":\"Bob Tester\",\"email\":\"bob+20261029t055349-77b0cc-invite-accept-lists-member@verify.local\",\"isValidated\":true,\"owner\":false,\"language\":\"en\",\"_instance\":null,\"lastActiveAt"
+  },
+  {
+    "name": "email",
+    "pass": true,
+    "detail": "expected \"bob+20261029t055349-77b0cc-invite-accept-lists-member@verify.local\", got \"bob+20261029t055349-77b0cc-invite-accept-lists-member@verify.local\""
+  },
+  {
+    "name": "owner",
+    "pass": true,
+    "detail": "expected false, got false"
+  }
+]

@@ -1,0 +1,10 @@
+- dialog "Remove Iris from the workspace?":
+  - heading "Remove Iris from the workspace?" [level=2]
+  - paragraph: They’re signed out of the workspace right away and lose access to its data. Their account and other workspaces aren’t affected.
+  - button "Close"
+  - list:
+    - listitem: Roles removed Support 9a7a70
+    - listitem: Records they created stay
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Remove member"

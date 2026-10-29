@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Page not found\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/no-such-page-here"
+  },
+  {
+    "name": "page shows /Error 404/i",
+    "pass": true,
+    "detail": "ERROR 404 Page not found The page you are looking for does not exist or has been moved. Go to home Go back © Antelope Documentation Website English"
+  }
+]

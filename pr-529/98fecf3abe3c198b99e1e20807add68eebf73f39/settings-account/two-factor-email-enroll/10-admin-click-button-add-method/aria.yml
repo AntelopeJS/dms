@@ -1,0 +1,4 @@
+- menu "Add method":
+  - group:
+    - menuitem "Authenticator app"
+    - menuitem "Email verification"

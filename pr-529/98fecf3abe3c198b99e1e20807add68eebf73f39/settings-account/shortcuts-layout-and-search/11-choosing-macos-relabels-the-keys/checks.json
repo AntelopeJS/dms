@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /Open command palette\\s+⌘\\s*K/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+  },
+  {
+    "name": "page does not show /Open command palette\\s+Ctrl\\s*K/i",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t055349-77b0cc@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+  }
+]

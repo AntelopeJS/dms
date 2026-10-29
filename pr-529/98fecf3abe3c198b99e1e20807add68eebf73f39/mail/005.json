@@ -1,0 +1,12 @@
+{
+  "from": "<>",
+  "to": [
+    "<erin+20261029t055349-77b0cc-invite-revoke-refuses-link@verify.local>"
+  ],
+  "subject": "Verify Admin invited you to join Default on AntelopeJS",
+  "links": [
+    "http://127.0.0.1:38941/auth/signup?token=OQrrutBNfZu47qMwKHS7NaIKcDcZYrBCZe3EHaYc9LW2vofhQ0S3STgATrxqBVxx&email=erin%2B20261029t055349-77b0cc-invite-revoke-refuses-link%40verify.local&lang=en"
+  ],
+  "text": "You're invited to Default Hello, Verify Admin invited you to join Default on AntelopeJS. Click the button below to create your account: Create Account This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.",
+  "receivedAt": "2026-10-29T05:58:32.414Z"
+}

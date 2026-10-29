@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Update password\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/settings/user/security"
+  }
+]

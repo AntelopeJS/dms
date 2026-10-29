@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Page not found\" is absent",
+    "pass": false,
+    "detail": "http://127.0.0.1:38941/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQ2NWUxMGFiLTUxODUtNDQ0MS05MDBlLTkyYWJjNmE3NTAxOCIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1MzYwMSwiZXhwIjoxNzkzMjU0NTAxfQ.2pMVhQu6VzNBegx2uU-fgsQJQonPOgzUar57VpuSXbg"
+  },
+  {
+    "name": "page shows /workspace/i",
+    "pass": false,
+    "detail": "ERROR 404 Page not found The page you are looking for does not exist or has been moved. Go to home Go back © Antelope Documentation Website English"
+  }
+]

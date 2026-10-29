@@ -1,0 +1,17 @@
+[
+  {
+    "name": "register",
+    "pass": true,
+    "detail": "expected 200, got 200"
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"7f95afdd-50f4-49a0-860b-ebddd5ee0c13\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t055349-77b0cc-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
+  },
+  {
+    "name": "tokens issued",
+    "pass": true,
+    "detail": "recordId, access, refresh"
+  }
+]

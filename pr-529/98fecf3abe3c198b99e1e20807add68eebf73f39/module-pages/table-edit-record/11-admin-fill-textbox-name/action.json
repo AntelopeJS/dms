@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Name\"",
+  "value": "Ada Renamed 67bd4b",
+  "baseUrl": "http://127.0.0.1:38941"
+}

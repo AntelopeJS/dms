@@ -1,0 +1,44 @@
+{
+  "feature": "block-preview",
+  "journey": "preview-postmessage-render",
+  "title": "an embedding page draws a tree through postMessage after the frame says it is ready",
+  "entryPoint": "/dms-preview in an iframe, postMessage channel dms-preview",
+  "status": "PASS",
+  "database": "verify_20261029T055349_77b0cc_j076",
+  "steps": [
+    {
+      "name": "02-preview-the-embedding-page-after-render",
+      "folder": "block-preview/preview-postmessage-render/02-preview-the-embedding-page-after-render",
+      "checks": [
+        {
+          "name": "the embedding page after render",
+          "pass": true,
+          "detail": "about:blank"
+        }
+      ]
+    },
+    {
+      "name": "03-the-frame-announces-ready-and-draws-the-posted-tree",
+      "folder": "block-preview/preview-postmessage-render/03-the-frame-announces-ready-and-draws-the-posted-tree",
+      "checks": [
+        {
+          "name": "the frame posted ready",
+          "pass": true,
+          "detail": "true"
+        },
+        {
+          "name": "the posted KpiCard is drawn",
+          "pass": true,
+          "detail": "true"
+        },
+        {
+          "name": "the frame reported its height",
+          "pass": true,
+          "detail": "resize message"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "block-preview/preview-postmessage-render"
+}

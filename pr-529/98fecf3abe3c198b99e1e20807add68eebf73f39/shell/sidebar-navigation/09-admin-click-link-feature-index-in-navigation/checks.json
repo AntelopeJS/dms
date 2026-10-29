@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click link \"Feature index\" in navigation",
+    "pass": true,
+    "detail": "http://127.0.0.1:38941/examples/features"
+  }
+]
