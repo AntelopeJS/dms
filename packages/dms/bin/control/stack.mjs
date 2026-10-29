@@ -31,7 +31,6 @@ import {
 } from "./run-state.mjs";
 import { newPassword } from "./session.mjs";
 
-const ENVIRONMENT = "docs";
 const READY_TIMEOUT_MS = 180_000;
 const SECRET_BYTES = 32;
 const COPY_SKIPPED = new Set(["node_modules", ".antelope", ".dms-frontend"]);
@@ -50,6 +49,9 @@ export const PACKAGE_ROOT = resolve(import.meta.dirname, "..", "..");
 
 /** The dms-control entry, which also serves the mail sink and the browser. */
 export const CONTROL_BIN = join(PACKAGE_ROOT, "bin", "dms-control.mjs");
+
+/** The AntelopeJS environment every run builds and starts. */
+export const ENVIRONMENT = "docs";
 
 /**
  * The folders the project's dependencies resolve from: the playground, the
@@ -100,7 +102,7 @@ function shadowLevel(real, shadow, keep) {
  * @param {string} root The run's copy of the checkout
  * @returns {string} The run's playground folder
  */
-function layOutCopy(playground, checkout, root) {
+export function layOutCopy(playground, checkout, root) {
   const segments = relative(checkout, playground).split(sep);
   let real = checkout;
   let shadow = root;
@@ -215,12 +217,23 @@ async function initialState(options) {
   };
 }
 
-function spec(state, name, script, args) {
+/**
+ * How to run one of the playground's CLIs for the run: its own log, the
+ * run's environment, from the run's playground copy or `cwd`.
+ *
+ * @param {Record<string, any>} state The run
+ * @param {string} name The log name
+ * @param {string} script The CLI script
+ * @param {string[]} args Its arguments
+ * @param {string} [cwd] Where to run it
+ * @returns {{ name: string, program: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, logs: string }} The process spec
+ */
+export function spec(state, name, script, args, cwd = state.runPlayground) {
   return {
     name,
     program: process.execPath,
     args: [script, ...args],
-    cwd: state.runPlayground,
+    cwd,
     env: runEnv(state),
     logs: state.logs,
   };
@@ -255,16 +268,16 @@ export async function ensureMail(state) {
   await waitForPort(state.smtpPort, mail, READY_TIMEOUT_MS);
 }
 
-async function startBackend(state) {
-  const { ajs } = cliPaths(state.playground);
+async function startBackend(state, build) {
+  const { ajs } = cliPaths(build?.playground ?? state.playground);
   const backend = startDetached(
-    spec(state, "backend", ajs, [
-      "project",
-      "start",
-      "-e",
-      ENVIRONMENT,
-      "--refresh-config",
-    ]),
+    spec(
+      state,
+      "backend",
+      ajs,
+      ["project", "start", "-e", ENVIRONMENT, "--refresh-config"],
+      build?.cwd,
+    ),
   );
   record(state, { ...backend, port: state.apiPort });
   await waitForOk(
@@ -342,15 +355,17 @@ export async function up(options) {
 
 /**
  * Stops the backend and starts it again on `state.database`, as a deploy or
- * a crash would. The frontend keeps serving and proxies to the same port.
+ * a crash would, from the run's build or another one (`build`, the base
+ * version's). The frontend keeps serving and proxies to the same port.
  *
  * @param {Record<string, any>} state The run
+ * @param {{ playground: string, cwd: string }} [build] Another build to start
  * @returns {Promise<void>} Resolves once the backend answers again
  */
-export async function restartBackend(state) {
+export async function restartBackend(state, build) {
   const backend = state.processes.find((entry) => entry.name === "backend");
   if (backend) await stopAll([backend.pid]);
-  await startBackend(state);
+  await startBackend(state, build);
 }
 
 /**
@@ -402,7 +417,7 @@ export async function down(state) {
     state.root,
     state.home,
     state.mongo,
-    state.browserProfile,
+    state.baseRoot,
     state.cache,
   ]) {
     if (folder && existsSync(folder)) {

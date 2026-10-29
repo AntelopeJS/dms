@@ -74,13 +74,21 @@ async function featureProblems(skill, feature, tracked) {
   return problems;
 }
 
-function doorProblems(skill) {
+function doorProblems(skill, tracked) {
   const problems = [];
   for (const [kind, rule] of Object.entries(skill.config.doors)) {
-    if (rule && !existsSync(join(skill.seededDoorsDir, `${kind}.patch`))) {
+    if (!rule) continue;
+    if (!existsSync(join(skill.seededDoorsDir, `${kind}.patch`))) {
       problems.push(
         `seeded-doors/${kind}.patch is missing for the ${kind} door rule`,
       );
+    }
+    for (const glob of [...rule.globs, ...rule.funnels]) {
+      if (!tracked.some((path) => matchesGlob(path, glob))) {
+        problems.push(
+          `verify.config.ts: ${kind} door glob ${glob} matches no tracked file`,
+        );
+      }
     }
   }
   return problems;
@@ -89,8 +97,8 @@ function doorProblems(skill) {
 /**
  * Checks the map against the repository: every user-facing file is
  * covered, every feature has journeys, each described in its file, a
- * seeded break and existing docs pages, every glob matches a tracked file,
- * and every door rule has a seeded door.
+ * seeded break and existing docs pages, every feature and door glob
+ * matches a tracked file, and every door rule has a seeded door.
  *
  * @param {Record<string, any>} skill The skill
  * @returns {Promise<string[]>} One line per problem
@@ -116,7 +124,7 @@ export async function checkMap(skill) {
       }
     }
   }
-  return [...problems, ...doorProblems(skill)];
+  return [...problems, ...doorProblems(skill, tracked)];
 }
 
 /**

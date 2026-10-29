@@ -42,6 +42,7 @@ async function commandJourney(dir, feature, ids, values) {
     file: journeysFile(skill, feature),
     feature,
     ids,
+    skill,
   });
   for (const result of results.filter((entry) => entry.status === "FAIL")) {
     print(

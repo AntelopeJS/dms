@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/routes/onboarding.ts b/packages/dms/src/routes/onboarding.ts
+index 4e2b31c9..f807bfb4 100644
+--- a/packages/dms/src/routes/onboarding.ts
++++ b/packages/dms/src/routes/onboarding.ts
+@@ -75,7 +75,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
+       updatedAt: new Date(),
+       isValidated: true,
+       authKey: generateAuthKey(),
+-      owner: true,
++      owner: false,
+       language: data.language ?? DEFAULT_ADMIN_LANGUAGE,
+     });
+ 

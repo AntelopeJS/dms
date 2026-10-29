@@ -72,6 +72,11 @@ async function main(argv) {
   return command ? 2 : 0;
 }
 
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(process.exitCode ?? 0);
+  throw error;
+});
+
 try {
   process.exitCode = await main(process.argv.slice(2));
 } catch (error) {

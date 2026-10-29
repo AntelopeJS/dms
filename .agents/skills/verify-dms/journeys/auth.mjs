@@ -153,4 +153,43 @@ export const journeys = [
       await ctx.verify("the password is unchanged", [ctx.status(withOld, 200)]);
     },
   },
+  {
+    id: "base-written-data-upgrade",
+    title: "an owner, a session and a record written by the base version are read by this version (Format containment)",
+    entryPoint: "the base ref's backend, then this one, on the same database",
+    onboard: false,
+    async run(ctx) {
+      const admin = ctx.adminCredentials();
+      const written = {};
+      await ctx.withBaseBackend(async () => {
+        const answer = await ctx.onboard({ platformName: "Written by the base version" });
+        const created = await ctx.api("create a record with the base version", {
+          method: "POST",
+          path: "/api/user/new",
+          body: { name: "Base Record", email: ctx.email("base-record"), avatar: "https://example.com/avatar.png" },
+        });
+        const session = await login(ctx, "sign in with the base version", admin.email, admin.password);
+        Object.assign(written, { recordId: created.body?._id, access: session.body?.access_token, refresh: session.body?.refresh_token });
+        await ctx.verify("the base version onboards, writes a record and opens a session", [
+          ctx.equal("register", answer.register.status, 200),
+          ctx.status(created, 200),
+          ctx.holds("tokens issued", written.access && written.refresh, Object.keys(written).join(", ")),
+        ]);
+      });
+      const me = await ctx.api("read the account with the base access token", { method: "GET", path: "/api/auth/me", token: written.access });
+      const refreshed = await ctx.api("refresh the base session", { method: "POST", path: "/api/auth/refresh", as: "anon", body: { token: written.refresh } });
+      const relogin = await login(ctx, "sign in with this version", admin.email, admin.password);
+      const users = await ctx.api("read the base record", { method: "GET", path: "/api/user/list?limit=100" });
+      await ctx.verify("this version reads what the base version wrote", [
+        ctx.status(me, 200),
+        ctx.equal("the account behind the base token", me.body?.email, admin.email),
+        ctx.holds("the base refresh token refreshes", refreshed.status === 200 && refreshed.body?.access_token, refreshed.status),
+        ctx.status(relogin, 200),
+        ctx.holds("the record is listed", (users.body?.results ?? []).some((user) => user._id === written.recordId), written.recordId),
+      ]);
+      const tab = await ctx.tab("admin");
+      await tab.signIn("admin");
+      await ctx.verify("the owner signs in through the form", [tab.visible({ role: "button", name: "Verify Admin" })]);
+    },
+  },
 ];

@@ -56,6 +56,7 @@ Signing in and out, the sign-in redirect of protected pages, and password recove
 - `logout-ends-session`: account menu > Logout returns to sign-in, and the settings page asks to sign in again.
 - `forgot-password-resets`: the emailed 6-character code opens the new password form; the new password signs in and the old one answers 401.
 - `forgot-password-wrong-code`: error path: a wrong code says it is invalid and the old password still signs in.
+- `base-written-data-upgrade`: Format containment: the base ref's backend (built once per commit under `~/.cache/dms-control/base/`) onboards the owner, writes a record and opens a session on the journey's database; this version then accepts the base access token, refreshes the base refresh token, signs the owner in and lists the record.
 
 ## How to get to it (user POV)
 

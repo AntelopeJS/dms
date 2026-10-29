@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
+import { withBaseBackend } from "./base.mjs";
 import { launchBrowser, newContext } from "./browser.mjs";
 import { capturedMail } from "./mail.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -76,8 +77,9 @@ function holds(name, pass, detail) {
  * folders under `<run>/evidence/<feature>/<journey>/`.
  */
 export class JourneyContext {
-  constructor(state, feature, journey, browser) {
+  constructor(state, feature, journey, browser, skill) {
     this.state = state;
+    this.skill = skill;
     this.feature = feature;
     this.journey = journey;
     this.browser = browser;
@@ -135,8 +137,17 @@ export class JourneyContext {
     return new Tab(this, await this.contexts.get(account).newPage(), label);
   }
 
-  /** Calls the backend as `as` (an account, or `anon`; `admin` by default) and records the exchange. */
+  /**
+   * Calls the backend as `as` (an account, or `anon`; `admin` by default),
+   * or with an explicit `token` and no retry, and records the exchange.
+   */
   api(label, request) {
+    if (request.token) {
+      return recordedRequest(this.step(`api ${label}`), {
+        ...request,
+        url: `${this.state.apiUrl}${request.path}`,
+      });
+    }
     return apiRequest(this.state, {
       ...request,
       as: request.as ?? "admin",
@@ -185,6 +196,20 @@ export class JourneyContext {
   /** Creates the administrator through `POST /api/onboarding/register`, then signs it in. */
   onboard(options = {}) {
     return onboard(this.state, options);
+  }
+
+  /**
+   * Runs `action` against the base version's backend on the same database,
+   * then the run's own backend again: data written inside `action` is data
+   * the previous release wrote. Records the base commit as a step.
+   */
+  async withBaseBackend(action) {
+    const sha = await withBaseBackend(this.state, this.skill, action);
+    writeJson(join(this.step("base version"), "base.json"), {
+      baseRef: this.state.baseRef,
+      sha,
+    });
+    return sha;
   }
 
   /** Restarts the backend on the same database, to prove what persists. */
@@ -258,9 +283,15 @@ async function prepare(state, feature, journey, context) {
  * @param {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} journey The journey
  * @returns {Promise<Record<string, any>>} The result
  */
-export async function runJourney(state, feature, journey) {
+export async function runJourney(state, feature, journey, skill) {
   const browser = await launchBrowser(resolutionFolders(state));
-  const context = new JourneyContext(state, feature, journey.id, browser);
+  const context = new JourneyContext(
+    state,
+    feature,
+    journey.id,
+    browser,
+    skill,
+  );
   let error = null;
   try {
     await prepare(state, feature, journey, context);
@@ -311,7 +342,7 @@ export async function loadJourneys(file) {
  * into `<feature>/feature.json` so a partial run never drops earlier ones.
  *
  * @param {Record<string, any>} state The run
- * @param {{ file: string, feature: string, ids: string[] }} request Which journeys
+ * @param {{ file: string, feature: string, ids: string[], skill: Record<string, any> }} request Which journeys, and the skill they belong to
  * @returns {Promise<Record<string, any>[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {
@@ -330,7 +361,9 @@ export async function runJourneyFile(state, request) {
       : journeys;
   const results = [];
   for (const journey of selected)
-    results.push(await runJourney(state, request.feature, journey));
+    results.push(
+      await runJourney(state, request.feature, journey, request.skill),
+    );
   const file = join(state.evidence, request.feature, "feature.json");
   const earlier = existsSync(file)
     ? JSON.parse(readFileSync(file, "utf8"))

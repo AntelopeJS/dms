@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/routes/auth/switch-tenant.ts b/packages/dms/src/routes/auth/switch-tenant.ts
+index ee284201..355d34c5 100644
+--- a/packages/dms/src/routes/auth/switch-tenant.ts
++++ b/packages/dms/src/routes/auth/switch-tenant.ts
+@@ -44,7 +44,7 @@ export async function switchTenant(
+   const user = await userModel.get(tokenPayload.id);
+   assert(user, 401, "error.invalid_token");
+ 
+-  await assertMembership(user._id, tenantId);
++  await assertMembership(user._id, tokenPayload.tenantId);
+ 
+   if (tokenPayload.sessionId) {
+     const session = await sessionModel.get(tokenPayload.sessionId);
