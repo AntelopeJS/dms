@@ -84,62 +84,136 @@ function propertyName(ts, node) {
 }
 
 /**
- * Where each value-imported binding of a file comes from: the resolved module
- * and the imported name, so an alias or a swapped specifier changes what a
- * use refers to. A binding from a covered module is its imported name alone,
- * the same as a local declaration of it, so moving a declaration between
- * covered files keeps every use the same.
+ * A binding from a covered module is its name alone when it is a function
+ * declaration, which may move between covered files, and `module#name`
+ * otherwise, so a variable or class of one file never reads as one of the same
+ * name in another.
+ *
+ * @param {{ modules: Set<string>, functions: Set<string> }} covered The covered modules and function names
+ * @param {string} module The resolved module
+ * @param {string} name The imported name
+ * @returns {string} The origin
+ */
+function bindingOrigin(covered, module, name) {
+  return covered.modules.has(module) && covered.functions.has(name)
+    ? name
+    : `${module}#${name}`;
+}
+
+function importedBindings(ts, clause, module, covered) {
+  const named = clause.namedBindings;
+  const bindings = [];
+  if (clause.name)
+    bindings.push([
+      clause.name.text,
+      bindingOrigin(covered, module, "default"),
+    ]);
+  if (named && ts.isNamespaceImport(named))
+    bindings.push([named.name.text, bindingOrigin(covered, module, "*")]);
+  if (named && ts.isNamedImports(named))
+    for (const element of named.elements)
+      bindings.push([
+        element.name.text,
+        bindingOrigin(
+          covered,
+          module,
+          (element.propertyName ?? element.name).text,
+        ),
+      ]);
+  return bindings;
+}
+
+function reexportTexts(ts, statement, module, covered) {
+  const exported = statement.exportClause;
+  const inside = covered.modules.has(module);
+  if (exported === undefined) return inside ? [] : [`export * from ${module}`];
+  if (ts.isNamespaceExport(exported))
+    return inside ? [] : [`export * as ${exported.name.text} from ${module}`];
+  return exported.elements.flatMap((element) => {
+    const origin = bindingOrigin(
+      covered,
+      module,
+      (element.propertyName ?? element.name).text,
+    );
+    return origin === element.name.text
+      ? []
+      : [`export ${origin} as ${element.name.text}`];
+  });
+}
+
+/**
+ * The exports of a file that name a local or imported binding, keyed by the
+ * origin of what they export. An export under its own name of a local needs no
+ * entry, the same as an `export` keyword, so only a renamed local and any
+ * imported binding does.
+ */
+function localExportTexts(ts, statement, bindings, locals) {
+  const exported = statement.exportClause;
+  if (exported === undefined || !ts.isNamedExports(exported)) return [];
+  return exported.elements.flatMap((element) => {
+    const name = (element.propertyName ?? element.name).text;
+    const imported = bindings.get(name);
+    const origin = imported ?? locals.get(name) ?? name;
+    const own = imported === undefined && name === element.name.text;
+    return own || origin === element.name.text
+      ? []
+      : [`export ${origin} as ${element.name.text}`];
+  });
+}
+
+/**
+ * Where each value-imported binding of a file comes from: the resolved
+ * module and the imported name, so an alias or a swapped specifier changes
+ * what a use refers to. A binding from a covered module is its name alone
+ * when it is a function declaration, so moving the declaration between
+ * covered files keeps every use the same; any other binding is keyed by its
+ * module. Side-effect imports keep their order in the file. Re-exports and
+ * renamed or imported exports become entries keyed by the origin they export.
  *
  * @param {any} ts The TypeScript module
  * @param {string} path The file
- * @param {Set<string>} covered The covered modules, without extension
+ * @param {{ modules: Set<string>, functions: Set<string> }} covered The covered modules and function names
  * @param {any} file The emitted source file
- * @returns {{ bindings: Map<string, string>, entries: { structure: string, text: string, hoisted: boolean }[] }} The origins, and the side-effect imports and the re-exports of uncovered modules
+ * @param {Map<string, string>} locals The top-level variables and classes of the file, keyed by file and name
+ * @returns {{ bindings: Map<string, string>, entries: { structure: string, text: string, hoisted: boolean }[], ordered: { structure: string, text: string, hoisted: boolean }[] }} The origins; `entries` may move freely, `ordered` keep their order in the file
  */
-function originsOf(ts, path, covered, file) {
+function originsOf(ts, path, covered, file, locals) {
   const bindings = new Map();
-  const entries = [];
-  const origin = (module, name) =>
-    covered.has(module) && name !== "default" && name !== "*"
-      ? name
-      : `${module}#${name}`;
-  const entry = (text) => ({ structure: text, text, hoisted: true });
+  const texts = [];
+  const ordered = [];
+  const exports = [];
   for (const statement of file.statements) {
-    if (!statement.moduleSpecifier) continue;
-    const module = moduleKey(path, statement.moduleSpecifier.text);
+    if (
+      !(ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement))
+    )
+      continue;
+    const specifier = statement.moduleSpecifier;
+    if (specifier === undefined && ts.isExportDeclaration(statement))
+      exports.push(statement);
+    if (specifier === undefined) continue;
+    const module = moduleKey(path, specifier.text);
     if (ts.isImportDeclaration(statement)) {
-      const clause = statement.importClause;
-      if (clause === undefined) {
-        entries.push(entry(`import ${module}`));
+      if (statement.importClause === undefined) {
+        ordered.push(`import ${module}`);
         continue;
       }
-      if (clause.name)
-        bindings.set(clause.name.text, origin(module, "default"));
-      const named = clause.namedBindings;
-      if (named && ts.isNamespaceImport(named))
-        bindings.set(named.name.text, origin(module, "*"));
-      if (named && ts.isNamedImports(named))
-        for (const element of named.elements)
-          bindings.set(
-            element.name.text,
-            origin(module, (element.propertyName ?? element.name).text),
-          );
-    } else if (ts.isExportDeclaration(statement) && !covered.has(module)) {
-      const exported = statement.exportClause;
-      if (exported === undefined)
-        entries.push(entry(`export * from ${module}`));
-      else if (ts.isNamespaceExport(exported))
-        entries.push(entry(`export * as ${exported.name.text} from ${module}`));
-      else
-        for (const element of exported.elements)
-          entries.push(
-            entry(
-              `export ${module}#${(element.propertyName ?? element.name).text} as ${element.name.text}`,
-            ),
-          );
-    }
+      for (const [name, origin] of importedBindings(
+        ts,
+        statement.importClause,
+        module,
+        covered,
+      ))
+        bindings.set(name, origin);
+    } else texts.push(...reexportTexts(ts, statement, module, covered));
   }
-  return { bindings, entries };
+  for (const statement of exports)
+    texts.push(...localExportTexts(ts, statement, bindings, locals));
+  const item = (text, hoisted) => ({ structure: text, text, hoisted });
+  return {
+    bindings,
+    entries: texts.map((text) => item(text, true)),
+    ordered: ordered.map((text) => item(text, false)),
+  };
 }
 
 function dropped(ts, node) {
@@ -169,7 +243,7 @@ function structureOf(ts, node, bindings) {
   return `${ts.SyntaxKind[node.kind]}(${leafOf(ts, node, bindings)}|${children.join(",")})`;
 }
 
-function emitted(ts, path, source) {
+function parseScript(ts, path, source) {
   const { outputText } = ts.transpileModule(source, {
     fileName: path,
     compilerOptions: {
@@ -179,13 +253,16 @@ function emitted(ts, path, source) {
       experimentalDecorators: true,
     },
   });
-  return ts.createSourceFile(
-    "emit.js",
-    outputText,
-    ts.ScriptTarget.ES2022,
-    true,
-    ts.ScriptKind.JS,
-  );
+  return {
+    path,
+    file: ts.createSourceFile(
+      "emit.js",
+      outputText,
+      ts.ScriptTarget.ES2022,
+      true,
+      ts.ScriptKind.JS,
+    ),
+  };
 }
 
 function readable(text) {
@@ -193,75 +270,142 @@ function readable(text) {
   return flat.length > TEXT_LENGTH ? `${flat.slice(0, TEXT_LENGTH)}…` : flat;
 }
 
-function scriptItems(ts, path, source, covered) {
-  const file = emitted(ts, path, source);
-  const { bindings, entries } = originsOf(ts, path, covered, file);
-  const statements = file.statements
+function declaredNames(ts, name) {
+  return ts.isIdentifier(name)
+    ? [name.text]
+    : name.elements.flatMap((element) =>
+        ts.isOmittedExpression(element) ? [] : declaredNames(ts, element.name),
+      );
+}
+
+function isFunctionDeclaration(ts, statement) {
+  return (
+    ts.isFunctionDeclaration(statement) &&
+    Boolean(statement.body) &&
+    statement.name !== undefined
+  );
+}
+
+/** The top-level variables, classes and enums of a script, each keyed by its file and name: what a function moved into another file must not pick up by name. */
+function localsOf(ts, script) {
+  const file = stripExtension(script.path);
+  const names = script.file.statements.flatMap((statement) => {
+    if (ts.isVariableStatement(statement))
+      return statement.declarationList.declarations.flatMap((declaration) =>
+        declaredNames(ts, declaration.name),
+      );
+    return (ts.isClassDeclaration(statement) ||
+      ts.isEnumDeclaration(statement)) &&
+      statement.name
+      ? [statement.name.text]
+      : [];
+  });
+  return new Map(names.map((name) => [name, `${file}#${name}`]));
+}
+
+function scriptItems(ts, script, covered) {
+  const locals = localsOf(ts, script);
+  const origins = originsOf(ts, script.path, covered, script.file, locals);
+  const inFunctions = new Map([...locals, ...origins.bindings]);
+  const statements = script.file.statements
     .filter(
       (statement) =>
         !ts.isImportDeclaration(statement) &&
         !ts.isExportDeclaration(statement),
     )
-    .map((statement) => ({
-      structure: structureOf(ts, statement, bindings),
-      text: readable(statement.getText(file)),
-      hoisted: ts.isFunctionDeclaration(statement) && Boolean(statement.body),
-    }));
-  return [...entries, ...statements];
+    .map((statement) => {
+      const hoisted =
+        ts.isFunctionDeclaration(statement) && Boolean(statement.body);
+      return {
+        structure: structureOf(
+          ts,
+          statement,
+          hoisted ? inFunctions : origins.bindings,
+        ),
+        text: readable(statement.getText(script.file)),
+        hoisted,
+      };
+    });
+  return [...origins.entries, ...origins.ordered, ...statements];
 }
 
-function vueItems(ts, path, source, covered) {
-  const scripts = [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)];
-  const template = /<template\b[^>]*>([\s\S]*)<\/template>/.exec(source);
-  const markup = template ? template[1].replace(/\s+/g, " ").trim() : null;
-  return [
-    ...scripts.flatMap(([, body]) =>
-      scriptItems(ts, `${path}.ts`, body, covered),
-    ),
-    ...(markup === null
-      ? []
-      : [
-          {
-            structure: `template(${markup})`,
-            text: readable(`<template> ${markup}`),
-            hoisted: false,
-          },
-        ]),
-  ];
-}
-
-function itemsOf(ts, path, source, covered) {
-  if (path.endsWith(".vue")) return vueItems(ts, path, source, covered);
+/** A covered file as its scripts and the items that are not scripts: a Vue template, or the whole text of any other file. */
+function parsedFile(ts, path, source) {
+  if (path.endsWith(".vue")) {
+    const template = /<template\b[^>]*>([\s\S]*)<\/template>/.exec(source);
+    const markup = template ? template[1].replace(/\s+/g, " ").trim() : null;
+    return {
+      path,
+      scripts: [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(
+        ([, body]) => parseScript(ts, `${path}.ts`, body),
+      ),
+      others:
+        markup === null
+          ? []
+          : [
+              {
+                structure: `template(${markup})`,
+                text: readable(`<template> ${markup}`),
+                hoisted: false,
+              },
+            ],
+    };
+  }
   if (CODE_EXTENSIONS.has(extname(path)))
-    return scriptItems(ts, path, source, covered);
+    return { path, scripts: [parseScript(ts, path, source)], others: [] };
   const flat = source.replace(/\s+/g, " ").trim();
-  return [{ structure: `file(${flat})`, text: readable(flat), hoisted: false }];
+  return {
+    path,
+    scripts: [],
+    others: [
+      { structure: `file(${flat})`, text: readable(flat), hoisted: false },
+    ],
+  };
 }
 
 /**
  * What the covered code does at a commit, as structure rather than text:
- * each covered file's top-level statements in order, and, apart, the
- * function declarations, side-effect imports and re-exports of every covered
- * file, which hoisting lets move freely. Each use of an imported binding
- * stands for its origin (resolved module and imported name), so retargeting
- * an import or an alias changes the fingerprint. Types, comments, formatting
- * and export keywords are left out, so a type-only edit, a reformat, or
- * moving a function declaration to another covered file keeps the same
- * fingerprint, while reordering or moving any other statement changes it.
+ * each covered file's top-level statements and side-effect imports in order,
+ * and, apart, the function declarations and exports keyed by origin of every
+ * covered file, which hoisting lets move freely. Each use of an imported
+ * binding stands for its origin (resolved module and imported name), and a
+ * function declaration refers to the top-level variables and classes of its
+ * own file by file and name, so retargeting an import, an alias or an export,
+ * or moving a function next to a different variable of the same name, changes
+ * the fingerprint. Types, comments, formatting and export keywords are left
+ * out, so a type-only edit, a reformat, or moving a function declaration to
+ * another covered file keeps the same fingerprint, while reordering or moving
+ * any other statement changes it.
  *
  * @param {string} repo The checkout
  * @param {string} sha The commit
  * @param {string[]} files The covered files
- * @returns {{ functions: { structure: string, text: string }[], files: Record<string, { structure: string, text: string }[]> }} The fingerprint
+ * @returns {{ functions: { structure: string, text: string, hoisted: boolean }[], files: Record<string, { structure: string, text: string, hoisted: boolean }[]> }} The fingerprint
  */
 export function emitFingerprint(repo, sha, files) {
   const ts = loadTypeScript(repo);
   const fingerprint = { functions: [], files: {} };
-  const covered = new Set(files.map(stripExtension));
-  for (const path of files) {
+  const parsed = files.flatMap((path) => {
     const source = fileAt(repo, sha, path);
-    if (source === null) continue;
-    const items = itemsOf(ts, path, source, covered);
+    return source === null ? [] : [parsedFile(ts, path, source)];
+  });
+  const covered = {
+    modules: new Set(files.map(stripExtension)),
+    functions: new Set(
+      parsed.flatMap(({ scripts }) =>
+        scripts.flatMap(({ file }) =>
+          file.statements
+            .filter((statement) => isFunctionDeclaration(ts, statement))
+            .map(({ name }) => name.text),
+        ),
+      ),
+    ),
+  };
+  for (const { path, scripts, others } of parsed) {
+    const items = [
+      ...scripts.flatMap((script) => scriptItems(ts, script, covered)),
+      ...others,
+    ];
     fingerprint.functions.push(...items.filter((item) => item.hoisted));
     fingerprint.files[path] = items.filter((item) => !item.hoisted);
   }

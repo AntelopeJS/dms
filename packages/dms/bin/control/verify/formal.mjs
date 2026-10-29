@@ -5,16 +5,24 @@ import { behaviourChange, inWorktree } from "./behaviour.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+function changesCheckFiles(check, changed) {
+  return changed.some((file) =>
+    (check.files ?? []).some((glob) => matchesGlob(file, glob)),
+  );
+}
+
 /**
- * The formal checks whose covered files a set of changed files touches.
+ * The formal checks whose covered files or own `files` a set of changed files touches.
  *
  * @param {Record<string, any>} skill The skill
  * @param {string[]} changed Repository paths
  * @returns {Record<string, any>[]} The checks
  */
 export function touchedFormalChecks(skill, changed) {
-  return skill.config.formal.filter((check) =>
-    changed.some((file) => check.covers.includes(file)),
+  return skill.config.formal.filter(
+    (check) =>
+      changed.some((file) => check.covers.includes(file)) ||
+      changesCheckFiles(check, changed),
   );
 }
 
@@ -73,9 +81,7 @@ function baseRules(skill, check, baseSha, folder) {
 
 function gateFields(skill, check, diff, folder, head) {
   const behaviour = behaviourChange(skill, check, diff);
-  const checkChanged = diff.changed.some((file) =>
-    (check.files ?? []).some((glob) => matchesGlob(file, glob)),
-  );
+  const checkChanged = changesCheckFiles(check, diff.changed);
   if (!behaviour.changed && !checkChanged)
     return { behaviour, checkChanged, base: null, fixed: [], missing: [] };
   const base = baseRules(skill, check, diff.baseSha, folder);
