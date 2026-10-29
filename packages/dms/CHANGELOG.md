@@ -1,5 +1,86 @@
 # Changelog
 
+## v0.12.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.11.1...v0.12.0)
+
+### 🚀 Enhancements
+
+- **interface-dms:** Expose stable default data type subpaths ([#475](https://github.com/AntelopeJS/dms/pull/475))
+- **frontend:** Enforce the backend boundary in production builds ([#501](https://github.com/AntelopeJS/dms/pull/501))
+- **skills:** Add the verify-dms verification skill, dms-control and formal checks ([#529](https://github.com/AntelopeJS/dms/pull/529))
+- **iface:** Layer interface-dms folders into one acyclic stack ([#539](https://github.com/AntelopeJS/dms/pull/539))
+
+### 🩹 Fixes
+
+- **relation:** Build cyclic relations and label rows without a label ([#471](https://github.com/AntelopeJS/dms/pull/471))
+- **iface:** Use the fallback when an error message is not a string ([#502](https://github.com/AntelopeJS/dms/pull/502))
+- **iface:** Pass consistent Date bounds from IsBetween ([#503](https://github.com/AntelopeJS/dms/pull/503))
+- **iface:** Normalize Action permissions when registering categories ([#504](https://github.com/AntelopeJS/dms/pull/504))
+- **iface:** Keep the original invite validation failure when the thrown value is null ([#505](https://github.com/AntelopeJS/dms/pull/505))
+- **frontend:** Propagate fetched ChartCard series during fresh SSR ([#506](https://github.com/AntelopeJS/dms/pull/506))
+- **iface:** Release a replaced page's component permission identities ([#507](https://github.com/AntelopeJS/dms/pull/507))
+- **dms:** Encode preview cache keys unambiguously ([#508](https://github.com/AntelopeJS/dms/pull/508))
+- **iface:** Keep a page's default permission when its Action is unbound ([#509](https://github.com/AntelopeJS/dms/pull/509))
+- **dms:** Skip persisted presence entries that miss required fields ([#510](https://github.com/AntelopeJS/dms/pull/510))
+- **iface:** Reject malformed footer summary rule operands ([#511](https://github.com/AntelopeJS/dms/pull/511))
+- **iface:** Refuse to build a notification without its required fields ([#512](https://github.com/AntelopeJS/dms/pull/512))
+- **frontend:** Add missing English member-status and form labels ([#513](https://github.com/AntelopeJS/dms/pull/513))
+- **frontend:** Attach native and create to $authFetch ([#514](https://github.com/AntelopeJS/dms/pull/514))
+- **iface:** Describe non-string Zod literals accurately ([#515](https://github.com/AntelopeJS/dms/pull/515))
+- **iface:** Narrow isPrimitive to primitive values ([#516](https://github.com/AntelopeJS/dms/pull/516))
+- **iface:** Reject symbol property keys in Searchable ([#517](https://github.com/AntelopeJS/dms/pull/517))
+- **dms:** Fail verify on recorded formal findings only when covered behaviour changes ([#540](https://github.com/AntelopeJS/dms/pull/540))
+
+### 💅 Refactors
+
+- **backend:** Remove ordinary comments ([#457](https://github.com/AntelopeJS/dms/pull/457))
+- **backend:** Derive types from their owners ([#458](https://github.com/AntelopeJS/dms/pull/458))
+- **backend:** Route dependencies through module entries ([#459](https://github.com/AntelopeJS/dms/pull/459))
+- **backend:** Split page implementation and oversize suites ([#460](https://github.com/AntelopeJS/dms/pull/460))
+- **frontend:** Remove implementation commentary ([#462](https://github.com/AntelopeJS/dms/pull/462))
+- **frontend:** Tighten types and lint ([#463](https://github.com/AntelopeJS/dms/pull/463))
+- **frontend:** Move shared services behind layer entries ([#469](https://github.com/AntelopeJS/dms/pull/469))
+- **frontend:** Split setup responsibilities and remove structural debt ([#470](https://github.com/AntelopeJS/dms/pull/470))
+- **playground:** Remove narrative comments ([#464](https://github.com/AntelopeJS/dms/pull/464))
+- **playground:** Derive types from demo contracts ([#465](https://github.com/AntelopeJS/dms/pull/465))
+- **playground:** Split feature catalogs and fixture literals ([#467](https://github.com/AntelopeJS/dms/pull/467))
+- **iface:** Remove comment debt without changing emit ([#453](https://github.com/AntelopeJS/dms/pull/453))
+- **iface:** Reduce type and lint debt ([#472](https://github.com/AntelopeJS/dms/pull/472))
+- **iface:** Extract private implementation bodies ([#473](https://github.com/AntelopeJS/dms/pull/473))
+- **iface:** Split table-view option type owners ([#474](https://github.com/AntelopeJS/dms/pull/474))
+- **iface:** Keep native async metadata orchestration ([#476](https://github.com/AntelopeJS/dms/pull/476))
+- Finish the dms cleanup and delete the ratchet ([#478](https://github.com/AntelopeJS/dms/pull/478))
+- **backend:** Remove type assertions in routes and pages ([#522](https://github.com/AntelopeJS/dms/pull/522))
+- **backend:** Remove type assertions in auth and table-view implementations ([#523](https://github.com/AntelopeJS/dms/pull/523))
+- **backend:** Remove type assertions in hooks, attachments, automation and fixtures ([#524](https://github.com/AntelopeJS/dms/pull/524))
+- **iface:** Remove type assertions in interface-dms ([#530](https://github.com/AntelopeJS/dms/pull/530))
+
+### 📦 Build
+
+- **playground:** Mark the playground package private ([#468](https://github.com/AntelopeJS/dms/pull/468))
+- Upgrade the guardrail pack to 0.2.6 for the cleanup stacks ([#452](https://github.com/AntelopeJS/dms/pull/452))
+- **playground:** Enforce source import boundaries ([#466](https://github.com/AntelopeJS/dms/pull/466))
+- Adopt the suppression budget from tooling-configs 0.2.7 ([#500](https://github.com/AntelopeJS/dms/pull/500))
+- **deps:** Adopt @antelopejs/interface-data-api 0.5.0 ([#521](https://github.com/AntelopeJS/dms/pull/521))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.10.0 ([404c8fb2](https://github.com/AntelopeJS/dms/commit/404c8fb2))
+
+### ✅ Tests
+
+- **backend:** Replace test debt with behavioral checks ([#456](https://github.com/AntelopeJS/dms/pull/456))
+- **frontend:** Replace source-text assertions and module mocks ([#461](https://github.com/AntelopeJS/dms/pull/461))
+- **skills:** Add eval cases for the dms skills ([#499](https://github.com/AntelopeJS/dms/pull/499))
+- **frontend:** Hold the identity refresh until the OAuth page remounts ([#518](https://github.com/AntelopeJS/dms/pull/518))
+- **frontend:** Import the URL preview and password panel subjects at file load ([#519](https://github.com/AntelopeJS/dms/pull/519))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Thomas ([@Thomasims](http://github.com/Thomasims))
+
 ## v0.11.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.11.0...v0.11.1)
