@@ -1,0 +1,12 @@
+{
+  "feature": "block-preview",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064420-eb990e",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064258-a01909",
+  "caughtBy": [
+    "preview-refuses-unknown-and-remote"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL block-preview/preview-refuses-unknown-and-remote (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T064420-eb990e/evidence/block-preview/preview-refuses-unknown-and-remote)\n    03-each-refused-node-says-why: page shows /KpiCard was not drawn: “https:\\/\\/example\\.com\\/data” is not a path of this site/ (“NoSuchBlock” is not a registered block type. REMOTE Not found)\n"
+}

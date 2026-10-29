@@ -1,0 +1,5 @@
+$ dms-control verdict <run copy: data-door-wrong-containment> --pr 529
+exit 1
+## Verify: FAIL
+- data door at packages/dms/src/crons/cleanup-user-invites.ts names smoke/smoke; its containment must be one of settings-members/remove-member-shows-impact, module-pages/table-delete-record
+- formal check formal-release-range: violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)

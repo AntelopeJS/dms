@@ -1,0 +1,12 @@
+{
+  "feature": "modules-store",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T063934-44bd87",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T063756-4cbc59",
+  "caughtBy": [
+    "store-listing-owners-only"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL modules-store/store-listing-owners-only (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T063934-44bd87/evidence/modules-store/store-listing-owners-only)\n    05-only-the-owner-reads-the-catalog: HTTP 403 (status 200: {\"enabled\":false,\"modules\":[{\"id\":\"ai\",\"package\":\"@antelopejs/dms-ai\",\"icon\":\"i-ph-robot\",\"category\":\"ai\",\"title\":\"$modules.store.catalog.ai.title\",\"description\":\"$modules.store.catalog.ai.description\",\"state\":\"available\",\"source\":\"npm\",\"latestVersion\":\"0.6.1\",\"updateAvailable\":false,\"compatible\":tr)\n"
+}

@@ -1,0 +1,16 @@
+$ git commit (scratch worktree): packages/dms/src/routes/onboarding.ts touched
+$ dms-control plan --skill <scratch skill>
+run ['smoke', 'onboarding']
+$ dms-control formal <run copy> --skill <scratch skill>
+VIOLATED formal-onboarding-bootstrap: AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 529 --skill <scratch skill>
+## Verify: FAIL
+### Why it fails
+- the run was created at 98fecf3 but HEAD is 3ebe947
+- onboarding/concurrent-registers-one-owner failed
+- path rules flag a contract door at packages/dms/bin/dms-control.mjs that the One-way doors section neither lists nor dismisses
+- path rules flag a contract door at packages/dms/src/routes/onboarding.ts that the One-way doors section neither lists nor dismisses
+- formal check formal-onboarding-bootstrap: violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen
+- formal check formal-release-range: violated checks/release-range.test.mjs
+
+### Journeys

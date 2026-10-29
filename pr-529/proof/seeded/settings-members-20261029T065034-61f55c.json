@@ -1,0 +1,14 @@
+{
+  "feature": "settings-members",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T065034-61f55c",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064605-f7de40",
+  "caughtBy": [
+    "remove-member-shows-impact"
+  ],
+  "failingInControl": [
+    "removed-member-lands-on-a-page"
+  ],
+  "harnessErrors": [],
+  "output": "FAIL settings-members/remove-member-shows-impact (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T065034-61f55c/evidence/settings-members/remove-member-shows-impact)\n    33-the-dialog-spells-out-the-impact-before-anything-changes: page shows /Roles removed\\s*Viewer e21f61/ (Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t065034-61f55c@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…)\n    35-the-api-reports-the-same-impact: roles (expected [\"Viewer e21f61\"], got [])\nFAIL settings-members/removed-member-lands-on-a-page (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T065034-61f55c/evidence/settings-members/removed-member-lands-on-a-page)\n    34-the-person-is-not-shown-a-missing-page: heading \"Page not found\" is absent (http://127.0.0.1:36935/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMWRlMjA1LWQyYmMtNGE3My1hY2E4LTc3Y2QwZDA1YWQxNiIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1NjgyNCwiZXhwIjoxNzkzMjU3NzI0fQ.6HIykhlaBSPfQec8cyaTvYOzwiy5f_ecCAte8mzuqJw)\n    34-the-person-is-not-shown-a-missing-page: page shows /workspace/i (ERROR 404 Page not found The page you are looking for does not exist or has been moved. Go to home Go back © Antelope Documentation Website English)\n"
+}

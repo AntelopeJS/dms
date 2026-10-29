@@ -1,0 +1,12 @@
+{
+  "feature": "module-pages",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T063520-8a2e8a",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T063304-d56df8",
+  "caughtBy": [
+    "realtime-row-reaches-other-tab"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL module-pages/realtime-row-reaches-other-tab (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T063520-8a2e8a/evidence/module-pages/realtime-row-reaches-other-tab)\n    15-the-watching-tab-shows-the-new-row-without-reloading: cell \"Realtime User beed9d\" is visible (http://127.0.0.1:37351/table-view/table-view-users)\n"
+}

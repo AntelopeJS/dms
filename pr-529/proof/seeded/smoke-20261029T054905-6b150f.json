@@ -1,0 +1,12 @@
+{
+  "feature": "smoke",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T054905-6b150f",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T054759-5ef979",
+  "caughtBy": [
+    "smoke"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL smoke/smoke (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T054905-6b150f/evidence/smoke/smoke)\n    22-the-invitee-gets-an-email-with-a-signup-link: it links to /auth/signup with a token ([\"http://127.0.0.1:43067/auth/sign-up?token=kAnbvv4Tt9L0JQzJG5Or4FIIqZsl2VQenMYM2DfVkYSoWdugrIfXaMSuCl6ybmk3&email=member%2B20261029t054905-6b150f-smoke%40verify.local&lang=en\"])\n"
+}

@@ -1,0 +1,14 @@
+{
+  "feature": "onboarding",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055119-254ea4",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T054957-30e714",
+  "caughtBy": [
+    "wizard-creates-admin"
+  ],
+  "failingInControl": [
+    "concurrent-registers-one-owner"
+  ],
+  "harnessErrors": [],
+  "output": "FAIL onboarding/wizard-creates-admin (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T055119-254ea4/evidence/onboarding/wizard-creates-admin)\n    20-the-wizard-is-closed-and-sign-in-names-the-platform-it-creat: page shows /Sign in to the Verify Wizard 9fc1b4 workspace/ (Connect to your account Welcome back. Sign in to the AntelopeJS workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English)\nFAIL onboarding/concurrent-registers-one-owner (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T055119-254ea4/evidence/onboarding/concurrent-registers-one-owner)\n    07-exactly-one-registration-wins-and-a-refused-one-leaves-no-ac: platform owners (expected 1, got 2)\n    07-exactly-one-registration-wins-and-a-refused-one-leaves-no-ac: accounts created by a refused registration (expected [], got [\"second+20261029t055119-254ea4-concurrent-registers-one-owner@verify.local\"])\n"
+}

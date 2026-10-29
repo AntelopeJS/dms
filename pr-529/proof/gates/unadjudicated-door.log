@@ -1,0 +1,5 @@
+$ dms-control verdict <run copy: unadjudicated-door> --pr 529
+exit 1
+## Verify: FAIL
+- path rules flag a contract door at packages/dms/bin/dms-control.mjs that the One-way doors section neither lists nor dismisses
+- formal check formal-release-range: violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)

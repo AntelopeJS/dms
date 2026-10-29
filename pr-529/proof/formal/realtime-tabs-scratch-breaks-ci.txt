@@ -1,0 +1,72 @@
+### own-delivery (crossTab.ts:72-75 post() stops delivering to the posting tab's own listeners) exit=1 3s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> RunReads -> TakeLead -> LeaderReads -> RunAnswers
+CHANGED ShowsLatest: 6 states (recorded 11): Initial -> TakeLead -> LeaderReads -> RunReads -> RunAnswers -> Write
+CHANGED ReconnectCatchesUp: 16 states (recorded 20): Initial -> TakeLead -> OpenTab -> LeaderReads -> TabReceives -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> CloseTab -> TakeLead -> LeaderReads
+TLC output kept in /tmp/formal-RealtimeTabs-xMX1Ji
+### no-query-answer (sharedRealtimeConnection.ts:310-311 the leader stops answering a joining tab's query) exit=1 4s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> TakeLead -> RunReads -> LeaderReads -> SessionServed -> RunAnswers -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> OpenTab -> RunReads -> RunAnswers -> TabReceives
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+finding ReconnectCatchesUp: 20 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered
+TLC output kept in /tmp/formal-RealtimeTabs-7q2cm9
+### relay-own-only (sharedRealtimeConnection.ts:335-341 the leader relays only its own tab's session frames) exit=1 5s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN ShowsFollowedWrites: Initial -> RunReads -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunAnswers -> OpenTab -> TabReceives -> TabReceives -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> Write -> SubscribeServed -> SubscribeAnswered -> RunAnswers -> LeaderReads
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+finding ReconnectCatchesUp: 20 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered
+TLC output kept in /tmp/formal-RealtimeTabs-AvQcnW
+### reset-keeps-applied (useUserRealtime.ts:432 resetSession keeps appliedPageId) exit=1 5s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> TakeLead -> RunReads -> LeaderReads -> SessionServed -> RunAnswers -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+CHANGED ReconnectCatchesUp: 18 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile
+TLC output kept in /tmp/formal-RealtimeTabs-wl1gvx
+### stale-subscribe-applies (useUserRealtime.ts:403 applyDesiredPage drops its session check after the await) exit=1 5s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> TakeLead -> LeaderReads -> SessionServed -> RunReads -> SessionAnswered -> StartReconcile -> RunAnswers -> SubscribeServed -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> SubscribeAnswered -> StartReconcile
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+finding ReconnectCatchesUp: 20 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered
+TLC output kept in /tmp/formal-RealtimeTabs-le7Eq5
+### refresh-ignores-topics (usePageDataRefresh.ts:45-50 the page refresh subscribes to the topics it had at setup only) exit=1 4s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN ShowsFollowedWrites: Initial -> TakeLead -> RunReads -> RunAnswers -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> Write -> LeaderReads
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+CHANGED ReconnectCatchesUp: 12 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> LeaderReads
+TLC output kept in /tmp/formal-RealtimeTabs-csqrtB
+### any-run-answers (frontend-module.ts:1503 every refresh's answer goes on screen, not only the newest run's) exit=1 5s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN NeverGoesBack: Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> SubscribeServed -> SubscribeAnswered -> Write -> LeaderReads -> GetReads -> GetAnswers -> RunAnswers
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+finding ReconnectCatchesUp: 20 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered
+TLC output kept in /tmp/formal-RealtimeTabs-P1MQth
+### updated-refreshes-counts-only (tableViewRealtime.ts:118-121 an updated event refreshes the counts but no longer patches the row) exit=1 9s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+holds  TypeOK, FollowsPage, ShowsFollowedWrites, NeverGoesBack (45786 states)
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+finding ReconnectCatchesUp: 20 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop -> LeaderReconnects -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered
+Every rule matches the record in SKILL.md.
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsTable.ci.cfg) with View = "table", MaxWrites = 2, MaxDrops = 1, MaxCloses = 0
+BROKEN ShowsFollowedWrites: Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> RunReads -> RunAnswers -> SubscribeAnswered -> Write -> LeaderReads
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> RunReads -> RunAnswers -> Write -> SubscribeServed -> SubscribeAnswered
+CHANGED ReconnectCatchesUp: 12 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> LeaderReads
+HOLDS  NeverGoesBack: the finding is gone (1308 states)
+TLC output kept in /tmp/formal-RealtimeTabs-fEMMaL
+### subscribe-without-topics (routes/realtime.ts:207-225 ensureSessionOnPage answers ok without subscribing the page's topics) exit=1 6s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> RunReads -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunAnswers
+finding ShowsLatest: 11 states (recorded 11): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write
+HOLDS  ReconnectCatchesUp: the finding is gone (16012 states)
+TLC output kept in /tmp/formal-RealtimeTabs-uoKLTx
+### no-takeover (crossTab.ts:103-113 electLeader asks for the lock with ifAvailable, so a waiting tab never leads) exit=1 3s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> OpenTab -> RunReads -> RunAnswers -> CloseTab
+CHANGED ShowsLatest: 6 states (recorded 11): Initial -> OpenTab -> RunReads -> RunAnswers -> Write -> CloseTab
+CHANGED ReconnectCatchesUp: 14 states (recorded 20): Initial -> TakeLead -> OpenTab -> LeaderReads -> TabReceives -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> CloseTab
+TLC output kept in /tmp/formal-RealtimeTabs-YAsUbf
+### no-reconnect-on-end (sharedRealtimeConnection.ts:197-204 the leader retires an ended stream without scheduling a reconnect) exit=1 3s
+TLC 1.7.4 on RealtimeTabs.tla (RealtimeTabsPage.ci.cfg) with View = "page", MaxWrites = 1, MaxDrops = 1, MaxCloses = 1
+BROKEN FollowsPage: Initial -> TakeLead -> RunReads -> RunAnswers -> StreamDrops -> LeaderSeesDrop
+CHANGED ShowsLatest: 7 states (recorded 11): Initial -> TakeLead -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop
+CHANGED ReconnectCatchesUp: 13 states (recorded 20): Initial -> TakeLead -> LeaderReads -> SessionServed -> SessionAnswered -> StartReconcile -> SubscribeServed -> SubscribeAnswered -> RunReads -> RunAnswers -> Write -> StreamDrops -> LeaderSeesDrop
+TLC output kept in /tmp/formal-RealtimeTabs-A5B604

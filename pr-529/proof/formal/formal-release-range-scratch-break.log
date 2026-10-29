@@ -1,0 +1,17 @@
+$ sed: compare(version, match[3]) < 0  ->  <= 0 (inclusive cap) in a scratch copy of checks/release-range.mjs
+$ FC_SEED=20261029 node --test --test-reporter=tap checks/release-range.test.mjs
+not ok 1 - range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded) # TODO F4: a leading zero in a range field is accepted though semver cannot parse it
+ok 2 - range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)
+ok 3 - range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)
+not ok 4 - membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)
+not ok 5 - cap: no version of the next minor or any later release is accepted, prereleases included (catches ordering a prerelease below its release)
+not ok 6 - prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) # TODO F1, F2 and F3 are recorded in FINDINGS
+not ok 7 - prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)
+ok 8 - finding F1: 0.9.1-next.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+ok 9 - finding F2: 0.9.5-rc.1 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+ok 10 - finding F3: 0.9.5+build.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+not ok 11 - oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease
+# pass 5
+# fail 4
+# todo 2
+exit 1

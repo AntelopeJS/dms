@@ -1,0 +1,3 @@
+One-way-door: contract, publish
+  contract: packages/dms/bin/dms-control.mjs, packages/dms/package.json
+  publish: .github/workflows/release.yml, checks/release-range.mjs, packages/dms/package.json

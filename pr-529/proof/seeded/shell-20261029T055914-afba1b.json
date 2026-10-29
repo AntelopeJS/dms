@@ -1,0 +1,12 @@
+{
+  "feature": "shell",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055914-afba1b",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T055717-a237f6",
+  "caughtBy": [
+    "favorites-persist"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL shell/favorites-persist (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T055914-afba1b/evidence/shell/favorites-persist)\n    11-the-favorite-is-in-the-sidebar-after-a-reload: link \"Feature index\" in region \"Favorites\" is visible (http://127.0.0.1:43089/examples/features)\n    13-another-tab-of-the-same-browser-shows-it: link \"Feature index\" in region \"Favorites\" is visible (http://127.0.0.1:43089/examples/overview)\n    14-admin-click-button-remove-from-favorites: click button \"Remove from favorites\" (locator.click: Timeout 15000ms exceeded.)\n    critical step 14-admin-click-button-remove-from-favorites failed\n"
+}

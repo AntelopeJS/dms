@@ -1,0 +1,12 @@
+{
+  "feature": "settings-roles",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T061700-99250a",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T061352-474764",
+  "caughtBy": [
+    "role-edit-changes-access"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL settings-roles/role-edit-changes-access (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T061700-99250a/evidence/settings-roles/role-edit-changes-access)\n    49-removing-a-permission-takes-the-access-away-again-the-stored: stored permissions (expected [\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\"], got [\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\",\"settings.workspace.roles\",\"settings.workspace.roles.table\",\"settings.workspace.roles.table.add\",\"settings.workspace.roles.table.delete\",\"settings.workspace.roles.table.edit\",\"settings.workspace.roles.table.export\",\"settings.workspace.roles.table.list\",\"settings.workspace.roles.table.view\"])\n    49-removing-a-permission-takes-the-access-away-again-the-stored: heading \"Forbidden\" is visible (http://127.0.0.1:46651/settings/workspace/roles)\n    52-the-editor-shows-the-roles-permission-unticked-after-a-reloa: Roles ticked (expected false, got true)\n"
+}

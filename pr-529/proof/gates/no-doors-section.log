@@ -1,0 +1,5 @@
+$ dms-control verdict <run copy: no-doors-section> --pr 529
+exit 1
+
+
+dms-control: judgement.json: doors needs `none` with a reason or at least one row; a verdict without it is void

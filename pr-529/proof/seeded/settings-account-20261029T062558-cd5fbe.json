@@ -1,0 +1,13 @@
+{
+  "feature": "settings-account",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T062558-cd5fbe",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T062005-9bcf64",
+  "caughtBy": [
+    "change-password-signs-out-other-devices",
+    "sessions-sign-out"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL settings-account/change-password-signs-out-other-devices (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T062558-cd5fbe/evidence/settings-account/change-password-signs-out-other-devices)\n    20-the-page-confirms-and-says-other-sessions-were-signed-out: page shows /Password updated/ (Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t062558-cd5fbe@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …)\n    20-the-page-confirms-and-says-other-sessions-were-signed-out: page shows /other sessions? signed out/ (Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t062558-cd5fbe@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …)\n    22-this-device-stays-signed-in-and-the-page-says-the-password-c: path matches /^\\/settings\\/user\\/security$/ (/auth)\n    22-this-device-stays-signed-in-and-the-page-says-the-password-c: page shows /Changed today/ (Connect to your account Welcome back. Sign in to the Verify 20261029T062558-cd5fbe workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English)\n    29-a-password-changed-alert-is-in-the-inbox: page shows /Password changed/ (Connect to your account Welcome back. Sign in to the Verify 20261029T062558-cd5fbe workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English)\nFAIL settings-account/sessions-sign-out (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T062558-cd5fbe/evidence/settings-account/sessions-sign-out)\n    23-only-this-device-is-left-and-the-other-token-is-refused: page shows /1 active/ (Connect to your account Welcome back. Sign in to the Verify 20261029T062558-cd5fbe workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English)\n    25-this-device-stays-signed-in: path matches /^\\/settings$/ (/auth)\n"
+}

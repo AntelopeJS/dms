@@ -1,0 +1,12 @@
+{
+  "feature": "tenancy",
+  "caught": true,
+  "run": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064201-083407",
+  "controlRun": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064045-9c7ce8",
+  "caughtBy": [
+    "default-workspace-membership"
+  ],
+  "failingInControl": [],
+  "harnessErrors": [],
+  "output": "FAIL tenancy/default-workspace-membership (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T064201-083407/evidence/tenancy/default-workspace-membership)\n    08-membership-decides-which-workspace-a-session-may-enter: HTTP 403 (status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA1Yzc1OTg5LWY2ZDQtNDRhYy1iNmNhLTk3YzYyMzM4ZTg5YSIsInRlbmFudElkIjoidmVyaWZ5LWZvcmVpZ24td29ya3NwYWNlIiwic2Vzc2lvbklkIjoiYjg1NWU0Y2UtODk5MC00NTFhLWJkNjItMWE0ZGRhY2Q3NTNiIiwicHVycG9zZSI6ImFjY2VzcyIsImlhdCI6MTc5MzI1NjE2)\n    08-membership-decides-which-workspace-a-session-may-enter: error (expected \"error.not_a_member\", got {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA1Yzc1OTg5LWY2ZDQtNDRhYy1iNmNhLTk3YzYyMzM4ZTg5YSIsInRlbmFudElkIjoidmVyaWZ5LWZvcmVpZ24td29ya3NwYWNlIiwic2Vzc2lvbklkIjoiYjg1NWU0Y2UtODk5MC00NTFhLWJkNjItMWE0ZGRhY2Q3NTNiIiwicHVycG9zZSI6ImFjY2VzcyIsImlhdCI6MTc5MzI1NjE2MCwiZXhwIjoxNzkzMjU5NzYwfQ.yKlh-pYX-nSSqoFa-gnI60Yq1iJuk8ho3mm5oF-2ZpU\",\"expires_in\":3600000,\"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA1Yzc1OTg5LWY2ZDQtNDRhYy1iNmNhLTk3YzYyMzM4ZTg5YSIsInRlbmFudElkIjoidmVyaWZ5LWZvcmVpZ24td29ya3NwYWNlIiwic2Vzc2lvbklkIjoiYjg1NWU0Y2UtODk5MC00NTFhLWJkNjItMWE0ZGRhY2Q3NTNiIiwicHVycG9zZSI6InJlZnJlc2giLCJpYXQiOjE3OTMyNTYxNjAsImV4cCI6MTc5NTg0ODE2MH0.cWKaWaU8QTE_yloWQuQnYKMzfkXzTWkhBInd43-rQ44\"})\n    08-membership-decides-which-workspace-a-session-may-enter: HTTP 200 (status 401: \"error.session_expired\")\n    08-membership-decides-which-workspace-a-session-may-enter: new tokens for the default workspace (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)\n"
+}

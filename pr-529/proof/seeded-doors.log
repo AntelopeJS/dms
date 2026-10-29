@@ -1,0 +1,20 @@
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/data.patch
+One-way-door: data
+  data: packages/dms/src/crons/cleanup-user-invites.ts
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/format.patch
+One-way-door: format
+  format: packages/dms/src/db/tables/userNotifications.table.ts
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/contract.patch
+One-way-door: contract
+  contract: packages/dms/src/routes/onboarding.ts
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/outbound.patch
+One-way-door: outbound
+  outbound: packages/dms/src/implementations/dms-auth/account-emails.ts
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/exposure.patch
+One-way-door: contract, exposure
+  contract: packages/dms/src/routes/block-preview.ts
+  exposure: packages/dms/src/routes/block-preview.ts
+$ dms-control doors .agents/skills/verify-dms/seeded-doors/publish.patch
+One-way-door: contract, publish
+  contract: packages/dms/package.json
+  publish: packages/dms/package.json

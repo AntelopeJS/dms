@@ -1,0 +1,3 @@
+CAUGHT settings-members by remove-member-shows-impact (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T065034-61f55c/evidence/settings-members, control /home/antony/.cache/campaign/h6/dms-runs/20261029T064605-f7de40/evidence/settings-members)
+    already failing without the patch, not counted: removed-member-lands-on-a-page
+exit 0

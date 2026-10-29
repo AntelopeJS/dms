@@ -1,0 +1,3 @@
+VIOLATED formal-onboarding-bootstrap: AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+VIOLATED formal-realtime-tabs: ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+VIOLATED formal-release-range: range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)

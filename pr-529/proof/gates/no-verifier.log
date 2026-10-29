@@ -1,0 +1,5 @@
+$ dms-control verdict <run copy: no-verifier> --pr 529
+exit 1
+
+
+dms-control: judgement.json: verifier must say who judged this run, for example the verifier thread's URL

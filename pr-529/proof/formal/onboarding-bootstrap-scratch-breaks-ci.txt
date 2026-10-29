@@ -1,0 +1,40 @@
+### drop-users-guard-ci
+holds  TypeOK, OnboardedHasOwner, OwnerlessStaysOpen (1103 states)
+CHANGED AtMostOneOwner: 3 states (recorded 5): Initial -> RegInsert -> RegInsert
+CHANGED RefusedRegisterCreatedNoUser: 7 states (recorded 8): Initial -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+exit 1
+### duplicate-email-answers-409-ci
+BROKEN TypeOK: Initial -> RegReadUsers -> RegFails
+finding AtMostOneOwner: 5 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegInsert
+finding RefusedRegisterCreatedNoUser: 8 states (recorded 8): Initial -> RegReadUsers -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+exit 1
+### informations-marks-without-users-ci
+BROKEN OnboardedHasOwner: Initial -> PollReadState -> PollReadUsers -> PollWrite
+finding AtMostOneOwner: 5 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegInsert
+finding RefusedRegisterCreatedNoUser: 8 states (recorded 8): Initial -> RegReadUsers -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+exit 1
+### informations-read-only-ci
+holds  TypeOK, OnboardedHasOwner, OwnerlessStaysOpen (684 states)
+finding AtMostOneOwner: 5 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegInsert
+CHANGED RefusedRegisterCreatedNoUser: 10 states (recorded 8): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegTenant -> RegReadState -> RegWriteState -> RegInsert -> RegTenant -> RegReadSta
+exit 1
+### oauth-waits-for-onboarding-ci
+holds  TypeOK, OnboardedHasOwner, OwnerlessStaysOpen (1608 states)
+finding AtMostOneOwner: 5 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegInsert
+finding RefusedRegisterCreatedNoUser: 8 states (recorded 8): Initial -> RegReadUsers -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+holds  TypeOK (3975 states)
+finding AtMostOneOwner: 5 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegInsert
+finding RefusedRegisterCreatedNoUser: 8 states (recorded 8): Initial -> RegReadUsers -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+HOLDS  OnboardedHasOwner: the finding is gone (3975 states)
+HOLDS  OwnerlessStaysOpen: the finding is gone (3975 states)
+exit 1
+### onboarding-before-owner-ci
+BROKEN OnboardedHasOwner: Initial -> RegReadUsers -> RegReadState -> RegWriteState
+CHANGED AtMostOneOwner: 9 states (recorded 5): Initial -> RegReadUsers -> RegReadState -> RegReadUsers -> RegReadState -> RegWriteState -> RegInsert -> RegWriteState -> RegInsert
+HOLDS  RefusedRegisterCreatedNoUser: the finding is gone (1140 states)
+exit 1
+### owner-from-tenant-mirror-ci
+BROKEN OwnerlessStaysOpen: Initial -> RegReadUsers -> RegInsert
+CHANGED AtMostOneOwner: 7 states (recorded 5): Initial -> RegReadUsers -> RegReadUsers -> RegInsert -> RegTenant -> RegInsert -> RegTenant
+finding RefusedRegisterCreatedNoUser: 8 states (recorded 8): Initial -> RegReadUsers -> RegInsert -> RegTenant -> PollReadState -> PollReadUsers -> PollWrite -> RegReadState
+exit 1

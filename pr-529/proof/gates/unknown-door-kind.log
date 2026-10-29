@@ -1,0 +1,5 @@
+$ dms-control verdict <run copy: unknown-door-kind> --pr 529
+exit 1
+
+
+dms-control: judgement.json: doors.falsePositives[0].kind is "billing", not one of data, format, contract, outbound, exposure, publish
