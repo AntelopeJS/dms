@@ -21,6 +21,7 @@ covers:
   - packages/dms/src/validation/file.schema.ts
   - packages/dms/src/utils/export-jobs*.ts
   - packages/dms/src/utils/upload-*.ts
+  - packages/dms/src/utils/jwt-claims.ts
   - packages/dms/src/utils/run-in-batches/**
   - packages/dms/src/utils/run-in-batches.ts
   - packages/dms/src/utils/page-access.ts

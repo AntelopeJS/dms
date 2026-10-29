@@ -24,6 +24,7 @@ covers:
   - packages/dms/src/utils/failed-sign-ins.ts
   - packages/dms/src/utils/login-throttle.ts
   - packages/dms/src/utils/one-time-code.ts
+  - packages/dms/src/utils/jwt-claims.ts
   - packages/dms/src/utils/sign-in-*.ts
   - packages/dms/src/utils/two-factor-*.ts
   - packages/dms/src/utils/client-ip.ts
