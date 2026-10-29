@@ -41,7 +41,7 @@ const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
 
 function context(token: string): RequestContext {
-  // SAFETY: The guards under test authenticate through the raw request's authorization header only, which the double supplies.
+  // SAFETY: The guards under test read only the raw request's authorization header and key per-request state on the raw request object, both of which the double supplies.
   return {
     rawRequest: { headers: { authorization: `Bearer ${token}` } },
   } as RequestContext;

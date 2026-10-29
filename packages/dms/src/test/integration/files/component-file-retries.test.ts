@@ -57,7 +57,7 @@ async function fixture(field = "file"): Promise<Fixture> {
     token,
   });
   const request: AttachmentSaveRequest = {
-    // SAFETY: File access authenticates through the raw request's authorization header only, which the fixture supplies.
+    // SAFETY: File access resolves the principal and tenant from the raw request's authorization header only, which the fixture supplies.
     context: {
       rawRequest: { headers: { authorization: `Bearer ${user.accessToken}` } },
     } as RequestContext,
