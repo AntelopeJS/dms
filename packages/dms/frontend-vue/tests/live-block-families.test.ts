@@ -29,6 +29,7 @@ import {
   disposeBlockRealtime,
   engine,
 } from "./helpers/block-network-runtime";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import { refreshLivePageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
@@ -87,8 +88,7 @@ function mount(setup: () => void): void {
     }),
   );
   browserRuntime(app);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This plugin reads only vueApp; other app-context services are intentionally absent from the polling fixture.
-  livePauseSourcePlugin({ vueApp: app } as never);
+  livePauseSourcePlugin(dmsAppContext(app));
   app.mount(document.createElement("div"));
   mounted.push(app);
 }

@@ -18,6 +18,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type {
   DmsAppContext,
   DmsFrontendRuntime,
@@ -116,10 +117,10 @@ const settle = async () => {
 
 /** Attaches `runtime` to `app` the way the DMS app does, and runs its plugins. */
 function install(app: App, runtime: DmsFrontendRuntime): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Guard preload plugins require only runWithContext; unrelated app-context services are absent in this SSR fixture.
-  const context = {
+  const context: DmsAppContext = {
+    ...dmsAppContext(app),
     runWithContext: app.runWithContext.bind(app),
-  } as DmsAppContext;
+  };
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = "/orders";

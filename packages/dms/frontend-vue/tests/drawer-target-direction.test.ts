@@ -12,6 +12,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/types/action-target";
 import type { useDrawer } from "../layers/dms-ui/app/composables/containers/useDrawer";
@@ -42,8 +43,7 @@ describe("a drawer action target's direction", () => {
       defineComponent({
         setup() {
           targets = useActionTargets({
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These drawer-target tests never call api; a Vitest callable cannot implement ofetch's generic callable and raw/create members required by the owner.
-            api: vi.fn() as never,
+            api: unusedApi(),
             pageId: "page",
             componentId: "table",
             handleApiError: vi.fn(),

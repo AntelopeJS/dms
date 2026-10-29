@@ -12,6 +12,7 @@ import {
 import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import layoutAppConfig from "../layers/dms-layout/app/app.config";
 import type { DmsLogoSources } from "../layers/dms-core/app/entries/shared/types/app-config";
 
@@ -40,8 +41,7 @@ async function renderIconTags(): Promise<string[]> {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-  app.runWithContext(() => faviconPlugin({} as never));
+  app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
   const { headTags } = await renderSSRHead(head);
   return headTags.split("\n").filter((tag) => tag.startsWith(ICON_TAG_START));
 }
@@ -109,8 +109,7 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-    app.runWithContext(() => faviconPlugin({} as never));
+    app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
     await renderDOMHead(head);
     expect(
       document.head.querySelector("link[rel=icon]")?.getAttribute("href"),

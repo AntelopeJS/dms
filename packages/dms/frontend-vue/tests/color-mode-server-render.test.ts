@@ -7,6 +7,7 @@ import { useHead } from "@unhead/vue";
 import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createSSRApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 
 interface CookieOptions {
   default: () => string;
@@ -37,8 +38,7 @@ async function renderHead(preference?: string) {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The color-mode plugin does not read its context; this fixture deliberately provides none of the unrelated runtime services.
-  await app.runWithContext(() => colorModePlugin({} as never));
+  await app.runWithContext(() => colorModePlugin(dmsAppContext(app)));
   return renderSSRHead(head);
 }
 

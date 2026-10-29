@@ -17,6 +17,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyTranslations } from "./fixtures/dmsAppContext";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
 import { asyncDataScopeOf } from "../layers/dms-core/app/entries/utils/asyncDataScope";
 
@@ -51,8 +52,7 @@ function start(
   engine.provideDmsFrontendRuntime(app, runtime);
   app.runWithContext(() => {
     engine.useDmsState("dms-session", () => null).value = session;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin uses injected runtime state, not context fields; a full app context would be unused fixture data.
-    void asyncDataScopePlugin({} as never);
+    void asyncDataScopePlugin(dmsAppContext(app));
   });
 }
 
@@ -156,8 +156,7 @@ describe("the async data scope", () => {
     });
     await engine.installDmsPlugins(
       app,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only the locale and message setter are used in this no-translation plugin fixture.
-      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      emptyTranslations(),
       browser,
       async () => ({}),
       ["en"],

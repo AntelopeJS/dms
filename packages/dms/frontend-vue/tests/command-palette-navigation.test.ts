@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { computed, ref } from "vue";
+import { computed, createApp, ref } from "vue";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type { CommandPaletteGroup } from "@nuxt/ui";
 import {
   ACCOUNT_MENU_ENTRIES,
@@ -73,8 +74,7 @@ it("leaves the account destinations to the session group", async () => {
   const { default: setup } = await import(
     "../layers/dms-layout/app/plugins/command-palette-navigation.client"
   );
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-  (setup as () => void)();
+  setup(dmsAppContext(createApp({ render: () => null })));
 
   const targets = registered!
     .groups()

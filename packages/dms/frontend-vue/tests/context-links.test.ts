@@ -15,6 +15,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
@@ -154,8 +155,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Page-link tests never call the HTTP client; the callable mock intentionally omits fetch methods.
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),

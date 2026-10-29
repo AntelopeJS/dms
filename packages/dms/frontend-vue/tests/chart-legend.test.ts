@@ -15,7 +15,7 @@ import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/u
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 import { engine } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
-import type { ApexOptions } from "apexcharts";
+import { sectionIn } from "./fixtures/axisCallbacks";
 
 const SERIES: ChartSeries[] = [
   { name: "Average", data: [{ x: "10:00", y: 42 }] },
@@ -49,8 +49,7 @@ function legendOf(input: Partial<UseApexChartInput>) {
     series: SERIES,
     ...input,
   }));
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Apex options are stored as raw sections rather than a typed legend. Inference and that owner contract cannot expose the generated legend fields without this existing unchecked projection.
-  return chart.options.value.legend as NonNullable<ApexOptions["legend"]>;
+  return sectionIn(chart.options.value, "legend");
 }
 
 async function renderCard(
