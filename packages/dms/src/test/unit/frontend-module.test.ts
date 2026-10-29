@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import type { Config } from "../../config";
+import { getAuthConfig, type Config } from "../../config";
 import { frontendModule } from "../../frontend-module";
 import { findVersionDrift } from "../../store/frontend";
 
@@ -17,8 +17,8 @@ describe("[unit] dms frontend module", () => {
     const options = productionOptions({
       apiBaseUrl: "https://api.example.com",
       homepage: "/home",
-      // SAFETY: frontendModule reads only the lifetime and OAuth providers from auth; the test intentionally omits unrelated backend auth configuration.
       auth: {
+        ...getAuthConfig(),
         accessTokenLifetime: HALF_AN_HOUR_MS,
         oauth: {
           providers: {
@@ -26,7 +26,7 @@ describe("[unit] dms frontend module", () => {
             github: { clientId: "id", clientSecret: "" },
           },
         },
-      } as unknown as Config["auth"],
+      },
     });
     expect(options).to.deep.include({
       baseURL: "https://api.example.com",

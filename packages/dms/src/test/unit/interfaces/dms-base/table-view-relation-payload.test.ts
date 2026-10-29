@@ -20,7 +20,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import type { DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types/core";
 import {
   type FormFieldSerialized,
-  type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
@@ -28,6 +27,7 @@ import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const SCHEMA = "relation-payload-test";
 const SITE_FIELDS = ["name", "city", "street", "zip", "country", "phone"];
@@ -182,8 +182,7 @@ function formField(
   form: ComponentInfoSerialized | undefined,
   id: string,
 ): FormFieldSerialized | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- formComponents erases component option types; these callers pass this table's generated form, not an arbitrary component.
-  const fields = (form?.options as FormPropsSerialized | undefined)?.fields;
+  const fields = form && formOptionsOf(form).fields;
   const entry = fields?.find((field) => field.id === id);
   if (entry && isFieldGroupSerialized(entry)) {
     throw new Error("expected a field");
@@ -214,11 +213,9 @@ describe("[unit] interfaces/dms-base/table-view-relation-payload — relation co
     const { formComponents } = tableOptions();
 
     const editable = formField(formComponents.new, "customer");
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialized relation pickers erase their options; the editable customer field is built from the RelationType declared above.
-    const editableOptions = editable?.component.options as
-      | { addForm?: unknown }
-      | undefined;
-    expect(editableOptions?.addForm).to.not.equal(undefined);
+    expect(editable?.component.options)
+      .to.have.property("addForm")
+      .that.is.not.equal(undefined);
     expect(addFormsIn(formComponents.view)).to.equal(0);
     const readOnly = formField(formComponents.edit, "site");
     expect(readOnly?.disabled).to.equal(true);

@@ -38,6 +38,12 @@ export const quickActionTargetHandlers: QuickActionTargetHandlers = {
   button: resolveButtonTarget,
 };
 
+function handlerFor<K extends QuickActionTarget["type"]>(
+  type: K,
+): QuickActionTargetHandler<K> {
+  return quickActionTargetHandlers[type];
+}
+
 export async function resolveQuickActionTarget(
   target: QuickActionTarget,
   context: RequestAccessContext,
@@ -54,10 +60,7 @@ export async function resolveQuickActionTarget(
   }
   if (!(await computeEntryAccess(pageInfo, context))) return undefined;
 
-  // SAFETY: target.type selects the handler for that target variant from the discriminated handler map.
-  const handler = quickActionTargetHandlers[
-    target.type
-  ] as QuickActionTargetHandler<QuickActionTarget["type"]>;
+  const handler = handlerFor(target.type);
   return handler(target, { pageInfo, meta, context });
 }
 
