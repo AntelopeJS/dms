@@ -1,10 +1,15 @@
-import { computed, type App } from "vue";
+import { computed, createApp, type App } from "vue";
 import { createI18n } from "vue-i18n";
 import type { DmsAppContext } from "#dms/frontend-module";
 
 /** Fails the test that reaches a member the fixture leaves unimplemented. */
 function unused(): never {
   throw new Error("The code under test used an app-context member it must not");
+}
+
+/** An app that renders nothing, to hold a plugin under test. */
+export function emptyApp(): App {
+  return createApp({ render: () => null });
 }
 
 /** A vue-i18n composer that holds no messages, for plugins that only install. */

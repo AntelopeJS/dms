@@ -48,10 +48,17 @@ type ParamFormatter<Param extends ComposedTextTypedParam> = (
   context: ComposedTextContext,
 ) => string;
 
+type ParamOfType<Type extends ComposedTextParamType> =
+  ComposedTextTypedParam extends infer Param
+    ? Param extends { type: infer Types }
+      ? Type extends Types
+        ? Param
+        : never
+      : never
+    : never;
+
 type ParamFormatters = {
-  [Type in ComposedTextParamType]: ParamFormatter<
-    Extract<ComposedTextTypedParam, { type: Type }>
-  >;
+  [Type in ComposedTextParamType]: ParamFormatter<ParamOfType<Type>>;
 };
 
 const DEFAULT_MINOR_DIGITS = 2;
@@ -162,7 +169,7 @@ function formatParam(
     return String(formatNumber(param, context.locale));
   }
   if (isComposedText(param)) return composeText(param, context);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ParamFormatters preserves the nominal discriminator correlation, which indexed union inference loses. A switch would change legacy lookup behavior for malformed and inherited type keys.
+  // SAFETY: ParamFormatters types each entry as the formatter of the variants whose type includes that key, so for a param typed ComposedTextTypedParam the entry under param.type accepts it; the indexed union loses that correlation.
   const formatter = PARAM_FORMATTERS[param.type] as
     | ParamFormatter<ComposedTextTypedParam>
     | undefined;

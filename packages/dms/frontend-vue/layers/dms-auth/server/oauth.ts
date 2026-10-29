@@ -46,9 +46,11 @@ const attempts = new Map<string, RateWindow>();
 function sweepAttempts(now: number) {
   for (const [key, window] of attempts)
     if (now - window.startedAt >= RATE_WINDOW_MS) attempts.delete(key);
-  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS)
-    // SAFETY: The synchronous loop requires at least 10,000 entries in this Map<string, RateWindow>, so next() has a string key.
-    attempts.delete(attempts.keys().next().value as string);
+  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS) {
+    const [oldest] = attempts.keys();
+    if (oldest === undefined) return;
+    attempts.delete(oldest);
+  }
 }
 
 /** Counts an attempt for `key`; false once over the limit of the window. */

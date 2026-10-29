@@ -15,6 +15,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
@@ -92,8 +93,7 @@ const { defineDmsPageMeta } = engine;
 
 /** A runtime whose app carries the DMS app context, as the real app's does. */
 function attach(app: App, runtime: DmsFrontendRuntime): void {
-  // SAFETY: This test uses the app context only as an identity token, never its members.
-  const context = {} as DmsFrontendRuntime["appContext"];
+  const context = dmsAppContext(app);
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.matched = [{}];

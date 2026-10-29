@@ -76,7 +76,7 @@ function useDmsCookie<T>(
   options: { default?: () => T } = {},
 ): Ref<T> {
   if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This cookie double stores unvalidated values including null; it mirrors the generic cookie API rather than claiming the stored value was validated as T.
+  // SAFETY: The only caller, useDrawerSizePreferences, reads the drawer size cookie as DrawerSizePreferences with a default, so the ref stored under that name holds that type.
   return cookies.get(name) as Ref<T>;
 }
 

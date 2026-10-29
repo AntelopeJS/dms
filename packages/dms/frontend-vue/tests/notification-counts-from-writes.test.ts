@@ -9,6 +9,7 @@
  */
 import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyApp } from "./fixtures/dmsAppContext";
 import { mountInBrowser, stubApiData } from "./helpers/api-data-runtime";
 
 type Tone = "neutral" | "primary" | "warning" | "error";
@@ -91,8 +92,7 @@ function openTab(): HTMLElement {
   const Tab = defineComponent({
     setup() {
       bell = useNotifications();
-      // SAFETY: defineDmsPlugin is stubbed above to return the setup callback unchanged.
-      (notificationStream as () => void)();
+      notificationStream(dmsAppContext(emptyApp()));
       return () =>
         h("span", `${bell.unreadCount.value}:${bell.unreadTone.value ?? "-"}`);
     },
