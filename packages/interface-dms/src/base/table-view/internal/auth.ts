@@ -1,9 +1,5 @@
-import type {
-  ControllerClass,
-  RequestContext,
-} from "@antelopejs/interface-api";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
-import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DataControllerCallback,
@@ -19,7 +15,7 @@ import { getRequestTenantId } from "../../../request-tenant";
 import { AssertTenantAccess } from "../../../tenant-access";
 import { AuthUser } from "../../../auth";
 import type { User } from "../../../auth/db";
-import { TableViewMeta } from "../meta";
+import { getTableViewMetaFor } from "./meta";
 
 /**
  * The read actions of a table view, named once so the route that checks one,
@@ -69,11 +65,7 @@ export async function authorizeAction(
   user: User,
   tenantId: string,
 ): Promise<Set<string> | undefined> {
-  const meta = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published unknown receiver does not prove its constructor is a ControllerClass; route dispatch owns that unchecked binding.
-    (thisObj as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+  const meta = getTableViewMetaFor(thisObj);
   const permissionIds = meta.actionPermissionIds(actionId);
   if (
     !meta.bypassTenantAccessGate ||

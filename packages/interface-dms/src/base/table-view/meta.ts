@@ -489,15 +489,13 @@ export function ColumnGroup(id: string, config: ColumnGroupConfig) {
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields are declared as strings; this adapter does not reject non-string keys.
-  GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields, filters and the field map are keyed by strings; this adapter does not reject symbol or number keys.
+  const fieldName = key as string;
+  GetMetadata(target.constructor, TableViewMeta).setArchiveField(fieldName);
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey but Filter expects a string; key-kind validation would change existing behavior.
-  Filter()(target, key as string);
+  Filter()(target, fieldName);
   Listable()(target, key);
-  const field = GetMetadata(target.constructor, DataAPIMeta)
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published field map uses string keys, while the decorator supplies PropertyKey without verifying its kind.
-    .fields[key as string];
+  const field = GetMetadata(target.constructor, DataAPIMeta).fields[fieldName];
   if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
 });
 

@@ -1,8 +1,4 @@
-import {
-  type ControllerClass,
-  RawBody,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { RawBody, type RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
@@ -15,6 +11,7 @@ import type { AfterWrite, GuardFn } from "../../types/guards";
 import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
+import { getTableViewMetaFor } from "./meta";
 import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
@@ -109,11 +106,7 @@ const getGuardForAction = (
   controller: ThisParameterType<DataControllerCallback["func"]>,
   actionName: GuardedActionName | "get",
 ): GuardFn<any> | undefined => {
-  const meta = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch is assumed to bind a registered controller constructor; the published unknown receiver does not prove it.
-    (controller as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+  const meta = getTableViewMetaFor(controller);
   return meta.controllerGuards?.[actionName];
 };
 
