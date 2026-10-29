@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { git } from "../git.mjs";
-import { flaggedDoors } from "./doors.mjs";
+import { flaggedDoors, patchFiles } from "./doors.mjs";
 import { loadJourneys } from "../journey.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
 
@@ -67,10 +67,19 @@ async function featureProblems(skill, feature, tracked) {
       problems.push(`${feature.file}: docs path ${doc} does not exist`);
     }
   }
-  if (!existsSync(join(skill.seededBreaksDir, `${feature.name}.patch`))) {
+  const patch = join(skill.seededBreaksDir, `${feature.name}.patch`);
+  if (!existsSync(patch)) {
     problems.push(
       `${feature.file}: seeded-breaks/${feature.name}.patch is missing`,
     );
+  }
+  const always = feature.name === skill.config.smoke;
+  for (const file of existsSync(patch) && !always ? patchFiles(patch) : []) {
+    if (!matches(file, feature.covers)) {
+      problems.push(
+        `${feature.file}: its seeded break edits ${file}, which its covers globs miss, so plan would not run it`,
+      );
+    }
   }
   return problems;
 }
@@ -98,7 +107,9 @@ function doorProblems(skill, tracked) {
 /**
  * Checks the map against the repository: every user-facing file is
  * covered, every feature has journeys, each described in its file, a
- * seeded break and existing docs pages, every feature and door glob
+ * seeded break that edits only files its own globs cover (the smoke
+ * feature runs on every verdict and is exempt), existing docs
+ * pages, every feature and door glob
  * matches a tracked file, and every door rule has a seeded door.
  *
  * @param {Record<string, any>} skill The skill

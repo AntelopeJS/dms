@@ -5,6 +5,12 @@ covers:
   - packages/dms/src/pages/preview.ts
   - packages/dms/src/implementations/dms/page/preview-*.ts
   - packages/dms/frontend-vue/layers/dms-layout/app/custom-layouts/PreviewLayout.vue
+  - packages/dms/frontend-vue/layers/dms-ui/app/build/utils/blockPreview.ts
+  - packages/dms/frontend-vue/layers/dms-ui/app/entries/utils/blockPreview.ts
+  - packages/dms/frontend-vue/layers/dms-ui/app/build/components/block-preview/**
+  - packages/dms/frontend-vue/layers/dms-ui/app/components/block-preview/**
+  - packages/dms/frontend-vue/layers/dms-ui/app/build/composables/block-preview/**
+  - packages/dms/frontend-vue/layers/dms-ui/app/entries/composables/block-preview/**
 docs:
   - packages/dms/docs/08.ai-and-claude-code/7.block-preview-page.md
 ---
