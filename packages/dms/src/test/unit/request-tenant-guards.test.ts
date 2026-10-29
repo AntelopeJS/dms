@@ -8,7 +8,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { decode, sign } from "jsonwebtoken";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { authenticateTenantRequest } from "@antelopejs/interface-dms/guards";
 import {
@@ -41,7 +41,7 @@ const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
 
 function context(token: string): RequestContext {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The guard context double provides authorization headers only, not the full HTTP request lifecycle.
+  // SAFETY: The guards under test read only the raw request's authorization header and key per-request state on the raw request object, both of which the double supplies.
   return {
     rawRequest: { headers: { authorization: `Bearer ${token}` } },
   } as RequestContext;
@@ -75,12 +75,9 @@ async function refusalOf<T>(
 
 /** A token claiming `tenantId`, signed with a key the DMS never issued. */
 function forgedToken(genuine: string, tenantId: string): string {
-  const {
-    iat: _iat,
-    exp: _exp,
-    ...claims
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The helper assumes its genuine locally generated JWT has object claims; decode itself does not verify that shape.
-  } = decode(genuine) as Exclude<ReturnType<typeof decode>, string | null>;
+  const decoded = decode(genuine, { json: true });
+  assert.isNotNull(decoded, "the genuine token decodes to claims");
+  const { iat: _iat, exp: _exp, ...claims } = decoded;
   return sign({ ...claims, tenantId }, "not-the-user-secret");
 }
 

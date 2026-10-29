@@ -194,10 +194,8 @@ export class ProfileSettingsController extends PageController("profile", {
       HTTP_BAD_REQUEST,
       "Invalid profile",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Only the body container is checked above; field values remain untrusted until parseProfile runs.
-    const submitted = body as Record<string, unknown>;
     assert(
-      !submitted.password,
+      !("password" in body && body.password),
       HTTP_BAD_REQUEST,
       "error.password_change_requires_current_password",
     );
@@ -206,7 +204,7 @@ export class ProfileSettingsController extends PageController("profile", {
         context,
         fields: avatarAttachmentFields,
         componentIds: GetComponentPermissionIds(personalInfoForm),
-        submitted: { avatar: this.user.avatar, ...submitted },
+        submitted: { avatar: this.user.avatar, ...body },
         before: { avatar: (await userModel.get(this.user._id))?.avatar },
       },
       async (promoted) => {

@@ -75,8 +75,8 @@ function session(id: string, lastActiveAt: number): Session {
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Model doubles are assigned immediately below after the harness exists for their closures.
-  const harness = {
+  // SAFETY: The user model double implements only lookup and update, and the session model double only listing, deletion and refresh-token replacement; the credential flow calls nothing else on them.
+  const harness: Harness = {
     user: buildUser(password),
     sessions: [
       session("session-old", 1),
@@ -85,26 +85,24 @@ function buildHarness(password: string | null = "hashed"): Harness {
     ],
     updates: 0,
     refreshTokens: new Map<string, string>(),
-  } as Harness;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This model double implements only lookup and update operations consumed by the credential flow.
-  harness.userModel = {
-    get: async () => harness.user,
-    getByEmail: async (email: string) =>
-      email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
-    update: async () => {
-      harness.updates += 1;
-    },
-  } as unknown as UserModel;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This session model double implements only listing, deletion and refresh-token replacement.
-  harness.sessionModel = {
-    getByUserId: async () => [...harness.sessions],
-    delete: async (id: string) => {
-      harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
-    },
-    replaceRefreshToken: async (id: string, token: string) => {
-      harness.refreshTokens.set(id, token);
-    },
-  } as unknown as SessionModel;
+    userModel: {
+      get: async () => harness.user,
+      getByEmail: async (email: string) =>
+        email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
+      update: async () => {
+        harness.updates += 1;
+      },
+    } as unknown as UserModel,
+    sessionModel: {
+      getByUserId: async () => [...harness.sessions],
+      delete: async (id: string) => {
+        harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
+      },
+      replaceRefreshToken: async (id: string, token: string) => {
+        harness.refreshTokens.set(id, token);
+      },
+    } as unknown as SessionModel,
+  };
   return harness;
 }
 

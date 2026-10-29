@@ -3,7 +3,7 @@ import {
   HTTPResult,
 } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   completeInviteResolution,
@@ -38,9 +38,8 @@ async function seedInvite(expiresAt: Date): Promise<UserInvite> {
     extensions: null,
   });
   const invite = await invites.get(INVITE_ID);
-  expect(invite).to.not.equal(undefined);
-  // SAFETY: The Chai assertion immediately above rejected an absent invite.
-  return invite as UserInvite;
+  assert.isDefined(invite);
+  return invite;
 }
 
 async function retire(

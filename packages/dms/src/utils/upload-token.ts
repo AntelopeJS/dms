@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../config";
+import { isJwtClaims } from "./jwt-claims";
 
 const UPLOAD_TOKEN_PURPOSE = "file-upload";
 const FALLBACK_SECRET_BYTES = 32;
@@ -86,11 +87,10 @@ export function signUploadToken(claims: Partial<UploadTokenClaims>): string {
 /* oxlint-disable anti-slop/no-runtime-typeof -- Signed JWT claims are still untyped input; string checks preserve omission of malformed optional claims. */
 export function verifyUploadToken(token: string): UploadTokenClaims | null {
   try {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Signature verification does not validate the payload schema; the existing purpose and field checks below remain the acceptance policy.
     const payload = verify(token, getUploadTokenSecret(), {
       algorithms: ["HS256"],
-    }) as UploadTokenPayload;
-    if (payload.purpose !== UPLOAD_TOKEN_PURPOSE) {
+    });
+    if (!isJwtClaims(payload) || payload.purpose !== UPLOAD_TOKEN_PURPOSE) {
       return null;
     }
     const claims: UploadTokenClaims = {
