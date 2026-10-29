@@ -27,9 +27,9 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { loadRoleEditorTree } from "../../../../pages/permissions";
 import type { RoleEditorPermissionNode } from "../../../../pages/permissions";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "cc-tenant";
 const PAGE_ID = "cc-children";
@@ -90,7 +90,7 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
   );
   // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
   const layout = await (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-user" } as User,
+    user: userFixture({ _id: "cc-user" }),
     memberModel: {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,
@@ -359,7 +359,7 @@ async function sharedLayout(permissions: string[]) {
   );
   // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
   return (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-shared-user" } as User,
+    user: userFixture({ _id: "cc-shared-user" }),
     memberModel: {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,

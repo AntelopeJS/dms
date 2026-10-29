@@ -28,7 +28,6 @@ import {
   internal as quickActionsInterface,
 } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
   denyingTenantGate,
@@ -37,6 +36,7 @@ import {
   stubExactPermissionModels,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const ALLOWED_TENANT = "qb-allowed-tenant";
 const DENIED_TENANT = "qb-denied-tenant";
@@ -134,8 +134,7 @@ async function actionsServedTo(
   tenantId = ALLOWED_TENANT,
 ): Promise<QuickActionTargetPayload> {
   const payload = await buildSiteLayoutPayload(
-    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
-    { _id: "qb-member" } as User,
+    userFixture({ _id: "qb-member" }),
     memberModel,
     roleModel,
     tenantId,

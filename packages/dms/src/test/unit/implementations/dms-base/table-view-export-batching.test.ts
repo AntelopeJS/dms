@@ -1,4 +1,4 @@
-import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { DataController } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
@@ -17,7 +17,6 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { Exported } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
 import {
@@ -25,15 +24,13 @@ import {
   generateTableViewExport,
 } from "../../../../implementations/dms-base/table-view";
 import type { ExportWriter } from "../../../../utils";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "export-batching-test";
 const TABLE = "invoices";
-// SAFETY: Export filtering uses this id and the absent owner flag; no persisted-user operations are exercised.
-const USER = { _id: "export-batching-user" } as User;
-// SAFETY: The export query path reads ctx.url; this fixture does not exercise the rest of RequestContext.
-const ctx = {
-  url: new URL("http://localhost/export"),
-} as RequestContext;
+const USER = userFixture({ _id: "export-batching-user" });
+const ctx = requestContextFixture(new URL("http://localhost/export"));
 
 const ROW_COUNT = EXPORT_BATCH_SIZE * 2 + Math.floor(EXPORT_BATCH_SIZE / 2);
 const ID_FIELD = "_id";

@@ -18,16 +18,15 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "menu-hardening-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
-// SAFETY: Dynamic-menu access consumes this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "menu-hardening-member" } as User;
+const MEMBER = userFixture({ _id: "menu-hardening-member" });
 const TARGET_SLUG = "/menu-hardening-target";
 
 const RESOLVER_TIMEOUT_MS = 300;

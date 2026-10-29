@@ -25,6 +25,7 @@ import {
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { denyingTenantGate } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "tv-gate-denied-tenant";
 const ALLOWED_TENANT = "tv-gate-allowed-tenant";
@@ -37,8 +38,7 @@ const PERMISSION_ID = "tv-gate.invoices";
 const HTTP_FORBIDDEN = 403;
 
 function userWithId(id: string): User {
-  // SAFETY: Authorization reads only the user id and the owner flag (absent here, so the user is not a platform owner); the fixture deliberately omits the other persisted user columns.
-  return { _id: id } as User;
+  return userFixture({ _id: id });
 }
 
 const MEMBER = userWithId("tv-gate-member");

@@ -19,13 +19,13 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "gate-denied-tenant";
 const ALLOWED_TENANT = "gate-allowed-tenant";
@@ -44,8 +44,7 @@ async function pageAccess(
   tenantId: string,
 ): Promise<boolean | undefined> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
-  // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-  const member = { _id: "gate-member" } as User;
+  const member = userFixture({ _id: "gate-member" });
   const payload = await buildSiteLayoutPayload(
     member,
     memberModel,
@@ -155,8 +154,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
       ]);
       const result = await buildPagePayload(
         "/gate-product",
-        // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-        { _id: "gate-member" } as User,
+        userFixture({ _id: "gate-member" }),
         memberModel,
         roleModel,
         DENIED_TENANT,
@@ -171,8 +169,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
         const { memberModel, roleModel } = stubPageAccessModels(permissions);
         const payload = await buildPagePayload(
           BILLING_PAGE_SLUG,
-          // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-          { _id: "gate-member" } as User,
+          userFixture({ _id: "gate-member" }),
           memberModel,
           roleModel,
           DENIED_TENANT,
@@ -220,8 +217,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("keeps the owner flag gated so owner-only surfaces stay closed", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    // SAFETY: Gate/page access reads this id and owner flag, not persisted-user methods.
-    const owner = { _id: "gate-owner", owner: true } as User;
+    const owner = userFixture({ _id: "gate-owner", owner: true });
     const payload = await buildSiteLayoutPayload(
       owner,
       memberModel,
@@ -267,8 +263,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("mirrors the flag in userCanAccessPage", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([BILLING_FULL_ID]);
-    // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "gate-member" } as User;
+    const member = userFixture({ _id: "gate-member" });
     expect(
       await userCanAccessPage(
         member,

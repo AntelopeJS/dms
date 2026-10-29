@@ -1,4 +1,4 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   isStagedKey,
@@ -19,6 +19,7 @@ import {
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { untouchedRequestContext } from "../../helpers/request-context";
 
 const CONTENT = Buffer.from("component-owned file");
 const METADATA = "/api/files/metadata";
@@ -210,8 +211,7 @@ describe("[integration] native component file security", () => {
     let saves = 0;
     const denied = await SaveComponentFiles(
       {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The rejection-path fixture deliberately supplies no HTTP context fields.
-        context: {} as RequestContext,
+        context: untouchedRequestContext(),
         componentIds: [],
         fields: [{ id: "unclassified#file", key: "file", kind: "file" }],
         before: document,

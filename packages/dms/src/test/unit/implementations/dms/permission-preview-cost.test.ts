@@ -7,7 +7,6 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import {
   PageController,
@@ -21,13 +20,13 @@ import * as permissionsResolverInterface from "@antelopejs/interface-dms/permiss
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const PAGE_COUNT = 8;
 const MAX_CONCURRENT_PAGES = 4;
 const FILTER_DELAY_MS = 5;
 const TENANT = "pv-cost-tenant";
-// SAFETY: Preview access consumes this id and owner flag, not persisted-user methods.
-const OWNER = { _id: "pv-cost-owner", owner: true } as User;
+const OWNER = userFixture({ _id: "pv-cost-owner", owner: true });
 const PAGE_IDS = Array.from(
   { length: PAGE_COUNT },
   (_, index) => `pages.pv-cost-${index}`,

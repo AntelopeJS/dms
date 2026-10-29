@@ -1,4 +1,4 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -6,14 +6,14 @@ import {
   getExportJobStatus,
   runExportJob,
 } from "@antelopejs/interface-dms/base/export-jobs";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
 const HTTP_UNAUTHORIZED = 401;
 
 const SETTLE_TIMEOUT_MS = 2000;
 // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The unauthenticated caller is intentionally outside the public User contract so the runtime's unauthorized rejection is exercised.
 const ANONYMOUS_USER = undefined as unknown as User;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization rejects before reading the request context; the empty context is an intentional test double.
-const UNUSED_CONTEXT = {} as RequestContext;
+const UNUSED_CONTEXT = untouchedRequestContext();
 const UNKNOWN_JOB_ID = "unknown-export-job";
 
 async function rejectionOf(call: Promise<unknown>) {

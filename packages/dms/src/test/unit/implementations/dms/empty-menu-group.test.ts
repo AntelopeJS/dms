@@ -17,12 +17,12 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const GROUP_ID = "emg-group";
 const GROUP_FULL_ID = `pages.${GROUP_ID}`;
@@ -30,10 +30,8 @@ const PAGE_FULL_ID = `${GROUP_FULL_ID}.emg-page`;
 const DYNAMIC_GROUP_ID = "emg-dynamic";
 const DYNAMIC_GROUP_FULL_ID = `pages.${DYNAMIC_GROUP_ID}`;
 const TENANT = "emg-tenant";
-// SAFETY: This fixture supplies the member id; the access path reads the omitted owner flag as undefined, not as a full persisted user.
-const MEMBER = { _id: "emg-member" } as User;
-// SAFETY: This fixture supplies the id and owner flag consumed by permission resolution; no persisted-user methods are exercised.
-const OWNER = { _id: "emg-owner", owner: true } as User;
+const MEMBER = userFixture({ _id: "emg-member" });
+const OWNER = userFixture({ _id: "emg-owner", owner: true });
 
 async function pagesLevelFor(permissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(permissions);

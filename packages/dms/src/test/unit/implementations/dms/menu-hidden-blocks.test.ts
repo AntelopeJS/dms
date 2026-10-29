@@ -10,7 +10,6 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
@@ -24,12 +23,11 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "mhb-tenant";
-// SAFETY: Menu permissions consume this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "mhb-member" } as User;
-// SAFETY: Menu permissions consume this id and owner flag, not persisted-user methods.
-const OWNER = { _id: "mhb-owner", owner: true } as User;
+const MEMBER = userFixture({ _id: "mhb-member" });
+const OWNER = userFixture({ _id: "mhb-owner", owner: true });
 const BLOCKS_PAGE = "pages.mhb-blocks";
 const NESTED_PAGE = `${BLOCKS_PAGE}.mhb-nested`;
 const BARE_PAGE = "pages.mhb-bare";

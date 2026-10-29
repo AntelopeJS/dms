@@ -16,19 +16,18 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { captureWarnings } from "../../../helpers/logging";
 import {
   registerTestCategory,
   stubPageAccessModels,
   type TestCategory,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 type LayoutTree = SiteLayoutPayload["siteLayoutTree"];
 
 const TENANT = "category-slug-tenant";
-// SAFETY: Category-menu access consumes this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "category-slug-member" } as User;
+const MEMBER = userFixture({ _id: "category-slug-member" });
 const COLLISION_MARKER = "claims the slug";
 const UNKNOWN_CATEGORY_MARKER = "targets unknown category";
 const SHARED_SLUG = "/category-slug-shared";

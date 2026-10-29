@@ -7,14 +7,14 @@ import type {
   RequestPrincipal,
 } from "@antelopejs/interface-dms/auth/request-authenticators";
 import { resolveRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
+import { requestContextFixture } from "../helpers/request-context";
 
 const UNAUTHORIZED = 401;
 const TENANT = "credential-tenant";
 const USER_ID = "credential-user";
 
 function context(authorization = "Bearer opaque.secret"): RequestContext {
-  // SAFETY: The resolver and tenant lookup access only rawRequest.headers.authorization and request identity; a Pick cannot satisfy their full RequestContext parameter.
-  return { rawRequest: { headers: { authorization } } } as RequestContext;
+  return requestContextFixture(undefined, authorization);
 }
 
 function principal(tenantId = TENANT, userId = USER_ID): RequestPrincipal {
