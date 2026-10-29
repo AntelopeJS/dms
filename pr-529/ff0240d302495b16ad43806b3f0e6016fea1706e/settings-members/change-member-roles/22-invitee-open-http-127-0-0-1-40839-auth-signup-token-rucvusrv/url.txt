@@ -1,1 +1,0 @@
-http://127.0.0.1:40839/auth/signup?token=RucVUSrV5wrNERSfpqAtETWgV6UKI2RBK2EXEwzE9af6bPkZUjGac7Cj3nzdJmoh&email=kim%2B20261029t064557-d7cef6-change-member-roles%40verify.local&lang=en

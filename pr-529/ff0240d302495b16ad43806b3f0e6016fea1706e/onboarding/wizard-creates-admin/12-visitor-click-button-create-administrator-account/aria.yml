@@ -11,7 +11,7 @@
     - text: Ready
     - status: Step 2 of 3
   - text: Step 3 of 3 · Ready
-  - heading "Verify Wizard 2cb6d4 is ready" [level=1]
+  - heading "Verify Wizard 20f311 is ready" [level=1]
   - paragraph: You're signed in as Wiz Ard, owner of the platform. Here's what most teams do first.
   - list:
     - listitem:
@@ -25,7 +25,7 @@
         - /url: https://antelopejs.com/docs
   - button "Open the dashboard"
   - term: Platform
-  - definition: Verify Wizard 2cb6d4
+  - definition: Verify Wizard 20f311
   - term: Default language
   - definition: English
 - contentinfo:

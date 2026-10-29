@@ -3,7 +3,7 @@
   - paragraph: They’re signed out of the workspace right away and lose access to its data. Their account and other workspaces aren’t affected.
   - button "Close"
   - list:
-    - listitem: Roles removed Support c1bbf2
+    - listitem: Roles removed Support ffd5c0
     - listitem: Records they created stay
   - text: Esc to cancel
   - button "Cancel"

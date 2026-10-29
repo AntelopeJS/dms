@@ -5,7 +5,7 @@
     "title": "the sign-in form opens the dashboard and the session survives a reload and a backend restart",
     "entryPoint": "/auth sign-in form",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j007",
+    "database": "verify_20261029T072735_8a4271_j002",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -30,7 +30,7 @@
           {
             "name": "admin signs in and leaves /auth",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -41,7 +41,7 @@
           {
             "name": "button \"Verify Admin\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -52,7 +52,7 @@
           {
             "name": "reload",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -68,7 +68,7 @@
           {
             "name": "button \"Verify Admin\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -79,7 +79,7 @@
           {
             "name": "open /settings/workspace/members",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -95,7 +95,7 @@
           {
             "name": "heading \"Members\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -106,12 +106,12 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"_id\":\"036d1457-8e75-48af-a868-7a0428b800be\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"createdAt\":\"2026-10-29T06:47:39.405Z\",\"updatedAt\":\"2026-10-29T06:47:40.979Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T06:47:40.9"
+            "detail": "status 200: {\"_id\":\"c0b5fc91-e1c1-4a3a-92c8-1804580d2c78\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t072735-8a4271@verify.local\",\"createdAt\":\"2026-10-29T07:29:40.150Z\",\"updatedAt\":\"2026-10-29T07:29:41.731Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T07:29:41.7"
           },
           {
             "name": "email",
             "pass": true,
-            "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+            "detail": "expected \"admin+20261029t072735-8a4271@verify.local\", got \"admin+20261029t072735-8a4271@verify.local\""
           }
         ]
       }
@@ -125,7 +125,7 @@
     "title": "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
     "entryPoint": "/auth sign-in form, POST /api/auth/login",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j008",
+    "database": "verify_20261029T072735_8a4271_j003",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -150,7 +150,7 @@
           {
             "name": "open /auth",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth"
+            "detail": "http://127.0.0.1:43827/auth"
           }
         ]
       },
@@ -161,7 +161,7 @@
           {
             "name": "fill textbox \"Email address\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth"
+            "detail": "http://127.0.0.1:43827/auth"
           }
         ]
       },
@@ -172,7 +172,7 @@
           {
             "name": "fill textbox \"Password\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth"
+            "detail": "http://127.0.0.1:43827/auth"
           }
         ]
       },
@@ -183,7 +183,7 @@
           {
             "name": "click button \"Login\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth"
+            "detail": "http://127.0.0.1:43827/auth"
           }
         ]
       },
@@ -194,7 +194,7 @@
           {
             "name": "page shows /The provided credentials are incorrect/",
             "pass": true,
-            "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T064557-d7cef6 workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+            "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T072735-8a4271 workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
           },
           {
             "name": "path matches /^\\/auth/",
@@ -229,7 +229,7 @@
     "title": "an anonymous visit to a settings page goes to sign-in and returns to the page afterwards",
     "entryPoint": "/settings/workspace/members as a visitor",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j009",
+    "database": "verify_20261029T072735_8a4271_j004",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -254,7 +254,7 @@
           {
             "name": "open /settings/workspace/members",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+            "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
           }
         ]
       },
@@ -270,7 +270,7 @@
           {
             "name": "redirect names the page",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+            "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
           }
         ]
       },
@@ -281,7 +281,7 @@
           {
             "name": "fill textbox \"Email address\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+            "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
           }
         ]
       },
@@ -292,7 +292,7 @@
           {
             "name": "fill textbox \"Password\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+            "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
           }
         ]
       },
@@ -303,7 +303,7 @@
           {
             "name": "click button \"Login\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -339,7 +339,7 @@
     "title": "Logout from the account menu ends the session, and the settings page asks to sign in again",
     "entryPoint": "account menu > Logout",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j010",
+    "database": "verify_20261029T072735_8a4271_j005",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -364,7 +364,7 @@
           {
             "name": "admin signs in and leaves /auth",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -375,7 +375,7 @@
           {
             "name": "click button \"Verify Admin\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -386,7 +386,7 @@
           {
             "name": "click menuitem \"Logout\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth"
+            "detail": "http://127.0.0.1:43827/auth"
           }
         ]
       },
@@ -408,7 +408,7 @@
           {
             "name": "open /settings/workspace/members",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+            "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
           }
         ]
       },
@@ -433,7 +433,7 @@
     "title": "the emailed code resets the password: the new one signs in and the old one is refused",
     "entryPoint": "/auth/forgot, /auth/forgot-validation, /auth/recover",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j011",
+    "database": "verify_20261029T072735_8a4271_j006",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -458,7 +458,7 @@
           {
             "name": "open /auth/forgot",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot"
+            "detail": "http://127.0.0.1:43827/auth/forgot"
           }
         ]
       },
@@ -469,7 +469,7 @@
           {
             "name": "fill textbox \"Email address\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot"
+            "detail": "http://127.0.0.1:43827/auth/forgot"
           }
         ]
       },
@@ -480,7 +480,7 @@
           {
             "name": "click button \"Send the code\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -491,7 +491,7 @@
           {
             "name": "heading \"Check your inbox\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           },
           {
             "name": "path matches /^\\/auth\\/forgot-validation/",
@@ -518,7 +518,7 @@
           {
             "name": "fill textbox \"pin input 1 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -529,7 +529,7 @@
           {
             "name": "fill textbox \"pin input 2 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -540,7 +540,7 @@
           {
             "name": "fill textbox \"pin input 3 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -551,7 +551,7 @@
           {
             "name": "fill textbox \"pin input 4 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -562,7 +562,7 @@
           {
             "name": "fill textbox \"pin input 5 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -573,7 +573,7 @@
           {
             "name": "fill textbox \"pin input 6 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -584,7 +584,7 @@
           {
             "name": "heading \"Reset your password\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -595,7 +595,7 @@
           {
             "name": "fill textbox \"New password\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -606,7 +606,7 @@
           {
             "name": "click button \"Save the new password\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/recover-success"
+            "detail": "http://127.0.0.1:43827/auth/recover-success"
           }
         ]
       },
@@ -647,7 +647,7 @@
     "title": "a wrong reset code is refused and the password does not change",
     "entryPoint": "/auth/forgot-validation",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j012",
+    "database": "verify_20261029T072735_8a4271_j007",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -672,7 +672,7 @@
           {
             "name": "open /auth/forgot",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot"
+            "detail": "http://127.0.0.1:43827/auth/forgot"
           }
         ]
       },
@@ -683,7 +683,7 @@
           {
             "name": "fill textbox \"Email address\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot"
+            "detail": "http://127.0.0.1:43827/auth/forgot"
           }
         ]
       },
@@ -694,7 +694,7 @@
           {
             "name": "click button \"Send the code\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -705,7 +705,7 @@
           {
             "name": "heading \"Check your inbox\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           },
           {
             "name": "path matches /^\\/auth\\/forgot-validation/",
@@ -732,7 +732,7 @@
           {
             "name": "fill textbox \"pin input 1 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -743,7 +743,7 @@
           {
             "name": "fill textbox \"pin input 2 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -754,7 +754,7 @@
           {
             "name": "fill textbox \"pin input 3 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -765,7 +765,7 @@
           {
             "name": "fill textbox \"pin input 4 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -776,7 +776,7 @@
           {
             "name": "fill textbox \"pin input 5 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -787,7 +787,7 @@
           {
             "name": "fill textbox \"pin input 6 of 6\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           }
         ]
       },
@@ -798,7 +798,7 @@
           {
             "name": "heading \"Reset your password\" is absent",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+            "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
           },
           {
             "name": "path matches /^\\/auth\\/forgot-validation/",
@@ -814,7 +814,7 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI5MjI1YzgyLTM3ZTktNDRhZC04N2NjLTBmYjI0MWIwNTRhZiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjM3NjlmYmY5LWJhMDItNGYzYi04ZTJkLTllNzA1NGQwMjgzMiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTY1MTIsImV4cCI6MTc5MzI2MDEx"
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzMmIyNDJiLTE0N2MtNGEzNy1hYTEzLTlkZWVkNjkxMTAxZCIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6ImZhZDdhMGZkLWNiZjQtNGIzMi1iZjZlLTEwMjZjZjE5M2YzYyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTkwMzQsImV4cCI6MTc5MzI2MjYz"
           }
         ]
       }
@@ -828,7 +828,7 @@
     "title": "an owner, a session and a record written by the base version are read by this version (Format containment)",
     "entryPoint": "the base ref's backend, then this one, on the same database",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j013",
+    "database": "verify_20261029T072735_8a4271_j008",
     "steps": [
       {
         "name": "04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
@@ -842,7 +842,7 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"_id\":\"b83ebf47-e65a-4e06-8aca-0f3ac2a63ad0\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t064557-d7cef6-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
+            "detail": "status 200: {\"_id\":\"c7d9ee67-ef2c-4126-9634-014f6c470121\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t072735-8a4271-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
           },
           {
             "name": "tokens issued",
@@ -858,12 +858,12 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"_id\":\"347aa6d8-002b-4994-aa98-0d879bb7d771\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"createdAt\":\"2026-10-29T06:49:00.367Z\",\"updatedAt\":\"2026-10-29T06:49:00.417Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T06:49:00.4"
+            "detail": "status 200: {\"_id\":\"c4ba4df2-19af-4846-bb21-78e81d562c97\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t072735-8a4271@verify.local\",\"createdAt\":\"2026-10-29T07:31:00.386Z\",\"updatedAt\":\"2026-10-29T07:31:00.445Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T07:31:00.4"
           },
           {
             "name": "the account behind the base token",
             "pass": true,
-            "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+            "detail": "expected \"admin+20261029t072735-8a4271@verify.local\", got \"admin+20261029t072735-8a4271@verify.local\""
           },
           {
             "name": "the base refresh token refreshes",
@@ -873,12 +873,12 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjM0N2FhNmQ4LTAwMmItNDk5NC1hYTk4LTBkODc5YmI3ZDc3MSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjFlODhkODE2LWRlYzMtNDhmZi04MWRmLTE1NWQ3ZWYxNWIyNyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTY1NDIsImV4cCI6MTc5MzI2MDE0"
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImM0YmE0ZGYyLTE5YWYtNDg0Ni1iYjIxLTc4ZTgxZDU2MmM5NyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjZkMDViYjhkLTgyN2UtNDY3NC05YTNmLWEzNjc4NWQ5ZDNjNyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTkwNjIsImV4cCI6MTc5MzI2MjY2"
           },
           {
             "name": "the record is listed",
             "pass": true,
-            "detail": "b83ebf47-e65a-4e06-8aca-0f3ac2a63ad0"
+            "detail": "c7d9ee67-ef2c-4126-9634-014f6c470121"
           }
         ]
       },
@@ -889,7 +889,7 @@
           {
             "name": "admin signs in and leaves /auth",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -900,7 +900,7 @@
           {
             "name": "button \"Verify Admin\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       }

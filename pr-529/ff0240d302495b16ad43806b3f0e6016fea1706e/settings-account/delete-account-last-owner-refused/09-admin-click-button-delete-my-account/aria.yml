@@ -1,6 +1,0 @@
-- dialog "Your account can't be deleted yet":
-  - heading "Your account can't be deleted yet" [level=2]
-  - paragraph: You're the last owner of Default, the platform. Make another member owner first, then come back.
-  - button "Close"
-  - text: Esc to cancel
-  - button "Got it"

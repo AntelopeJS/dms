@@ -7,12 +7,12 @@
   {
     "name": "HTTP 200",
     "pass": true,
-    "detail": "status 200: {\"_id\":\"7d3ba897-433d-4c4a-9ef3-d33aab2be1a4\",\"name\":\"Wiz Ard\",\"email\":\"wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local\",\"createdAt\":\"2026-10-29T06:47:06.071Z\",\"updatedAt\":\"2026-10-29T06:47:06.555Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026"
+    "detail": "status 200: {\"_id\":\"8b8c7d04-7583-48e8-baee-f06e906f5595\",\"name\":\"Wiz Ard\",\"email\":\"wizard+20261029t072735-8a4271-wizard-creates-admin@verify.local\",\"createdAt\":\"2026-10-29T07:34:47.602Z\",\"updatedAt\":\"2026-10-29T07:34:48.083Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026"
   },
   {
     "name": "the owner's email",
     "pass": true,
-    "detail": "expected \"wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local\", got \"wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local\""
+    "detail": "expected \"wizard+20261029t072735-8a4271-wizard-creates-admin@verify.local\", got \"wizard+20261029t072735-8a4271-wizard-creates-admin@verify.local\""
   },
   {
     "name": "the owner flag",

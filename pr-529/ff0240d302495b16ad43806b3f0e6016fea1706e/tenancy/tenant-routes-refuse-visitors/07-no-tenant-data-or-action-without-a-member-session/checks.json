@@ -17,6 +17,6 @@
   {
     "name": "HTTP 200",
     "pass": true,
-    "detail": "status 200: {\"results\":[{\"_id\":\"default:f9cfe3a9-ff60-458d-a6f0-3c6b581ec942\",\"userId\":\"f9cfe3a9-ff60-458d-a6f0-3c6b581ec942\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T07:03:09.753Z\",\"twoFactorMethods\":nul"
+    "detail": "status 200: {\"results\":[{\"_id\":\"default:ad272e2d-47a7-4f79-9fda-1d5c6b2392c1\",\"userId\":\"ad272e2d-47a7-4f79-9fda-1d5c6b2392c1\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t072735-8a4271@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T07:34:39.249Z\",\"twoFactorMethods\":nul"
   }
 ]

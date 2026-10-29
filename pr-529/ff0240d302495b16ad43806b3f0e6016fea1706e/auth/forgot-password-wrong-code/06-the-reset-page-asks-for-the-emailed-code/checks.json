@@ -2,7 +2,7 @@
   {
     "name": "heading \"Check your inbox\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+    "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
   },
   {
     "name": "path matches /^\\/auth\\/forgot-validation/",

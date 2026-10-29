@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:43827"
+}

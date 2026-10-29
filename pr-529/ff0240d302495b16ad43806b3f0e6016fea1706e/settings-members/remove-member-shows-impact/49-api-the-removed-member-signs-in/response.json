@@ -2,18 +2,18 @@
   "status": 200,
   "body": {
     "requires_tenant_assignment": true,
-    "tenant_assignment_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwMWNlYzI4LTI4YjctNDQwOS1hN2VkLTE1Y2I2YjcxOGU3MyIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1NjcxOCwiZXhwIjoxNzkzMjU3NjE4fQ.NtH3tvvidFAVXDpY7AdQGp5iF4-hYQ-sYT4I2IFz2RM",
+    "tenant_assignment_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzM2JhMGUxLTU3YzAtNGI0Mi05MWU4LTA2MjBiM2IwNWEwZSIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1OTE2NiwiZXhwIjoxNzkzMjYwMDY2fQ.igIjCGjTY3cA82tNAVOyFv2c71rR_57vu00G93YNXQ0",
     "user": {
-      "_id": "901cec28-28b7-4409-a7ed-15cb6b718e73",
-      "createdAt": "2026-10-29T06:51:52.417Z",
-      "updatedAt": "2026-10-29T06:51:52.445Z",
+      "_id": "433ba0e1-57c0-4b42-91e8-0620b3b05a0e",
+      "createdAt": "2026-10-29T07:32:40.235Z",
+      "updatedAt": "2026-10-29T07:32:40.268Z",
       "name": "Hank",
-      "email": "hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local",
+      "email": "hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local",
       "isValidated": true,
       "owner": false,
       "language": "en",
       "_instance": null,
-      "lastActiveAt": "2026-10-29T06:51:52.445Z"
+      "lastActiveAt": "2026-10-29T07:32:40.268Z"
     }
   },
   "error": null

@@ -4,7 +4,7 @@
   "title": "revoking an invitation removes it after a reload and its emailed link no longer creates an account",
   "entryPoint": "Member invitations > Revoke, /auth/signup?token=",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j022",
+  "database": "verify_20261029T072735_8a4271_j011",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-0eb9e0-exists",
-      "folder": "settings-members/invite-revoke-refuses-link/04-the-role-support-0eb9e0-exists",
+      "name": "04-the-role-support-3a2d13-exists",
+      "folder": "settings-members/invite-revoke-refuses-link/04-the-role-support-3a2d13-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"dda1a82a-8a47-4844-b061-01139848c3c3\"}"
+          "detail": "status 200: {\"id\":\"b5140a94-e7c2-4fd0-ab4a-c8bcba68b557\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -106,18 +106,18 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "16-admin-click-button-support-0eb9e0-in-group-roles",
-      "folder": "settings-members/invite-revoke-refuses-link/16-admin-click-button-support-0eb9e0-in-group-roles",
+      "name": "16-admin-click-button-support-3a2d13-in-group-roles",
+      "folder": "settings-members/invite-revoke-refuses-link/16-admin-click-button-support-3a2d13-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support 0eb9e0\" in group \"Roles\"",
+          "name": "click button \"Support 3a2d13\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -128,13 +128,13 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
     {
-      "name": "19-the-invitation-email-reaches-erin-20261029t064557-d7cef6-inv",
-      "folder": "settings-members/invite-revoke-refuses-link/19-the-invitation-email-reaches-erin-20261029t064557-d7cef6-inv",
+      "name": "19-the-invitation-email-reaches-erin-20261029t072735-8a4271-inv",
+      "folder": "settings-members/invite-revoke-refuses-link/19-the-invitation-email-reaches-erin-20261029t072735-8a4271-inv",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -150,7 +150,7 @@
         {
           "name": "click button \"Revoke\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -159,14 +159,14 @@
       "folder": "settings-members/invite-revoke-refuses-link/21-the-dialog-names-the-invitation-and-what-revoking-does",
       "checks": [
         {
-          "name": "dialog \"Revoke the invitation to erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local?\" is visible",
+          "name": "dialog \"Revoke the invitation to erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local?\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         },
         {
           "name": "page shows /The link stops working right away/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
         }
       ]
     },
@@ -177,7 +177,7 @@
         {
           "name": "click button \"Cancel\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -188,7 +188,7 @@
         {
           "name": "reload",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -197,9 +197,9 @@
       "folder": "settings-members/invite-revoke-refuses-link/24-cancelling-the-dialog-keeps-the-invitation",
       "checks": [
         {
-          "name": "cell \"erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local\" is visible",
+          "name": "cell \"erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -210,7 +210,7 @@
         {
           "name": "click button \"Revoke\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -221,7 +221,7 @@
         {
           "name": "click button \"Revoke\" in dialog",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -232,12 +232,12 @@
         {
           "name": "page shows /Invitation revoked/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
         },
         {
-          "name": "cell \"erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local\" is absent",
+          "name": "cell \"erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local\" is absent",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -248,7 +248,7 @@
         {
           "name": "reload",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -257,9 +257,9 @@
       "folder": "settings-members/invite-revoke-refuses-link/29-it-is-still-gone-after-a-reload",
       "checks": [
         {
-          "name": "cell \"erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local\" is absent",
+          "name": "cell \"erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local\" is absent",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -275,13 +275,13 @@
       ]
     },
     {
-      "name": "32-invitee-open-http-127-0-0-1-40839-auth-signup-token-vdccc60a",
-      "folder": "settings-members/invite-revoke-refuses-link/32-invitee-open-http-127-0-0-1-40839-auth-signup-token-vdccc60a",
+      "name": "32-invitee-open-http-127-0-0-1-43827-auth-signup-token-ac521hao",
+      "folder": "settings-members/invite-revoke-refuses-link/32-invitee-open-http-127-0-0-1-43827-auth-signup-token-ac521hao",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en"
         }
       ]
     },
@@ -292,12 +292,12 @@
         {
           "name": "heading \"This invitation was revoked\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en"
         },
         {
           "name": "button \"Create my account\" is absent",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en"
         }
       ]
     },
@@ -308,7 +308,7 @@
         {
           "name": "members",
           "pass": true,
-          "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+          "detail": "expected [\"admin+20261029t072735-8a4271@verify.local\"], got [\"admin+20261029t072735-8a4271@verify.local\"]"
         }
       ]
     }

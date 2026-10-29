@@ -1,6 +1,0 @@
-{
-  "do": "fill",
-  "target": "textbox \"Name\"",
-  "value": "Realtime User 2e16e4",
-  "baseUrl": "http://127.0.0.1:40839"
-}

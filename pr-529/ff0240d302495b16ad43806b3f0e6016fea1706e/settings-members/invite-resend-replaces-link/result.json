@@ -4,7 +4,7 @@
   "title": "resending an invitation emails a new link and the previous link stops working",
   "entryPoint": "Member invitations > Resend, /auth/signup?token=",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j023",
+  "database": "verify_20261029T072735_8a4271_j012",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-77c486-exists",
-      "folder": "settings-members/invite-resend-replaces-link/04-the-role-support-77c486-exists",
+      "name": "04-the-role-support-fa0c7d-exists",
+      "folder": "settings-members/invite-resend-replaces-link/04-the-role-support-fa0c7d-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"a46741dd-8bc5-4778-9758-eca7f49ea041\"}"
+          "detail": "status 200: {\"id\":\"5fb029c9-4e8c-4652-974c-642374ab2e13\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -106,18 +106,18 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "16-admin-click-button-support-77c486-in-group-roles",
-      "folder": "settings-members/invite-resend-replaces-link/16-admin-click-button-support-77c486-in-group-roles",
+      "name": "16-admin-click-button-support-fa0c7d-in-group-roles",
+      "folder": "settings-members/invite-resend-replaces-link/16-admin-click-button-support-fa0c7d-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support 77c486\" in group \"Roles\"",
+          "name": "click button \"Support fa0c7d\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -128,13 +128,13 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
     {
-      "name": "19-the-invitation-email-reaches-fred-20261029t064557-d7cef6-inv",
-      "folder": "settings-members/invite-resend-replaces-link/19-the-invitation-email-reaches-fred-20261029t064557-d7cef6-inv",
+      "name": "19-the-invitation-email-reaches-fred-20261029t072735-8a4271-inv",
+      "folder": "settings-members/invite-resend-replaces-link/19-the-invitation-email-reaches-fred-20261029t072735-8a4271-inv",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -150,7 +150,7 @@
         {
           "name": "click button \"Resend\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -161,7 +161,7 @@
         {
           "name": "click button \"Resend\" in dialog",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -172,13 +172,13 @@
         {
           "name": "page shows /Invitation resent successfully/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
         }
       ]
     },
     {
-      "name": "24-the-invitation-email-reaches-fred-20261029t064557-d7cef6-inv",
-      "folder": "settings-members/invite-resend-replaces-link/24-the-invitation-email-reaches-fred-20261029t064557-d7cef6-inv",
+      "name": "24-the-invitation-email-reaches-fred-20261029t072735-8a4271-inv",
+      "folder": "settings-members/invite-resend-replaces-link/24-the-invitation-email-reaches-fred-20261029t072735-8a4271-inv",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -188,13 +188,13 @@
       ]
     },
     {
-      "name": "25-stale-link-open-http-127-0-0-1-40839-auth-signup-token-nv8ae",
-      "folder": "settings-members/invite-resend-replaces-link/25-stale-link-open-http-127-0-0-1-40839-auth-signup-token-nv8ae",
+      "name": "25-stale-link-open-http-127-0-0-1-43827-auth-signup-token-tz8gb",
+      "folder": "settings-members/invite-resend-replaces-link/25-stale-link-open-http-127-0-0-1-43827-auth-signup-token-tz8gb",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=nv8aEY0UUTLwmZi7Ep1s2wLRNEJpIYBbvJyapJFZoWrr0sqKUZMiBZIHn3Cw8jCZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=tz8gbfbMYyzIm46QCaEb2dYOFhPWx0VOTNR4SJuwPHDUYYLzlVg9qbRX3PbkswR3&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=nv8aEY0UUTLwmZi7Ep1s2wLRNEJpIYBbvJyapJFZoWrr0sqKUZMiBZIHn3Cw8jCZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=tz8gbfbMYyzIm46QCaEb2dYOFhPWx0VOTNR4SJuwPHDUYYLzlVg9qbRX3PbkswR3&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
@@ -205,18 +205,18 @@
         {
           "name": "heading \"This invitation was replaced by a newer email\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=nv8aEY0UUTLwmZi7Ep1s2wLRNEJpIYBbvJyapJFZoWrr0sqKUZMiBZIHn3Cw8jCZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=tz8gbfbMYyzIm46QCaEb2dYOFhPWx0VOTNR4SJuwPHDUYYLzlVg9qbRX3PbkswR3&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
     {
-      "name": "27-invitee-open-http-127-0-0-1-40839-auth-signup-token-j4cb7jh9",
-      "folder": "settings-members/invite-resend-replaces-link/27-invitee-open-http-127-0-0-1-40839-auth-signup-token-j4cb7jh9",
+      "name": "27-invitee-open-http-127-0-0-1-43827-auth-signup-token-5b38fzhe",
+      "folder": "settings-members/invite-resend-replaces-link/27-invitee-open-http-127-0-0-1-43827-auth-signup-token-5b38fzhe",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
@@ -227,7 +227,7 @@
         {
           "name": "heading \"Create your account\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
@@ -238,7 +238,7 @@
         {
           "name": "fill textbox \"First and last name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
@@ -249,7 +249,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
         }
       ]
     },
@@ -260,7 +260,7 @@
         {
           "name": "click button \"Create my account\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -282,7 +282,7 @@
         {
           "name": "button \"Fred Tester\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -293,7 +293,7 @@
         {
           "name": "member exists",
           "pass": true,
-          "detail": "fred+20261029t064557-d7cef6-invite-resend-replaces-link@verify.local"
+          "detail": "fred+20261029t072735-8a4271-invite-resend-replaces-link@verify.local"
         }
       ]
     }

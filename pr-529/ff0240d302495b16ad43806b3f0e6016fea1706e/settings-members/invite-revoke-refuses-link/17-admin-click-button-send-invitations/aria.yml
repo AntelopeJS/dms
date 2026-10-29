@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -105,10 +105,10 @@
       - cell "Status"
       - cell
   - rowgroup:
-    - row "erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local Support 0eb9e0 Oct 29 · by Verify In 7 days Pending Edit invitation Resend Copy link Revoke":
+    - row "erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local Support 3a2d13 Oct 29 · by Verify In 7 days Pending Edit invitation Resend Copy link Revoke":
       - cell
-      - cell "erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local"
-      - cell "Support 0eb9e0"
+      - cell "erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local"
+      - cell "Support 3a2d13"
       - cell "Oct 29 · by Verify"
       - cell "In 7 days"
       - cell "Pending"

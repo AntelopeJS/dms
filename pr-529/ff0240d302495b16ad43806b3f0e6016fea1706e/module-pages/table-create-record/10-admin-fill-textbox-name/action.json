@@ -1,6 +1,0 @@
-{
-  "do": "fill",
-  "target": "textbox \"Name\"",
-  "value": "Verify User 3aa23c",
-  "baseUrl": "http://127.0.0.1:40839"
-}

@@ -4,7 +4,7 @@
   "title": "an anonymous visit to a settings page goes to sign-in and returns to the page afterwards",
   "entryPoint": "/settings/workspace/members as a visitor",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j009",
+  "database": "verify_20261029T072735_8a4271_j004",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -29,7 +29,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
         }
       ]
     },
@@ -45,7 +45,7 @@
         {
           "name": "redirect names the page",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
         }
       ]
     },
@@ -56,7 +56,7 @@
         {
           "name": "fill textbox \"Email address\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
         }
       ]
     },
@@ -67,7 +67,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
         }
       ]
     },
@@ -78,7 +78,7 @@
         {
           "name": "click button \"Login\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },

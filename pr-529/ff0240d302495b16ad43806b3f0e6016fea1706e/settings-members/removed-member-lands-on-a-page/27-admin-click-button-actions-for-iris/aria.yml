@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -106,18 +106,18 @@
         - button "Joined"
       - cell
   - rowgroup:
-    - row "I Iris iris+20261029t064557-d7cef6-removed-member-lands-on-a-page@verify.local Support c1bbf2 Active now Off Oct 29, 2026 Actions for Iris":
+    - row "I Iris iris+20261029t072735-8a4271-removed-member-lands-on-a-page@verify.local Support ffd5c0 Active now Off Oct 29, 2026 Actions for Iris":
       - cell
-      - cell "I Iris iris+20261029t064557-d7cef6-removed-member-lands-on-a-page@verify.local"
-      - cell "Support c1bbf2"
+      - cell "I Iris iris+20261029t072735-8a4271-removed-member-lands-on-a-page@verify.local"
+      - cell "Support ffd5c0"
       - cell "Active now"
       - cell "Off"
       - cell "Oct 29, 2026"
       - cell "Actions for Iris":
         - button "Actions for Iris" [expanded]
-    - row "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
+    - row "VA Verify Admin You admin+20261029t072735-8a4271@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
       - cell
-      - cell "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local"
+      - cell "VA Verify Admin You admin+20261029t072735-8a4271@verify.local"
       - cell "Owner"
       - cell "Active now"
       - cell "Off"

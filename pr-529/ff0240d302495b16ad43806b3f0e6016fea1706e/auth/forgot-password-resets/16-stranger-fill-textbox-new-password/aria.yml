@@ -5,7 +5,7 @@
   - heading "Reset your password" [level=1]
   - paragraph: Choose a new password for your account.
   - text: New password
-  - textbox "New password": Vr1!3c7G4ixYqnMi
+  - textbox "New password": Vr1!MIfWDHrjxMdQ
   - button "Show password": Show
   - list:
     - listitem: At least 8 characters met

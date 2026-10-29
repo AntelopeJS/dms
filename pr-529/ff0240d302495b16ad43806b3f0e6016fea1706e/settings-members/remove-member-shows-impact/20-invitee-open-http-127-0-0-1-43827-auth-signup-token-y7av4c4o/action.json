@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:43827/auth/signup?token=y7aV4c4OfV2PbMK4378Xlch5kmVBMB0DQBNkUPIfXFMuDggTxVSxYZDH3kz4ntbu&email=hank%2B20261029t072735-8a4271-remove-member-shows-impact%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:43827"
+}

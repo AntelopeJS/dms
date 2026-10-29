@@ -1,7 +1,0 @@
-[
-  {
-    "name": "path matches /^\\/settings\\/workspace\\/invites$/",
-    "pass": true,
-    "detail": "/settings/workspace/invites"
-  }
-]

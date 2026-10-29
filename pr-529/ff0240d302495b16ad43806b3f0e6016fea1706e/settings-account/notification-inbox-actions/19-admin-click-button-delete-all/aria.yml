@@ -1,7 +1,0 @@
-- dialog "Delete 1 notification?":
-  - heading "Delete 1 notification?" [level=2]
-  - paragraph: Your inbox will be emptied. This can’t be undone. Your preferences don’t change.
-  - button "Close"
-  - text: Esc to cancel
-  - button "Cancel"
-  - button "Delete 1 notification"

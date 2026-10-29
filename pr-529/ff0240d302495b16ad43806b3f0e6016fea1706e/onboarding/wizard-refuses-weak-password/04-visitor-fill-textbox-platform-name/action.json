@@ -1,6 +1,6 @@
 {
   "do": "fill",
   "target": "textbox \"Platform name\"",
-  "value": "Verify Weak a61934",
-  "baseUrl": "http://127.0.0.1:40839"
+  "value": "Verify Weak c5e3b5",
+  "baseUrl": "http://127.0.0.1:43827"
 }

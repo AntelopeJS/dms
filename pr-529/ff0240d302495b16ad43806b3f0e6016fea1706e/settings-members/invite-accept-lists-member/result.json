@@ -4,7 +4,7 @@
   "title": "an invitation accepted through its emailed link creates a member who is listed and can sign in",
   "entryPoint": "Invite members dialog, /auth/signup?token=, Members list",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j020",
+  "database": "verify_20261029T072735_8a4271_j009",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-20b199-exists",
-      "folder": "settings-members/invite-accept-lists-member/04-the-role-support-20b199-exists",
+      "name": "04-the-role-support-e9e0b9-exists",
+      "folder": "settings-members/invite-accept-lists-member/04-the-role-support-e9e0b9-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"e1d49050-0656-4d27-b92e-e5949e08eeee\"}"
+          "detail": "status 200: {\"id\":\"678e69ee-2c53-414e-b701-52a152401b0b\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -106,18 +106,18 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "16-admin-click-button-support-20b199-in-group-roles",
-      "folder": "settings-members/invite-accept-lists-member/16-admin-click-button-support-20b199-in-group-roles",
+      "name": "16-admin-click-button-support-e9e0b9-in-group-roles",
+      "folder": "settings-members/invite-accept-lists-member/16-admin-click-button-support-e9e0b9-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support 20b199\" in group \"Roles\"",
+          "name": "click button \"Support e9e0b9\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -128,7 +128,7 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -137,14 +137,14 @@
       "folder": "settings-members/invite-accept-lists-member/18-the-invitation-is-sent-and-listed-with-its-role",
       "checks": [
         {
-          "name": "cell \"bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local\" is visible",
+          "name": "cell \"bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         },
         {
-          "name": "cell \"Support 20b199\" is visible",
+          "name": "cell \"Support e9e0b9\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
@@ -155,12 +155,12 @@
         {
           "name": "the invitation exists",
           "pass": true,
-          "detail": "bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local"
+          "detail": "bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local"
         },
         {
           "name": "its roles",
           "pass": true,
-          "detail": "expected [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"], got [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"]"
+          "detail": "expected [\"678e69ee-2c53-414e-b701-52a152401b0b\"], got [\"678e69ee-2c53-414e-b701-52a152401b0b\"]"
         },
         {
           "name": "it is not an owner invite",
@@ -170,8 +170,8 @@
       ]
     },
     {
-      "name": "22-the-invitation-email-reaches-bob-20261029t064557-d7cef6-invi",
-      "folder": "settings-members/invite-accept-lists-member/22-the-invitation-email-reaches-bob-20261029t064557-d7cef6-invi",
+      "name": "22-the-invitation-email-reaches-bob-20261029t072735-8a4271-invi",
+      "folder": "settings-members/invite-accept-lists-member/22-the-invitation-email-reaches-bob-20261029t072735-8a4271-invi",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -181,13 +181,13 @@
       ]
     },
     {
-      "name": "23-invitee-open-http-127-0-0-1-40839-auth-signup-token-gl9yofds",
-      "folder": "settings-members/invite-accept-lists-member/23-invitee-open-http-127-0-0-1-40839-auth-signup-token-gl9yofds",
+      "name": "23-invitee-open-http-127-0-0-1-43827-auth-signup-token-uhstakkf",
+      "folder": "settings-members/invite-accept-lists-member/23-invitee-open-http-127-0-0-1-43827-auth-signup-token-uhstakkf",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=gl9yOfDsOWWXd8IIY7UsqKcgICpJal2XySmCOkuPgu5qDEAJUpfx492rAPBfMUBH&email=bob%2B20261029t064557-d7cef6-invite-accept-lists-member%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=gl9yOfDsOWWXd8IIY7UsqKcgICpJal2XySmCOkuPgu5qDEAJUpfx492rAPBfMUBH&email=bob%2B20261029t064557-d7cef6-invite-accept-lists-member%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en"
         }
       ]
     },
@@ -198,7 +198,7 @@
         {
           "name": "heading \"Create your account\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=gl9yOfDsOWWXd8IIY7UsqKcgICpJal2XySmCOkuPgu5qDEAJUpfx492rAPBfMUBH&email=bob%2B20261029t064557-d7cef6-invite-accept-lists-member%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en"
         }
       ]
     },
@@ -209,7 +209,7 @@
         {
           "name": "fill textbox \"First and last name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=gl9yOfDsOWWXd8IIY7UsqKcgICpJal2XySmCOkuPgu5qDEAJUpfx492rAPBfMUBH&email=bob%2B20261029t064557-d7cef6-invite-accept-lists-member%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en"
         }
       ]
     },
@@ -220,7 +220,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=gl9yOfDsOWWXd8IIY7UsqKcgICpJal2XySmCOkuPgu5qDEAJUpfx492rAPBfMUBH&email=bob%2B20261029t064557-d7cef6-invite-accept-lists-member%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en"
         }
       ]
     },
@@ -231,7 +231,7 @@
         {
           "name": "click button \"Create my account\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -253,7 +253,7 @@
         {
           "name": "button \"Bob Tester\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -264,7 +264,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -275,17 +275,17 @@
         {
           "name": "cell \"/Bob Tester/\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         },
         {
-          "name": "cell \"Support 20b199\" is visible",
+          "name": "cell \"Support e9e0b9\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         },
         {
           "name": "page shows /2 members/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
         }
       ]
     },
@@ -296,7 +296,7 @@
         {
           "name": "the member exists",
           "pass": true,
-          "detail": "bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local"
+          "detail": "bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local"
         },
         {
           "name": "name",
@@ -306,7 +306,7 @@
         {
           "name": "roles",
           "pass": true,
-          "detail": "expected [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"], got [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"]"
+          "detail": "expected [\"678e69ee-2c53-414e-b701-52a152401b0b\"], got [\"678e69ee-2c53-414e-b701-52a152401b0b\"]"
         },
         {
           "name": "not an owner",
@@ -327,7 +327,7 @@
         {
           "name": "bob signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -338,12 +338,12 @@
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"_id\":\"25ba7b00-fa08-4c0d-859f-12b745641baf\",\"createdAt\":\"2026-10-29T06:50:16.100Z\",\"updatedAt\":\"2026-10-29T06:50:16.131Z\",\"name\":\"Bob Tester\",\"email\":\"bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local\",\"isValidated\":true,\"owner\":false,\"language\":\"en\",\"_instance\":null,\"lastActiveAt"
+          "detail": "status 200: {\"_id\":\"149db284-f96e-4cc9-b425-eda0334a74e2\",\"createdAt\":\"2026-10-29T07:31:17.920Z\",\"updatedAt\":\"2026-10-29T07:31:17.953Z\",\"name\":\"Bob Tester\",\"email\":\"bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local\",\"isValidated\":true,\"owner\":false,\"language\":\"en\",\"_instance\":null,\"lastActiveAt"
         },
         {
           "name": "email",
           "pass": true,
-          "detail": "expected \"bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local\", got \"bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local\""
+          "detail": "expected \"bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local\", got \"bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local\""
         },
         {
           "name": "owner",
@@ -359,7 +359,7 @@
         {
           "name": "open /settings/user/notifications",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          "detail": "http://127.0.0.1:43827/settings/user/notifications"
         }
       ]
     },
@@ -370,7 +370,7 @@
         {
           "name": "page shows /Bob Tester accepted your invitation/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
         }
       ]
     }

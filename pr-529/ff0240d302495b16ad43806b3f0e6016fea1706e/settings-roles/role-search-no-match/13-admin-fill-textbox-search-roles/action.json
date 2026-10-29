@@ -1,6 +1,0 @@
-{
-  "do": "fill",
-  "target": "textbox \"Search roles\"",
-  "value": "support 079875",
-  "baseUrl": "http://127.0.0.1:40839"
-}

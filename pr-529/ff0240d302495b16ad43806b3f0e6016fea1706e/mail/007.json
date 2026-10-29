@@ -1,12 +1,12 @@
 {
   "from": "<>",
   "to": [
-    "<fred+20261029t064557-d7cef6-invite-resend-replaces-link@verify.local>"
+    "<fred+20261029t072735-8a4271-invite-resend-replaces-link@verify.local>"
   ],
   "subject": "Verify Admin invited you to join Default on AntelopeJS",
   "links": [
-    "http://127.0.0.1:40839/auth/signup?token=J4cB7jh9rhTWobDQuI5IIv4KQWZGYKEs7pL3bxAPAa0kwIyQFgVpTiLmCG20DUYZ&email=fred%2B20261029t064557-d7cef6-invite-resend-replaces-link%40verify.local&lang=en"
+    "http://127.0.0.1:43827/auth/signup?token=5B38FzhehRO0NChkQKP42FehKuFCA82r0vn8MRz9AvbXkPAF39fjeWT7DQbkC68c&email=fred%2B20261029t072735-8a4271-invite-resend-replaces-link%40verify.local&lang=en"
   ],
   "text": "You're invited to Default Hello, Verify Admin invited you to join Default on AntelopeJS. Click the button below to create your account: Create Account This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.",
-  "receivedAt": "2026-10-29T06:51:06.727Z"
+  "receivedAt": "2026-10-29T07:31:54.639Z"
 }

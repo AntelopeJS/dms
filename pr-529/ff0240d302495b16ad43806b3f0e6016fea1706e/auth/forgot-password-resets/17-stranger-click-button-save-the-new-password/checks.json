@@ -2,6 +2,6 @@
   {
     "name": "click button \"Save the new password\"",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/recover-success"
+    "detail": "http://127.0.0.1:43827/auth/recover-success"
   }
 ]

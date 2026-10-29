@@ -2,7 +2,7 @@
   {
     "name": "heading \"Members\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/members"
+    "detail": "http://127.0.0.1:43827/settings/workspace/members"
   },
   {
     "name": "members the member sees",

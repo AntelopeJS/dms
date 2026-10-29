@@ -3,18 +3,18 @@
   - img
 - main:
   - heading "Connect to your account" [level=1]
-  - paragraph: Welcome back. Sign in to the Verify 20261029T064557-d7cef6 workspace.
+  - paragraph: Welcome back. Sign in to the Verify 20261029T072735-8a4271 workspace.
   - alert: Connection error The provided credentials are incorrect.
   - text: Email address
   - textbox "Email address":
     - /placeholder: you@company.com
-    - text: admin+20261029t064557-d7cef6@verify.local
+    - text: admin+20261029t072735-8a4271@verify.local
   - text: Password
   - link "Forgot password?":
     - /url: /auth/forgot
   - textbox "Password":
     - /placeholder: ••••••••
-    - text: Vr1!rjJdngsu8Wbwx
+    - text: Vr1!MTdPzBkqo3jTx
   - button "Show password"
   - checkbox "Keep my active session"
   - text: Keep my active session

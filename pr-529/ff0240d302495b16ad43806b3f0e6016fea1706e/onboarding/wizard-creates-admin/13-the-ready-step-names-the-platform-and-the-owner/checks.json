@@ -1,12 +1,12 @@
 [
   {
-    "name": "heading \"Verify Wizard 2cb6d4 is ready\" is visible",
+    "name": "heading \"Verify Wizard 20f311 is ready\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/onboarding"
+    "detail": "http://127.0.0.1:43827/onboarding"
   },
   {
     "name": "page shows /You're signed in as Wiz Ard, owner of the platform/",
     "pass": true,
-    "detail": "Platform Administrator 3 Ready Step 2 of 3 STEP 3 OF 3 · READY Verify Wizard 2cb6d4 is ready You're signed in as Wiz Ard, owner of the platform. Here's what most teams do first. Invite your teammates Give them a role so they only see what they need. Turn on two-factor authentication Recommended for …"
+    "detail": "Platform Administrator 3 Ready Step 2 of 3 STEP 3 OF 3 · READY Verify Wizard 20f311 is ready You're signed in as Wiz Ard, owner of the platform. Here's what most teams do first. Invite your teammates Give them a role so they only see what they need. Turn on two-factor authentication Recommended for …"
   }
 ]

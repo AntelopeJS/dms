@@ -1,6 +1,0 @@
-{
-  "do": "fill",
-  "target": "textbox \"Full name\"",
-  "value": "Verify Renamed",
-  "baseUrl": "http://127.0.0.1:40839"
-}

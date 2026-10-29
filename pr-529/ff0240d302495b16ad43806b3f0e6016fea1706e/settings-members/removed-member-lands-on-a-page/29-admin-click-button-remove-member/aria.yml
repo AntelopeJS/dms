@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -106,9 +106,9 @@
         - button "Joined"
       - cell
   - rowgroup:
-    - row "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
+    - row "VA Verify Admin You admin+20261029t072735-8a4271@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
       - cell
-      - cell "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local"
+      - cell "VA Verify Admin You admin+20261029t072735-8a4271@verify.local"
       - cell "Owner"
       - cell "Active now"
       - cell "Off"
@@ -124,4 +124,4 @@
     - listitem:
       - text: Member removed
       - button "Close"
-      - progressbar "92%"
+      - progressbar "93%"

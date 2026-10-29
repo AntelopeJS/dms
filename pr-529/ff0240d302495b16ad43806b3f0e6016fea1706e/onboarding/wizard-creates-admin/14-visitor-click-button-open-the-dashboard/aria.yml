@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Wiz Ard": WA Wiz Ard wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local
+- button "Wiz Ard": WA Wiz Ard wizard+20261029t072735-8a4271-wizard-creates-admin@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:

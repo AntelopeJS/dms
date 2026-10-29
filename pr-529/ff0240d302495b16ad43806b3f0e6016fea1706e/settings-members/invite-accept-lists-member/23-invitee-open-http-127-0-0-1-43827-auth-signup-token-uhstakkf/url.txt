@@ -1,0 +1,1 @@
+http://127.0.0.1:43827/auth/signup?token=uHstaKkFG0vgcKn9iZErvddsBLZ2P229Dbk39pKVCFLaEsH9gv2fqD3dDpyFIt4u&email=bob%2B20261029t072735-8a4271-invite-accept-lists-member%40verify.local&lang=en

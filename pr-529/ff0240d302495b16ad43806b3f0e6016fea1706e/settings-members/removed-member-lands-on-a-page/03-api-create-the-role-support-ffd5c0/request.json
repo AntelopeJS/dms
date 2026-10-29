@@ -1,0 +1,12 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:44379/dms/pages/settings/workspace/roles/create",
+  "authenticated": true,
+  "body": {
+    "name": "Support ffd5c0",
+    "description": "",
+    "permissions": [
+      "playground.reports.export"
+    ]
+  }
+}

@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Jack": J Jack jack+20261029t064557-d7cef6-make-owner-and-back@verify.local
+- button "Jack": J Jack jack+20261029t072735-8a4271-make-owner-and-back@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -90,21 +90,21 @@
       - text: Owner J VA 2
       - meter
       - text: All 1259 · locked
-    - option "Support 8f536e J 1 0.07942811755361398 1 of 1259 permissions" [selected]:
-      - text: Support 8f536e J 1
+    - option "Support 4578cf J 1 0.07942811755361398 1 of 1259 permissions" [selected]:
+      - text: Support 4578cf J 1
       - meter
       - text: 1 of 1259 permissions
   - text: Assign roles from
   - link "Members":
     - /url: /settings/workspace/members
-- region "Support 8f536e 1 member · Jack":
-  - heading "Support 8f536e 1 member · Jack" [level=2]
-  - button "Preview as Support 8f536e"
+- region "Support 4578cf 1 member · Jack":
+  - heading "Support 4578cf 1 member · Jack" [level=2]
+  - button "Preview as Support 4578cf"
   - button "More role actions"
   - text: Role name*
   - textbox "Role name*":
     - /placeholder: e.g. Support
-    - text: Support 8f536e
+    - text: Support 4578cf
   - text: Description Optional
   - textbox "Description":
     - /placeholder: What members with this role do

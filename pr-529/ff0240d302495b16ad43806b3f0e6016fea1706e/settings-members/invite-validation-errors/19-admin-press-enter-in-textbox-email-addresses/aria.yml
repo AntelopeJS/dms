@@ -10,8 +10,8 @@
           - /url: "#roles"
   - text: Email addresses
   - paragraph: Paste a list to invite several people with the same roles.
-  - text: carol+20261029t064557-d7cef6-invite-validation-errors@verify.local
-  - button "carol+20261029t064557-d7cef6-invite-validation-errors@verify.local"
+  - text: carol+20261029t072735-8a4271-invite-validation-errors@verify.local
+  - button "carol+20261029t072735-8a4271-invite-validation-errors@verify.local"
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
   - text: Playground onboarding
@@ -20,7 +20,7 @@
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Support c26657"
+    - button "Support d5441e"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

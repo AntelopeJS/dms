@@ -10,7 +10,7 @@
     - button "Ready" [disabled]: "3"
     - text: Ready
     - status: Step 1 of 3
-  - text: Step 2 of 3 · Administrator Verify Wizard 2cb6d4
+  - text: Step 2 of 3 · Administrator Verify Wizard 20f311
   - heading "Create the administrator account" [level=1]
   - paragraph: "This account owns the platform: it can manage modules, settings and invite everyone else."
   - text: First name
@@ -18,7 +18,7 @@
   - text: Last name
   - textbox "Last name": Ard
   - text: Work e-mail
-  - textbox "Work e-mail": wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local
+  - textbox "Work e-mail": wizard+20261029t072735-8a4271-wizard-creates-admin@verify.local
   - text: Password
   - textbox "Password": WizardPass1!
   - button "Show password": Show

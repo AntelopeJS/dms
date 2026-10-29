@@ -15,14 +15,14 @@
   - paragraph: Paste a list to invite several people with the same roles.
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
-    - text: carol+20261029t064557-d7cef6-invite-validation-errors@verify.local
+    - text: carol+20261029t072735-8a4271-invite-validation-errors@verify.local
   - text: This field is required. Playground onboarding
   - paragraph: Added by the playground's RegisterInviteExtension
   - text: Team
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Support c26657"
+    - button "Support d5441e"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

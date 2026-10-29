@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -105,10 +105,10 @@
       - cell "Status"
       - cell
   - rowgroup:
-    - row "iris+20261029t064557-d7cef6-removed-member-lands-on-a-page@verify.local Support c1bbf2 Oct 29 · by Verify In 7 days Pending Edit invitation Resend Copy link Revoke":
+    - row "iris+20261029t072735-8a4271-removed-member-lands-on-a-page@verify.local Support ffd5c0 Oct 29 · by Verify In 7 days Pending Edit invitation Resend Copy link Revoke":
       - cell
-      - cell "iris+20261029t064557-d7cef6-removed-member-lands-on-a-page@verify.local"
-      - cell "Support c1bbf2"
+      - cell "iris+20261029t072735-8a4271-removed-member-lands-on-a-page@verify.local"
+      - cell "Support ffd5c0"
       - cell "Oct 29 · by Verify"
       - cell "In 7 days"
       - cell "Pending"
@@ -126,4 +126,4 @@
     - listitem:
       - text: Success Invitations sent
       - button "Close"
-      - progressbar "95%"
+      - progressbar "94%"

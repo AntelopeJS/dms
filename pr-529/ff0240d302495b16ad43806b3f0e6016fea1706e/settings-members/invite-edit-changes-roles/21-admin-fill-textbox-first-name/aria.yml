@@ -1,10 +1,10 @@
-- dialog "Edit invitation · gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local":
-  - heading "Edit invitation · gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local" [level=2]
+- dialog "Edit invitation · gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local":
+  - heading "Edit invitation · gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local" [level=2]
   - paragraph: The name, roles and language the invitee gets on accepting.
   - button "Close"
   - text: Email
-  - link "gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local":
-    - /url: mailto:gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local
+  - link "gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local":
+    - /url: mailto:gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local
   - text: Playground onboarding
   - paragraph: Added by the playground's RegisterInviteExtension
   - text: Team
@@ -16,10 +16,10 @@
   - textbox "Last name"
   - text: Roles
   - group "Roles":
-    - button "Reader 1ed3dc" [pressed]
-    - button "Writer 9be3d9"
+    - button "Reader 648619" [pressed]
+    - button "Writer 3714c6"
   - paragraph:
-    - text: "Reader 1ed3dc: 1 of 1259 permissions."
+    - text: "Reader 648619: 1 of 1259 permissions."
     - link "Compare roles":
       - /url: /settings/workspace/roles
   - text: Owner

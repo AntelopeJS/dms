@@ -5,7 +5,7 @@
     "title": "a fresh platform onboards, its admin signs in, invites a member, and the invitation survives a reload",
     "entryPoint": "POST /api/onboarding/register, then the sign-in form and Settings > Members > Invite members",
     "status": "PASS",
-    "database": "verify_20261029T064557_d7cef6_j001",
+    "database": "verify_20261029T072735_8a4271_j001",
     "steps": [
       {
         "name": "02-onboard-the-administrator",
@@ -30,7 +30,7 @@
           {
             "name": "admin signs in and leaves /auth",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/examples/overview"
+            "detail": "http://127.0.0.1:43827/examples/overview"
           }
         ]
       },
@@ -41,7 +41,7 @@
           {
             "name": "open /settings/workspace/members",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -52,7 +52,7 @@
           {
             "name": "click button \"Invite members\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -63,7 +63,7 @@
           {
             "name": "fill textbox \"Email addresses\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -74,7 +74,7 @@
           {
             "name": "press Enter in textbox \"Email addresses\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -85,7 +85,7 @@
           {
             "name": "click combobox \"Team\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -96,7 +96,7 @@
           {
             "name": "click option \"Sales\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -107,7 +107,7 @@
           {
             "name": "click switch \"Make workspace owner\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+            "detail": "http://127.0.0.1:43827/settings/workspace/members"
           }
         ]
       },
@@ -118,7 +118,7 @@
           {
             "name": "click button \"Send invitations\"",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+            "detail": "http://127.0.0.1:43827/settings/workspace/invites"
           }
         ]
       },
@@ -129,7 +129,7 @@
           {
             "name": "page shows /Invitations sent/",
             "pass": true,
-            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
           },
           {
             "name": "path matches /^\\/settings\\/workspace\\/invites$/",
@@ -137,9 +137,9 @@
             "detail": "/settings/workspace/invites"
           },
           {
-            "name": "cell \"member+20261029t064557-d7cef6-smoke@verify.local\" is visible",
+            "name": "cell \"member+20261029t072735-8a4271-smoke@verify.local\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+            "detail": "http://127.0.0.1:43827/settings/workspace/invites"
           }
         ]
       },
@@ -150,7 +150,7 @@
           {
             "name": "reload",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+            "detail": "http://127.0.0.1:43827/settings/workspace/invites"
           }
         ]
       },
@@ -159,9 +159,9 @@
         "folder": "smoke/smoke/18-the-invitation-is-still-listed-after-a-reload",
         "checks": [
           {
-            "name": "cell \"member+20261029t064557-d7cef6-smoke@verify.local\" is visible",
+            "name": "cell \"member+20261029t072735-8a4271-smoke@verify.local\" is visible",
             "pass": true,
-            "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+            "detail": "http://127.0.0.1:43827/settings/workspace/invites"
           }
         ]
       },
@@ -172,12 +172,12 @@
           {
             "name": "HTTP 200",
             "pass": true,
-            "detail": "status 200: {\"results\":[{\"_id\":\"2cc45ce5-cd83-4b5b-bd6f-43436b286191\",\"email\":\"member+20261029t064557-d7cef6-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-10-29T06:46:55.291Z\",\"expiresAt\":\"2026-11-05T06:46:55.290Z\",\"invitedBy\":\"cc8e28e4-173e-449a-9f10-c61e1c6e56f9\",\"invitedByName\":\"V"
+            "detail": "status 200: {\"results\":[{\"_id\":\"132bddc3-817e-4344-bc42-a3c6ef9b7bf4\",\"email\":\"member+20261029t072735-8a4271-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-10-29T07:28:32.270Z\",\"expiresAt\":\"2026-11-05T07:28:32.270Z\",\"invitedBy\":\"9f931d36-c283-4d9a-8222-9802a67af430\",\"invitedByName\":\"V"
           },
           {
             "name": "one pending invitation for the address",
             "pass": true,
-            "detail": "[{\"_id\":\"2cc45ce5-cd83-4b5b-bd6f-43436b286191\",\"email\":\"member+20261029t064557-d7cef6-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-10-29T06:46:55.291Z\",\"expiresAt\":\"2026-11-05T06:46:55.290Z\",\"invitedBy\":\"cc8e28e4-173e-449a-9f10-c61e1c6e56f9\",\"invitedByName\":\"Verify Admin\",\"status\":true}]"
+            "detail": "[{\"_id\":\"132bddc3-817e-4344-bc42-a3c6ef9b7bf4\",\"email\":\"member+20261029t072735-8a4271-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-10-29T07:28:32.270Z\",\"expiresAt\":\"2026-11-05T07:28:32.270Z\",\"invitedBy\":\"9f931d36-c283-4d9a-8222-9802a67af430\",\"invitedByName\":\"Verify Admin\",\"status\":true}]"
           },
           {
             "name": "it makes a workspace owner",
@@ -198,7 +198,7 @@
           {
             "name": "it links to /auth/signup with a token",
             "pass": true,
-            "detail": "[\"http://127.0.0.1:40839/auth/signup?token=U4sXC1XUVHmJRvJmZ71YpKr4YRcgSsVqXeFvihSCPpd59zDPPJvEUJGM72DBzXv6&email=member%2B20261029t064557-d7cef6-smoke%40verify.local&lang=en\"]"
+            "detail": "[\"http://127.0.0.1:43827/auth/signup?token=LCsrsxmVvYdKRdYMjTi3THLSit5ZwwJUqIPND3skAyHFxP4es5FltVoYYAhuJVkp&email=member%2B20261029t072735-8a4271-smoke%40verify.local&lang=en\"]"
           }
         ]
       }

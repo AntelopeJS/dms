@@ -2,6 +2,6 @@
   {
     "name": "fill textbox \"Password\"",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en"
+    "detail": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en"
   }
 ]

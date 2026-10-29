@@ -1,7 +1,0 @@
-[
-  {
-    "name": "path matches /^\\/examples\\/overview$/",
-    "pass": true,
-    "detail": "/examples/overview"
-  }
-]

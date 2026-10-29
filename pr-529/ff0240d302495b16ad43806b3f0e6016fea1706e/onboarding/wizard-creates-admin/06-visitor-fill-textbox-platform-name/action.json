@@ -1,6 +1,6 @@
 {
   "do": "fill",
   "target": "textbox \"Platform name\"",
-  "value": "Verify Wizard 2cb6d4",
-  "baseUrl": "http://127.0.0.1:40839"
+  "value": "Verify Wizard 20f311",
+  "baseUrl": "http://127.0.0.1:43827"
 }

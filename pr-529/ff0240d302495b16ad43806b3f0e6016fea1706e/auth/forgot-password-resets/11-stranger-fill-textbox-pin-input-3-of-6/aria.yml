@@ -3,17 +3,17 @@
   - img
 - main:
   - heading "Check your inbox" [level=1]
-  - paragraph: We sent a 6-character code to admin+20261029t064557-d7cef6@verify.local. Enter it to choose a new password.
+  - paragraph: We sent a 6-character code to admin+20261029t072735-8a4271@verify.local. Enter it to choose a new password.
   - group "Verification code":
     - textbox "pin input 1 of 6":
       - /placeholder: ""
-      - text: "3"
+      - text: "7"
     - textbox "pin input 2 of 6":
       - /placeholder: ""
-      - text: "N"
+      - text: I
     - textbox "pin input 3 of 6":
       - /placeholder: ""
-      - text: V
+      - text: M
     - textbox "pin input 4 of 6":
       - /placeholder: ""
     - textbox "pin input 5 of 6":

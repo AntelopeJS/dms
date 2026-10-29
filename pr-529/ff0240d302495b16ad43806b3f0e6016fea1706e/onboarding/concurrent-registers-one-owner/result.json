@@ -4,7 +4,7 @@
   "title": "two registrations sent at once leave exactly one platform owner (formal-onboarding-bootstrap AtMostOneOwner)",
   "entryPoint": "POST /api/onboarding/register, twice concurrently",
   "status": "FAIL",
-  "database": "verify_20261029T064557_d7cef6_j006",
+  "database": "verify_20261029T072735_8a4271_j027",
   "steps": [
     {
       "name": "07-exactly-one-registration-wins-and-a-refused-one-leaves-no-ac",
@@ -23,7 +23,7 @@
         {
           "name": "accounts created by a refused registration",
           "pass": false,
-          "detail": "expected [], got [\"second+20261029t064557-d7cef6-concurrent-registers-one-owner@verify.local\"]"
+          "detail": "expected [], got [\"first+20261029t072735-8a4271-concurrent-registers-one-owner@verify.local\"]"
         },
         {
           "name": "has_onboarded",

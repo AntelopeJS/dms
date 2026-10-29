@@ -3,7 +3,7 @@
   - img "Go to homepage"
 - button "Search… Ctrl K"
 - navigation
-- button "Bob Tester": BT Bob Tester bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local
+- button "Bob Tester": BT Bob Tester bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:

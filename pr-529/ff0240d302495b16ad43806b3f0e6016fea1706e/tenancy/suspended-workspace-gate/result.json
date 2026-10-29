@@ -4,7 +4,7 @@
   "title": "suspending the workspace makes gated pages refuse the owner while the recovery page still answers, and restoring it reopens them",
   "entryPoint": "/tenancy header action, RegisterTenantAccessGate",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j071",
+  "database": "verify_20261029T072735_8a4271_j021",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -29,7 +29,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "open /tenancy",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/tenancy"
+          "detail": "http://127.0.0.1:43827/tenancy"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "click button \"Suspend / restore the workspace\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/tenancy"
+          "detail": "http://127.0.0.1:43827/tenancy"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "page shows /Gate toggled/",
           "pass": true,
-          "detail": "Search… CTRL K VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Tenancy 1 Tenancy Demonstrates: RegisterTenantAccessGate, CheckTenantAccess and the tenant guards. Suspend the workspace from the header, then browse: most pages refuse you until you restore it here. Suspend / restore the wor…"
+          "detail": "Search… CTRL K VA Verify Admin admin+20261029t072735-8a4271@verify.local / Tenancy 1 Tenancy Demonstrates: RegisterTenantAccessGate, CheckTenantAccess and the tenant guards. Suspend the workspace from the header, then browse: most pages refuse you until you restore it here. Suspend / restore the wor…"
         }
       ]
     },
@@ -99,7 +99,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -110,7 +110,7 @@
         {
           "name": "table \"Members list\" is absent",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -121,7 +121,7 @@
         {
           "name": "open /tenancy",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/tenancy"
+          "detail": "http://127.0.0.1:43827/tenancy"
         }
       ]
     },
@@ -132,7 +132,7 @@
         {
           "name": "button \"Suspend / restore the workspace\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/tenancy"
+          "detail": "http://127.0.0.1:43827/tenancy"
         }
       ]
     },
@@ -143,7 +143,7 @@
         {
           "name": "click button \"Suspend / restore the workspace\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/tenancy"
+          "detail": "http://127.0.0.1:43827/tenancy"
         }
       ]
     },
@@ -154,7 +154,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -165,12 +165,12 @@
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"results\":[{\"_id\":\"default:7be1af45-6ff1-4d5c-8975-b84cd42615d8\",\"userId\":\"7be1af45-6ff1-4d5c-8975-b84cd42615d8\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T07:03:00.791Z\",\"twoFactorMethods\":nul"
+          "detail": "status 200: {\"results\":[{\"_id\":\"default:d0ebc719-6dbc-48cc-8166-7ccedcbd5228\",\"userId\":\"d0ebc719-6dbc-48cc-8166-7ccedcbd5228\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t072735-8a4271@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T07:34:28.602Z\",\"twoFactorMethods\":nul"
         },
         {
           "name": "table \"Members list\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     }

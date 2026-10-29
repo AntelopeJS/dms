@@ -1,7 +1,0 @@
-- dialog "Delete this item?":
-  - heading "Delete this item?" [level=2]
-  - paragraph: The selected item will be deleted. This action cannot be undone.
-  - button "Close"
-  - text: Esc to cancel
-  - button "Cancel"
-  - button "Delete"

@@ -2,6 +2,6 @@
   {
     "name": "click button \"Suspend / restore the workspace\"",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/tenancy"
+    "detail": "http://127.0.0.1:43827/tenancy"
   }
 ]

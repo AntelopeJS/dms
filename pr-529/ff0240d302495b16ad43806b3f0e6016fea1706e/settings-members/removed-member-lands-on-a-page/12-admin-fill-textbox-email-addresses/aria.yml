@@ -6,14 +6,14 @@
   - paragraph: Paste a list to invite several people with the same roles.
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
-    - text: iris+20261029t064557-d7cef6-removed-member-lands-on-a-page@verify.local
+    - text: iris+20261029t072735-8a4271-removed-member-lands-on-a-page@verify.local
   - text: Playground onboarding
   - paragraph: Added by the playground's RegisterInviteExtension
   - text: Team
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Support c1bbf2"
+    - button "Support ffd5c0"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

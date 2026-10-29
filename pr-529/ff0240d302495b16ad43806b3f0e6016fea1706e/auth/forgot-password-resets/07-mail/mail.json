@@ -1,13 +1,13 @@
 [
   {
-    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/evidence/mail/002.eml",
+    "file": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/evidence/mail/002.eml",
     "from": "<>",
     "to": [
-      "<admin+20261029t064557-d7cef6@verify.local>"
+      "<admin+20261029t072735-8a4271@verify.local>"
     ],
     "subject": "Reset Your Password",
     "links": [],
-    "text": "Reset Your Password Hello Verify Admin, We received a request to reset your password. Enter the verification code below to reset your password: Your verification code is: 3NVP5N This code expires in 24 hours. If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.",
-    "receivedAt": "2026-10-29T06:48:19.786Z"
+    "text": "Reset Your Password Hello Verify Admin, We received a request to reset your password. Enter the verification code below to reset your password: Your verification code is: 7IMH5L This code expires in 24 hours. If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.",
+    "receivedAt": "2026-10-29T07:30:20.186Z"
   }
 ]

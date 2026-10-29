@@ -2,87 +2,87 @@
   {
     "check": "run is ready",
     "ok": true,
-    "detail": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271"
   },
   {
-    "check": "mongod pid 28035 alive",
+    "check": "mongod pid 5419 alive",
     "ok": true,
-    "detail": "/home/antony/.cache/mongodb-binaries/mongod-x64-void-8.0.8 --dbpath /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/mongo --port 43631 --bind_ip 127.0.0.1"
+    "detail": "/home/antony/.cache/mongodb-binaries/mongod-x64-void-8.0.8 --dbpath /home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/mongo --port 37865 --bind_ip 127.0.0.1"
   },
   {
-    "check": "port 43631 held by the run",
+    "check": "port 37865 held by the run",
     "ok": true,
-    "detail": "listening pids 28035"
+    "detail": "listening pids 5419"
   },
   {
-    "check": "mail pid 28114 alive",
+    "check": "mail pid 5574 alive",
     "ok": true,
-    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/packages/dms/bin/dms-control.mjs serve-mail /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6"
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/bin/dms-control.mjs serve-mail /home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271"
   },
   {
-    "check": "port 45821 held by the run",
+    "check": "port 35343 held by the run",
     "ok": true,
-    "detail": "listening pids 28114"
+    "detail": "listening pids 5574"
   },
   {
-    "check": "backend pid 1486 alive",
+    "check": "backend pid 12286 alive",
     "ok": true,
-    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/node_modules/.pnpm/@antelopejs+core@1.17.0/node_modules/@antelopejs/core/dist/core/cli/index.js project start -e docs --refresh-config"
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/node_modules/.pnpm/@antelopejs+core@1.17.0/node_modules/@antelopejs/core/dist/core/cli/index.js project start -e docs --refresh-config"
   },
   {
-    "check": "port 35351 held by the run",
+    "check": "port 44379 held by the run",
     "ok": true,
-    "detail": "listening pids 1486"
+    "detail": "listening pids 12286"
   },
   {
-    "check": "frontend pid 3150 alive",
+    "check": "frontend pid 12414 alive",
     "ok": true,
-    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/node_modules/.pnpm/@antelopejs+dms-frontend@0.9.1_@antelopejs+core@1.17.0/node_modules/@antelopejs/dms-frontend/dist/index.js start -e docs -b http://127.0.0.1:35351 -p 40839"
+    "detail": "/home/antony/.local/share/mise/installs/node/22.23.2/bin/node /home/antony/.cache/campaign/verify/h6-dms-529/node_modules/.pnpm/@antelopejs+dms-frontend@0.9.1_@antelopejs+core@1.17.0/node_modules/@antelopejs/dms-frontend/dist/index.js start -e docs -b http://127.0.0.1:44379 -p 43827"
   },
   {
-    "check": "port 40839 held by the run",
+    "check": "port 43827 held by the run",
     "ok": true,
-    "detail": "listening pids 3195"
+    "detail": "listening pids 12422"
   },
   {
     "check": "backend answers",
     "ok": true,
-    "detail": "http://127.0.0.1:35351/api/onboarding/informations"
+    "detail": "http://127.0.0.1:44379/api/onboarding/informations"
   },
   {
     "check": "frontend answers",
     "ok": true,
-    "detail": "http://127.0.0.1:40839/dms-preview"
+    "detail": "http://127.0.0.1:43827/dms-preview"
   },
   {
     "check": "frontend -b is this run's backend",
     "ok": true,
-    "detail": "http://127.0.0.1:35351"
+    "detail": "http://127.0.0.1:44379"
   },
   {
     "check": "versions",
     "ok": true,
-    "detail": "module 0.11.1 (/home/antony/code/antelope/t6/dms/packages/dms), @antelopejs/core 1.17.0, @antelopejs/dms-frontend 0.9.1"
+    "detail": "module 0.11.1 (/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms), @antelopejs/core 1.17.0, @antelopejs/dms-frontend 0.9.1"
   },
   {
     "check": "module dist newer than src",
     "ok": true,
-    "detail": "/home/antony/code/antelope/t6/dms/packages/dms/dist"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/dist"
   },
   {
     "check": "playground dist newer than src",
     "ok": true,
-    "detail": "/home/antony/code/antelope/t6/dms/packages/dms/playground/dist"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529/packages/dms/playground/dist"
   },
   {
     "check": "frontend build newer than frontend-vue",
     "ok": true,
-    "detail": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root/packages/dms/playground/.dms-frontend/dist"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/root/packages/dms/playground/.dms-frontend/dist"
   },
   {
     "check": "database is the run's",
     "ok": true,
-    "detail": "mongodb://127.0.0.1:43631/verify_20261029T064557_d7cef6"
+    "detail": "mongodb://127.0.0.1:37865/verify_20261029T072735_8a4271"
   },
   {
     "check": "checkout HEAD unchanged since up",
@@ -92,12 +92,12 @@
   {
     "check": "playground copy is the run's",
     "ok": true,
-    "detail": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root/packages/dms/playground"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/root/packages/dms/playground"
   },
   {
     "check": "module copy links the checkout",
     "ok": true,
-    "detail": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root"
+    "detail": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/root"
   },
   {
     "check": "admin session",

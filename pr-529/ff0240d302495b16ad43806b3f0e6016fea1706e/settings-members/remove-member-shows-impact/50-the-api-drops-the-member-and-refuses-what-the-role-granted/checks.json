@@ -2,7 +2,7 @@
   {
     "name": "members",
     "pass": true,
-    "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+    "detail": "expected [\"admin+20261029t072735-8a4271@verify.local\"], got [\"admin+20261029t072735-8a4271@verify.local\"]"
   },
   {
     "name": "the members list is refused",
@@ -12,7 +12,7 @@
   {
     "name": "sign-in yields no session",
     "pass": true,
-    "detail": "{\"requires_tenant_assignment\":true,\"tenant_assignment_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwMWNlYzI4L"
+    "detail": "{\"requires_tenant_assignment\":true,\"tenant_assignment_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzM2JhMGUxL"
   },
   {
     "name": "sign-in asks for a workspace",

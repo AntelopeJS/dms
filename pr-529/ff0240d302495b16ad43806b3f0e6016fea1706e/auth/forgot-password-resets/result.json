@@ -4,7 +4,7 @@
   "title": "the emailed code resets the password: the new one signs in and the old one is refused",
   "entryPoint": "/auth/forgot, /auth/forgot-validation, /auth/recover",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j011",
+  "database": "verify_20261029T072735_8a4271_j006",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -29,7 +29,7 @@
         {
           "name": "open /auth/forgot",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot"
+          "detail": "http://127.0.0.1:43827/auth/forgot"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "fill textbox \"Email address\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot"
+          "detail": "http://127.0.0.1:43827/auth/forgot"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "click button \"Send the code\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "heading \"Check your inbox\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         },
         {
           "name": "path matches /^\\/auth\\/forgot-validation/",
@@ -89,7 +89,7 @@
         {
           "name": "fill textbox \"pin input 1 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -100,7 +100,7 @@
         {
           "name": "fill textbox \"pin input 2 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -111,7 +111,7 @@
         {
           "name": "fill textbox \"pin input 3 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -122,7 +122,7 @@
         {
           "name": "fill textbox \"pin input 4 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -133,7 +133,7 @@
         {
           "name": "fill textbox \"pin input 5 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/forgot-validation?email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -144,7 +144,7 @@
         {
           "name": "fill textbox \"pin input 6 of 6\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -155,7 +155,7 @@
         {
           "name": "heading \"Reset your password\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -166,7 +166,7 @@
         {
           "name": "fill textbox \"New password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+          "detail": "http://127.0.0.1:43827/auth/recover?token=7IMH5L&email=admin%2B20261029t072735-8a4271%40verify.local"
         }
       ]
     },
@@ -177,7 +177,7 @@
         {
           "name": "click button \"Save the new password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/recover-success"
+          "detail": "http://127.0.0.1:43827/auth/recover-success"
         }
       ]
     },

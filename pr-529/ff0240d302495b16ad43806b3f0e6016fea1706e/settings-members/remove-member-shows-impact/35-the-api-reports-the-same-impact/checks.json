@@ -2,12 +2,12 @@
   {
     "name": "HTTP 200",
     "pass": true,
-    "detail": "status 200: {\"memberId\":\"default:901cec28-28b7-4409-a7ed-15cb6b718e73\",\"name\":\"Hank\",\"email\":\"hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local\",\"roles\":[\"Viewer 0a62b9\"],\"isTenantOwner\":false,\"isLastOwner\":false,\"isSelf\":false}"
+    "detail": "status 200: {\"memberId\":\"default:433ba0e1-57c0-4b42-91e8-0620b3b05a0e\",\"name\":\"Hank\",\"email\":\"hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local\",\"roles\":[\"Viewer b9685c\"],\"isTenantOwner\":false,\"isLastOwner\":false,\"isSelf\":false}"
   },
   {
     "name": "roles",
     "pass": true,
-    "detail": "expected [\"Viewer 0a62b9\"], got [\"Viewer 0a62b9\"]"
+    "detail": "expected [\"Viewer b9685c\"], got [\"Viewer b9685c\"]"
   },
   {
     "name": "last owner",

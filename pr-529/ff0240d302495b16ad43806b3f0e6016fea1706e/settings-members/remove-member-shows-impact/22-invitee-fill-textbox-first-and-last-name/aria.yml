@@ -7,7 +7,7 @@
   - text: First and last name
   - textbox "First and last name": Hank
   - text: Email address
-  - textbox "Email address" [disabled]: hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local
+  - textbox "Email address" [disabled]: hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local
   - text: Password
   - textbox "Password"
   - button "Show password": Show

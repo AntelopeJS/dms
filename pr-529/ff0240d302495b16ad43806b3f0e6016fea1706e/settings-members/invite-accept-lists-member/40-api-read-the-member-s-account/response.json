@@ -1,16 +1,16 @@
 {
   "status": 200,
   "body": {
-    "_id": "25ba7b00-fa08-4c0d-859f-12b745641baf",
-    "createdAt": "2026-10-29T06:50:16.100Z",
-    "updatedAt": "2026-10-29T06:50:16.131Z",
+    "_id": "149db284-f96e-4cc9-b425-eda0334a74e2",
+    "createdAt": "2026-10-29T07:31:17.920Z",
+    "updatedAt": "2026-10-29T07:31:17.953Z",
     "name": "Bob Tester",
-    "email": "bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local",
+    "email": "bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local",
     "isValidated": true,
     "owner": false,
     "language": "en",
     "_instance": null,
-    "lastActiveAt": "2026-10-29T06:50:16.131Z"
+    "lastActiveAt": "2026-10-29T07:31:17.953Z"
   },
   "error": null
 }

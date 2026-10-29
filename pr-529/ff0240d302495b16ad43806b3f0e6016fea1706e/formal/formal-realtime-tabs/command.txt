@@ -1,1 +1,0 @@
-node .agents/skills/formal-realtime-tabs/check.mjs --full

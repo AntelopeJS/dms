@@ -4,7 +4,7 @@
   "title": "a removed member who signs in again is told they have no workspace instead of reaching a missing page",
   "entryPoint": "/auth sign-in form after Remove from workspace",
   "status": "FAIL",
-  "database": "verify_20261029T064557_d7cef6_j027",
+  "database": "verify_20261029T072735_8a4271_j016",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-c1bbf2-exists",
-      "folder": "settings-members/removed-member-lands-on-a-page/04-the-role-support-c1bbf2-exists",
+      "name": "04-the-role-support-ffd5c0-exists",
+      "folder": "settings-members/removed-member-lands-on-a-page/04-the-role-support-ffd5c0-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"924a7e65-26ee-4ba5-97e6-4dab4f83624c\"}"
+          "detail": "status 200: {\"id\":\"1d51ad60-9ea7-436a-ab4a-bb79edf598ae\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -106,18 +106,18 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "16-admin-click-button-support-c1bbf2-in-group-roles",
-      "folder": "settings-members/removed-member-lands-on-a-page/16-admin-click-button-support-c1bbf2-in-group-roles",
+      "name": "16-admin-click-button-support-ffd5c0-in-group-roles",
+      "folder": "settings-members/removed-member-lands-on-a-page/16-admin-click-button-support-ffd5c0-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support c1bbf2\" in group \"Roles\"",
+          "name": "click button \"Support ffd5c0\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -128,13 +128,13 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
     {
-      "name": "19-the-invitation-email-reaches-iris-20261029t064557-d7cef6-rem",
-      "folder": "settings-members/removed-member-lands-on-a-page/19-the-invitation-email-reaches-iris-20261029t064557-d7cef6-rem",
+      "name": "19-the-invitation-email-reaches-iris-20261029t072735-8a4271-rem",
+      "folder": "settings-members/removed-member-lands-on-a-page/19-the-invitation-email-reaches-iris-20261029t072735-8a4271-rem",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -144,13 +144,13 @@
       ]
     },
     {
-      "name": "20-invitee-open-http-127-0-0-1-40839-auth-signup-token-v3qnmltx",
-      "folder": "settings-members/removed-member-lands-on-a-page/20-invitee-open-http-127-0-0-1-40839-auth-signup-token-v3qnmltx",
+      "name": "20-invitee-open-http-127-0-0-1-43827-auth-signup-token-ezdz64ug",
+      "folder": "settings-members/removed-member-lands-on-a-page/20-invitee-open-http-127-0-0-1-43827-auth-signup-token-ezdz64ug",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=ezDz64uGDSssCKb5bPd0GkazBCsQKe9kIsr0oFnwPSyySdcihh6k9AzdiskZ7Jur&email=iris%2B20261029t072735-8a4271-removed-member-lands-on-a-page%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=ezDz64uGDSssCKb5bPd0GkazBCsQKe9kIsr0oFnwPSyySdcihh6k9AzdiskZ7Jur&email=iris%2B20261029t072735-8a4271-removed-member-lands-on-a-page%40verify.local&lang=en"
         }
       ]
     },
@@ -161,7 +161,7 @@
         {
           "name": "heading \"Create your account\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=ezDz64uGDSssCKb5bPd0GkazBCsQKe9kIsr0oFnwPSyySdcihh6k9AzdiskZ7Jur&email=iris%2B20261029t072735-8a4271-removed-member-lands-on-a-page%40verify.local&lang=en"
         }
       ]
     },
@@ -172,7 +172,7 @@
         {
           "name": "fill textbox \"First and last name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=ezDz64uGDSssCKb5bPd0GkazBCsQKe9kIsr0oFnwPSyySdcihh6k9AzdiskZ7Jur&email=iris%2B20261029t072735-8a4271-removed-member-lands-on-a-page%40verify.local&lang=en"
         }
       ]
     },
@@ -183,7 +183,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=ezDz64uGDSssCKb5bPd0GkazBCsQKe9kIsr0oFnwPSyySdcihh6k9AzdiskZ7Jur&email=iris%2B20261029t072735-8a4271-removed-member-lands-on-a-page%40verify.local&lang=en"
         }
       ]
     },
@@ -194,7 +194,7 @@
         {
           "name": "click button \"Create my account\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -216,7 +216,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -227,7 +227,7 @@
         {
           "name": "click button \"Actions for Iris\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -238,7 +238,7 @@
         {
           "name": "click menuitem \"Remove from workspace…\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -249,7 +249,7 @@
         {
           "name": "click button \"Remove member\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -260,7 +260,7 @@
         {
           "name": "open /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -271,7 +271,7 @@
         {
           "name": "fill textbox \"Email address\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -282,7 +282,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -293,7 +293,7 @@
         {
           "name": "click button \"Login\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg5M2JhZTA4LWM5YjUtNDMzZS04YjQ1LTM5NDE0MGU5YjAzMCIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1NjczNywiZXhwIjoxNzkzMjU3NjM3fQ.LuobMaYVG48jK60Y54Aq3hAOxd-zlVJvcS4HJU-VF7Y"
+          "detail": "http://127.0.0.1:43827/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU1YzQ1YTM3LTIwOTUtNGY2MS04ZmRkLWUyNzE3MTc0OWNhMyIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1OTE4OCwiZXhwIjoxNzkzMjYwMDg4fQ.Od9O1clXOR0xv5ZvS0jNhT-o9CESw75f_5MHzP0U9bc"
         }
       ]
     },
@@ -304,7 +304,7 @@
         {
           "name": "heading \"Page not found\" is absent",
           "pass": false,
-          "detail": "http://127.0.0.1:40839/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg5M2JhZTA4LWM5YjUtNDMzZS04YjQ1LTM5NDE0MGU5YjAzMCIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1NjczNywiZXhwIjoxNzkzMjU3NjM3fQ.LuobMaYVG48jK60Y54Aq3hAOxd-zlVJvcS4HJU-VF7Y"
+          "detail": "http://127.0.0.1:43827/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU1YzQ1YTM3LTIwOTUtNGY2MS04ZmRkLWUyNzE3MTc0OWNhMyIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1OTE4OCwiZXhwIjoxNzkzMjYwMDg4fQ.Od9O1clXOR0xv5ZvS0jNhT-o9CESw75f_5MHzP0U9bc"
         },
         {
           "name": "page shows /workspace/i",

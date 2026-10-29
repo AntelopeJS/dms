@@ -2,6 +2,6 @@
   {
     "name": "click button \"Login\"",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg5M2JhZTA4LWM5YjUtNDMzZS04YjQ1LTM5NDE0MGU5YjAzMCIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1NjczNywiZXhwIjoxNzkzMjU3NjM3fQ.LuobMaYVG48jK60Y54Aq3hAOxd-zlVJvcS4HJU-VF7Y"
+    "detail": "http://127.0.0.1:43827/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU1YzQ1YTM3LTIwOTUtNGY2MS04ZmRkLWUyNzE3MTc0OWNhMyIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI1OTE4OCwiZXhwIjoxNzkzMjYwMDg4fQ.Od9O1clXOR0xv5ZvS0jNhT-o9CESw75f_5MHzP0U9bc"
   }
 ]

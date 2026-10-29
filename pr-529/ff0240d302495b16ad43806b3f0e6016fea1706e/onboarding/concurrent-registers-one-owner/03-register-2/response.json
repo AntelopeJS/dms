@@ -1,5 +1,7 @@
 {
-  "status": 412,
-  "body": "error.onboarding_already_completed",
+  "status": 200,
+  "body": [
+    "480c1986-7d63-4166-80bb-36f305f03f61"
+  ],
   "error": null
 }

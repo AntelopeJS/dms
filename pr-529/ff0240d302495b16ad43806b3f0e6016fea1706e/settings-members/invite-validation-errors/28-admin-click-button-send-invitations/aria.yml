@@ -10,19 +10,19 @@
           - /url: "#emails"
   - text: Email addresses
   - paragraph: Paste a list to invite several people with the same roles.
-  - text: admin+20261029t064557-d7cef6@verify.local
-  - button "admin+20261029t064557-d7cef6@verify.local"
+  - text: admin+20261029t072735-8a4271@verify.local
+  - button "admin+20261029t072735-8a4271@verify.local"
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
-  - text: "Already a member of this workspace: admin+20261029t064557-d7cef6@verify.local Playground onboarding"
+  - text: "Already a member of this workspace: admin+20261029t072735-8a4271@verify.local Playground onboarding"
   - paragraph: Added by the playground's RegisterInviteExtension
   - text: Team
   - combobox "Team": Sales
   - text: Roles
   - group "Roles":
-    - button "Support c26657" [pressed]
+    - button "Support d5441e" [pressed]
   - paragraph:
-    - text: "Support c26657: 1 of 1259 permissions."
+    - text: "Support d5441e: 1 of 1259 permissions."
     - link "Compare roles":
       - /url: /settings/workspace/roles
   - text: Invitation language

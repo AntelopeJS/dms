@@ -1,7 +1,0 @@
-[
-  {
-    "name": "path matches /^\\/settings\\/user\\/notifications$/",
-    "pass": true,
-    "detail": "/settings/user/notifications"
-  }
-]

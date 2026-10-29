@@ -12,7 +12,7 @@
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Support 0eb9e0"
+    - button "Support 3a2d13"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

@@ -4,7 +4,7 @@
   "title": "a second registration after onboarding is refused and the first owner stays the only one",
   "entryPoint": "POST /api/onboarding/register",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j005",
+  "database": "verify_20261029T072735_8a4271_j026",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -39,7 +39,7 @@
         {
           "name": "owners",
           "pass": true,
-          "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+          "detail": "expected [\"admin+20261029t072735-8a4271@verify.local\"], got [\"admin+20261029t072735-8a4271@verify.local\"]"
         }
       ]
     },

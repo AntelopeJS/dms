@@ -12,7 +12,7 @@
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Viewer 0a62b9"
+    - button "Viewer b9685c"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

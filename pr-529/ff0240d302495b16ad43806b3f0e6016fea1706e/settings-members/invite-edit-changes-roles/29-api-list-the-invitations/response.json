@@ -3,18 +3,18 @@
   "body": {
     "results": [
       {
-        "_id": "50cfc5f5-61be-4840-a345-8602376f2943",
-        "email": "gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local",
+        "_id": "b66d45fb-9816-4052-b942-5e99b7dbe149",
+        "email": "gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local",
         "roles_ids": [
           {
-            "_id": "823200a3-168b-4bc0-9841-96dc0c615d30",
-            "name": "Writer 9be3d9"
+            "_id": "395d308b-5d96-43d4-a4cd-09a28f5eb861",
+            "name": "Writer 3714c6"
           }
         ],
         "asTenantOwner": false,
-        "createdAt": "2026-10-29T06:51:23.048Z",
-        "expiresAt": "2026-11-05T06:51:23.048Z",
-        "invitedBy": "8b01e971-b1a5-4e81-ab67-b74c4753edef",
+        "createdAt": "2026-10-29T07:32:09.471Z",
+        "expiresAt": "2026-11-05T07:32:09.470Z",
+        "invitedBy": "d7455371-d1cf-4b82-9eed-1482a7088da9",
         "invitedByName": "Verify Admin",
         "status": true
       }

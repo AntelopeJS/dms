@@ -1,6 +1,0 @@
-{
-  "do": "fill",
-  "target": "textbox \"Confirm new password\"",
-  "value": "weak",
-  "baseUrl": "http://127.0.0.1:40839"
-}

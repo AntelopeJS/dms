@@ -4,7 +4,7 @@
   "title": "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
   "entryPoint": "/auth sign-in form, POST /api/auth/login",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j008",
+  "database": "verify_20261029T072735_8a4271_j003",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -29,7 +29,7 @@
         {
           "name": "open /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "fill textbox \"Email address\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Login\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "page shows /The provided credentials are incorrect/",
           "pass": true,
-          "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T064557-d7cef6 workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+          "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T072735-8a4271 workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
         },
         {
           "name": "path matches /^\\/auth/",

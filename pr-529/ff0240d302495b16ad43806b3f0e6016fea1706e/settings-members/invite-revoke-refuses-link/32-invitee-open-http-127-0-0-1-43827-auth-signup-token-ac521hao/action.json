@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:43827"
+}

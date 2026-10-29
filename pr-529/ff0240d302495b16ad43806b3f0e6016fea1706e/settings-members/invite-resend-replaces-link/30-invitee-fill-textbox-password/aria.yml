@@ -7,9 +7,9 @@
   - text: First and last name
   - textbox "First and last name": Fred Tester
   - text: Email address
-  - textbox "Email address" [disabled]: fred+20261029t064557-d7cef6-invite-resend-replaces-link@verify.local
+  - textbox "Email address" [disabled]: fred+20261029t072735-8a4271-invite-resend-replaces-link@verify.local
   - text: Password
-  - textbox "Password": Vr1!dxcrFvxavoAB
+  - textbox "Password": Vr1!l4aOuJVYjrcg
   - button "Show password": Show
   - list:
     - listitem: At least 8 characters met

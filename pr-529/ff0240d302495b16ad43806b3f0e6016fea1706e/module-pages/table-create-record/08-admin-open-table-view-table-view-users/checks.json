@@ -1,7 +1,0 @@
-[
-  {
-    "name": "open /table-view/table-view-users",
-    "pass": true,
-    "detail": "http://127.0.0.1:40839/table-view/table-view-users"
-  }
-]

@@ -4,7 +4,7 @@
   "title": "making a member owner grants the owner-only pages and removing the owner role takes them away again",
   "entryPoint": "Members > row menu > Make owner / Remove owner role",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j029",
+  "database": "verify_20261029T072735_8a4271_j018",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-8f536e-exists",
-      "folder": "settings-members/make-owner-and-back/04-the-role-support-8f536e-exists",
+      "name": "04-the-role-support-4578cf-exists",
+      "folder": "settings-members/make-owner-and-back/04-the-role-support-4578cf-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"7c7fb6b9-b5fa-447d-a3c4-e7d8f37d3b7b\"}"
+          "detail": "status 200: {\"id\":\"a3e09b83-6c74-45e3-8d28-09ceb299f32d\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -106,18 +106,18 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "16-admin-click-button-support-8f536e-in-group-roles",
-      "folder": "settings-members/make-owner-and-back/16-admin-click-button-support-8f536e-in-group-roles",
+      "name": "16-admin-click-button-support-4578cf-in-group-roles",
+      "folder": "settings-members/make-owner-and-back/16-admin-click-button-support-4578cf-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support 8f536e\" in group \"Roles\"",
+          "name": "click button \"Support 4578cf\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -128,13 +128,13 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          "detail": "http://127.0.0.1:43827/settings/workspace/invites"
         }
       ]
     },
     {
-      "name": "19-the-invitation-email-reaches-jack-20261029t064557-d7cef6-mak",
-      "folder": "settings-members/make-owner-and-back/19-the-invitation-email-reaches-jack-20261029t064557-d7cef6-mak",
+      "name": "19-the-invitation-email-reaches-jack-20261029t072735-8a4271-mak",
+      "folder": "settings-members/make-owner-and-back/19-the-invitation-email-reaches-jack-20261029t072735-8a4271-mak",
       "checks": [
         {
           "name": "an email with a signup link arrived",
@@ -144,13 +144,13 @@
       ]
     },
     {
-      "name": "20-invitee-open-http-127-0-0-1-40839-auth-signup-token-921rmbkc",
-      "folder": "settings-members/make-owner-and-back/20-invitee-open-http-127-0-0-1-40839-auth-signup-token-921rmbkc",
+      "name": "20-invitee-open-http-127-0-0-1-43827-auth-signup-token-d7a3wocv",
+      "folder": "settings-members/make-owner-and-back/20-invitee-open-http-127-0-0-1-43827-auth-signup-token-d7a3wocv",
       "checks": [
         {
-          "name": "open http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en",
+          "name": "open http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en"
         }
       ]
     },
@@ -161,7 +161,7 @@
         {
           "name": "heading \"Create your account\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en"
         }
       ]
     },
@@ -172,7 +172,7 @@
         {
           "name": "fill textbox \"First and last name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en"
         }
       ]
     },
@@ -183,7 +183,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth/signup?token=921RmbkCJNihVwCgynjafQ1IblZxfyehgSddTfvyBFpB2koHI0Yo6NgCXThm62T8&email=jack%2B20261029t064557-d7cef6-make-owner-and-back%40verify.local&lang=en"
+          "detail": "http://127.0.0.1:43827/auth/signup?token=d7A3WocVZAW2gBw2pnoy86mbJgkRPdKNGJqVG9r5C5uhgIGn6pZmo7I1n8qhmp6c&email=jack%2B20261029t072735-8a4271-make-owner-and-back%40verify.local&lang=en"
         }
       ]
     },
@@ -194,7 +194,7 @@
         {
           "name": "click button \"Create my account\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/page-access/access-public"
+          "detail": "http://127.0.0.1:43827/page-access/access-public"
         }
       ]
     },
@@ -216,7 +216,7 @@
         {
           "name": "open /settings/workspace/roles",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     },
@@ -227,7 +227,7 @@
         {
           "name": "heading \"Forbidden\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     },
@@ -238,7 +238,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -249,7 +249,7 @@
         {
           "name": "click button \"Actions for Jack\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -260,7 +260,7 @@
         {
           "name": "click menuitem \"Make owner…\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -271,12 +271,12 @@
         {
           "name": "dialog \"Make Jack an owner?\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         },
         {
           "name": "page shows /including billing, roles and removing members/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
         }
       ]
     },
@@ -287,7 +287,7 @@
         {
           "name": "click button \"Make owner\" in dialog",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -298,7 +298,7 @@
         {
           "name": "page shows /Owner role given/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
         }
       ]
     },
@@ -309,7 +309,7 @@
         {
           "name": "reload",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -320,7 +320,7 @@
         {
           "name": "open /settings/workspace/roles",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     },
@@ -336,7 +336,7 @@
         {
           "name": "heading \"Roles\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     },
@@ -347,7 +347,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -358,7 +358,7 @@
         {
           "name": "click button \"Actions for Jack\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -369,7 +369,7 @@
         {
           "name": "click menuitem \"Remove owner role…\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -380,7 +380,7 @@
         {
           "name": "click button \"Remove owner role\" in dialog",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -391,7 +391,7 @@
         {
           "name": "page shows /Owner role removed/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
         }
       ]
     },
@@ -402,7 +402,7 @@
         {
           "name": "open /settings/workspace/roles",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     },
@@ -423,7 +423,7 @@
         {
           "name": "heading \"Forbidden\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+          "detail": "http://127.0.0.1:43827/settings/workspace/roles"
         }
       ]
     }

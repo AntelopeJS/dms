@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -86,11 +86,10 @@
 - text: seatQuota — injected into the DMS members page by the playground
 - banner:
   - navigation "Members list":
-    - button "Members"
-    - link "Invitations":
+    - button "Members 1"
+    - link "Invitations 0":
       - /url: /settings/workspace/invites
   - textbox "Search members"
-  - button "Role" [disabled]
 - table "Members list":
   - caption: Members list
   - rowgroup:
@@ -105,6 +104,19 @@
       - cell "Joined":
         - button "Joined"
       - cell
-  - rowgroup
+  - rowgroup:
+    - row "VA Verify Admin You admin+20261029t072735-8a4271@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
+      - cell
+      - cell "VA Verify Admin You admin+20261029t072735-8a4271@verify.local"
+      - cell "Owner"
+      - cell "Active now"
+      - cell "Off"
+      - cell "Oct 29, 2026"
+      - cell "Actions for Verify Admin":
+        - button "Actions for Verify Admin"
+- navigation "Navigation":
+  - text: 1 member Page size
+  - combobox "Page size": "10"
+  - text: Page 1 of 1
 - region "Notifications (F8)":
   - list

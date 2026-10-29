@@ -1,5 +1,0 @@
-{
-  "do": "click",
-  "target": "link \"Feature index\" in navigation",
-  "baseUrl": "http://127.0.0.1:40839"
-}

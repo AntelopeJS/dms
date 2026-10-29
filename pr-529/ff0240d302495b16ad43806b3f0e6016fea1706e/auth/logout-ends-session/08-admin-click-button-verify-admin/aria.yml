@@ -1,5 +1,5 @@
 - menu "Verify Admin":
-  - text: VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+  - text: VA Verify Admin admin+20261029t072735-8a4271@verify.local
   - group:
     - menuitem "Profile"
     - menuitem "Settings"

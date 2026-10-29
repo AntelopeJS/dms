@@ -12,8 +12,8 @@
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Reader e8b086"
-    - button "Writer 81af4d"
+    - button "Reader 61562d"
+    - button "Writer 7e2e62"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

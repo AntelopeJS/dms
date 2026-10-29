@@ -1,7 +1,0 @@
-[
-  {
-    "name": "roleIds",
-    "pass": true,
-    "detail": "expected [\"83b758cb-e153-40f0-bc2b-1b3e17c6371f\"], got [\"83b758cb-e153-40f0-bc2b-1b3e17c6371f\"]"
-  }
-]

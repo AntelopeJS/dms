@@ -1,7 +1,0 @@
-[
-  {
-    "name": "click button \"Change email\"",
-    "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/user/security"
-  }
-]

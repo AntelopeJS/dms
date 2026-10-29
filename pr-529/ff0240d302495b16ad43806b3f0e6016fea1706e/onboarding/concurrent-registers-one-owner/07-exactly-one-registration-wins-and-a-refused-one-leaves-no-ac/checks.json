@@ -12,7 +12,7 @@
   {
     "name": "accounts created by a refused registration",
     "pass": false,
-    "detail": "expected [], got [\"second+20261029t064557-d7cef6-concurrent-registers-one-owner@verify.local\"]"
+    "detail": "expected [], got [\"first+20261029t072735-8a4271-concurrent-registers-one-owner@verify.local\"]"
   },
   {
     "name": "has_onboarded",

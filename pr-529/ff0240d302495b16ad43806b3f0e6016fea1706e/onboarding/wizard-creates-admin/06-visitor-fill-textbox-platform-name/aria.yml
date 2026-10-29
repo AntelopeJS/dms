@@ -14,11 +14,11 @@
   - heading "Welcome to Antelope DMS" [level=1]
   - paragraph: Name the platform and pick its default language. The name appears in the browser tab and on the sign-in page.
   - text: Platform name
-  - textbox "Platform name": Verify Wizard 2cb6d4
+  - textbox "Platform name": Verify Wizard 20f311
   - text: Shown in the browser tab and on the sign-in page. Default language
   - combobox "Default language": English
   - text: Your administrator account starts in this language. Everyone can switch in their profile. Address
-  - textbox "Address" [disabled]: 127.0.0.1:40839
+  - textbox "Address" [disabled]: 127.0.0.1:43827
   - text: http://
   - paragraph: Detected from this browser · HTTPS is off
   - button "Continue to administrator"

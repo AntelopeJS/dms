@@ -1,5 +1,0 @@
-{
-  "do": "click",
-  "target": "button \"Add method\"",
-  "baseUrl": "http://127.0.0.1:40839"
-}

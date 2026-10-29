@@ -1,5 +1,5 @@
-- dialog "Resend the invitation to gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local?":
-  - heading "Resend the invitation to gina+20261029t064557-d7cef6-invite-edit-changes-roles@verify.local?" [level=2]
+- dialog "Resend the invitation to gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local?":
+  - heading "Resend the invitation to gina+20261029t072735-8a4271-invite-edit-changes-roles@verify.local?" [level=2]
   - paragraph: A new link is emailed and the previous one stops working.
   - button "Close"
   - text: Esc to cancel

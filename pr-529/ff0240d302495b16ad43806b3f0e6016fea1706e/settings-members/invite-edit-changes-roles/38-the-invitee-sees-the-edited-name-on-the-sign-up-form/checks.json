@@ -2,7 +2,7 @@
   {
     "name": "heading \"Create your account\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/signup?token=BCyePJUEWWrix2OwMWkh7BGHZ9xo6a6vOGlqUg643QyIHA5NAmHm607Uj7lS53VJ&email=gina%2B20261029t064557-d7cef6-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
+    "detail": "http://127.0.0.1:43827/auth/signup?token=P99tpcuyzZuCC2GAqaEUOirMSSCnhVj6TMt8GYwfs8HJPszq0FOIvT4fGyPIeMaV&email=gina%2B20261029t072735-8a4271-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
   },
   {
     "name": "name",

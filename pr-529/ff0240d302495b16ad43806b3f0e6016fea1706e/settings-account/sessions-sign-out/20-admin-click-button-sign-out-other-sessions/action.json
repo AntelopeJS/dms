@@ -1,5 +1,0 @@
-{
-  "do": "click",
-  "target": "button \"Sign out other sessions\"",
-  "baseUrl": "http://127.0.0.1:40839"
-}

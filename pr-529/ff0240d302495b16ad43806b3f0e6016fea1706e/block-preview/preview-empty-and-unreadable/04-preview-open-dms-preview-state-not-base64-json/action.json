@@ -1,5 +1,0 @@
-{
-  "do": "goto",
-  "path": "/dms-preview?state=not-base64-json",
-  "baseUrl": "http://127.0.0.1:40839"
-}

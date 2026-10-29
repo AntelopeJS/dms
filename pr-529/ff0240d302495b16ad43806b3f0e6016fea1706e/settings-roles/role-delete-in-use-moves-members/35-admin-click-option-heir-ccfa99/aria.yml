@@ -1,9 +1,0 @@
-- dialog "Delete Doomed 466220?":
-  - heading "Delete Doomed 466220?" [level=2]
-  - paragraph: 1 member or pending invite still holds this role and will lose its permissions, unless you move them to another role.
-  - button "Close"
-  - text: Move them to
-  - combobox "Move them to": Heir ccfa99
-  - text: Esc to cancel
-  - button "Cancel"
-  - button "Delete role"

@@ -1,15 +1,15 @@
 [
   {
-    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/evidence/mail/005.eml",
+    "file": "/home/antony/.cache/campaign/verify/h6-dms-529-runs/20261029T072735-8a4271/evidence/mail/005.eml",
     "from": "<>",
     "to": [
-      "<erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local>"
+      "<erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local>"
     ],
     "subject": "Verify Admin invited you to join Default on AntelopeJS",
     "links": [
-      "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+      "http://127.0.0.1:43827/auth/signup?token=Ac521HAoP3z0Kftv52NBwKie2kx6R7Dod7f83A5GNaGs5dXZ1SafKRVS5s0I1rAh&email=erin%2B20261029t072735-8a4271-invite-revoke-refuses-link%40verify.local&lang=en"
     ],
     "text": "You're invited to Default Hello, Verify Admin invited you to join Default on AntelopeJS. Click the button below to create your account: Create Account This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.",
-    "receivedAt": "2026-10-29T06:50:49.681Z"
+    "receivedAt": "2026-10-29T07:31:36.658Z"
   }
 ]

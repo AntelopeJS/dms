@@ -3,15 +3,15 @@
   - paragraph: Their roles decide what they can see and do. Several roles add up.
   - button "Close"
   - text: Member Kim Email
-  - link "kim+20261029t064557-d7cef6-change-member-roles@verify.local":
-    - /url: mailto:kim+20261029t064557-d7cef6-change-member-roles@verify.local
+  - link "kim+20261029t072735-8a4271-change-member-roles@verify.local":
+    - /url: mailto:kim+20261029t072735-8a4271-change-member-roles@verify.local
   - text: Roles
   - paragraph: Roles assigned to the user
   - group "Roles":
-    - button "Reader e8b086" [pressed]
-    - button "Writer 81af4d"
+    - button "Reader 61562d" [pressed]
+    - button "Writer 7e2e62"
   - paragraph:
-    - text: "Reader e8b086: 1 of 1259 permissions."
+    - text: "Reader 61562d: 1 of 1259 permissions."
     - link "Compare roles":
       - /url: /settings/workspace/roles
   - text: Owner

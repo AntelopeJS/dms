@@ -1,5 +1,0 @@
-{
-  "do": "click",
-  "target": "button \"Change email\" in form \"Changing email\"",
-  "baseUrl": "http://127.0.0.1:40839"
-}

@@ -7,6 +7,6 @@
   {
     "name": "it links to /auth/signup with a token",
     "pass": true,
-    "detail": "[\"http://127.0.0.1:40839/auth/signup?token=U4sXC1XUVHmJRvJmZ71YpKr4YRcgSsVqXeFvihSCPpd59zDPPJvEUJGM72DBzXv6&email=member%2B20261029t064557-d7cef6-smoke%40verify.local&lang=en\"]"
+    "detail": "[\"http://127.0.0.1:43827/auth/signup?token=LCsrsxmVvYdKRdYMjTi3THLSit5ZwwJUqIPND3skAyHFxP4es5FltVoYYAhuJVkp&email=member%2B20261029t072735-8a4271-smoke%40verify.local&lang=en\"]"
   }
 ]

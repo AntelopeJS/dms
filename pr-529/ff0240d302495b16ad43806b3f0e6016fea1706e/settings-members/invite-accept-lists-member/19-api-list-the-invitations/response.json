@@ -3,18 +3,18 @@
   "body": {
     "results": [
       {
-        "_id": "df9ac27c-4187-4126-928a-a8a7918ba115",
-        "email": "bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local",
+        "_id": "a7841763-3372-468e-8e0e-4388abe676b6",
+        "email": "bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local",
         "roles_ids": [
           {
-            "_id": "e1d49050-0656-4d27-b92e-e5949e08eeee",
-            "name": "Support 20b199"
+            "_id": "678e69ee-2c53-414e-b701-52a152401b0b",
+            "name": "Support e9e0b9"
           }
         ],
         "asTenantOwner": false,
-        "createdAt": "2026-10-29T06:50:14.096Z",
-        "expiresAt": "2026-11-05T06:50:14.096Z",
-        "invitedBy": "784cf4d6-e65f-4a00-97a6-9eb846e45b05",
+        "createdAt": "2026-10-29T07:31:15.922Z",
+        "expiresAt": "2026-11-05T07:31:15.922Z",
+        "invitedBy": "e67125c1-c2c0-4db5-8a98-72b17d4da3cc",
         "invitedByName": "Verify Admin",
         "status": true
       }

@@ -1,12 +1,12 @@
 [
   {
-    "name": "cell \"bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local\" is visible",
+    "name": "cell \"bob+20261029t072735-8a4271-invite-accept-lists-member@verify.local\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+    "detail": "http://127.0.0.1:43827/settings/workspace/invites"
   },
   {
-    "name": "cell \"Support 20b199\" is visible",
+    "name": "cell \"Support e9e0b9\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+    "detail": "http://127.0.0.1:43827/settings/workspace/invites"
   }
 ]

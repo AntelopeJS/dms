@@ -32,7 +32,7 @@
     - listitem:
       - link "Modules 2":
         - /url: /modules
-- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- button "Verify Admin": VA Verify Admin admin+20261029t072735-8a4271@verify.local
 - separator
 - button "Collapse sidebar"
 - heading "Breadcrumb Add to favorites" [level=1]:
@@ -106,18 +106,18 @@
         - button "Joined"
       - cell
   - rowgroup:
-    - row "H Hank hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local Viewer 0a62b9 Active now Off Oct 29, 2026 Actions for Hank":
+    - row "H Hank hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local Viewer b9685c Active now Off Oct 29, 2026 Actions for Hank":
       - cell
-      - cell "H Hank hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local"
-      - cell "Viewer 0a62b9"
+      - cell "H Hank hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local"
+      - cell "Viewer b9685c"
       - cell "Active now"
       - cell "Off"
       - cell "Oct 29, 2026"
       - cell "Actions for Hank":
         - button "Actions for Hank" [expanded]
-    - row "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
+    - row "VA Verify Admin You admin+20261029t072735-8a4271@verify.local Owner Active now Off Oct 29, 2026 Actions for Verify Admin":
       - cell
-      - cell "VA Verify Admin You admin+20261029t064557-d7cef6@verify.local"
+      - cell "VA Verify Admin You admin+20261029t072735-8a4271@verify.local"
       - cell "Owner"
       - cell "Active now"
       - cell "Off"

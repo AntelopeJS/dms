@@ -2,11 +2,11 @@
   {
     "name": "page shows /Invitation revoked/",
     "pass": true,
-    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
   },
   {
-    "name": "cell \"erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local\" is absent",
+    "name": "cell \"erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local\" is absent",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+    "detail": "http://127.0.0.1:43827/settings/workspace/invites"
   }
 ]

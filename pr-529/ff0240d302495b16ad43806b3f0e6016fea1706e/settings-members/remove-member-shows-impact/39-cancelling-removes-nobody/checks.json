@@ -2,11 +2,11 @@
   {
     "name": "cell \"/Hank/\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/members"
+    "detail": "http://127.0.0.1:43827/settings/workspace/members"
   },
   {
     "name": "still a member",
     "pass": true,
-    "detail": "hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local"
+    "detail": "hank+20261029t072735-8a4271-remove-member-shows-impact@verify.local"
   }
 ]

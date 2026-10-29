@@ -1,6 +1,6 @@
 {
   "method": "POST",
-  "url": "http://127.0.0.1:35351/api/onboarding/register",
+  "url": "http://127.0.0.1:44379/api/onboarding/register",
   "authenticated": false,
   "body": {
     "email": "not-an-email",

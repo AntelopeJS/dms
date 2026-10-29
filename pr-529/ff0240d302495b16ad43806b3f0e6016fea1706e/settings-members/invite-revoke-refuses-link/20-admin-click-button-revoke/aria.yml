@@ -1,5 +1,5 @@
-- dialog "Revoke the invitation to erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local?":
-  - heading "Revoke the invitation to erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local?" [level=2]
+- dialog "Revoke the invitation to erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local?":
+  - heading "Revoke the invitation to erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local?" [level=2]
   - paragraph: The link stops working right away. You can invite them again later.
   - button "Close"
   - text: Esc to cancel

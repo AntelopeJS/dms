@@ -1,7 +1,0 @@
-[
-  {
-    "name": "click link \"Open\" in article \"Demo Module\"",
-    "pass": true,
-    "detail": "http://127.0.0.1:40839/modules/demo/pages/contact"
-  }
-]

@@ -4,7 +4,7 @@
   "title": "Logout from the account menu ends the session, and the settings page asks to sign in again",
   "entryPoint": "account menu > Logout",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j010",
+  "database": "verify_20261029T072735_8a4271_j005",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -29,7 +29,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "click button \"Verify Admin\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "click menuitem \"Logout\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth"
+          "detail": "http://127.0.0.1:43827/auth"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          "detail": "http://127.0.0.1:43827/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
         }
       ]
     },

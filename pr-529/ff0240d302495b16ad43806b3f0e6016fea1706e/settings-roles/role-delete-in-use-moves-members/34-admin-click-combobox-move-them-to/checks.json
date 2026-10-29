@@ -1,7 +1,0 @@
-[
-  {
-    "name": "click combobox \"Move them to\"",
-    "pass": true,
-    "detail": "http://127.0.0.1:40839/settings/workspace/roles"
-  }
-]

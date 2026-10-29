@@ -10,8 +10,8 @@
           - /url: "#playground__team"
   - text: Email addresses
   - paragraph: Paste a list to invite several people with the same roles.
-  - text: carol+20261029t064557-d7cef6-invite-validation-errors@verify.local
-  - button "carol+20261029t064557-d7cef6-invite-validation-errors@verify.local"
+  - text: carol+20261029t072735-8a4271-invite-validation-errors@verify.local
+  - button "carol+20261029t072735-8a4271-invite-validation-errors@verify.local"
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
   - text: Playground onboarding
@@ -20,9 +20,9 @@
   - combobox "Team"
   - text: This value isn’t valid. Roles
   - group "Roles":
-    - button "Support c26657" [pressed]
+    - button "Support d5441e" [pressed]
   - paragraph:
-    - text: "Support c26657: 1 of 1259 permissions."
+    - text: "Support d5441e: 1 of 1259 permissions."
     - link "Compare roles":
       - /url: /settings/workspace/roles
   - text: Invitation language

@@ -1,42 +1,45 @@
 {
   "doors": {
-    "none": "The diff adds a bin, a verification skill and checks; it removes no route, export, config key or stored field, sends nothing new and claims no new registry name.",
+    "none": "the diff adds a bin, a skill and checks; it removes no route, export, config key, env var or stored field",
     "rows": [],
     "falsePositives": [
       {
         "kind": "contract",
         "location": "packages/dms/bin/dms-control.mjs",
-        "reason": "A new bin, an addition decided by outer-loop#4 decision 3; additions are not doors."
+        "reason": "a new bin, an addition; nothing existing is removed or changed"
       },
       {
         "kind": "contract",
         "location": "packages/dms/package.json",
-        "reason": "Adds the bin field and bin to files; nothing is removed or renamed."
+        "reason": "adds the bin field and bin/ to files; no existing field changes"
       },
       {
         "kind": "publish",
         "location": "packages/dms/package.json",
-        "reason": "The package name, publishConfig and dist-tags are unchanged; only the bin folder joins the published files."
+        "reason": "same package name, same registry; only bin/ is added to the published files"
       },
       {
         "kind": "publish",
         "location": ".github/workflows/release.yml",
-        "reason": "The validate step imports the same rule from checks/release-range.mjs; what it accepts is unchanged."
+        "reason": "the validate step imports the same rule from checks/release-range.mjs; diffed against the old inline code, 0 disagreements on 500k random inputs"
       },
       {
         "kind": "publish",
         "location": "checks/release-range.mjs",
-        "reason": "The release range rule moved out of release.yml unchanged."
+        "reason": "the rule moved verbatim out of release.yml"
       }
     ]
   },
   "docs": [],
   "notVerified": [
-    "The verify commit status: the available token cannot write commit statuses (publish reports GitHub's answer)."
+    "Exhaustive TLA+ configurations not rerun (CI-bounded configurations rerun: 1,608/5,111 and 45,786/2,415 states, every rule as recorded); formal-release-range rerun in full.",
+    "Seeded breaks rerun against an unpatched control for 4 of 11 features (settings-members, auth, tenancy, block-preview) to bound runtime; the other 7 rest on the author log at b94db4bb.",
+    "Journeys of module-pages, modules-store, settings-account, settings-roles and shell not rerun here; this diff touches none of them (plan runs smoke only)."
   ],
   "attention": [
-    "This run is the PR author's proof of the harness, not an independent verdict.",
-    "The verdict fails by rule 5: formal-release-range covers checks/release-range.mjs and release.yml, which this PR touches, and its recorded findings F1 to F4 count as violated rules."
+    "Harness bug: verdict.mjs reads containment journeys only from the features in plan.run, so a Data or Format door outside settings-members/module-pages/auth fails as \"did not pass in this run\" even when its containment journey passed (reproduced with a scratch commit to packages/dms/src/hooks/tenant-deleted.ts).",
+    "This verdict fails only on formal-release-range recorded findings F1-F4 (checks/release-range.mjs and release.yml are touched by a verbatim move). Whether a pure move of a rule with recorded findings should FAIL is for Antony.",
+    "Product findings reproduced: two concurrent onboarding registers create two platform owners (one answered 412), and a removed member who signs in lands on /auth/no-workspace, a 404."
   ],
-  "verifier": "harness proof run by the PR author's thread (V2 owner); not a fresh verifier"
+  "verifier": "fresh H6 verifier of AntelopeJS/dms#529 (a separate thread; it did not write the change)"
 }

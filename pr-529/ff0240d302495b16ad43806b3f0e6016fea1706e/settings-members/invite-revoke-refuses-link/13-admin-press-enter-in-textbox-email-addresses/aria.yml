@@ -4,8 +4,8 @@
   - button "Close"
   - text: Email addresses
   - paragraph: Paste a list to invite several people with the same roles.
-  - text: erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local
-  - button "erin+20261029t064557-d7cef6-invite-revoke-refuses-link@verify.local"
+  - text: erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local
+  - button "erin+20261029t072735-8a4271-invite-revoke-refuses-link@verify.local"
   - textbox "Email addresses":
     - /placeholder: Add addresses, separated with a comma
   - text: Playground onboarding
@@ -14,7 +14,7 @@
   - combobox "Team"
   - text: Roles
   - group "Roles":
-    - button "Support 0eb9e0"
+    - button "Support 3a2d13"
   - paragraph:
     - text: Pick at least one role.
     - link "Compare roles":

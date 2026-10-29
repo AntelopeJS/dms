@@ -4,7 +4,7 @@
   "title": "an owner, a session and a record written by the base version are read by this version (Format containment)",
   "entryPoint": "the base ref's backend, then this one, on the same database",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j013",
+  "database": "verify_20261029T072735_8a4271_j008",
   "steps": [
     {
       "name": "04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
@@ -18,7 +18,7 @@
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"_id\":\"b83ebf47-e65a-4e06-8aca-0f3ac2a63ad0\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t064557-d7cef6-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
+          "detail": "status 200: {\"_id\":\"c7d9ee67-ef2c-4126-9634-014f6c470121\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t072735-8a4271-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
         },
         {
           "name": "tokens issued",
@@ -34,12 +34,12 @@
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"_id\":\"347aa6d8-002b-4994-aa98-0d879bb7d771\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"createdAt\":\"2026-10-29T06:49:00.367Z\",\"updatedAt\":\"2026-10-29T06:49:00.417Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T06:49:00.4"
+          "detail": "status 200: {\"_id\":\"c4ba4df2-19af-4846-bb21-78e81d562c97\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t072735-8a4271@verify.local\",\"createdAt\":\"2026-10-29T07:31:00.386Z\",\"updatedAt\":\"2026-10-29T07:31:00.445Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T07:31:00.4"
         },
         {
           "name": "the account behind the base token",
           "pass": true,
-          "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+          "detail": "expected \"admin+20261029t072735-8a4271@verify.local\", got \"admin+20261029t072735-8a4271@verify.local\""
         },
         {
           "name": "the base refresh token refreshes",
@@ -49,12 +49,12 @@
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjM0N2FhNmQ4LTAwMmItNDk5NC1hYTk4LTBkODc5YmI3ZDc3MSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjFlODhkODE2LWRlYzMtNDhmZi04MWRmLTE1NWQ3ZWYxNWIyNyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTY1NDIsImV4cCI6MTc5MzI2MDE0"
+          "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImM0YmE0ZGYyLTE5YWYtNDg0Ni1iYjIxLTc4ZTgxZDU2MmM5NyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjZkMDViYjhkLTgyN2UtNDY3NC05YTNmLWEzNjc4NWQ5ZDNjNyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTkwNjIsImV4cCI6MTc5MzI2MjY2"
         },
         {
           "name": "the record is listed",
           "pass": true,
-          "detail": "b83ebf47-e65a-4e06-8aca-0f3ac2a63ad0"
+          "detail": "c7d9ee67-ef2c-4126-9634-014f6c470121"
         }
       ]
     },
@@ -65,7 +65,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -76,7 +76,7 @@
         {
           "name": "button \"Verify Admin\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     }

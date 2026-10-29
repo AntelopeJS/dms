@@ -4,7 +4,7 @@
   "title": "the wizard lists the unmet password rules and creates nobody",
   "entryPoint": "/onboarding wizard, Administrator step",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j003",
+  "database": "verify_20261029T072735_8a4271_j024",
   "steps": [
     {
       "name": "02-visitor-open",
@@ -13,7 +13,7 @@
         {
           "name": "open /",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -29,7 +29,7 @@
         {
           "name": "heading \"Welcome to Antelope DMS\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "fill textbox \"Platform name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "click button \"Continue to administrator\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "fill textbox \"First name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Last name\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "fill textbox \"Work e-mail\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "fill textbox \"Password\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -106,7 +106,7 @@
         {
           "name": "click button \"Create administrator account\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },
@@ -117,17 +117,17 @@
         {
           "name": "page shows /The password doesn’t meet every rule/",
           "pass": true,
-          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak a61934 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak c5e3b5 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
         },
         {
           "name": "page shows /At least 8 characters\\s+not met/",
           "pass": true,
-          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak a61934 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak c5e3b5 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
         },
         {
           "name": "heading \"Create the administrator account\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/onboarding"
+          "detail": "http://127.0.0.1:43827/onboarding"
         }
       ]
     },

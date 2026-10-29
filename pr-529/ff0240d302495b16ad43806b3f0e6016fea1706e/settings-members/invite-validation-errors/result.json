@@ -4,7 +4,7 @@
   "title": "the invite dialog refuses a bad address, a missing Team and a missing role, and an existing member is skipped",
   "entryPoint": "Invite members dialog, POST /dms/pages/settings/workspace/members/invite",
   "status": "PASS",
-  "database": "verify_20261029T064557_d7cef6_j021",
+  "database": "verify_20261029T072735_8a4271_j028",
   "steps": [
     {
       "name": "02-onboard-the-administrator",
@@ -23,13 +23,13 @@
       ]
     },
     {
-      "name": "04-the-role-support-c26657-exists",
-      "folder": "settings-members/invite-validation-errors/04-the-role-support-c26657-exists",
+      "name": "04-the-role-support-d5441e-exists",
+      "folder": "settings-members/invite-validation-errors/04-the-role-support-d5441e-exists",
       "checks": [
         {
           "name": "HTTP 200",
           "pass": true,
-          "detail": "status 200: {\"id\":\"953a4cf1-c85a-4a01-a044-38dd22313943\"}"
+          "detail": "status 200: {\"id\":\"190a6c43-18c7-4083-a3b2-a8a5c9ff1328\"}"
         }
       ]
     },
@@ -40,7 +40,7 @@
         {
           "name": "admin signs in and leaves /auth",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/examples/overview"
+          "detail": "http://127.0.0.1:43827/examples/overview"
         }
       ]
     },
@@ -51,7 +51,7 @@
         {
           "name": "open /settings/workspace/members",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "name": "click button \"Invite members\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -73,7 +73,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -84,7 +84,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -95,7 +95,7 @@
         {
           "name": "page shows /not-an-email isn’t a valid email address/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
         }
       ]
     },
@@ -106,7 +106,7 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -117,12 +117,12 @@
         {
           "name": "page shows /2 fields need your attention/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
         },
         {
           "name": "dialog \"Invite members\" is visible",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -133,7 +133,7 @@
         {
           "name": "click button \"not-an-email\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -144,7 +144,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -155,18 +155,18 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
     {
-      "name": "20-admin-click-button-support-c26657-in-group-roles",
-      "folder": "settings-members/invite-validation-errors/20-admin-click-button-support-c26657-in-group-roles",
+      "name": "20-admin-click-button-support-d5441e-in-group-roles",
+      "folder": "settings-members/invite-validation-errors/20-admin-click-button-support-d5441e-in-group-roles",
       "checks": [
         {
-          "name": "click button \"Support c26657\" in group \"Roles\"",
+          "name": "click button \"Support d5441e\" in group \"Roles\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -177,7 +177,7 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -188,12 +188,12 @@
         {
           "name": "page shows /1 field needs your attention/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
         },
         {
           "name": "page shows /This value isn’t valid/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
         },
         {
           "name": "path matches /^\\/settings\\/workspace\\/members$/",
@@ -203,13 +203,13 @@
       ]
     },
     {
-      "name": "23-admin-click-button-carol-20261029t064557-d7cef6-invite-valid",
-      "folder": "settings-members/invite-validation-errors/23-admin-click-button-carol-20261029t064557-d7cef6-invite-valid",
+      "name": "23-admin-click-button-carol-20261029t072735-8a4271-invite-valid",
+      "folder": "settings-members/invite-validation-errors/23-admin-click-button-carol-20261029t072735-8a4271-invite-valid",
       "checks": [
         {
-          "name": "click button \"carol+20261029t064557-d7cef6-invite-validation-errors@verify.local\"",
+          "name": "click button \"carol+20261029t072735-8a4271-invite-validation-errors@verify.local\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -220,7 +220,7 @@
         {
           "name": "fill textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -231,7 +231,7 @@
         {
           "name": "press Enter in textbox \"Email addresses\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -242,7 +242,7 @@
         {
           "name": "click combobox \"Team\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -253,7 +253,7 @@
         {
           "name": "click option \"Sales\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -264,7 +264,7 @@
         {
           "name": "click button \"Send invitations\"",
           "pass": true,
-          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          "detail": "http://127.0.0.1:43827/settings/workspace/members"
         }
       ]
     },
@@ -275,7 +275,7 @@
         {
           "name": "page shows /Already a member of this workspace/",
           "pass": true,
-          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t072735-8a4271@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
         },
         {
           "name": "path matches /^\\/settings\\/workspace\\/members$/",

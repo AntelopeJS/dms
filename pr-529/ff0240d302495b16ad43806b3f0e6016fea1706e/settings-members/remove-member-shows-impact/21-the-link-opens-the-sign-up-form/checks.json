@@ -2,6 +2,6 @@
   {
     "name": "heading \"Create your account\" is visible",
     "pass": true,
-    "detail": "http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en"
+    "detail": "http://127.0.0.1:43827/auth/signup?token=y7aV4c4OfV2PbMK4378Xlch5kmVBMB0DQBNkUPIfXFMuDggTxVSxYZDH3kz4ntbu&email=hank%2B20261029t072735-8a4271-remove-member-shows-impact%40verify.local&lang=en"
   }
 ]

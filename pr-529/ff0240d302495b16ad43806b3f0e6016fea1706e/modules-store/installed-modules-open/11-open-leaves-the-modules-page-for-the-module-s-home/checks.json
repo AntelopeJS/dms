@@ -1,7 +1,0 @@
-[
-  {
-    "name": "path matches /^\\/(?!modules$)/",
-    "pass": true,
-    "detail": "/modules/demo/pages/contact"
-  }
-]

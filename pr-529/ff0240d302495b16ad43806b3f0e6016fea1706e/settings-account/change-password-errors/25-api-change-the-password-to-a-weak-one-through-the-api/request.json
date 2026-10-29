@@ -1,9 +1,0 @@
-{
-  "method": "POST",
-  "url": "http://127.0.0.1:35351/dms/pages/settings/user/security/password",
-  "authenticated": true,
-  "body": {
-    "currentPassword": "Vr1!rjJdngsu8Wbw",
-    "password": "weak"
-  }
-}
