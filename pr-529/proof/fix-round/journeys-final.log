@@ -1,0 +1,13 @@
+$ RUN=$(dms-control up --prepare --runs …)
+exit 0 -> /home/antony/.cache/campaign/h6/dms-runs/20261029T102425-9743a5
+$ dms-control doctor $RUN
+exit 0
+$ dms-control journey $RUN smoke
+exit 0
+$ dms-control journey $RUN auth
+exit 0
+$ dms-control journey $RUN module-pages
+exit 0
+$ dms-control down $RUN
+/home/antony/.cache/campaign/h6/dms-runs/20261029T102425-9743a5/evidence
+exit 0
