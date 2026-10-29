@@ -18,7 +18,12 @@ import {
   onboard,
   recordedRequest,
 } from "./session.mjs";
-import { freshDatabase, resolutionFolders, restartBackend } from "./stack.mjs";
+import {
+  ensureMail,
+  freshDatabase,
+  resolutionFolders,
+  restartBackend,
+} from "./stack.mjs";
 import { Tab } from "./tab.mjs";
 
 const EXPECT_TIMEOUT_MS = 15_000;
@@ -80,6 +85,7 @@ export class JourneyContext {
     this.steps = [];
     this.contexts = new Map();
     this.index = 0;
+    this.startedAt = new Date().toISOString();
     this.equal = equal;
     this.status = status;
     this.holds = holds;
@@ -186,17 +192,21 @@ export class JourneyContext {
     return restartBackend(this.state);
   }
 
-  /** The mail the sink captured, waiting until `accept` matches one or the timeout passes. */
+  /**
+   * The mail the sink captured since the journey started, waiting until
+   * `accept` matches one or the timeout passes; `match` is the latest match.
+   */
   async mail(accept, timeoutMs = EXPECT_TIMEOUT_MS) {
     const deadline = Date.now() + timeoutMs;
-    let messages = capturedMail(this.state.mail);
+    const since = (message) => message.receivedAt >= this.startedAt;
+    let messages = capturedMail(this.state.mail).filter(since);
     while (!messages.some(accept) && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));
-      messages = capturedMail(this.state.mail);
+      messages = capturedMail(this.state.mail).filter(since);
     }
     const folder = this.step("mail");
     writeJson(join(folder, "mail.json"), messages);
-    return { folder, messages, match: messages.find(accept) };
+    return { folder, messages, match: messages.findLast(accept) };
   }
 
   async close() {
@@ -207,6 +217,7 @@ export class JourneyContext {
 }
 
 async function prepare(state, feature, journey, context) {
+  await ensureMail(state);
   if (journey.database !== "shared") {
     const index = String((state.journeyCount ?? 0) + 1).padStart(3, "0");
     state.journeyCount = Number(index);

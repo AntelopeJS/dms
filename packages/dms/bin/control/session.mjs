@@ -18,7 +18,7 @@ const OK_MAX = 299;
  */
 export function adminCredentials(state) {
   return {
-    email: `admin+${state.id}@verify.local`,
+    email: `admin+${state.id}@verify.local`.toLowerCase(),
     password: state.adminPassword,
     firstName: "Verify",
     lastName: "Admin",

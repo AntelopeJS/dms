@@ -20,6 +20,7 @@ import {
   startDetached,
   stopAll,
   waitForOk,
+  waitForPort,
 } from "./processes.mjs";
 import {
   createRunFolders,
@@ -233,6 +234,27 @@ function record(state, processRecord) {
   saveRun(state);
 }
 
+/**
+ * Starts the run's mail sink unless it already runs.
+ *
+ * @param {Record<string, any>} state The run
+ * @returns {Promise<void>} Resolves once it listens
+ */
+export async function ensureMail(state) {
+  const running = state.processes.find((entry) => entry.name === "mail");
+  if (running && isAlive(running.pid)) return;
+  const mail = startDetached({
+    name: "mail",
+    program: process.execPath,
+    args: [CONTROL_BIN, "serve-mail", state.dir],
+    cwd: state.dir,
+    env: process.env,
+    logs: state.logs,
+  });
+  record(state, { ...mail, port: state.smtpPort });
+  await waitForPort(state.smtpPort, mail, READY_TIMEOUT_MS);
+}
+
 async function startBackend(state) {
   const { ajs } = cliPaths(state.playground);
   const backend = startDetached(
@@ -264,15 +286,7 @@ async function buildAndStart(state) {
     state.mongoUrl = mongo.url;
     record(state, mongo.record);
   }
-  const mail = startDetached({
-    name: "mail",
-    program: process.execPath,
-    args: [CONTROL_BIN, "serve-mail", state.dir],
-    cwd: state.dir,
-    env: process.env,
-    logs: state.logs,
-  });
-  record(state, { ...mail, port: state.smtpPort });
+  await ensureMail(state);
   await runToEnd(
     spec(state, "project-build", clis.ajs, [
       "project",

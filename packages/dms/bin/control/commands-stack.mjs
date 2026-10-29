@@ -6,7 +6,7 @@ import { doctor } from "./doctor.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
-import { down, resolutionFolders, up } from "./stack.mjs";
+import { down, freshDatabase, resolutionFolders, up } from "./stack.mjs";
 import { loadSkill } from "./verify/skill.mjs";
 
 const BROWSER_ACTIONS = [...ACTION_NAMES, "login"];
@@ -163,6 +163,12 @@ export async function runStackCommand(command, rest, values) {
       return 0;
     case "down":
       return commandDown(rest[0]);
+    case "reset": {
+      const state = loadRun(rest[0]);
+      state.resetCount = (state.resetCount ?? 0) + 1;
+      print(await freshDatabase(state, `r${state.resetCount}`));
+      return 0;
+    }
     case "serve-mail": {
       const state = loadRun(rest[0]);
       await serveMail(state.mail, state.smtpPort);

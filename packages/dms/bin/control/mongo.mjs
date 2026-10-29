@@ -2,14 +2,12 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import { freePort, isAlive, startDetached } from "./processes.mjs";
+import { freePort, startDetached, waitForPort } from "./processes.mjs";
 
 /** The server version the backend test harness pins, already cached by it. */
 const MONGO_VERSION = "8.0.8";
 const READY_TIMEOUT_MS = 30_000;
-const POLL_MS = 250;
 
 function withDefaultExports(namespace) {
   return { ...namespace.default, ...namespace };
@@ -60,25 +58,6 @@ async function mongodBinary(from) {
   return MongoBinary.getPath({ version: MONGO_VERSION });
 }
 
-async function waitForPort(port, record) {
-  const deadline = Date.now() + READY_TIMEOUT_MS;
-  const { createConnection } = await import("node:net");
-  while (Date.now() < deadline) {
-    const open = await new Promise((resolve) => {
-      const socket = createConnection({ host: "127.0.0.1", port });
-      socket.once("connect", () => {
-        socket.end();
-        resolve(true);
-      });
-      socket.once("error", () => resolve(false));
-    });
-    if (open) return;
-    if (!isAlive(record.pid)) break;
-    await sleep(POLL_MS);
-  }
-  throw new Error(`mongod did not listen on ${port}; see ${record.log}`);
-}
-
 /**
  * Starts a mongod owned by the run, on a free port, with its data under the
  * run folder.
@@ -106,7 +85,7 @@ export async function startMongod(paths, from) {
     env: process.env,
     logs: paths.logs,
   });
-  await waitForPort(port, record);
+  await waitForPort(port, record, READY_TIMEOUT_MS);
   return { url: `mongodb://127.0.0.1:${port}`, record: { ...record, port } };
 }
 

@@ -7,7 +7,7 @@ import {
   readFileSync,
   readlinkSync,
 } from "node:fs";
-import { createServer } from "node:net";
+import { createConnection, createServer } from "node:net";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -147,6 +147,39 @@ export async function waitForOk(url, record, timeoutMs) {
   }
   throw new Error(
     `${url} did not answer 200 in ${timeoutMs} ms; see ${record.log}`,
+  );
+}
+
+function accepts(port) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    socket.once("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
+
+/**
+ * Polls a loopback port until it accepts a connection, the process exits or
+ * the timeout passes.
+ *
+ * @param {number} port The port
+ * @param {{ name: string, pid: number, log: string }} record The process that must listen
+ * @param {number} timeoutMs How long to wait
+ * @returns {Promise<void>} Resolves once it listens
+ * @throws When the process exits first or the timeout passes, naming its log
+ */
+export async function waitForPort(port, record, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await accepts(port)) return;
+    if (!isAlive(record.pid)) break;
+    await sleep(POLL_MS);
+  }
+  throw new Error(
+    `${record.name} did not listen on ${port}; see ${record.log}`,
   );
 }
 

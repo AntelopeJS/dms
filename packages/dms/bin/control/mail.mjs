@@ -32,16 +32,47 @@ function headerOf(message, name) {
   return match ? match[1].replace(/\r?\n[ \t]+/g, " ").trim() : "";
 }
 
+const ENTITIES = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  "#39": "'",
+  nbsp: " ",
+};
+
+function readableText(html) {
+  const body = html.slice(html.search(/\r?\n\r?\n/));
+  return body
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_match, name) => ENTITIES[name])
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function saveMessage(folder, envelope, raw) {
   mkdirSync(folder, { recursive: true });
   const index =
     readdirSync(folder).filter((name) => name.endsWith(".eml")).length + 1;
   const base = String(index).padStart(3, "0");
-  const decoded = decodeQuotedPrintable(raw);
+  const decoded = Buffer.from(decodeQuotedPrintable(raw), "latin1").toString(
+    "utf8",
+  );
+  const links =
+    decoded.replaceAll("&amp;", "&").match(/https?:\/\/[^\s"'<>]+/g) ?? [];
+  const summary = {
+    from: envelope.from,
+    to: envelope.to,
+    subject: headerOf(raw, "Subject"),
+    links: [...new Set(links)],
+    text: readableText(decoded),
+    receivedAt: new Date().toISOString(),
+  };
   writeFileSync(join(folder, `${base}.eml`), raw);
   writeFileSync(
     join(folder, `${base}.json`),
-    `${JSON.stringify({ from: envelope.from, to: envelope.to, subject: headerOf(raw, "Subject"), links: [...new Set(decoded.match(/https?:\/\/[^\s"'<>]+/g) ?? [])], receivedAt: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify(summary, null, 2)}\n`,
   );
 }
 
@@ -101,8 +132,8 @@ function session(folder) {
 
 /**
  * Serves a plain SMTP sink on `port` that writes each message it receives
- * to `<folder>/NNN.eml`, with its envelope, subject and links in
- * `NNN.json`. It never relays anything.
+ * to `<folder>/NNN.eml`, with its envelope, subject, links and readable
+ * text in `NNN.json`. It never relays anything.
  *
  * @param {string} folder Where the messages go
  * @param {number} port The loopback port to listen on
@@ -118,7 +149,7 @@ export function serveMail(folder, port) {
  * The messages the sink captured so far, oldest first.
  *
  * @param {string} folder The sink's folder
- * @returns {{ file: string, from: string, to: string[], subject: string, links: string[], receivedAt: string }[]} The captured messages
+ * @returns {{ file: string, from: string, to: string[], subject: string, links: string[], text: string, receivedAt: string }[]} The captured messages
  */
 export function capturedMail(folder) {
   if (!existsSync(folder)) return [];
