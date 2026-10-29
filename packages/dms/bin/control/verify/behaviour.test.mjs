@@ -176,3 +176,53 @@ test("retargeting a re-export is changed", (t) => {
     true,
   );
 });
+
+test("removing a side-effect import is changed", (t) => {
+  assert.equal(
+    changed(
+      t,
+      { "src/a.ts": 'import "./init";\nrun();\n' },
+      { "src/a.ts": "run();\n" },
+    ),
+    true,
+  );
+});
+
+test("swapping two assignments to the same field is changed", (t) => {
+  assert.equal(
+    changed(
+      t,
+      { "src/a.ts": "target.value = 1;\ntarget.value = 2;\n" },
+      { "src/a.ts": "target.value = 2;\ntarget.value = 1;\n" },
+    ),
+    true,
+  );
+});
+
+test("swapping two registrations pushed to the same list is changed", (t) => {
+  assert.equal(
+    changed(
+      t,
+      { "src/a.ts": "handlers.push(first);\nhandlers.push(second);\n" },
+      { "src/a.ts": "handlers.push(second);\nhandlers.push(first);\n" },
+    ),
+    true,
+  );
+});
+
+test("importing min instead of max under the same alias, both in covered files, is changed", (t) => {
+  const use = (name) =>
+    `import { ${name} as pick } from "./b";\nexport function best() {\n  return pick(1, 2);\n}\n`;
+  const lib = {
+    "src/b.ts":
+      "export function max(a, b) {\n  return a > b ? a : b;\n}\nexport function min(a, b) {\n  return a < b ? a : b;\n}\n",
+  };
+  assert.equal(
+    changed(
+      t,
+      { ...lib, "src/a.ts": use("max") },
+      { ...lib, "src/a.ts": use("min") },
+    ),
+    true,
+  );
+});

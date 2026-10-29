@@ -94,7 +94,7 @@ function propertyName(ts, node) {
  * @param {string} path The file
  * @param {Set<string>} covered The covered modules, without extension
  * @param {any} file The emitted source file
- * @returns {{ bindings: Map<string, string>, entries: { structure: string, text: string, hoisted: boolean }[] }} The origins, and the side-effect imports and re-exports of uncovered modules
+ * @returns {{ bindings: Map<string, string>, entries: { structure: string, text: string, hoisted: boolean }[] }} The origins, and the side-effect imports and the re-exports of uncovered modules
  */
 function originsOf(ts, path, covered, file) {
   const bindings = new Map();
@@ -110,7 +110,7 @@ function originsOf(ts, path, covered, file) {
     if (ts.isImportDeclaration(statement)) {
       const clause = statement.importClause;
       if (clause === undefined) {
-        if (!covered.has(module)) entries.push(entry(`import ${module}`));
+        entries.push(entry(`import ${module}`));
         continue;
       }
       if (clause.name)
