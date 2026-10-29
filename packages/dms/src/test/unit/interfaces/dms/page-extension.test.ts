@@ -269,7 +269,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
   it("settles the syncs of a page whose registration fails before serializing", async () => {
     const brokenCategory: CategoryInfo = {
       ...pagesCategory,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- NotAPage intentionally violates ControllerClass so registration's failure and pending-sync settlement remain covered.
+      // SAFETY: NotAPage deliberately lacks the controller members ControllerClass requires: the assertion is false on purpose, and the test asserts that registration fails on it.
       category: class NotAPage {} as ControllerClass,
     };
     class Target extends PageController("pe-failed-registration", {

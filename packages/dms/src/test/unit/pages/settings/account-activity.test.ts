@@ -347,7 +347,7 @@ describe("account activity", () => {
   it("leaves out events without a valid date", () => {
     const events = buildAccountActivity(
       sources({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This negative fixture deliberately violates the required date contract.
+        // SAFETY: createdAt is deliberately undefined although the row contract requires a Date: the assertion is false on purpose, and the test asserts that the event is left out.
         user: user({ createdAt: undefined as unknown as Date }),
         sessions: [session("bad", "not a date")],
       }),

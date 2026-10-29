@@ -52,7 +52,7 @@ const createFakeStream = (tenantId: string): FakeStream => {
   const rawRequest = Object.assign(new EventEmitter(), {
     headers: { authorization: `Bearer tenant-topics-${tenantId}` },
   });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies headers, lifecycle events and a writer, not the full HTTP context.
+  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
