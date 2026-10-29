@@ -18,8 +18,13 @@ import {
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
 
-const USER = { _id: "shared-connection-user", email: "u@example.com" };
-const OTHER_USER = { _id: "shared-connection-other", email: "o@example.com" };
+// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
+const USER = { _id: "shared-connection-user", email: "u@example.com" } as User;
+// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
+const OTHER_USER = {
+  _id: "shared-connection-other",
+  email: "o@example.com",
+} as User;
 
 interface FakeStream {
   ctx: RequestContext;
@@ -76,26 +81,20 @@ const parseFrames = (stream: FakeStream): Frame[] =>
 const controller = RealtimeController.prototype;
 
 const openConnection = async (stream: FakeStream): Promise<string> => {
-  await controller.connectionStream.call(
-    undefined,
-    stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
-  );
+  await controller.connectionStream.call(undefined, stream.ctx, USER);
   const hello = parseFrames(stream).find((frame) => frame.event === "hello");
   return hello!.data.connectionId;
 };
 
 const openSession = (
   connectionId: string,
-  user: typeof USER = USER,
+  user: User = USER,
 ): Promise<SessionGreeting> =>
   controller.openSession.call(
     undefined,
     createFakeStream().ctx,
     connectionId,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    user as User,
+    user,
   );
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -149,8 +148,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       first.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-      USER as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(true);
@@ -189,8 +187,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       greeting.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The foreign-user fixture supplies identity fields only, not a complete stored user instance.
-      OTHER_USER as User,
+      OTHER_USER,
     );
 
     expect(ack.ok).to.equal(false);
@@ -206,8 +203,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       otherConnectionId,
       greeting.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-      USER as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(false);

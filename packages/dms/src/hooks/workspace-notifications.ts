@@ -14,6 +14,10 @@ const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
   "expired",
 ]);
 
+function isNotifiedOutcome(reason: string): reason is NotifiedInviteOutcome {
+  return NOTIFIED_OUTCOMES.has(reason);
+}
+
 /**
  * Runs inside the invitation's completion, which a throwing handler would
  * leave incomplete: a notification failure is logged and swallowed.
@@ -21,15 +25,14 @@ const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
 async function onInviteDeleted(
   payload: InviteDeletedHookPayload,
 ): Promise<undefined> {
-  if (!payload.deliveryId || !NOTIFIED_OUTCOMES.has(payload.reason)) {
+  if (!payload.deliveryId || !isNotifiedOutcome(payload.reason)) {
     return undefined;
   }
   try {
     await notifyInviteOutcome(
       payload.tenantId,
       payload.deliveryId,
-      // SAFETY: NOTIFIED_OUTCOMES checked above contains only the invitation outcomes supported by notifyInviteOutcome.
-      payload.reason as NotifiedInviteOutcome,
+      payload.reason,
     );
   } catch (error) {
     Logging.Error(

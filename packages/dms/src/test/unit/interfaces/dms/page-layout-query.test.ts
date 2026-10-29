@@ -35,6 +35,11 @@ const TENANT = "layout-query-tenant";
 // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
 const MEMBER = { _id: "layout-query-member" } as User;
 const models = stubPageAccessModels(["*"]);
+// SAFETY: buildPagePayload reads the request's url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; the double supplies the url only.
+const requestAt = (url: URL) => ({ url }) as RequestContext;
+// SAFETY: Every suite here installs DefaultLayout on its page, so the options are DefaultLayout's serialized options, of which ServedOptions describes only the headerActions the tests read.
+const headerOptions = (layout: { options?: unknown } | undefined) =>
+  layout?.options as ServedOptions;
 
 interface ServedOptions {
   headerActions: PageHeaderButtonSerialized[];
@@ -100,8 +105,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
       tenantId: TENANT,
       query,
     });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout registry erases component option types; this page installs DefaultLayout and the test inspects its header options.
-    return layout.layout?.options as ServedOptions;
+    return headerOptions(layout.layout);
   }
 
   it("enables the button for the query its availability accepts", async () => {
@@ -137,25 +141,25 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
 
   it("resolves the page request's buttons with the page query it carries", async () => {
     const pageRequest = (query: string) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; this fixture intentionally is not a full HTTP context.
-      ({
-        url: new URL(
+      requestAt(
+        new URL(
           `http://dms.test/dms/page?path=${encodeURIComponent(slug)}&shared=false${query}`,
         ),
-      }) as RequestContext;
+      );
     const served = async (query: string) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The page payload erases its layout's option type; this fixture installs DefaultLayout and reads its header options.
-      (
-        await buildPagePayload(
-          slug,
-          MEMBER,
-          models.memberModel,
-          models.roleModel,
-          TENANT,
-          false,
-          pageRequest(query),
-        )
-      ).layout.layout?.options as ServedOptions;
+      headerOptions(
+        (
+          await buildPagePayload(
+            slug,
+            MEMBER,
+            models.memberModel,
+            models.roleModel,
+            TENANT,
+            false,
+            pageRequest(query),
+          )
+        ).layout.layout,
+      );
 
     const withQuery = await served("&workspace=web");
     expect(withQuery.headerActions[0]).to.not.have.property("disabled");
@@ -225,13 +229,9 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
       models.roleModel,
       TENANT,
       false,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
+      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Page payloads erase layout option types; this page's DefaultLayout provides the header options asserted below.
-    return payload.layout.layout?.options as ServedOptions;
+    return headerOptions(payload.layout.layout);
   }
 
   it("serves the button for an existing record, and says which one", async () => {
@@ -349,13 +349,9 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       models.roleModel,
       TENANT,
       false,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
+      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The registry erases layout option types; this suite's DefaultLayout emits the ServedOptions tested below.
-    return payload.layout.layout?.options as ServedOptions;
+    return headerOptions(payload.layout.layout);
   }
 
   const byId = (options: ServedOptions, id: string) =>

@@ -14,7 +14,7 @@
     "anti-slop/no-unknown-parameters": 84,
     "anti-slop/no-unknown-returns": 23,
     "anti-slop/no-unsafe-dictionary-type": 167,
-    "anti-slop/require-safety-comment-for-type-assertion": 433,
+    "anti-slop/require-safety-comment-for-type-assertion": 414,
     "eslint/max-params": 12,
     "import/no-cycle": 11,
     "import/no-duplicates": 1,

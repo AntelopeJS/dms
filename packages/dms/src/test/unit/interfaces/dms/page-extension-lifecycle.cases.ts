@@ -1,5 +1,5 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 
@@ -83,10 +83,8 @@ export function registerPageExtensionLifecycleCases(): void {
     ).to.not.equal(undefined);
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
-    pageImpl.internal.RegisterPage.unregister(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
-      pageInfo as NonNullable<typeof pageInfo>,
-    );
+    assert.exists(pageInfo);
+    pageImpl.internal.RegisterPage.unregister(pageInfo);
     await settle();
 
     expect(
@@ -200,10 +198,8 @@ export function registerPageExtensionLifecycleCases(): void {
     await settle();
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
-    pageImpl.internal.RegisterPage.unregister(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
-      pageInfo as NonNullable<typeof pageInfo>,
-    );
+    assert.exists(pageInfo);
+    pageImpl.internal.RegisterPage.unregister(pageInfo);
     class ReloadedTarget extends definePage("pe-hot-reload") {
       static table = CustomComponent("Table").meta({ name: "Table" });
     }
