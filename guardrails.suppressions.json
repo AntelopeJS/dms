@@ -3,7 +3,7 @@
     "@typescript-eslint/no-dynamic-delete": 1,
     "@typescript-eslint/no-unused-vars": 2,
     "antelopejs/no-comments": 1,
-    "anti-slop/no-chained-type-assertions": 16,
+    "anti-slop/no-chained-type-assertions": 14,
     "anti-slop/no-conditional-empty-object-spread": 3,
     "anti-slop/no-known-value-widening": 59,
     "anti-slop/no-object-parameters": 6,
@@ -14,7 +14,7 @@
     "anti-slop/no-unknown-parameters": 83,
     "anti-slop/no-unknown-returns": 23,
     "anti-slop/no-unsafe-dictionary-type": 166,
-    "anti-slop/require-safety-comment-for-type-assertion": 316,
+    "anti-slop/require-safety-comment-for-type-assertion": 297,
     "eslint/max-params": 12,
     "import/no-cycle": 11,
     "import/no-duplicates": 1,
@@ -28,5 +28,5 @@
   },
   "tsExpectError": 20,
   "tsIgnore": 0,
-  "safety": 227
+  "safety": 211
 }

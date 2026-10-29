@@ -143,13 +143,13 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       "pages.billing",
     );
 
-    expect(actionsOf(filtered!).map((action) => action.id)).to.deep.equal([
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
       "open",
       "export",
       "ledger",
     ]);
-    expect(actionsOf(filtered!)[1]).to.not.have.property("permission");
-    expect(actionsOf(filtered!)[2]).to.not.have.property("permissionId");
+    expect(actionsOf(filtered)[1]).to.not.have.property("permission");
+    expect(actionsOf(filtered)[2]).to.not.have.property("permissionId");
   });
 
   it("refuses a button naming an action when the page has no permission id", async () => {
@@ -160,7 +160,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       undefined,
     );
 
-    expect(actionsOf(filtered!).map((action) => action.id)).to.deep.equal([
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
       "open",
     ]);
   });
@@ -177,12 +177,12 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     });
 
     const [invite] = actionsOf(
-      (await filterLayoutHeaderActions(
+      await filterLayoutHeaderActions(
         limited,
         async () => new Set(),
         CONTEXT,
         "pages.billing",
-      ))!,
+      ),
     );
 
     expect(invite).to.deep.include({
@@ -330,7 +330,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
       components,
     );
 
-    expect(actionsOf(layout!)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       { id: "header-0", label: "Docs", target: { type: "page", url: "/docs" } },
       {
         id: "table:invite",
@@ -381,7 +381,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
     const layout = withComponentHeaderButtons(DefaultLayout(), nested);
 
     expect(
-      actionsOf(layout!).map(({ id, componentId, buttonId }) => ({
+      actionsOf(layout).map(({ id, componentId, buttonId }) => ({
         id,
         componentId,
         buttonId,

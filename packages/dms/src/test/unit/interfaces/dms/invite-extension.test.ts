@@ -169,10 +169,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const { schema } = formOptionsOf(layout.components.invite);
 
       expect(schema)
-        .to.have.property("properties")
-        .that.has.property("billing__costCenter");
+        .to.have.own.property("properties")
+        .that.has.own.property("billing__costCenter");
       expect(schema)
-        .to.have.property("required")
+        .to.have.own.property("required")
         .that.includes("billing__costCenter");
     });
 
