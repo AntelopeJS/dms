@@ -146,6 +146,8 @@ $C doors .agents/skills/verify-dms/seeded-doors/data.patch
 - The base-version journey builds the base ref once per commit under `~/.cache/dms-control/base/<sha>`, a git worktree of this checkout; the first run takes a few minutes.
 - The module store reads its catalog from the npm registry; `up` installs the playground's package modules from it too.
 - Each journey restarts the backend on a fresh database: in-memory state (rate limits, the playground's tenant gate) resets with it.
+- `up` and the frontend build install from the npm registry. A package published minutes earlier can answer 404 until the registry propagates it; `up` then fails on its `frontend-build` or `project-build` log. Run `up` again a few minutes later.
+- Writing a journey: a check (`tab.visible`, `tab.shows`, `tab.at`, `ctx.equal`…) only counts inside `ctx.verify`. Uppercase styling changes `innerText`, so match such text case-insensitively. `ctx.api` signs the account in again on a 401; pass `token` to observe a refused token. The raw Playwright page is `tab.page`, for popups, downloads and visually hidden inputs.
 
 ## Feature map
 
