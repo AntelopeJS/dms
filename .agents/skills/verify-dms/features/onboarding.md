@@ -20,7 +20,7 @@ The first-run wizard at `/onboarding` creates the platform owner on an empty dat
 
 ## Sub-features
 
-- `wizard-creates-admin`: empty path then happy path: a fresh platform redirects `/` to the wizard; Platform, Administrator and Ready steps; Open the dashboard; read back through `informations` (`has_onboarded: true`) and `/api/auth/me` as the new owner (`owner: true`); a second visitor to `/onboarding` is sent to sign-in.
+- `wizard-creates-admin`: empty path then happy path: a fresh platform redirects `/` to the wizard; Platform, Administrator and Ready steps; Open the dashboard; read back through `informations` (`has_onboarded: true`) and `/api/auth/me` as the new owner (`owner: true`); a second visitor to `/onboarding` is sent to sign-in, which names the platform the wizard created (persistence).
 - `wizard-refuses-weak-password`: error path: the Administrator step lists the unmet password rules and creates nobody (`has_onboarded` stays false).
 - `register-rejects-invalid-body`: error path: the API answers 400 naming each invalid field.
 - `register-refused-once-onboarded`: error and persistence path: a second registration answers 400 `error.admin_already_set`, the members list keeps one owner, and `has_onboarded` survives a backend restart.

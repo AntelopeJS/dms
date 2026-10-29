@@ -72,7 +72,10 @@ export const journeys = [
       ]);
       const visitor = await ctx.tab("stranger");
       await visitor.goto("/onboarding");
-      await ctx.verify("the wizard is closed once the platform is onboarded", [visitor.at(/^\/auth/)]);
+      await ctx.verify("the wizard is closed and sign-in names the platform it created", [
+        visitor.at(/^\/auth/),
+        visitor.shows(new RegExp(`Sign in to the ${platformName} workspace`)),
+      ]);
     },
   },
   {

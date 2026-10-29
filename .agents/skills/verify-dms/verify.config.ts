@@ -165,7 +165,7 @@ const config: VerifyConfig = {
         "packages/dms/src/routes/auth/signup.ts",
       ],
       command: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs", "--full"],
-      violation: /^(?:BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
     {
       name: "formal-release-range",
