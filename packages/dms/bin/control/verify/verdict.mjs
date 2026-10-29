@@ -67,13 +67,21 @@ async function journeyRows(skill, state, plan, link) {
   return { rows, reasons, byJourney };
 }
 
-function doorReasons(skill, judgement, byJourney, plan) {
+function containmentResult(state, byJourney, id) {
+  const [feature, journey] = id.split("/");
+  return (
+    byJourney.get(id) ??
+    readResults(state, feature).find((result) => result.journey === journey)
+  );
+}
+
+function doorReasons(skill, state, judgement, byJourney, plan) {
   const reasons = [];
   for (const row of judgement.doors.filter((door) =>
     CONTAINED_KINDS.has(door.kind),
   )) {
     const allowed = skill.config.doors[row.kind]?.containments ?? [];
-    const journey = byJourney.get(row.containmentJourney);
+    const journey = containmentResult(state, byJourney, row.containmentJourney);
     if (!allowed.includes(row.containmentJourney)) {
       reasons.push(
         `${row.kind} door at ${row.location} names ${row.containmentJourney || "no journey"}; its containment must be one of ${allowed.join(", ")}`,
@@ -190,6 +198,11 @@ function markdown(skill, verdict, parts) {
     "### Touched features",
     ...bullets(touched, "none"),
     `- ${skill.config.smoke}: ${skill.config.smokeJourney}`,
+    ...(plan.containments.length > 0
+      ? [
+          `- containment journeys of the Data and Format doors: ${plan.containments.map((feature) => `\`${feature}\``).join(", ")}`,
+        ]
+      : []),
     "",
     ...(plan.unmapped.length > 0
       ? [
@@ -259,7 +272,7 @@ export async function renderVerdict(skill, state, pr, judgement) {
     ...journeys.reasons,
     ...plan.unmapped.map((file) => `unmapped surface ${file}`),
     ...docsReasons(judgement, plan),
-    ...doorReasons(skill, judgement, journeys.byJourney, plan),
+    ...doorReasons(skill, state, judgement, journeys.byJourney, plan),
     ...formal.reasons,
   );
   const attention = judgement.attention;

@@ -6,8 +6,9 @@ import { runVerifyCommand } from "./control/commands-verify.mjs";
 const USAGE = `Usage: dms-control <command>
 
 Drive an isolated DMS (run from the repository, or pass --playground):
-  up [--playground <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
+  up [--prepare] [--playground <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
                        build and start a playground copy on free ports; print the run folder
+                       (--prepare first runs the skill's install and build commands)
   doctor <run> [--verbose]          check the run is worth driving; print the failing checks
   onboard <run> [--platform-name <name>]
                        create the run's administrator through POST /api/onboarding/register
@@ -33,6 +34,7 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
 `;
 
 const OPTIONS = {
+  prepare: { type: "boolean" },
   playground: { type: "string" },
   runs: { type: "string" },
   "mongo-url": { type: "string" },

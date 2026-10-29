@@ -1,10 +1,10 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { git } from "./git.mjs";
 import { runToEnd } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
+import { runPrepare } from "./verify/skill.mjs";
 import {
   cliPaths,
   ENVIRONMENT,
@@ -14,25 +14,10 @@ import {
 } from "./stack.mjs";
 
 const READY_MARK = ".dms-control-ready";
-const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 function baseCache() {
   const cacheHome = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
   return join(cacheHome, "dms-control", "base");
-}
-
-function mustRun(cwd, program, args) {
-  const result = spawnSync(program, args, {
-    cwd,
-    encoding: "utf8",
-    maxBuffer: OUTPUT_LIMIT,
-    env: { ...process.env, CI: "1" },
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      `${program} ${args.join(" ")} failed in ${cwd}:\n${result.stdout}${result.stderr}`,
-    );
-  }
 }
 
 /**
@@ -51,8 +36,7 @@ function baseCheckout(state, skill) {
   mkdirSync(baseCache(), { recursive: true });
   git(["worktree", "prune"], state.repo);
   git(["worktree", "add", "--detach", "--force", dir, sha], state.repo);
-  for (const [program, ...args] of skill.config.prepare)
-    mustRun(dir, program, args);
+  runPrepare(skill, dir);
   writeFileSync(join(dir, READY_MARK), `${sha}\n`);
   return { sha, dir };
 }

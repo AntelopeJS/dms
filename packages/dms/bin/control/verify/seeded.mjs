@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { git } from "../git.mjs";
 import { CONTROL_BIN } from "../stack.mjs";
+import { runPrepare } from "./skill.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
@@ -51,8 +52,7 @@ function prepareWorktree(skill, label, patch) {
   rmSync(copy, { recursive: true, force: true });
   cpSync(skill.dir, copy, { recursive: true });
   if (patch) mustRun(worktree, "git", ["apply", patch]);
-  for (const [program, ...args] of skill.config.prepare)
-    mustRun(worktree, program, args);
+  runPrepare(skill, worktree);
   return { worktree, skill: copy };
 }
 

@@ -1,9 +1,11 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
+const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 function frontmatterLists(text) {
   const lists = new Map();
@@ -101,4 +103,28 @@ export function readFeatures(skill) {
  */
 export function journeysFile(skill, feature) {
   return join(skill.journeysDir, `${feature}.mjs`);
+}
+
+/**
+ * Runs the config's `prepare` commands (install and build) in a checkout of
+ * the repository, so a run starts from a fresh build.
+ *
+ * @param {Record<string, any>} skill The skill
+ * @param {string} cwd The checkout
+ * @throws When a command fails, with its output
+ */
+export function runPrepare(skill, cwd) {
+  for (const [program, ...args] of skill.config.prepare) {
+    const result = spawnSync(program, args, {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: OUTPUT_LIMIT,
+      env: { ...process.env, CI: "1" },
+    });
+    if (result.status !== 0) {
+      throw new Error(
+        `${program} ${args.join(" ")} failed in ${cwd}:\n${result.stdout}${result.stderr}`,
+      );
+    }
+  }
 }

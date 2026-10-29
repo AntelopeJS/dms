@@ -7,7 +7,7 @@ import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
 import { down, freshDatabase, resolutionFolders, up } from "./stack.mjs";
-import { loadSkill } from "./verify/skill.mjs";
+import { loadSkill, runPrepare } from "./verify/skill.mjs";
 
 const BROWSER_ACTIONS = [...ACTION_NAMES, "login"];
 
@@ -29,6 +29,10 @@ async function defaultPlayground(values) {
 
 async function commandUp(values) {
   const skill = values.skill ? resolve(values.skill) : undefined;
+  if (values.prepare) {
+    const loaded = await loadSkill(skill, process.cwd());
+    runPrepare(loaded, loaded.repo);
+  }
   const state = await up({
     playground: await defaultPlayground(values),
     runs: values.runs,

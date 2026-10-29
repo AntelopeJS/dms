@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { git } from "../git.mjs";
+import { flaggedDoors } from "./doors.mjs";
 import { loadJourneys } from "../journey.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
 
@@ -127,14 +128,37 @@ export async function checkMap(skill) {
   return [...problems, ...doorProblems(skill, tracked)];
 }
 
+const CONTAINED_KINDS = ["data", "format"];
+
+/**
+ * The containment journeys, as `feature/journey`, of the Data and Format
+ * doors a set of changed files opens: a door row must name one of them,
+ * passing in the run.
+ *
+ * @param {Record<string, any>} skill The skill
+ * @param {string[]} changed Repository paths
+ * @returns {string[]} The journeys, each once
+ */
+function containmentJourneys(skill, changed) {
+  const kinds = flaggedDoors(skill, changed)
+    .map((door) => door.kind)
+    .filter((kind) => CONTAINED_KINDS.includes(kind));
+  return [
+    ...new Set(
+      kinds.flatMap((kind) => skill.config.doors[kind]?.containments ?? []),
+    ),
+  ];
+}
+
 /**
  * Maps the diff from the merge base of `baseRef` to HEAD onto features:
- * every touched feature plus the smoke feature runs, and a user-facing file
- * outside every glob is an unmapped surface.
+ * every touched feature plus the smoke feature runs, a user-facing file
+ * outside every glob is an unmapped surface, and `containments` lists the
+ * journeys that can contain each Data or Format door the diff opens.
  *
  * @param {Record<string, any>} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
- * @returns {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: { feature: string, files: string[] }[], unmapped: string[], docs: string[], run: string[] }} The plan
+ * @returns {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: { feature: string, files: string[] }[], unmapped: string[], docs: string[], containments: string[], run: string[] }} The plan
  */
 export function planFor(skill, baseRef) {
   const features = readFeatures(skill);
@@ -161,6 +185,7 @@ export function planFor(skill, baseRef) {
     ),
   ];
   const smoke = skill.config.smoke;
+  const containments = containmentJourneys(skill, changed);
   return {
     baseRef,
     baseSha,
@@ -169,6 +194,7 @@ export function planFor(skill, baseRef) {
     touched,
     unmapped,
     docs,
+    containments,
     run: [smoke, ...[...touchedNames].filter((name) => name !== smoke)],
   };
 }
