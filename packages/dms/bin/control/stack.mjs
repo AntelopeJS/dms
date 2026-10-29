@@ -129,8 +129,8 @@ function inheritedEnv() {
 
 /**
  * The environment of every process a run starts: its own HOME, ports,
- * database, origin and secrets, a shared npm cache, no update checks and
- * no colors. Extra `KEY=VALUE` pairs from `--env` come last.
+ * database, origin and secrets, an npm cache and a pnpm store shared by
+ * every run, no update checks and no colors. Extra `KEY=VALUE` pairs from `--env` come last.
  *
  * @param {Record<string, any>} state The run
  * @returns {NodeJS.ProcessEnv} The environment
@@ -148,6 +148,7 @@ export function runEnv(state) {
     COREPACK_HOME:
       process.env.COREPACK_HOME ?? join(cacheHome, "node", "corepack"),
     npm_config_cache: join(cacheHome, "dms-control", "npm"),
+    npm_config_store_dir: join(cacheHome, "dms-control", "pnpm-store"),
     PORT: String(state.apiPort),
     DMS_CLIENT_BASE_URL: state.webUrl,
     DMS_API_BASE_URL: state.apiUrl,
