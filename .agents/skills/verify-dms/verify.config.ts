@@ -9,12 +9,28 @@ export interface DoorRule {
   why: string;
 }
 
-/** A formal check: the source files it covers, the command that runs it, and how its output names a violated rule. */
+/**
+ * How the gate decides whether a diff changed what the covered code does:
+ * `emit` compares the JavaScript statements of the covered files on the
+ * base and on HEAD (types, comments, formatting, imports and export
+ * keywords left out); `probe` runs a command on a checkout of each, the
+ * checkout's path as last argument, and compares what it prints.
+ */
+export type Behaviour = { kind: "emit" } | { kind: "probe"; command: string[] };
+
+/**
+ * A formal check: the source files it covers, the command that runs it, how
+ * its output names a violated rule, how the gate decides that a diff changed
+ * the covered behaviour, and the command run on the base in that case to
+ * tell which findings HEAD fixed (`command` when absent).
+ */
 export interface FormalCheck {
   name: string;
   covers: string[];
   command: string[];
+  baseCommand?: string[];
   violation: RegExp | null;
+  behaviour: Behaviour;
 }
 
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
@@ -165,7 +181,9 @@ const config: VerifyConfig = {
         "packages/dms/src/routes/auth/signup.ts",
       ],
       command: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      behaviour: { kind: "emit" },
     },
     {
       name: "formal-realtime-tabs",
@@ -195,13 +213,16 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/dms-layout/app/pages/[...slug].vue",
       ],
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-realtime-tabs/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      behaviour: { kind: "emit" },
     },
     {
       name: "formal-release-range",
       covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", ".github/workflows/release.yml"],
       command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs"],
       violation: /^not ok \d+ - (.+?)(?: # TODO.*)?$/gm,
+      behaviour: { kind: "probe", command: ["node", ".agents/skills/formal-release-range/probe.mjs"] },
     },
   ],
 };
