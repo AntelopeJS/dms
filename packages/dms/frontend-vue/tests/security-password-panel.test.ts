@@ -15,6 +15,11 @@ import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
+installAuthSettingsRuntime();
+const { default: SecurityPassword } = await import(
+  "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPassword"
+);
+
 const overview = ref({ hasPassword: true, activeSessions: 1 });
 const authFetch = vi.fn();
 const addToast = vi.fn();
@@ -92,9 +97,6 @@ async function submit(): Promise<void> {
 }
 
 async function mountAndOpen(): Promise<void> {
-  const { default: SecurityPassword } = await import(
-    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPassword"
-  );
   app = createApp(SecurityPassword);
   app.config.globalProperties.$t = (key: string) => key;
   browserRuntime(app);
