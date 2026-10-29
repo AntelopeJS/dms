@@ -1,0 +1,180 @@
+{
+  "feature": "tenancy",
+  "journey": "suspended-workspace-gate",
+  "title": "suspending the workspace makes gated pages refuse the owner while the recovery page still answers, and restoring it reopens them",
+  "entryPoint": "/tenancy header action, RegisterTenantAccessGate",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j071",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "tenancy/suspended-workspace-gate/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "tenancy/suspended-workspace-gate/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-tenancy",
+      "folder": "tenancy/suspended-workspace-gate/08-admin-open-tenancy",
+      "checks": [
+        {
+          "name": "open /tenancy",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/tenancy"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-suspend-restore-the-workspace",
+      "folder": "tenancy/suspended-workspace-gate/09-admin-click-button-suspend-restore-the-workspace",
+      "checks": [
+        {
+          "name": "click button \"Suspend / restore the workspace\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/tenancy"
+        }
+      ]
+    },
+    {
+      "name": "10-the-toggle-confirms",
+      "folder": "tenancy/suspended-workspace-gate/10-the-toggle-confirms",
+      "checks": [
+        {
+          "name": "page shows /Gate toggled/",
+          "pass": true,
+          "detail": "Search… CTRL K VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Tenancy 1 Tenancy Demonstrates: RegisterTenantAccessGate, CheckTenantAccess and the tenant guards. Suspend the workspace from the header, then browse: most pages refuse you until you restore it here. Suspend / restore the wor…"
+        }
+      ]
+    },
+    {
+      "name": "13-gated-routes-refuse-with-the-gate-s-code-the-bypassing-one-a",
+      "folder": "tenancy/suspended-workspace-gate/13-gated-routes-refuse-with-the-gate-s-code-the-bypassing-one-a",
+      "checks": [
+        {
+          "name": "HTTP 403",
+          "pass": true,
+          "detail": "status 403: \"playground.gate_demo.suspended\""
+        },
+        {
+          "name": "code",
+          "pass": true,
+          "detail": "expected \"playground.gate_demo.suspended\", got \"playground.gate_demo.suspended\""
+        },
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"items\":[{\"label\":\"Workspace\",\"value\":\"default\",\"type\":\"mono\"},{\"label\":\"CheckTenantAccess\",\"value\":\"Denied\",\"type\":\"status\",\"tone\":\"error\",\"detail\":\"playground.gate_demo.suspended\"}]}"
+        },
+        {
+          "name": "the gate says denied",
+          "pass": true,
+          "detail": "{\"items\":[{\"label\":\"Workspace\",\"value\":\"default\",\"type\":\"mono\"},{\"label\":\"CheckTenantAccess\",\"value\":\"Denied\",\"type\":\"status\",\"tone\":\"error\",\"detail\":\"playground.gate_demo.suspended\"}]}"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-open-settings-workspace-members",
+      "folder": "tenancy/suspended-workspace-gate/14-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-a-gated-page-does-not-show-its-content",
+      "folder": "tenancy/suspended-workspace-gate/15-a-gated-page-does-not-show-its-content",
+      "checks": [
+        {
+          "name": "table \"Members list\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-open-tenancy",
+      "folder": "tenancy/suspended-workspace-gate/16-admin-open-tenancy",
+      "checks": [
+        {
+          "name": "open /tenancy",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/tenancy"
+        }
+      ]
+    },
+    {
+      "name": "17-the-recovery-page-still-opens",
+      "folder": "tenancy/suspended-workspace-gate/17-the-recovery-page-still-opens",
+      "checks": [
+        {
+          "name": "button \"Suspend / restore the workspace\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/tenancy"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-click-button-suspend-restore-the-workspace",
+      "folder": "tenancy/suspended-workspace-gate/18-admin-click-button-suspend-restore-the-workspace",
+      "checks": [
+        {
+          "name": "click button \"Suspend / restore the workspace\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/tenancy"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-open-settings-workspace-members",
+      "folder": "tenancy/suspended-workspace-gate/20-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "21-restoring-the-workspace-reopens-the-gated-page",
+      "folder": "tenancy/suspended-workspace-gate/21-restoring-the-workspace-reopens-the-gated-page",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"results\":[{\"_id\":\"default:1af4eb6f-51c3-433a-9802-8525f080624f\",\"userId\":\"1af4eb6f-51c3-433a-9802-8525f080624f\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261029t095910-0bb97a@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-10-29T10:16:05.447Z\",\"twoFactorMethods\":nul"
+        },
+        {
+          "name": "table \"Members list\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "tenancy/suspended-workspace-gate"
+}

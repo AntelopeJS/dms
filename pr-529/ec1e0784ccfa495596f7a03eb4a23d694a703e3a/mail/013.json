@@ -1,0 +1,12 @@
+{
+  "from": "<>",
+  "to": [
+    "<kim+20261029t095910-0bb97a-change-member-roles@verify.local>"
+  ],
+  "subject": "Verify Admin invited you to join Default on AntelopeJS",
+  "links": [
+    "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en"
+  ],
+  "text": "You're invited to Default Hello, Verify Admin invited you to join Default on AntelopeJS. Click the button below to create your account: Create Account This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.",
+  "receivedAt": "2026-10-29T10:06:20.946Z"
+}

@@ -1,0 +1,296 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-assigned-through-invitation",
+  "title": "a role chosen on an invitation counts as a pending invite, then as a member once the invitation is accepted",
+  "entryPoint": "Invite members > Roles, Settings > Roles member counts",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j035",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-assigned-through-invitation/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-support-38e246-exists",
+      "folder": "settings-roles/role-assigned-through-invitation/04-the-role-support-38e246-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"49075fcd-f416-41d5-a074-492afef379d9\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-assigned-through-invitation/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-members",
+      "folder": "settings-roles/role-assigned-through-invitation/10-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-invite-members",
+      "folder": "settings-roles/role-assigned-through-invitation/11-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-email-addresses",
+      "folder": "settings-roles/role-assigned-through-invitation/12-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-roles/role-assigned-through-invitation/13-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-combobox-team",
+      "folder": "settings-roles/role-assigned-through-invitation/14-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-option-sales",
+      "folder": "settings-roles/role-assigned-through-invitation/15-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-button-support-38e246-in-group-roles",
+      "folder": "settings-roles/role-assigned-through-invitation/16-admin-click-button-support-38e246-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Support 38e246\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-button-send-invitations",
+      "folder": "settings-roles/role-assigned-through-invitation/17-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-assigned-through-invitation/18-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "19-the-role-shows-one-pending-invite",
+      "folder": "settings-roles/role-assigned-through-invitation/19-the-role-shows-one-pending-invite",
+      "checks": [
+        {
+          "name": "page shows /1 invite/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "21-the-api-counts-one-invite-and-no-member",
+      "folder": "settings-roles/role-assigned-through-invitation/21-the-api-counts-one-invite-and-no-member",
+      "checks": [
+        {
+          "name": "inviteCount",
+          "pass": true,
+          "detail": "expected 1, got 1"
+        },
+        {
+          "name": "memberCount",
+          "pass": true,
+          "detail": "expected 0, got 0"
+        }
+      ]
+    },
+    {
+      "name": "23-the-invitation-email-reaches-lena-20261029t095910-0bb97a-rol",
+      "folder": "settings-roles/role-assigned-through-invitation/23-the-invitation-email-reaches-lena-20261029t095910-0bb97a-rol",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "24-invitee-open-http-127-0-0-1-43059-auth-signup-token-kyjojpvw",
+      "folder": "settings-roles/role-assigned-through-invitation/24-invitee-open-http-127-0-0-1-43059-auth-signup-token-kyjojpvw",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:43059/auth/signup?token=KyJojPvwyvFreDNEiFbOyGCX3IxazSAThgq2vm3wH9bR8QYZeVHDCWTfNWXJ5Pzs&email=lena%2B20261029t095910-0bb97a-role-assigned-through-invitation%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=KyJojPvwyvFreDNEiFbOyGCX3IxazSAThgq2vm3wH9bR8QYZeVHDCWTfNWXJ5Pzs&email=lena%2B20261029t095910-0bb97a-role-assigned-through-invitation%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "25-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-roles/role-assigned-through-invitation/25-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=KyJojPvwyvFreDNEiFbOyGCX3IxazSAThgq2vm3wH9bR8QYZeVHDCWTfNWXJ5Pzs&email=lena%2B20261029t095910-0bb97a-role-assigned-through-invitation%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "26-invitee-fill-textbox-password",
+      "folder": "settings-roles/role-assigned-through-invitation/26-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=KyJojPvwyvFreDNEiFbOyGCX3IxazSAThgq2vm3wH9bR8QYZeVHDCWTfNWXJ5Pzs&email=lena%2B20261029t095910-0bb97a-role-assigned-through-invitation%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "27-invitee-click-button-create-my-account",
+      "folder": "settings-roles/role-assigned-through-invitation/27-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "28-lena-tester-is-signed-in-after-accepting",
+      "folder": "settings-roles/role-assigned-through-invitation/28-lena-tester-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "29-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-assigned-through-invitation/29-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-click-option-support-38e246",
+      "folder": "settings-roles/role-assigned-through-invitation/30-admin-click-option-support-38e246",
+      "checks": [
+        {
+          "name": "click option \"/^Support 38e246/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "31-the-role-now-lists-the-member-and-no-pending-invite",
+      "folder": "settings-roles/role-assigned-through-invitation/31-the-role-now-lists-the-member-and-no-pending-invite",
+      "checks": [
+        {
+          "name": "page shows /1 member/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page shows /Lena Tester/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page does not show /1 invite/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "33-the-member-row-carries-the-role",
+      "folder": "settings-roles/role-assigned-through-invitation/33-the-member-row-carries-the-role",
+      "checks": [
+        {
+          "name": "roleIds",
+          "pass": true,
+          "detail": "expected [\"49075fcd-f416-41d5-a074-492afef379d9\"], got [\"49075fcd-f416-41d5-a074-492afef379d9\"]"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-assigned-through-invitation"
+}

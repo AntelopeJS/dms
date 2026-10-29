@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "combobox \"Application language\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

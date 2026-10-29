@@ -1,0 +1,18 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - text: Error 403
+  - heading "Forbidden" [level=1]
+  - paragraph: You are not authorized to access this resource.
+  - button "Go to home"
+  - button "Go back"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

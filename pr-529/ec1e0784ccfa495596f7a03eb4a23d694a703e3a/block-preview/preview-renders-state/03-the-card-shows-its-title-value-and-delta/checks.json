@@ -1,0 +1,22 @@
+[
+  {
+    "name": "page shows /Revenue/i",
+    "pass": true,
+    "detail": "REVENUE 48.2K ▲ +12.4%"
+  },
+  {
+    "name": "page shows /48\\.2K/",
+    "pass": true,
+    "detail": "REVENUE 48.2K ▲ +12.4%"
+  },
+  {
+    "name": "page shows /\\+12\\.4%/",
+    "pass": true,
+    "detail": "REVENUE 48.2K ▲ +12.4%"
+  },
+  {
+    "name": "navigation is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/dms-preview?state=eyJ0cmVlIjp7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJldmVudWUiLCJzdGF0aWNWYWx1ZSI6NDgyMDAsInN0YXRpY0RlbHRhIjoxMi40LCJzaG93RGVsdGEiOnRydWV9fX0"
+  }
+]

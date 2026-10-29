@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:38797/api/auth/login",
+  "authenticated": false,
+  "body": {
+    "email": "renamed+20261029t095910-0bb97a-change-email-confirms-with-code@verify.local",
+    "password": "Vr1!EHabTmewJ4fB"
+  }
+}

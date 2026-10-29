@@ -1,0 +1,3 @@
+FAIL onboarding/concurrent-registers-one-owner (evidence /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/evidence/onboarding/concurrent-registers-one-owner)
+    07-exactly-one-registration-wins-and-a-refused-one-leaves-no-ac: platform owners (expected 1, got 2)
+    07-exactly-one-registration-wins-and-a-refused-one-leaves-no-ac: accounts created by a refused registration (expected [], got ["second+20261029t064557-d7cef6-concurrent-registers-one-owner@verify.local"])

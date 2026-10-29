@@ -1,0 +1,12 @@
+[
+  {
+    "name": "names",
+    "pass": true,
+    "detail": "expected [\"Support 264422\"], got [\"Support 264422\"]"
+  },
+  {
+    "name": "permissions",
+    "pass": true,
+    "detail": "expected [\"playground.reports.export\"], got [\"playground.reports.export\"]"
+  }
+]

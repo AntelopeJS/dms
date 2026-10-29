@@ -1,0 +1,29 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "2da6a68e-dcb2-4a70-8e68-c2424da95631",
+        "name": "Viewer 647e91",
+        "permissions": [
+          "settings",
+          "settings.workspace",
+          "settings.workspace.playground",
+          "settings.workspace.playground.form",
+          "settings.workspace.roles",
+          "settings.workspace.roles.table",
+          "settings.workspace.roles.table.list",
+          "settings.workspace.roles.table.add",
+          "settings.workspace.roles.table.edit",
+          "settings.workspace.roles.table.view",
+          "settings.workspace.roles.table.delete",
+          "settings.workspace.roles.table.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

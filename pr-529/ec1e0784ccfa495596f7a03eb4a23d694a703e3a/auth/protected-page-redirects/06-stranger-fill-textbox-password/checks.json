@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"Password\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+  }
+]

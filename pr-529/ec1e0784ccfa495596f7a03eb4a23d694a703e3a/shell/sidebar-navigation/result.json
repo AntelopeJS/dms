@@ -1,0 +1,99 @@
+{
+  "feature": "shell",
+  "journey": "sidebar-navigation",
+  "title": "the sidebar opens a page, the breadcrumb names it, and a reload stays on it",
+  "entryPoint": "sidebar navigation and breadcrumb",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j014",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "shell/sidebar-navigation/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "shell/sidebar-navigation/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-signing-in-lands-on-the-configured-homepage",
+      "folder": "shell/sidebar-navigation/08-signing-in-lands-on-the-configured-homepage",
+      "checks": [
+        {
+          "name": "path matches /^\\/examples\\/overview$/",
+          "pass": true,
+          "detail": "/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-link-feature-index-in-navigation",
+      "folder": "shell/sidebar-navigation/09-admin-click-link-feature-index-in-navigation",
+      "checks": [
+        {
+          "name": "click link \"Feature index\" in navigation",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/features"
+        }
+      ]
+    },
+    {
+      "name": "10-the-page-opens-with-its-breadcrumb",
+      "folder": "shell/sidebar-navigation/10-the-page-opens-with-its-breadcrumb",
+      "checks": [
+        {
+          "name": "path matches /^\\/examples\\/features$/",
+          "pass": true,
+          "detail": "/examples/features"
+        },
+        {
+          "name": "link \"Feature index\" in navigation \"Breadcrumb\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/features"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-reload",
+      "folder": "shell/sidebar-navigation/11-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/features"
+        }
+      ]
+    },
+    {
+      "name": "12-a-reload-stays-on-the-page",
+      "folder": "shell/sidebar-navigation/12-a-reload-stays-on-the-page",
+      "checks": [
+        {
+          "name": "path matches /^\\/examples\\/features$/",
+          "pass": true,
+          "detail": "/examples/features"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "shell/sidebar-navigation"
+}

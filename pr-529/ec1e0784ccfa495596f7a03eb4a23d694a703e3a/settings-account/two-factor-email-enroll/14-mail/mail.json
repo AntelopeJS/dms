@@ -1,0 +1,13 @@
+[
+  {
+    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T095910-0bb97a/evidence/mail/021.eml",
+    "from": "<>",
+    "to": [
+      "<admin+20261029t095910-0bb97a@verify.local>"
+    ],
+    "subject": "Your verification code",
+    "links": [],
+    "text": "Your verification code Hello Verify Admin, Use this verification code to finish signing in: Your verification code is: 543857 If you did not attempt to sign in, you can safely ignore this email.",
+    "receivedAt": "2026-10-29T10:11:27.610Z"
+  }
+]

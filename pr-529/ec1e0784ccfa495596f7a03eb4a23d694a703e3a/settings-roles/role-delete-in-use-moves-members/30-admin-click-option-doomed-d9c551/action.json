@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"/^Doomed d9c551/\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

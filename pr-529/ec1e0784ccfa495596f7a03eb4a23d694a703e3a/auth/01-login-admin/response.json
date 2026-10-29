@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "token_type": "Bearer",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNmMTJlMzNhLTQzOTAtNDgxMi1iNmM0LTI1ZmUyZGY1NzBhZiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjIzOTM4MTRkLTdkZDItNDBlYS1iYjgzLWQwZTJkMWUxMGM1NCIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNjc5ODgsImV4cCI6MTc5MzI3MTU4OH0.31ssQ6r9w1UCQZDw4ltd1bA3593XBAtRtPRw3xfFhc0",
+    "expires_in": 3600000,
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNmMTJlMzNhLTQzOTAtNDgxMi1iNmM0LTI1ZmUyZGY1NzBhZiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjIzOTM4MTRkLTdkZDItNDBlYS1iYjgzLWQwZTJkMWUxMGM1NCIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzMjY3OTg4LCJleHAiOjE3OTU4NTk5ODh9.xP9FAxIKwPz5xKQwACqKm76-5xqFobwloAGOyZYJZAQ",
+    "user": {
+      "_id": "3f12e33a-4390-4812-b6c4-25fe2df570af",
+      "name": "Verify Admin",
+      "email": "admin+20261029t095910-0bb97a@verify.local",
+      "createdAt": "2026-10-29T09:59:48.290Z",
+      "updatedAt": "2026-10-29T09:59:48.290Z",
+      "isValidated": true,
+      "owner": true,
+      "language": "en",
+      "_instance": null
+    }
+  },
+  "error": null
+}

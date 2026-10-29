@@ -1,0 +1,12 @@
+[
+  {
+    "name": "path matches /^\\/examples\\/features$/",
+    "pass": true,
+    "detail": "/examples/features"
+  },
+  {
+    "name": "link \"Feature index\" in navigation \"Breadcrumb\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/examples/features"
+  }
+]

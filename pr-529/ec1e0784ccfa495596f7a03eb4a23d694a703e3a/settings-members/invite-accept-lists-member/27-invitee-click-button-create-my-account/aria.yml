@@ -1,0 +1,18 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation
+- button "Bob Tester": BT Bob Tester bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+  - button "Add to favorites"
+- button "Notifications": "1"
+- region "Notifications (F8)":
+  - list

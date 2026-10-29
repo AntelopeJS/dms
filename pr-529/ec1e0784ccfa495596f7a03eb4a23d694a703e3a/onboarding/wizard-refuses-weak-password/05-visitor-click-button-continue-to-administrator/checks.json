@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Continue to administrator\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/onboarding"
+  }
+]

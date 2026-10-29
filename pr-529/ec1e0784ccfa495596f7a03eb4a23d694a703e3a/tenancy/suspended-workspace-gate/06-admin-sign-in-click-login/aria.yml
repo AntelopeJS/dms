@@ -1,0 +1,18 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- button "Verify Admin": VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- region "Notifications (F8)":
+  - list

@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:43059"
+}

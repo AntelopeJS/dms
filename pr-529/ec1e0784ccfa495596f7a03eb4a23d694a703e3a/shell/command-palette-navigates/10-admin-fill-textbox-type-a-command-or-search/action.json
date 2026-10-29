@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Type a command or search…\"",
+  "value": "Member invitations",
+  "baseUrl": "http://127.0.0.1:43059"
+}

@@ -7,7 +7,7 @@ No behavioural probe ran.
 Suppressions in authored code files (origin/main and committed HEAD). A lint directive counts once per rule it names; `*` is a directive naming none.
 | Suppressions | base | HEAD |
 | --- | ---: | ---: |
-| Lint suppressions, all rules | 1121 | 1121 |
+| Lint suppressions, all rules | 1098 | 1098 |
 | Lint suppressions, `@typescript-eslint/no-dynamic-delete` | 1 | 1 |
 | Lint suppressions, `@typescript-eslint/no-unused-vars` | 2 | 2 |
 | Lint suppressions, `antelopejs/no-comments` | 1 | 1 |
@@ -19,10 +19,10 @@ Suppressions in authored code files (origin/main and committed HEAD). A lint dir
 | Lint suppressions, `anti-slop/no-reflect-get` | 1 | 1 |
 | Lint suppressions, `anti-slop/no-runtime-typeof` | 194 | 194 |
 | Lint suppressions, `anti-slop/no-shape-in-symbol-names` | 28 | 28 |
-| Lint suppressions, `anti-slop/no-unknown-parameters` | 85 | 85 |
+| Lint suppressions, `anti-slop/no-unknown-parameters` | 84 | 84 |
 | Lint suppressions, `anti-slop/no-unknown-returns` | 23 | 23 |
-| Lint suppressions, `anti-slop/no-unsafe-dictionary-type` | 169 | 169 |
-| Lint suppressions, `anti-slop/require-safety-comment-for-type-assertion` | 476 | 476 |
+| Lint suppressions, `anti-slop/no-unsafe-dictionary-type` | 168 | 168 |
+| Lint suppressions, `anti-slop/require-safety-comment-for-type-assertion` | 455 | 455 |
 | Lint suppressions, `eslint/max-params` | 12 | 12 |
 | Lint suppressions, `import/no-cycle` | 11 | 11 |
 | Lint suppressions, `import/no-duplicates` | 1 | 1 |

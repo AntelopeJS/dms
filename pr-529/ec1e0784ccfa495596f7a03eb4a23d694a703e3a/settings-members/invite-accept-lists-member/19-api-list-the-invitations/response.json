@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "25981aca-05f4-49df-8b5a-3931428a6141",
+        "email": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local",
+        "roles_ids": [
+          {
+            "_id": "11c49052-e0cc-44b8-bc08-45a5ad1595eb",
+            "name": "Support 0c4c0d"
+          }
+        ],
+        "asTenantOwner": false,
+        "createdAt": "2026-10-29T10:03:11.077Z",
+        "expiresAt": "2026-11-05T10:03:11.076Z",
+        "invitedBy": "cd77757d-4d42-4032-a4c8-ea1f40a64185",
+        "invitedByName": "Verify Admin",
+        "status": true
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

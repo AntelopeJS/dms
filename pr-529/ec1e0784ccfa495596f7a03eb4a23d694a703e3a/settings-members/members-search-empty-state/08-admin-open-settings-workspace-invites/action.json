@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "/settings/workspace/invites",
+  "baseUrl": "http://127.0.0.1:43059"
+}

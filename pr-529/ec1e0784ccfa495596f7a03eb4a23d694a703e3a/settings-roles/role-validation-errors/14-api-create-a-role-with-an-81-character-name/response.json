@@ -1,0 +1,17 @@
+{
+  "status": 400,
+  "body": [
+    {
+      "code": "too_big",
+      "maximum": 80,
+      "type": "string",
+      "inclusive": true,
+      "exact": false,
+      "message": "String must contain at most 80 character(s)",
+      "path": [
+        "name"
+      ]
+    }
+  ],
+  "error": null
+}

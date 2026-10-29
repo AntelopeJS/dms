@@ -1,0 +1,17 @@
+[
+  {
+    "name": "names",
+    "pass": true,
+    "detail": "expected [\"Support 9dcf9c\",\"Support 9dcf9c (copy)\"], got [\"Support 9dcf9c\",\"Support 9dcf9c (copy)\"]"
+  },
+  {
+    "name": "permissions",
+    "pass": true,
+    "detail": "expected [[\"playground.reports.export\"],[\"playground.reports.export\"]], got [[\"playground.reports.export\"],[\"playground.reports.export\"]]"
+  },
+  {
+    "name": "option \"/^Support 9dcf9c \\(copy\\)/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+  }
+]

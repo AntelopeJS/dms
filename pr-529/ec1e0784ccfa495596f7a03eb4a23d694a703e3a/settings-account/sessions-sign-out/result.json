@@ -1,0 +1,203 @@
+{
+  "feature": "settings-account",
+  "journey": "sessions-sign-out",
+  "title": "signing out a listed session ends it, and Sign out other sessions makes every other token refused",
+  "entryPoint": "Settings > Security > Sessions",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j052",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/sessions-sign-out/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/sessions-sign-out/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin2-signed-in-as-admin2",
+      "folder": "settings-account/sessions-sign-out/12-admin2-signed-in-as-admin2",
+      "checks": [
+        {
+          "name": "admin2 signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-settings-user-security",
+      "folder": "settings-account/sessions-sign-out/13-admin-open-settings-user-security",
+      "checks": [
+        {
+          "name": "open /settings/user/security",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "14-the-list-shows-this-device-and-the-others",
+      "folder": "settings-account/sessions-sign-out/14-the-list-shows-this-device-and-the-others",
+      "checks": [
+        {
+          "name": "page shows /3 active/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        },
+        {
+          "name": "page shows /This device/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-button-sign-out-chrome-headless",
+      "folder": "settings-account/sessions-sign-out/15-admin-click-button-sign-out-chrome-headless",
+      "checks": [
+        {
+          "name": "click button \"/^Sign out Chrome Headless/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "16-that-session-leaves-the-list",
+      "folder": "settings-account/sessions-sign-out/16-that-session-leaves-the-list",
+      "checks": [
+        {
+          "name": "page shows /2 active/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        }
+      ]
+    },
+    {
+      "name": "17-admin2-open-settings-user-security",
+      "folder": "settings-account/sessions-sign-out/17-admin2-open-settings-user-security",
+      "checks": [
+        {
+          "name": "open /settings/user/security",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fuser%2Fsecurity"
+        }
+      ]
+    },
+    {
+      "name": "18-the-signed-out-browser-is-sent-to-sign-in",
+      "folder": "settings-account/sessions-sign-out/18-the-signed-out-browser-is-sent-to-sign-in",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        }
+      ]
+    },
+    {
+      "name": "19-the-api-session-that-was-not-signed-out-still-works",
+      "folder": "settings-account/sessions-sign-out/19-the-api-session-that-was-not-signed-out-still-works",
+      "checks": [
+        {
+          "name": "status",
+          "pass": true,
+          "detail": "expected 200, got 200"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-click-button-sign-out-other-sessions",
+      "folder": "settings-account/sessions-sign-out/20-admin-click-button-sign-out-other-sessions",
+      "checks": [
+        {
+          "name": "click button \"Sign out other sessions\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-click-button-sign-out-d-sessions-in-dialog",
+      "folder": "settings-account/sessions-sign-out/21-admin-click-button-sign-out-d-sessions-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"/^Sign out \\d+ sessions?$/\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-reload",
+      "folder": "settings-account/sessions-sign-out/22-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "23-only-this-device-is-left-and-the-other-token-is-refused",
+      "folder": "settings-account/sessions-sign-out/23-only-this-device-is-left-and-the-other-token-is-refused",
+      "checks": [
+        {
+          "name": "page shows /1 active/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        },
+        {
+          "name": "revoked token status",
+          "pass": true,
+          "detail": "expected 401, got 401"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-open-settings",
+      "folder": "settings-account/sessions-sign-out/24-admin-open-settings",
+      "checks": [
+        {
+          "name": "open /settings",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings"
+        }
+      ]
+    },
+    {
+      "name": "25-this-device-stays-signed-in",
+      "folder": "settings-account/sessions-sign-out/25-this-device-stays-signed-in",
+      "checks": [
+        {
+          "name": "path matches /^\\/settings$/",
+          "pass": true,
+          "detail": "/settings"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/sessions-sign-out"
+}

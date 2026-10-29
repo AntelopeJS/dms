@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email addresses\"",
+  "value": "fred+20261029t095910-0bb97a-invite-resend-replaces-link@verify.local",
+  "baseUrl": "http://127.0.0.1:43059"
+}

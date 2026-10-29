@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:43059"
+}

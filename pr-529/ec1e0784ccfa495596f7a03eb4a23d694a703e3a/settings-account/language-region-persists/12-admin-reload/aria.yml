@@ -1,0 +1,118 @@
+- link "Aller à la page d'accueil":
+  - /url: /examples/overview
+  - img "Aller à la page d'accueil"
+- button "Rechercher… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+- separator
+- button "Replier le menu latéral"
+- heading "Fil d'Ariane Ajouter aux favoris" [level=1]:
+  - navigation "Fil d'Ariane":
+    - list:
+      - listitem:
+        - link "Accueil":
+          - /url: /examples/overview
+      - listitem:
+        - link "Paramètres":
+          - /url: /settings
+      - listitem: Compte
+      - listitem:
+        - link "Langue et région":
+          - /url: /settings/user/region
+  - button "Ajouter aux favoris"
+- button "Actions rapides"
+- button "Notifications": "1"
+- navigation "Paramètres":
+  - heading "Paramètres" [level=2]
+  - textbox "Rechercher un réglage"
+  - text: /
+  - link "Tous les réglages":
+    - /url: /settings
+  - text: Compte
+  - link "Profil":
+    - /url: /settings/user/profile
+  - link "Langue et région":
+    - /url: /settings/user/region
+  - link "Sécurité 1":
+    - /url: /settings/user/security
+  - link "Notifications 1":
+    - /url: /settings/user/notifications
+  - link "Apparence":
+    - /url: /settings/user/appearance
+  - link "Raccourcis":
+    - /url: /settings/user/shortcuts
+  - text: Espace de travail
+  - link "Membres 1":
+    - /url: /settings/workspace/members
+  - link "Invitations des membres":
+    - /url: /settings/workspace/invites
+  - link "Rôles 1":
+    - /url: /settings/workspace/roles
+  - link "Playground":
+    - /url: /settings/workspace/playground
+- heading "Langue et région" [level=1]
+- paragraph: La langue dans laquelle le tableau de bord vous parle, votre fuseau horaire et l'écriture des dates et heures. Vous suit sur tous vos appareils.
+- text: Enregistré instantanément
+- heading "Langue" [level=2]
+- paragraph: Votre langue préférée pour l'affichage du tableau de bord. Enregistrée dès que vous la choisissez.
+- text: Langue de l'application
+- paragraph: Menus, libellés et e-mails de la plateforme. Le contenu que vous créez n'est pas traduit.
+- combobox "Langue de l'application": Français
+- heading "Date et heure" [level=2]
+- paragraph: "L'affichage des dates et heures dans les tableaux, les notifications et l'activité. Enregistré sur votre compte : tous vos appareils le suivent."
+- text: Fuseau horaire
+- paragraph: Les dates et heures du tableau de bord s'affichent dans ce fuseau horaire.
+- button "Afficher les options": Automatique (Europe / Brussels)
+- text: Premier jour de la semaine
+- paragraph: Les calendriers et sélecteurs de date commencent la semaine ce jour-là. Automatique suit la langue.
+- radiogroup:
+  - radio "Automatique" [checked]
+  - radio "Lundi"
+  - radio "Dimanche"
+  - radio "Samedi"
+- text: Format de l'heure
+- paragraph: Comment les heures sont écrites. Automatique suit la langue.
+- radiogroup:
+  - radio "Automatique" [checked]
+  - radio "24 heures"
+  - radio "12 heures"
+- text: Format de date
+- paragraph: Comment les dates complètes sont écrites. Automatique laisse chaque écran choisir la forme la plus lisible.
+- radiogroup:
+  - radio "Automatique" [checked]
+  - radio "31/12/2026"
+  - radio "31 déc. 2026"
+- heading "Aperçu" [level=2]
+- paragraph: L'affichage des dates, heures et nombres avec ces réglages, en Europe / Brussels.
+- text: Date 29 octobre 2026 Date et heure 29 oct. 2026, 11:10 Heure 11:10 Nombre 12 480,50
+- region "Notifications (F8)":
+  - list

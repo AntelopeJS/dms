@@ -1,0 +1,7 @@
+- dialog "Delete Temp ff8a70?":
+  - heading "Delete Temp ff8a70?" [level=2]
+  - paragraph: Nobody holds this role. Deleting it can’t be undone.
+  - button "Close"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Delete role"

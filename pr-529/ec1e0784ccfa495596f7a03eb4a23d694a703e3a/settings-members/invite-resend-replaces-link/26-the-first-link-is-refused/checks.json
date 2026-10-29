@@ -1,0 +1,7 @@
+[
+  {
+    "name": "heading \"This invitation was replaced by a newer email\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/auth/signup?token=bAYQcl8hU5AosHJ2TAg7x9V4yFzAtOJbub127sSLebBy1vwVML469OvZZukj5SDP&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+  }
+]

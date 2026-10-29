@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Members\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/members"
+  },
+  {
+    "name": "members the member sees",
+    "pass": true,
+    "detail": "expected 2, got 2"
+  }
+]

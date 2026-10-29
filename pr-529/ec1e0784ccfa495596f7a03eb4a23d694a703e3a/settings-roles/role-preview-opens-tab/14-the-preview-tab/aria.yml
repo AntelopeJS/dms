@@ -1,0 +1,65 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview · Hidden for Viewer 98c50c":
+        - /url: /examples/overview
+        - text: Overview
+    - listitem:
+      - link "Feature index · Hidden for Viewer 98c50c":
+        - /url: /examples/features
+        - text: Feature index
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system · Hidden for Viewer 98c50c": Design system
+    - listitem:
+      - button "Layout · Hidden for Viewer 98c50c": Layout
+    - listitem:
+      - button "Components · Hidden for Viewer 98c50c": Components
+    - listitem:
+      - button "Pages & navigation · Hidden for Viewer 98c50c": Pages & navigation
+    - listitem:
+      - button "Dashboard chrome · Hidden for Viewer 98c50c": Dashboard chrome
+    - listitem:
+      - button "Frontend modules · Hidden for Viewer 98c50c": Frontend modules
+    - listitem:
+      - button "System · Hidden for Viewer 98c50c": System
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules · Hidden for Viewer 98c50c":
+        - /url: /modules
+        - text: Modules
+- button "Verify Admin": VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- region "Role preview":
+  - text: Previewing
+  - button "Page to preview": Overview
+  - text: as Viewer 98c50c Page hidden for Viewer 98c50c
+  - button "Exit preview"
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- status: Hidden for Viewer 98c50c
+- region "Notifications (F8)":
+  - list

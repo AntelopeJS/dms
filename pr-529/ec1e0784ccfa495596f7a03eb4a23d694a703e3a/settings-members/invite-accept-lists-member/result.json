@@ -1,0 +1,380 @@
+{
+  "feature": "settings-members",
+  "journey": "invite-accept-lists-member",
+  "title": "an invitation accepted through its emailed link creates a member who is listed and can sign in",
+  "entryPoint": "Invite members dialog, /auth/signup?token=, Members list",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j020",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/invite-accept-lists-member/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-support-0c4c0d-exists",
+      "folder": "settings-members/invite-accept-lists-member/04-the-role-support-0c4c0d-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-members/invite-accept-lists-member/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-members",
+      "folder": "settings-members/invite-accept-lists-member/10-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-invite-members",
+      "folder": "settings-members/invite-accept-lists-member/11-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-email-addresses",
+      "folder": "settings-members/invite-accept-lists-member/12-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-members/invite-accept-lists-member/13-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-combobox-team",
+      "folder": "settings-members/invite-accept-lists-member/14-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-option-sales",
+      "folder": "settings-members/invite-accept-lists-member/15-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-button-support-0c4c0d-in-group-roles",
+      "folder": "settings-members/invite-accept-lists-member/16-admin-click-button-support-0c4c0d-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Support 0c4c0d\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-button-send-invitations",
+      "folder": "settings-members/invite-accept-lists-member/17-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "18-the-invitation-is-sent-and-listed-with-its-role",
+      "folder": "settings-members/invite-accept-lists-member/18-the-invitation-is-sent-and-listed-with-its-role",
+      "checks": [
+        {
+          "name": "cell \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        },
+        {
+          "name": "cell \"Support 0c4c0d\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "20-the-api-holds-one-pending-invitation-with-the-role",
+      "folder": "settings-members/invite-accept-lists-member/20-the-api-holds-one-pending-invitation-with-the-role",
+      "checks": [
+        {
+          "name": "the invitation exists",
+          "pass": true,
+          "detail": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local"
+        },
+        {
+          "name": "its roles",
+          "pass": true,
+          "detail": "expected [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"], got [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"]"
+        },
+        {
+          "name": "it is not an owner invite",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "22-the-invitation-email-reaches-bob-20261029t095910-0bb97a-invi",
+      "folder": "settings-members/invite-accept-lists-member/22-the-invitation-email-reaches-bob-20261029t095910-0bb97a-invi",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "23-invitee-open-http-127-0-0-1-43059-auth-signup-token-m6nclhmb",
+      "folder": "settings-members/invite-accept-lists-member/23-invitee-open-http-127-0-0-1-43059-auth-signup-token-m6nclhmb",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "24-the-link-opens-the-sign-up-form",
+      "folder": "settings-members/invite-accept-lists-member/24-the-link-opens-the-sign-up-form",
+      "checks": [
+        {
+          "name": "heading \"Create your account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "25-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-members/invite-accept-lists-member/25-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "26-invitee-fill-textbox-password",
+      "folder": "settings-members/invite-accept-lists-member/26-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "27-invitee-click-button-create-my-account",
+      "folder": "settings-members/invite-accept-lists-member/27-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "28-bob-tester-is-signed-in-after-accepting",
+      "folder": "settings-members/invite-accept-lists-member/28-bob-tester-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "29-accepting-signs-the-new-member-in",
+      "folder": "settings-members/invite-accept-lists-member/29-accepting-signs-the-new-member-in",
+      "checks": [
+        {
+          "name": "button \"Bob Tester\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-open-settings-workspace-members",
+      "folder": "settings-members/invite-accept-lists-member/30-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "31-the-members-list-shows-the-new-member-with-the-role",
+      "folder": "settings-members/invite-accept-lists-member/31-the-members-list-shows-the-new-member-with-the-role",
+      "checks": [
+        {
+          "name": "cell \"/Bob Tester/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        },
+        {
+          "name": "cell \"Support 0c4c0d\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        },
+        {
+          "name": "page shows /2 members/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "34-the-api-lists-the-member-and-the-invitation-is-consumed",
+      "folder": "settings-members/invite-accept-lists-member/34-the-api-lists-the-member-and-the-invitation-is-consumed",
+      "checks": [
+        {
+          "name": "the member exists",
+          "pass": true,
+          "detail": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local"
+        },
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Bob Tester\", got \"Bob Tester\""
+        },
+        {
+          "name": "roles",
+          "pass": true,
+          "detail": "expected [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"], got [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"]"
+        },
+        {
+          "name": "not an owner",
+          "pass": true,
+          "detail": "expected false, got false"
+        },
+        {
+          "name": "no invitation left",
+          "pass": true,
+          "detail": "expected undefined, got undefined"
+        }
+      ]
+    },
+    {
+      "name": "39-bob-signed-in-as-bob",
+      "folder": "settings-members/invite-accept-lists-member/39-bob-signed-in-as-bob",
+      "checks": [
+        {
+          "name": "bob signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "41-the-member-signs-in-through-the-form-in-a-new-browser",
+      "folder": "settings-members/invite-accept-lists-member/41-the-member-signs-in-through-the-form-in-a-new-browser",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"_id\":\"6f93bef5-952e-47ac-b259-341bffaabbdf\",\"createdAt\":\"2026-10-29T10:03:13.228Z\",\"updatedAt\":\"2026-10-29T10:03:13.285Z\",\"name\":\"Bob Tester\",\"email\":\"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\",\"isValidated\":true,\"owner\":false,\"language\":\"en\",\"_instance\":null,\"lastActiveAt"
+        },
+        {
+          "name": "email",
+          "pass": true,
+          "detail": "expected \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\", got \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\""
+        },
+        {
+          "name": "owner",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "42-admin-open-settings-user-notifications",
+      "folder": "settings-members/invite-accept-lists-member/42-admin-open-settings-user-notifications",
+      "checks": [
+        {
+          "name": "open /settings/user/notifications",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "43-the-inviter-is-told-the-invitation-was-accepted",
+      "folder": "settings-members/invite-accept-lists-member/43-the-inviter-is-told-the-invitation-was-accepted",
+      "checks": [
+        {
+          "name": "page shows /Bob Tester accepted your invitation/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/invite-accept-lists-member"
+}

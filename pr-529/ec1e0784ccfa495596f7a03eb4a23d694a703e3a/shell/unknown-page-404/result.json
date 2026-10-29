@@ -1,0 +1,88 @@
+{
+  "feature": "shell",
+  "journey": "unknown-page-404",
+  "title": "an unknown path shows the 404 page with a way home",
+  "entryPoint": "any unknown URL",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j019",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "shell/unknown-page-404/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "shell/unknown-page-404/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-no-such-page-here",
+      "folder": "shell/unknown-page-404/08-admin-open-no-such-page-here",
+      "checks": [
+        {
+          "name": "open /no-such-page-here",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/no-such-page-here"
+        }
+      ]
+    },
+    {
+      "name": "09-the-404-page-explains-and-offers-a-way-out",
+      "folder": "shell/unknown-page-404/09-the-404-page-explains-and-offers-a-way-out",
+      "checks": [
+        {
+          "name": "heading \"Page not found\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/no-such-page-here"
+        },
+        {
+          "name": "page shows /Error 404/i",
+          "pass": true,
+          "detail": "ERROR 404 Page not found The page you are looking for does not exist or has been moved. Go to home Go back © Antelope Documentation Website English"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-button-go-to-home",
+      "folder": "shell/unknown-page-404/10-admin-click-button-go-to-home",
+      "checks": [
+        {
+          "name": "click button \"Go to home\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "11-go-to-home-opens-the-homepage",
+      "folder": "shell/unknown-page-404/11-go-to-home-opens-the-homepage",
+      "checks": [
+        {
+          "name": "path matches /^\\/examples\\/overview$/",
+          "pass": true,
+          "detail": "/examples/overview"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "shell/unknown-page-404"
+}

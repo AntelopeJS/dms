@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "body": {
+    "system:general": true,
+    "system:security": false,
+    "system:account": true,
+    "system:collaboration": true,
+    "system:automation": true,
+    "playground:playground-demo": true
+  },
+  "error": null
+}

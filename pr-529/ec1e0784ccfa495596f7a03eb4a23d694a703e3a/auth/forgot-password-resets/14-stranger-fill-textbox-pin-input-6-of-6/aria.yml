@@ -1,0 +1,27 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Reset your password" [level=1]
+  - paragraph: Choose a new password for your account.
+  - text: New password
+  - textbox "New password"
+  - button "Show password": Show
+  - list:
+    - listitem: At least 8 characters not met yet
+    - listitem: At least one uppercase letter not met yet
+    - listitem: At least one number not met yet
+    - listitem: At least one special character (@$!%*?&) not met yet
+    - listitem: Only letters, digits and allowed special characters not met yet
+  - button "Save the new password"
+  - link "Back to login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

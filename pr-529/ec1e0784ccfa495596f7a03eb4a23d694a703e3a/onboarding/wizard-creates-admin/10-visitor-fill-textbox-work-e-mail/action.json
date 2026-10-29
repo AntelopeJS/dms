@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Work e-mail\"",
+  "value": "wizard+20261029t095910-0bb97a-wizard-creates-admin@verify.local",
+  "baseUrl": "http://127.0.0.1:43059"
+}

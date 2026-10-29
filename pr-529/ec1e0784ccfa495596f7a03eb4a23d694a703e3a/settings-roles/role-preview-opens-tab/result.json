@@ -1,0 +1,126 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-preview-opens-tab",
+  "title": "Preview as role opens a new tab that shows the dashboard as that role sees it",
+  "entryPoint": "Settings > Roles > Preview as <role>",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j037",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-preview-opens-tab/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-viewer-98c50c-exists",
+      "folder": "settings-roles/role-preview-opens-tab/04-the-role-viewer-98c50c-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"87587e13-2444-4ce6-9e9a-6731ff685757\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-preview-opens-tab/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-preview-opens-tab/10-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-option-viewer-98c50c",
+      "folder": "settings-roles/role-preview-opens-tab/11-admin-click-option-viewer-98c50c",
+      "checks": [
+        {
+          "name": "click option \"/^Viewer 98c50c/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-preview-as-viewer-98c50c",
+      "folder": "settings-roles/role-preview-opens-tab/12-admin-click-button-preview-as-viewer-98c50c",
+      "checks": [
+        {
+          "name": "click button \"Preview as Viewer 98c50c\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "13-a-preview-tab-opens",
+      "folder": "settings-roles/role-preview-opens-tab/13-a-preview-tab-opens",
+      "checks": [
+        {
+          "name": "a new tab opened",
+          "pass": true,
+          "detail": "no new tab"
+        }
+      ]
+    },
+    {
+      "name": "15-the-tab-announces-the-preview-and-marks-what-the-role-cannot",
+      "folder": "settings-roles/role-preview-opens-tab/15-the-tab-announces-the-preview-and-marks-what-the-role-cannot",
+      "checks": [
+        {
+          "name": "the preview bar names the role",
+          "pass": true,
+          "detail": "Previewing Overview as Viewer 98c50c Page hidden for Viewer 98c50c Exit preview"
+        },
+        {
+          "name": "Library groups marked hidden for the role",
+          "pass": true,
+          "detail": "expected 1, got 1"
+        },
+        {
+          "name": "the page is hidden for the role",
+          "pass": true,
+          "detail": "Previewing Overview as Viewer 98c50c Page hidden for Viewer 98c50c Exit preview"
+        }
+      ]
+    },
+    {
+      "name": "16-exiting-the-preview-ends-it",
+      "folder": "settings-roles/role-preview-opens-tab/16-exiting-the-preview-ends-it",
+      "checks": [
+        {
+          "name": "preview bars left",
+          "pass": true,
+          "detail": "expected 0, got 0"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-preview-opens-tab"
+}

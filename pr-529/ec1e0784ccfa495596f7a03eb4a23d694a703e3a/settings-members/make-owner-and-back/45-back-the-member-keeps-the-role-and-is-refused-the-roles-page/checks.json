@@ -1,0 +1,17 @@
+[
+  {
+    "name": "isTenantOwner",
+    "pass": true,
+    "detail": "expected false, got false"
+  },
+  {
+    "name": "roles kept",
+    "pass": true,
+    "detail": "expected 1, got 1"
+  },
+  {
+    "name": "heading \"Forbidden\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+  }
+]

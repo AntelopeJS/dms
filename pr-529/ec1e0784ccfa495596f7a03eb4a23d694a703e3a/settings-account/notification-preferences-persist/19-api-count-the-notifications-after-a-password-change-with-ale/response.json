@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "body": {
+    "all": 1,
+    "unread": 1,
+    "unreadTone": "warning"
+  },
+  "error": null
+}

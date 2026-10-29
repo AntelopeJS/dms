@@ -1,0 +1,18 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - text: Error 404
+  - heading "Page not found" [level=1]
+  - paragraph: The page you are looking for does not exist or has been moved.
+  - button "Go to home"
+  - button "Go back"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

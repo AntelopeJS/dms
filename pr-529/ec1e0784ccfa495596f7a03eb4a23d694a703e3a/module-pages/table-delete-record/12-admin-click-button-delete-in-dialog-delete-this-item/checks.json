@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Delete\" in dialog \"Delete this item?\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "4a75b600-b7ef-42e2-a27b-504c5e12b5cd",
+    "name": "second Racer",
+    "email": "second+20261029t095910-0bb97a-concurrent-registers-one-owner@verify.local",
+    "updatedAt": "2026-10-29T10:00:35.534Z",
+    "isValidated": true,
+    "owner": true,
+    "language": "en",
+    "_instance": null,
+    "lastActiveAt": "2026-10-29T10:00:35.534Z"
+  },
+  "error": null
+}

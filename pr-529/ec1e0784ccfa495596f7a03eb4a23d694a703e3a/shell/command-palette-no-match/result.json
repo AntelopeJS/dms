@@ -1,0 +1,99 @@
+{
+  "feature": "shell",
+  "journey": "command-palette-no-match",
+  "title": "a palette search that matches nothing shows no option and opens nothing",
+  "entryPoint": "command palette (Ctrl K), empty result",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j016",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "shell/command-palette-no-match/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "shell/command-palette-no-match/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-press-control-k",
+      "folder": "shell/command-palette-no-match/08-admin-press-control-k",
+      "checks": [
+        {
+          "name": "press Control+k",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-fill-textbox-type-a-command-or-search",
+      "folder": "shell/command-palette-no-match/09-admin-fill-textbox-type-a-command-or-search",
+      "checks": [
+        {
+          "name": "fill textbox \"Type a command or search…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-no-option-matches",
+      "folder": "shell/command-palette-no-match/10-no-option-matches",
+      "checks": [
+        {
+          "name": "0 × option",
+          "pass": true,
+          "detail": "found 0"
+        },
+        {
+          "name": "page shows /No matching data/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local 1 DEMO PAGES 140 Plus 24 built-in GENERATED RECORD PAGES 59 View, new and edit BLOCK …"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-press-enter",
+      "folder": "shell/command-palette-no-match/11-admin-press-enter",
+      "checks": [
+        {
+          "name": "press Enter",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-enter-leaves-the-page-where-it-was",
+      "folder": "shell/command-palette-no-match/12-enter-leaves-the-page-where-it-was",
+      "checks": [
+        {
+          "name": "path matches /^\\/examples\\/overview$/",
+          "pass": true,
+          "detail": "/examples/overview"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "shell/command-palette-no-match"
+}

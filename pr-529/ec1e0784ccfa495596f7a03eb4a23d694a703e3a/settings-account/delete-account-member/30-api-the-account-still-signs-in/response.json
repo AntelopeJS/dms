@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "body": {
+    "token_type": "Bearer",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5NTNjNTk3LTQ4ZjktNDU1Ny05OTFhLThhZTgxMzAxNjEzYiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6Ijc3MWJkYzEyLTA1MTEtNGU4Yi04MjIwLTUzNTI1ZDdmYzNhNiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNjg3OTksImV4cCI6MTc5MzI3MjM5OX0.VO7a02nXGcGTZiKK1MPdXpE6-7VZVoDqqMB2cRuZRX0",
+    "expires_in": 3600000,
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5NTNjNTk3LTQ4ZjktNDU1Ny05OTFhLThhZTgxMzAxNjEzYiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6Ijc3MWJkYzEyLTA1MTEtNGU4Yi04MjIwLTUzNTI1ZDdmYzNhNiIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzMjY4Nzk5LCJleHAiOjE3OTU4NjA3OTl9.4YEUd0atrDiPdrUk5DfSItUvd33YVprZzWrIZXpEy7A",
+    "user": {
+      "_id": "5953c597-48f9-4557-991a-8ae81301613b",
+      "createdAt": "2026-10-29T10:13:16.883Z",
+      "updatedAt": "2026-10-29T10:13:16.929Z",
+      "name": "Quinn Member",
+      "email": "quinn+20261029t095910-0bb97a-delete-account-member@verify.local",
+      "isValidated": true,
+      "owner": false,
+      "language": "en",
+      "_instance": null,
+      "lastActiveAt": "2026-10-29T10:13:16.929Z"
+    }
+  },
+  "error": null
+}

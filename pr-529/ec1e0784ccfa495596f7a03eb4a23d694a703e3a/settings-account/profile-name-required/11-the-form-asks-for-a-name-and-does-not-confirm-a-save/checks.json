@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /This field is required\\./",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+  },
+  {
+    "name": "page does not show /Profile saved/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+  }
+]

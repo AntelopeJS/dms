@@ -1,0 +1,7 @@
+[
+  {
+    "name": "heading \"Forbidden\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/members"
+  }
+]

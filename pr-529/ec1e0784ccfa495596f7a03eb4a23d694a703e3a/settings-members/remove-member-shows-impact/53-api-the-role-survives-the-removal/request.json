@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:38797/api/tables/roles/list",
+  "authenticated": true,
+  "body": null
+}

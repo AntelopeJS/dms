@@ -1,0 +1,172 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Settings":
+          - /url: /settings
+      - listitem: Account
+      - listitem:
+        - link "Notifications":
+          - /url: /settings/user/notifications
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- navigation "Settings":
+  - heading "Settings" [level=2]
+  - textbox "Search settings"
+  - text: /
+  - link "All settings":
+    - /url: /settings
+  - text: Account
+  - link "Profile":
+    - /url: /settings/user/profile
+  - link "Language & region":
+    - /url: /settings/user/region
+  - link "Security 1":
+    - /url: /settings/user/security
+  - link "Notifications 1":
+    - /url: /settings/user/notifications
+  - link "Appearance":
+    - /url: /settings/user/appearance
+  - link "Shortcuts":
+    - /url: /settings/user/shortcuts
+  - text: Workspace
+  - link "Members 1":
+    - /url: /settings/workspace/members
+  - link "Member invitations":
+    - /url: /settings/workspace/invites
+  - link "Roles 1":
+    - /url: /settings/workspace/roles
+  - link "Playground":
+    - /url: /settings/workspace/playground
+- heading "Notifications" [level=1]
+- paragraph: Choose what reaches you, and catch up on what happened across your workspaces.
+- text: Saved instantly
+- heading "Preferences" [level=2]
+- paragraph: Customize your notification preferences. Each switch saves on its own — nothing else changes while it does.
+- table "Preferences":
+  - row "Subject In-app Email Soon Save state":
+    - columnheader "Subject"
+    - columnheader "In-app"
+    - columnheader "Email Soon"
+    - columnheader "Save state"
+  - row "Hide System notifications System Core system notifications and security alerts All System notifications — 4 of 5 on":
+    - rowheader "Hide System notifications System Core system notifications and security alerts":
+      - button "Hide System notifications" [expanded]
+      - text: System
+      - paragraph: Core system notifications and security alerts
+    - cell "All System notifications":
+      - switch "All System notifications" [checked]
+    - cell "—"
+    - cell "4 of 5 on"
+  - rowgroup:
+    - row "General Important messages from the platform and your workspace administrators. Always on, so nothing essential is missed General —":
+      - rowheader "General Important messages from the platform and your workspace administrators. Always on, so nothing essential is missed":
+        - text: General
+        - paragraph: Important messages from the platform and your workspace administrators. Always on, so nothing essential is missed
+      - cell "General":
+        - switch "General" [checked] [disabled]
+      - cell "—"
+      - cell
+    - row "Security alerts Sign-ins, password, email and two-factor changes on your account Security alerts —":
+      - rowheader "Security alerts Sign-ins, password, email and two-factor changes on your account":
+        - text: Security alerts
+        - paragraph: Sign-ins, password, email and two-factor changes on your account
+      - cell "Security alerts":
+        - switch "Security alerts"
+      - cell "—"
+      - cell:
+        - status: Saved
+    - row "Account Your roles, your ownership and other important changes to your account Account —":
+      - rowheader "Account Your roles, your ownership and other important changes to your account":
+        - text: Account
+        - paragraph: Your roles, your ownership and other important changes to your account
+      - cell "Account":
+        - switch "Account" [checked]
+      - cell "—"
+      - cell
+    - row "Collaboration Invitations, members joining or leaving, and role permission changes Collaboration —":
+      - rowheader "Collaboration Invitations, members joining or leaving, and role permission changes":
+        - text: Collaboration
+        - paragraph: Invitations, members joining or leaving, and role permission changes
+      - cell "Collaboration":
+        - switch "Collaboration" [checked]
+      - cell "—"
+      - cell
+    - row "Automation Notifications sent by automation procedures Automation —":
+      - rowheader "Automation Notifications sent by automation procedures":
+        - text: Automation
+        - paragraph: Notifications sent by automation procedures
+      - cell "Automation":
+        - switch "Automation" [checked]
+      - cell "—"
+      - cell
+  - row "Show demo.notifications.category.label notifications demo.notifications.category.label demo.notifications.category.tag demo.notifications.category.description All demo.notifications.category.label notifications — 1 of 1 on":
+    - rowheader "Show demo.notifications.category.label notifications demo.notifications.category.label demo.notifications.category.tag demo.notifications.category.description":
+      - button "Show demo.notifications.category.label notifications"
+      - text: demo.notifications.category.label demo.notifications.category.tag
+      - paragraph: demo.notifications.category.description
+    - cell "All demo.notifications.category.label notifications":
+      - switch "All demo.notifications.category.label notifications" [checked]
+    - cell "—"
+    - cell "1 of 1 on"
+- text: Only in-app notifications are available today. Email delivery is on the way.
+- heading "Inbox" [level=2]
+- paragraph: View all recent notifications from your account to stay informed.
+- navigation:
+  - button "All 1"
+  - button "Unread 1"
+- button "Mark all as read"
+- button "Delete all…"
+- heading "Today" [level=3]
+- article:
+  - text: Unread
+  - button "New sign-in from Chrome Headless on Linux"
+  - paragraph: Not you? Change your password, then sign out the other sessions in Security.
+  - time: Just now
+  - text: Security alerts
+  - button "Mark read"
+  - button "Delete notification": Delete
+- navigation "Navigation": 1 of 1
+- region "Notifications (F8)":
+  - list

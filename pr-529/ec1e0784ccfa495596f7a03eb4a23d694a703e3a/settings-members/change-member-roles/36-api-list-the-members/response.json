@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:07add7d3-7747-4f60-8c38-4e52e1d71d99",
+        "userId": "07add7d3-7747-4f60-8c38-4e52e1d71d99",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t095910-0bb97a@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T10:06:14.289Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:06:14.245Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:e8d17215-1bf9-43b7-ad3b-4a3386457efa",
+        "userId": "e8d17215-1bf9-43b7-ad3b-4a3386457efa",
+        "name": "Kim",
+        "avatar": null,
+        "email": "kim+20261029t095910-0bb97a-change-member-roles@verify.local",
+        "roleIds": [
+          {
+            "_id": "476c07ad-a5dd-49e3-a7d6-93af3e078e67",
+            "name": "Writer 30e6b7"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T10:06:23.149Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:06:23.125Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

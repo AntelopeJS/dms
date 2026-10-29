@@ -1,0 +1,42 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:430da5c4-67ec-4d3f-a344-e50835b0a973",
+        "userId": "430da5c4-67ec-4d3f-a344-e50835b0a973",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261029t095910-0bb97a@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-10-29T10:04:44.135Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:04:44.102Z",
+        "isValidated": true
+      },
+      {
+        "_id": "default:ac6244e4-738f-47fa-8773-13ad71623711",
+        "userId": "ac6244e4-738f-47fa-8773-13ad71623711",
+        "name": "Hank",
+        "avatar": null,
+        "email": "hank+20261029t095910-0bb97a-remove-member-shows-impact@verify.local",
+        "roleIds": [
+          {
+            "_id": "9c5d722c-8887-4939-ba04-9378f10e401a",
+            "name": "Viewer 14295f"
+          }
+        ],
+        "isTenantOwner": false,
+        "lastActiveAt": "2026-10-29T10:04:52.520Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-10-29T10:04:52.484Z",
+        "isValidated": true
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

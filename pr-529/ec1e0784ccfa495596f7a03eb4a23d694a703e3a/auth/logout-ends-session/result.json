@@ -1,0 +1,94 @@
+{
+  "feature": "auth",
+  "journey": "logout-ends-session",
+  "title": "Logout from the account menu ends the session, and the settings page asks to sign in again",
+  "entryPoint": "account menu > Logout",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j010",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/logout-ends-session/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "auth/logout-ends-session/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-click-button-verify-admin",
+      "folder": "auth/logout-ends-session/08-admin-click-button-verify-admin",
+      "checks": [
+        {
+          "name": "click button \"Verify Admin\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-menuitem-logout",
+      "folder": "auth/logout-ends-session/09-admin-click-menuitem-logout",
+      "checks": [
+        {
+          "name": "click menuitem \"Logout\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth"
+        }
+      ]
+    },
+    {
+      "name": "10-the-browser-is-back-on-sign-in",
+      "folder": "auth/logout-ends-session/10-the-browser-is-back-on-sign-in",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-open-settings-workspace-members",
+      "folder": "auth/logout-ends-session/11-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+        }
+      ]
+    },
+    {
+      "name": "12-the-settings-page-asks-to-sign-in-again",
+      "folder": "auth/logout-ends-session/12-the-settings-page-asks-to-sign-in-again",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/logout-ends-session"
+}

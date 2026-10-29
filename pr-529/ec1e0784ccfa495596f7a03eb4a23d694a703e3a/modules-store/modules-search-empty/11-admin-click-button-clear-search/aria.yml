@@ -1,0 +1,132 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem:
+        - link "Modules":
+          - /url: /modules
+      - listitem:
+        - link "Module store":
+          - /url: /modules/store
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "Module store" [level=1]
+- paragraph: Official AntelopeJS modules to discover and install. An installed module is managed from its tile among the installed modules.
+- text: dms-frontend 0.9.1
+- link "Installed modules":
+  - /url: /modules
+- region "Module store":
+  - text: The store is read-only here Modules are installed from development, which writes them to antelope.config.ts; this platform loads what that file declares. Change them from development.
+  - textbox "Search the store"
+  - text: /
+  - radiogroup "Show":
+    - radio "Available · 11" [checked]
+    - radio "Installed · 0"
+    - radio "All · 11"
+  - radiogroup "Store category":
+    - radio "All 11" [checked]
+    - radio "AI 1"
+    - radio "Analytics 1"
+    - radio "Business 1"
+    - radio "Communication 1"
+    - radio "Content 2"
+    - radio "Data 1"
+    - radio "Developer 2"
+    - radio "Operations 2"
+  - article "API":
+    - text: API
+    - paragraph: Route catalog, request logs and traffic statistics for your API.
+    - text: "@antelopejs/dms-api v0.5.1 npm · Developer"
+    - button "Install" [disabled]
+  - article "Assistant":
+    - text: Assistant
+    - paragraph: A coding agent that inspects your modules and edits the project, for development.
+    - text: "@antelopejs/dms-ai v0.6.1 npm · AI"
+    - button "Install" [disabled]
+  - article "Automation":
+    - text: Automation
+    - paragraph: Visual procedures built from triggers, actions and data nodes.
+    - text: "@antelopejs/dms-automation v0.7.0 npm · Operations"
+    - button "Install" [disabled]
+  - article "Builder":
+    - text: Builder
+    - paragraph: Edits the project’s pages, tables and forms, writing only code that compiles.
+    - text: "@antelopejs/dms-builder v0.6.1 npm · Developer"
+    - button "Install" [disabled]
+  - article "Database":
+    - text: Database
+    - paragraph: Schemas, data browser, schema diagram and an AQL query workspace.
+    - text: "@antelopejs/dms-database v0.3.1 npm · Data"
+    - button "Install" [disabled]
+  - article "Mailing":
+    - text: Mailing
+    - paragraph: Email templates with a block editor, send log and delivery metrics.
+    - text: "@antelopejs/dms-mailing v0.7.1 npm · Communication"
+    - button "Install" [disabled]
+  - article "Marketing":
+    - text: Marketing
+    - paragraph: Cookieless traffic analytics, conversion funnels with A/B splits and click heatmaps.
+    - text: "@antelopejs/dms-marketing v0.7.1 npm · Analytics"
+    - button "Install" [disabled]
+  - article "Media":
+    - text: Media
+    - paragraph: Asset library with folders, per-folder permissions and image derivatives.
+    - text: "@antelopejs/dms-media v0.6.1 npm · Content"
+    - button "Install" [disabled]
+  - article "Publishing":
+    - text: Publishing
+    - paragraph: Versions, environments and deploys of your project through git.
+    - text: "@antelopejs-private/dms-cicd npm · Operations"
+    - button "Install" [disabled]
+  - article "SaaS":
+    - text: SaaS
+    - paragraph: Plans, workspaces, billing with Stripe and customer lifecycle.
+    - text: "@antelopejs/dms-saas v0.8.1 npm · Business"
+    - button "Install" [disabled]
+  - article "Translations":
+    - text: Translations
+    - paragraph: Locales, translation coverage and a key-by-locale translation matrix.
+    - text: "@antelopejs/dms-lang v0.4.1 npm · Content"
+    - button "Install" [disabled]
+- region "Notifications (F8)":
+  - list

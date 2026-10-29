@@ -1,0 +1,5 @@
+{
+  "status": 403,
+  "body": "Forbidden: missing permission settings.workspace.members.table.list",
+  "error": null
+}

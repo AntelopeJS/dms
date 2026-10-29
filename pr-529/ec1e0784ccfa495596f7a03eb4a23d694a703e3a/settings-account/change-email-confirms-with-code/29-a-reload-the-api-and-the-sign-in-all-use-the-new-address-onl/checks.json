@@ -1,0 +1,17 @@
+[
+  {
+    "name": "page shows /renamed\\+20261029t095910-0bb97a-change-email-confirms-with-code@verify\\.local/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin renamed+20261029t095910-0bb97a-change-email-confirms-with-code@verify.local / Settings / Account / Security 2 Settings / All se…"
+  },
+  {
+    "name": "new address signs in",
+    "pass": true,
+    "detail": "200"
+  },
+  {
+    "name": "HTTP 401",
+    "pass": true,
+    "detail": "status 401: \"error.invalid_credentials\""
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "1a94becc-020d-45f0-86d7-4fa26d0c7535",
+        "email": "gina+20261029t095910-0bb97a-invite-edit-changes-roles@verify.local",
+        "roles_ids": [
+          {
+            "_id": "b281e793-2cae-4929-bcc8-03d4b1cf3d38",
+            "name": "Writer b99e6f"
+          }
+        ],
+        "asTenantOwner": false,
+        "createdAt": "2026-10-29T10:04:19.214Z",
+        "expiresAt": "2026-11-05T10:04:19.214Z",
+        "invitedBy": "82be3adc-80bb-45ae-93ab-529b49d22bb3",
+        "invitedByName": "Verify Admin",
+        "status": true
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

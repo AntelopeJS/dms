@@ -1,0 +1,15 @@
+[
+  {
+    "file": "/home/antony/.cache/campaign/h6/dms-runs/20261029T095910-0bb97a/evidence/mail/011.eml",
+    "from": "<>",
+    "to": [
+      "<iris+20261029t095910-0bb97a-removed-member-lands-on-a-page@verify.local>"
+    ],
+    "subject": "Verify Admin invited you to join Default on AntelopeJS",
+    "links": [
+      "http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en"
+    ],
+    "text": "You're invited to Default Hello, Verify Admin invited you to join Default on AntelopeJS. Click the button below to create your account: Create Account This invitation expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.",
+    "receivedAt": "2026-10-29T10:05:11.538Z"
+  }
+]

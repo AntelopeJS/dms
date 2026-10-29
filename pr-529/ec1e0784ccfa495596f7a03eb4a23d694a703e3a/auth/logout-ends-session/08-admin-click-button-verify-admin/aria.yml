@@ -1,0 +1,11 @@
+- menu "Verify Admin":
+  - text: VA Verify Admin admin+20261029t095910-0bb97a@verify.local
+  - group:
+    - menuitem "Profile"
+    - menuitem "Settings"
+    - menuitem "Switch account"
+  - group:
+    - menuitem "Interface theme"
+    - menuitem "Language"
+  - group:
+    - menuitem "Logout"

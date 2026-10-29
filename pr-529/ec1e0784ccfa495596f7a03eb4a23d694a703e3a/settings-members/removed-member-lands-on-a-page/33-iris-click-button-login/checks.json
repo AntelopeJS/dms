@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Login\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImM5ZTM3OTBiLTMwODQtNDNjZS04N2NjLWU3ODg3NjRmMThiMiIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI2ODMxNywiZXhwIjoxNzkzMjY5MjE3fQ.gs3g56cMYrCajspUuyg_9XQPCpGFgrPeLq8qvhEidRk"
+  }
+]

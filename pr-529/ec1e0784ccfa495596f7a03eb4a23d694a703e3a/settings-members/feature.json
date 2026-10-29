@@ -1,0 +1,3574 @@
+[
+  {
+    "feature": "settings-members",
+    "journey": "invite-accept-lists-member",
+    "title": "an invitation accepted through its emailed link creates a member who is listed and can sign in",
+    "entryPoint": "Invite members dialog, /auth/signup?token=, Members list",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j020",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/invite-accept-lists-member/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-0c4c0d-exists",
+        "folder": "settings-members/invite-accept-lists-member/04-the-role-support-0c4c0d-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/invite-accept-lists-member/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-accept-lists-member/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/invite-accept-lists-member/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-accept-lists-member/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-accept-lists-member/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/invite-accept-lists-member/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/invite-accept-lists-member/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-0c4c0d-in-group-roles",
+        "folder": "settings-members/invite-accept-lists-member/16-admin-click-button-support-0c4c0d-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 0c4c0d\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-accept-lists-member/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "18-the-invitation-is-sent-and-listed-with-its-role",
+        "folder": "settings-members/invite-accept-lists-member/18-the-invitation-is-sent-and-listed-with-its-role",
+        "checks": [
+          {
+            "name": "cell \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          },
+          {
+            "name": "cell \"Support 0c4c0d\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "20-the-api-holds-one-pending-invitation-with-the-role",
+        "folder": "settings-members/invite-accept-lists-member/20-the-api-holds-one-pending-invitation-with-the-role",
+        "checks": [
+          {
+            "name": "the invitation exists",
+            "pass": true,
+            "detail": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local"
+          },
+          {
+            "name": "its roles",
+            "pass": true,
+            "detail": "expected [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"], got [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"]"
+          },
+          {
+            "name": "it is not an owner invite",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      },
+      {
+        "name": "22-the-invitation-email-reaches-bob-20261029t095910-0bb97a-invi",
+        "folder": "settings-members/invite-accept-lists-member/22-the-invitation-email-reaches-bob-20261029t095910-0bb97a-invi",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-open-http-127-0-0-1-43059-auth-signup-token-m6nclhmb",
+        "folder": "settings-members/invite-accept-lists-member/23-invitee-open-http-127-0-0-1-43059-auth-signup-token-m6nclhmb",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/invite-accept-lists-member/24-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "25-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/invite-accept-lists-member/25-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-fill-textbox-password",
+        "folder": "settings-members/invite-accept-lists-member/26-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=M6NCLHmBxWGFEIjMK46bRqoighd4wNi77IMzRE5p7BJyooP5ZePSWRlnq3VeWES6&email=bob%2B20261029t095910-0bb97a-invite-accept-lists-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "27-invitee-click-button-create-my-account",
+        "folder": "settings-members/invite-accept-lists-member/27-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "28-bob-tester-is-signed-in-after-accepting",
+        "folder": "settings-members/invite-accept-lists-member/28-bob-tester-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "29-accepting-signs-the-new-member-in",
+        "folder": "settings-members/invite-accept-lists-member/29-accepting-signs-the-new-member-in",
+        "checks": [
+          {
+            "name": "button \"Bob Tester\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-accept-lists-member/30-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "31-the-members-list-shows-the-new-member-with-the-role",
+        "folder": "settings-members/invite-accept-lists-member/31-the-members-list-shows-the-new-member-with-the-role",
+        "checks": [
+          {
+            "name": "cell \"/Bob Tester/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "cell \"Support 0c4c0d\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "page shows /2 members/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "34-the-api-lists-the-member-and-the-invitation-is-consumed",
+        "folder": "settings-members/invite-accept-lists-member/34-the-api-lists-the-member-and-the-invitation-is-consumed",
+        "checks": [
+          {
+            "name": "the member exists",
+            "pass": true,
+            "detail": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local"
+          },
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Bob Tester\", got \"Bob Tester\""
+          },
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"], got [\"11c49052-e0cc-44b8-bc08-45a5ad1595eb\"]"
+          },
+          {
+            "name": "not an owner",
+            "pass": true,
+            "detail": "expected false, got false"
+          },
+          {
+            "name": "no invitation left",
+            "pass": true,
+            "detail": "expected undefined, got undefined"
+          }
+        ]
+      },
+      {
+        "name": "39-bob-signed-in-as-bob",
+        "folder": "settings-members/invite-accept-lists-member/39-bob-signed-in-as-bob",
+        "checks": [
+          {
+            "name": "bob signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "41-the-member-signs-in-through-the-form-in-a-new-browser",
+        "folder": "settings-members/invite-accept-lists-member/41-the-member-signs-in-through-the-form-in-a-new-browser",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"_id\":\"6f93bef5-952e-47ac-b259-341bffaabbdf\",\"createdAt\":\"2026-10-29T10:03:13.228Z\",\"updatedAt\":\"2026-10-29T10:03:13.285Z\",\"name\":\"Bob Tester\",\"email\":\"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\",\"isValidated\":true,\"owner\":false,\"language\":\"en\",\"_instance\":null,\"lastActiveAt"
+          },
+          {
+            "name": "email",
+            "pass": true,
+            "detail": "expected \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\", got \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\""
+          },
+          {
+            "name": "owner",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      },
+      {
+        "name": "42-admin-open-settings-user-notifications",
+        "folder": "settings-members/invite-accept-lists-member/42-admin-open-settings-user-notifications",
+        "checks": [
+          {
+            "name": "open /settings/user/notifications",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "43-the-inviter-is-told-the-invitation-was-accepted",
+        "folder": "settings-members/invite-accept-lists-member/43-the-inviter-is-told-the-invitation-was-accepted",
+        "checks": [
+          {
+            "name": "page shows /Bob Tester accepted your invitation/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/invite-accept-lists-member"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "invite-validation-errors",
+    "title": "the invite dialog refuses a bad address, a missing Team and a missing role, and an existing member is skipped",
+    "entryPoint": "Invite members dialog, POST /dms/pages/settings/workspace/members/invite",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j021",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/invite-validation-errors/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-dfefdc-exists",
+        "folder": "settings-members/invite-validation-errors/04-the-role-support-dfefdc-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"12c14272-192c-4112-97ac-10b7332fd8f6\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/invite-validation-errors/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-validation-errors/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/invite-validation-errors/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-a-malformed-address-is-flagged",
+        "folder": "settings-members/invite-validation-errors/14-a-malformed-address-is-flagged",
+        "checks": [
+          {
+            "name": "page shows /not-an-email isn’t a valid email address/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-validation-errors/15-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-the-dialog-stays-open-and-names-the-fields-to-fix",
+        "folder": "settings-members/invite-validation-errors/16-the-dialog-stays-open-and-names-the-fields-to-fix",
+        "checks": [
+          {
+            "name": "page shows /2 fields need your attention/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "dialog \"Invite members\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-not-an-email",
+        "folder": "settings-members/invite-validation-errors/17-admin-click-button-not-an-email",
+        "checks": [
+          {
+            "name": "click button \"not-an-email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/18-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/19-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-support-dfefdc-in-group-roles",
+        "folder": "settings-members/invite-validation-errors/20-admin-click-button-support-dfefdc-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support dfefdc\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-validation-errors/21-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "22-a-missing-team-is-refused",
+        "folder": "settings-members/invite-validation-errors/22-a-missing-team-is-refused",
+        "checks": [
+          {
+            "name": "page shows /1 field needs your attention/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page shows /This value isn’t valid/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "path matches /^\\/settings\\/workspace\\/members$/",
+            "pass": true,
+            "detail": "/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-click-button-carol-20261029t095910-0bb97a-invite-valid",
+        "folder": "settings-members/invite-validation-errors/23-admin-click-button-carol-20261029t095910-0bb97a-invite-valid",
+        "checks": [
+          {
+            "name": "click button \"carol+20261029t095910-0bb97a-invite-validation-errors@verify.local\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/24-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-validation-errors/25-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-click-combobox-team",
+        "folder": "settings-members/invite-validation-errors/26-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "27-admin-click-option-sales",
+        "folder": "settings-members/invite-validation-errors/27-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "28-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-validation-errors/28-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "29-an-address-that-already-belongs-to-a-member-is-refused",
+        "folder": "settings-members/invite-validation-errors/29-an-address-that-already-belongs-to-a-member-is-refused",
+        "checks": [
+          {
+            "name": "page shows /Already a member of this workspace/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "path matches /^\\/settings\\/workspace\\/members$/",
+            "pass": true,
+            "detail": "/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "33-the-api-refuses-a-role-less-invitation-nobody-was-invited-an",
+        "folder": "settings-members/invite-validation-errors/33-the-api-refuses-a-role-less-invitation-nobody-was-invited-an",
+        "checks": [
+          {
+            "name": "answers 4xx",
+            "pass": true,
+            "detail": "400"
+          },
+          {
+            "name": "pending invitations",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          },
+          {
+            "name": "mail sent",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/invite-validation-errors"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "invite-revoke-refuses-link",
+    "title": "revoking an invitation removes it after a reload and its emailed link no longer creates an account",
+    "entryPoint": "Member invitations > Revoke, /auth/signup?token=",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j022",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/invite-revoke-refuses-link/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-0f3942-exists",
+        "folder": "settings-members/invite-revoke-refuses-link/04-the-role-support-0f3942-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"267d33a8-5f82-44d2-a41f-c43afdb46728\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/invite-revoke-refuses-link/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-revoke-refuses-link/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/invite-revoke-refuses-link/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-revoke-refuses-link/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-revoke-refuses-link/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/invite-revoke-refuses-link/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/invite-revoke-refuses-link/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-0f3942-in-group-roles",
+        "folder": "settings-members/invite-revoke-refuses-link/16-admin-click-button-support-0f3942-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 0f3942\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-revoke-refuses-link/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-erin-20261029t095910-0bb97a-inv",
+        "folder": "settings-members/invite-revoke-refuses-link/19-the-invitation-email-reaches-erin-20261029t095910-0bb97a-inv",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-revoke",
+        "folder": "settings-members/invite-revoke-refuses-link/20-admin-click-button-revoke",
+        "checks": [
+          {
+            "name": "click button \"Revoke\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "21-the-dialog-names-the-invitation-and-what-revoking-does",
+        "folder": "settings-members/invite-revoke-refuses-link/21-the-dialog-names-the-invitation-and-what-revoking-does",
+        "checks": [
+          {
+            "name": "dialog \"Revoke the invitation to erin+20261029t095910-0bb97a-invite-revoke-refuses-link@verify.local?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          },
+          {
+            "name": "page shows /The link stops working right away/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-click-button-cancel",
+        "folder": "settings-members/invite-revoke-refuses-link/22-admin-click-button-cancel",
+        "checks": [
+          {
+            "name": "click button \"Cancel\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-reload",
+        "folder": "settings-members/invite-revoke-refuses-link/23-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "24-cancelling-the-dialog-keeps-the-invitation",
+        "folder": "settings-members/invite-revoke-refuses-link/24-cancelling-the-dialog-keeps-the-invitation",
+        "checks": [
+          {
+            "name": "cell \"erin+20261029t095910-0bb97a-invite-revoke-refuses-link@verify.local\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-click-button-revoke",
+        "folder": "settings-members/invite-revoke-refuses-link/25-admin-click-button-revoke",
+        "checks": [
+          {
+            "name": "click button \"Revoke\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-click-button-revoke-in-dialog",
+        "folder": "settings-members/invite-revoke-refuses-link/26-admin-click-button-revoke-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Revoke\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "27-the-invitation-is-revoked",
+        "folder": "settings-members/invite-revoke-refuses-link/27-the-invitation-is-revoked",
+        "checks": [
+          {
+            "name": "page shows /Invitation revoked/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          },
+          {
+            "name": "cell \"erin+20261029t095910-0bb97a-invite-revoke-refuses-link@verify.local\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "28-admin-reload",
+        "folder": "settings-members/invite-revoke-refuses-link/28-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "29-it-is-still-gone-after-a-reload",
+        "folder": "settings-members/invite-revoke-refuses-link/29-it-is-still-gone-after-a-reload",
+        "checks": [
+          {
+            "name": "cell \"erin+20261029t095910-0bb97a-invite-revoke-refuses-link@verify.local\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "31-the-api-holds-no-invitation",
+        "folder": "settings-members/invite-revoke-refuses-link/31-the-api-holds-no-invitation",
+        "checks": [
+          {
+            "name": "pending invitations",
+            "pass": true,
+            "detail": "expected 0, got 0"
+          }
+        ]
+      },
+      {
+        "name": "32-invitee-open-http-127-0-0-1-43059-auth-signup-token-tr76k1tf",
+        "folder": "settings-members/invite-revoke-refuses-link/32-invitee-open-http-127-0-0-1-43059-auth-signup-token-tr76k1tf",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=Tr76K1Tf8tjauSQZ05WstK504FmKeaSHgQzVtcd0JLaflplATfNYcLoqTjORMjrO&email=erin%2B20261029t095910-0bb97a-invite-revoke-refuses-link%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=Tr76K1Tf8tjauSQZ05WstK504FmKeaSHgQzVtcd0JLaflplATfNYcLoqTjORMjrO&email=erin%2B20261029t095910-0bb97a-invite-revoke-refuses-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "33-the-revoked-link-opens-no-sign-up-form",
+        "folder": "settings-members/invite-revoke-refuses-link/33-the-revoked-link-opens-no-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"This invitation was revoked\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=Tr76K1Tf8tjauSQZ05WstK504FmKeaSHgQzVtcd0JLaflplATfNYcLoqTjORMjrO&email=erin%2B20261029t095910-0bb97a-invite-revoke-refuses-link%40verify.local&lang=en"
+          },
+          {
+            "name": "button \"Create my account\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=Tr76K1Tf8tjauSQZ05WstK504FmKeaSHgQzVtcd0JLaflplATfNYcLoqTjORMjrO&email=erin%2B20261029t095910-0bb97a-invite-revoke-refuses-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "35-nobody-joined",
+        "folder": "settings-members/invite-revoke-refuses-link/35-nobody-joined",
+        "checks": [
+          {
+            "name": "members",
+            "pass": true,
+            "detail": "expected [\"admin+20261029t095910-0bb97a@verify.local\"], got [\"admin+20261029t095910-0bb97a@verify.local\"]"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/invite-revoke-refuses-link"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "invite-resend-replaces-link",
+    "title": "resending an invitation emails a new link and the previous link stops working",
+    "entryPoint": "Member invitations > Resend, /auth/signup?token=",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j023",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/invite-resend-replaces-link/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-329a64-exists",
+        "folder": "settings-members/invite-resend-replaces-link/04-the-role-support-329a64-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"ff6e1f29-a190-44b3-8695-16789b92230e\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/invite-resend-replaces-link/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-resend-replaces-link/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/invite-resend-replaces-link/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-resend-replaces-link/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-resend-replaces-link/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/invite-resend-replaces-link/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/invite-resend-replaces-link/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-329a64-in-group-roles",
+        "folder": "settings-members/invite-resend-replaces-link/16-admin-click-button-support-329a64-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 329a64\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-resend-replaces-link/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-fred-20261029t095910-0bb97a-inv",
+        "folder": "settings-members/invite-resend-replaces-link/19-the-invitation-email-reaches-fred-20261029t095910-0bb97a-inv",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-resend",
+        "folder": "settings-members/invite-resend-replaces-link/20-admin-click-button-resend",
+        "checks": [
+          {
+            "name": "click button \"Resend\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-click-button-resend-in-dialog",
+        "folder": "settings-members/invite-resend-replaces-link/21-admin-click-button-resend-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Resend\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "22-the-resend-is-confirmed",
+        "folder": "settings-members/invite-resend-replaces-link/22-the-resend-is-confirmed",
+        "checks": [
+          {
+            "name": "page shows /Invitation resent successfully/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          }
+        ]
+      },
+      {
+        "name": "24-the-invitation-email-reaches-fred-20261029t095910-0bb97a-inv",
+        "folder": "settings-members/invite-resend-replaces-link/24-the-invitation-email-reaches-fred-20261029t095910-0bb97a-inv",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "2 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "25-stale-link-open-http-127-0-0-1-43059-auth-signup-token-bayqc",
+        "folder": "settings-members/invite-resend-replaces-link/25-stale-link-open-http-127-0-0-1-43059-auth-signup-token-bayqc",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=bAYQcl8hU5AosHJ2TAg7x9V4yFzAtOJbub127sSLebBy1vwVML469OvZZukj5SDP&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=bAYQcl8hU5AosHJ2TAg7x9V4yFzAtOJbub127sSLebBy1vwVML469OvZZukj5SDP&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "26-the-first-link-is-refused",
+        "folder": "settings-members/invite-resend-replaces-link/26-the-first-link-is-refused",
+        "checks": [
+          {
+            "name": "heading \"This invitation was replaced by a newer email\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=bAYQcl8hU5AosHJ2TAg7x9V4yFzAtOJbub127sSLebBy1vwVML469OvZZukj5SDP&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "27-invitee-open-http-127-0-0-1-43059-auth-signup-token-i5ngkvwo",
+        "folder": "settings-members/invite-resend-replaces-link/27-invitee-open-http-127-0-0-1-43059-auth-signup-token-i5ngkvwo",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "28-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/invite-resend-replaces-link/28-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "29-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/invite-resend-replaces-link/29-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "30-invitee-fill-textbox-password",
+        "folder": "settings-members/invite-resend-replaces-link/30-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=I5NGkVwOukdEScj4Gyl7ME20qr5CIpz3h7F0cUtKNxXjdhNN2zC4W0YhaUSaWwME&email=fred%2B20261029t095910-0bb97a-invite-resend-replaces-link%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "31-invitee-click-button-create-my-account",
+        "folder": "settings-members/invite-resend-replaces-link/31-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "32-fred-tester-is-signed-in-after-accepting",
+        "folder": "settings-members/invite-resend-replaces-link/32-fred-tester-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "33-the-new-link-creates-the-account",
+        "folder": "settings-members/invite-resend-replaces-link/33-the-new-link-creates-the-account",
+        "checks": [
+          {
+            "name": "button \"Fred Tester\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "35-the-member-is-listed",
+        "folder": "settings-members/invite-resend-replaces-link/35-the-member-is-listed",
+        "checks": [
+          {
+            "name": "member exists",
+            "pass": true,
+            "detail": "fred+20261029t095910-0bb97a-invite-resend-replaces-link@verify.local"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/invite-resend-replaces-link"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "invite-edit-changes-roles",
+    "title": "editing a pending invitation changes the roles and the name its invitee gets on accepting",
+    "entryPoint": "Member invitations > Edit invitation",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j024",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/invite-edit-changes-roles/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-reader-76a0ac-exists",
+        "folder": "settings-members/invite-edit-changes-roles/04-the-role-reader-76a0ac-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"76382fe7-8f16-45b7-9595-6c01eecafee6\"}"
+          }
+        ]
+      },
+      {
+        "name": "06-the-role-writer-b99e6f-exists",
+        "folder": "settings-members/invite-edit-changes-roles/06-the-role-writer-b99e6f-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"b281e793-2cae-4929-bcc8-03d4b1cf3d38\"}"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-signed-in-as-admin",
+        "folder": "settings-members/invite-edit-changes-roles/11-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-open-settings-workspace-members",
+        "folder": "settings-members/invite-edit-changes-roles/12-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-invite-members",
+        "folder": "settings-members/invite-edit-changes-roles/13-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/invite-edit-changes-roles/14-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/invite-edit-changes-roles/15-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-combobox-team",
+        "folder": "settings-members/invite-edit-changes-roles/16-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-option-sales",
+        "folder": "settings-members/invite-edit-changes-roles/17-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-click-button-reader-76a0ac-in-group-roles",
+        "folder": "settings-members/invite-edit-changes-roles/18-admin-click-button-reader-76a0ac-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Reader 76a0ac\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-button-send-invitations",
+        "folder": "settings-members/invite-edit-changes-roles/19-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-edit-invitation",
+        "folder": "settings-members/invite-edit-changes-roles/20-admin-click-button-edit-invitation",
+        "checks": [
+          {
+            "name": "click button \"Edit invitation\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-fill-textbox-first-name",
+        "folder": "settings-members/invite-edit-changes-roles/21-admin-fill-textbox-first-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-fill-textbox-last-name",
+        "folder": "settings-members/invite-edit-changes-roles/22-admin-fill-textbox-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-click-button-reader-76a0ac-in-group-roles",
+        "folder": "settings-members/invite-edit-changes-roles/23-admin-click-button-reader-76a0ac-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Reader 76a0ac\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-click-button-writer-b99e6f-in-group-roles",
+        "folder": "settings-members/invite-edit-changes-roles/24-admin-click-button-writer-b99e6f-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Writer b99e6f\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-click-button-save-changes",
+        "folder": "settings-members/invite-edit-changes-roles/25-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "26-the-edit-is-saved",
+        "folder": "settings-members/invite-edit-changes-roles/26-the-edit-is-saved",
+        "checks": [
+          {
+            "name": "page shows /Data has been successfully saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          }
+        ]
+      },
+      {
+        "name": "27-admin-reload",
+        "folder": "settings-members/invite-edit-changes-roles/27-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "28-the-list-shows-the-new-role-after-a-reload",
+        "folder": "settings-members/invite-edit-changes-roles/28-the-list-shows-the-new-role-after-a-reload",
+        "checks": [
+          {
+            "name": "cell \"Writer b99e6f\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          },
+          {
+            "name": "cell \"Reader 76a0ac\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "30-the-api-holds-the-new-role",
+        "folder": "settings-members/invite-edit-changes-roles/30-the-api-holds-the-new-role",
+        "checks": [
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [\"b281e793-2cae-4929-bcc8-03d4b1cf3d38\"], got [\"b281e793-2cae-4929-bcc8-03d4b1cf3d38\"]"
+          }
+        ]
+      },
+      {
+        "name": "32-the-invitation-email-reaches-gina-20261029t095910-0bb97a-inv",
+        "folder": "settings-members/invite-edit-changes-roles/32-the-invitation-email-reaches-gina-20261029t095910-0bb97a-inv",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "33-admin-click-button-resend",
+        "folder": "settings-members/invite-edit-changes-roles/33-admin-click-button-resend",
+        "checks": [
+          {
+            "name": "click button \"Resend\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "34-admin-click-button-resend-in-dialog",
+        "folder": "settings-members/invite-edit-changes-roles/34-admin-click-button-resend-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Resend\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "36-the-invitation-email-reaches-gina-20261029t095910-0bb97a-inv",
+        "folder": "settings-members/invite-edit-changes-roles/36-the-invitation-email-reaches-gina-20261029t095910-0bb97a-inv",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "2 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "37-invitee-open-http-127-0-0-1-43059-auth-signup-token-eisdujya",
+        "folder": "settings-members/invite-edit-changes-roles/37-invitee-open-http-127-0-0-1-43059-auth-signup-token-eisdujya",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=EISDUJyAB4ZFyGpfVpwjz9NibJCmvHqAF5xBrybRJl8JvAWWjs3EFjdVcKUBnM6N&email=gina%2B20261029t095910-0bb97a-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=EISDUJyAB4ZFyGpfVpwjz9NibJCmvHqAF5xBrybRJl8JvAWWjs3EFjdVcKUBnM6N&email=gina%2B20261029t095910-0bb97a-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "38-the-invitee-sees-the-edited-name-on-the-sign-up-form",
+        "folder": "settings-members/invite-edit-changes-roles/38-the-invitee-sees-the-edited-name-on-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=EISDUJyAB4ZFyGpfVpwjz9NibJCmvHqAF5xBrybRJl8JvAWWjs3EFjdVcKUBnM6N&email=gina%2B20261029t095910-0bb97a-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
+          },
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Gina Edited\", got \"Gina Edited\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/invite-edit-changes-roles"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "members-search-empty-state",
+    "title": "searching members and invitations for nothing shows the empty state, and clearing restores the rows",
+    "entryPoint": "Members and Member invitations search fields",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j025",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/members-search-empty-state/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-members/members-search-empty-state/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-workspace-invites",
+        "folder": "settings-members/members-search-empty-state/08-admin-open-settings-workspace-invites",
+        "checks": [
+          {
+            "name": "open /settings/workspace/invites",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "09-a-workspace-with-no-invitation-shows-an-empty-list",
+        "folder": "settings-members/members-search-empty-state/09-a-workspace-with-no-invitation-shows-an-empty-list",
+        "checks": [
+          {
+            "name": "button \"Invitations 0\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          },
+          {
+            "name": "page shows /Empty table/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          },
+          {
+            "name": "page shows /No data available/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+          },
+          {
+            "name": "cell \"/@/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/members-search-empty-state/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-search-members",
+        "folder": "settings-members/members-search-empty-state/11-admin-fill-textbox-search-members",
+        "checks": [
+          {
+            "name": "fill textbox \"Search members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-a-search-without-a-match-shows-the-empty-state",
+        "folder": "settings-members/members-search-empty-state/12-a-search-without-a-match-shows-the-empty-state",
+        "checks": [
+          {
+            "name": "page shows /No results/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page shows /No data matches these criteria/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "cell \"/Verify Admin/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-clear-search",
+        "folder": "settings-members/members-search-empty-state/13-admin-click-button-clear-search",
+        "checks": [
+          {
+            "name": "click button \"Clear search\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-clearing-the-search-brings-the-member-back",
+        "folder": "settings-members/members-search-empty-state/14-clearing-the-search-brings-the-member-back",
+        "checks": [
+          {
+            "name": "cell \"/Verify Admin/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "page does not show /No results/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-fill-textbox-search-members",
+        "folder": "settings-members/members-search-empty-state/15-admin-fill-textbox-search-members",
+        "checks": [
+          {
+            "name": "fill textbox \"Search members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-a-matching-search-keeps-the-member",
+        "folder": "settings-members/members-search-empty-state/16-a-matching-search-keeps-the-member",
+        "checks": [
+          {
+            "name": "cell \"/Verify Admin/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/members-search-empty-state"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "remove-member-shows-impact",
+    "title": "removing a member first shows what it takes away, then the member is gone from the list and the API and loses access (Data door containment)",
+    "entryPoint": "Members > row menu > Remove from workspace",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j026",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/remove-member-shows-impact/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-viewer-14295f-exists",
+        "folder": "settings-members/remove-member-shows-impact/04-the-role-viewer-14295f-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"9c5d722c-8887-4939-ba04-9378f10e401a\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/remove-member-shows-impact/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/remove-member-shows-impact/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/remove-member-shows-impact/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/remove-member-shows-impact/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/remove-member-shows-impact/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/remove-member-shows-impact/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/remove-member-shows-impact/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-viewer-14295f-in-group-roles",
+        "folder": "settings-members/remove-member-shows-impact/16-admin-click-button-viewer-14295f-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Viewer 14295f\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/remove-member-shows-impact/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-hank-20261029t095910-0bb97a-rem",
+        "folder": "settings-members/remove-member-shows-impact/19-the-invitation-email-reaches-hank-20261029t095910-0bb97a-rem",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-invitee-open-http-127-0-0-1-43059-auth-signup-token-daeg0orn",
+        "folder": "settings-members/remove-member-shows-impact/20-invitee-open-http-127-0-0-1-43059-auth-signup-token-daeg0orn",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "21-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/remove-member-shows-impact/21-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/remove-member-shows-impact/22-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-fill-textbox-password",
+        "folder": "settings-members/remove-member-shows-impact/23-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-click-button-create-my-account",
+        "folder": "settings-members/remove-member-shows-impact/24-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "25-hank-is-signed-in-after-accepting",
+        "folder": "settings-members/remove-member-shows-impact/25-hank-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-open-settings-workspace-members",
+        "folder": "settings-members/remove-member-shows-impact/26-invitee-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "28-before-the-removal-the-member-reads-what-the-role-grants",
+        "folder": "settings-members/remove-member-shows-impact/28-before-the-removal-the-member-reads-what-the-role-grants",
+        "checks": [
+          {
+            "name": "heading \"Members\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "members the member sees",
+            "pass": true,
+            "detail": "expected 2, got 2"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-open-settings-workspace-members",
+        "folder": "settings-members/remove-member-shows-impact/29-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-button-actions-for-hank",
+        "folder": "settings-members/remove-member-shows-impact/30-admin-click-button-actions-for-hank",
+        "checks": [
+          {
+            "name": "click button \"Actions for Hank\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "31-admin-click-menuitem-remove-from-workspace",
+        "folder": "settings-members/remove-member-shows-impact/31-admin-click-menuitem-remove-from-workspace",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove from workspace…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "33-the-dialog-spells-out-the-impact-before-anything-changes",
+        "folder": "settings-members/remove-member-shows-impact/33-the-dialog-spells-out-the-impact-before-anything-changes",
+        "checks": [
+          {
+            "name": "dialog \"Remove Hank from the workspace?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "page shows /signed out of the workspace right away/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page shows /Roles removed\\s*Viewer 14295f/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page shows /Records they created stay/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "35-the-api-reports-the-same-impact",
+        "folder": "settings-members/remove-member-shows-impact/35-the-api-reports-the-same-impact",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"memberId\":\"default:ac6244e4-738f-47fa-8773-13ad71623711\",\"name\":\"Hank\",\"email\":\"hank+20261029t095910-0bb97a-remove-member-shows-impact@verify.local\",\"roles\":[\"Viewer 14295f\"],\"isTenantOwner\":false,\"isLastOwner\":false,\"isSelf\":false}"
+          },
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [\"Viewer 14295f\"], got [\"Viewer 14295f\"]"
+          },
+          {
+            "name": "last owner",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      },
+      {
+        "name": "36-admin-click-button-cancel",
+        "folder": "settings-members/remove-member-shows-impact/36-admin-click-button-cancel",
+        "checks": [
+          {
+            "name": "click button \"Cancel\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "37-admin-reload",
+        "folder": "settings-members/remove-member-shows-impact/37-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "39-cancelling-removes-nobody",
+        "folder": "settings-members/remove-member-shows-impact/39-cancelling-removes-nobody",
+        "checks": [
+          {
+            "name": "cell \"/Hank/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "still a member",
+            "pass": true,
+            "detail": "hank+20261029t095910-0bb97a-remove-member-shows-impact@verify.local"
+          }
+        ]
+      },
+      {
+        "name": "40-admin-open-settings-workspace-members",
+        "folder": "settings-members/remove-member-shows-impact/40-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "41-admin-click-button-actions-for-hank",
+        "folder": "settings-members/remove-member-shows-impact/41-admin-click-button-actions-for-hank",
+        "checks": [
+          {
+            "name": "click button \"Actions for Hank\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "42-admin-click-menuitem-remove-from-workspace",
+        "folder": "settings-members/remove-member-shows-impact/42-admin-click-menuitem-remove-from-workspace",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove from workspace…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "43-admin-click-button-remove-member",
+        "folder": "settings-members/remove-member-shows-impact/43-admin-click-button-remove-member",
+        "checks": [
+          {
+            "name": "click button \"Remove member\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "44-the-removal-is-confirmed",
+        "folder": "settings-members/remove-member-shows-impact/44-the-removal-is-confirmed",
+        "checks": [
+          {
+            "name": "page shows /Member removed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "45-admin-reload",
+        "folder": "settings-members/remove-member-shows-impact/45-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "46-the-member-is-gone-from-the-list-after-a-reload",
+        "folder": "settings-members/remove-member-shows-impact/46-the-member-is-gone-from-the-list-after-a-reload",
+        "checks": [
+          {
+            "name": "cell \"/Hank/\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "page shows /1 member/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "50-the-api-drops-the-member-and-refuses-what-the-role-granted",
+        "folder": "settings-members/remove-member-shows-impact/50-the-api-drops-the-member-and-refuses-what-the-role-granted",
+        "checks": [
+          {
+            "name": "members",
+            "pass": true,
+            "detail": "expected [\"admin+20261029t095910-0bb97a@verify.local\"], got [\"admin+20261029t095910-0bb97a@verify.local\"]"
+          },
+          {
+            "name": "the members list is refused",
+            "pass": true,
+            "detail": "403"
+          },
+          {
+            "name": "sign-in yields no session",
+            "pass": true,
+            "detail": "{\"requires_tenant_assignment\":true,\"tenant_assignment_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFjNjI0NGU0L"
+          },
+          {
+            "name": "sign-in asks for a workspace",
+            "pass": true,
+            "detail": "expected true, got true"
+          }
+        ]
+      },
+      {
+        "name": "51-invitee-open-settings-workspace-members",
+        "folder": "settings-members/remove-member-shows-impact/51-invitee-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "52-the-removed-member-s-open-browser-no-longer-reaches-the-page",
+        "folder": "settings-members/remove-member-shows-impact/52-the-removed-member-s-open-browser-no-longer-reaches-the-page",
+        "checks": [
+          {
+            "name": "heading \"Members\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "54-the-role-itself-stays",
+        "folder": "settings-members/remove-member-shows-impact/54-the-role-itself-stays",
+        "checks": [
+          {
+            "name": "role ids",
+            "pass": true,
+            "detail": "expected [\"9c5d722c-8887-4939-ba04-9378f10e401a\"], got [\"9c5d722c-8887-4939-ba04-9378f10e401a\"]"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/remove-member-shows-impact"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "removed-member-lands-on-a-page",
+    "title": "a removed member who signs in again is told they have no workspace instead of reaching a missing page",
+    "entryPoint": "/auth sign-in form after Remove from workspace",
+    "status": "FAIL",
+    "database": "verify_20261029T095910_0bb97a_j027",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/removed-member-lands-on-a-page/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-287946-exists",
+        "folder": "settings-members/removed-member-lands-on-a-page/04-the-role-support-287946-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"3fe73f9c-ea2b-41ed-9617-ed78b3e25917\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/removed-member-lands-on-a-page/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/removed-member-lands-on-a-page/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/removed-member-lands-on-a-page/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/removed-member-lands-on-a-page/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/removed-member-lands-on-a-page/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/removed-member-lands-on-a-page/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/removed-member-lands-on-a-page/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-287946-in-group-roles",
+        "folder": "settings-members/removed-member-lands-on-a-page/16-admin-click-button-support-287946-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 287946\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/removed-member-lands-on-a-page/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-iris-20261029t095910-0bb97a-rem",
+        "folder": "settings-members/removed-member-lands-on-a-page/19-the-invitation-email-reaches-iris-20261029t095910-0bb97a-rem",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-invitee-open-http-127-0-0-1-43059-auth-signup-token-vgumwlpj",
+        "folder": "settings-members/removed-member-lands-on-a-page/20-invitee-open-http-127-0-0-1-43059-auth-signup-token-vgumwlpj",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "21-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/removed-member-lands-on-a-page/21-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/removed-member-lands-on-a-page/22-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-fill-textbox-password",
+        "folder": "settings-members/removed-member-lands-on-a-page/23-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=vgumWlPj8VrC4E26EUDWrhZ5KzIADwDc6mQYTknLdMhRWlRTV22x3AEenu9oqtVq&email=iris%2B20261029t095910-0bb97a-removed-member-lands-on-a-page%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-click-button-create-my-account",
+        "folder": "settings-members/removed-member-lands-on-a-page/24-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "25-iris-is-signed-in-after-accepting",
+        "folder": "settings-members/removed-member-lands-on-a-page/25-iris-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-open-settings-workspace-members",
+        "folder": "settings-members/removed-member-lands-on-a-page/26-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "27-admin-click-button-actions-for-iris",
+        "folder": "settings-members/removed-member-lands-on-a-page/27-admin-click-button-actions-for-iris",
+        "checks": [
+          {
+            "name": "click button \"Actions for Iris\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "28-admin-click-menuitem-remove-from-workspace",
+        "folder": "settings-members/removed-member-lands-on-a-page/28-admin-click-menuitem-remove-from-workspace",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove from workspace…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-click-button-remove-member",
+        "folder": "settings-members/removed-member-lands-on-a-page/29-admin-click-button-remove-member",
+        "checks": [
+          {
+            "name": "click button \"Remove member\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "30-iris-open-auth",
+        "folder": "settings-members/removed-member-lands-on-a-page/30-iris-open-auth",
+        "checks": [
+          {
+            "name": "open /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "31-iris-fill-textbox-email-address",
+        "folder": "settings-members/removed-member-lands-on-a-page/31-iris-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "32-iris-fill-textbox-password",
+        "folder": "settings-members/removed-member-lands-on-a-page/32-iris-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "33-iris-click-button-login",
+        "folder": "settings-members/removed-member-lands-on-a-page/33-iris-click-button-login",
+        "checks": [
+          {
+            "name": "click button \"Login\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImM5ZTM3OTBiLTMwODQtNDNjZS04N2NjLWU3ODg3NjRmMThiMiIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI2ODMxNywiZXhwIjoxNzkzMjY5MjE3fQ.gs3g56cMYrCajspUuyg_9XQPCpGFgrPeLq8qvhEidRk"
+          }
+        ]
+      },
+      {
+        "name": "34-the-person-is-not-shown-a-missing-page",
+        "folder": "settings-members/removed-member-lands-on-a-page/34-the-person-is-not-shown-a-missing-page",
+        "checks": [
+          {
+            "name": "heading \"Page not found\" is absent",
+            "pass": false,
+            "detail": "http://127.0.0.1:43059/auth/no-workspace?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImM5ZTM3OTBiLTMwODQtNDNjZS04N2NjLWU3ODg3NjRmMThiMiIsInB1cnBvc2UiOiJ0ZW5hbnQtYXNzaWdubWVudCIsImlhdCI6MTc5MzI2ODMxNywiZXhwIjoxNzkzMjY5MjE3fQ.gs3g56cMYrCajspUuyg_9XQPCpGFgrPeLq8qvhEidRk"
+          },
+          {
+            "name": "page shows /workspace/i",
+            "pass": false,
+            "detail": "ERROR 404 Page not found The page you are looking for does not exist or has been moved. Go to home Go back © Antelope Documentation Website English"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/removed-member-lands-on-a-page"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "remove-last-owner-refused",
+    "title": "the only owner cannot remove themself or lose the owner role, and nothing changes",
+    "entryPoint": "Members > row menu of the only owner, DELETE /api/tables/members/delete",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j028",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/remove-last-owner-refused/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-members/remove-last-owner-refused/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-workspace-members",
+        "folder": "settings-members/remove-last-owner-refused/08-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-actions-for-verify-admin",
+        "folder": "settings-members/remove-last-owner-refused/09-admin-click-button-actions-for-verify-admin",
+        "checks": [
+          {
+            "name": "click button \"Actions for Verify Admin\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-menuitem-remove-owner-role",
+        "folder": "settings-members/remove-last-owner-refused/10-admin-click-menuitem-remove-owner-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove owner role…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-remove-owner-role-in-dialog",
+        "folder": "settings-members/remove-last-owner-refused/11-admin-click-button-remove-owner-role-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Remove owner role\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-dropping-the-last-owner-role-is-refused",
+        "folder": "settings-members/remove-last-owner-refused/12-dropping-the-last-owner-role-is-refused",
+        "checks": [
+          {
+            "name": "page shows /Cannot remove the last owner/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page does not show /Owner role removed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-settings-workspace-members",
+        "folder": "settings-members/remove-last-owner-refused/13-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-button-actions-for-verify-admin",
+        "folder": "settings-members/remove-last-owner-refused/14-admin-click-button-actions-for-verify-admin",
+        "checks": [
+          {
+            "name": "click button \"Actions for Verify Admin\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-menuitem-remove-from-workspace",
+        "folder": "settings-members/remove-last-owner-refused/15-admin-click-menuitem-remove-from-workspace",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove from workspace…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-the-dialog-says-they-are-the-only-owner-and-offers-no-remova",
+        "folder": "settings-members/remove-last-owner-refused/16-the-dialog-says-they-are-the-only-owner-and-offers-no-remova",
+        "checks": [
+          {
+            "name": "page shows /You’re the only owner/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "button \"Remove member\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "20-the-api-refuses-with-a-conflict-and-the-owner-stays",
+        "folder": "settings-members/remove-last-owner-refused/20-the-api-refuses-with-a-conflict-and-the-owner-stays",
+        "checks": [
+          {
+            "name": "HTTP 409",
+            "pass": true,
+            "detail": "status 409: \"$page.settings.members.error.last_owner_delete\""
+          },
+          {
+            "name": "members",
+            "pass": true,
+            "detail": "expected [\"admin+20261029t095910-0bb97a@verify.local\"], got [\"admin+20261029t095910-0bb97a@verify.local\"]"
+          },
+          {
+            "name": "still an owner",
+            "pass": true,
+            "detail": "expected true, got true"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/remove-last-owner-refused"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "make-owner-and-back",
+    "title": "making a member owner grants the owner-only pages and removing the owner role takes them away again",
+    "entryPoint": "Members > row menu > Make owner / Remove owner role",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j029",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/make-owner-and-back/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-support-011b20-exists",
+        "folder": "settings-members/make-owner-and-back/04-the-role-support-011b20-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"63fc6fa8-3bf5-488e-9d29-51abb76a59cf\"}"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-signed-in-as-admin",
+        "folder": "settings-members/make-owner-and-back/09-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-open-settings-workspace-members",
+        "folder": "settings-members/make-owner-and-back/10-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-invite-members",
+        "folder": "settings-members/make-owner-and-back/11-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/make-owner-and-back/12-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/make-owner-and-back/13-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-combobox-team",
+        "folder": "settings-members/make-owner-and-back/14-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-option-sales",
+        "folder": "settings-members/make-owner-and-back/15-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-support-011b20-in-group-roles",
+        "folder": "settings-members/make-owner-and-back/16-admin-click-button-support-011b20-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 011b20\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-button-send-invitations",
+        "folder": "settings-members/make-owner-and-back/17-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "19-the-invitation-email-reaches-jack-20261029t095910-0bb97a-mak",
+        "folder": "settings-members/make-owner-and-back/19-the-invitation-email-reaches-jack-20261029t095910-0bb97a-mak",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "20-invitee-open-http-127-0-0-1-43059-auth-signup-token-2mt1bhoz",
+        "folder": "settings-members/make-owner-and-back/20-invitee-open-http-127-0-0-1-43059-auth-signup-token-2mt1bhoz",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=2MT1BhOZR2xcxoE1OSE9wPSjdTyZUGcqX9IBv1EEuex33SbIel27w869DVob30dP&email=jack%2B20261029t095910-0bb97a-make-owner-and-back%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=2MT1BhOZR2xcxoE1OSE9wPSjdTyZUGcqX9IBv1EEuex33SbIel27w869DVob30dP&email=jack%2B20261029t095910-0bb97a-make-owner-and-back%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "21-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/make-owner-and-back/21-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=2MT1BhOZR2xcxoE1OSE9wPSjdTyZUGcqX9IBv1EEuex33SbIel27w869DVob30dP&email=jack%2B20261029t095910-0bb97a-make-owner-and-back%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/make-owner-and-back/22-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=2MT1BhOZR2xcxoE1OSE9wPSjdTyZUGcqX9IBv1EEuex33SbIel27w869DVob30dP&email=jack%2B20261029t095910-0bb97a-make-owner-and-back%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-invitee-fill-textbox-password",
+        "folder": "settings-members/make-owner-and-back/23-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=2MT1BhOZR2xcxoE1OSE9wPSjdTyZUGcqX9IBv1EEuex33SbIel27w869DVob30dP&email=jack%2B20261029t095910-0bb97a-make-owner-and-back%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-click-button-create-my-account",
+        "folder": "settings-members/make-owner-and-back/24-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "25-jack-is-signed-in-after-accepting",
+        "folder": "settings-members/make-owner-and-back/25-jack-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-open-settings-workspace-roles",
+        "folder": "settings-members/make-owner-and-back/26-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "27-before-the-member-is-refused-the-roles-page",
+        "folder": "settings-members/make-owner-and-back/27-before-the-member-is-refused-the-roles-page",
+        "checks": [
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "28-admin-open-settings-workspace-members",
+        "folder": "settings-members/make-owner-and-back/28-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-click-button-actions-for-jack",
+        "folder": "settings-members/make-owner-and-back/29-admin-click-button-actions-for-jack",
+        "checks": [
+          {
+            "name": "click button \"Actions for Jack\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-menuitem-make-owner",
+        "folder": "settings-members/make-owner-and-back/30-admin-click-menuitem-make-owner",
+        "checks": [
+          {
+            "name": "click menuitem \"Make owner…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "31-the-confirmation-names-the-member-and-the-power-it-gives",
+        "folder": "settings-members/make-owner-and-back/31-the-confirmation-names-the-member-and-the-power-it-gives",
+        "checks": [
+          {
+            "name": "dialog \"Make Jack an owner?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "page shows /including billing, roles and removing members/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "32-admin-click-button-make-owner-in-dialog",
+        "folder": "settings-members/make-owner-and-back/32-admin-click-button-make-owner-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Make owner\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "33-the-owner-role-is-given",
+        "folder": "settings-members/make-owner-and-back/33-the-owner-role-is-given",
+        "checks": [
+          {
+            "name": "page shows /Owner role given/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "34-admin-reload",
+        "folder": "settings-members/make-owner-and-back/34-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "36-invitee-open-settings-workspace-roles",
+        "folder": "settings-members/make-owner-and-back/36-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "37-after-the-api-shows-an-owner-who-now-opens-roles",
+        "folder": "settings-members/make-owner-and-back/37-after-the-api-shows-an-owner-who-now-opens-roles",
+        "checks": [
+          {
+            "name": "isTenantOwner",
+            "pass": true,
+            "detail": "expected true, got true"
+          },
+          {
+            "name": "heading \"Roles\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "38-admin-open-settings-workspace-members",
+        "folder": "settings-members/make-owner-and-back/38-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "39-admin-click-button-actions-for-jack",
+        "folder": "settings-members/make-owner-and-back/39-admin-click-button-actions-for-jack",
+        "checks": [
+          {
+            "name": "click button \"Actions for Jack\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "40-admin-click-menuitem-remove-owner-role",
+        "folder": "settings-members/make-owner-and-back/40-admin-click-menuitem-remove-owner-role",
+        "checks": [
+          {
+            "name": "click menuitem \"Remove owner role…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "41-admin-click-button-remove-owner-role-in-dialog",
+        "folder": "settings-members/make-owner-and-back/41-admin-click-button-remove-owner-role-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"Remove owner role\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "42-the-owner-role-is-removed",
+        "folder": "settings-members/make-owner-and-back/42-the-owner-role-is-removed",
+        "checks": [
+          {
+            "name": "page shows /Owner role removed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "44-invitee-open-settings-workspace-roles",
+        "folder": "settings-members/make-owner-and-back/44-invitee-open-settings-workspace-roles",
+        "checks": [
+          {
+            "name": "open /settings/workspace/roles",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      },
+      {
+        "name": "45-back-the-member-keeps-the-role-and-is-refused-the-roles-page",
+        "folder": "settings-members/make-owner-and-back/45-back-the-member-keeps-the-role-and-is-refused-the-roles-page",
+        "checks": [
+          {
+            "name": "isTenantOwner",
+            "pass": true,
+            "detail": "expected false, got false"
+          },
+          {
+            "name": "roles kept",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          },
+          {
+            "name": "heading \"Forbidden\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/make-owner-and-back"
+  },
+  {
+    "feature": "settings-members",
+    "journey": "change-member-roles",
+    "title": "Change roles swaps a member's role and the new role is what the API and the list show",
+    "entryPoint": "Members > row menu > Change roles",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j030",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-members/change-member-roles/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "04-the-role-reader-a0f4e1-exists",
+        "folder": "settings-members/change-member-roles/04-the-role-reader-a0f4e1-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"9c755e75-33e3-4922-b95c-2db396d3d70e\"}"
+          }
+        ]
+      },
+      {
+        "name": "06-the-role-writer-30e6b7-exists",
+        "folder": "settings-members/change-member-roles/06-the-role-writer-30e6b7-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"id\":\"476c07ad-a5dd-49e3-a7d6-93af3e078e67\"}"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-signed-in-as-admin",
+        "folder": "settings-members/change-member-roles/11-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-open-settings-workspace-members",
+        "folder": "settings-members/change-member-roles/12-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-invite-members",
+        "folder": "settings-members/change-member-roles/13-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-email-addresses",
+        "folder": "settings-members/change-member-roles/14-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-members/change-member-roles/15-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-combobox-team",
+        "folder": "settings-members/change-member-roles/16-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-click-option-sales",
+        "folder": "settings-members/change-member-roles/17-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-click-button-reader-a0f4e1-in-group-roles",
+        "folder": "settings-members/change-member-roles/18-admin-click-button-reader-a0f4e1-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Reader a0f4e1\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-button-send-invitations",
+        "folder": "settings-members/change-member-roles/19-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "21-the-invitation-email-reaches-kim-20261029t095910-0bb97a-chan",
+        "folder": "settings-members/change-member-roles/21-the-invitation-email-reaches-kim-20261029t095910-0bb97a-chan",
+        "checks": [
+          {
+            "name": "an email with a signup link arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "22-invitee-open-http-127-0-0-1-43059-auth-signup-token-y994xeq0",
+        "folder": "settings-members/change-member-roles/22-invitee-open-http-127-0-0-1-43059-auth-signup-token-y994xeq0",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "23-the-link-opens-the-sign-up-form",
+        "folder": "settings-members/change-member-roles/23-the-link-opens-the-sign-up-form",
+        "checks": [
+          {
+            "name": "heading \"Create your account\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "24-invitee-fill-textbox-first-and-last-name",
+        "folder": "settings-members/change-member-roles/24-invitee-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "25-invitee-fill-textbox-password",
+        "folder": "settings-members/change-member-roles/25-invitee-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/signup?token=y994xEq0mDkb4LKYTUfnAe7L8NGM8UxCItNZyOmkLpJr8Obpxak0ntrgdhzeD0Us&email=kim%2B20261029t095910-0bb97a-change-member-roles%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "26-invitee-click-button-create-my-account",
+        "folder": "settings-members/change-member-roles/26-invitee-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "27-kim-is-signed-in-after-accepting",
+        "folder": "settings-members/change-member-roles/27-kim-is-signed-in-after-accepting",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "28-admin-open-settings-workspace-members",
+        "folder": "settings-members/change-member-roles/28-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "29-admin-click-button-actions-for-kim",
+        "folder": "settings-members/change-member-roles/29-admin-click-button-actions-for-kim",
+        "checks": [
+          {
+            "name": "click button \"Actions for Kim\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "30-admin-click-menuitem-change-roles",
+        "folder": "settings-members/change-member-roles/30-admin-click-menuitem-change-roles",
+        "checks": [
+          {
+            "name": "click menuitem \"Change roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "31-admin-click-button-reader-a0f4e1-in-group-roles",
+        "folder": "settings-members/change-member-roles/31-admin-click-button-reader-a0f4e1-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Reader a0f4e1\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "32-admin-click-button-writer-30e6b7-in-group-roles",
+        "folder": "settings-members/change-member-roles/32-admin-click-button-writer-30e6b7-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Writer 30e6b7\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "33-admin-click-button-save-changes",
+        "folder": "settings-members/change-member-roles/33-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "34-the-change-is-saved",
+        "folder": "settings-members/change-member-roles/34-the-change-is-saved",
+        "checks": [
+          {
+            "name": "page shows /Data has been successfully saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "35-admin-reload",
+        "folder": "settings-members/change-member-roles/35-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "37-the-list-and-the-api-show-only-the-new-role",
+        "folder": "settings-members/change-member-roles/37-the-list-and-the-api-show-only-the-new-role",
+        "checks": [
+          {
+            "name": "cell \"Writer 30e6b7\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "cell \"Reader a0f4e1\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          },
+          {
+            "name": "roles",
+            "pass": true,
+            "detail": "expected [\"476c07ad-a5dd-49e3-a7d6-93af3e078e67\"], got [\"476c07ad-a5dd-49e3-a7d6-93af3e078e67\"]"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-members/change-member-roles"
+  }
+]

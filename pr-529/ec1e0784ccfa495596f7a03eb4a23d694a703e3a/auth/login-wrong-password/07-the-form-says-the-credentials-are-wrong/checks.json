@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /The provided credentials are incorrect/",
+    "pass": true,
+    "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T095910-0bb97a workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+  },
+  {
+    "name": "path matches /^\\/auth/",
+    "pass": true,
+    "detail": "/auth"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /Role duplicated/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+  },
+  {
+    "name": "name",
+    "pass": true,
+    "detail": "expected \"Support 9dcf9c (copy)\", got \"Support 9dcf9c (copy)\""
+  }
+]

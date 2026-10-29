@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "label": "Workspace",
+        "value": "default",
+        "type": "mono"
+      },
+      {
+        "label": "CheckTenantAccess",
+        "value": "Denied",
+        "type": "status",
+        "tone": "error",
+        "detail": "playground.gate_demo.suspended"
+      }
+    ]
+  },
+  "error": null
+}

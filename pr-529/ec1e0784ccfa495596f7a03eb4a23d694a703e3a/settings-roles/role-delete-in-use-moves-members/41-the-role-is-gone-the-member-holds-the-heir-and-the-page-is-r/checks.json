@@ -1,0 +1,17 @@
+[
+  {
+    "name": "roles",
+    "pass": true,
+    "detail": "expected [\"a4703375-00d4-410f-9578-d22693ad221e\"], got [\"a4703375-00d4-410f-9578-d22693ad221e\"]"
+  },
+  {
+    "name": "member roles",
+    "pass": true,
+    "detail": "expected [\"a4703375-00d4-410f-9578-d22693ad221e\"], got [\"a4703375-00d4-410f-9578-d22693ad221e\"]"
+  },
+  {
+    "name": "heading \"Forbidden\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/playground"
+  }
+]

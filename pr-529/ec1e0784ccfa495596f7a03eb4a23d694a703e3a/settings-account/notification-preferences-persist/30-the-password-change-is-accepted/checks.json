@@ -1,0 +1,7 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"success\":true,\"passwordChangedAt\":\"2026-10-29T10:10:52.101Z\",\"signedOutSessions\":2,\"sessionHandoff\":{\"endpoint\":\"/api/auth/session-handoff\",\"payload\":{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjI2ZmEzOGJiLTgxYTItNDdmYS1hZDUyLTc1NDU4MDdlMTM5ZiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZ"
+  }
+]

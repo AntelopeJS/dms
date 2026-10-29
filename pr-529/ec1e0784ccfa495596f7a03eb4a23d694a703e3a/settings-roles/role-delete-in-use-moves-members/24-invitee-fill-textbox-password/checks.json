@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"Password\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/auth/signup?token=J8ZhN6Uf1bJAN1C0UF9I6jQqILPp793PLNmG0S818hMKGTJtsWuhNJ1TF4BrC9OA&email=noa%2B20261029t095910-0bb97a-role-delete-in-use-moves-members%40verify.local&lang=en"
+  }
+]

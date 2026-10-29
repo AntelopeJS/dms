@@ -1,0 +1,40 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Two-factor verification" [level=1]
+  - paragraph: Enter the 6-digit code sent to your email.
+  - group "Verification code":
+    - textbox "pin input 1 of 6":
+      - /placeholder: ""
+      - text: "3"
+    - textbox "pin input 2 of 6":
+      - /placeholder: ""
+      - text: "6"
+    - textbox "pin input 3 of 6":
+      - /placeholder: ""
+      - text: "4"
+    - textbox "pin input 4 of 6":
+      - /placeholder: ""
+    - textbox "pin input 5 of 6":
+      - /placeholder: ""
+    - textbox "pin input 6 of 6":
+      - /placeholder: ""
+  - button "Verify"
+  - link "Use a backup code":
+    - /url: /auth/backup?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY3MDBkNmI2LTMyNDQtNGY4Yy1hYWIyLWI0ZjU3YjE3ODBhYiIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNjg2OTMsImV4cCI6MTc5MzI2ODk5MywianRpIjoiM2RkNDJiYjQtZjdlNC00NTYzLTllZGEtZGJjMDA1ZmZmNjIyIn0.wkvHtaNQ-VQN-hwRx_oTTx5Pt3Folhu9MJ3CYxhieao&methods=email
+  - link "Back to login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list:
+    - listitem:
+      - text: Verification code sent to your email
+      - button "Close"
+      - progressbar "67%"

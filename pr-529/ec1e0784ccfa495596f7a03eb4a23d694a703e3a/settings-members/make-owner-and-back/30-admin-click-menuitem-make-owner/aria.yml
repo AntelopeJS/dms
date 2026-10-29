@@ -1,0 +1,7 @@
+- dialog "Make Jack an owner?":
+  - heading "Make Jack an owner?" [level=2]
+  - paragraph: Owners have every permission, including billing, roles and removing members.
+  - button "Close"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Make owner"

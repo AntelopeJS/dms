@@ -1,0 +1,12 @@
+[
+  {
+    "name": "cell \"bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+  },
+  {
+    "name": "cell \"Support 0c4c0d\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+  }
+]

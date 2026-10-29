@@ -1,0 +1,12 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:38797/dms/pages/settings/workspace/roles/create",
+  "authenticated": true,
+  "body": {
+    "name": "Heir 018609",
+    "description": "",
+    "permissions": [
+      "playground.reports.export"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"22420b5a-51eb-4846-8386-91f7638205b7\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t095910-0bb97a@verify.local\",\"createdAt\":\"2026-10-29T10:12:58.513Z\",\"updatedAt\":\"2026-10-29T10:13:00.126Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T10:13:00.1"
+  }
+]

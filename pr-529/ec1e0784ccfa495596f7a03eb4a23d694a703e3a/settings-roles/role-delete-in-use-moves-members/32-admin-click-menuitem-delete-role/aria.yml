@@ -1,0 +1,9 @@
+- dialog "Delete Doomed d9c551?":
+  - heading "Delete Doomed d9c551?" [level=2]
+  - paragraph: 1 member or pending invite still holds this role and will lose its permissions, unless you move them to another role.
+  - button "Close"
+  - text: Move them to
+  - combobox "Move them to": No role
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Delete role"

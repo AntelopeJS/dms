@@ -1,0 +1,15 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:38797/dms/pages/settings/workspace/roles/create",
+  "authenticated": true,
+  "body": {
+    "name": "Doomed d9c551",
+    "description": "",
+    "permissions": [
+      "settings",
+      "settings.workspace",
+      "settings.workspace.playground",
+      "settings.workspace.playground.form"
+    ]
+  }
+}

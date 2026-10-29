@@ -1,0 +1,11 @@
+seeded-breaks/auth.patch -> plan.run smoke,auth OK
+seeded-breaks/block-preview.patch -> plan.run smoke,block-preview,module-pages OK
+seeded-breaks/module-pages.patch -> plan.run smoke,module-pages OK
+seeded-breaks/modules-store.patch -> plan.run smoke,modules-store OK
+seeded-breaks/onboarding.patch -> plan.run smoke,onboarding OK
+seeded-breaks/settings-account.patch -> plan.run smoke,settings-account OK
+seeded-breaks/settings-members.patch -> plan.run smoke,settings-members OK
+seeded-breaks/settings-roles.patch -> plan.run smoke,settings-roles OK
+seeded-breaks/shell.patch -> plan.run smoke,shell OK
+seeded-breaks/smoke.patch -> plan.run smoke,settings-members OK
+seeded-breaks/tenancy.patch -> plan.run smoke,auth,tenancy OK

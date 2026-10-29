@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"/^Type quinn\\+20261029t095910-0bb97a-delete-account-member@verify\\.local to confirm/\"",
+  "value": "quinn+20261029t095910-0bb97a-delete-account-member@verify.local",
+  "baseUrl": "http://127.0.0.1:43059"
+}

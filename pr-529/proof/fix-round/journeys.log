@@ -1,0 +1,17 @@
+$ RUN=$(dms-control up --prepare --runs …)
+exit 0 (51 s) -> /home/antony/.cache/campaign/h6/dms-runs/20261029T095150-e8084b
+$ dms-control doctor $RUN
+exit 0
+$ dms-control journey $RUN smoke
+exit 0
+$ dms-control journey $RUN auth base-written-data-upgrade
+exit 0
+$ dms-control journey $RUN settings-members remove-member-shows-impact
+exit 0
+$ dms-control journey $RUN module-pages table-delete-record
+exit 0
+$ dms-control journey $RUN tenancy
+exit 0
+$ dms-control down $RUN
+/home/antony/.cache/campaign/h6/dms-runs/20261029T095150-e8084b/evidence
+exit 0

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "button \"/^Unread [1-9]/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/user/notifications"
+  },
+  {
+    "name": "page shows /New sign-in from/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+  }
+]

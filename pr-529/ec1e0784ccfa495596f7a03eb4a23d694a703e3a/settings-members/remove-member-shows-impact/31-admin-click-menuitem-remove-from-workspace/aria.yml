@@ -1,0 +1,10 @@
+- dialog "Remove Hank from the workspace?":
+  - heading "Remove Hank from the workspace?" [level=2]
+  - paragraph: They’re signed out of the workspace right away and lose access to its data. Their account and other workspaces aren’t affected.
+  - button "Close"
+  - list:
+    - listitem: Roles removed Viewer 14295f
+    - listitem: Records they created stay
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Remove member"

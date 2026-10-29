@@ -1,29 +1,29 @@
 $ RUN=$(node packages/dms/bin/dms-control.mjs up --runs /home/antony/.cache/campaign/h6/dms-runs)
-exit 0 -> /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6
+exit 0 -> /home/antony/.cache/campaign/h6/dms-runs/20261029T095910-0bb97a
 $ node packages/dms/bin/dms-control.mjs doctor $RUN --verbose
 exit 0
 $ node packages/dms/bin/dms-control.mjs journey $RUN smoke
-exit 0 (15 s)
+exit 0 (13 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN onboarding
-exit 1 (38 s)
+exit 1 (39 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN auth
-exit 0 (90 s)
+exit 0 (83 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN shell
-exit 0 (58 s)
+exit 0 (60 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN settings-members
-exit 1 (200 s)
+exit 1 (209 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN settings-roles
 exit 0 (136 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN settings-account
-exit 0 (315 s)
+exit 0 (296 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN module-pages
-exit 0 (79 s)
+exit 0 (88 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN modules-store
-exit 0 (36 s)
+exit 0 (44 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN tenancy
-exit 0 (21 s)
+exit 0 (26 s)
 $ node packages/dms/bin/dms-control.mjs journey $RUN block-preview
-exit 0 (27 s)
+exit 0 (34 s)
 $ node packages/dms/bin/dms-control.mjs plan
 exit 0
 $ node packages/dms/bin/dms-control.mjs doors
@@ -31,9 +31,5 @@ exit 0
 $ node packages/dms/bin/dms-control.mjs formal $RUN --all
 exit 0
 done
-$ node packages/dms/bin/dms-control.mjs verdict $RUN --pr 529
-exit 1
-$ node packages/dms/bin/dms-control.mjs publish $RUN --pr 529
-exit 1
 $ node packages/dms/bin/dms-control.mjs down $RUN
 exit 0

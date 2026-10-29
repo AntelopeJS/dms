@@ -1,0 +1,272 @@
+[
+  {
+    "feature": "block-preview",
+    "journey": "preview-renders-state",
+    "title": "a KpiCard tree in ?state= renders without the dashboard chrome, also after a reload",
+    "entryPoint": "/dms-preview?state=<base64url JSON>",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j073",
+    "steps": [
+      {
+        "name": "02-preview-open-dms-preview-state-eyj0cmvlijp7inr5cguioijlcgldy",
+        "folder": "block-preview/preview-renders-state/02-preview-open-dms-preview-state-eyj0cmvlijp7inr5cguioijlcgldy",
+        "checks": [
+          {
+            "name": "open /dms-preview?state=eyJ0cmVlIjp7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJldmVudWUiLCJzdGF0aWNWYWx1ZSI6NDgyMDAsInN0YXRpY0RlbHRhIjoxMi40LCJzaG93RGVsdGEiOnRydWV9fX0",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview?state=eyJ0cmVlIjp7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJldmVudWUiLCJzdGF0aWNWYWx1ZSI6NDgyMDAsInN0YXRpY0RlbHRhIjoxMi40LCJzaG93RGVsdGEiOnRydWV9fX0"
+          }
+        ]
+      },
+      {
+        "name": "03-the-card-shows-its-title-value-and-delta",
+        "folder": "block-preview/preview-renders-state/03-the-card-shows-its-title-value-and-delta",
+        "checks": [
+          {
+            "name": "page shows /Revenue/i",
+            "pass": true,
+            "detail": "REVENUE 48.2K ▲ +12.4%"
+          },
+          {
+            "name": "page shows /48\\.2K/",
+            "pass": true,
+            "detail": "REVENUE 48.2K ▲ +12.4%"
+          },
+          {
+            "name": "page shows /\\+12\\.4%/",
+            "pass": true,
+            "detail": "REVENUE 48.2K ▲ +12.4%"
+          },
+          {
+            "name": "navigation is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview?state=eyJ0cmVlIjp7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJldmVudWUiLCJzdGF0aWNWYWx1ZSI6NDgyMDAsInN0YXRpY0RlbHRhIjoxMi40LCJzaG93RGVsdGEiOnRydWV9fX0"
+          }
+        ]
+      },
+      {
+        "name": "04-preview-reload",
+        "folder": "block-preview/preview-renders-state/04-preview-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview?state=eyJ0cmVlIjp7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJldmVudWUiLCJzdGF0aWNWYWx1ZSI6NDgyMDAsInN0YXRpY0RlbHRhIjoxMi40LCJzaG93RGVsdGEiOnRydWV9fX0"
+          }
+        ]
+      },
+      {
+        "name": "05-the-state-in-the-url-draws-the-same-card-after-a-reload",
+        "folder": "block-preview/preview-renders-state/05-the-state-in-the-url-draws-the-same-card-after-a-reload",
+        "checks": [
+          {
+            "name": "page shows /48\\.2K/",
+            "pass": true,
+            "detail": "REVENUE 48.2K ▲ +12.4%"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "block-preview/preview-renders-state"
+  },
+  {
+    "feature": "block-preview",
+    "journey": "preview-refuses-unknown-and-remote",
+    "title": "an unregistered block type and an off-site fetchUrl render inline notices instead of blocks",
+    "entryPoint": "/dms-preview?state=",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j074",
+    "steps": [
+      {
+        "name": "02-preview-open-dms-preview-state-eyj0cmvlijpbeyj0exblijoitm9td",
+        "folder": "block-preview/preview-refuses-unknown-and-remote/02-preview-open-dms-preview-state-eyj0cmvlijpbeyj0exblijoitm9td",
+        "checks": [
+          {
+            "name": "open /dms-preview?state=eyJ0cmVlIjpbeyJ0eXBlIjoiTm9TdWNoQmxvY2sifSx7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJlbW90ZSIsImZldGNoVXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9kYXRhIn19XX0",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview?state=eyJ0cmVlIjpbeyJ0eXBlIjoiTm9TdWNoQmxvY2sifSx7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJlbW90ZSIsImZldGNoVXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9kYXRhIn19XX0"
+          }
+        ]
+      },
+      {
+        "name": "03-each-refused-node-says-why",
+        "folder": "block-preview/preview-refuses-unknown-and-remote/03-each-refused-node-says-why",
+        "checks": [
+          {
+            "name": "page shows /“NoSuchBlock” is not a registered block type/",
+            "pass": true,
+            "detail": "“NoSuchBlock” is not a registered block type. KpiCard was not drawn: “https://example.com/data” is not a path of this site."
+          },
+          {
+            "name": "page shows /KpiCard was not drawn: “https:\\/\\/example\\.com\\/data” is not a path of this site/",
+            "pass": true,
+            "detail": "“NoSuchBlock” is not a registered block type. KpiCard was not drawn: “https://example.com/data” is not a path of this site."
+          }
+        ]
+      },
+      {
+        "name": "04-the-page-never-called-the-off-site-url",
+        "folder": "block-preview/preview-refuses-unknown-and-remote/04-the-page-never-called-the-off-site-url",
+        "checks": [
+          {
+            "name": "no request to example.com",
+            "pass": true,
+            "detail": "none off-site"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "block-preview/preview-refuses-unknown-and-remote"
+  },
+  {
+    "feature": "block-preview",
+    "journey": "preview-empty-and-unreadable",
+    "title": "no state says there is nothing to preview, and an unreadable state says so",
+    "entryPoint": "/dms-preview with no or a malformed ?state=",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j075",
+    "steps": [
+      {
+        "name": "02-preview-open-dms-preview",
+        "folder": "block-preview/preview-empty-and-unreadable/02-preview-open-dms-preview",
+        "checks": [
+          {
+            "name": "open /dms-preview",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview"
+          }
+        ]
+      },
+      {
+        "name": "03-the-empty-page-says-there-is-nothing-to-preview",
+        "folder": "block-preview/preview-empty-and-unreadable/03-the-empty-page-says-there-is-nothing-to-preview",
+        "checks": [
+          {
+            "name": "page shows /Nothing to preview yet/",
+            "pass": true,
+            "detail": "Nothing to preview yet."
+          }
+        ]
+      },
+      {
+        "name": "04-preview-open-dms-preview-state-not-base64-json",
+        "folder": "block-preview/preview-empty-and-unreadable/04-preview-open-dms-preview-state-not-base64-json",
+        "checks": [
+          {
+            "name": "open /dms-preview?state=not-base64-json",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/dms-preview?state=not-base64-json"
+          }
+        ]
+      },
+      {
+        "name": "05-a-malformed-state-is-reported",
+        "folder": "block-preview/preview-empty-and-unreadable/05-a-malformed-state-is-reported",
+        "checks": [
+          {
+            "name": "page shows /The preview state could not be read/",
+            "pass": true,
+            "detail": "The preview state could not be read."
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "block-preview/preview-empty-and-unreadable"
+  },
+  {
+    "feature": "block-preview",
+    "journey": "preview-postmessage-render",
+    "title": "an embedding page draws a tree through postMessage after the frame says it is ready",
+    "entryPoint": "/dms-preview in an iframe, postMessage channel dms-preview",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j076",
+    "steps": [
+      {
+        "name": "02-preview-the-embedding-page-after-render",
+        "folder": "block-preview/preview-postmessage-render/02-preview-the-embedding-page-after-render",
+        "checks": [
+          {
+            "name": "the embedding page after render",
+            "pass": true,
+            "detail": "about:blank"
+          }
+        ]
+      },
+      {
+        "name": "03-the-frame-announces-ready-and-draws-the-posted-tree",
+        "folder": "block-preview/preview-postmessage-render/03-the-frame-announces-ready-and-draws-the-posted-tree",
+        "checks": [
+          {
+            "name": "the frame posted ready",
+            "pass": true,
+            "detail": "true"
+          },
+          {
+            "name": "the posted KpiCard is drawn",
+            "pass": true,
+            "detail": "true"
+          },
+          {
+            "name": "the frame reported its height",
+            "pass": true,
+            "detail": "resize message"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "block-preview/preview-postmessage-render"
+  },
+  {
+    "feature": "block-preview",
+    "journey": "block-types-api-members-only",
+    "title": "GET /api/block-preview/types lists the registered blocks to a member and refuses a visitor",
+    "entryPoint": "GET /api/block-preview/types",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j077",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "block-preview/block-types-api-members-only/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "05-members-read-the-catalog-visitors-do-not",
+        "folder": "block-preview/block-types-api-members-only/05-members-read-the-catalog-visitors-do-not",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"Form\":{\"componentName\":\"dms-form\"},\"ActivityFeed\":{\"componentName\":\"dms-activity-feed-block\"},\"Card\":{\"componentName\":\"dms-card-block\"},\"Grid\":{\"componentName\":\"dms-grid\"},\"GridRow\":{\"componentName\":\"dms-grid-row\"},\"KeyValueList\":{\"componentName\":\"dms-key-value-list-block\"},\"NavCardGrid\":{\"compone"
+          },
+          {
+            "name": "KpiCard is listed",
+            "pass": true,
+            "detail": "{\"Form\":{\"componentName\":\"dms-form\"},\"ActivityFeed\":{\"componentName\":\"dms-activity-feed-block\"},\"Card\":{\"componentName\":\"dms-card-block\"},\"Grid\":{\"componentName\":\"dms-grid\"},\"GridRow\":{\"componentName\":\"dms-grid-row\"},\"KeyValueList\":{\"componentName\":\"dms-key-value-list-block\"},\"NavCardGrid\":{\"compone"
+          },
+          {
+            "name": "a visitor is refused",
+            "pass": true,
+            "detail": "401"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "block-preview/block-types-api-members-only"
+  }
+]

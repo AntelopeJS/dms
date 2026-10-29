@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:38797/api/auth/login",
+  "authenticated": false,
+  "body": {
+    "email": "hank+20261029t095910-0bb97a-remove-member-shows-impact@verify.local",
+    "password": "Vr1!Hj3ssfXTmv2L"
+  }
+}

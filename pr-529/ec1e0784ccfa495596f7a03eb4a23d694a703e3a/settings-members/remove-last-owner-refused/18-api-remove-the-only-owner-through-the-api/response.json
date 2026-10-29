@@ -1,0 +1,5 @@
+{
+  "status": 409,
+  "body": "$page.settings.members.error.last_owner_delete",
+  "error": null
+}

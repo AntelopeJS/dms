@@ -1,0 +1,169 @@
+{
+  "feature": "settings-members",
+  "journey": "remove-last-owner-refused",
+  "title": "the only owner cannot remove themself or lose the owner role, and nothing changes",
+  "entryPoint": "Members > row menu of the only owner, DELETE /api/tables/members/delete",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j028",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/remove-last-owner-refused/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-members/remove-last-owner-refused/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-workspace-members",
+      "folder": "settings-members/remove-last-owner-refused/08-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-actions-for-verify-admin",
+      "folder": "settings-members/remove-last-owner-refused/09-admin-click-button-actions-for-verify-admin",
+      "checks": [
+        {
+          "name": "click button \"Actions for Verify Admin\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-menuitem-remove-owner-role",
+      "folder": "settings-members/remove-last-owner-refused/10-admin-click-menuitem-remove-owner-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Remove owner role…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-remove-owner-role-in-dialog",
+      "folder": "settings-members/remove-last-owner-refused/11-admin-click-button-remove-owner-role-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Remove owner role\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-dropping-the-last-owner-role-is-refused",
+      "folder": "settings-members/remove-last-owner-refused/12-dropping-the-last-owner-role-is-refused",
+      "checks": [
+        {
+          "name": "page shows /Cannot remove the last owner/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page does not show /Owner role removed/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-settings-workspace-members",
+      "folder": "settings-members/remove-last-owner-refused/13-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-button-actions-for-verify-admin",
+      "folder": "settings-members/remove-last-owner-refused/14-admin-click-button-actions-for-verify-admin",
+      "checks": [
+        {
+          "name": "click button \"Actions for Verify Admin\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-menuitem-remove-from-workspace",
+      "folder": "settings-members/remove-last-owner-refused/15-admin-click-menuitem-remove-from-workspace",
+      "checks": [
+        {
+          "name": "click menuitem \"Remove from workspace…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-the-dialog-says-they-are-the-only-owner-and-offers-no-remova",
+      "folder": "settings-members/remove-last-owner-refused/16-the-dialog-says-they-are-the-only-owner-and-offers-no-remova",
+      "checks": [
+        {
+          "name": "page shows /You’re the only owner/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "button \"Remove member\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "20-the-api-refuses-with-a-conflict-and-the-owner-stays",
+      "folder": "settings-members/remove-last-owner-refused/20-the-api-refuses-with-a-conflict-and-the-owner-stays",
+      "checks": [
+        {
+          "name": "HTTP 409",
+          "pass": true,
+          "detail": "status 409: \"$page.settings.members.error.last_owner_delete\""
+        },
+        {
+          "name": "members",
+          "pass": true,
+          "detail": "expected [\"admin+20261029t095910-0bb97a@verify.local\"], got [\"admin+20261029t095910-0bb97a@verify.local\"]"
+        },
+        {
+          "name": "still an owner",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/remove-last-owner-refused"
+}

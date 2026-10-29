@@ -1,0 +1,13 @@
+- dialog:
+  - heading [level=2]
+  - paragraph
+  - heading "Add Email verification" [level=3]
+  - paragraph: Confirm your password to add a sign-in method.
+  - text: Current password
+  - textbox "Current password": Vr1!EHabTmewJ4fB
+  - button "Show password"
+  - link "Forgot your password?":
+    - /url: /auth/forgot
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Continue"

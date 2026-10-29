@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "link \"Open\" in article \"Demo Module\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

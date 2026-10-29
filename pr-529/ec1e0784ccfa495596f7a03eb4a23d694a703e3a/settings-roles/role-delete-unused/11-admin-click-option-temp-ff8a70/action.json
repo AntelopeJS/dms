@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"/^Temp ff8a70/\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

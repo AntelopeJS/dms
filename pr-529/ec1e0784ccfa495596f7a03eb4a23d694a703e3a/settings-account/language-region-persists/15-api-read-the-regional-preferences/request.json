@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:38797/dms/pages/settings/user/region/preferences",
+  "authenticated": true,
+  "body": null
+}

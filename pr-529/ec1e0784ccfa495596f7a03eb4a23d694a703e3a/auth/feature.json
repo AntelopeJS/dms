@@ -1,0 +1,911 @@
+[
+  {
+    "feature": "auth",
+    "journey": "login-form-persists",
+    "title": "the sign-in form opens the dashboard and the session survives a reload and a backend restart",
+    "entryPoint": "/auth sign-in form",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j007",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/login-form-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "auth/login-form-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-the-dashboard-shows-the-signed-in-account",
+        "folder": "auth/login-form-persists/08-the-dashboard-shows-the-signed-in-account",
+        "checks": [
+          {
+            "name": "button \"Verify Admin\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-reload",
+        "folder": "auth/login-form-persists/09-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "10-a-reload-keeps-the-session",
+        "folder": "auth/login-form-persists/10-a-reload-keeps-the-session",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/examples/overview"
+          },
+          {
+            "name": "button \"Verify Admin\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-open-settings-workspace-members",
+        "folder": "auth/login-form-persists/11-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-the-session-survives-a-backend-restart",
+        "folder": "auth/login-form-persists/12-the-session-survives-a-backend-restart",
+        "checks": [
+          {
+            "name": "path matches /^\\/settings\\/workspace\\/members$/",
+            "pass": true,
+            "detail": "/settings/workspace/members"
+          },
+          {
+            "name": "heading \"Members\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-the-api-reads-back-the-same-account",
+        "folder": "auth/login-form-persists/14-the-api-reads-back-the-same-account",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"_id\":\"09e2a047-40aa-410c-8c2d-e49c52272d96\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t095910-0bb97a@verify.local\",\"createdAt\":\"2026-10-29T10:00:40.498Z\",\"updatedAt\":\"2026-10-29T10:00:42.081Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T10:00:42.0"
+          },
+          {
+            "name": "email",
+            "pass": true,
+            "detail": "expected \"admin+20261029t095910-0bb97a@verify.local\", got \"admin+20261029t095910-0bb97a@verify.local\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/login-form-persists"
+  },
+  {
+    "feature": "auth",
+    "journey": "login-wrong-password",
+    "title": "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
+    "entryPoint": "/auth sign-in form, POST /api/auth/login",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j008",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/login-wrong-password/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "03-stranger-open-auth",
+        "folder": "auth/login-wrong-password/03-stranger-open-auth",
+        "checks": [
+          {
+            "name": "open /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "04-stranger-fill-textbox-email-address",
+        "folder": "auth/login-wrong-password/04-stranger-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "05-stranger-fill-textbox-password",
+        "folder": "auth/login-wrong-password/05-stranger-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "06-stranger-click-button-login",
+        "folder": "auth/login-wrong-password/06-stranger-click-button-login",
+        "checks": [
+          {
+            "name": "click button \"Login\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "07-the-form-says-the-credentials-are-wrong",
+        "folder": "auth/login-wrong-password/07-the-form-says-the-credentials-are-wrong",
+        "checks": [
+          {
+            "name": "page shows /The provided credentials are incorrect/",
+            "pass": true,
+            "detail": "Connect to your account Welcome back. Sign in to the Verify 20261029T095910-0bb97a workspace. Connection error The provided credentials are incorrect. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+          },
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      },
+      {
+        "name": "09-the-api-answers-401",
+        "folder": "auth/login-wrong-password/09-the-api-answers-401",
+        "checks": [
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          },
+          {
+            "name": "error",
+            "pass": true,
+            "detail": "expected \"error.invalid_credentials\", got \"error.invalid_credentials\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/login-wrong-password"
+  },
+  {
+    "feature": "auth",
+    "journey": "protected-page-redirects",
+    "title": "an anonymous visit to a settings page goes to sign-in and returns to the page afterwards",
+    "entryPoint": "/settings/workspace/members as a visitor",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j009",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/protected-page-redirects/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "03-stranger-open-settings-workspace-members",
+        "folder": "auth/protected-page-redirects/03-stranger-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          }
+        ]
+      },
+      {
+        "name": "04-the-visitor-lands-on-sign-in-with-the-page-to-return-to",
+        "folder": "auth/protected-page-redirects/04-the-visitor-lands-on-sign-in-with-the-page-to-return-to",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          },
+          {
+            "name": "redirect names the page",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          }
+        ]
+      },
+      {
+        "name": "05-stranger-fill-textbox-email-address",
+        "folder": "auth/protected-page-redirects/05-stranger-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          }
+        ]
+      },
+      {
+        "name": "06-stranger-fill-textbox-password",
+        "folder": "auth/protected-page-redirects/06-stranger-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          }
+        ]
+      },
+      {
+        "name": "07-stranger-click-button-login",
+        "folder": "auth/protected-page-redirects/07-stranger-click-button-login",
+        "checks": [
+          {
+            "name": "click button \"Login\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "08-after-signing-in-the-visitor-is-back-on-the-page",
+        "folder": "auth/protected-page-redirects/08-after-signing-in-the-visitor-is-back-on-the-page",
+        "checks": [
+          {
+            "name": "path matches /^\\/settings\\/workspace\\/members$/",
+            "pass": true,
+            "detail": "/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "10-the-members-api-refuses-an-anonymous-caller",
+        "folder": "auth/protected-page-redirects/10-the-members-api-refuses-an-anonymous-caller",
+        "checks": [
+          {
+            "name": "401 or 403",
+            "pass": true,
+            "detail": "401"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/protected-page-redirects"
+  },
+  {
+    "feature": "auth",
+    "journey": "logout-ends-session",
+    "title": "Logout from the account menu ends the session, and the settings page asks to sign in again",
+    "entryPoint": "account menu > Logout",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j010",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/logout-ends-session/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "auth/logout-ends-session/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-click-button-verify-admin",
+        "folder": "auth/logout-ends-session/08-admin-click-button-verify-admin",
+        "checks": [
+          {
+            "name": "click button \"Verify Admin\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-menuitem-logout",
+        "folder": "auth/logout-ends-session/09-admin-click-menuitem-logout",
+        "checks": [
+          {
+            "name": "click menuitem \"Logout\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth"
+          }
+        ]
+      },
+      {
+        "name": "10-the-browser-is-back-on-sign-in",
+        "folder": "auth/logout-ends-session/10-the-browser-is-back-on-sign-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-open-settings-workspace-members",
+        "folder": "auth/logout-ends-session/11-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+          }
+        ]
+      },
+      {
+        "name": "12-the-settings-page-asks-to-sign-in-again",
+        "folder": "auth/logout-ends-session/12-the-settings-page-asks-to-sign-in-again",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/logout-ends-session"
+  },
+  {
+    "feature": "auth",
+    "journey": "forgot-password-resets",
+    "title": "the emailed code resets the password: the new one signs in and the old one is refused",
+    "entryPoint": "/auth/forgot, /auth/forgot-validation, /auth/recover",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j011",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/forgot-password-resets/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "03-stranger-open-auth-forgot",
+        "folder": "auth/forgot-password-resets/03-stranger-open-auth-forgot",
+        "checks": [
+          {
+            "name": "open /auth/forgot",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot"
+          }
+        ]
+      },
+      {
+        "name": "04-stranger-fill-textbox-email-address",
+        "folder": "auth/forgot-password-resets/04-stranger-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot"
+          }
+        ]
+      },
+      {
+        "name": "05-stranger-click-button-send-the-code",
+        "folder": "auth/forgot-password-resets/05-stranger-click-button-send-the-code",
+        "checks": [
+          {
+            "name": "click button \"Send the code\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "06-the-reset-page-asks-for-the-emailed-code",
+        "folder": "auth/forgot-password-resets/06-the-reset-page-asks-for-the-emailed-code",
+        "checks": [
+          {
+            "name": "heading \"Check your inbox\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          },
+          {
+            "name": "path matches /^\\/auth\\/forgot-validation/",
+            "pass": true,
+            "detail": "/auth/forgot-validation"
+          }
+        ]
+      },
+      {
+        "name": "08-the-account-s-address-receives-a-reset-code",
+        "folder": "auth/forgot-password-resets/08-the-account-s-address-receives-a-reset-code",
+        "checks": [
+          {
+            "name": "a reset email arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "09-stranger-fill-textbox-pin-input-1-of-6",
+        "folder": "auth/forgot-password-resets/09-stranger-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "10-stranger-fill-textbox-pin-input-2-of-6",
+        "folder": "auth/forgot-password-resets/10-stranger-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "11-stranger-fill-textbox-pin-input-3-of-6",
+        "folder": "auth/forgot-password-resets/11-stranger-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "12-stranger-fill-textbox-pin-input-4-of-6",
+        "folder": "auth/forgot-password-resets/12-stranger-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "13-stranger-fill-textbox-pin-input-5-of-6",
+        "folder": "auth/forgot-password-resets/13-stranger-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "14-stranger-fill-textbox-pin-input-6-of-6",
+        "folder": "auth/forgot-password-resets/14-stranger-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/recover?token=PBU3SX&email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "15-the-code-opens-the-new-password-form",
+        "folder": "auth/forgot-password-resets/15-the-code-opens-the-new-password-form",
+        "checks": [
+          {
+            "name": "heading \"Reset your password\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/recover?token=PBU3SX&email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "16-stranger-fill-textbox-new-password",
+        "folder": "auth/forgot-password-resets/16-stranger-fill-textbox-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"New password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/recover?token=PBU3SX&email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "17-stranger-click-button-save-the-new-password",
+        "folder": "auth/forgot-password-resets/17-stranger-click-button-save-the-new-password",
+        "checks": [
+          {
+            "name": "click button \"Save the new password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/recover-success"
+          }
+        ]
+      },
+      {
+        "name": "18-the-page-confirms-the-change",
+        "folder": "auth/forgot-password-resets/18-the-page-confirms-the-change",
+        "checks": [
+          {
+            "name": "page shows /Password changed|Your password has been reset/",
+            "pass": true,
+            "detail": "Password changed Your password has been reset. Sign in with your new password. Sign in © Antelope Documentation Website English"
+          }
+        ]
+      },
+      {
+        "name": "21-only-the-new-password-signs-in",
+        "folder": "auth/forgot-password-resets/21-only-the-new-password-signs-in",
+        "checks": [
+          {
+            "name": "new password accepted",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/forgot-password-resets"
+  },
+  {
+    "feature": "auth",
+    "journey": "forgot-password-wrong-code",
+    "title": "a wrong reset code is refused and the password does not change",
+    "entryPoint": "/auth/forgot-validation",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j012",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "auth/forgot-password-wrong-code/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "03-stranger-open-auth-forgot",
+        "folder": "auth/forgot-password-wrong-code/03-stranger-open-auth-forgot",
+        "checks": [
+          {
+            "name": "open /auth/forgot",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot"
+          }
+        ]
+      },
+      {
+        "name": "04-stranger-fill-textbox-email-address",
+        "folder": "auth/forgot-password-wrong-code/04-stranger-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot"
+          }
+        ]
+      },
+      {
+        "name": "05-stranger-click-button-send-the-code",
+        "folder": "auth/forgot-password-wrong-code/05-stranger-click-button-send-the-code",
+        "checks": [
+          {
+            "name": "click button \"Send the code\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "06-the-reset-page-asks-for-the-emailed-code",
+        "folder": "auth/forgot-password-wrong-code/06-the-reset-page-asks-for-the-emailed-code",
+        "checks": [
+          {
+            "name": "heading \"Check your inbox\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          },
+          {
+            "name": "path matches /^\\/auth\\/forgot-validation/",
+            "pass": true,
+            "detail": "/auth/forgot-validation"
+          }
+        ]
+      },
+      {
+        "name": "08-the-account-s-address-receives-a-reset-code",
+        "folder": "auth/forgot-password-wrong-code/08-the-account-s-address-receives-a-reset-code",
+        "checks": [
+          {
+            "name": "a reset email arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "09-stranger-fill-textbox-pin-input-1-of-6",
+        "folder": "auth/forgot-password-wrong-code/09-stranger-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "10-stranger-fill-textbox-pin-input-2-of-6",
+        "folder": "auth/forgot-password-wrong-code/10-stranger-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "11-stranger-fill-textbox-pin-input-3-of-6",
+        "folder": "auth/forgot-password-wrong-code/11-stranger-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "12-stranger-fill-textbox-pin-input-4-of-6",
+        "folder": "auth/forgot-password-wrong-code/12-stranger-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "13-stranger-fill-textbox-pin-input-5-of-6",
+        "folder": "auth/forgot-password-wrong-code/13-stranger-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "14-stranger-fill-textbox-pin-input-6-of-6",
+        "folder": "auth/forgot-password-wrong-code/14-stranger-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          }
+        ]
+      },
+      {
+        "name": "15-the-wrong-code-does-not-open-the-new-password-form",
+        "folder": "auth/forgot-password-wrong-code/15-the-wrong-code-does-not-open-the-new-password-form",
+        "checks": [
+          {
+            "name": "heading \"Reset your password\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/auth/forgot-validation?email=admin%2B20261029t095910-0bb97a%40verify.local"
+          },
+          {
+            "name": "path matches /^\\/auth\\/forgot-validation/",
+            "pass": true,
+            "detail": "/auth/forgot-validation"
+          }
+        ]
+      },
+      {
+        "name": "17-the-password-is-unchanged",
+        "folder": "auth/forgot-password-wrong-code/17-the-password-is-unchanged",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhYTZjNGFlLTRlNGItNDM0ZS1iYjQ4LWNjM2Q1YWE0NDc1OSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjViNjkxMmFlLWU0MzItNDI1Yy1hOGYyLWQ0NGI2NTI2NTRkNSIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNjgwODgsImV4cCI6MTc5MzI3MTY4"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/forgot-password-wrong-code"
+  },
+  {
+    "feature": "auth",
+    "journey": "base-written-data-upgrade",
+    "title": "an owner, a session and a record written by the base version are read by this version (Format containment)",
+    "entryPoint": "the base ref's backend, then this one, on the same database",
+    "status": "PASS",
+    "database": "verify_20261029T095910_0bb97a_j013",
+    "steps": [
+      {
+        "name": "04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
+        "folder": "auth/base-written-data-upgrade/04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
+        "checks": [
+          {
+            "name": "register",
+            "pass": true,
+            "detail": "expected 200, got 200"
+          },
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"_id\":\"8728c620-9fd5-4d26-b0ff-5539190a1233\",\"name\":\"Base Record\",\"email\":\"base-record+20261029t095910-0bb97a-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
+          },
+          {
+            "name": "tokens issued",
+            "pass": true,
+            "detail": "recordId, access, refresh"
+          }
+        ]
+      },
+      {
+        "name": "10-this-version-reads-what-the-base-version-wrote",
+        "folder": "auth/base-written-data-upgrade/10-this-version-reads-what-the-base-version-wrote",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"_id\":\"19fdc203-acaa-43a7-9d2b-5bde512c5693\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t095910-0bb97a@verify.local\",\"createdAt\":\"2026-10-29T10:01:53.873Z\",\"updatedAt\":\"2026-10-29T10:01:53.919Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T10:01:53.9"
+          },
+          {
+            "name": "the account behind the base token",
+            "pass": true,
+            "detail": "expected \"admin+20261029t095910-0bb97a@verify.local\", got \"admin+20261029t095910-0bb97a@verify.local\""
+          },
+          {
+            "name": "the base refresh token refreshes",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE5ZmRjMjAzLWFjYWEtNDNhNy05ZDJiLTViZGU1MTJjNTY5MyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjQ1ZjBlYWZhLWYwODUtNGFlYy04NjVmLWNhNDA0OWM1ZDJkZiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNjgxMTYsImV4cCI6MTc5MzI3MTcx"
+          },
+          {
+            "name": "the record is listed",
+            "pass": true,
+            "detail": "8728c620-9fd5-4d26-b0ff-5539190a1233"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-signed-in-as-admin",
+        "folder": "auth/base-written-data-upgrade/15-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "16-the-owner-signs-in-through-the-form",
+        "folder": "auth/base-written-data-upgrade/16-the-owner-signs-in-through-the-form",
+        "checks": [
+          {
+            "name": "button \"Verify Admin\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:43059/examples/overview"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "auth/base-written-data-upgrade"
+  }
+]

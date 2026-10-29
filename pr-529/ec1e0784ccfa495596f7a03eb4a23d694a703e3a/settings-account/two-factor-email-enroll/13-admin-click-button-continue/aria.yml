@@ -1,0 +1,23 @@
+- dialog:
+  - heading [level=2]
+  - paragraph
+  - heading "Enable email verification" [level=3]
+  - paragraph: We sent a 6-digit code to admin+20261029t095910-0bb97a@verify.local. Enter it to turn on email codes.
+  - text: Code sent to your email
+  - group "Code sent to your email":
+    - textbox "pin input 1 of 6":
+      - /placeholder: ""
+    - textbox "pin input 2 of 6":
+      - /placeholder: ""
+    - textbox "pin input 3 of 6":
+      - /placeholder: ""
+    - textbox "pin input 4 of 6":
+      - /placeholder: ""
+    - textbox "pin input 5 of 6":
+      - /placeholder: ""
+    - textbox "pin input 6 of 6":
+      - /placeholder: ""
+  - button "Send code by email"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Verify and turn on"

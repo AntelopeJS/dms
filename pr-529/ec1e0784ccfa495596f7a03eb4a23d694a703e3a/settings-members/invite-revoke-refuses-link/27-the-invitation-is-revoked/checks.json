@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /Invitation revoked/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+  },
+  {
+    "name": "cell \"erin+20261029t095910-0bb97a-invite-revoke-refuses-link@verify.local\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+  }
+]

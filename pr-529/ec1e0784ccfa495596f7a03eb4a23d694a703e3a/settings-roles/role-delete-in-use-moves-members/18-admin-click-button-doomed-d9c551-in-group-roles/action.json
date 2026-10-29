@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Doomed d9c551\" in group \"Roles\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

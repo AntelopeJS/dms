@@ -1,0 +1,11 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:38797/api/onboarding/register",
+  "authenticated": false,
+  "body": {
+    "email": "first+20261029t095910-0bb97a-concurrent-registers-one-owner@verify.local",
+    "firstName": "first",
+    "lastName": "Racer",
+    "password": "WizardPass1!"
+  }
+}

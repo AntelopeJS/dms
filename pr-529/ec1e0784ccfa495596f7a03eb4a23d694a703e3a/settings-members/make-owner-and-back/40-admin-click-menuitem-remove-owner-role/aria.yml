@@ -1,0 +1,7 @@
+- dialog "Remove Jack’s owner role?":
+  - heading "Remove Jack’s owner role?" [level=2]
+  - paragraph: They keep their roles and lose the permissions only owners have.
+  - button "Close"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Remove owner role"

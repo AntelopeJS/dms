@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Preview as Viewer 98c50c\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

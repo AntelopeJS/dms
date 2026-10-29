@@ -1,0 +1,7 @@
+[
+  {
+    "name": "path matches /^\\/settings$/",
+    "pass": true,
+    "detail": "/settings"
+  }
+]

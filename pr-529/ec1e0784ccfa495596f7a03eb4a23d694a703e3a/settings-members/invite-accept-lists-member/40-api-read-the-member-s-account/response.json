@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "6f93bef5-952e-47ac-b259-341bffaabbdf",
+    "createdAt": "2026-10-29T10:03:13.228Z",
+    "updatedAt": "2026-10-29T10:03:13.285Z",
+    "name": "Bob Tester",
+    "email": "bob+20261029t095910-0bb97a-invite-accept-lists-member@verify.local",
+    "isValidated": true,
+    "owner": false,
+    "language": "en",
+    "_instance": null,
+    "lastActiveAt": "2026-10-29T10:03:13.285Z"
+  },
+  "error": null
+}

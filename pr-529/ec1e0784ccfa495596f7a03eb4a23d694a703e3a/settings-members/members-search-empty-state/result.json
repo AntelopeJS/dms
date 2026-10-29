@@ -1,0 +1,168 @@
+{
+  "feature": "settings-members",
+  "journey": "members-search-empty-state",
+  "title": "searching members and invitations for nothing shows the empty state, and clearing restores the rows",
+  "entryPoint": "Members and Member invitations search fields",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j025",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/members-search-empty-state/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-members/members-search-empty-state/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-workspace-invites",
+      "folder": "settings-members/members-search-empty-state/08-admin-open-settings-workspace-invites",
+      "checks": [
+        {
+          "name": "open /settings/workspace/invites",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "09-a-workspace-with-no-invitation-shows-an-empty-list",
+      "folder": "settings-members/members-search-empty-state/09-a-workspace-with-no-invitation-shows-an-empty-list",
+      "checks": [
+        {
+          "name": "button \"Invitations 0\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        },
+        {
+          "name": "page shows /Empty table/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+        },
+        {
+          "name": "page shows /No data available/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+        },
+        {
+          "name": "cell \"/@/\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-members",
+      "folder": "settings-members/members-search-empty-state/10-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-search-members",
+      "folder": "settings-members/members-search-empty-state/11-admin-fill-textbox-search-members",
+      "checks": [
+        {
+          "name": "fill textbox \"Search members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-a-search-without-a-match-shows-the-empty-state",
+      "folder": "settings-members/members-search-empty-state/12-a-search-without-a-match-shows-the-empty-state",
+      "checks": [
+        {
+          "name": "page shows /No results/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page shows /No data matches these criteria/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "cell \"/Verify Admin/\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-button-clear-search",
+      "folder": "settings-members/members-search-empty-state/13-admin-click-button-clear-search",
+      "checks": [
+        {
+          "name": "click button \"Clear search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-clearing-the-search-brings-the-member-back",
+      "folder": "settings-members/members-search-empty-state/14-clearing-the-search-brings-the-member-back",
+      "checks": [
+        {
+          "name": "cell \"/Verify Admin/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        },
+        {
+          "name": "page does not show /No results/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Members 1 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-fill-textbox-search-members",
+      "folder": "settings-members/members-search-empty-state/15-admin-fill-textbox-search-members",
+      "checks": [
+        {
+          "name": "fill textbox \"Search members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-a-matching-search-keeps-the-member",
+      "folder": "settings-members/members-search-empty-state/16-a-matching-search-keeps-the-member",
+      "checks": [
+        {
+          "name": "cell \"/Verify Admin/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/members-search-empty-state"
+}

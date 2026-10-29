@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "e6ea6575-df53-46af-a3b4-4e24a7012d30",
+        "name": "Support 9dcf9c",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      },
+      {
+        "_id": "51de09a7-b2dc-4058-b903-81650482814c",
+        "name": "Support 9dcf9c (copy)",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

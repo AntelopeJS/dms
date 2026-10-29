@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email\"",
+  "value": "table-user+20261029t095910-0bb97a-table-create-record@verify.local",
+  "baseUrl": "http://127.0.0.1:43059"
+}

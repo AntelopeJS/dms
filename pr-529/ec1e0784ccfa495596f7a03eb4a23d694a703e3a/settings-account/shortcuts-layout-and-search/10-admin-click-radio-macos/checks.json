@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click radio \"macOS\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/user/shortcuts"
+  }
+]

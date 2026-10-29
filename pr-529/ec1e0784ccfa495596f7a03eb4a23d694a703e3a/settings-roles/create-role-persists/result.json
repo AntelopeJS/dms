@@ -1,0 +1,276 @@
+{
+  "feature": "settings-roles",
+  "journey": "create-role-persists",
+  "title": "a new role with a permission is listed, survives a reload and is stored with exactly that permission",
+  "entryPoint": "Settings > Roles > New role, POST /dms/pages/settings/workspace/roles/create",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j032",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/create-role-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-roles/create-role-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/create-role-persists/08-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-new-role",
+      "folder": "settings-roles/create-role-persists/09-admin-click-button-new-role",
+      "checks": [
+        {
+          "name": "click button \"New role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-fill-textbox-role-name",
+      "folder": "settings-roles/create-role-persists/10-admin-fill-textbox-role-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Role name*\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-checkbox-export-reports",
+      "folder": "settings-roles/create-role-persists/11-admin-click-checkbox-export-reports",
+      "checks": [
+        {
+          "name": "click checkbox \"Export reports\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-description",
+      "folder": "settings-roles/create-role-persists/12-admin-fill-textbox-description",
+      "checks": [
+        {
+          "name": "fill textbox \"Description\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "13-the-editor-shows-the-draft-as-unsaved-with-one-permission",
+      "folder": "settings-roles/create-role-persists/13-the-editor-shows-the-draft-as-unsaved-with-one-permission",
+      "checks": [
+        {
+          "name": "page shows /Not saved yet/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page shows /1 of 1259 selected/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "option \"/^Support 264422/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-button-save-changes",
+      "folder": "settings-roles/create-role-persists/14-admin-click-button-save-changes",
+      "checks": [
+        {
+          "name": "click button \"Save changes\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "15-the-role-is-created",
+      "folder": "settings-roles/create-role-persists/15-the-role-is-created",
+      "checks": [
+        {
+          "name": "page shows /Role created/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page shows /1 of 1259 permissions/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "page shows /no member/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/create-role-persists/16-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "17-it-is-listed-after-a-reload",
+      "folder": "settings-roles/create-role-persists/17-it-is-listed-after-a-reload",
+      "checks": [
+        {
+          "name": "option \"/^Support 264422/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        },
+        {
+          "name": "link \"Roles 2\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-click-option-support-264422",
+      "folder": "settings-roles/create-role-persists/18-admin-click-option-support-264422",
+      "checks": [
+        {
+          "name": "click option \"/^Support 264422/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "19-its-name-description-and-permission-are-kept",
+      "folder": "settings-roles/create-role-persists/19-its-name-description-and-permission-are-kept",
+      "checks": [
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Support 264422\", got \"Support 264422\""
+        },
+        {
+          "name": "description",
+          "pass": true,
+          "detail": "expected \"Answers tickets\", got \"Answers tickets\""
+        },
+        {
+          "name": "page shows /1 of 1259 selected/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "checkbox \"Export reports\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "21-the-roles-table-holds-the-role-with-its-one-permission",
+      "folder": "settings-roles/create-role-persists/21-the-roles-table-holds-the-role-with-its-one-permission",
+      "checks": [
+        {
+          "name": "names",
+          "pass": true,
+          "detail": "expected [\"Support 264422\"], got [\"Support 264422\"]"
+        },
+        {
+          "name": "permissions",
+          "pass": true,
+          "detail": "expected [\"playground.reports.export\"], got [\"playground.reports.export\"]"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-click-button-new-role",
+      "folder": "settings-roles/create-role-persists/22-admin-click-button-new-role",
+      "checks": [
+        {
+          "name": "click button \"New role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "23-admin-fill-textbox-role-name",
+      "folder": "settings-roles/create-role-persists/23-admin-fill-textbox-role-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Role name*\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-click-button-save-changes",
+      "folder": "settings-roles/create-role-persists/24-admin-click-button-save-changes",
+      "checks": [
+        {
+          "name": "click button \"Save changes\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "26-a-second-role-with-the-same-name-is-refused",
+      "folder": "settings-roles/create-role-persists/26-a-second-role-with-the-same-name-is-refused",
+      "checks": [
+        {
+          "name": "page shows /Another role already has this name\\./",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "roles stored",
+          "pass": true,
+          "detail": "expected 1, got 1"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/create-role-persists"
+}

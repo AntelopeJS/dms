@@ -1,0 +1,91 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "8728c620-9fd5-4d26-b0ff-5539190a1233",
+        "name": "Base Record",
+        "email": "base-record+20261029t095910-0bb97a-base-written-data-upgrade@verify.local"
+      },
+      {
+        "_id": "1",
+        "name": "Ada Lovelace",
+        "email": "ada.lovelace@example.com"
+      },
+      {
+        "_id": "2",
+        "name": "Grace Hopper",
+        "email": "grace.hopper@example.com"
+      },
+      {
+        "_id": "3",
+        "name": "Alan Turing",
+        "email": "alan.turing@example.com"
+      },
+      {
+        "_id": "4",
+        "name": "Katherine Johnson",
+        "email": "katherine.johnson@example.com"
+      },
+      {
+        "_id": "5",
+        "name": "Linus Torvalds",
+        "email": "linus.torvalds@example.com"
+      },
+      {
+        "_id": "6",
+        "name": "Margaret Hamilton",
+        "email": "margaret.hamilton@example.com"
+      },
+      {
+        "_id": "7",
+        "name": "Tim Berners-Lee",
+        "email": "tim.berners.lee@example.com"
+      },
+      {
+        "_id": "8",
+        "name": "Barbara Liskov",
+        "email": "barbara.liskov@example.com"
+      },
+      {
+        "_id": "9",
+        "name": "Dennis Ritchie",
+        "email": "dennis.ritchie@example.com"
+      },
+      {
+        "_id": "10",
+        "name": "Hedy Lamarr",
+        "email": "hedy.lamarr@example.com"
+      },
+      {
+        "_id": "11",
+        "name": "Ken Thompson",
+        "email": "ken.thompson@example.com"
+      },
+      {
+        "_id": "12",
+        "name": "Frances Allen",
+        "email": "frances.allen@example.com"
+      },
+      {
+        "_id": "13",
+        "name": "Guido van Rossum",
+        "email": "guido.van.rossum@example.com"
+      },
+      {
+        "_id": "14",
+        "name": "Radia Perlman",
+        "email": "radia.perlman@example.com"
+      },
+      {
+        "_id": "15",
+        "name": "Donald Knuth",
+        "email": "donald.knuth@example.com"
+      }
+    ],
+    "total": 16,
+    "offset": 0,
+    "limit": 100
+  },
+  "error": null
+}

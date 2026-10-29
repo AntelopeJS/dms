@@ -1,0 +1,7 @@
+[
+  {
+    "name": "open /dms-preview?state=not-base64-json",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/dms-preview?state=not-base64-json"
+  }
+]

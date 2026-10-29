@@ -1,0 +1,204 @@
+{
+  "feature": "module-pages",
+  "journey": "table-create-record",
+  "title": "New entry creates a user that the table lists, and it survives a reload and a backend restart",
+  "entryPoint": "/table-view/table-view-users > New entry",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j059",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "module-pages/table-create-record/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "module-pages/table-create-record/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-table-view-table-view-users",
+      "folder": "module-pages/table-create-record/08-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-new-entry",
+      "folder": "module-pages/table-create-record/09-admin-click-button-new-entry",
+      "checks": [
+        {
+          "name": "click button \"New entry\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-fill-textbox-name",
+      "folder": "module-pages/table-create-record/10-admin-fill-textbox-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-email",
+      "folder": "module-pages/table-create-record/11-admin-fill-textbox-email",
+      "checks": [
+        {
+          "name": "fill textbox \"Email\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-avatar",
+      "folder": "module-pages/table-create-record/12-admin-fill-textbox-avatar",
+      "checks": [
+        {
+          "name": "fill textbox \"Avatar\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-button-create",
+      "folder": "module-pages/table-create-record/13-admin-click-button-create",
+      "checks": [
+        {
+          "name": "click button \"Create\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-open-table-view-table-view-users",
+      "folder": "module-pages/table-create-record/14-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-button-open-search",
+      "folder": "module-pages/table-create-record/15-admin-click-button-open-search",
+      "checks": [
+        {
+          "name": "click button \"Open search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-fill-textbox-search",
+      "folder": "module-pages/table-create-record/16-admin-fill-textbox-search",
+      "checks": [
+        {
+          "name": "fill textbox \"Search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "17-the-table-lists-the-new-user",
+      "folder": "module-pages/table-create-record/17-the-table-lists-the-new-user",
+      "checks": [
+        {
+          "name": "cell \"Verify User e4817c\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-reload",
+      "folder": "module-pages/table-create-record/18-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-open-search",
+      "folder": "module-pages/table-create-record/19-admin-click-button-open-search",
+      "checks": [
+        {
+          "name": "click button \"Open search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-fill-textbox-search",
+      "folder": "module-pages/table-create-record/20-admin-fill-textbox-search",
+      "checks": [
+        {
+          "name": "fill textbox \"Search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "21-the-user-is-still-listed-after-a-backend-restart",
+      "folder": "module-pages/table-create-record/21-the-user-is-still-listed-after-a-backend-restart",
+      "checks": [
+        {
+          "name": "cell \"Verify User e4817c\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "23-the-data-api-holds-the-user",
+      "folder": "module-pages/table-create-record/23-the-data-api-holds-the-user",
+      "checks": [
+        {
+          "name": "one row with the name and email",
+          "pass": true,
+          "detail": "[{\"_id\":\"7f55eb8d-bafb-4a0c-a9bc-a044a44eea77\",\"name\":\"Verify User e4817c\",\"email\":\"table-user+20261029t095910-0bb97a-table-create-record@verify.local\"}]"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "module-pages/table-create-record"
+}

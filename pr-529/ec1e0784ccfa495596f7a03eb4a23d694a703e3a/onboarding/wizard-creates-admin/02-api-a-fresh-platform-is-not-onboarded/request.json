@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:38797/api/onboarding/informations",
+  "authenticated": false,
+  "body": null
+}

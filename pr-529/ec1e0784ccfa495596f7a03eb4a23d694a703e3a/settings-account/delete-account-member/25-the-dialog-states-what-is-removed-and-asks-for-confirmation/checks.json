@@ -1,0 +1,12 @@
+[
+  {
+    "name": "dialog is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/user/profile"
+  },
+  {
+    "name": "page shows /Delete my account|Delete your account/",
+    "pass": true,
+    "detail": "Search… CTRL K QM Quinn Member quinn+20261029t095910-0bb97a-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+  }
+]

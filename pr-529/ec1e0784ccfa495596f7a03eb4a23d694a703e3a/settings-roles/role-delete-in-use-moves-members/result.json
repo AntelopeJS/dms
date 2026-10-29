@@ -1,0 +1,378 @@
+{
+  "feature": "settings-roles",
+  "journey": "role-delete-in-use-moves-members",
+  "title": "deleting a role members still hold says how many, and moves them to the chosen role (containment of what they lose)",
+  "entryPoint": "Settings > Roles > Delete role > Move them to",
+  "status": "PASS",
+  "database": "verify_20261029T095910_0bb97a_j040",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-roles/role-delete-in-use-moves-members/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-doomed-d9c551-exists",
+      "folder": "settings-roles/role-delete-in-use-moves-members/04-the-role-doomed-d9c551-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"6e5a20e7-e423-4dac-bce1-87c1807e8076\"}"
+        }
+      ]
+    },
+    {
+      "name": "06-the-role-heir-018609-exists",
+      "folder": "settings-roles/role-delete-in-use-moves-members/06-the-role-heir-018609-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"a4703375-00d4-410f-9578-d22693ad221e\"}"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-signed-in-as-admin",
+      "folder": "settings-roles/role-delete-in-use-moves-members/11-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-open-settings-workspace-members",
+      "folder": "settings-roles/role-delete-in-use-moves-members/12-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-button-invite-members",
+      "folder": "settings-roles/role-delete-in-use-moves-members/13-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-fill-textbox-email-addresses",
+      "folder": "settings-roles/role-delete-in-use-moves-members/14-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-roles/role-delete-in-use-moves-members/15-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-combobox-team",
+      "folder": "settings-roles/role-delete-in-use-moves-members/16-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-option-sales",
+      "folder": "settings-roles/role-delete-in-use-moves-members/17-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-click-button-doomed-d9c551-in-group-roles",
+      "folder": "settings-roles/role-delete-in-use-moves-members/18-admin-click-button-doomed-d9c551-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Doomed d9c551\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-send-invitations",
+      "folder": "settings-roles/role-delete-in-use-moves-members/19-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "21-the-invitation-email-reaches-noa-20261029t095910-0bb97a-role",
+      "folder": "settings-roles/role-delete-in-use-moves-members/21-the-invitation-email-reaches-noa-20261029t095910-0bb97a-role",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "22-invitee-open-http-127-0-0-1-43059-auth-signup-token-j8zhn6uf",
+      "folder": "settings-roles/role-delete-in-use-moves-members/22-invitee-open-http-127-0-0-1-43059-auth-signup-token-j8zhn6uf",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:43059/auth/signup?token=J8ZhN6Uf1bJAN1C0UF9I6jQqILPp793PLNmG0S818hMKGTJtsWuhNJ1TF4BrC9OA&email=noa%2B20261029t095910-0bb97a-role-delete-in-use-moves-members%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=J8ZhN6Uf1bJAN1C0UF9I6jQqILPp793PLNmG0S818hMKGTJtsWuhNJ1TF4BrC9OA&email=noa%2B20261029t095910-0bb97a-role-delete-in-use-moves-members%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "23-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-roles/role-delete-in-use-moves-members/23-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=J8ZhN6Uf1bJAN1C0UF9I6jQqILPp793PLNmG0S818hMKGTJtsWuhNJ1TF4BrC9OA&email=noa%2B20261029t095910-0bb97a-role-delete-in-use-moves-members%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "24-invitee-fill-textbox-password",
+      "folder": "settings-roles/role-delete-in-use-moves-members/24-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/auth/signup?token=J8ZhN6Uf1bJAN1C0UF9I6jQqILPp793PLNmG0S818hMKGTJtsWuhNJ1TF4BrC9OA&email=noa%2B20261029t095910-0bb97a-role-delete-in-use-moves-members%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "25-invitee-click-button-create-my-account",
+      "folder": "settings-roles/role-delete-in-use-moves-members/25-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "26-noa-is-signed-in-after-accepting",
+      "folder": "settings-roles/role-delete-in-use-moves-members/26-noa-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "27-invitee-open-settings-workspace-playground",
+      "folder": "settings-roles/role-delete-in-use-moves-members/27-invitee-open-settings-workspace-playground",
+      "checks": [
+        {
+          "name": "open /settings/workspace/playground",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/playground"
+        }
+      ]
+    },
+    {
+      "name": "28-before-the-member-reaches-the-page-the-doomed-role-grants",
+      "folder": "settings-roles/role-delete-in-use-moves-members/28-before-the-member-reaches-the-page-the-doomed-role-grants",
+      "checks": [
+        {
+          "name": "heading \"Playground\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/playground"
+        }
+      ]
+    },
+    {
+      "name": "29-admin-open-settings-workspace-roles",
+      "folder": "settings-roles/role-delete-in-use-moves-members/29-admin-open-settings-workspace-roles",
+      "checks": [
+        {
+          "name": "open /settings/workspace/roles",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-click-option-doomed-d9c551",
+      "folder": "settings-roles/role-delete-in-use-moves-members/30-admin-click-option-doomed-d9c551",
+      "checks": [
+        {
+          "name": "click option \"/^Doomed d9c551/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "31-admin-click-button-more-role-actions",
+      "folder": "settings-roles/role-delete-in-use-moves-members/31-admin-click-button-more-role-actions",
+      "checks": [
+        {
+          "name": "click button \"More role actions\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "32-admin-click-menuitem-delete-role",
+      "folder": "settings-roles/role-delete-in-use-moves-members/32-admin-click-menuitem-delete-role",
+      "checks": [
+        {
+          "name": "click menuitem \"Delete role\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "33-the-dialog-says-one-member-still-holds-the-role",
+      "folder": "settings-roles/role-delete-in-use-moves-members/33-the-dialog-says-one-member-still-holds-the-role",
+      "checks": [
+        {
+          "name": "dialog \"Delete Doomed d9c551?\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        },
+        {
+          "name": "page shows /1 member or pending invite still holds this role/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+        },
+        {
+          "name": "combobox \"Move them to\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "34-admin-click-combobox-move-them-to",
+      "folder": "settings-roles/role-delete-in-use-moves-members/34-admin-click-combobox-move-them-to",
+      "checks": [
+        {
+          "name": "click combobox \"Move them to\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "35-admin-click-option-heir-018609",
+      "folder": "settings-roles/role-delete-in-use-moves-members/35-admin-click-option-heir-018609",
+      "checks": [
+        {
+          "name": "click option \"Heir 018609\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "36-admin-click-button-delete-role-in-dialog",
+      "folder": "settings-roles/role-delete-in-use-moves-members/36-admin-click-button-delete-role-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Delete role\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+        }
+      ]
+    },
+    {
+      "name": "37-the-role-is-deleted",
+      "folder": "settings-roles/role-delete-in-use-moves-members/37-the-role-is-deleted",
+      "checks": [
+        {
+          "name": "page shows /Role deleted/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t095910-0bb97a@verify.local / Settings / Workspace / Roles 2 Settings / All settings ACCOUNT Profile Language & r…"
+        }
+      ]
+    },
+    {
+      "name": "40-invitee-open-settings-workspace-playground",
+      "folder": "settings-roles/role-delete-in-use-moves-members/40-invitee-open-settings-workspace-playground",
+      "checks": [
+        {
+          "name": "open /settings/workspace/playground",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/playground"
+        }
+      ]
+    },
+    {
+      "name": "41-the-role-is-gone-the-member-holds-the-heir-and-the-page-is-r",
+      "folder": "settings-roles/role-delete-in-use-moves-members/41-the-role-is-gone-the-member-holds-the-heir-and-the-page-is-r",
+      "checks": [
+        {
+          "name": "roles",
+          "pass": true,
+          "detail": "expected [\"a4703375-00d4-410f-9578-d22693ad221e\"], got [\"a4703375-00d4-410f-9578-d22693ad221e\"]"
+        },
+        {
+          "name": "member roles",
+          "pass": true,
+          "detail": "expected [\"a4703375-00d4-410f-9578-d22693ad221e\"], got [\"a4703375-00d4-410f-9578-d22693ad221e\"]"
+        },
+        {
+          "name": "heading \"Forbidden\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:43059/settings/workspace/playground"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-roles/role-delete-in-use-moves-members"
+}

@@ -1,0 +1,21 @@
+ok   run is ready: /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6
+ok   mongod pid 28035 alive: /home/antony/.cache/mongodb-binaries/mongod-x64-void-8.0.8 --dbpath /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/mongo --port 43631 --bind_ip 127.0.0.1
+ok   port 43631 held by the run: listening pids 28035
+ok   mail pid 28114 alive: /home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/packages/dms/bin/dms-control.mjs serve-mail /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6
+ok   port 45821 held by the run: listening pids 28114
+ok   backend pid 1486 alive: /home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/node_modules/.pnpm/@antelopejs+core@1.17.0/node_modules/@antelopejs/core/dist/core/cli/index.js project start -e docs --refresh-config
+ok   port 35351 held by the run: listening pids 1486
+ok   frontend pid 3150 alive: /home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/t6/dms/node_modules/.pnpm/@antelopejs+dms-frontend@0.9.1_@antelopejs+core@1.17.0/node_modules/@antelopejs/dms-frontend/dist/index.js start -e docs -b http://127.0.0.1:35351 -p 40839
+ok   port 40839 held by the run: listening pids 3195
+ok   backend answers: http://127.0.0.1:35351/api/onboarding/informations
+ok   frontend answers: http://127.0.0.1:40839/dms-preview
+ok   frontend -b is this run's backend: http://127.0.0.1:35351
+ok   versions: module 0.11.1 (/home/antony/code/antelope/t6/dms/packages/dms), @antelopejs/core 1.17.0, @antelopejs/dms-frontend 0.9.1
+ok   module dist newer than src: /home/antony/code/antelope/t6/dms/packages/dms/dist
+ok   playground dist newer than src: /home/antony/code/antelope/t6/dms/packages/dms/playground/dist
+ok   frontend build newer than frontend-vue: /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root/packages/dms/playground/.dms-frontend/dist
+ok   database is the run's: mongodb://127.0.0.1:43631/verify_20261029T064557_d7cef6
+ok   checkout HEAD unchanged since up: up at ff0240d302495b16ad43806b3f0e6016fea1706e, now ff0240d302495b16ad43806b3f0e6016fea1706e
+ok   playground copy is the run's: /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root/packages/dms/playground
+ok   module copy links the checkout: /home/antony/.cache/campaign/h6/dms-runs/20261029T064557-d7cef6/root
+ok   admin session: not onboarded yet

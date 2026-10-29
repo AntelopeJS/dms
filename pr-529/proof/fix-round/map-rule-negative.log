@@ -1,0 +1,4 @@
+$ (scratch) drop packages/dms/frontend-vue/layers/dms-ui/app/build/utils/blockPreview.ts from block-preview covers
+$ dms-control map --skill <scratch skill>
+.agents/skills/verify-dms/features/block-preview.md: its seeded break edits packages/dms/frontend-vue/layers/dms-ui/app/build/utils/blockPreview.ts, which its covers globs miss, so plan would not run it
+exit 1

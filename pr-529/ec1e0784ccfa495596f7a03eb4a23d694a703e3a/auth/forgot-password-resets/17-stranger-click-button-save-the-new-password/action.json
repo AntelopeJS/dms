@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Save the new password\"",
+  "baseUrl": "http://127.0.0.1:43059"
+}

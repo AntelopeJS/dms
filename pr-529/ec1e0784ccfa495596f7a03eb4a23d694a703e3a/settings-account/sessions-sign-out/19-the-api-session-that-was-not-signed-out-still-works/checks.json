@@ -1,0 +1,7 @@
+[
+  {
+    "name": "status",
+    "pass": true,
+    "detail": "expected 200, got 200"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "6b3854f5-6267-4b77-9e38-2d6f105f0083",
+    "name": "Verify Admin",
+    "email": "admin+20261029t095910-0bb97a@verify.local",
+    "createdAt": "2026-10-29T10:10:10.262Z",
+    "updatedAt": "2026-10-29T10:10:13.497Z",
+    "isValidated": true,
+    "owner": true,
+    "language": "fr",
+    "_instance": null,
+    "lastActiveAt": "2026-10-29T10:10:11.826Z"
+  },
+  "error": null
+}

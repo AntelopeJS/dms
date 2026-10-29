@@ -1,0 +1,41 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - group "Setup progress":
+    - button "Platform" [disabled]
+    - text: Platform
+    - button "Administrator" [disabled]: "2"
+    - text: Administrator
+    - button "Ready" [disabled]: "3"
+    - text: Ready
+    - status: Step 1 of 3
+  - text: Step 2 of 3 · Administrator Verify Wizard d4165e
+  - heading "Create the administrator account" [level=1]
+  - paragraph: "This account owns the platform: it can manage modules, settings and invite everyone else."
+  - text: First name
+  - textbox "First name": Wiz
+  - text: Last name
+  - textbox "Last name": Ard
+  - text: Work e-mail
+  - textbox "Work e-mail": wizard+20261029t095910-0bb97a-wizard-creates-admin@verify.local
+  - text: Password
+  - textbox "Password"
+  - button "Show password": Show
+  - list:
+    - listitem: At least 8 characters not met yet
+    - listitem: At least one uppercase letter not met yet
+    - listitem: At least one number not met yet
+    - listitem: At least one special character (@$!%*?&) not met yet
+    - listitem: Only letters, digits and allowed special characters not met yet
+  - button "Create administrator account"
+  - button "Back to platform details"
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

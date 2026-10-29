@@ -1,0 +1,12 @@
+[
+  {
+    "name": "name",
+    "pass": true,
+    "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+  },
+  {
+    "name": "member names",
+    "pass": true,
+    "detail": "expected [\"Verify Renamed\"], got [\"Verify Renamed\"]"
+  }
+]

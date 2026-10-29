@@ -1,0 +1,7 @@
+[
+  {
+    "name": "has_onboarded",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

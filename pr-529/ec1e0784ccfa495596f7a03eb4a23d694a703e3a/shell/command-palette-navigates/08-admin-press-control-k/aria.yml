@@ -1,0 +1,56 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Type a command or search…"
+  - button "Close"
+  - listbox:
+    - group "Playground":
+      - text: Playground
+      - option "Open the tabs table"
+      - option "Open project invoicer"
+      - option "New task"
+      - option "New invoice (survives the gate)"
+      - option "New nested task"
+      - option "Press the quick actions table's button"
+      - option "Dispatch a demo event"
+    - group "Table View":
+      - text: Table View
+      - option "New Task (Drawer)"
+      - option "New Task (Page)"
+      - option "New Task (Modal)"
+      - option "New Task (Custom Actions)"
+      - option "New Contact (Grouped)"
+      - option "New Task (Archive)"
+      - option "New Task (Conditional Delete)"
+      - option "Complete all pending tasks"
+    - group "Members":
+      - text: Members
+      - option "Invite a member"
+    - group "Navigation":
+      - text: Navigation
+      - option "OverviewExamples"
+      - option "Feature indexExamples"
+      - option "Themed Nuxt UILibrary › Design system › Primitives"
+      - option "Icons, pills & labelsLibrary › Design system › Foundations"
+      - option "Feedback & statusLibrary › Design system › Foundations"
+      - option "Lists & dataLibrary › Design system › Foundations"
+      - option "Cards & controlsLibrary › Design system › Foundations"
+      - option "OverlaysLibrary › Design system › Foundations"
+      - option "Stat groupLibrary › Design system › Blocks"
+      - option "Key / value & cardLibrary › Design system › Blocks"
+      - option "Navigation cardsLibrary › Design system › Blocks"
+      - option "Banner & empty stateLibrary › Design system › Blocks"
+    - group "Session":
+      - text: Session
+      - option "Profile"
+      - option "Settings"
+      - option "Switch account"
+      - option "Change language"
+      - option "Copy current page URL"
+      - option "Logout"
+    - group "Theme":
+      - text: Theme
+      - option "System"
+      - option "Light"
+      - option "Dark"
+  - text: ↑ ↓ Navigate ↵ Open Esc Close

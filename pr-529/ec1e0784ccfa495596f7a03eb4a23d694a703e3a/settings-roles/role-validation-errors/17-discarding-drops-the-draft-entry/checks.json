@@ -1,0 +1,12 @@
+[
+  {
+    "name": "option \"/Untitled role/\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/settings/workspace/roles"
+  },
+  {
+    "name": "1 × option",
+    "pass": true,
+    "detail": "found 1"
+  }
+]

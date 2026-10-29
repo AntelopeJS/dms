@@ -1,7 +1,7 @@
 {
   "baseRef": "origin/main",
-  "baseSha": "8893bde243eae944fb5bcdfdf89ccf5df09028a3",
-  "headSha": "ff0240d302495b16ad43806b3f0e6016fea1706e",
+  "baseSha": "1f86db9ae915af0587c5aaf9318cb82617474e8d",
+  "headSha": "ec1e0784ccfa495596f7a03eb4a23d694a703e3a",
   "changed": [
     ".agents/formal/tlc.mjs",
     ".agents/skills/formal-onboarding-bootstrap/OnboardingBootstrap.cfg",
@@ -110,6 +110,7 @@
   "touched": [],
   "unmapped": [],
   "docs": [],
+  "containments": [],
   "run": [
     "smoke"
   ]

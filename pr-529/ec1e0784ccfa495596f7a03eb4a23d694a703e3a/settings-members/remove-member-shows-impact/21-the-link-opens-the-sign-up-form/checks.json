@@ -1,0 +1,7 @@
+[
+  {
+    "name": "heading \"Create your account\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:43059/auth/signup?token=dAeg0ORNPZ4xD4lyC0I4WcyzlNoOuPHUrVmGhguR0mcrPIkrlnJkh9XpfkukmzaE&email=hank%2B20261029t095910-0bb97a-remove-member-shows-impact%40verify.local&lang=en"
+  }
+]
