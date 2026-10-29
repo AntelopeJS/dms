@@ -485,16 +485,9 @@ export function buildFormPageUrls(
   routeKey: string,
   pages?: FormContainerPages,
 ): TableViewFormPageUrls {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This initially empty accumulator is incomplete until FORM_PAGE_KINDS fills every published URL key below.
-  const urls = {} as TableViewFormPageUrls;
-  for (const kind of FORM_PAGE_KINDS) {
-    urls[kind] = toFormPageUrl(
-      pageSlug,
-      formPageSlug(kind, routeKey, pages),
-      joinPageSlug,
-    );
-  }
-  return urls;
+  const urlOf = (kind: FormPageKind) =>
+    toFormPageUrl(pageSlug, formPageSlug(kind, routeKey, pages), joinPageSlug);
+  return { new: urlOf("new"), edit: urlOf("edit"), view: urlOf("view") };
 }
 
 /**

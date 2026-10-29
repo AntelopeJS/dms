@@ -46,15 +46,18 @@ export async function resolveTableViewGrants(
   permissions: Set<string>,
   permissionId: string,
 ): Promise<TableViewGrants> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This accumulator is incomplete when created; the following loop populates every published grant key before return.
-  const grants = {} as TableViewGrants;
-  for (const action of GRANTED_ACTIONS) {
-    grants[action] = await HasPermission(
-      permissions,
-      `${permissionId}.${action}`,
-    );
-  }
-  return grants;
+  const holds = (action: (typeof GRANTED_ACTIONS)[number]) =>
+    HasPermission(permissions, `${permissionId}.${action}`);
+  return {
+    add: await holds("add"),
+    edit: await holds("edit"),
+    delete: await holds("delete"),
+    view: await holds("view"),
+    archive: await holds("archive"),
+    restore: await holds("restore"),
+    viewArchived: await holds("viewArchived"),
+    export: await holds("export"),
+  };
 }
 
 /**

@@ -1,30 +1,35 @@
 import type { TableViewRowActionOptions } from "../table-view";
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
 
+type ArchiveModeAction =
+  | "edit"
+  | "duplicate"
+  | "archive"
+  | "restore"
+  | "delete";
+
 export function applyArchiveModeDefaultRules<T extends Record<string, unknown>>(
   rowActions: TableViewRowActionOptions<T> | undefined,
   archiveField: string,
 ): TableViewRowActionOptions<T> | undefined {
   const result: TableViewRowActionOptions<T> = { ...rowActions };
 
-  const rules = {
-    edit: { field: archiveField, notEquals: true },
-    duplicate: { field: archiveField, notEquals: true },
-    archive: { field: archiveField, notEquals: true },
-    restore: { field: archiveField, equals: true },
-    delete: { field: archiveField, equals: true },
-  };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is any string, not a proven key of T; preserve the existing generated boolean rule contract.
+  const rules = [
+    ["edit", { field: archiveField, notEquals: true }],
+    ["duplicate", { field: archiveField, notEquals: true }],
+    ["archive", { field: archiveField, notEquals: true }],
+    ["restore", { field: archiveField, equals: true }],
+    ["delete", { field: archiveField, equals: true }],
+  ] as Array<[ArchiveModeAction, RowActionRule<T>]>;
 
-  for (const [action, defaultRule] of Object.entries(rules)) {
-    // SAFETY: Object.entries enumerates the five own action names of the local rules literal.
-    const actionKey = action as keyof typeof rules;
+  for (const [actionKey, defaultRule] of rules) {
     const userConfig = rowActions?.[actionKey];
 
     if (userConfig === undefined) {
       result[actionKey] = {
         isEnabled: true,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is any string, not a proven key of T; preserve the existing generated boolean rule contract.
-        rule: defaultRule as RowActionRule<T>,
+        rule: defaultRule,
       } satisfies RowActionConfig<T>;
       continue;
     }
@@ -40,8 +45,7 @@ export function applyArchiveModeDefaultRules<T extends Record<string, unknown>>(
     if (userConfig === true) {
       result[actionKey] = {
         isEnabled: true,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is any string, not a proven key of T; preserve the existing generated boolean rule contract.
-        rule: defaultRule as RowActionRule<T>,
+        rule: defaultRule,
       } satisfies RowActionConfig<T>;
       continue;
     }
@@ -51,10 +55,8 @@ export function applyArchiveModeDefaultRules<T extends Record<string, unknown>>(
       result[actionKey] = {
         ...userConfig,
         rule: userConfig.rule
-          ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is not proven to name a boolean field of T; retain the generated rule composition.
-            { and: [defaultRule as RowActionRule<T>, userConfig.rule] }
-          : // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is not proven to name a boolean field of T; retain the generated default rule.
-            (defaultRule as RowActionRule<T>),
+          ? { and: [defaultRule, userConfig.rule] }
+          : defaultRule,
       } satisfies RowActionConfig<T>;
     }
   }

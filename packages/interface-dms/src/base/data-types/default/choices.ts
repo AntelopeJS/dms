@@ -85,15 +85,16 @@ export class SelectType extends DataType {
   }
 
   getValidation() {
-    const validValues = this.options.items.map((item) => String(item.value));
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
+    const validValues = this.options.items.map((item) =>
+      String(item.value),
+    ) as [string, ...string[]];
 
     if (this.options.multiple) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
-      return z.array(z.enum(validValues as [string, ...string[]]));
+      return z.array(z.enum(validValues));
     }
 
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
-    return z.enum(validValues as [string, ...string[]]);
+    return z.enum(validValues);
   }
 }
 

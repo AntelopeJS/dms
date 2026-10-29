@@ -70,8 +70,9 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts PropertyKey while the published column registry uses string keys; symbol and number inputs are not rejected or converted here.
-  meta.setColumn(key as string, options);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts PropertyKey while the column registry, the localization lookup and Filter take string keys; symbol and number inputs are not rejected or converted here.
+  const columnKey = key as string;
+  meta.setColumn(columnKey, options);
 
   if (options.validate !== false) {
     // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
@@ -89,11 +90,7 @@ export function decorateColumn(
       localized: isLocalized,
       required: false,
       fallbackLocale: isLocalized
-        ? LocalizationModifier.fallbackLocaleOf(
-            dataMeta.tableClass,
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator's PropertyKey is passed to a string-only localization API without checking symbol or number inputs.
-            key as string,
-          )
+        ? LocalizationModifier.fallbackLocaleOf(dataMeta.tableClass, columnKey)
         : undefined,
     });
 
@@ -105,8 +102,7 @@ export function decorateColumn(
   }
 
   if (options.filterable) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Filter expects a string field name but the published decorator accepts PropertyKey; preserving the adapter leaves that key-kind assumption unchecked.
-    Filter(options.type.filter.bind(options.type))(target, key as string);
+    Filter(options.type.filter.bind(options.type))(target, columnKey);
   }
 
   if (options.type.decorateField) {

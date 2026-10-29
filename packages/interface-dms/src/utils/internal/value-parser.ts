@@ -19,12 +19,12 @@ const KEYWORD_VALUES = {
   undefined: undefined,
 };
 
+const KEYWORD_LOOKUP = new Map(Object.entries(KEYWORD_VALUES));
+
 const STRING_TYPE_PARSERS = [
   {
     test: isStringKeyword,
-    parse: (value: string) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch checks isStringKeyword before parsing, but this private callback alone accepts any string; keep that unchecked lookup rather than change parser behavior.
-      KEYWORD_VALUES[value as keyof typeof KEYWORD_VALUES],
+    parse: (value: string) => KEYWORD_LOOKUP.get(value),
   },
   {
     test: isStringNumber,
